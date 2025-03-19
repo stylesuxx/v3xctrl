@@ -11,43 +11,31 @@ sequentially:
   Either the client is no longer reaching the server or has not received
   messages from the server for a certain amount of time.
 """
-import threading
 from typing import Tuple
-from enum import Enum
 import time
+import logging
 
 from .MessageHandler import MessageHandler
-from .Message import Message, Syn, Ack, Heartbeat, Telemetry, Command
-from .UDPTransmitter import UDPTransmitter
+from .Message import Message, Syn, Ack, Heartbeat, Telemetry, Control
+from .State import State
+from .Base import Base
+
+logging.basicConfig(level=logging.DEBUG)
 
 
-class State(Enum):
-    WAITING = "waiting"
-    CONNECTED = "connected"
-    DISCONNECTED = "disconnected"
-
-
-class Client(threading.Thread):
+class Client(Base):
     def __init__(self, host, port):
-        super().__init__(daemon=True)
+        super().__init__()
 
         self.host = host
         self.port = port
 
-        self.message_history = []
-        self.message_history_length = 50
+        # Re-use the same socket that we use for sending, for listening
+        self.sock = self.transmitter.get_socket()
 
-        self.running = threading.Event()
-        self.running.clear()
-
-        self.started = threading.Event()
-        self.started.clear()
-
-        # Setup message handler with host validation
-        self.message_handler = MessageHandler(self.port, host)
-        self.transmitter = UDPTransmitter()
-
-        self.state = State.WAITING
+        # Setup message handler with host validation and custom socket
+        self.message_handler = MessageHandler(None, host)
+        self.message_handler.set_socket(self.sock)
 
         self.interval = {
             "syn": 1,
@@ -62,23 +50,20 @@ class Client(threading.Thread):
         """
         self.message_history.append((message, addr))
         self.message_history = self.message_history[-self.message_history_length:]
+        self.last_message_timestamp = time.time()
 
     def syn_handler(self, message: Syn, addr: Tuple[str, int]) -> None:
         self.send(Ack())
 
     def ack_handler(self, message: Ack, addr: Tuple[str, int]) -> None:
         self.state = State.CONNECTED
+        print("Got Ack")
 
     def heartbeat_handler(self, message: Heartbeat, addr: Tuple[str, int]) -> None:
         pass
 
-    def command_handler(self, message: Command, addr: Tuple[str, int]) -> None:
-        # Handle incoming commands by controling the actualtors
-        pass
-
-    def get_last_address(self) -> Tuple[str, int]:
-        if self.message_history:
-            return self.message_history[-1][1]
+    def control_handler(self, message: Control, addr: Tuple[str, int]) -> None:
+        logging.debug(f"Received control message: {message}")
 
     def send(self, message: Message) -> None:
         """ Messages are always sent to the configured host and port. """
@@ -104,26 +89,28 @@ class Client(threading.Thread):
         self.message_handler.start()
 
         self.message_handler.add_handler(Message, self.all_handler)
-        self.message_handler.add_handler(Syn, self.syn_handler)
+        # self.message_handler.add_handler(Syn, self.syn_handler)
         self.message_handler.add_handler(Ack, self.ack_handler)
-        self.message_handler.add_handler(Heartbeat, self.heartbeat_handler)
+        # self.message_handler.add_handler(Heartbeat, self.heartbeat_handler)
+        self.message_handler.add_handler(Control, self.control_handler)
 
         self.running.set()
         while self.running.is_set():
+            if self.state == State.DISCONNECTED:
+                break
+
             if self.state == State.WAITING:
                 self.send(Syn())
                 time.sleep(self.interval["syn"])
+            else:
+                self.check_timeout()
 
             if self.state == State.CONNECTED:
                 self.update_telemetry()
                 self.check_connection()
                 time.sleep(self.interval["telemetry"])
 
-            if self.state == State.DISCONNECTED:
-                self.stop()
-
-        self.message_handler.join()
-        self.transmitter.join()
+        self.stop()
 
     def stop(self):
         if self.started.is_set():
@@ -133,5 +120,8 @@ class Client(threading.Thread):
 
             self.message_handler.stop()
             self.transmitter.stop()
+
+            self.message_handler.join()
+            self.transmitter.join()
 
             self.running.clear()

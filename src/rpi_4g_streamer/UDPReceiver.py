@@ -30,11 +30,16 @@ class UDPReceiver(threading.Thread):
         self.should_validate_host = False
         self.valid_host = None
 
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.bind(("0.0.0.0", port))
+        self.sock = None
+        if self.port:
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.sock.bind(("0.0.0.0", port))
 
         self.running = threading.Event()
         self.running.clear()
+
+    def set_socket(self, sock: socket.socket) -> None:
+        self.sock = sock
 
     def run(self) -> None:
         self.running.set()

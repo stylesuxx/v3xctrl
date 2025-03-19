@@ -1,38 +1,22 @@
-import threading
+import logging
 from typing import Tuple
-from enum import Enum
 import time
 
 from .MessageHandler import MessageHandler
-from .UDPTransmitter import UDPTransmitter
 from .Message import Message, Syn, Ack, Telemetry, Control
+from .State import State
+from .Base import Base
+
+logging.basicConfig(level=logging.DEBUG)
 
 
-class State(Enum):
-    WAITING = "waiting"
-    CONNECTED = "connected"
-    DISCONNECTED = "disconnected"
-
-
-class Server(threading.Thread):
+class Server(Base):
     def __init__(self, port):
-        super().__init__(daemon=True)
+        super().__init__()
 
         self.port = port
-
-        self.message_history = []
-        self.message_history_length = 50
-
-        self.running = threading.Event()
-        self.running.clear()
-
-        self.started = threading.Event()
-        self.started.clear()
-
+        self.no_message_timeout = 10
         self.message_handler = MessageHandler(self.port)
-        self.transmitter = UDPTransmitter()
-
-        self.state = State.WAITING
 
     def all_handler(self, message: Message, addr: Tuple[str, int]) -> None:
         """
@@ -42,21 +26,16 @@ class Server(threading.Thread):
         """
         self.message_history.append((message, addr))
         self.message_history = self.message_history[-self.message_history_length:]
+        self.last_message_timestamp = time.time()
 
     def syn_handler(self, message: Syn, addr: Tuple[str, int]) -> None:
         self.send(Ack(), addr)
-        self.state = State.CONNECTED
+        self.handle_state_change(State.CONNECTED)
 
     def telemetry_handler(self, message: Telemetry, addr: Tuple[str, int]) -> None:
-        print(message)
+        logging.debug(f"Received telemetry message: {message}")
 
-    def send(self, message: Message, addr: Tuple[str, int]) -> None:
-        self.transmitter.add_message(message, addr)
-
-    def get_last_address(self) -> Tuple[str, int]:
-        return self.message_history[-1][1]
-
-    def update_controlls(self):
+    def update_controls(self):
         control = Control({
             "ctrl_1": "val_1"
         })
@@ -77,24 +56,31 @@ class Server(threading.Thread):
 
         self.running.set()
         while self.running.is_set():
+            if self.state == State.DISCONNECTED:
+                break
+
             if self.state == State.WAITING:
-                """ Wait for client to connect. """
-                print("Waiting for client...")
                 time.sleep(1)
+            else:
+                self.check_timeout()
+
             if self.state == State.CONNECTED:
-                self.update_controlls()
+                self.update_controls()
                 time.sleep(1)
 
-        self.message_handler.join()
-        self.transmitter.join()
+        self.stop()
 
     def stop(self):
         if self.started.is_set():
             self.started.clear()
 
+            # Wait for the setup to be done before tearing everything down
             self.running.wait()
 
             self.message_handler.stop()
             self.transmitter.stop()
+
+            self.message_handler.join()
+            self.transmitter.join()
 
             self.running.clear()

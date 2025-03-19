@@ -7,6 +7,7 @@ all of them. Message handlers are triggered in the order they are registered.
 """
 
 import threading
+import socket
 from typing import Callable, Tuple
 
 from .UDPReceiver import UDPReceiver
@@ -14,7 +15,7 @@ from .Message import Message
 
 
 class MessageHandler(threading.Thread):
-    def __init__(self, port: int, valid_host: str = None):
+    def __init__(self, port: int = None, valid_host: str = None):
         super().__init__(daemon=True)
 
         self.port = port
@@ -29,6 +30,9 @@ class MessageHandler(threading.Thread):
 
         self.running = threading.Event()
         self.running.clear()
+
+    def set_socket(self, sock: socket.socket) -> None:
+        self.rx.set_socket(sock)
 
     def handler(self, message: Message, addr: Tuple[str, int]) -> None:
         for h in self.handlers:
