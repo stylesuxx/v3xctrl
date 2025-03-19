@@ -26,12 +26,14 @@ class UDPTransmitter(threading.Thread):
     def __init__(self):
         super().__init__(daemon=True)
 
-        self.running = threading.Event()
         self.queue = Queue()
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setblocking(False)
         self.loop = asyncio.new_event_loop()
         self.task = None
+
+        self.running = threading.Event()
+        self.running.clear()
 
     def add(self, udp_packet: UDPPacket) -> None:
         self.queue.put(udp_packet)

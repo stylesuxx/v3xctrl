@@ -1,11 +1,11 @@
-import unittest
 from unittest.mock import Mock
 import time
 
 from src.rpi_4g_streamer import UDPReceiver, UDPTransmitter, Heartbeat, UDPPacket
 
-PORT = 6666
+
 HOST = '127.0.0.1'
+PORT = 6666
 
 
 def test_udp_transmit_receive():

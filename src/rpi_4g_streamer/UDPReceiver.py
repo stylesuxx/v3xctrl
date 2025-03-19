@@ -20,15 +20,17 @@ BUFFERSIZE = 4096
 
 class UDPReceiver(threading.Thread):
     def __init__(self, port: int, handler: Callable[[Message, str], None]):
-        super().__init__()
+        super().__init__(daemon=True)
 
         self.port = port
         self.handler = handler
-
         self.last_timestamp = 0
-        self.running = threading.Event()
+
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.bind(("0.0.0.0", port))
+
+        self.running = threading.Event()
+        self.running.clear()
 
     def run(self) -> None:
         self.running.set()
