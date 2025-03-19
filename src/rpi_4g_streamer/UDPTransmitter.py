@@ -1,0 +1,59 @@
+"""
+Transmit UDP packets that are being added to the queue.
+
+Uses asyncio under the hood for the actual sending. There is no sanity checking
+happening, as long as a valid UDP packet is added to the queue, it will be sent.
+
+Since asyncio is used, its not enough to just run this Class, but instead you
+also need to trigger starting of the task:
+
+tx = UPDTransmitter()
+tx.start()
+tx.start_task()
+...
+tx.stop()
+tx.join()
+"""
+import asyncio
+from queue import Queue
+import socket
+import threading
+
+from .UDPPacket import UDPPacket
+
+
+class UDPTransmitter(threading.Thread):
+    def __init__(self):
+        super().__init__(daemon=True)
+
+        self.running = threading.Event()
+        self.queue = Queue()
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock.setblocking(False)
+        self.loop = asyncio.new_event_loop()
+        self.task = None
+
+    def add(self, udp_packet: UDPPacket) -> None:
+        self.queue.put(udp_packet)
+
+    def run(self) -> None:
+        self.running.set()
+        asyncio.set_event_loop(self.loop)
+        self.loop.run_forever()
+
+    async def process(self):
+        while self.running.is_set():
+            try:
+                packet = self.queue.get(timeout=1)
+                address = (packet.host, packet.port)
+                await self.loop.sock_sendto(self.sock, packet.data, address)
+            except self.queue.Empty:
+                pass
+
+    def start_task(self):
+        self.task = asyncio.run_coroutine_threadsafe(self.process(), self.loop)
+
+    def stop(self) -> None:
+        if self.running.is_set():
+            self.running.clear()
+            self.loop.call_soon_threadsafe(self.loop.stop)

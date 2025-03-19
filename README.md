@@ -98,6 +98,9 @@ python helpers/self_test/client.py 192.168.0.1 6666
 
 Output will be displayed from the server script.
 
+### Bash scripts
+The `bash` directory contains a few bash scripts that might be usefull for quickly testing different gstreamer pipelines.
+
 
 ## Development
 
