@@ -8,7 +8,7 @@ valid the following conditions must be met:
 """
 import threading
 import socket
-from typing import Callable
+from typing import Callable, Tuple
 import select
 
 from .Message import Message
@@ -19,7 +19,7 @@ BUFFERSIZE = 4096
 
 
 class UDPReceiver(threading.Thread):
-    def __init__(self, port: int, handler: Callable[[Message, str], None]):
+    def __init__(self, port: int, handler: Callable[[Message, Tuple[str, int]], None]):
         super().__init__(daemon=True)
 
         self.port = port

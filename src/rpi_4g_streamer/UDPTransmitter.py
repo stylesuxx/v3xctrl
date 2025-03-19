@@ -18,8 +18,10 @@ import asyncio
 from queue import Queue
 import socket
 import threading
+from typing import Tuple
 
 from .UDPPacket import UDPPacket
+from .Message import Message
 
 
 class UDPTransmitter(threading.Thread):
@@ -34,6 +36,11 @@ class UDPTransmitter(threading.Thread):
 
         self.running = threading.Event()
         self.running.clear()
+
+    def add_message(self, message: Message, addr: Tuple[str, int]):
+        """ Convenience function to add a message to the queue."""
+        packet = UDPPacket(message.to_bytes(), addr[0], addr[1])
+        self.queue.put(packet)
 
     def add(self, udp_packet: UDPPacket) -> None:
         self.queue.put(udp_packet)

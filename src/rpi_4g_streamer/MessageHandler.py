@@ -7,7 +7,7 @@ all of them.
 """
 
 import threading
-from typing import Callable
+from typing import Callable, Tuple
 
 from .UDPReceiver import UDPReceiver
 from .Message import Message
@@ -28,12 +28,12 @@ class MessageHandler(threading.Thread):
         self.running = threading.Event()
         self.running.clear()
 
-    def handler(self, message: Message, addr: str) -> None:
+    def handler(self, message: Message, addr: Tuple[str, int]) -> None:
         for h in self.handlers:
             if isinstance(message, h['type']):
                 h['handler'](message, addr)
 
-    def add_handler(self, cls: type, handler: Callable[[Message, str], None]) -> None:
+    def add_handler(self, cls: type, handler: Callable[[Message, Tuple[str, int]], None]) -> None:
         self.handlers.append({
             "type": cls,
             "handler": handler
