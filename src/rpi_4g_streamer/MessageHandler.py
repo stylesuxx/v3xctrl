@@ -3,7 +3,7 @@ MessageHandler handles incoming UDP messages and forwards them to registered
 handlers.
 
 Every message type can have mutliple handlers and the message is forwarded to
-all of them.
+all of them. Message handlers are triggered in the order they are registered.
 """
 
 import threading
@@ -14,13 +14,15 @@ from .Message import Message
 
 
 class MessageHandler(threading.Thread):
-    def __init__(self, port: int):
+    def __init__(self, port: int, valid_host: str = None):
         super().__init__(daemon=True)
 
         self.port = port
         self.handlers = []
 
         self.rx = UDPReceiver(self.port, self.handler)
+        if valid_host:
+            self.rx.validate_host(valid_host)
 
         self.started = threading.Event()
         self.started.clear()
