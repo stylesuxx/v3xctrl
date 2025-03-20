@@ -2,6 +2,7 @@ import argparse
 import socket
 import struct
 import time
+import os
 
 parser = argparse.ArgumentParser(description="Test connection performance.")
 parser.add_argument("port", type=int, help="The target port number")
@@ -12,7 +13,7 @@ PORT = args.port
 BUFFER_SIZE = 4096
 
 
-def speed_test_server():
+def speed_test_client_to_server():
     received_bytes = 0
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.bind((HOST, PORT))
@@ -33,8 +34,35 @@ def speed_test_server():
         duration = end_time - start_time
         speed_mbps = (received_bytes * 8) / (duration * 1000000)
 
-        print("--- Upload Test Results ---")
+        print("--- Download Test Results (Client -> Server) ---")
         print(f"Received {received_bytes / (1024*1024):.2f} MB in {duration:.2f} seconds")
+        print(f"Download speed: {speed_mbps:.2f} Mbps")
+
+
+def speed_test_server_to_client():
+    BUFFER_SIZE = 4096
+    FILE_SIZE = 10 * 1024 * 1024  # 10MB
+    data = os.urandom(FILE_SIZE)  # Generate 10MB of random data
+
+    sent_bytes = 0
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind((HOST, PORT))
+        sock.listen(1)
+
+        conn, addr = sock.accept()
+        print(f"Connection from {addr}")
+
+        start_time = time.time()
+        while sent_bytes < FILE_SIZE:
+            chunk = data[sent_bytes:sent_bytes+BUFFER_SIZE]
+            conn.sendall(chunk)
+            sent_bytes += len(chunk)
+        end_time = time.time()
+        duration = end_time - start_time
+        speed_mbps = (sent_bytes * 8) / (duration * 1000000)
+
+        print("--- Upload Test Results (Server -> Client) ---")
+        print(f"Sent {sent_bytes / (1024*1024):.2f} MB in {duration:.2f} seconds")
         print(f"Upload speed: {speed_mbps:.2f} Mbps")
 
 
@@ -85,7 +113,10 @@ def udp_hole_duration():
 
 if __name__ == "__main__":
     print(f"# Server waiting on upload: {HOST}:{PORT}")
-    speed_test_server()
+    speed_test_client_to_server()
+
+    print(f"# Server waiting to download: {HOST}:{PORT}")
+    speed_test_server_to_client()
 
     print(f"\n# UDP echo server listening on {HOST}:{PORT}")
     udp_latency_server()

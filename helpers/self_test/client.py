@@ -30,6 +30,18 @@ def upload_test():
             sent_bytes += len(chunk)
 
 
+def download_test():
+    BUFFER_SIZE = 4096
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+        client_socket.settimeout(5)
+
+        client_socket.connect((SERVER_IP, PORT))
+        while True:
+            data = client_socket.recv(BUFFER_SIZE)
+            if not data:
+                break
+
+
 def udp_rtt_test():
     BUFFER_SIZE = 1024
     NUM_PACKETS = 100
@@ -47,6 +59,7 @@ def udp_rtt_test():
 
                 end_time = time.time()
                 rtt_ms = (end_time - start_time) * 1000
+
 
                 latencies.append(rtt_ms)
 
@@ -92,8 +105,12 @@ def udp_hole_test():
 if __name__ == "__main__":
     print(f"Connecting to {SERVER_IP}:{PORT}")
 
-    print("Starting speed test...")
+    print("Starting upload test...")
     upload_test()
+
+    print("Starting download test...")
+    time.sleep(5)
+    download_test()
 
     print("Starting UDP RTT test...")
     udp_rtt_test()
