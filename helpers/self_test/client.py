@@ -90,15 +90,13 @@ def udp_hole_test():
 
 
 if __name__ == "__main__":
-    """
     print(f"Connecting to {SERVER_IP}:{PORT}")
 
     print("Starting speed test...")
     upload_test()
 
     print("Starting UDP RTT test...")
-    udp_rtt_test()"
-    """
+    udp_rtt_test()
 
     print("Starting UDP hole duration test...")
     time.sleep(5)

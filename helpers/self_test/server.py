@@ -84,13 +84,11 @@ def udp_hole_duration():
 
 
 if __name__ == "__main__":
-    """
     print(f"# Server waiting on upload: {HOST}:{PORT}")
     speed_test_server()
 
     print(f"\n# UDP echo server listening on {HOST}:{PORT}")
     udp_latency_server()
-    """
 
     print(f"\n# UDP hole duration server listening on {HOST}:{PORT}")
     udp_hole_duration()
