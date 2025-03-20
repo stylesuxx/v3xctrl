@@ -14,7 +14,9 @@ sequentially:
 from typing import Tuple
 import time
 import logging
+import socket
 
+from .UDPTransmitter import UDPTransmitter
 from .MessageHandler import MessageHandler
 from .Message import Message, Syn, Ack, Heartbeat, Telemetry, Control
 from .State import State
@@ -31,11 +33,12 @@ class Client(Base):
         self.port = port
 
         # Re-use the same socket that we use for sending, for listening
-        self.sock = self.transmitter.get_socket()
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.socket.settimeout(1)
 
         # Setup message handler with host validation and custom socket
-        self.message_handler = MessageHandler(None, host)
-        self.message_handler.set_socket(self.sock)
+        self.transmitter = UDPTransmitter(self.socket)
+        self.message_handler = MessageHandler(self.socket, host)
 
         self.interval = {
             "syn": 1,

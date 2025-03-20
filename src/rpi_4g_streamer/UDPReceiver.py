@@ -20,34 +20,29 @@ BUFFERSIZE = 4096
 
 
 class UDPReceiver(threading.Thread):
-    def __init__(self, port: int, handler: Callable[[Message, Tuple[str, int]], None]):
+    def __init__(self, sock: socket.socket, handler: Callable[[Message, Tuple[str, int]], None]):
         super().__init__(daemon=True)
 
-        self.port = port
+        self.socket = sock
         self.handler = handler
         self.last_timestamp = 0
 
         self.should_validate_host = False
         self.valid_host = None
 
-        self.sock = None
-        if self.port:
-            self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            self.sock.bind(("0.0.0.0", port))
-
         self.running = threading.Event()
         self.running.clear()
 
     def set_socket(self, sock: socket.socket) -> None:
-        self.sock = sock
+        self.socket = sock
 
     def run(self) -> None:
         self.running.set()
         while self.running.is_set():
             try:
-                ready, _, _ = select.select([self.sock], [], [], TIMEOUT)
+                ready, _, _ = select.select([self.socket], [], [], TIMEOUT)
                 if ready:
-                    data, addr = self.sock.recvfrom(BUFFERSIZE)
+                    data, addr = self.socket.recvfrom(BUFFERSIZE)
 
                     if data:
                         try:
@@ -71,4 +66,3 @@ class UDPReceiver(threading.Thread):
     def stop(self) -> None:
         if self.running.is_set():
             self.running.clear()
-            self.sock.close()

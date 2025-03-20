@@ -15,13 +15,13 @@ from .Message import Message
 
 
 class MessageHandler(threading.Thread):
-    def __init__(self, port: int = None, valid_host: str = None):
+    def __init__(self, sock: socket.socket, valid_host: str = None):
         super().__init__(daemon=True)
 
-        self.port = port
+        self.socket = sock
         self.handlers = []
 
-        self.rx = UDPReceiver(self.port, self.handler)
+        self.rx = UDPReceiver(self.socket, self.handler)
         if valid_host:
             self.rx.validate_host(valid_host)
 
@@ -30,9 +30,6 @@ class MessageHandler(threading.Thread):
 
         self.running = threading.Event()
         self.running.clear()
-
-    def set_socket(self, sock: socket.socket) -> None:
-        self.rx.set_socket(sock)
 
     def handler(self, message: Message, addr: Tuple[str, int]) -> None:
         for h in self.handlers:

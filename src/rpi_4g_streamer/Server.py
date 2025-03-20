@@ -1,7 +1,9 @@
 import logging
 from typing import Tuple
 import time
+import socket
 
+from .UDPTransmitter import UDPTransmitter
 from .MessageHandler import MessageHandler
 from .Message import Message, Syn, Ack, Telemetry, Control
 from .State import State
@@ -16,7 +18,13 @@ class Server(Base):
 
         self.port = port
         self.no_message_timeout = 10
-        self.message_handler = MessageHandler(self.port)
+
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.socket.bind(('0.0.0.0', self.port))
+        self.socket.settimeout(1)
+
+        self.transmitter = UDPTransmitter(self.socket)
+        self.message_handler = MessageHandler(self.socket)
 
     def all_handler(self, message: Message, addr: Tuple[str, int]) -> None:
         """
@@ -30,7 +38,8 @@ class Server(Base):
 
     def syn_handler(self, message: Syn, addr: Tuple[str, int]) -> None:
         self.send(Ack(), addr)
-        self.handle_state_change(State.CONNECTED)
+        if self.state == State.WAITING:
+            self.handle_state_change(State.CONNECTED)
 
     def telemetry_handler(self, message: Telemetry, addr: Tuple[str, int]) -> None:
         logging.debug(f"Received telemetry message: {message}")

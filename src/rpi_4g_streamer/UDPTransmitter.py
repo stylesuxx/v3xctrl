@@ -26,23 +26,18 @@ from .Message import Message
 
 
 class UDPTransmitter(threading.Thread):
-    def __init__(self):
+    def __init__(self, sock: socket.socket):
         super().__init__()
 
-        self.queue = Queue()
+        self.socket = sock
 
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.setblocking(False)
+        self.queue = Queue()
 
         self.loop = asyncio.new_event_loop()
         self.task = None
 
         self.running = threading.Event()
         self.process_stopped = threading.Event()
-
-    def get_socket(self) -> socket.socket:
-        """ In case the socket for sending should be re-used for listening. """
-        return self.sock
 
     def add_message(self, message: Message, addr: Tuple[str, int]):
         """ Convenience function to add a message to the queue."""
@@ -62,8 +57,8 @@ class UDPTransmitter(threading.Thread):
             try:
                 packet = self.queue.get(timeout=1)
                 address = (packet.host, packet.port)
-                # await self.loop.sock_sendto(self.sock, packet.data, address)
-                self.sock.sendto(packet.data, address)
+                # await self.loop.sock_sendto(self.socket, packet.data, address)
+                self.socket.sendto(packet.data, address)
                 self.queue.task_done()
                 print(f"Sent to: {address}")
             except Empty:
@@ -88,4 +83,3 @@ class UDPTransmitter(threading.Thread):
             self.task.cancel()
             self.loop.call_soon_threadsafe(self.loop.stop)
 
-        self.sock.close()

@@ -25,9 +25,10 @@ class Base(threading.Thread):
         self.started = threading.Event()
         self.started.clear()
 
-        self.transmitter = UDPTransmitter()
-
         self.state = State.WAITING
+
+        self.transmitter = None
+        self.message_handler = None
 
         # The server timeout should be longer than on the client. This way
         # it is possible to recover a lost connection
