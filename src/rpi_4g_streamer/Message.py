@@ -22,18 +22,18 @@ class Message(abc.ABC):
     def to_bytes(self) -> bytes:
         """Serialize the message to bytes using msgpack."""
         return msgpack.packb({
-            "type": self.__class__.__name__,
-            "payload": self.payload,
-            "timestamp": self.timestamp,
+            "t": self.__class__.__name__,
+            "p": self.payload,
+            "d": self.timestamp,
         })
 
     @classmethod
     def from_bytes(cls, data: bytes):
         """Dynamically deserialize bytes into the correct message subclass."""
         obj = msgpack.unpackb(data)
-        msg_type = obj["type"]
-        timestamp = obj["timestamp"]
-        payload = obj["payload"]
+        msg_type = obj["t"]
+        timestamp = obj["d"]
+        payload = obj["p"]
 
         if msg_type in cls._registry:
             return cls._registry[msg_type](**payload, timestamp=timestamp)
@@ -48,9 +48,7 @@ class Telemetry(Message):
     """Message type for telemetry data."""
 
     def __init__(self, values: dict = {}, timestamp: float = None):
-        super().__init__({
-            "values": values
-        }, timestamp)
+        super().__init__(values, timestamp)
 
         self.value = values
 
@@ -59,27 +57,9 @@ class Control(Message):
     """Message type for telemetry data."""
 
     def __init__(self, values: dict = {}, timestamp: float = None):
-        super().__init__({
-            "values": values
-        }, timestamp)
+        super().__init__(values, timestamp)
 
         self.value = values
-
-
-class Command(Message):
-    """Message type for command data."""
-
-    def __init__(self, command: str, timestamp: float = None):
-        super().__init__({
-            "command": command
-        }, timestamp)
-
-        self.value = command
-
-
-class Heartbeat(Message):
-    def __init__(self, timestamp: float = None):
-        super().__init__({}, timestamp)
 
 
 class Syn(Message):
@@ -88,5 +68,21 @@ class Syn(Message):
 
 
 class Ack(Message):
+    def __init__(self, timestamp: float = None):
+        super().__init__({}, timestamp)
+
+
+class Command(Message):
+    """Message type for command data."""
+
+    def __init__(self, command: str, timestamp: float = None):
+        super().__init__({
+            "cmd": command
+        }, timestamp)
+
+        self.value = command
+
+
+class Heartbeat(Message):
     def __init__(self, timestamp: float = None):
         super().__init__({}, timestamp)

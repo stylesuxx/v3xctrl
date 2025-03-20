@@ -8,8 +8,8 @@ parser = argparse.ArgumentParser(description="Test connection performance.")
 parser.add_argument("port", type=int, help="The target port number")
 args = parser.parse_args()
 
-HOST = "0.0.0.0"
 PORT = args.port
+HOST = "0.0.0.0"
 BUFFER_SIZE = 4096
 
 
@@ -40,7 +40,6 @@ def speed_test_client_to_server():
 
 
 def speed_test_server_to_client():
-    BUFFER_SIZE = 4096
     FILE_SIZE = 10 * 1024 * 1024  # 10MB
     data = os.urandom(FILE_SIZE)  # Generate 10MB of random data
 
@@ -115,7 +114,7 @@ if __name__ == "__main__":
     print(f"# Server waiting on upload: {HOST}:{PORT}")
     speed_test_client_to_server()
 
-    print(f"# Server waiting to download: {HOST}:{PORT}")
+    print(f"\n# Server waiting to download: {HOST}:{PORT}")
     speed_test_server_to_client()
 
     print(f"\n# UDP echo server listening on {HOST}:{PORT}")

@@ -46,7 +46,8 @@ class Server(Base):
 
     def update_controls(self):
         control = Control({
-            "ctrl_1": "val_1"
+            "ste": 50,
+            "thr": 0
         })
 
         addr = self.get_last_address()

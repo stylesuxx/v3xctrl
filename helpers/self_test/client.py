@@ -10,7 +10,7 @@ parser.add_argument("host", help="The target IP address")
 parser.add_argument("port", type=int, help="The target port number")
 args = parser.parse_args()
 
-SERVER_IP = args.host
+HOST = args.host
 PORT = args.port
 
 
@@ -22,7 +22,7 @@ def upload_test():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
         sent_bytes = 0
 
-        client_socket.connect((SERVER_IP, PORT))
+        client_socket.connect((HOST, PORT))
 
         while sent_bytes < FILE_SIZE:
             chunk = data[sent_bytes:sent_bytes+BUFFER_SIZE]
@@ -35,7 +35,7 @@ def download_test():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
         client_socket.settimeout(5)
 
-        client_socket.connect((SERVER_IP, PORT))
+        client_socket.connect((HOST, PORT))
         while True:
             data = client_socket.recv(BUFFER_SIZE)
             if not data:
@@ -54,12 +54,11 @@ def udp_rtt_test():
             try:
                 start_time = time.time()  # Record send time
 
-                client_socket.sendto(b"", (SERVER_IP, PORT))  # Send packet
+                client_socket.sendto(b"", (HOST, PORT))  # Send packet
                 data, _ = client_socket.recvfrom(BUFFER_SIZE)  # Wait for reply
 
                 end_time = time.time()
                 rtt_ms = (end_time - start_time) * 1000
-
 
                 latencies.append(rtt_ms)
 
@@ -78,7 +77,7 @@ def udp_rtt_test():
             results += f"Mean RTT: {mean_rtt:.2f} ms, Best RTT: {min_rtt:.2f} ms, Worst RTT: {max_rtt:.2f} ms\n"
             results += f"Estimated One-Way Latency (RTT/2): {mean_rtt/2:.2f} ms"
 
-            client_socket.sendto(results.encode("utf-8"), (SERVER_IP, PORT))
+            client_socket.sendto(results.encode("utf-8"), (HOST, PORT))
         else:
             print("\nAll packets were lost. Check your network!")
 
@@ -91,7 +90,7 @@ def udp_hole_test():
         timeout_value = TIMEOUT_INCREMENT
 
         while timeout_value <= MAX_TIMEOUT:
-            client_socket.sendto(struct.pack("d", timeout_value), (SERVER_IP, PORT))
+            client_socket.sendto(struct.pack("d", timeout_value), (HOST, PORT))
             client_socket.settimeout(timeout_value + 5)
 
             try:
@@ -103,7 +102,7 @@ def udp_hole_test():
 
 
 if __name__ == "__main__":
-    print(f"Connecting to {SERVER_IP}:{PORT}")
+    print(f"Connecting to {HOST}:{PORT}")
 
     print("Starting upload test...")
     upload_test()

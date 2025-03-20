@@ -103,7 +103,10 @@ class Client(Base):
                 break
 
             if self.state == State.WAITING:
-                self.send(Syn())
+                self.send(Control({
+                    "ste": 50,
+                    "thr": 0
+                }))
                 time.sleep(self.interval["syn"])
             else:
                 self.check_timeout()
