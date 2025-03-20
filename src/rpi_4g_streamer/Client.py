@@ -11,7 +11,7 @@ sequentially:
   Either the client is no longer reaching the server or has not received
   messages from the server for a certain amount of time.
 """
-from typing import Tuple
+from typing import Callable, Tuple
 import time
 import logging
 import socket
@@ -33,28 +33,33 @@ class Client(Base):
         self.port = port
         self.server_address = (self.host, self.port)
 
-        # Re-use the same socket that we use for sending, for listening
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.socket.settimeout(1)
-
-        # Setup message handler with host validation and custom socket
-        self.transmitter = UDPTransmitter(self.socket)
-        self.message_handler = MessageHandler(self.socket, host)
-
         self.interval = {
             "syn": 1,
-            "telemetry": 1,
         }
+
+        self.subscriptions = []
+
+        self.last_sent = None
+        self.last_sent_timeout = 1
 
     def all_handler(self, message: Message, addr: Tuple[str, int]) -> None:
         """
-        Generic message handler, should be called from each handler.
-        Is responsible for some general housekeeping:
-        - build and maintain message history
+        All messages are handled here.
+        Registered (external) handlers will get messages forwarded from here
         """
         self.message_history.append((message, addr))
         self.message_history = self.message_history[-self.message_history_length:]
         self.last_message_timestamp = time.time()
+
+        for subscription in self.subscriptions:
+            if subscription['type'] == type(message):
+                subscription['func'](message)
+
+    def subscribe(self, cls: type, handler: Callable[[Message], None]):
+        self.subscriptions.append({
+            "type": cls,
+            "func": handler
+        })
 
     def syn_handler(self, message: Syn, addr: Tuple[str, int]) -> None:
         self.send(Ack())
@@ -63,62 +68,77 @@ class Client(Base):
         if self.state == State.WAITING:
             self.handle_state_change(State.CONNECTED)
 
-    def heartbeat_handler(self, message: Heartbeat, addr: Tuple[str, int]) -> None:
-        pass
-
     def control_handler(self, message: Control, addr: Tuple[str, int]) -> None:
         logging.debug(f"Received control message: {message}")
 
     def send(self, message: Message) -> None:
         """ Messages are always sent to the server. """
-        self.transmitter.add_message(message, self.server_address)
+        if self.transmitter:
+            self.transmitter.add_message(message, self.server_address)
+            self.last_sent = time.time()
 
-    def update_telemetry(self):
-        telemetry = Telemetry({
-            "key_1": "value_1"
-        })
-        self.send(telemetry)
+    def check_heartbeat(self):
+        """
+        If nothing has been sent in a while, send a hearbeat to keep the hole
+        open.
+        """
+        now = time.time()
+        if now - self.last_sent > self.last_sent_timeout:
+            self.send(Heartbeat())
 
     def check_connection(self):
         # Make sure that we are still connected to the server
         # self.state = State.DISCONNECTED
         pass
 
-    def run(self):
-        self.started.set()
+    def initialize(self):
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.socket.settimeout(1)
+
+        self.transmitter = UDPTransmitter(self.socket)
+        self.message_handler = MessageHandler(self.socket, self.host)
 
         self.transmitter.start()
         self.transmitter.start_task()
 
         self.message_handler.start()
-
         self.message_handler.add_handler(Message, self.all_handler)
+        self.message_handler.add_handler(Syn, self.syn_handler)
         self.message_handler.add_handler(Ack, self.ack_handler)
-        self.message_handler.add_handler(Control, self.control_handler)
 
-        # self.message_handler.add_handler(Syn, self.syn_handler)
-        # self.message_handler.add_handler(Heartbeat, self.heartbeat_handler)
+    def re_initialize(self):
+        """ Cleanly tear down the current connection and build a new one."""
+        if self.running.is_set():
+            self.message_handler.stop()
+            self.transmitter.stop()
+
+            self.message_handler.join()
+            self.transmitter.join()
+
+            self.socket.close()
+
+        self.initialize()
+
+    def run(self):
+        self.started.set()
+
+        self.initialize()
 
         self.running.set()
         while self.running.is_set():
             if self.state == State.DISCONNECTED:
-                break
+                self.re_initialize()
+                self.handle_state_change(State.WAITING)
 
             if self.state == State.WAITING:
-                self.send(Control({
-                    "ste": 50,
-                    "thr": 0
-                }))
+                self.send(Syn())
                 time.sleep(self.interval["syn"])
             else:
                 self.check_timeout()
 
             if self.state == State.CONNECTED:
-                self.update_telemetry()
+                self.check_heartbeat()
                 self.check_connection()
-                time.sleep(self.interval["telemetry"])
-
-        self.stop()
 
     def stop(self):
         if self.started.is_set():
@@ -134,4 +154,4 @@ class Client(Base):
 
             self.running.clear()
 
-        self.socket.close()
+            self.socket.close()

@@ -27,6 +27,8 @@ class Base(threading.Thread):
 
         self.state = State.WAITING
 
+        # Initalization needs to be done in the implementing class
+        self.socket = None
         self.transmitter = None
         self.message_handler = None
 

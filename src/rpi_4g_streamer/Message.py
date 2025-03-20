@@ -69,7 +69,10 @@ class Control(Message):
             "v": v
         }, timestamp)
 
-        self.value = v
+        self.values = v
+
+    def get_values(self) -> dict:
+        return self.values
 
 
 class Syn(Message):

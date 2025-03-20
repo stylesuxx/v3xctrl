@@ -67,7 +67,7 @@ class Server(Base):
         self.running.set()
         while self.running.is_set():
             if self.state == State.DISCONNECTED:
-                break
+                self.handle_state_change(State.WAITING)
 
             if self.state == State.WAITING:
                 time.sleep(1)
@@ -77,8 +77,6 @@ class Server(Base):
             if self.state == State.CONNECTED:
                 self.update_controls()
                 time.sleep(1)
-
-        self.stop()
 
     def stop(self):
         if self.started.is_set():

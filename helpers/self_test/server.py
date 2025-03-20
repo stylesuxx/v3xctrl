@@ -16,6 +16,7 @@ BUFFER_SIZE = 4096
 def speed_test_client_to_server():
     received_bytes = 0
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.bind((HOST, PORT))
         sock.listen(1)
 
@@ -34,6 +35,8 @@ def speed_test_client_to_server():
         duration = end_time - start_time
         speed_mbps = (received_bytes * 8) / (duration * 1000000)
 
+        sock.close()
+
         print("--- Download Test Results (Client -> Server) ---")
         print(f"Received {received_bytes / (1024*1024):.2f} MB in {duration:.2f} seconds")
         print(f"Download speed: {speed_mbps:.2f} Mbps")
@@ -45,6 +48,7 @@ def speed_test_server_to_client():
 
     sent_bytes = 0
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.bind((HOST, PORT))
         sock.listen(1)
 
@@ -59,6 +63,8 @@ def speed_test_server_to_client():
         end_time = time.time()
         duration = end_time - start_time
         speed_mbps = (sent_bytes * 8) / (duration * 1000000)
+
+        sock.close()
 
         print("--- Upload Test Results (Server -> Client) ---")
         print(f"Sent {sent_bytes / (1024*1024):.2f} MB in {duration:.2f} seconds")
