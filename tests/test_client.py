@@ -1,11 +1,9 @@
 import time
+import socket
 
-from src.rpi_4g_streamer import UDPTransmitter, UDPPacket, Client
+from src.rpi_4g_streamer import UDPTransmitter, Client
 from src.rpi_4g_streamer import Heartbeat
-
-
-HOST = '127.0.0.1'
-PORT = 6666
+from .config import HOST, PORT, SLEEP
 
 
 def test_client():
@@ -16,18 +14,19 @@ def test_client():
 
 
 def test_client_receive():
+    sock_tx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock_tx.settimeout(1)
+
     client = Client(HOST, PORT)
     client.start()
 
-    tx = UDPTransmitter()
+    tx = UDPTransmitter(sock_tx)
     tx.start()
     tx.start_task()
 
-    heartbeat = Heartbeat()
-    packet = UDPPacket(heartbeat.to_bytes(), HOST, PORT)
-    tx.add(packet)
+    tx.add_message(Heartbeat(), (HOST, PORT))
 
-    time.sleep(3)
+    time.sleep(SLEEP)
 
     client.stop()
     tx.stop()

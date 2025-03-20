@@ -57,10 +57,8 @@ class UDPTransmitter(threading.Thread):
             try:
                 packet = self.queue.get(timeout=1)
                 address = (packet.host, packet.port)
-                # await self.loop.sock_sendto(self.socket, packet.data, address)
                 self.socket.sendto(packet.data, address)
                 self.queue.task_done()
-                print(f"Sent to: {address}")
             except Empty:
                 pass
             except OSError as e:
@@ -82,4 +80,3 @@ class UDPTransmitter(threading.Thread):
 
             self.task.cancel()
             self.loop.call_soon_threadsafe(self.loop.stop)
-

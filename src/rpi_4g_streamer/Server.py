@@ -94,3 +94,5 @@ class Server(Base):
             self.transmitter.join()
 
             self.running.clear()
+
+        self.socket.close()

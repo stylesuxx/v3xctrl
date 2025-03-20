@@ -1,3 +1,9 @@
+"""
+Short keys are used here on purpose in order to save space when packing the
+messages. Still, the attributes of the classes are descriptive and this is the
+only part the devs need to interact with, so this should not be too confusing.
+"""
+
 import abc
 import time
 import msgpack
@@ -47,19 +53,23 @@ class Message(abc.ABC):
 class Telemetry(Message):
     """Message type for telemetry data."""
 
-    def __init__(self, values: dict = {}, timestamp: float = None):
-        super().__init__(values, timestamp)
+    def __init__(self, v: dict = {}, timestamp: float = None):
+        super().__init__({
+            "v": v
+        }, timestamp)
 
-        self.value = values
+        self.value = v
 
 
 class Control(Message):
     """Message type for telemetry data."""
 
-    def __init__(self, values: dict = {}, timestamp: float = None):
-        super().__init__(values, timestamp)
+    def __init__(self, v: dict = {}, timestamp: float = None):
+        super().__init__({
+            "v": v
+        }, timestamp)
 
-        self.value = values
+        self.value = v
 
 
 class Syn(Message):
@@ -75,12 +85,12 @@ class Ack(Message):
 class Command(Message):
     """Message type for command data."""
 
-    def __init__(self, command: str, timestamp: float = None):
+    def __init__(self, c: str, timestamp: float = None):
         super().__init__({
-            "cmd": command
+            "c": c
         }, timestamp)
 
-        self.value = command
+        self.value = c
 
 
 class Heartbeat(Message):

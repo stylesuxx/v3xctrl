@@ -1,11 +1,8 @@
 import time
-
-from src.rpi_4g_streamer import UDPTransmitter, UDPPacket, Server
+import socket
+from src.rpi_4g_streamer import UDPTransmitter, Server
 from src.rpi_4g_streamer import Heartbeat
-
-
-HOST = '127.0.0.1'
-PORT = 6666
+from .config import HOST, PORT, SLEEP
 
 
 def test_server():
@@ -16,21 +13,24 @@ def test_server():
 
 
 def test_server_receive():
+    sock_tx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock_tx.settimeout(1)
+
     server = Server(PORT)
     server.start()
 
-    tx = UDPTransmitter()
+    tx = UDPTransmitter(sock_tx)
     tx.start()
     tx.start_task()
 
-    heartbeat = Heartbeat()
-    packet = UDPPacket(heartbeat.to_bytes(), HOST, PORT)
-    tx.add(packet)
+    tx.add_message(Heartbeat(), (HOST, PORT))
 
-    time.sleep(3)
+    time.sleep(SLEEP)
 
     server.stop()
     tx.stop()
 
     server.join()
     tx.join()
+
+    sock_tx.close()

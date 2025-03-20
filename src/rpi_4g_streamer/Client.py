@@ -31,6 +31,7 @@ class Client(Base):
 
         self.host = host
         self.port = port
+        self.server_address = (self.host, self.port)
 
         # Re-use the same socket that we use for sending, for listening
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -59,8 +60,8 @@ class Client(Base):
         self.send(Ack())
 
     def ack_handler(self, message: Ack, addr: Tuple[str, int]) -> None:
-        self.state = State.CONNECTED
-        print("Got Ack")
+        if self.state == State.WAITING:
+            self.handle_state_change(State.CONNECTED)
 
     def heartbeat_handler(self, message: Heartbeat, addr: Tuple[str, int]) -> None:
         pass
@@ -69,8 +70,8 @@ class Client(Base):
         logging.debug(f"Received control message: {message}")
 
     def send(self, message: Message) -> None:
-        """ Messages are always sent to the configured host and port. """
-        self.transmitter.add_message(message, (self.host, self.port))
+        """ Messages are always sent to the server. """
+        self.transmitter.add_message(message, self.server_address)
 
     def update_telemetry(self):
         telemetry = Telemetry({
@@ -92,10 +93,11 @@ class Client(Base):
         self.message_handler.start()
 
         self.message_handler.add_handler(Message, self.all_handler)
-        # self.message_handler.add_handler(Syn, self.syn_handler)
         self.message_handler.add_handler(Ack, self.ack_handler)
-        # self.message_handler.add_handler(Heartbeat, self.heartbeat_handler)
         self.message_handler.add_handler(Control, self.control_handler)
+
+        # self.message_handler.add_handler(Syn, self.syn_handler)
+        # self.message_handler.add_handler(Heartbeat, self.heartbeat_handler)
 
         self.running.set()
         while self.running.is_set():
@@ -131,3 +133,5 @@ class Client(Base):
             self.transmitter.join()
 
             self.running.clear()
+
+        self.socket.close()

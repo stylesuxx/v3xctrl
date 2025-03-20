@@ -1,16 +1,34 @@
 from unittest.mock import Mock
 import time
+import socket
+import pytest
 
 from src.rpi_4g_streamer import MessageHandler
-from src.rpi_4g_streamer import UDPPacket, Heartbeat, Ack, UDPTransmitter
+from src.rpi_4g_streamer import Heartbeat, Ack, UDPTransmitter
+from .config import HOST, PORT, SLEEP
 
 
-HOST = '127.0.0.1'
-PORT = 6666
+@pytest.fixture(scope="function", autouse=True)
+def setup_teardown():
+    global sock_tx, sock_rx
+    sock_tx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock_tx.settimeout(1)
+
+    sock_rx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock_rx.bind((HOST, PORT))
+    sock_rx.settimeout(1)
+
+    yield  # Run tests
+
+    # Post-test teardown: Close sockets
+    sock_tx.close()
+    sock_rx.close()
 
 
 def test_message_handler():
-    handler = MessageHandler(PORT)
+    global sock_tx, sock_rx
+
+    handler = MessageHandler(sock_rx)
     handler.start()
     handler.stop()
     handler.join()
@@ -19,23 +37,23 @@ def test_message_handler():
 
 
 def test_message_handler_handle_heartbeat():
+    global sock_tx, sock_rx
+
     hh_handler = Mock()
 
-    handler = MessageHandler(PORT)
+    handler = MessageHandler(sock_rx)
     handler.start()
 
     handler.add_handler(Heartbeat, hh_handler)
 
-    transmitter = UDPTransmitter()
+    transmitter = UDPTransmitter(sock_tx)
     transmitter.start()
     transmitter.start_task()
 
-    heartbeat = Heartbeat()
-    packet = UDPPacket(heartbeat.to_bytes(), HOST, PORT)
-    transmitter.add(packet)
+    transmitter.add_message(Heartbeat(), (HOST, PORT))
 
     # Allow some time to finish processing
-    time.sleep(1)
+    time.sleep(SLEEP)
 
     transmitter.stop()
     transmitter.join()
@@ -48,25 +66,25 @@ def test_message_handler_handle_heartbeat():
 
 
 def test_message_handler_multi_handler():
+    global sock_tx, sock_rx
+
     hh_handler_1 = Mock()
     hh_handler_2 = Mock()
 
-    handler = MessageHandler(PORT)
+    handler = MessageHandler(sock_rx)
     handler.start()
 
     handler.add_handler(Heartbeat, hh_handler_1)
     handler.add_handler(Heartbeat, hh_handler_2)
 
-    transmitter = UDPTransmitter()
+    transmitter = UDPTransmitter(sock_tx)
     transmitter.start()
     transmitter.start_task()
 
-    heartbeat = Heartbeat()
-    packet = UDPPacket(heartbeat.to_bytes(), HOST, PORT)
-    transmitter.add(packet)
+    transmitter.add_message(Heartbeat(), (HOST, PORT))
 
     # Allow some time to finish processing
-    time.sleep(1)
+    time.sleep(SLEEP)
 
     transmitter.stop()
     transmitter.join()
@@ -80,29 +98,26 @@ def test_message_handler_multi_handler():
 
 
 def test_message_handler_different_handler():
+    global sock_tx, sock_rx
+
     handler_1 = Mock()
     handler_2 = Mock()
 
-    handler = MessageHandler(PORT)
+    handler = MessageHandler(sock_rx)
     handler.start()
 
     handler.add_handler(Heartbeat, handler_1)
     handler.add_handler(Ack, handler_2)
 
-    transmitter = UDPTransmitter()
+    transmitter = UDPTransmitter(sock_tx)
     transmitter.start()
     transmitter.start_task()
 
-    heartbeat = Heartbeat()
-    packet = UDPPacket(heartbeat.to_bytes(), HOST, PORT)
-    transmitter.add(packet)
-
-    ack = Ack()
-    packet = UDPPacket(ack.to_bytes(), HOST, PORT)
-    transmitter.add(packet)
+    transmitter.add_message(Heartbeat(), (HOST, PORT))
+    transmitter.add_message(Ack(), (HOST, PORT))
 
     # Allow some time to finish processing
-    time.sleep(1)
+    time.sleep(SLEEP)
 
     transmitter.stop()
     transmitter.join()
