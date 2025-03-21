@@ -13,8 +13,9 @@ import logging
 import signal
 import sys
 import time
+import traceback
 
-from rpi_4g_streamer import Client, Control, Telemetry
+from rpi_4g_streamer import Client, Control, Telemetry, State
 
 
 parser = argparse.ArgumentParser(description="Test connection performance.")
@@ -34,13 +35,25 @@ def control_handler(message: Control) -> None:
     logging.debug(f"Received control message: {values}")
 
 
+def disconnect_handler() -> None:
+    """ TODO: Implement disconnect handling. """
+    logging.debug("Disconnected from server...")
+
+
 def signal_handler(sig, frame):
     global running
     running = False
+    print("Shutting down...")
 
 
 client = Client(HOST, PORT)
+
+# Subscribe to messages received from the server
 client.subscribe(Control, control_handler)
+
+# Subscribe to life-cycle events
+client.on(State.DISCONNECTED, disconnect_handler)
+
 client.start()
 
 signal.signal(signal.SIGINT, signal_handler)
@@ -53,6 +66,10 @@ try:
         }))
 
         time.sleep(10)
+
+except Exception as e:
+    logging.error(f"An error occurred: {e}")
+    traceback.print_exc()
 
 finally:
     client.stop()

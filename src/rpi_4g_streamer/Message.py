@@ -58,7 +58,10 @@ class Telemetry(Message):
             "v": v
         }, timestamp)
 
-        self.value = v
+        self.values = v
+
+    def get_values(self) -> dict:
+        return self.values
 
 
 class Control(Message):

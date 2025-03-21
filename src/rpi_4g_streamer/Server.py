@@ -5,7 +5,7 @@ import socket
 
 from .UDPTransmitter import UDPTransmitter
 from .MessageHandler import MessageHandler
-from .Message import Message, Syn, Ack, Telemetry, Control
+from .Message import Message, Syn, Ack, Heartbeat
 from .State import State
 from .Base import Base
 
@@ -26,32 +26,24 @@ class Server(Base):
         self.transmitter = UDPTransmitter(self.socket)
         self.message_handler = MessageHandler(self.socket)
 
-    def all_handler(self, message: Message, addr: Tuple[str, int]) -> None:
-        """
-        Generic message handler, should be called from each handler.
-        Is responsible for some general housekeeping:
-        - build and maintain message history
-        """
-        self.message_history.append((message, addr))
-        self.message_history = self.message_history[-self.message_history_length:]
-        self.last_message_timestamp = time.time()
-
     def syn_handler(self, message: Syn, addr: Tuple[str, int]) -> None:
-        self.send(Ack(), addr)
+        super().send(Ack(), addr)
         if self.state == State.WAITING:
             self.handle_state_change(State.CONNECTED)
 
-    def telemetry_handler(self, message: Telemetry, addr: Tuple[str, int]) -> None:
-        logging.debug(f"Received telemetry message: {message}")
-
-    def update_controls(self):
-        control = Control({
-            "ste": 50,
-            "thr": 0
-        })
-
+    def send(self, message: Message) -> None:
         addr = self.get_last_address()
-        self.send(control, addr)
+        if addr:
+            super().send(message, addr)
+
+    def check_heartbeat(self):
+        """
+        If nothing has been sent in a while, send a hearbeat to keep the client
+        open.
+        """
+        now = time.time()
+        if now - self.last_sent_timestamp > self.last_sent_timeout:
+            self.send(Heartbeat())
 
     def run(self):
         self.started.set()
@@ -62,7 +54,6 @@ class Server(Base):
         self.message_handler.start()
         self.message_handler.add_handler(Message, self.all_handler)
         self.message_handler.add_handler(Syn, self.syn_handler)
-        self.message_handler.add_handler(Telemetry, self.telemetry_handler)
 
         self.running.set()
         while self.running.is_set():
@@ -75,8 +66,7 @@ class Server(Base):
                 self.check_timeout()
 
             if self.state == State.CONNECTED:
-                self.update_controls()
-                time.sleep(1)
+                self.check_heartbeat()
 
     def stop(self):
         if self.started.is_set():

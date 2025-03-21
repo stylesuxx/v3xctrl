@@ -8,6 +8,7 @@ The 'Raspberry Pi Zero 2 W' has most of what we need:
 * dedicated camera platform
 * USB
 * Wifi
+* 2x Hardware PWM (with 500MHz clock - use pigpio)
 * GPIO
 
 The 'RPi Zero 2 W' has no issues encoding video streams in realtime in 1920x1080@30fps. This will only be feasible with higher category 4G modems but obviously lower resolution won't be an issue either.
@@ -133,6 +134,8 @@ dmesg -c
 
 #### Routeing traffic
 We want to make sure that all internal traffic is routed through the wifi adapter. All external traffic should go through the 4G modem.
+
+> This assumes you use the default dhcpcd and not NetworkManager!
 
 Open `/etc/dhcpcd.conf` and add:
 

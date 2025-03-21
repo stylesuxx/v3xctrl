@@ -11,14 +11,14 @@ sequentially:
   Either the client is no longer reaching the server or has not received
   messages from the server for a certain amount of time.
 """
-from typing import Callable, Tuple
+from typing import Tuple
 import time
 import logging
 import socket
 
 from .UDPTransmitter import UDPTransmitter
 from .MessageHandler import MessageHandler
-from .Message import Message, Syn, Ack, Heartbeat, Telemetry, Control
+from .Message import Message, Syn, Ack, Heartbeat
 from .State import State
 from .Base import Base
 
@@ -37,29 +37,9 @@ class Client(Base):
             "syn": 1,
         }
 
-        self.subscriptions = []
-
-        self.last_sent = None
-        self.last_sent_timeout = 1
-
-    def all_handler(self, message: Message, addr: Tuple[str, int]) -> None:
-        """
-        All messages are handled here.
-        Registered (external) handlers will get messages forwarded from here
-        """
-        self.message_history.append((message, addr))
-        self.message_history = self.message_history[-self.message_history_length:]
-        self.last_message_timestamp = time.time()
-
-        for subscription in self.subscriptions:
-            if subscription['type'] == type(message):
-                subscription['func'](message)
-
-    def subscribe(self, cls: type, handler: Callable[[Message], None]):
-        self.subscriptions.append({
-            "type": cls,
-            "func": handler
-        })
+        # Consider client disconnected if it has not seen a packet from the
+        # server for 3 seconds
+        self.no_message_timeout = 3
 
     def syn_handler(self, message: Syn, addr: Tuple[str, int]) -> None:
         self.send(Ack())
@@ -68,14 +48,9 @@ class Client(Base):
         if self.state == State.WAITING:
             self.handle_state_change(State.CONNECTED)
 
-    def control_handler(self, message: Control, addr: Tuple[str, int]) -> None:
-        logging.debug(f"Received control message: {message}")
-
     def send(self, message: Message) -> None:
         """ Messages are always sent to the server. """
-        if self.transmitter:
-            self.transmitter.add_message(message, self.server_address)
-            self.last_sent = time.time()
+        super().send(message, self.server_address)
 
     def check_heartbeat(self):
         """
@@ -83,13 +58,8 @@ class Client(Base):
         open.
         """
         now = time.time()
-        if now - self.last_sent > self.last_sent_timeout:
+        if now - self.last_sent_timestamp > self.last_sent_timeout:
             self.send(Heartbeat())
-
-    def check_connection(self):
-        # Make sure that we are still connected to the server
-        # self.state = State.DISCONNECTED
-        pass
 
     def initialize(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -138,7 +108,6 @@ class Client(Base):
 
             if self.state == State.CONNECTED:
                 self.check_heartbeat()
-                self.check_connection()
 
     def stop(self):
         if self.started.is_set():
