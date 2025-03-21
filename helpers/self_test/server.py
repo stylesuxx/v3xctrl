@@ -2,7 +2,7 @@ import argparse
 import socket
 import struct
 import time
-import os
+
 
 parser = argparse.ArgumentParser(description="Test connection performance.")
 parser.add_argument("port", type=int, help="The target port number")
@@ -10,7 +10,20 @@ args = parser.parse_args()
 
 PORT = args.port
 HOST = "0.0.0.0"
-BUFFER_SIZE = 4096
+BUFFER_SIZE = 8096
+
+
+def format_speed(bytes_transmitted: int, duration: float) -> str:
+    bps = (bytes_transmitted * 8) / duration
+
+    units = ["bps", "Kbps", "Mbps", "Gbps", "Tbps"]
+    unit_index = 0
+
+    while bps >= 1000 and unit_index < len(units) - 1:
+        bps /= 1000
+        unit_index += 1
+
+    return f"{bps:.2f} {units[unit_index]}"
 
 
 def speed_test_client_to_server():
@@ -20,8 +33,7 @@ def speed_test_client_to_server():
         sock.bind((HOST, PORT))
         sock.listen(1)
 
-        conn, addr = sock.accept()
-        print(f"Connection from {addr}")
+        conn, _ = sock.accept()
 
         start_time = time.time()
         with conn:
@@ -33,18 +45,18 @@ def speed_test_client_to_server():
 
         end_time = time.time()
         duration = end_time - start_time
-        speed_mbps = (received_bytes * 8) / (duration * 1000000)
+        speed = format_speed(received_bytes, duration)
 
         sock.close()
 
         print("--- Download Test Results (Client -> Server) ---")
         print(f"Received {received_bytes / (1024*1024):.2f} MB in {duration:.2f} seconds")
-        print(f"Download speed: {speed_mbps:.2f} Mbps")
+        print(f"Download speed: {speed}")
 
 
 def speed_test_server_to_client():
     FILE_SIZE = 10 * 1024 * 1024  # 10MB
-    data = os.urandom(FILE_SIZE)  # Generate 10MB of random data
+    data = b"x" * FILE_SIZE       # Generate 10MB of data
 
     sent_bytes = 0
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -52,8 +64,7 @@ def speed_test_server_to_client():
         sock.bind((HOST, PORT))
         sock.listen(1)
 
-        conn, addr = sock.accept()
-        print(f"Connection from {addr}")
+        conn, _ = sock.accept()
 
         start_time = time.time()
         while sent_bytes < FILE_SIZE:
@@ -62,13 +73,13 @@ def speed_test_server_to_client():
             sent_bytes += len(chunk)
         end_time = time.time()
         duration = end_time - start_time
-        speed_mbps = (sent_bytes * 8) / (duration * 1000000)
+        speed = format_speed(sent_bytes, duration)
 
         sock.close()
 
         print("--- Upload Test Results (Server -> Client) ---")
         print(f"Sent {sent_bytes / (1024*1024):.2f} MB in {duration:.2f} seconds")
-        print(f"Upload speed: {speed_mbps:.2f} Mbps")
+        print(f"Download speed: {speed}")
 
 
 def udp_latency_server():
@@ -90,41 +101,38 @@ def udp_latency_server():
 
 
 def udp_hole_duration():
-    TIMEOUT_DURATION = 10  # Stop listening after 10 seconds
+    max_timeout = 10  # Stop listening after 10 seconds
 
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
         sock.bind((HOST, PORT))
-        sock.settimeout(TIMEOUT_DURATION)
 
         requested_timeout = 0
         try:
-            while True:
+            while requested_timeout < max_timeout:
                 data, addr = sock.recvfrom(BUFFER_SIZE)
 
                 # Extract requested timeout (client sends as struct "d" - double)
                 requested_timeout = struct.unpack("d", data)[0]
-                print(f"Received timeout request: {requested_timeout:.2f} sec from {addr}")
+                print(f"Received timeout request: {requested_timeout:.2f}")
 
-                # Wait for the requested time
+                # Wait and send response
                 time.sleep(requested_timeout)
-
-                # Send response back to client
-                sock.sendto(b"ping", addr)
-                print(f"Sent response to {addr} after {requested_timeout:.2f} sec")
+                sock.sendto(b"", addr)
         except socket.timeout:
             print("No new request received from client.")
-            print(f"Approximate hole duration: {requested_timeout}")
+
+        print(f"Minimum hole lifetime: {requested_timeout}")
 
 
 if __name__ == "__main__":
-    print(f"# Server waiting on upload: {HOST}:{PORT}")
+    print("# Server waiting on upload...")
     speed_test_client_to_server()
 
-    print(f"\n# Server waiting to download: {HOST}:{PORT}")
+    print("\n# Server waiting to download...")
     speed_test_server_to_client()
 
-    print(f"\n# UDP echo server listening on {HOST}:{PORT}")
+    print("\n# UDP echo server listening...")
     udp_latency_server()
 
-    print(f"\n# UDP hole duration server listening on {HOST}:{PORT}")
+    print("\n# UDP hole lifetime server listening...")
     udp_hole_duration()

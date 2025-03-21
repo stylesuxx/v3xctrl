@@ -2,7 +2,6 @@ import argparse
 import socket
 import struct
 import time
-import os
 
 
 parser = argparse.ArgumentParser(description="Test connection performance.")
@@ -17,27 +16,25 @@ PORT = args.port
 def upload_test():
     BUFFER_SIZE = 4096
     FILE_SIZE = 10 * 1024 * 1024  # 10MB
-    data = os.urandom(FILE_SIZE)  # Generate 10MB of random data
+    data = b"x" * FILE_SIZE       # Generate 10MB of data
 
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.connect((HOST, PORT))
+
         sent_bytes = 0
-
-        client_socket.connect((HOST, PORT))
-
         while sent_bytes < FILE_SIZE:
             chunk = data[sent_bytes:sent_bytes+BUFFER_SIZE]
-            client_socket.sendall(chunk)
+            sock.sendall(chunk)
             sent_bytes += len(chunk)
 
 
 def download_test():
     BUFFER_SIZE = 4096
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
-        client_socket.settimeout(5)
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.connect((HOST, PORT))
 
-        client_socket.connect((HOST, PORT))
         while True:
-            data = client_socket.recv(BUFFER_SIZE)
+            data = sock.recv(BUFFER_SIZE)
             if not data:
                 break
 
@@ -85,7 +82,7 @@ def udp_rtt_test():
 def udp_hole_test():
     BUFFER_SIZE = 1024
     TIMEOUT_INCREMENT = 1  # Timeout in seconds to detect NAT closure
-    MAX_TIMEOUT = 30       # Stop after 30seconds if still open
+    MAX_TIMEOUT = 10       # Stop after 30seconds if still open
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as client_socket:
         timeout_value = TIMEOUT_INCREMENT
 

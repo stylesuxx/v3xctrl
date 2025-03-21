@@ -6,31 +6,53 @@ On the server, mak sure the following ports are open (you might need to forward 
 - 6666: UDP for receiving video
 - 6667: UDP for receiving UDP messages
 
-## Installation
-Create a `venv`, activate it, and install dependencies (do this on both - client and server):
+## Setup
+
+You can find a detailed setup guide for the **client** in the [Client](/stylesuxx/rc-stream/tree/master/docs/Client.md) file.
+
+### Host
+You can run any flavor of Linux as your host system, you will need to install gstreamer libraries and Python Version `>=3.11.4`.
+
+I suggest you do this via `pyenv`:
 
 ```bash
+curl -fsSL https://pyenv.run | bash
+pyenv install 3.11.4
+pyenv global 3.11.4
+python --version
+```
+
+Then clone the repo, create a `venv` and install dependencies:
+
+```bash
+git clone git@github.com:stylesuxx/rc-stream.git
+cd rc-stream
 python -m venv .
 source bin/activate
 pip install -r requirements.txt
 ```
-
-Make sure to use at least Python Version `3.11.4`. Use pyenv to easily manage your Python versions. Make sure you have enough RAM - or SWAP for that matter - to download and compile python. RPI Zero has 4 cores but only 512MB RAM. Either reduce the amount of cores used during compilation or add SWAP (I used 8GB to be on the save side.)
-
 ## Usage
 
+
 ### Helpers
-The `helpers` directory contains a few helper scripts that can be used to test the server and client.
+The `helpers` directory contains a client and server helper script.
 
 Usage should be pretty self-explanatory:
 
 ```bash
 # On server start the server helper
-python helpers/self_test/server.py 6666
+python helpers/self_test/server.py 6667
 
 # On client, run the client helper with the servers IP and port
-python helpers/self_test/client.py 192.168.0.1 6666
+python helpers/self_test/client.py 192.168.0.1 6667
 ```
+
+There are 4 tests that will be run in succession:
+
+1. Bandwith from Client to server - higher is better, the default video pipeline will need a bandwith of 3Mbps.
+2. Bandwidth from Server to client - higher is better, at least 300kbps are required here.
+3. UDP latency - lower is better. Single direction time is estimated by just taking half of the RTT (Round trip time). The higher this time is, the more lag you will feel - 30-50ms per direction or 60-100ms RTT are acceptable here. Also make sure that Lost is close to 0.
+4.
 
 Output will be displayed from the server script.
 
