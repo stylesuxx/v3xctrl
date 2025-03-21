@@ -1,5 +1,10 @@
 #! /bin/bash
-PORT=6666
+if [ $# -ne 1 ]; then
+    echo "Usage: $0 PORT"
+    exit 1
+fi
+
+PORT="$1"
 DECODER_THREADS=2
 
 gst-launch-1.0 udpsrc port=$PORT ! \
