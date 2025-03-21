@@ -1,10 +1,7 @@
 #! /bin/bash
 
-# TODO: get host and port from config
-HOST=192.168.1.100
-PORT=6666
-
 CONFIG_PATH="/etc/rc-client/config.json"
-
+HOST=$(jq -r '.host' "$CONFIG_PATH")
+PORT=$(jq -r '.ports.video' "$CONFIG_PATH")
 
 /usr/share/rc-client/gst/send_cam.sh $HOST $PORT

@@ -1,0 +1,3 @@
+#!/bin/bash
+systemctl stop rc-config-server
+systemctl disable rc-config-server

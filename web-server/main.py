@@ -21,7 +21,7 @@ def index():
 @app.route('/save', methods=['POST'])
 def save_config():
     data = request.json
-    with open('config.json', 'w') as f:
+    with open(config_path, 'w') as f:
         json.dump(data, f, indent=4)
 
     return jsonify({"message": "Saved"})

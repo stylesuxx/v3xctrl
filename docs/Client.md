@@ -76,14 +76,13 @@ You can now use `htop` to verify that the swap size has been changed accordingly
 
 > After installing python, you can safely revert the Swap again to its original size.
 
-
 ## Dependencies
-Upgrade base OS and install dependencies we will need for compiling Python:
+Upgrade base OS and install dependencies we will need for compiling Python and some tools that might be useful for debugging:
 
 ```bash
 sudo apt update
 sudo apt upgrade
-sudo apt install git libssl-dev libbz2-dev libsqlite3-dev libcamera-apps libcamera-dev libcamera-tools tcpdump liblzma-dev libreadline-dev libctypes-ocaml-dev libcurses-ocaml-dev libffi-dev mtr screen
+sudo apt install git libssl-dev libbz2-dev libsqlite3-dev tcpdump liblzma-dev libreadline-dev libctypes-ocaml-dev libcurses-ocaml-dev libffi-dev mtr screen lintian
 ```
 
 Build deb package and install it - this will pull in all the dependencies that are required for running the client (apart from Python):
@@ -98,28 +97,68 @@ sudo dpkg-reconfigure locales
 Select `en_US.UTF-8 UTF-8` (or whichever you w ant to use).
 
 ### Python
-Install pyenv for easy python version management, follow the setup hints, install python and verify the version:
+We want our pyenv setup to be available system wide, so we will install it globally:
+
 
 ```bash
-curl -fsSL https://pyenv.run | bash
+sudo git clone https://github.com/pyenv/pyenv.git /usr/local/pyenv
+```
+
+Create `/etc/profile.d/pyenv.sh` and add:
+
+```bash
+export PYENV_ROOT="/usr/local/pyenv"
+export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init --path)"
+eval "$(pyenv init -)"
+```
+
+Make the file executable:
+
+```bash
+sudo chmod +x /etc/profile.d/pyenv.sh
+```
+
+Then run:
+
+```bash
+sudo su
+source /etc/profile.d/pyenv.sh
 pyenv install 3.11.4
 pyenv global 3.11.4
+chmod -R a+rX /usr/local/pyenv
+chmod -R a+w /usr/local/pyenv/shims
+chmod -R a+w /usr/local/pyenv/versions
+```
+
+Now log out, log back in and verify that you are running the newly installed version:
+
+```bash
 python --version
 ```
 
 ### Get code
-Clone the repository, build the dev package and install it:
+Clone the repository, install python dependencies system wide, build the dev package and install it:
 
 ```bash
 git clone git@github.com:stylesuxx/rc-stream.git
-cd rc-stream/build
+cd rc-stream
+sudo /usr/local/pyenv/versions/3.11.4/bin/pip install -r requirements.txt
+cd build
 ./build.sh
+sudo apt install ./tmp/rc-client.deb
 ```
 
+Verify that the services are running:
+
+```bash
+sudo systemctl status rc-config-server
 ```
-python -m venv .
-source bin/activate
-pip install -r requirements.txt
+
+if not, use journalctl to inspect the logs:
+
+```bash
+journalctl -u rc-config-server
 ```
 
 ### Modem setup

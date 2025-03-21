@@ -1,0 +1,18 @@
+[Unit]
+Description=RC Config Server
+After=network.target
+
+[Service]
+Environment=PYENV_ROOT=/usr/local/pyenv
+Environment=PATH=/usr/local/pyenv/shims:/usr/local/pyenv/bin:/usr/bin:/bin
+ExecStart=/usr/bin/rc-config-server
+Restart=on-failure
+User=rc-user
+Group=rc-user
+KillSignal=SIGINT
+WorkingDirectory=/usr/bin
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
