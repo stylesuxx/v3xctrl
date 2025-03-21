@@ -76,14 +76,17 @@ You can now use `htop` to verify that the swap size has been changed accordingly
 
 > After installing python, you can safely revert the Swap again to its original size.
 
+
 ## Dependencies
-Upgrade and install dependencies:
+Upgrade base OS and install dependencies we will need for compiling Python:
 
 ```bash
 sudo apt update
 sudo apt upgrade
-sudo apt install git libssl-dev gstreamer1.0-plugins-bad gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools libbz2-dev libsqlite3-dev libcamera-apps libcamera-dev libcamera-tools tcpdump liblzma-dev libreadline-dev libctypes-ocaml-dev libcurses-ocaml-dev libffi-dev mtr screen
+sudo apt install git libssl-dev libbz2-dev libsqlite3-dev libcamera-apps libcamera-dev libcamera-tools tcpdump liblzma-dev libreadline-dev libctypes-ocaml-dev libcurses-ocaml-dev libffi-dev mtr screen
 ```
+
+Build deb package and install it - this will pull in all the dependencies that are required for running the client (apart from Python):
 
 ### Fixing locale
 Most likely you will need to fix the locale:
@@ -105,11 +108,15 @@ python --version
 ```
 
 ### Get code
-Clone the repository and create venv:
+Clone the repository, build the dev package and install it:
 
 ```bash
 git clone git@github.com:stylesuxx/rc-stream.git
-cd rc-stream
+cd rc-stream/build
+./build.sh
+```
+
+```
 python -m venv .
 source bin/activate
 pip install -r requirements.txt

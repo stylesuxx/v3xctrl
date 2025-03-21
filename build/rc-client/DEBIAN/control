@@ -1,0 +1,10 @@
+Package: rc-client
+Version: 0.1.0
+Section: utils
+Priority: optional
+Architecture: arm64
+Depends: jq, gstreamer1.0-tools, gstreamer1.0-plugins-base, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad, gstreamer1.0-plugins-ugly, libcamera-apps, libcamera-dev, libcamera-tools
+Maintainer: Chris Landa <stylesuxx@gmail.com>
+Description: RC client and web interface
+ RC client provides functionality to transmit video to a host and establish
+ a communication channel with the host.

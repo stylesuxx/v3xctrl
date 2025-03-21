@@ -1,0 +1,17 @@
+{
+  "host": "192.168.0.1",
+  "ports": {
+    "video": 6666,
+    "control": 6667
+  },
+  "autostart": {
+    "video": true,
+    "control": true
+  },
+  "video": {
+    "width": 1280,
+    "height": 720,
+    "framerate": 30,
+    "bitrate": 3000000
+  }
+}

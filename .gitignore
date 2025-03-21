@@ -6,3 +6,8 @@ pyvenv.cfg
 config.yml
 __pycache__
 *.db
+*.deb
+/build/rc-client/usr/share
+/web-server/static/libs
+/web-server/configs
+/build/tmp

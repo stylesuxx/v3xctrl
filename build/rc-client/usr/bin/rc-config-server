@@ -1,0 +1,4 @@
+#! /bin/bash
+python /usr/share/rc-client/config-server/main.py \
+  --config /etc/rc-client/config.json \
+  --schema /etc/rc-client/schema.json

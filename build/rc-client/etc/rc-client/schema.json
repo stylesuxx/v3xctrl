@@ -1,0 +1,92 @@
+{
+  "title": "Configuration",
+  "type": "object",
+  "options": {
+    "disable_collapse": true,
+    "disable_edit_json": true,
+    "disable_properties": true
+  },
+  "properties": {
+    "host": {
+      "propertyOrder": 10,
+      "type": "string",
+      "description": "Preferably IP address or hostname if you don't have a static IP",
+      "default": "192.168.0.1"
+    },
+    "ports": {
+      "propertyOrder": 20,
+      "type": "object",
+      "title": "Ports",
+      "options": {
+        "disable_edit_json": true,
+        "disable_properties": true
+      },
+      "properties": {
+        "video": {
+          "type": "integer",
+          "default": 6666
+        },
+        "control": {
+          "type": "integer",
+          "default": 6667
+        }
+      }
+    },
+    "video": {
+      "propertyOrder": 30,
+      "type": "object",
+      "title": "Video",
+      "options": {
+        "collapsed": true,
+        "disable_edit_json": true,
+        "disable_properties": true
+      },
+      "properties": {
+        "width": {
+          "propertyOrder": 10,
+          "type": "integer",
+          "default": 1280
+        },
+        "height": {
+          "propertyOrder": 20,
+          "type": "integer",
+          "default": 720
+        },
+        "framerate": {
+          "propertyOrder": 30,
+          "type": "integer",
+          "default": 30,
+          "description": "FPS"
+        },
+        "bitrate": {
+          "propertyOrder": 40,
+          "type": "integer",
+          "default": 3000000,
+          "description": "Bits per second"
+        }
+      }
+    },
+    "autostart": {
+      "propertyOrder": 40,
+      "type": "object",
+      "title": "Autostart",
+      "options": {
+        "collapsed": true,
+        "disable_edit_json": true,
+        "disable_properties": true
+      },
+      "properties": {
+        "video": {
+          "type": "boolean",
+          "format": "checkbox",
+          "default": true
+        },
+        "control": {
+          "type": "boolean",
+          "format": "checkbox",
+          "default": true
+        }
+      }
+    }
+  }
+}
