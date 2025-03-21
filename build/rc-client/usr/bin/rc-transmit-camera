@@ -3,5 +3,13 @@
 CONFIG_PATH="/etc/rc-client/config.json"
 HOST=$(jq -r '.host' "$CONFIG_PATH")
 PORT=$(jq -r '.ports.video' "$CONFIG_PATH")
+WIDTH=$(jq -r '.video.width' "$CONFIG_PATH")
+HEIGHT=$(jq -r '.video.height' "$CONFIG_PATH")
+FRAMERATE=$(jq -r '.video.framerate' "$CONFIG_PATH")
+BITRATE=$(jq -r '.video.bitrate' "$CONFIG_PATH")
 
-/usr/share/rc-client/gst/send_cam.sh $HOST $PORT
+/usr/share/rc-client/gst/send_cam.sh $HOST $PORT \
+  --width $WIDTH \
+  --height $HEIGHT \
+  --framerate $FRAMERATE \
+  --bitrate $BITRATE
