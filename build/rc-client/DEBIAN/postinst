@@ -4,9 +4,12 @@ if ! id -u rc-user >/dev/null 2>&1; then
   useradd --system --no-create-home --shell /usr/sbin/nologin rc-user
 fi
 
-chown -R rc-user:rc-user /etc/rc-client
+chown rc-user:rc-user /etc/rc-client
+chown rc-user:rc-user /etc/rc-client/*.json
 chmod a+r /etc/rc-client/config.json
 
-systemctl daemon-reload
-systemctl enable rc-config-server
-systemctl start rc-config-server
+if command -v systemctl >/dev/null 2>&1; then
+  systemctl daemon-reload
+  systemctl enable rc-config-server
+  systemctl start rc-config-server
+fi

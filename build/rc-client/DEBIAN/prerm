@@ -1,3 +1,6 @@
 #!/bin/bash
-systemctl stop rc-config-server
-systemctl disable rc-config-server
+
+if command -v systemctl >/dev/null 2>&1; then
+  systemctl stop rc-config-server
+  systemctl disable rc-config-server
+fi
