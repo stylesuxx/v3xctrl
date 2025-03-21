@@ -1,7 +1,7 @@
 # RC-Streamer - not actually, codename, who knows...
 
 ## Configuration
-On the server, mak sure the following ports are open (you might need to forward them through your router) on your Server:
+On the server, make sure the following ports are open (you might need to forward them through your router) on your Server:
 
 - 6666: UDP for receiving video
 - 6667: UDP for receiving UDP messages
