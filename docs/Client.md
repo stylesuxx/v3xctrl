@@ -81,7 +81,7 @@ Upgrade and install dependencies:
 ```bash
 sudo apt update
 sudo apt upgrade
-sudo apt install git libssl-dev gstreamer1.0-plugins-bad gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools libbz2-dev libsqlite3-dev libcamera-apps libcamera-dev libcamera-tools tcpdump liblzma-dev libreadline-dev libctypes-ocaml-dev libcurses-ocaml-dev libffi-dev
+sudo apt install git libssl-dev gstreamer1.0-plugins-bad gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools libbz2-dev libsqlite3-dev libcamera-apps libcamera-dev libcamera-tools tcpdump liblzma-dev libreadline-dev libctypes-ocaml-dev libcurses-ocaml-dev libffi-dev mtr screen
 ```
 
 ### Fixing locale
@@ -142,3 +142,23 @@ post-up ip route add default via 192.168.1.1 dev wlan0 table 100
 ```
 
 Adjust the network to your own subnet configuration and reboot.
+
+Check that rules are applied:
+```
+ip route
+```
+
+Use `mtr` to verify the correct device is being used for routing your traffic:
+
+```bash
+mtr 192.168.1.1
+```
+
+you should see the IP address of your wifi device on top.
+
+
+```bash
+mtr google.com
+```
+
+This should show you the IP address of your 4G modem on top.

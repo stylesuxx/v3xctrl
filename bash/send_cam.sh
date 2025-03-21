@@ -1,6 +1,11 @@
 #! /bin/bash
-HOST="62.178.46.35"
-PORT=6666
+if [ $# -ne 2 ]; then
+    echo "Usage: $0 HOST PORT"
+    exit 1
+fi
+
+HOST="$1"
+PORT="$2"
 
 # NOTE: Eher laggy
 BITRATE=5000000

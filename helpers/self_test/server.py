@@ -34,6 +34,7 @@ def speed_test_client_to_server():
         sock.listen(1)
 
         conn, _ = sock.accept()
+        print("Client connected!")
 
         start_time = time.time()
         with conn:
@@ -65,6 +66,7 @@ def speed_test_server_to_client():
         sock.listen(1)
 
         conn, _ = sock.accept()
+        print("Client connected!")
 
         start_time = time.time()
         while sent_bytes < FILE_SIZE:
@@ -105,6 +107,7 @@ def udp_hole_duration():
 
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
         sock.bind((HOST, PORT))
+        sock.settimeout(5)
 
         requested_timeout = 0
         try:
