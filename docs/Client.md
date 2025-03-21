@@ -131,21 +131,35 @@ dmesg -c
 dmesg -c
 ```
 
-#### Route local traffic through Wifi
-As mentioned before, PiOS will favour your RNDIS adapter and disable your Wifi adapter. We will fix this by
+#### Routeing traffic
+We want to make sure that all internal traffic is routed through the wifi adapter. All external traffic should go through the 4G modem.
 
-Create `/etc/network/interfaces.d/wlan0` with the following content:
+Open `/etc/dhcpcd.conf` and add:
 
 ```text
-post-up ip rule add from 192.168.1.0/24 table 100
-post-up ip route add default via 192.168.1.1 dev wlan0 table 100
+interface wlan0
+    nogateway
 ```
 
-Adjust the network to your own subnet configuration and reboot.
+Edit `/etc/dhcpcd.exit-hook`:
 
-Check that rules are applied:
+```text
+if [ "$interface" = "wlan0" ]; then
+    subnet=$(ip -4 addr show wlan0 | awk '/inet/ {print $2}')
+    ip route add "$subnet" dev wlan0
+fi
 ```
-ip route
+
+and make it executable:
+
+```bash
+sudo chmod +x /etc/dhcpcd.exit-hook
+```
+
+Now reboot and make sure that the rules are applied:
+
+```bash
+ip route show
 ```
 
 Use `mtr` to verify the correct device is being used for routing your traffic:

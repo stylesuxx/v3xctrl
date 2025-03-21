@@ -47,17 +47,17 @@ python helpers/self_test/server.py 6667
 python helpers/self_test/client.py 192.168.0.1 6667
 ```
 
+> Output will be displayed from the server script.
+
 There are 4 tests that will be run in succession:
 
 1. Bandwith from Client to server - higher is better, the default video pipeline will need a bandwith of 3Mbps.
 2. Bandwidth from Server to client - higher is better, at least 300kbps are required here.
 3. UDP latency - lower is better. Single direction time is estimated by just taking half of the RTT (Round trip time). The higher this time is, the more lag you will feel - 30-50ms per direction or 60-100ms RTT are acceptable here. Also make sure that Lost is close to 0.
-4.
-
-Output will be displayed from the server script.
+4. UDP hole lifetime - checks how long the hole stays open after the client initially punches a hole through the NAT. We abort after 10 seconds, this is plenty to keep communication open since the client will send a heartbeat message at least once per second.
 
 ### Bash scripts
-The `bash` directory contains a few bash scripts that might be usefull for quickly testing different gstreamer pipelines.
+The bash script directory contains `gstreamer` related functionality. Execute `send_cam.sh` on the client to send video to the server. Execute `gst-udp-sink.sh` on the server to receive video from the client.
 
 ### Server
 On the server invoke:
