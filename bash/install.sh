@@ -105,11 +105,13 @@ check_for_modem() {
 link_src_dir() {
   TARGET_LINK="/usr/share/rc-client/git-src"
 
-  cd ..
-  SRC_DIR=$(pwd)
-  cd ./build
+  if [ ! -d $TARGET_LINK ]; then
+    cd ..
+    SRC_DIR=$(pwd)
+    cd ./build
 
-  ln -s "$SRC_DIR" "$TARGET_LINK"
+    ln -s "$SRC_DIR" "$TARGET_LINK"
+  fi
 }
 
 fix_locale
