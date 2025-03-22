@@ -1,0 +1,78 @@
+#!/bin/bash
+
+MODE="$1"
+
+INTERFACE="wlan0"
+SUBNET="192.168.23"
+AP_IP="$SUBNET.1"
+HOSTAPD_CONF="/etc/hostapd/hostapd.conf"
+DNSMASQ_CONF="/etc/dnsmasq.d/ap.conf"
+
+set -e
+
+# Get device ID from CPU serial (last 8 hex digits)
+DEVICE_ID=$(awk '/Serial/ {print substr($NF, length($NF)-7)}' /proc/cpuinfo)
+SSID="rc-client-$DEVICE_ID"
+
+switch_to_ap() {
+  systemctl stop wpa_supplicant
+  systemctl stop dhcpcd
+
+  ip link set "$INTERFACE" down
+  ip addr flush dev "$INTERFACE"
+  ip addr add "$AP_IP/24" dev "$INTERFACE"
+  ip link set "$INTERFACE" up
+
+  cat > "$HOSTAPD_CONF" <<EOF
+interface=$INTERFACE
+driver=nl80211
+ssid=$SSID
+hw_mode=g
+channel=6
+wmm_enabled=0
+macaddr_acl=0
+auth_algs=1
+ignore_broadcast_ssid=0
+wpa=2
+wpa_passphrase=raspberry
+wpa_key_mgmt=WPA-PSK
+rsn_pairwise=CCMP
+EOF
+
+  cat > "$DNSMASQ_CONF" <<EOF
+interface=$INTERFACE
+dhcp-range=$SUBNET.10,$SUBNET.50,255.255.255.0,24h
+EOF
+
+  # Make sure hostapd knows where its config is
+  sed -i 's|^#*DAEMON_CONF=.*|DAEMON_CONF="'"$HOSTAPD_CONF"'"|' /etc/default/hostapd
+
+  systemctl restart dnsmasq
+  systemctl unmask hostapd
+  systemctl restart hostapd
+
+  echo "AP mode enabled at $AP_IP with SSID: $SSID"
+}
+
+switch_to_client() {
+  systemctl stop hostapd
+  systemctl stop dnsmasq
+
+  ip link set "$INTERFACE" down
+  ip addr flush dev "$INTERFACE"
+  ip link set "$INTERFACE" up
+
+  systemctl start dhcpcd
+  systemctl start wpa_supplicant
+
+  echo "Client mode enabled"
+}
+
+if [ "$MODE" == "ap" ]; then
+  switch_to_ap
+elif [ "$MODE" == "client" ]; then
+  switch_to_client
+else
+  echo "Usage: $0 [ap|client]"
+  exit 1
+fi
