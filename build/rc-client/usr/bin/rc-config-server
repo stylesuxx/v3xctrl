@@ -9,7 +9,7 @@ get_wlan0_ip() {
 
 PORT=$(jq -r '.ports.webinterface' "$CONFIG_PATH")
 HOST=$(get_wlan0_ip)
-if [ -z "$ip_address" ]; then
+if [ -z "$HOST" ]; then
   HOST="127.0.0.1"
 fi
 
