@@ -1,7 +1,18 @@
-
 #! /bin/bash
 
+print_banner() {
+  local msg="$1"
+  local width=$(( ${#msg} + 4 ))
+  local border=$(printf '%*s' "$width" '' | tr ' ' '#')
+
+  echo "$border"
+  echo "# $msg #"
+  echo "$border"
+}
+
 update_and_install() {
+  print_banner "UPDATING OS AND INSTALLING DEPENDENCIES"
+
   apt update && apt upgrade -y
   apt install -y \
     git libssl-dev libbz2-dev libsqlite3-dev tcpdump liblzma-dev libreadline-dev \
@@ -9,25 +20,29 @@ update_and_install() {
 }
 
 set_swap_size() {
+  print_banner "INCREASE SWAP SIZE"
+
   local SWAP_SIZE="$1"
   local SWAP_PATH="/etc/dphys-swapfile"
   dphys-swapfile swapoff
   sed -i \
-    -e "s/^CONF_SWAPSIZE=.*/CONF_SWAPSIZE=${SWAPSIZE}/" \
-    -e "s/^CONF_MAXSWAP=.*/CONF_MAXSWAP=${SWAPSIZE}/" \
+    -e "s/^CONF_SWAPSIZE=.*/CONF_SWAPSIZE=${SWAP_SIZE}/" \
+    -e "s/^#CONF_MAXSWAP=.*/CONF_MAXSWAP=${SWAP_SIZE}/" \
     $SWAP_PATH
   dphys-swapfile setup
   dphys-swapfile swapon
 }
 
 install_python() {
+  print_banner "INSTALLING PYTHON SYSTEM WIDE VIA PYENV"
+
   local VERSION="$1"
   local PYENV_PATH="/usr/local/pyenv"
   if [ ! -d $PYENV_PATH ]; then
     git clone https://github.com/pyenv/pyenv.git $PYENV_PATH
 
     cp ./configs/etc/profile.d/pyenv.sh /etc/profile.d/pyenv.sh
-    source /etc/profile.d/pyenv.sh
+    . /etc/profile.d/pyenv.sh
 
     pyenv install $VERSION
     pyenv global $VERSION
@@ -35,9 +50,43 @@ install_python() {
     chmod -R a+rX $PYENV_PATH
     chmod -R a+w $PYENV_PATH/shims
     chmod -R a+w $PYENV_PATH/versions
+  else
+    . /etc/profile.d/pyenv.sh
   fi
+
+  python --version
+  /usr/local/pyenv/versions/${VERSION}/bin/pip install -r ../requirements.txt
 }
 
+build_and_install() {
+  print_banner "BUILDING AND INSTALLING DEB"
+
+  cd ../build
+  ./build.sh
+  apt install -y ./tmp/rc-client.deb
+  systemctl start rc-config-server
+
+  sleep 3
+  if systemctl is-active --quiet rc-config-server; then
+    echo "Service is running!"
+  else
+    echo "Service is NOT running, use 'journalctl -u rc-config-server'"
+  fi
+
+  cd ../bash
+}
+
+fix_locale() {
+  print_banner "FIXING LOCALE"
+
+  local LOCALE="en_US.UTF-8"
+  sed -i "s/^# *$LOCALE UTF-8/$LOCALE UTF-8/" /etc/locale.gen
+  locale-gen
+  update-locale LANG=$LOCALE
+}
+
+fix_locale
 update_and_install
 set_swap_size 8192
 install_python "3.11.4"
+build_and_install
