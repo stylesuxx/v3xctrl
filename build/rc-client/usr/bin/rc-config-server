@@ -15,6 +15,6 @@ fi
 
 python /usr/share/rc-client/config-server/main.py \
   --config "$CONFIG_PATH" \
-  --schema "$CHEMAN_PATH" \
+  --schema "$SCHEMA_PATH" \
   --host "$HOST" \
   --port "$PORT"
