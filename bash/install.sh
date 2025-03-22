@@ -2,6 +2,11 @@
 # Command is expected to run from within the bash dir - functions are expected
 # to return to this folder after they finish.
 
+if [ "$EUID" -ne 0 ]; then
+  echo "This script must be run as root (for example with sudo)."
+  exit 1
+fi
+
 print_banner() {
   local msg="$1"
   local width=$(( ${#msg} + 4 ))
