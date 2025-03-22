@@ -8,5 +8,14 @@ CONTROL_SERVICE="rc-control"
 START_VIDEO=$(jq -r '.autostart.video' "$CONFIG_PATH")
 START_CONTROL=$(jq -r '.autostart.control' "$CONFIG_PATH")
 
-[ "$START_VIDEO" = "true" ] && systemctl start "$VIDEO_SERVICE"
-[ "$START_CONTROL" = "true" ] && systemctl start "$CONTROL_SERVICE"
+if [ "$START_VIDEO" = "true" ] then
+  echo "Starting video service..."
+  systemctl start "$VIDEO_SERVICE"
+fi
+
+if [ "$START_CONTROL" = "true" ] then
+  echo "Starting control service..."
+  systemctl start "$CONTROL_SERVICE"
+fi
+
+exit 0

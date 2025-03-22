@@ -118,7 +118,6 @@ MODE=${1:-default}
 
 case "$MODE" in
   update)
-    git pull origin
     build_and_install
     ;;
   *)
