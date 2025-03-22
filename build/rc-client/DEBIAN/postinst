@@ -15,5 +15,4 @@ if command -v systemctl >/dev/null 2>&1; then
   systemctl start rc-config-server
 
   systemctl enable rc-service-manager
-  systemctl start rc-service-manager
 fi
