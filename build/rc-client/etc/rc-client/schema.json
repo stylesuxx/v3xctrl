@@ -29,6 +29,11 @@
         "control": {
           "type": "integer",
           "default": 6667
+        },
+        "webinterface": {
+          "type": "integer",
+          "default": 5000,
+          "description": "The port on which this interface should be running (requires reboot)"
         }
       }
     },

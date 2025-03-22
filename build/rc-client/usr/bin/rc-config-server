@@ -1,4 +1,20 @@
 #! /bin/bash
+# Bind config server to wlan0 IP if available, otherwise bind to 127.0.0.1
+CONFIG_PATH="/etc/rc-client/config.json"
+SCHEMA_PATH="/etc/rc-client/schema.json"
+
+get_wlan0_ip() {
+  ip -4 addr show wlan0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}'
+}
+
+PORT=$(jq -r '.ports.webinterface' "$CONFIG_PATH")
+HOST=$(get_wlan0_ip)
+if [ -z "$ip_address" ]; then
+  HOST="127.0.0.1"
+fi
+
 python /usr/share/rc-client/config-server/main.py \
-  --config /etc/rc-client/config.json \
-  --schema /etc/rc-client/schema.json
+  --config "$CONFIG_PATH" \
+  --schema "$CHEMAN_PATH" \
+  --host "$HOST" \
+  --port "$PORT"

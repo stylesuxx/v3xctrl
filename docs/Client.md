@@ -50,43 +50,6 @@ Navigate to `Interface Options` -> `Serial Port` -> `Would you like a login shel
 
 Now you will be able to access the serial console via USB to serial adapter
 
-### SWAP
-You will need to increase your SWAP file, as the Raspberry Pi Zero 2 W has only 512MB of RAM - I used 8GB for this but you can re-size it back after installing all dependencies.
-
-```bash
-sudo dphys-swapfile swapoff
-```
-
-```bash
-sudo nano /etc/dphys-swapfile
-```
-adjust the parameters like so (they should already be in the file, just with different sizes):
-
-```
-CONF_SWAPSIZE=8192
-CONF_MAXSWAP=8192
-```
-
-```bash
-sudo dphys-swapfile setup
-sudo dphys-swapfile swapon
-```
-
-You can now use `htop` to verify that the swap size has been changed accordingly.
-
-> After installing python, you can safely revert the Swap again to its original size.
-
-## Dependencies
-Upgrade base OS and install dependencies we will need for compiling Python and some tools that might be useful for debugging:
-
-```bash
-sudo apt update
-sudo apt upgrade
-sudo apt install git libssl-dev libbz2-dev libsqlite3-dev tcpdump liblzma-dev libreadline-dev libctypes-ocaml-dev libcurses-ocaml-dev libffi-dev mtr screen lintian
-```
-
-Build deb package and install it - this will pull in all the dependencies that are required for running the client (apart from Python):
-
 ### Fixing locale
 Most likely you will need to fix the locale:
 
@@ -96,70 +59,20 @@ sudo dpkg-reconfigure locales
 
 Select `en_US.UTF-8 UTF-8` (or whichever you w ant to use).
 
-### Python
-We want our pyenv setup to be available system wide, so we will install it globally:
+## Installation
+There is an install script in place which will help you to get most of the setup done for you.
 
-
-```bash
-sudo git clone https://github.com/pyenv/pyenv.git /usr/local/pyenv
-```
-
-Create `/etc/profile.d/pyenv.sh` and add:
+Install `git`, clone the repository and run the installer:
 
 ```bash
-export PYENV_ROOT="/usr/local/pyenv"
-export PATH="$PYENV_ROOT/bin:$PATH"
-eval "$(pyenv init --path)"
-eval "$(pyenv init -)"
-```
-
-Make the file executable:
-
-```bash
-sudo chmod +x /etc/profile.d/pyenv.sh
-```
-
-Then run:
-
-```bash
-sudo su
-source /etc/profile.d/pyenv.sh
-pyenv install 3.11.4
-pyenv global 3.11.4
-chmod -R a+rX /usr/local/pyenv
-chmod -R a+w /usr/local/pyenv/shims
-chmod -R a+w /usr/local/pyenv/versions
-```
-
-Now log out, log back in and verify that you are running the newly installed version:
-
-```bash
-python --version
-```
-
-### Get code
-Clone the repository, install python dependencies system wide, build the dev package and install it:
-
-```bash
+sudo apt update
+sudo apt install git -y
 git clone git@github.com:stylesuxx/rc-stream.git
-cd rc-stream
-sudo /usr/local/pyenv/versions/3.11.4/bin/pip install -r requirements.txt
-cd build
-./build.sh
-sudo apt install ./tmp/rc-client.deb
+cd rc-stream/bash
+sudo ./install.sh
 ```
 
-Verify that the services are running:
-
-```bash
-sudo systemctl status rc-config-server
-```
-
-if not, use journalctl to inspect the logs:
-
-```bash
-journalctl -u rc-config-server
-```
+You should now be able to access the config web interface at `http://192.168.1.89:5000/` - change the IP to the Ip of your client.
 
 ### Modem setup
 Plug in your modem, it should be recognizes as a RNDIS network device.
@@ -215,13 +128,7 @@ Use `mtr` to verify the correct device is being used for routing your traffic:
 
 ```bash
 mtr 192.168.1.1
-```
-
-you should see the IP address of your wifi device on top.
-
-
-```bash
 mtr google.com
 ```
 
-This should show you the IP address of your 4G modem on top.
+When running each of them, you should see different IP addresses on top indicating which device is being used for routing.
