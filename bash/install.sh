@@ -85,8 +85,19 @@ fix_locale() {
   update-locale LANG=$LOCALE
 }
 
+check_for_modem() {
+  local IFACE=$(ip -o link show | awk -F': ' '{print $2}' | grep -vE '^(lo|wlan0)$' | head -n1)
+
+  if [ -n "$IFACE" ]; then
+    echo "Potential Modem foun: $iface"
+  else
+    echo "No 4g modem found - make sure it is plugged in and shows up via 'ip -c a'"
+  fi
+}
+
 fix_locale
 update_and_install
 set_swap_size 8192
 install_python "3.11.4"
 build_and_install
+check_for_modem
