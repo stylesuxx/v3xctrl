@@ -76,3 +76,6 @@ else
   echo "Usage: $0 [ap|client]"
   exit 1
 fi
+
+# Restart web-interface so it can bin to the new IP
+systemctl restart rc-config-server
