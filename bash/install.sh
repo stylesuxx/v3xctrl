@@ -1,4 +1,6 @@
 #! /bin/bash
+# Command is expected to run from within the bash dir - functions are expected
+# to return to this folder after they finish.
 
 print_banner() {
   local msg="$1"
@@ -95,9 +97,20 @@ check_for_modem() {
   fi
 }
 
+link_src_dir() {
+  TARGET_LINK="/usr/share/rc-client/git-src"
+
+  cd ..
+  SRC_DIR=$(pwd)
+  cd ./build
+
+  ln -s "$SRC_DIR" "$TARGET_LINK"
+}
+
 fix_locale
 update_and_install
 set_swap_size 8192
 install_python "3.11.4"
 build_and_install
 check_for_modem
+link_src_dir

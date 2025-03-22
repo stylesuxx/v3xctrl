@@ -1,6 +1,6 @@
 #! /bin/bash
-
 CONFIG_PATH="/etc/rc-client/config.json"
+
 HOST=$(jq -r '.host' "$CONFIG_PATH")
 PORT=$(jq -r '.ports.video' "$CONFIG_PATH")
 WIDTH=$(jq -r '.video.width' "$CONFIG_PATH")

@@ -10,6 +10,10 @@ chmod a+r /etc/rc-client/config.json
 
 if command -v systemctl >/dev/null 2>&1; then
   systemctl daemon-reload
+
   systemctl enable rc-config-server
   systemctl start rc-config-server
+
+  systemctl enable rc-service-manager
+  systemctl start rc-service-manager
 fi

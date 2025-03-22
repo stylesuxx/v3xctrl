@@ -1,0 +1,12 @@
+[Unit]
+Description=RC Control channel
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/rc-control
+Restart=on-failure
+User=rc-user
+Group=rc-user
+
+[Install]
+WantedBy=multi-user.target

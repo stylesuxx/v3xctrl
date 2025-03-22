@@ -1,0 +1,13 @@
+[Unit]
+Description=RC Service Manager (autostarts camera and control services)
+After=network.target
+
+[Service]
+Type=oneshot
+User=rc-user
+Group=rc-user
+ExecStart=/usr/bin/rc-service-manager
+RemainAfterExit=true
+
+[Install]
+WantedBy=multi-user.target

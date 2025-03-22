@@ -1,0 +1,12 @@
+[Unit]
+Description=RC Transmit Camera
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/rc-transmit-camera
+Restart=on-failure
+User=rc-user
+Group=rc-user
+
+[Install]
+WantedBy=multi-user.target

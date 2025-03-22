@@ -1,0 +1,12 @@
+#! /bin/bash
+# Start video and control services if autostart is enabled
+CONFIG_PATH="/etc/rc-client/config.json"
+
+VIDEO_SERVICE="rc-transmit-camera"
+CONTROL_SERVICE="rc-control"
+
+START_VIDEO=$(jq -r '.autostart.video' "$CONFIG_PATH")
+START_CONTROL=$(jq -r '.autostart.control' "$CONFIG_PATH")
+
+[ "$START_VIDEO" = "true" ] && systemctl start "$VIDEO_SERVICE"
+[ "$START_CONTROL" = "true" ] && systemctl start "$CONTROL_SERVICE"
