@@ -114,10 +114,20 @@ link_src_dir() {
   fi
 }
 
-fix_locale
-update_and_install
-set_swap_size 8192
-install_python "3.11.4"
-build_and_install
-check_for_modem
-link_src_dir
+MODE=${1:-default}
+
+case "$MODE" in
+  update)
+    git pull origin
+    build_and_install
+    ;;
+  *)
+    fix_locale
+    update_and_install
+    set_swap_size 8192
+    install_python "3.11.4"
+    build_and_install
+    check_for_modem
+    link_src_dir
+    ;;
+esac
