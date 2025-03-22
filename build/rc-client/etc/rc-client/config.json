@@ -1,18 +1,21 @@
 {
-  "host": "192.168.1.100",
-  "ports": {
-    "video": 6666,
-    "control": 6667,
-    "webinterface": 5000
-  },
   "autostart": {
-    "video": false,
-    "control": false
+      "control": false,
+      "video": false
+  },
+  "host": "192.168.0.1",
+  "ports": {
+      "control": 6667,
+      "video": 6666,
+      "webinterface": 5000
   },
   "video": {
-    "width": 1280,
-    "height": 720,
-    "framerate": 30,
-    "bitrate": 3000000
+      "bitrate": 3000000,
+      "framerate": 30,
+      "height": 720,
+      "width": 1280
+  },
+  "wifi": {
+      "mode": "client"
   }
 }

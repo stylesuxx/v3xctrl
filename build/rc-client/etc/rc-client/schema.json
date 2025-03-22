@@ -18,17 +18,20 @@
       "type": "object",
       "title": "Ports",
       "options": {
+        "collapsed": true,
         "disable_edit_json": true,
         "disable_properties": true
       },
       "properties": {
         "video": {
           "type": "integer",
-          "default": 6666
+          "default": 6666,
+          "description": "The port for the control channel"
         },
         "control": {
           "type": "integer",
-          "default": 6667
+          "default": 6667,
+          "description": "The port to which video will be streamed to"
         },
         "webinterface": {
           "type": "integer",
@@ -68,6 +71,26 @@
           "type": "integer",
           "default": 3000000,
           "description": "Bits per second"
+        }
+      }
+    },
+    "wifi": {
+      "propertyOrder": 35,
+      "type": "object",
+      "title": "WiFi",
+      "options": {
+        "collapsed": true,
+        "disable_edit_json": true,
+        "disable_properties": true
+      },
+      "properties": {
+        "mode": {
+          "type": "string",
+          "required": true,
+          "enum": [
+            "client",
+            "access-point"
+          ]
         }
       }
     },
