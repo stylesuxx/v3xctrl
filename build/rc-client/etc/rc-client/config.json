@@ -3,7 +3,7 @@
       "control": false,
       "video": false
   },
-  "host": "192.168.0.1",
+  "host": "192.168.1.100",
   "ports": {
       "control": 6667,
       "video": 6666,

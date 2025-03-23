@@ -5,8 +5,23 @@ After=network.target
 [Service]
 ExecStart=/usr/bin/rc-control
 Restart=on-failure
+Type=simple
 User=rc-user
 Group=rc-user
+
+# Real-time priority
+CPUSchedulingPolicy=rr
+CPUSchedulingPriority=99
+
+# Highest I/O priority
+IOSchedulingClass=realtime
+IOSchedulingPriority=0
+
+# Lock memory to avoid swapping
+LimitMEMLOCK=infinity
+
+# Max allowed real-time priority
+LimitRTPRIO=infinity
 
 [Install]
 WantedBy=multi-user.target
