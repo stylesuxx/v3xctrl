@@ -22,8 +22,10 @@ class GStreamerVideoOverlay:
         self.frame_surface = None
         self.frame_lock = threading.Lock()
         self.running = True
-        self.frame_times = []
+
+        self.last_fps_time = time.time()
         self.fps = 0
+        self.fps_alpha = 0.9  # Smoothing factor (higher = smoother)
 
         self.init_pygame()
         self.init_gstreamer()
@@ -159,11 +161,12 @@ class GStreamerVideoOverlay:
 
             pygame.display.flip()
 
-            # Update smoothed FPS
             now = time.time()
-            self.frame_times.append(now)
-            self.frame_times = [t for t in self.frame_times if now - t <= 1.0]
-            self.fps = len(self.frame_times)
+            delta = now - self.last_fps_time
+            if delta > 0:
+                current_fps = 1.0 / delta
+                self.fps = self.fps_alpha * self.fps + (1.0 - self.fps_alpha) * current_fps
+            self.last_fps_time = now
 
             self.clock.tick(FRAMERATE)
 
