@@ -50,15 +50,6 @@ Navigate to `Interface Options` -> `Serial Port` -> `Would you like a login shel
 
 Now you will be able to access the serial console via USB to serial adapter
 
-### Fixing locale
-Most likely you will need to fix the locale:
-
-```bash
-sudo dpkg-reconfigure locales
-```
-
-Select `en_US.UTF-8 UTF-8` (or whichever you w ant to use).
-
 ## Installation
 There is an install script in place which will help you to get most of the setup done for you.
 
@@ -72,7 +63,7 @@ cd rc-stream/bash
 sudo ./install.sh
 ```
 
-You should now be able to access the config web interface at `http://192.168.1.89:5000/` - change the IP to the Ip of your client.
+You should now be able to access the config web interface at `http://192.168.1.89:5000/` - change the IP to the IP of your client.
 
 ### Modem setup
 Plug in your modem, it should be recognizes as a RNDIS network device.
