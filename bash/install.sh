@@ -70,6 +70,7 @@ build_and_install() {
 
   cd ../build
   ./build.sh
+  apt remove -y --purge rc-client
   apt install -y ./tmp/rc-client.deb
   systemctl start rc-config-server
 
