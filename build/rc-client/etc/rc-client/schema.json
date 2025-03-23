@@ -89,8 +89,9 @@
           "required": true,
           "enum": [
             "client",
-            "access-point"
-          ]
+            "ap"
+          ],
+          "description": "In client mode, the device will connect to the configured network. In access-point mode, the device will spawn it's own WiFi network to which you can connect"
         }
       }
     },

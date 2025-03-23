@@ -1,0 +1,12 @@
+[Unit]
+Description=Switch between Wi-Fi client and AP mode
+After=network-pre.target
+Wants=network-pre.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/rc-wifi-mode
+RemainAfterExit=true
+
+[Install]
+WantedBy=multi-user.target

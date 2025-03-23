@@ -1,10 +1,17 @@
 #!/bin/bash
+CONFIG_PATH="/etc/rc-client/config.json"
+
 if [ "$EUID" -ne 0 ]; then
   echo "This script must be run as root (for example with sudo)."
   exit 1
 fi
 
-MODE="$1"
+if [ -n "$1" ]; then
+  MODE="$1"
+else
+  # Read mode from JSON config: { "mode": "ap" }
+  MODE=$(jq -r '.wifi.mode' "$CONFIG_PATH")
+fi
 
 INTERFACE="wlan0"
 SUBNET="192.168.23"
