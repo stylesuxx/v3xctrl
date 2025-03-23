@@ -92,6 +92,12 @@
             "ap"
           ],
           "description": "In client mode, the device will connect to the configured network. In access-point mode, the device will spawn it's own WiFi network to which you can connect"
+        },
+        "force4g": {
+          "type": "boolean",
+          "format": "checkbox",
+          "default": true,
+          "description": "Force routing internet traffic through modem if it is available"
         }
       }
     },

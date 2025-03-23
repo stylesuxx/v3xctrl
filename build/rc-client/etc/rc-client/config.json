@@ -16,6 +16,7 @@
       "width": 1280
   },
   "wifi": {
-      "mode": "client"
+      "mode": "client",
+      "force4g": false
   }
 }
