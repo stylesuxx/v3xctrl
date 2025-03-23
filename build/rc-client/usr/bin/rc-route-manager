@@ -1,0 +1,57 @@
+#!/bin/bash
+
+PRIMARY_IF="wlan0"
+LO_IF="lo"
+
+DEFAULT_IF=$(ip route | awk '/default/ {print $5}')
+OTHER_IFS=$(ip -o link show | awk -F': ' '{print $2}' | grep -vE "^($LO_IF|$PRIMARY_IF)$")
+
+# Find first alternate interface which is up and has an IP
+FOUND_ALT_IF=""
+for IFACE in $OTHER_IFS; do
+  if ip addr show "$IFACE" | grep -q "inet "; then
+    FOUND_ALT_IF="$IFACE"
+    break
+  fi
+done
+
+if [ -n "$FOUND_ALT_IF" ]; then
+    echo "Routing internet traffic through $FOUND_ALT_IF"
+
+    # Get the gateway for the alternate interface
+    ALT_GW=$(ip route | grep "^default.*$FOUND_ALT_IF" | awk '{print $3}')
+    if [ -z "$ALT_GW" ]; then
+        echo "No gateway found for $FOUND_ALT_IF, aborting."
+        exit 1
+    fi
+
+    # Delete existing default route and add new one
+    ip route del default
+    ip route add default via "$ALT_GW" dev "$FOUND_ALT_IF"
+else
+    echo "No alternate interface found. Keeping wlan0 as default route."
+fi
+
+WLAN_INFO=$(ip -4 addr show "$PRIMARY_IF" | grep -oP 'inet \K[\d.]+/\d+')
+if [ -n "$WLAN_INFO" ]; then
+    IP=$(echo "$WLAN_INFO" | cut -d/ -f1)
+    PREFIX=$(echo "$WLAN_INFO" | cut -d/ -f2)
+
+    # Calculate the network address
+    IFS='.' read -r i1 i2 i3 i4 <<< "$IP"
+    MASK=$(( 0xFFFFFFFF << (32 - PREFIX) & 0xFFFFFFFF ))
+    n1=$(( (MASK >> 24) & 0xFF ))
+    n2=$(( (MASK >> 16) & 0xFF ))
+    n3=$(( (MASK >> 8) & 0xFF ))
+    n4=$(( MASK & 0xFF ))
+    net1=$(( i1 & n1 ))
+    net2=$(( i2 & n2 ))
+    net3=$(( i3 & n3 ))
+    net4=$(( i4 & n4 ))
+    NETWORK="$net1.$net2.$net3.$net4/$PREFIX"
+
+    echo "Adding subnet route for $PRIMARY_IF ($NETWORK)"
+    ip route replace "$NETWORK" dev "$PRIMARY_IF"
+else
+    echo "Could not determine subnet for $PRIMARY_IF"
+fi
