@@ -53,12 +53,12 @@
         "width": {
           "propertyOrder": 10,
           "type": "integer",
-          "default": 1280
+          "default": 1536
         },
         "height": {
           "propertyOrder": 20,
           "type": "integer",
-          "default": 720
+          "default": 864
         },
         "framerate": {
           "propertyOrder": 30,

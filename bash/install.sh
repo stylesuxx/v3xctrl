@@ -24,7 +24,7 @@ update_and_install() {
   apt install -y \
     git libssl-dev libbz2-dev libsqlite3-dev tcpdump liblzma-dev \
     libreadline-dev libctypes-ocaml-dev libcurses-ocaml-dev libffi-dev mtr \
-    screen lintian iperf3 hping3
+    screen lintian iperf3
 }
 
 set_swap_size() {

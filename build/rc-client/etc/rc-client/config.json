@@ -12,8 +12,8 @@
   "video": {
       "bitrate": 3000000,
       "framerate": 30,
-      "height": 720,
-      "width": 1280
+      "height": 864,
+      "width": 1536
   },
   "wifi": {
       "mode": "client",
