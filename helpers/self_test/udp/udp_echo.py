@@ -1,7 +1,8 @@
 """
-Echo UDP packets back to sender.
-"""
+Echo UDP packets back to sender - do not do anything else inbetween.
 
+Exits if no packages are received after 30 seconds.
+"""
 import argparse
 import socket
 
@@ -27,7 +28,7 @@ def udp_echo():
                 sock.sendto(data, addr)
 
         except socket.timeout:
-            print(f"Timeout occurred, no packages received after {TIMEOUT} seconds")
+            print(f"No packages received after {TIMEOUT} seconds - exiting")
 
 
 if __name__ == "__main__":
