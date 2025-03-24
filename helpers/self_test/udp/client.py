@@ -26,13 +26,12 @@ def udp_rtt_test():
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as client_socket:
         client_socket.settimeout(1)
 
-        packet_counter = 0
-
         # Align to the next clock-aligned 15-minute boundary
         now = time.time()
         next_report_time = math.ceil(now / FIFTEEN_MIN) * FIFTEEN_MIN
         print(f"Next report at {next_report_time}")
 
+        packet_counter = 0
         while time.time() < END_TIME:
             try:
                 data_send = b""

@@ -21,16 +21,10 @@ def udp_echo():
         sock.bind((HOST, PORT))
         sock.settimeout(TIMEOUT)
 
-        last_ip = None
         try:
             while True:
                 data, addr = sock.recvfrom(BUFFER_SIZE)
                 sock.sendto(data, addr)
-                """
-                if addr[0] != last_ip:
-                    last_ip = addr[0]
-                    print(f"Getting messages froml {last_ip}")"
-                """
 
         except socket.timeout:
             print(f"Timeout occurred, no packages received after {TIMEOUT} seconds")
