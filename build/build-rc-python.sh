@@ -12,6 +12,19 @@ DOWNLOAD_PATH="${BASE_PATH}/Python-${VERSION}.tgz"
 UNPACK_PATH="${BASE_PATH}/Python-${VERSION}"
 DONWLOAD_URL="https://www.python.org/ftp/python/${VERSION}/Python-${VERSION}.tgz"
 
+SWAP_SIZE=8192
+SWAP_PATH="/etc/dphys-swapfile"
+
+# Increase swap size
+dphys-swapfile swapoff
+sed -i \
+  -e "s/^CONF_SWAPSIZE=.*/CONF_SWAPSIZE=${SWAP_SIZE}/" \
+  -e "s/^#CONF_MAXSWAP=.*/CONF_MAXSWAP=${SWAP_SIZE}/" \
+  $SWAP_PATH
+dphys-swapfile setup
+dphys-swapfile swapon
+
+# Install build dependencies
 sudo apt update
 sudo apt install -y build-essential libssl-dev libbz2-dev libsqlite3-dev \
   liblzma-dev libreadline-dev libctypes-ocaml-dev libcurses-ocaml-dev libffi-dev
@@ -29,17 +42,24 @@ fi
 # files will be used.
 cd $UNPACK_PATH
 if [ ! -f "Makefile" ]; then
-  ./configure --enable-optimizations --without-doc-strings --disable-test-modules
+  CFLAGS="-O3 -s" LDFLAGS="-s" ./configure \
+    --prefix=/usr \
+    --enable-shared \
+    --enable-optimizations \
+    --without-doc-strings \
+    --disable-test-modules \
+    --no-warn-script-location
 fi
 make -j$(nproc)
 
 # Move everything into place and package it
 cd $PWD
-cp -r "${SRC_DIR}" "$DEST_DIR"
+cp -r "${SRC_DIR}/" "$DEST_DIR"
 
 #mkdir -p "${DEST_DIR}/usr/local"
 
-make DESTDIR="${DEST_DIR}" install
+make DESTDIR="${DEST_DIR}" altinstall
+gzip -9 -n "$DEST_DIR/usr/share/doc/$NAME/changelog"
 sudo chown -R root:root "$DEST_DIR"
 
 dpkg-deb --build "$DEST_DIR"

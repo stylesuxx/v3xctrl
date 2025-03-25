@@ -27,23 +27,7 @@ update_and_install() {
 
   apt update && apt upgrade -y
   apt install -y \
-    git libssl-dev libbz2-dev libsqlite3-dev tcpdump liblzma-dev \
-    libreadline-dev libctypes-ocaml-dev libcurses-ocaml-dev libffi-dev mtr \
-    screen lintian iperf3
-}
-
-set_swap_size() {
-  print_banner "INCREASE SWAP SIZE"
-
-  local SWAP_SIZE="$1"
-  local SWAP_PATH="/etc/dphys-swapfile"
-  dphys-swapfile swapoff
-  sed -i \
-    -e "s/^CONF_SWAPSIZE=.*/CONF_SWAPSIZE=${SWAP_SIZE}/" \
-    -e "s/^#CONF_MAXSWAP=.*/CONF_MAXSWAP=${SWAP_SIZE}/" \
-    $SWAP_PATH
-  dphys-swapfile setup
-  dphys-swapfile swapon
+    git mtr screen
 }
 
 install_python() {
@@ -54,6 +38,7 @@ install_python() {
     cd $PWD
   fi
 
+  update-alternatives --set python /usr/local/bin/python3.11
   python --version
 }
 
@@ -136,16 +121,14 @@ link_src_dir() {
   fi
 }
 
-
 case "$MODE" in
   update)
     build_and_install
     ;;
   *)
     fix_locale
-    update_and_install
-    set_swap_size 8192
     install_python
+    update_and_install
     build_and_install
     check_for_modem
     link_src_dir
