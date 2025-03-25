@@ -2,6 +2,10 @@
 # Command is expected to run from within the bash dir - functions are expected
 # to return to this folder after they finish.
 
+PWD=$(pwd)
+RC_PYTHON_URL="https://github.com/stylesuxx/rc-stream/releases/latest/rc-python.deb"
+DOWNLOAD_PATH="${PWD}/dependencies"
+
 if [ "$EUID" -ne 0 ]; then
   echo "This script must be run as root (for example with sudo)."
   exit 1
@@ -42,6 +46,15 @@ set_swap_size() {
 }
 
 install_python() {
+  if ! dpkg -s rc-python >/dev/null 2>&1; then
+    cd $DOWNLOAD_PATH
+    curl -O $RC_PYTHON_URL
+    sudo apt install -y ./rc-python.deb
+    cd $PWD
+  fi
+}
+
+install_python_LEGACY() {
   print_banner "INSTALLING PYTHON SYSTEM WIDE VIA PYENV"
 
   local VERSION="$1"
@@ -126,7 +139,7 @@ case "$MODE" in
     fix_locale
     update_and_install
     set_swap_size 8192
-    install_python "3.11.4"
+    install_python
     build_and_install
     check_for_modem
     link_src_dir

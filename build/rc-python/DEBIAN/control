@@ -1,5 +1,5 @@
 Package: rc-python
-Version: 3.11.4
+Version: 3.11.11
 Section: interpreters
 Priority: optional
 Architecture: arm64
