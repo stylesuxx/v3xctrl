@@ -33,7 +33,7 @@ git clone git@github.com:stylesuxx/rc-stream.git
 cd rc-stream
 python -m venv .
 source bin/activate
-pip install -r requirements.txt
+pip install -r requirements-server.txt
 ```
 
 > On the host you will also need gstreamer dependencies installed.

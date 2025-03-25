@@ -52,6 +52,8 @@ install_python() {
     sudo apt install -y ./rc-python.deb
     cd $PWD
   fi
+
+  python --version
 }
 
 install_python_LEGACY() {
@@ -82,10 +84,15 @@ install_python_LEGACY() {
 build_and_install() {
   print_banner "BUILDING AND INSTALLING DEB"
 
-  cd ../build
+  cd "${PWD}/build"
   ./build-rc-client.sh
   apt remove -y --purge rc-client
   apt install -y ./tmp/rc-client.deb
+
+  # Install python dependencies
+  cd "${PWD}/.."
+  pip install -r ../requirements-client.txt
+
   systemctl start rc-config-server
 
   sleep 3
@@ -95,7 +102,7 @@ build_and_install() {
     echo "Service is NOT running, use 'journalctl -u rc-config-server'"
   fi
 
-  cd ../bash
+  cd "${PWD}"
 }
 
 fix_locale() {
