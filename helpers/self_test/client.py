@@ -13,104 +13,112 @@ HOST = args.host
 PORT = args.port
 
 
-def upload_test():
-    BUFFER_SIZE = 4096
-    FILE_SIZE = 10 * 1024 * 1024  # 10MB
-    data = b"x" * FILE_SIZE       # Generate 10MB of data
+class SelfTestClient:
+    def __init__(self, host, port):
+        self.host = host
+        self.port = port
+        self.address = (self.host, self.port)
 
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.connect((HOST, PORT))
+    def tcp_upload(self):
+        print("> Starting upload test...")
 
-        sent_bytes = 0
-        while sent_bytes < FILE_SIZE:
-            chunk = data[sent_bytes:sent_bytes+BUFFER_SIZE]
-            sock.sendall(chunk)
-            sent_bytes += len(chunk)
+        BUFFER_SIZE = 4096
+        FILE_SIZE = 10 * 1024 * 1024  # 10MB
+        data = b"x" * FILE_SIZE       # Generate 10MB of data
 
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.connect(self.address)
 
-def download_test():
-    BUFFER_SIZE = 4096
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.connect((HOST, PORT))
+            sent_bytes = 0
+            while sent_bytes < FILE_SIZE:
+                chunk = data[sent_bytes: sent_bytes + BUFFER_SIZE]
+                sock.sendall(chunk)
+                sent_bytes += len(chunk)
 
-        while True:
-            data = sock.recv(BUFFER_SIZE)
-            if not data:
-                break
+    def tcp_download(self):
+        print("> Starting download test...")
 
+        BUFFER_SIZE = 4096
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.connect(self.address)
 
-def udp_rtt_test():
-    BUFFER_SIZE = 1024
-    NUM_PACKETS = 100
-    latencies = []
+            while True:
+                data = sock.recv(BUFFER_SIZE)
+                if not data:
+                    break
 
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as client_socket:
-        client_socket.settimeout(1)  # Timeout for response
+    def udp_latency(self):
+        print("> Starting UDP latency test...")
+        BUFFER_SIZE = 1024
+        NUM_PACKETS = 100
+        latencies = []
 
-        for i in range(NUM_PACKETS):
-            try:
-                start_time = time.time()  # Record send time
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as client_socket:
+            client_socket.settimeout(1)
 
-                client_socket.sendto(b"", (HOST, PORT))  # Send packet
-                data, _ = client_socket.recvfrom(BUFFER_SIZE)  # Wait for reply
+            for i in range(NUM_PACKETS):
+                try:
+                    start_time = time.time()
 
-                end_time = time.time()
-                rtt_ms = (end_time - start_time) * 1000
+                    client_socket.sendto(b"", self.address)
+                    data, _ = client_socket.recvfrom(BUFFER_SIZE)
 
-                latencies.append(rtt_ms)
+                    end_time = time.time()
+                    rtt_ms = (end_time - start_time) * 1000
 
-            except socket.timeout:
-                print(f"Packet {i+1}/{NUM_PACKETS}: Timed out")
-                latencies.append(None)
+                    latencies.append(rtt_ms)
 
-        valid_latencies = [lat for lat in latencies if lat is not None]
-        if valid_latencies:
-            mean_rtt = sum(valid_latencies) / len(valid_latencies)
-            min_rtt = min(valid_latencies)
-            max_rtt = max(valid_latencies)
+                except socket.timeout:
+                    print(f"Packet {i+1}/{NUM_PACKETS}: Timed out")
+                    latencies.append(None)
 
-            results = "--- UDP RTT Test Results ---\n"
-            results += f"Sent: {NUM_PACKETS}, Received: {len(valid_latencies)}, Lost: {NUM_PACKETS - len(valid_latencies)}\n"
-            results += f"Mean RTT: {mean_rtt:.2f} ms, Best RTT: {min_rtt:.2f} ms, Worst RTT: {max_rtt:.2f} ms\n"
-            results += f"Estimated One-Way Latency (RTT/2): {mean_rtt/2:.2f} ms"
+            valid_latencies = [lat for lat in latencies if lat is not None]
+            if valid_latencies:
+                mean_rtt = sum(valid_latencies) / len(valid_latencies)
+                min_rtt = min(valid_latencies)
+                max_rtt = max(valid_latencies)
 
-            client_socket.sendto(results.encode("utf-8"), (HOST, PORT))
-        else:
-            print("\nAll packets were lost. Check your network!")
+                results = "--- Results ---\n"
+                results += f"Sent: {NUM_PACKETS}, Received: {len(valid_latencies)}, Lost: {NUM_PACKETS - len(valid_latencies)}\n"
+                results += f"Mean RTT: {mean_rtt:.2f} ms, Best RTT: {min_rtt:.2f} ms, Worst RTT: {max_rtt:.2f} ms\n"
+                results += f"Estimated One-Way Latency (RTT/2): {mean_rtt/2:.2f} ms"
 
+                client_socket.sendto(results.encode("utf-8"), (HOST, PORT))
+            else:
+                print("\nAll packets were lost. Check your network!")
 
-def udp_hole_test():
-    BUFFER_SIZE = 1024
-    TIMEOUT_INCREMENT = 1  # Timeout in seconds to detect NAT closure
-    MAX_TIMEOUT = 10       # Stop after 30seconds if still open
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as client_socket:
-        timeout_value = TIMEOUT_INCREMENT
+    def udp_hole_duration(self):
+        print("> Starting UDP hole duration test...")
 
-        while timeout_value <= MAX_TIMEOUT:
-            client_socket.sendto(struct.pack("d", timeout_value), (HOST, PORT))
-            client_socket.settimeout(timeout_value + 5)
+        BUFFER_SIZE = 1024
+        TIMEOUT_INCREMENT = 1  # Timeout in seconds to detect NAT closure
+        MAX_TIMEOUT = 10       # Stop if still open
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as client_socket:
+            timeout_value = TIMEOUT_INCREMENT
 
-            try:
-                client_socket.recvfrom(BUFFER_SIZE)
-                timeout_value += TIMEOUT_INCREMENT
+            while timeout_value <= MAX_TIMEOUT:
+                client_socket.sendto(struct.pack("d", timeout_value), self.address)
+                client_socket.settimeout(timeout_value + 5)
 
-            except socket.timeout:
-                break
+                try:
+                    client_socket.recvfrom(BUFFER_SIZE)
+                    timeout_value += TIMEOUT_INCREMENT
+
+                except socket.timeout:
+                    break
 
 
 if __name__ == "__main__":
-    print(f"Connecting to {HOST}:{PORT}")
+    print(f"Connecting to {HOST}:{PORT} - check server for test results...")
 
-    print("Starting upload test...")
-    upload_test()
+    test = SelfTestClient(HOST, PORT)
 
-    print("Starting download test...")
-    time.sleep(5)
-    download_test()
+    test.tcp_upload()
 
-    print("Starting UDP RTT test...")
-    udp_rtt_test()
+    time.sleep(3)
+    test.tcp_download()
 
-    print("Starting UDP hole duration test...")
-    time.sleep(5)
-    udp_hole_test()
+    test.udp_latency()
+
+    time.sleep(3)
+    test.udp_hole_duration()

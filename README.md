@@ -7,7 +7,11 @@ On the server, make sure the following ports are open (you might need to forward
 - 6667: UDP for receiving UDP messages
 
 ## Setup
+Both - client and host need to be set up in order to communicate with each other, follow the setup guides to get everything going.
 
+> This is work in progress, the ultimate goal is to provide a *.deb file for the client to just install and be done with it - we are not at that point yet. Helper scripts are in place to assist you in getting things done.
+
+### Client
 You can find a detailed setup guide for the **client** in the [Client](/stylesuxx/rc-stream/tree/master/docs/Client.md) file.
 
 ### Host
@@ -31,30 +35,13 @@ python -m venv .
 source bin/activate
 pip install -r requirements.txt
 ```
+
+> On the host you will also need gstreamer dependencies installed.
+
 ## Usage
 
-
-### Helpers
-The `helpers` directory contains a client and server helper script.
-
-Usage should be pretty self-explanatory:
-
-```bash
-# On server start the server helper
-python helpers/self_test/server.py 6667
-
-# On client, run the client helper with the servers IP and port
-python helpers/self_test/client.py 192.168.0.1 6667
-```
-
-> Output will be displayed from the server script.
-
-There are 4 tests that will be run in succession:
-
-1. Bandwith from Client to server - higher is better, the default video pipeline will need a bandwith of 3Mbps.
-2. Bandwidth from Server to client - higher is better, at least 300kbps are required here.
-3. UDP latency - lower is better. Single direction time is estimated by just taking half of the RTT (Round trip time). The higher this time is, the more lag you will feel - 30-50ms per direction or 60-100ms RTT are acceptable here. Also make sure that Lost is close to 0.
-4. UDP hole lifetime - checks how long the hole stays open after the client initially punches a hole through the NAT. We abort after 10 seconds, this is plenty to keep communication open since the client will send a heartbeat message at least once per second.
+### Testing
+Follow the [Hepers README](/stylesuxx/rc-stream/tree/master/docs/Client.md) to make sure your setup is capable of streaming in real-time.
 
 ### Bash scripts
 The bash script directory contains `gstreamer` related functionality. Execute `send_cam.sh` on the client to send video to the server. Execute `gst-udp-sink.sh` on the server to receive video from the client.
