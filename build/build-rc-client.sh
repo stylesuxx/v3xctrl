@@ -2,13 +2,14 @@
 
 ### CONFIG SERVER ###
 # Add Config web-server to the package
+TMP_DIR="./tmp"
 BASE_PATH="./rc-client/usr/share/rc-client"
 SERVER_BASE_PATH="${BASE_PATH}/config-server/"
 TEMPLATE_PATH="${SERVER_BASE_PATH}/templates/"
 LIB_PATH="${SERVER_BASE_PATH}/static/libs/"
 
 # Clean up directory
-rm -rf $SERVER_BASE_PATH
+sudo rm -rf $SERVER_BASE_PATH
 
 # Create dir structure for server
 mkdir -p $SERVER_BASE_PATH
@@ -32,10 +33,9 @@ mkdir -p $GST_BASE_PATH
 cp ../bash/send_cam.sh $GST_BASE_PATH
 
 # Build the deb package
-TMP_DIR="./tmp"
 TMP_CLIENT_DIR="${TMP_DIR}/rc-client"
 
-sudo rm -r $TMP_DIR
+sudo rm -r $TMP_CLIENT_DIR
 mkdir -p $TMP_DIR
 
 cp -r rc-client/ $TMP_DIR

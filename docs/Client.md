@@ -123,3 +123,12 @@ mtr google.com
 ```
 
 When running each of them, you should see different IP addresses on top indicating which device is being used for routing.
+
+## Update
+If you are running the dev env and you just want to update your client, you can simply run the installer again passing the update Parameter:
+
+```bash
+sudo ./install.sh update
+```
+
+This will re-build the rc-client package and install it over the already installed one.

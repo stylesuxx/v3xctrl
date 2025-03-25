@@ -1,15 +1,16 @@
 #! /bin/bash
 # Command is expected to run from within the bash dir - functions are expected
 # to return to this folder after they finish.
-
-PWD=$(pwd)
-RC_PYTHON_URL="https://github.com/stylesuxx/rc-stream/releases/latest/rc-python.deb"
-DOWNLOAD_PATH="${PWD}/dependencies"
-
 if [ "$EUID" -ne 0 ]; then
   echo "This script must be run as root (for example with sudo)."
   exit 1
 fi
+
+MODE=${1:-default}
+
+PWD=$(pwd)
+RC_PYTHON_URL="https://github.com/stylesuxx/rc-stream/releases/latest/rc-python.deb"
+DOWNLOAD_PATH="${PWD}/dependencies"
 
 print_banner() {
   local msg="$1"
@@ -86,14 +87,13 @@ build_and_install() {
 
   cd "${PWD}/build"
   ./build-rc-client.sh
-  apt remove -y --purge rc-client
   apt install -y ./tmp/rc-client.deb
 
   # Install python dependencies
   cd "${PWD}/.."
   pip install -r ../requirements-client.txt
 
-  systemctl start rc-config-server
+  systemctl restart rc-config-server
 
   sleep 3
   if systemctl is-active --quiet rc-config-server; then
@@ -136,7 +136,6 @@ link_src_dir() {
   fi
 }
 
-MODE=${1:-default}
 
 case "$MODE" in
   update)

@@ -13,8 +13,8 @@ UNPACK_PATH="${BASE_PATH}/Python-${VERSION}"
 DONWLOAD_URL="https://www.python.org/ftp/python/${VERSION}/Python-${VERSION}.tgz"
 
 sudo apt update
-sudo apt install -y libssl-dev libbz2-dev libsqlite3-dev liblzma-dev \
-    libreadline-dev libctypes-ocaml-dev libcurses-ocaml-dev libffi-dev
+sudo apt install -y build-essential libssl-dev libbz2-dev libsqlite3-dev \
+  liblzma-dev libreadline-dev libctypes-ocaml-dev libcurses-ocaml-dev libffi-dev
 
 mkdir -p ${BASE_PATH}
 cd ${BASE_PATH}
@@ -29,7 +29,7 @@ fi
 # files will be used.
 cd $UNPACK_PATH
 if [ ! -f "Makefile" ]; then
-  ./configure ...
+  ./configure --enable-optimizations --without-doc-strings --disable-test-modules
 fi
 make -j$(nproc)
 
@@ -40,6 +40,7 @@ cp -r "${SRC_DIR}" "$DEST_DIR"
 #mkdir -p "${DEST_DIR}/usr/local"
 
 make DESTDIR="${DEST_DIR}" install
+sudo chown -R root:root "$DEST_DIR"
 
 dpkg-deb --build "$DEST_DIR"
 lintian "${TMP_DIR}/${NAME}.deb"

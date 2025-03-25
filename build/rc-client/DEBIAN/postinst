@@ -13,8 +13,6 @@ if command -v systemctl >/dev/null 2>&1; then
   systemctl daemon-reload
 
   systemctl enable rc-config-server
-  systemctl start rc-config-server
-
   systemctl enable rc-service-manager
   systemctl enable rc-wifi-mode
 fi

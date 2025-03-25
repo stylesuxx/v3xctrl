@@ -3,7 +3,6 @@ Version: 3.11.11
 Section: interpreters
 Priority: optional
 Architecture: arm64
-Depends:
 Maintainer: Chris Landa <stylesuxx@gmail.com>
 Description: RC client Python
  Pre-compile Python version to be used by rc-client.
