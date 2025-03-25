@@ -88,3 +88,15 @@ Watch for file changes and re-run tests automatically:
 ```bash
 python watch_tests.py
 ```
+
+### DEB Packages
+The `./build` directory contains build scripts and skeleton directories for creating Debian packages. When publishing a new release, those packages should be attached.
+
+Build the packages on the target system:
+
+```bash
+cd ./build
+./build.sh
+```
+
+The `*.deb` files can then be found in `./tmp` directory.`

@@ -70,7 +70,7 @@ build_and_install() {
   print_banner "BUILDING AND INSTALLING DEB"
 
   cd ../build
-  ./build.sh
+  ./build-rc-client.sh
   apt remove -y --purge rc-client
   apt install -y ./tmp/rc-client.deb
   systemctl start rc-config-server
