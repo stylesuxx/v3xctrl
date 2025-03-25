@@ -1,5 +1,5 @@
 #!/bin/sh
 set -e
 
-update-alternatives --install /usr/bin/python python /usr/local/bin/python3.11 311 \
-  --slave /usr/bin/pip pip /usr/local/bin/pip3.11
+update-alternatives --install /usr/bin/python python /usr/bin/python3.11 311 \
+  --slave /usr/bin/pip pip /usr/bin/pip3.11

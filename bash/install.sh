@@ -26,15 +26,14 @@ update_and_install() {
   print_banner "UPDATING OS AND INSTALLING DEPENDENCIES"
 
   apt update && apt upgrade -y
-  apt install -y \
-    git mtr screen
+  apt install -y git mtr screen
 }
 
 install_python() {
   if ! dpkg -s rc-python >/dev/null 2>&1; then
     cd $DOWNLOAD_PATH
     curl -O $RC_PYTHON_URL
-    sudo apt install -y ./rc-python.deb
+    apt install -y ./rc-python.deb
     cd $PWD
   fi
 

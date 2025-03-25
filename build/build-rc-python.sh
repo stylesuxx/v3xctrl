@@ -16,13 +16,13 @@ SWAP_SIZE=8192
 SWAP_PATH="/etc/dphys-swapfile"
 
 # Increase swap size
-dphys-swapfile swapoff
-sed -i \
+sudo dphys-swapfile swapoff
+sudo sed -i \
   -e "s/^CONF_SWAPSIZE=.*/CONF_SWAPSIZE=${SWAP_SIZE}/" \
   -e "s/^#CONF_MAXSWAP=.*/CONF_MAXSWAP=${SWAP_SIZE}/" \
   $SWAP_PATH
-dphys-swapfile setup
-dphys-swapfile swapon
+sudo dphys-swapfile setup
+sudo dphys-swapfile swapon
 
 # Install build dependencies
 sudo apt update
@@ -47,12 +47,12 @@ if [ ! -f "Makefile" ]; then
     --enable-shared \
     --enable-optimizations \
     --without-doc-strings \
-    --disable-test-modules \
-    --no-warn-script-location
+    --disable-test-modules
 fi
 make -j$(nproc)
 
 # Move everything into place and package it
+sudo rm -r "$DEST_DIR"
 cd $PWD
 cp -r "${SRC_DIR}/" "$DEST_DIR"
 
