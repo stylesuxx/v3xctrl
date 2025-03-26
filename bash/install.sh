@@ -37,7 +37,7 @@ install_python() {
     cd $PWD
   fi
 
-  update-alternatives --set python /usr/local/bin/python3.11
+  update-alternatives --set python /usr/bin/python3.11
   python --version
 }
 
@@ -74,8 +74,8 @@ build_and_install() {
   apt install -y ./tmp/rc-client.deb
 
   # Install python dependencies
-  cd "${PWD}/.."
-  pip install -r ../requirements-client.txt
+  cd "${PWD}"
+  pip install -r requirements-client.txt
 
   systemctl restart rc-config-server
 
