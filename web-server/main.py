@@ -54,7 +54,10 @@ def get_services():
 
             if service_type == "oneshot":
                 # oneshot services should finish and result=success
-                is_success = (active_state == "inactive" and result == "success")
+                is_success = (
+                    active_state == "active" and
+                    result == "success"
+                )
             else:
                 # all other services should be actively running
                 is_success = (active_state == "active")
