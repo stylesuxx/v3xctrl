@@ -69,7 +69,7 @@ install_python_LEGACY() {
 build_and_install() {
   print_banner "BUILDING AND INSTALLING DEB"
 
-  cd "${PWD}/build"
+  cd "../build"
   ./build-rc-client.sh
   apt install -y ./tmp/rc-client.deb
 
