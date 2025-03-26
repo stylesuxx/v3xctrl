@@ -1,43 +1,59 @@
 #!/bin/bash
+set -e
 
-PRIMARY_IF="wlan0"
-LO_IF="lo"
-
-DEFAULT_IF=$(ip route | awk '/default/ {print $5}')
-OTHER_IFS=$(ip -o link show | awk -F': ' '{print $2}' | grep -vE "^($LO_IF|$PRIMARY_IF)$")
-
-# Find first alternate interface which is up and has an IP
-FOUND_ALT_IF=""
-for IFACE in $OTHER_IFS; do
-  if ip addr show "$IFACE" | grep -q "inet "; then
-    FOUND_ALT_IF="$IFACE"
-    break
-  fi
-done
-
-if [ -n "$FOUND_ALT_IF" ]; then
-    echo "Routing internet traffic through $FOUND_ALT_IF"
-
-    # Get the gateway for the alternate interface
-    ALT_GW=$(ip route | grep "^default.*$FOUND_ALT_IF" | awk '{print $3}')
-    if [ -z "$ALT_GW" ]; then
-        echo "No gateway found for $FOUND_ALT_IF, aborting."
-        exit 1
-    fi
-
-    # Delete existing default route and add new one
-    ip route del default
-    ip route add default via "$ALT_GW" dev "$FOUND_ALT_IF"
-else
-    echo "No alternate interface found. Keeping wlan0 as default route."
+if [[ "$1" != "wlan" && "$1" != "rndis" ]]; then
+    echo "Usage: $0 [wlan|rndis]"
+    exit 1
 fi
 
-WLAN_INFO=$(ip -4 addr show "$PRIMARY_IF" | grep -oP 'inet \K[\d.]+/\d+')
+LO_IF="lo"
+WLAN_IF="wlan0"
+PRIMARY_IF=""
+
+if [[ "$1" == "wlan" ]]; then
+    PRIMARY_IF="$WLAN_IF"
+elif [[ "$1" == "rndis" ]]; then
+    # Look for the first alternate (non-wlan0, non-lo) interface with IP
+    OTHER_IFS=$(ip -o link show | awk -F': ' '{print $2}' | grep -vE "^($LO_IF|$WLAN_IF)$")
+
+    for IFACE in $OTHER_IFS; do
+        if ip addr show "$IFACE" | grep -q "inet "; then
+            PRIMARY_IF="$IFACE"
+            break
+        fi
+    done
+
+    # Fallback to wlan0 if nothing found
+    if [ -z "$PRIMARY_IF" ]; then
+        echo "No alternate interface found. Falling back to $WLAN_IF"
+        PRIMARY_IF="$WLAN_IF"
+    fi
+fi
+
+echo "Using $PRIMARY_IF as default route interface"
+
+# Find gateway for selected interface
+ALT_GW=$(ip route show dev "$PRIMARY_IF" | awk '/default/ {print $3}')
+if [ -z "$ALT_GW" ]; then
+    ALT_GW=$(ip route | grep "^default.*$PRIMARY_IF" | awk '{print $3}')
+fi
+
+if [ -z "$ALT_GW" ]; then
+    echo "Could not determine gateway for $PRIMARY_IF"
+    exit 1
+fi
+
+# Replace default route
+echo "Setting default route via $ALT_GW dev $PRIMARY_IF"
+ip route del default || true
+ip route add default via "$ALT_GW" dev "$PRIMARY_IF"
+
+# Always ensure wlan0 subnet is routed via wlan0
+WLAN_INFO=$(ip -4 addr show "$WLAN_IF" | grep -oP 'inet \K[\d.]+/\d+')
 if [ -n "$WLAN_INFO" ]; then
     IP=$(echo "$WLAN_INFO" | cut -d/ -f1)
     PREFIX=$(echo "$WLAN_INFO" | cut -d/ -f2)
 
-    # Calculate the network address
     IFS='.' read -r i1 i2 i3 i4 <<< "$IP"
     MASK=$(( 0xFFFFFFFF << (32 - PREFIX) & 0xFFFFFFFF ))
     n1=$(( (MASK >> 24) & 0xFF ))
@@ -50,8 +66,8 @@ if [ -n "$WLAN_INFO" ]; then
     net4=$(( i4 & n4 ))
     NETWORK="$net1.$net2.$net3.$net4/$PREFIX"
 
-    echo "Adding subnet route for $PRIMARY_IF ($NETWORK)"
-    ip route replace "$NETWORK" dev "$PRIMARY_IF"
+    echo "Ensuring wlan0 subnet route: $NETWORK via $WLAN_IF"
+    ip route replace "$NETWORK" dev "$WLAN_IF"
 else
-    echo "Could not determine subnet for $PRIMARY_IF"
+    echo "Could not determine wlan0 subnet for routing"
 fi

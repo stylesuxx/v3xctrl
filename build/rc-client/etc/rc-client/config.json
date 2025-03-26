@@ -17,6 +17,6 @@
   },
   "wifi": {
       "mode": "client",
-      "force4g": false
+      "routing": "wlan"
   }
 }

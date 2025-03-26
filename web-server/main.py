@@ -1,4 +1,5 @@
 import argparse
+import subprocess
 from flask import Flask, render_template, request, jsonify
 import json
 
@@ -24,7 +25,51 @@ def save_config():
     with open(config_path, 'w') as f:
         json.dump(data, f, indent=4)
 
-    return jsonify({"message": "Saved"})
+    return jsonify({"message": "Saved!"})
+
+
+@app.route('/services', methods=['GET'])
+def get_services():
+    services = [
+        "rc-transmit-camera",
+        "rc-config-server",
+        "rc-control",
+    ]
+
+    data = {"services": []}
+
+    for service in services:
+        try:
+            output = subprocess.check_output(
+                ["systemctl", "show", service, "--property=Type,ActiveState,Result"],
+                stderr=subprocess.DEVNULL
+            ).decode().strip()
+
+            props = dict(line.split('=', 1) for line in output.splitlines())
+            service_type = props.get("Type", "")
+            active_state = props.get("ActiveState", "")
+            result = props.get("Result", "")
+
+            if service_type == "oneshot":
+                # oneshot services should finish and result=success
+                is_success = (active_state == "inactive" and result == "success")
+            else:
+                # all other services should be actively running
+                is_success = (active_state == "active")
+
+        except subprocess.CalledProcessError:
+            is_success = False
+            service_type = "unknown"
+            result = "error"
+
+        data["services"].append({
+            "name": service,
+            "type": service_type,
+            "active": is_success,
+            "result": result
+        })
+
+    return jsonify(data)
 
 
 def main():

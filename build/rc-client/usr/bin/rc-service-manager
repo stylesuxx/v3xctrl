@@ -7,6 +7,9 @@ CONTROL_SERVICE="rc-control"
 
 START_VIDEO=$(jq -r '.autostart.video' "$CONFIG_PATH")
 START_CONTROL=$(jq -r '.autostart.control' "$CONFIG_PATH")
+ROUTING_MODE=$(jq -r '.wifi.routing' "$CONFIG_PATH")
+
+rc-route-manager "${ROUTING_MODE}"
 
 if [ "$START_VIDEO" = "true" ]; then
   echo "Starting video service..."

@@ -39,7 +39,7 @@ When preparing your SD card, use the [Raspberry Pi Imager Utility](https://www.r
 
 > Do not attach your 4G modem yet, let's first get the biggest chunk downloaded through your regular internet.
 
-## Serial Console
+## Serial Console (optional but recommended)
 You might want to enable debugging/login on the serial console. This will allow you an easy debugging port in case something goes wrong.
 
 ```bash
@@ -132,3 +132,33 @@ sudo ./install.sh update
 ```
 
 This will re-build the rc-client package and install it over the already installed one.
+
+## Services
+After installation there will be a few services available, some of them enabled by default. Systemd is used for service management and all the services can be checked controlled via systemd:
+
+```bash
+# See the status of a service
+systemctl status rc-config-server
+
+# See the logs of a service
+journalctl -u rc-config-server
+```
+
+### rc-config-server (enabled by default)
+This service is responsible for the confiugration web interface. It is running on port 5000 by default and can be accessed via `http://$CLIENT_IP:5000/`.
+
+### rc-wifi-mode (enabled by default)
+This service checks your wifi config on startup and starts your WiFi device in **client** or **access point** mode.
+
+### rc-service-manager (enabled by default)
+This service starts services on startup according to the configuration.
+
+### rc-transmit-camera
+This service is responsible for sending the camera feed to the server. It is not running by default and needs to be enabled in the config first.
+
+> This service does not need to be enabled. It is started by the `rc-service-manager` service if enabled in the config
+
+### rc-control
+This service is responsible for the control connection between client and server and is ultimately what controls the actuators. It is not running by default and needs to be enabled in the config first.
+
+> This service does not need to be enabled explicitly via systemd. it is started by the `rc-service-manager` service if enabled in the config

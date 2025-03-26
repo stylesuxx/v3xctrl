@@ -9,9 +9,24 @@
 
   <body>
     <div class="container">
-      <div id="editor_holder"></div>
-      <button id="save" class="btn btn-primary">Save</button>
-      <div id="response"></div>
+      <ul class="nav nav-tabs" role="tablist" id="custom-tabs">
+        <li class="active"><a href="#editor-tab" role="tab" data-toggle="tab">Config Editor</a></li>
+        <li><a href="#services-tab" role="tab" data-toggle="tab">Services</a></li>
+      </ul>
+
+      <div class="tab-content" style="margin-top: 20px;">
+        <div class="tab-pane active" id="editor-tab">
+          <div id="editor_holder"></div>
+          <button id="save" class="btn btn-primary">Save</button>
+          <div id="response" class="alert alert-success mt-3" style="display: none; margin-top: 15px;"></div>
+        </div>
+
+        <div class="tab-pane" id="services-tab">
+          <div id="service_status_container">
+            <p>Loading service states...</p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script>
@@ -36,7 +51,42 @@
             contentType: 'application/json',
             data: JSON.stringify(updatedData),
             success: function(res) {
-                $('#response').text(res.message);
+                $messageContainer = $('#response');
+                $messageContainer.text(res.message);
+                $messageContainer.stop(true, true)
+                  .fadeIn(200)
+                  .delay(2000)
+                  .fadeOut(600);
+            }
+          });
+        }
+      });
+
+
+      $('#custom-tabs a').on('click', function(e) {
+        e.preventDefault();
+
+        $('#custom-tabs li').removeClass('active');
+        $(this).parent().addClass('active');
+
+        $('.tab-pane').hide();
+        $($(this).attr('href')).show();
+
+        // Load service status if needed
+        if ($(this).attr('href') === '#services-tab') {
+          $.get('/services', function(data) {
+            const container = $('#service_status_container');
+            container.empty();
+
+            if (data.services && data.services.length > 0) {
+              data.services.forEach(service => {
+                const statusClass = service.active ? 'text-success' : 'text-danger';
+                container.append(
+                  `<p><strong>${service.name} (${service.type})</strong>: <span class="${statusClass}">${service.active ? 'Active' : 'Inactive'}</span></p>`
+                );
+              });
+            } else {
+              container.text('No service info available.');
             }
           });
         }
