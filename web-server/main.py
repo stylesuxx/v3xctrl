@@ -33,7 +33,9 @@ def get_services():
     services = [
         "rc-transmit-camera",
         "rc-config-server",
+        "rc-wifi-mode",
         "rc-control",
+        "rc-service-manager"
     ]
 
     data = {"services": []}
