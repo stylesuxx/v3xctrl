@@ -9,8 +9,25 @@ if command -v systemctl >/dev/null 2>&1; then
   systemctl disable rc-service-manager
   systemctl disable rc-wifi-mode
 
+  # Enable services that are no longer managed by us
   systemctl enable dhcpcd
   systemctl enable wpa_supplicant
   systemctl enable hostapd
   systemctl enable dnsmasq
+
+  # Enable services that we have disabled during installation
+  systemctl enable \
+    bluetooth \
+    rpi-eeprom-update \
+    rsync \
+    triggerhappy triggerhappy.socket \
+    udisks2 \
+    apt-daily.timer apt-daily-upgrade.timer \
+    man-db.timer \
+    e2scrub_all.timer e2scrub_reap \
+    fstrim.timer \
+    rsyslog \
+    rpi-display-backlight \
+    remote-fs.target \
+    nfs-client.target
 fi

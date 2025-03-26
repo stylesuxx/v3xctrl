@@ -28,6 +28,7 @@ update_and_install() {
 
 install_python() {
   if ! dpkg -s rc-python >/dev/null 2>&1; then
+    mkdir -p $DOWNLOAD_PATH
     cd $DOWNLOAD_PATH
     curl -O $RC_PYTHON_URL
     sudo apt install -y ./rc-python.deb
@@ -95,22 +96,6 @@ link_src_dir() {
 optimize() {
   # Disable IPV6
   echo "net.ipv6.conf.all.disable_ipv6 = 1" | sudo tee -a /etc/sysctl.conf
-
-  # Disable services that we don not need for our usecase
-  sudo systemctl disable \
-    bluetooth \
-    rpi-eeprom-update \
-    rsync \
-    triggerhappy triggerhappy.socket \
-    udisks2 \
-    apt-daily.timer apt-daily-upgrade.timer \
-    man-db.timer \
-    e2scrub_all.timer e2scrub_reap \
-    fstrim.timer \
-    rsyslog \
-    rpi-display-backlight \
-    remote-fs.target \
-    nfs-client.target
 }
 
 case "$MODE" in
