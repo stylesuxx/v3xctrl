@@ -61,8 +61,8 @@ cp -r "${SRC_DIR}/" "$DEST_DIR"
 
 make DESTDIR="${DEST_DIR}" altinstall
 chroot "${DEST_DIR}" /usr/bin/python3.11 -m ensurepip --upgrade
-gzip -9 -n "$DEST_DIR/usr/share/doc/$NAME/changelog"
-sudo chown -R root:root "$DEST_DIR"
+gzip -9 -n "${DEST_DIR}/usr/share/doc/${NAME}/changelog"
+sudo chown -R root:root "${DEST_DIR}"
 
-dpkg-deb --build "$DEST_DIR"
+dpkg-deb --build "${DEST_DIR}"
 lintian "${TMP_DIR}/${NAME}.deb"
