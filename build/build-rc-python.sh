@@ -27,7 +27,8 @@ sudo dphys-swapfile swapon
 # Install build dependencies
 sudo apt update
 sudo apt install -y build-essential libssl-dev libbz2-dev libsqlite3-dev \
-  liblzma-dev libreadline-dev libctypes-ocaml-dev libcurses-ocaml-dev libffi-dev
+  liblzma-dev libreadline-dev libctypes-ocaml-dev libcurses-ocaml-dev \
+  libffi-dev chroot
 
 mkdir -p ${BASE_PATH}
 cd ${BASE_PATH}
@@ -59,6 +60,7 @@ cp -r "${SRC_DIR}/" "$DEST_DIR"
 #mkdir -p "${DEST_DIR}/usr/local"
 
 make DESTDIR="${DEST_DIR}" altinstall
+chroot "${DEST_DIR}" /usr/bin/python3.11 -m ensurepip --upgrade
 gzip -9 -n "$DEST_DIR/usr/share/doc/$NAME/changelog"
 sudo chown -R root:root "$DEST_DIR"
 
