@@ -8,7 +8,7 @@ DEST_DIR="${TMP_DIR}/$NAME"
 
 BASE_PATH="${DEST_DIR}/usr/share/$NAME"
 
-SERVER_BASE_PATH="${DEST_DIR}/config-server/"
+SERVER_BASE_PATH="${BASE_PATH}/config-server/"
 SERVER_LIB_PATH="${SERVER_BASE_PATH}/static/libs/"
 
 GST_BASE_PATH="${BASE_PATH}/gst/"
