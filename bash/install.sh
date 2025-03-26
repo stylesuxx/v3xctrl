@@ -1,10 +1,6 @@
 #! /bin/bash
 # Command is expected to run from within the bash dir - functions are expected
 # to return to this folder after they finish.
-if [ "$EUID" -ne 0 ]; then
-  echo "This script must be run as root (for example with sudo)."
-  exit 1
-fi
 
 MODE=${1:-default}
 
@@ -25,45 +21,20 @@ print_banner() {
 update_and_install() {
   print_banner "UPDATING OS AND INSTALLING DEPENDENCIES"
 
-  apt update && apt upgrade -y
-  apt install -y git mtr screen
+  sudo apt update && apt upgrade -y
+  sudo apt install -y git mtr screen
 }
 
 install_python() {
   if ! dpkg -s rc-python >/dev/null 2>&1; then
     cd $DOWNLOAD_PATH
     curl -O $RC_PYTHON_URL
-    apt install -y ./rc-python.deb
+    sudo apt install -y ./rc-python.deb
     cd $PWD
   fi
 
-  update-alternatives --set python /usr/bin/python3.11
+  sudo update-alternatives --set python /usr/bin/python3.11
   python --version
-}
-
-install_python_LEGACY() {
-  print_banner "INSTALLING PYTHON SYSTEM WIDE VIA PYENV"
-
-  local VERSION="$1"
-  local PYENV_PATH="/usr/local/pyenv"
-  if [ ! -d $PYENV_PATH ]; then
-    git clone https://github.com/pyenv/pyenv.git $PYENV_PATH
-
-    cp ./configs/etc/profile.d/pyenv.sh /etc/profile.d/pyenv.sh
-    . /etc/profile.d/pyenv.sh
-
-    pyenv install $VERSION
-    pyenv global $VERSION
-
-    chmod -R a+rX $PYENV_PATH
-    chmod -R a+w $PYENV_PATH/shims
-    chmod -R a+w $PYENV_PATH/versions
-  else
-    . /etc/profile.d/pyenv.sh
-  fi
-
-  python --version
-  /usr/local/pyenv/versions/${VERSION}/bin/pip install -r ../requirements.txt
 }
 
 build_and_install() {
@@ -71,13 +42,13 @@ build_and_install() {
 
   cd "../build"
   ./build-rc-client.sh
-  apt install -y ./tmp/rc-client.deb
+  sudo apt install -y ./tmp/rc-client.deb
 
   # Install python dependencies
   cd "${PWD}"
-  pip install -r requirements-client.txt
+  sudo pip install -r ../requirements-client.txt
 
-  systemctl restart rc-config-server
+  sudo systemctl restart rc-config-server
 
   sleep 3
   if systemctl is-active --quiet rc-config-server; then
@@ -94,8 +65,8 @@ fix_locale() {
 
   local LOCALE="en_US.UTF-8"
   sed -i "s/^# *$LOCALE UTF-8/$LOCALE UTF-8/" /etc/locale.gen
-  locale-gen
-  update-locale LANG=$LOCALE
+  sudo locale-gen
+  sudo update-locale LANG=$LOCALE
 }
 
 check_for_modem() {
@@ -116,7 +87,7 @@ link_src_dir() {
     SRC_DIR=$(pwd)
     cd ./build
 
-    ln -s "$SRC_DIR" "$TARGET_LINK"
+    sudo ln -s "$SRC_DIR" "$TARGET_LINK"
   fi
 }
 
