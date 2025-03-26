@@ -1,6 +1,7 @@
 [Unit]
 Description=RC Service Manager (autostarts camera and control services)
-After=network.target
+After=network.target rc-wifi-mode.service
+Requires=rc-wifi-mode.service
 
 [Service]
 Type=oneshot
