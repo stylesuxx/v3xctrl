@@ -8,12 +8,24 @@ HOST="$1"
 PORT="$2"
 shift 2
 
-WIDTH=1536
+# NOTE: Eher laggy
+# BITRATE=5000000
+# WIDTH=1920
+# HEIGHT=1080
+# FRAMERATE=30
+
+# NOTE: Nahezu perfekt
+WIDTH=1635
 HEIGHT=864
 BITRATE=3000000
 FRAMERATE=30
 CAMBUFFERTIME=50000000
-MAX_SIZE_BUFFERS=10
+
+# NOTE: Sehr matschig - muesste vermutlich mehr bitrate haben.
+# WIDTH=1280
+# HEIGHT=720
+# BITRATE=1500000
+# FRAMERATE=60
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -41,24 +53,18 @@ while [[ $# -gt 0 ]]; do
 done
 
 gst-launch-1.0 -v libcamerasrc ! \
-  "video/x-raw,\
-    width=$WIDTH,\
-    height=$HEIGHT,\
-    framerate=$FRAMERATE/1,\
-    format=NV12,\
-    interlace-mode=progressive" ! \
+  "video/x-raw,width=$WIDTH,height=$HEIGHT,framerate=$FRAMERATE/1,format=NV12,interlace-mode=progressive" ! \
   queue \
     max-size-buffers=$MAX_SIZE_BUFFERS \
     max-size-time=$CAMBUFFERTIME \
     leaky=downstream ! \
-  v4l2h264enc extra-controls="\
-    controls,\
+  v4l2h264enc extra-controls="controls,\
     repeat_sequence_header=1,\
-    video_bitrate=$BITRATE,
+    video_bitrate=$BITRATE,\
     bitrate-mode=constant,\
     h264-i-frame-period=30,\
     h264-idr-interval=30,\
-    h264-b-frame=0 ! \
+    h264-b-frame=0" ! \
   "video/x-h264,level=(string)4,profile=(string)high" ! \
   h264parse ! \
   rtph264pay config-interval=1 pt=96 mtu=1400 ! \
