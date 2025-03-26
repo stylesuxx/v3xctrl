@@ -1,6 +1,7 @@
 #! /bin/bash
 # Command is expected to run from within the bash dir - functions are expected
 # to return to this folder after they finish.
+set -e
 
 MODE=${1:-default}
 
@@ -42,7 +43,7 @@ build_and_install() {
 
   cd "../build"
   ./build-rc-client.sh
-  sudo apt install -y ./tmp/rc-client.deb
+  sudo apt reinstall -y ./tmp/rc-client.deb
 
   # Install python dependencies
   cd "${PWD}"
@@ -64,7 +65,7 @@ fix_locale() {
   print_banner "FIXING LOCALE"
 
   local LOCALE="en_US.UTF-8"
-  sed -i "s/^# *$LOCALE UTF-8/$LOCALE UTF-8/" /etc/locale.gen
+  sudo sed -i "s/^# *$LOCALE UTF-8/$LOCALE UTF-8/" /etc/locale.gen
   sudo locale-gen
   sudo update-locale LANG=$LOCALE
 }
