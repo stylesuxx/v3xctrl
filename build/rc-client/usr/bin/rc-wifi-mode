@@ -1,5 +1,13 @@
 #!/bin/bash
+set -e
+
 CONFIG_PATH="/etc/rc-client/config.json"
+INTERFACE="wlan0"
+SUBNET="192.168.23"
+AP_IP="$SUBNET.1"
+HOSTAPD_CONF="/etc/hostapd/hostapd.conf"
+DNSMASQ_CONF="/etc/dnsmasq.d/ap.conf"
+FALLBACK_TIMEOUT=10
 
 if [ "$EUID" -ne 0 ]; then
   echo "This script must be run as root (for example with sudo)."
@@ -9,25 +17,18 @@ fi
 if [ -n "$1" ]; then
   MODE="$1"
 else
-  # Read mode from JSON config: { "mode": "ap" }
   MODE=$(jq -r '.wifi.mode' "$CONFIG_PATH")
 fi
-
-INTERFACE="wlan0"
-SUBNET="192.168.23"
-AP_IP="$SUBNET.1"
-HOSTAPD_CONF="/etc/hostapd/hostapd.conf"
-DNSMASQ_CONF="/etc/dnsmasq.d/ap.conf"
-
-set -e
 
 # Get device ID from CPU serial (last 8 hex digits)
 DEVICE_ID=$(awk '/Serial/ {print substr($NF, length($NF)-7)}' /proc/cpuinfo)
 SSID="rc-client-$DEVICE_ID"
 
 switch_to_ap() {
-  systemctl stop wpa_supplicant
-  systemctl stop dhcpcd
+  echo "[wifi] Switching to AP mode"
+
+  systemctl stop wpa_supplicant || true
+  systemctl stop dhcpcd || true
 
   ip link set "$INTERFACE" down
   ip addr flush dev "$INTERFACE"
@@ -55,7 +56,6 @@ interface=$INTERFACE
 dhcp-range=$SUBNET.10,$SUBNET.50,255.255.255.0,24h
 EOF
 
-  # Make sure hostapd knows where its config is
   sed -i 's|^#*DAEMON_CONF=.*|DAEMON_CONF="'"$HOSTAPD_CONF"'"|' /etc/default/hostapd
 
   systemctl restart dnsmasq
@@ -66,8 +66,10 @@ EOF
 }
 
 switch_to_client() {
-  systemctl stop hostapd
-  systemctl stop dnsmasq
+  echo "[wifi] Switching to client mode"
+
+  systemctl stop hostapd || true
+  systemctl stop dnsmasq || true
 
   ip link set "$INTERFACE" down
   ip addr flush dev "$INTERFACE"
@@ -76,7 +78,18 @@ switch_to_client() {
   systemctl start dhcpcd
   systemctl start wpa_supplicant
 
-  echo "Client mode enabled"
+  echo "[wifi] Waiting up to $FALLBACK_TIMEOUT seconds for IP..."
+
+  for i in $(seq 1 "$FALLBACK_TIMEOUT"); do
+    if ip -4 addr show "$INTERFACE" | grep -q 'inet '; then
+      echo "[wifi] Client mode successful: IP assigned."
+      return 0
+    fi
+    sleep 1
+  done
+
+  echo "[wifi] Client mode failed after $FALLBACK_TIMEOUT seconds. Falling back to AP mode."
+  switch_to_ap
 }
 
 if [ "$MODE" == "ap" ]; then
@@ -88,5 +101,7 @@ else
   exit 1
 fi
 
-# Restart web-interface so it can bin to the new IP
-systemctl restart rc-config-server
+# If the web-interface is already active, restart it to bind to the new IP
+if systemctl is-active --quiet rc-config-server; then
+  systemctl restart rc-config-server
+fi

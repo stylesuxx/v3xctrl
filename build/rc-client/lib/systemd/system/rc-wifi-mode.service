@@ -1,7 +1,7 @@
 [Unit]
 Description=Switch between Wi-Fi client and AP mode
-After=network-pre.target
-Wants=network-pre.target
+After=local-fs.target network-pre.target
+Before=network.target
 
 [Service]
 Type=oneshot

@@ -15,4 +15,9 @@ if command -v systemctl >/dev/null 2>&1; then
   systemctl enable rc-config-server
   systemctl enable rc-service-manager
   systemctl enable rc-wifi-mode
+
+  systemctl disable dhcpcd
+  systemctl disable wpa_supplicant
+  systemctl disable hostapd
+  systemctl disable dnsmasq
 fi

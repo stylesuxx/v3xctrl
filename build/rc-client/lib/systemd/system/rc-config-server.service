@@ -1,6 +1,7 @@
 [Unit]
 Description=RC Config Server
-After=network.target
+After=network.target rc-wifi-mode.service
+Requires=rc-wifi-mode.service
 
 [Service]
 Environment=PYENV_ROOT=/usr/local/pyenv

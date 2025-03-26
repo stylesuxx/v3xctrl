@@ -2,8 +2,8 @@
 set -e
 
 if [[ "$1" != "wlan" && "$1" != "rndis" ]]; then
-    echo "Usage: $0 [wlan|rndis]"
-    exit 1
+  echo "Usage: $0 [wlan|rndis]"
+  exit 1
 fi
 
 LO_IF="lo"
@@ -11,63 +11,76 @@ WLAN_IF="wlan0"
 PRIMARY_IF=""
 
 if [[ "$1" == "wlan" ]]; then
-    PRIMARY_IF="$WLAN_IF"
+  PRIMARY_IF="$WLAN_IF"
 elif [[ "$1" == "rndis" ]]; then
-    # Look for the first alternate (non-wlan0, non-lo) interface with IP
-    OTHER_IFS=$(ip -o link show | awk -F': ' '{print $2}' | grep -vE "^($LO_IF|$WLAN_IF)$")
+  # Look for the first alternate (non-wlan0, non-lo) interface with IP
+  OTHER_IFS=$(ip -o link show | awk -F': ' '{print $2}' | grep -vE "^($LO_IF|$WLAN_IF)$")
 
-    for IFACE in $OTHER_IFS; do
-        if ip addr show "$IFACE" | grep -q "inet "; then
-            PRIMARY_IF="$IFACE"
-            break
-        fi
-    done
-
-    # Fallback to wlan0 if nothing found
-    if [ -z "$PRIMARY_IF" ]; then
-        echo "No alternate interface found. Falling back to $WLAN_IF"
-        PRIMARY_IF="$WLAN_IF"
+  for IFACE in $OTHER_IFS; do
+    if ip addr show "$IFACE" | grep -q "inet "; then
+      PRIMARY_IF="$IFACE"
+      break
     fi
+  done
+
+  # Fallback to wlan0 if nothing found
+  if [ -z "$PRIMARY_IF" ]; then
+    echo "No alternate interface found. Falling back to $WLAN_IF"
+    PRIMARY_IF="$WLAN_IF"
+  fi
+fi
+
+if ! ip addr show "$PRIMARY_IF" | grep -q "inet "; then
+  echo "Interface $PRIMARY_IF has no IP address, aborting"
+  exit 1
 fi
 
 echo "Using $PRIMARY_IF as default route interface"
 
 # Find gateway for selected interface
-ALT_GW=$(ip route show dev "$PRIMARY_IF" | awk '/default/ {print $3}')
-if [ -z "$ALT_GW" ]; then
-    ALT_GW=$(ip route | grep "^default.*$PRIMARY_IF" | awk '{print $3}')
+GW=$(ip route show dev "$PRIMARY_IF" | awk '/default/ {print $3}')
+if [ -z "$GW" ]; then
+  GW=$(ip route | grep "^default.*$PRIMARY_IF" | awk '{print $3}')
 fi
 
-if [ -z "$ALT_GW" ]; then
-    echo "Could not determine gateway for $PRIMARY_IF"
-    exit 1
+if [ -z "$GW" ]; then
+  DEVICE_IP=$(ip -4 addr show dev "$PRIMARY_IF" | awk '/inet / {print $2}' | cut -d/ -f1)
+
+  if [ -n "$DEVICE_IP" ]; then
+    IFS='.' read -r o1 o2 o3 o4 <<< "$DEVICE_IP"
+    GW="${o1}.${o2}.${o3}.1"
+    echo "Inferred fallback gateway: $GW (from $DEVICE_IP)"
+  fi
 fi
 
-# Replace default route
-echo "Setting default route via $ALT_GW dev $PRIMARY_IF"
-ip route del default || true
-ip route add default via "$ALT_GW" dev "$PRIMARY_IF"
+# Set default route if we now have a gateway
+if [ -n "$GW" ]; then
+  echo "Setting default route via $GW dev $PRIMARY_IF"
+  ip route replace default via "$GW" dev "$PRIMARY_IF"
+else
+  echo "No gateway found or inferred for $PRIMARY_IF"
+fi
 
 # Always ensure wlan0 subnet is routed via wlan0
 WLAN_INFO=$(ip -4 addr show "$WLAN_IF" | grep -oP 'inet \K[\d.]+/\d+')
 if [ -n "$WLAN_INFO" ]; then
-    IP=$(echo "$WLAN_INFO" | cut -d/ -f1)
-    PREFIX=$(echo "$WLAN_INFO" | cut -d/ -f2)
+  IP=$(echo "$WLAN_INFO" | cut -d/ -f1)
+  PREFIX=$(echo "$WLAN_INFO" | cut -d/ -f2)
 
-    IFS='.' read -r i1 i2 i3 i4 <<< "$IP"
-    MASK=$(( 0xFFFFFFFF << (32 - PREFIX) & 0xFFFFFFFF ))
-    n1=$(( (MASK >> 24) & 0xFF ))
-    n2=$(( (MASK >> 16) & 0xFF ))
-    n3=$(( (MASK >> 8) & 0xFF ))
-    n4=$(( MASK & 0xFF ))
-    net1=$(( i1 & n1 ))
-    net2=$(( i2 & n2 ))
-    net3=$(( i3 & n3 ))
-    net4=$(( i4 & n4 ))
-    NETWORK="$net1.$net2.$net3.$net4/$PREFIX"
+  IFS='.' read -r i1 i2 i3 i4 <<< "$IP"
+  MASK=$(( 0xFFFFFFFF << (32 - PREFIX) & 0xFFFFFFFF ))
+  n1=$(( (MASK >> 24) & 0xFF ))
+  n2=$(( (MASK >> 16) & 0xFF ))
+  n3=$(( (MASK >> 8) & 0xFF ))
+  n4=$(( MASK & 0xFF ))
+  net1=$(( i1 & n1 ))
+  net2=$(( i2 & n2 ))
+  net3=$(( i3 & n3 ))
+  net4=$(( i4 & n4 ))
+  NETWORK="$net1.$net2.$net3.$net4/$PREFIX"
 
-    echo "Ensuring wlan0 subnet route: $NETWORK via $WLAN_IF"
-    ip route replace "$NETWORK" dev "$WLAN_IF"
+  echo "Ensuring wlan0 subnet route: $NETWORK via $WLAN_IF"
+  ip route replace "$NETWORK" dev "$WLAN_IF"
 else
-    echo "Could not determine wlan0 subnet for routing"
+  echo "Could not determine wlan0 subnet for routing"
 fi

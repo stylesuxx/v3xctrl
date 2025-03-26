@@ -74,7 +74,7 @@ check_for_modem() {
   local IFACE=$(ip -o link show | awk -F': ' '{print $2}' | grep -vE '^(lo|wlan0)$' | head -n1)
 
   if [ -n "$IFACE" ]; then
-    echo "Potential Modem foun: $iface"
+    echo "Potential Modem found: $iface"
   else
     echo "No 4g modem found - make sure it is plugged in and shows up via 'ip -c a'"
   fi
@@ -92,6 +92,27 @@ link_src_dir() {
   fi
 }
 
+optimize() {
+  # Disable IPV6
+  echo "net.ipv6.conf.all.disable_ipv6 = 1" | sudo tee -a /etc/sysctl.conf
+
+  # Disable services that we don not need for our usecase
+  sudo systemctl disable \
+    bluetooth \
+    rpi-eeprom-update \
+    rsync \
+    triggerhappy triggerhappy.socket \
+    udisks2 \
+    apt-daily.timer apt-daily-upgrade.timer \
+    man-db.timer \
+    e2scrub_all.timer e2scrub_reap \
+    fstrim.timer \
+    rsyslog \
+    rpi-display-backlight \
+    remote-fs.target \
+    nfs-client.target
+}
+
 case "$MODE" in
   update)
     build_and_install
@@ -101,7 +122,8 @@ case "$MODE" in
     install_python
     update_and_install
     build_and_install
-    check_for_modem
     link_src_dir
+    optimize
+    check_for_modem
     ;;
 esac
