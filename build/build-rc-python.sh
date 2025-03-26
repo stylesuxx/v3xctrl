@@ -54,7 +54,7 @@ make -j$(nproc)
 
 # Move everything into place and package it
 sudo rm -r "$DEST_DIR"
-cd $PWD
+cd "${PWD}"
 cp -r "${SRC_DIR}/" "$DEST_DIR"
 
 #mkdir -p "${DEST_DIR}/usr/local"
