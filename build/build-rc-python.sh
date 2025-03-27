@@ -29,7 +29,7 @@ sudo dphys-swapfile swapon
 sudo apt update
 sudo apt install -y build-essential libssl-dev libbz2-dev libsqlite3-dev \
   liblzma-dev libreadline-dev libctypes-ocaml-dev libcurses-ocaml-dev \
-  libffi-dev chroot
+  libffi-dev
 
 mkdir -p ${BASE_PATH}
 cd ${BASE_PATH}
@@ -58,10 +58,7 @@ sudo rm -r "$DEST_DIR"
 cd "${PWD}"
 cp -r "${SRC_DIR}/" "$DEST_DIR"
 
-#mkdir -p "${DEST_DIR}/usr/local"
-
 make DESTDIR="${DEST_DIR}" altinstall
-chroot "${DEST_DIR}" "${PREFIX}/bin/python3.11" -m ensurepip --upgrade
 gzip -9 -n "${DEST_DIR}/usr/share/doc/${NAME}/changelog"
 sudo chown -R root:root "${DEST_DIR}"
 
