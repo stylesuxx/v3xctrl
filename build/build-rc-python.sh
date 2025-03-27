@@ -11,6 +11,7 @@ BASE_PATH="$PWD/tmp/python"
 DOWNLOAD_PATH="${BASE_PATH}/Python-${VERSION}.tgz"
 UNPACK_PATH="${BASE_PATH}/Python-${VERSION}"
 DONWLOAD_URL="https://www.python.org/ftp/python/${VERSION}/Python-${VERSION}.tgz"
+PREFIX="/opt/rc-python"
 
 SWAP_SIZE=8192
 SWAP_PATH="/etc/dphys-swapfile"
@@ -44,7 +45,7 @@ fi
 cd $UNPACK_PATH
 if [ ! -f "Makefile" ]; then
   CFLAGS="-O3 -s" LDFLAGS="-s" ./configure \
-    --prefix=/usr \
+    --prefix="${PREFIX}" \
     --enable-shared \
     --enable-optimizations \
     --without-doc-strings \
@@ -60,7 +61,7 @@ cp -r "${SRC_DIR}/" "$DEST_DIR"
 #mkdir -p "${DEST_DIR}/usr/local"
 
 make DESTDIR="${DEST_DIR}" altinstall
-chroot "${DEST_DIR}" /usr/bin/python3.11 -m ensurepip --upgrade
+chroot "${DEST_DIR}" "${PREFIX}/bin/python3.11" -m ensurepip --upgrade
 gzip -9 -n "${DEST_DIR}/usr/share/doc/${NAME}/changelog"
 sudo chown -R root:root "${DEST_DIR}"
 
