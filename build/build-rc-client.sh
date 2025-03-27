@@ -15,7 +15,7 @@ GST_BASE_PATH="${BASE_PATH}/gst/"
 
 # Clean up directory
 sudo rm -r "${DEST_DIR}"
-cp -r "${SRC_DIR}/" "$DEST_DIR"
+cp -r "${SRC_DIR}/" "$TMP_DIR"
 
 # Create dir structure
 mkdir -p "${BASE_PATH}"
