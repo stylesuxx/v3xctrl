@@ -25,7 +25,7 @@ mkdir -p "${GST_BASE_PATH}"
 
 # Move files into place
 cd "${PWD}/.."
-cp -r "./web-server/" "${SERVER_BASE_PATH}"
+cp -r "./web-server/." "${SERVER_BASE_PATH}"
 cp "./bash/send_cam.sh" "${GST_BASE_PATH}"
 
 # Fetch static files for the web server
