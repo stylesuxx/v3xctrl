@@ -23,7 +23,7 @@ update_and_install() {
   print_banner "UPDATING OS AND INSTALLING DEPENDENCIES"
 
   sudo apt update && sudo apt upgrade -y
-  sudo apt install -y git mtr screen
+  sudo apt install -y git mtr screen lintian
 }
 
 install_python() {
