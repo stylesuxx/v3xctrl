@@ -5,4 +5,4 @@ HOST=$(jq -r '.host' "$CONFIG_PATH")
 PORT=$(jq -r '.ports.control' "$CONFIG_PATH")
 
 cd /usr/share/rc-client/git-src
-python src/client.py $HOST $PORT
+rc-python src/client.py $HOST $PORT

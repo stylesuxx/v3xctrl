@@ -61,7 +61,7 @@ The server will run connectivity checks. If no new packages has been seen from t
 On the client invoke:
 
 ```bash
-python src/client.py $HOST $PORT
+rc-python src/client.py $HOST $PORT
 ```
 
 On the client we can not bind to a specific port, instead we use one socket to send packets and to listen to. The first SYN package sent, basically opens up a hole through which the server can send packets back to the client.

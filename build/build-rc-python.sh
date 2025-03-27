@@ -1,5 +1,7 @@
 #/bin/bash
 # Build a custom Python version and package it into a Debian package.
+set -e
+
 VERSION=3.11.11
 
 NAME='rc-python'
@@ -44,12 +46,13 @@ fi
 # files will be used.
 cd $UNPACK_PATH
 if [ ! -f "Makefile" ]; then
-  CFLAGS="-O3 -s" LDFLAGS="-s" ./configure \
+  CFLAGS="-O3 -s" LDFLAGS="-s -Wl,-rpath,/opt/rc-python/lib" ./configure \
     --prefix="${PREFIX}" \
     --enable-shared \
     --enable-optimizations \
     --without-doc-strings \
-    --disable-test-modules
+    --disable-test-modules \
+    --with-ensurepip=install
 fi
 make -j$(nproc)
 
@@ -60,6 +63,8 @@ cp -r "${SRC_DIR}/" "$DEST_DIR"
 
 make DESTDIR="${DEST_DIR}" altinstall
 gzip -9 -n "${DEST_DIR}/usr/share/doc/${NAME}/changelog"
+find "${DEST_DIR}/opt/rc-python" -name '__pycache__' -type d -exec rm -rf {} +
+find "${DEST_DIR}/opt/rc-python/lib" -name '*.so*' -exec chmod 644 {} +
 sudo chown -R root:root "${DEST_DIR}"
 
 dpkg-deb --build "${DEST_DIR}"

@@ -31,9 +31,13 @@ Modem:
 * 4G Modem - as long as it provides a rndis device, any is fine - as mentioned above, higher category is preferred.
 
 ## Software
-As base we decided to use PiOS. Unfortunately, Bookworm seems to have some issues with the RNDIS modem, so we went with Bullseye Lite 64Bit (Listed as legacy in th PI Imager utility).
+As base we decided to use PiOS.
 
-But generally speaking, the exact distribution should not matter too much. We will be using Python for most things and `gstreamer` for the rest.
+> Unfortunately, Bookworm seems to have some issues with the RNDIS modem, so we went with Bullseye Lite 64Bit (Listed as legacy in th PI Imager utility).
+
+Generally speaking, the exact distribution should not matter too much. We will be using Python (a custom version) for most things and `gstreamer` for the rest.
+
+Feel free to see if your RNDIS modem works with Bookworm, then you can also use that instead of Bullseye. No matter which debian based OS you use, just make sure it is arm64 based.
 
 When preparing your SD card, use the [Raspberry Pi Imager Utility](https://www.raspberrypi.com/news/raspberry-pi-imager-imaging-utility/) and configure it to connect to your Wifi.
 
@@ -64,6 +68,16 @@ cd rc-stream/bash
 ```
 
 You should now be able to access the config web interface at `http://192.168.1.89:5000/` - change the IP to the IP of your client.
+
+### Custom Python
+During installation a custom python version is installed. It is isolated from the system python and uses it's own environment.
+
+It has it's own interpreter and pip:
+
+```bash
+rc-python --version
+rc-pip --version
+```
 
 ### Modem setup
 Plug in your modem, it should be recognizes as a RNDIS network device.

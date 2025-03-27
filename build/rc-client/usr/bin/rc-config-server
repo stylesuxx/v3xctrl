@@ -13,7 +13,7 @@ if [ -z "$HOST" ]; then
   HOST="127.0.0.1"
 fi
 
-python /usr/share/rc-client/config-server/main.py \
+rc-python /usr/share/rc-client/config-server/main.py \
   --config "$CONFIG_PATH" \
   --schema "$SCHEMA_PATH" \
   --host "$HOST" \

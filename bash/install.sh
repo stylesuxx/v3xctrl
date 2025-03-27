@@ -35,8 +35,9 @@ install_python() {
     cd $PWD
   fi
 
-  sudo update-alternatives --set python /usr/bin/python3.11
-  python --version
+  # Print versions to make sure everything is in place and working
+  rc-python --version
+  rc-pip --version
 }
 
 build_and_install() {
@@ -44,22 +45,13 @@ build_and_install() {
 
   cd "../build"
   ./build-rc-client.sh
-  sudo apt reinstall -y ./tmp/rc-client.deb
+
+  sudo apt remove rc-client
+  sudo apt install -y ./tmp/rc-client.deb
 
   # Install python dependencies
   cd "${PWD}"
-  sudo pip install -r ../requirements-client.txt
-
-  sudo systemctl restart rc-config-server
-
-  sleep 3
-  if systemctl is-active --quiet rc-config-server; then
-    echo "Service is running!"
-  else
-    echo "Service is NOT running, use 'journalctl -u rc-config-server'"
-  fi
-
-  cd "${PWD}"
+  sudo rc-pip install -r ../requirements-client.txt
 }
 
 fix_locale() {
@@ -93,11 +85,6 @@ link_src_dir() {
   fi
 }
 
-optimize() {
-  # Disable IPV6
-  echo "net.ipv6.conf.all.disable_ipv6 = 1" | sudo tee -a /etc/sysctl.conf
-}
-
 case "$MODE" in
   update)
     build_and_install
@@ -108,7 +95,6 @@ case "$MODE" in
     update_and_install
     build_and_install
     link_src_dir
-    optimize
     check_for_modem
     ;;
 esac
