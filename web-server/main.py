@@ -31,11 +31,11 @@ def save_config():
 @app.route('/services', methods=['GET'])
 def get_services():
     services = [
-        "rc-transmit-camera",
         "rc-config-server",
         "rc-wifi-mode",
-        "rc-control",
-        "rc-service-manager"
+        "rc-service-manager",
+        "rc-transmit-camera",
+        "rc-control"
     ]
 
     data = {"services": []}
