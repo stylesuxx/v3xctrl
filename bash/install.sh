@@ -22,7 +22,7 @@ print_banner() {
 update_and_install() {
   print_banner "UPDATING OS AND INSTALLING DEPENDENCIES"
 
-  sudo apt update && apt upgrade -y
+  sudo apt update && sudo apt upgrade -y
   sudo apt install -y git mtr screen
 }
 
