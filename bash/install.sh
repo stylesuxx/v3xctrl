@@ -67,7 +67,7 @@ check_for_modem() {
   local IFACE=$(ip -o link show | awk -F': ' '{print $2}' | grep -vE '^(lo|wlan0)$' | head -n1)
 
   if [ -n "$IFACE" ]; then
-    echo "Potential Modem found: $iface"
+    echo "Potential Modem found: $IFACE"
   else
     echo "No 4g modem found - make sure it is plugged in and shows up via 'ip -c a'"
   fi
