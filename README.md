@@ -36,8 +36,6 @@ source bin/activate
 pip install -r requirements-server.txt
 ```
 
-> On the host you will also need gstreamer dependencies installed.
-
 ## Usage
 
 ### Testing
