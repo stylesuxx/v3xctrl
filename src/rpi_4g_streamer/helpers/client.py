@@ -14,8 +14,8 @@ import sys
 import time
 import traceback
 
-from rpi_4g_streamer import Client, Control, Telemetry, State
-
+from rpi_4g_streamer import Client, State
+from rpi_4g_streamer.Message import Control, Telemetry
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -43,8 +43,9 @@ def disconnect_handler() -> None:
 
 def signal_handler(sig, frame):
     global running
-    running = False
-    print("Shutting down...")
+    if running:
+        running = False
+        print("Shutting down...")
 
 
 client = Client(HOST, PORT)

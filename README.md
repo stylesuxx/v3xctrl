@@ -48,7 +48,8 @@ The bash script directory contains `gstreamer` related functionality. Execute `s
 On the server invoke:
 
 ```bash
-python src/server.py $PORT
+cd src
+python -m rpi_4g_streamer.helpers.server $PORT
 ```
 
 The Server will bind to the given port and start listening for UDP packets from the client. Once a SYN packet is received from the client, the server will send one ack package and then continue sending `Command` packets every second.
@@ -59,7 +60,8 @@ The server will run connectivity checks. If no new packages has been seen from t
 On the client invoke:
 
 ```bash
-rc-python src/client.py $HOST $PORT
+cd src
+python -m rpi_4g_streamer.helpers.client $HOST $PORT
 ```
 
 On the client we can not bind to a specific port, instead we use one socket to send packets and to listen to. The first SYN package sent, basically opens up a hole through which the server can send packets back to the client.
