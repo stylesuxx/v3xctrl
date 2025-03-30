@@ -30,8 +30,9 @@ def disconnect_handler() -> None:
 
 def signal_handler(sig, frame):
     global running
-    running = False
-    print("Shutting down...")
+    if running:
+        running = False
+        print("Shutting down...")
 
 
 server = Server(PORT)
