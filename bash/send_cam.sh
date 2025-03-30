@@ -12,8 +12,12 @@ WIDTH=1536
 HEIGHT=864
 BITRATE=3000000
 FRAMERATE=30
-BUFFERTIME=50000000
+
+BUFFERTIME=150000000
 SIZEBUFFERS=5
+
+BUFFERTIME_UDP=150000000
+SIZEBUFFERS_UDP=5
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -62,4 +66,8 @@ gst-launch-1.0 -v libcamerasrc ! \
     h264-idr-interval=30,\
     h264-b-frame=0" ! \
   "video/x-h264,level=(string)4,profile=(string)high,stream-format=(string)byte-stream" ! \
+  queue \
+    max-size-buffers=$SIZEBUFFERS_UDP \
+    max-size-time=$BUFFERTIME_UDP \
+    leaky=downstream ! \
   udpsink host=$HOST port=$PORT sync=false async=false
