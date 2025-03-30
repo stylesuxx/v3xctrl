@@ -5,7 +5,7 @@ import pytest
 
 from src.rpi_4g_streamer import MessageHandler
 from src.rpi_4g_streamer import Heartbeat, Ack, UDPTransmitter
-from .config import HOST, PORT, SLEEP
+from tests.rpi_4g_streamer.config import HOST, PORT, SLEEP
 
 
 @pytest.fixture(scope="function", autouse=True)

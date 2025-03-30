@@ -75,10 +75,17 @@ The client should definetly have the shorter threshold for those checks in order
 ## Development
 
 ### Tests
-Run all tests:
+Run tests:
 
 ```bash
+# All
 python -m pytest tests
+
+# Just ui
+python -m pytest tests/ui
+
+# Just server
+python -m pytest tests/rpi_4g_streamer
 ```
 
 Watch for file changes and re-run tests automatically:

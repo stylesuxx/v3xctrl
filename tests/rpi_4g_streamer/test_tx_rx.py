@@ -4,7 +4,7 @@ import socket
 import time
 
 from src.rpi_4g_streamer import UDPReceiver, UDPTransmitter, Heartbeat, UDPPacket
-from .config import HOST, PORT, SLEEP
+from tests.rpi_4g_streamer.config import HOST, PORT, SLEEP
 
 
 @pytest.fixture(scope="session", autouse=True)

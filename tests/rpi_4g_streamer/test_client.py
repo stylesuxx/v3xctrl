@@ -3,7 +3,7 @@ import socket
 
 from src.rpi_4g_streamer import UDPTransmitter, Client
 from src.rpi_4g_streamer import Heartbeat
-from .config import HOST, PORT, SLEEP
+from tests.rpi_4g_streamer.config import HOST, PORT, SLEEP
 
 
 def test_client():
