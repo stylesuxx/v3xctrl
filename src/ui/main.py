@@ -1,3 +1,4 @@
+import logging
 import pygame
 import signal
 import time
@@ -10,9 +11,14 @@ from ui.colors import BLACK
 from ui.VideoReceiver import VideoReceiver
 from ui.KeyAxisHandler import KeyAxisHandler
 
+from rpi_4g_streamer import Server, State
+from rpi_4g_streamer.Message import Telemetry, Control
+
+
 # Settings
 WINDOW_TITLE = "RC - Streamer"
 PORT = 6666
+CONTROL_PORT = 6667
 WIDTH, HEIGHT = 1280, 720
 LOOP_HZ = 60
 DEBUG_OVERLAY = True
@@ -81,6 +87,29 @@ clock = pygame.time.Clock()
 connection_indicator = StatusWidget(position=(10, 180), size=20, label="Data")
 connection_indicator.set_status("waiting")
 
+
+def telemetry_handler(message: Telemetry) -> None:
+    """ TODO: Implement control message handling. """
+    values = message.get_values()
+    logging.debug(f"Received telemetry message: {values}")
+
+
+def disconnect_handler() -> None:
+    global connection_indicator
+    connection_indicator.set_status("fail")
+
+
+def connect_handler() -> None:
+    global connection_indicator
+    connection_indicator.set_status("success")
+
+
+server = Server(CONTROL_PORT)
+server.subscribe(Telemetry, telemetry_handler)
+server.on(State.DISCONNECTED, disconnect_handler)
+server.on(State.CONNECTED, connect_handler)
+server.start()
+
 if DEBUG_OVERLAY:
     widget_fps_loop = FpsWidget(
         (10, 10),
@@ -101,8 +130,9 @@ last_loop_update = time.time()
 
 def signal_handler(sig, frame):
     global running
-    running = False
-    print("Shutting down...")
+    if running:
+        running = False
+        print("Shutting down...")
 
 
 signal.signal(signal.SIGINT, signal_handler)
@@ -122,6 +152,11 @@ while running:
 
     throttle = throttle_axis.value
     steering = steering_axis.value
+
+    server.send(Control({
+        "ste": steering,
+        "thr": throttle
+    }))
 
     loop_fps = clock.get_fps()
     loop_history.append(loop_fps)
@@ -149,6 +184,9 @@ while running:
     pygame.display.flip()
 
     clock.tick(LOOP_HZ)
+
+server.stop()
+server.join()
 
 video_receiver.stop()
 video_receiver.join()
