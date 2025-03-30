@@ -7,7 +7,7 @@ happening, as long as a valid UDP packet is added to the queue, it will be sent.
 Since asyncio is used, its not enough to just run this Class, but instead you
 also need to trigger starting of the task:
 
-tx = UPDTransmitter()
+tx = UDPTransmitter()
 tx.start()
 tx.start_task()
 ...
@@ -53,20 +53,24 @@ class UDPTransmitter(threading.Thread):
         self.loop.run_forever()
 
     async def process(self):
-        while self.running.is_set():
-            try:
-                packet = self.queue.get(timeout=1)
-                address = (packet.host, packet.port)
-                self.socket.sendto(packet.data, address)
-                self.queue.task_done()
-            except Empty:
-                pass
-            except OSError as e:
-                logging.warning(f"Socket error while sending: {e}")
-            except Exception as e:
-                logging.error(f"Unexpected transmit error: {e}", exc_info=True)
+        try:
+            while self.running.is_set():
+                try:
+                    packet = self.queue.get(timeout=1)
+                    address = (packet.host, packet.port)
+                    self.socket.sendto(packet.data, address)
+                    self.queue.task_done()
+                except Empty:
+                    pass
+                except OSError as e:
+                    logging.warning(f"Socket error while sending: {e}")
+                except Exception as e:
+                    logging.error(f"Unexpected transmit error: {e}", exc_info=True)
 
-        self.process_stopped.set()
+        except asyncio.CancelledError:
+            logging.info("Transmit task cancelled.")
+        finally:
+            self.process_stopped.set()
 
     def start_task(self):
         if not self.task:
@@ -78,5 +82,10 @@ class UDPTransmitter(threading.Thread):
 
             self.process_stopped.wait()
 
-            self.task.cancel()
+            if self.task:
+                self.loop.call_soon_threadsafe(self.task.cancel)
+                self.task = None
+
             self.loop.call_soon_threadsafe(self.loop.stop)
+            self.join()
+            self.loop.close()
