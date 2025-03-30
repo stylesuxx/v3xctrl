@@ -1,5 +1,4 @@
-from src.rpi_4g_streamer import Message, Telemetry, Command, Control
-from src.rpi_4g_streamer import Heartbeat, Syn, Ack
+from src.rpi_4g_streamer.Message import Message, Heartbeat, Syn, Ack, Telemetry, Command, Control
 
 
 def test_telemetry_message():

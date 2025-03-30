@@ -3,7 +3,9 @@ from unittest.mock import Mock
 import socket
 import time
 
-from src.rpi_4g_streamer import UDPReceiver, UDPTransmitter, Heartbeat, UDPPacket
+from src.rpi_4g_streamer import UDPReceiver, UDPTransmitter, UDPPacket
+from src.rpi_4g_streamer.Message import Heartbeat
+
 from tests.rpi_4g_streamer.config import HOST, PORT, SLEEP
 
 

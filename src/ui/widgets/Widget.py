@@ -2,6 +2,7 @@
 Abstract Base class for all widgets.
 """
 from abc import ABC, abstractmethod
+from pygame import Surface
 
 
 class Widget(ABC):
@@ -9,5 +10,5 @@ class Widget(ABC):
         pass
 
     @abstractmethod
-    def draw(self):
+    def draw(self, screen: Surface):
         raise NotImplementedError("Subclasses must implement draw method")

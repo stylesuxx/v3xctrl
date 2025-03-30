@@ -3,8 +3,9 @@ import time
 import socket
 import pytest
 
-from src.rpi_4g_streamer import MessageHandler
-from src.rpi_4g_streamer import Heartbeat, Ack, UDPTransmitter
+from src.rpi_4g_streamer import MessageHandler, UDPTransmitter
+from src.rpi_4g_streamer.Message import Heartbeat, Ack
+
 from tests.rpi_4g_streamer.config import HOST, PORT, SLEEP
 
 

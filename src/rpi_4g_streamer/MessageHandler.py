@@ -6,8 +6,8 @@ Every message type can have mutliple handlers and the message is forwarded to
 all of them. Message handlers are triggered in the order they are registered.
 """
 
-import threading
 import socket
+import threading
 from typing import Callable, Tuple
 
 from .UDPReceiver import UDPReceiver

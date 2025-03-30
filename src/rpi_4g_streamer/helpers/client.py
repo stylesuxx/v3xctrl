@@ -7,7 +7,6 @@ blink lights, etc.
 
 CTRL-C will exit the client cleanly
 """
-
 import argparse
 import logging
 import signal
@@ -17,6 +16,8 @@ import traceback
 
 from rpi_4g_streamer import Client, Control, Telemetry, State
 
+
+logging.basicConfig(level=logging.DEBUG)
 
 parser = argparse.ArgumentParser(description="Test connection performance.")
 parser.add_argument("host", help="The target IP address")

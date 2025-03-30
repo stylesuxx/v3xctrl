@@ -8,7 +8,7 @@ from typing import Tuple, Callable
 import time
 
 from .State import State
-from .Message import Message, Syn, Ack, Heartbeat
+from .Message import Message
 
 
 class Base(threading.Thread):

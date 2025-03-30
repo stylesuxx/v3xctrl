@@ -14,8 +14,8 @@ tx.start_task()
 tx.stop()
 tx.join()
 """
-import logging
 import asyncio
+import logging
 from queue import Queue, Empty
 import socket
 import threading
@@ -59,6 +59,7 @@ class UDPTransmitter(threading.Thread):
                 address = (packet.host, packet.port)
                 self.socket.sendto(packet.data, address)
                 self.queue.task_done()
+                print("Sent")
             except Empty:
                 pass
             except OSError as e:

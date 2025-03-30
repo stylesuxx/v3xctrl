@@ -1,15 +1,12 @@
-import logging
 from typing import Tuple
 import time
 import socket
 
-from .UDPTransmitter import UDPTransmitter
-from .MessageHandler import MessageHandler
-from .Message import Message, Syn, Ack, Heartbeat
-from .State import State
 from .Base import Base
-
-logging.basicConfig(level=logging.DEBUG)
+from .Message import Message, Syn, Ack, Heartbeat
+from .MessageHandler import MessageHandler
+from .State import State
+from .UDPTransmitter import UDPTransmitter
 
 
 class Server(Base):

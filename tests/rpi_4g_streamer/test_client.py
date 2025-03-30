@@ -2,7 +2,8 @@ import time
 import socket
 
 from src.rpi_4g_streamer import UDPTransmitter, Client
-from src.rpi_4g_streamer import Heartbeat
+from src.rpi_4g_streamer.Message import Heartbeat
+
 from tests.rpi_4g_streamer.config import HOST, PORT, SLEEP
 
 

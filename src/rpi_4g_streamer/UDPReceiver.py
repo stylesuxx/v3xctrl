@@ -7,10 +7,10 @@ valid the following conditions must be met:
 - The timestamp must be higher than the last received timestamp
 - Validate host (optional)
 """
-import threading
-import socket
-from typing import Callable, Tuple
 import select
+import socket
+import threading
+from typing import Callable, Tuple
 
 from .Message import Message
 

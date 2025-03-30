@@ -8,6 +8,8 @@ import traceback
 from rpi_4g_streamer import Server, Telemetry, State, Control
 
 
+logging.basicConfig(level=logging.DEBUG)
+
 parser = argparse.ArgumentParser(description="Test connection performance.")
 parser.add_argument("port", type=int, help="The target port number")
 args = parser.parse_args()

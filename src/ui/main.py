@@ -3,8 +3,8 @@ import signal
 import time
 from collections import deque
 
-from ui.widgets import FpsWidget, VerticalIndicatorWidget, HorizontalIndicatorWidget
-from ui.widgets import FpsWidget
+from ui.widgets import VerticalIndicatorWidget, HorizontalIndicatorWidget
+from ui.widgets import FpsWidget, StatusWidget
 from ui.helpers import interpolate_steering_color, interpolate_throttle_color
 from ui.colors import BLACK
 from ui.VideoReceiver import VideoReceiver
@@ -78,16 +78,17 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption(WINDOW_TITLE)
 clock = pygame.time.Clock()
 
+connection_indicator = StatusWidget(position=(10, 180), size=20, label="Data")
+connection_indicator.set_status("waiting")
+
 if DEBUG_OVERLAY:
     widget_fps_loop = FpsWidget(
-        screen,
         (10, 10),
         (FPS_WIDGET_WIDTH, FPS_WIDGET_HEIGHT),
         "Loop"
     )
 
     widget_video_loop = FpsWidget(
-        screen,
         (10, 10 + FPS_WIDGET_HEIGHT + 10),
         (FPS_WIDGET_WIDTH, FPS_WIDGET_HEIGHT),
         "Video"
@@ -139,10 +140,11 @@ while running:
 
     steering_indicator.draw(screen, steering)
     throttle_indicator.draw(screen, throttle)
+    connection_indicator.draw(screen)
 
     if DEBUG_OVERLAY:
-        widget_fps_loop.draw(loop_history)
-        widget_video_loop.draw(video_receiver.history)
+        widget_fps_loop.draw(screen, loop_history)
+        widget_video_loop.draw(screen, video_receiver.history)
 
     pygame.display.flip()
 

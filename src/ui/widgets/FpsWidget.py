@@ -7,10 +7,8 @@ from ui.colors import WHITE, GREEN
 
 
 class FpsWidget(Widget):
-    def __init__(self, screen: Surface, position: Tuple[int, int], size: Tuple[int, int], label: str):
+    def __init__(self, position: Tuple[int, int], size: Tuple[int, int], label: str):
         super().__init__()
-
-        self.screen = screen
 
         self.position = position
 
@@ -24,7 +22,7 @@ class FpsWidget(Widget):
         self.average_window = 30
         self.graph_frames = 300
 
-    def draw(self, history) -> Surface:
+    def draw(self, screen: Surface, history) -> None:
         if len(history) < 2:
             return
 
@@ -63,4 +61,4 @@ class FpsWidget(Widget):
         if len(graph_points) >= 2:
             pygame.draw.lines(widget_surface, GREEN, False, graph_points, 2)
 
-        self.screen.blit(widget_surface, self.position)
+        screen.blit(widget_surface, self.position)

@@ -11,18 +11,15 @@ sequentially:
   Either the client is no longer reaching the server or has not received
   messages from the server for a certain amount of time.
 """
-from typing import Tuple
-import time
-import logging
 import socket
+import time
+from typing import Tuple
 
-from .UDPTransmitter import UDPTransmitter
-from .MessageHandler import MessageHandler
-from .Message import Message, Syn, Ack, Heartbeat
-from .State import State
 from .Base import Base
-
-logging.basicConfig(level=logging.DEBUG)
+from .Message import Message, Syn, Ack, Heartbeat
+from .MessageHandler import MessageHandler
+from .State import State
+from .UDPTransmitter import UDPTransmitter
 
 
 class Client(Base):
