@@ -1,6 +1,6 @@
 #! /bin/bash
 if [ $# -lt 2 ]; then
-    echo "Usage: $0 HOST PORT [--width val] [--height val] [--framerate val] [--bitrate val]"
+    echo "Usage: $0 HOST PORT [--width val] [--height val] [--framerate val] [--bitrate val] [--buffertime val] [--sizebuffers val]"
     exit 1
 fi
 
@@ -8,24 +8,12 @@ HOST="$1"
 PORT="$2"
 shift 2
 
-# NOTE: Eher laggy
-# BITRATE=5000000
-# WIDTH=1920
-# HEIGHT=1080
-# FRAMERATE=30
-
-# NOTE: Nahezu perfekt
-WIDTH=1635
+WIDTH=1536
 HEIGHT=864
 BITRATE=3000000
 FRAMERATE=30
-CAMBUFFERTIME=50000000
-
-# NOTE: Sehr matschig - muesste vermutlich mehr bitrate haben.
-# WIDTH=1280
-# HEIGHT=720
-# BITRATE=1500000
-# FRAMERATE=60
+BUFFERTIME=50000000
+SIZEBUFFERS=5
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -45,6 +33,14 @@ while [[ $# -gt 0 ]]; do
       BITRATE="$2"
       shift 2
       ;;
+    --buffertime)
+      BUFFERTIME="$2"
+      shift 2
+      ;;
+    --sizebuffers)
+      SIZEBUFFERS="$2"
+      shift 2
+      ;;
     *)
       echo "Unknown option: $1"
       exit 1
@@ -55,8 +51,8 @@ done
 gst-launch-1.0 -v libcamerasrc ! \
   "video/x-raw,width=$WIDTH,height=$HEIGHT,framerate=$FRAMERATE/1,format=NV12,interlace-mode=progressive" ! \
   queue \
-    max-size-buffers=$MAX_SIZE_BUFFERS \
-    max-size-time=$CAMBUFFERTIME \
+    max-size-buffers=$SIZEBUFFERS \
+    max-size-time=$BUFFERTIME \
     leaky=downstream ! \
   v4l2h264enc extra-controls="controls,\
     repeat_sequence_header=1,\
@@ -65,7 +61,5 @@ gst-launch-1.0 -v libcamerasrc ! \
     h264-i-frame-period=30,\
     h264-idr-interval=30,\
     h264-b-frame=0" ! \
-  "video/x-h264,level=(string)4,profile=(string)high" ! \
-  h264parse ! \
-  rtph264pay config-interval=1 pt=96 mtu=1400 ! \
+  "video/x-h264,level=(string)4,profile=(string)high,stream-format=(string)byte-stream" ! \
   udpsink host=$HOST port=$PORT sync=false async=false

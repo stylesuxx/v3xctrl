@@ -1,9 +1,11 @@
 from pygame import Surface, SRCALPHA
 from typing import Callable, Tuple, Optional
-from abc import ABC, abstractmethod
+from abc import abstractmethod
+
+from ui.widgets.Widget import Widget
 
 
-class BaseIndicatorWidget(ABC):
+class BaseIndicatorWidget(Widget):
     VALID_RANGE_MODES = {"symmetric", "positive"}
 
     def __init__(self,
