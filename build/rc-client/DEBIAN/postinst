@@ -12,18 +12,12 @@ chmod a+r /etc/rc-client/config.json
 if command -v systemctl >/dev/null 2>&1; then
   systemctl daemon-reload
 
-  systemctl enable rc-config-server
-  systemctl enable rc-service-manager
-  systemctl enable rc-wifi-mode
-
-  # Services that are handled by one of our services
-  systemctl disable dhcpcd
-  systemctl disable wpa_supplicant
-  systemctl disable hostapd
-  systemctl disable dnsmasq
-
-  # Disable services that we don not need for our usecase
+  # Disable services that we don not need or are handled by other services
   systemctl disable \
+    dhcpcd \
+    wpa_supplicant \
+    hostapd \
+    dnsmasq \
     bluetooth \
     rpi-eeprom-update \
     rsync \
@@ -37,4 +31,11 @@ if command -v systemctl >/dev/null 2>&1; then
     rpi-display-backlight \
     remote-fs.target \
     nfs-client.target
+
+  systemctl enable \
+    rc-config-server \
+    rc-service-manager \
+    enable rc-wifi-mode
+
+  systemctl start rc-config-server
 fi

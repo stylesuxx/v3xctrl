@@ -52,19 +52,14 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-gst-launch-1.0 -v libcamerasrc ! \
+gst-launch-1.0 -v \
+  videotestsrc is-live=true ! \
   "video/x-raw,width=$WIDTH,height=$HEIGHT,framerate=$FRAMERATE/1,format=NV12,interlace-mode=progressive" ! \
   queue \
     max-size-buffers=$SIZEBUFFERS \
     max-size-time=$BUFFERTIME \
     leaky=downstream ! \
-  v4l2h264enc extra-controls="controls,\
-    repeat_sequence_header=1,\
-    video_bitrate=$BITRATE,\
-    bitrate_mode=constant,\
-    h264_i_frame_period=30,\
-    h264_idr_interval=30,\
-    h264_b_frame=0" ! \
+  x264enc ! \
   "video/x-h264,level=(string)4,profile=(string)high,stream-format=(string)byte-stream" ! \
   rtph264pay config-interval=1 pt=96 ! \
   queue \

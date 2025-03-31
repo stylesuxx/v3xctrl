@@ -1,22 +1,22 @@
 #!/bin/bash
 
 if command -v systemctl >/dev/null 2>&1; then
-  systemctl stop rc-config-server
-  systemctl stop rc-control
-  systemctl stop rc-transmit-camera
+  systemctl stop \
+    rc-config-server \
+    rc-control \
+    rc-transmit-camera
 
-  systemctl disable rc-config-server
-  systemctl disable rc-service-manager
-  systemctl disable rc-wifi-mode
-
-  # Enable services that are no longer managed by us
-  systemctl enable dhcpcd
-  systemctl enable wpa_supplicant
-  systemctl enable hostapd
-  systemctl enable dnsmasq
+  systemctl disable \
+    rc-config-server \
+    rc-service-manager \
+    rc-wifi-mode
 
   # Enable services that we have disabled during installation
   systemctl enable \
+    dhcpcd \
+    wpa_supplicant \
+    hostapd \
+    dnsmasq \
     bluetooth \
     rpi-eeprom-update \
     rsync \

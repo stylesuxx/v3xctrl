@@ -1,83 +1,93 @@
 import av
 from collections import deque
 import logging
-import socket
 import threading
 import time
+import os
+from pathlib import Path
+
+
+# av.logging.set_level(av.logging.DEBUG)
 
 
 class VideoReceiver(threading.Thread):
     def __init__(self, port: int):
         super().__init__()
-
         self.port = port
-        self.frame_lock = threading.Lock()
-
         self.running = threading.Event()
-
-        self.decoder = None
+        self.frame_lock = threading.Lock()
         self.frame = None
-        self.sock = None
 
-        self.average_window = 30
-        self.frame_times = deque(maxlen=self.average_window)
+        self.history = deque(maxlen=100)
 
-        self.history = deque(maxlen=300)
+        self.sdp_path = Path(f"/tmp/rtp_{self.port}.sdp")
+        self.container = None
 
-        self.last_frame_time = time.time()
-        self.frame_timeout = 3.0
-
-    def _init_decoder(self):
-        self.decoder = av.CodecContext.create("h264", "r")
-
-    def _init_socket(self):
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.bind(("0.0.0.0", self.port))
-        self.sock.settimeout(0.2)
-
-        logging.debug(f"Receiver listening on UDP port {self.port}...")
+    def _write_sdp(self):
+        sdp_text = f"""\
+v=0
+o=- 0 0 IN IP4 127.0.0.1
+s=RTP Stream
+c=IN IP4 0.0.0.0
+t=0 0
+m=video {self.port} RTP/AVP 96
+a=rtpmap:96 H264/90000
+a=recvonly
+"""
+        with open(self.sdp_path, "w", newline="\n") as f:
+            f.write(sdp_text)
+            f.flush()
+            os.fsync(f.fileno())
 
     def run(self):
-        self._init_decoder()
-        self._init_socket()
-
         self.running.set()
+
+        self._write_sdp()
+
+        options = {
+            "fflags": "nobuffer",
+            "protocol_whitelist": "file,crypto,data,udp,rtp"
+        }
+
         while self.running.is_set():
-            now = time.time()
-            try:
-                data, _ = self.sock.recvfrom(65536)
-            except socket.timeout:
-                if now - self.last_frame_time > self.frame_timeout:
-                    logging.warning("Timeout detected.")
-                    with self.frame_lock:
-                        self.frame = None
-                self.history.append(0.0)
-                continue
-            except OSError:
-                if not self.running.is_set():
+            while self.running.is_set():
+                try:
+                    self.container = av.open(str(self.sdp_path), format="sdp", options=options)
                     break
-                raise
+                except av.AVError as e:
+                    logging.warning(f"av.open() failed: {e}")
+                    time.sleep(0.5)
+
+            if not self.container:
+                return
+
+            stream = self.container.streams.video[0]
+            stream.codec_context.thread_type = "AUTO"
+            stream.codec_context.options = {"threads": "2"}
 
             try:
-                packet = av.packet.Packet(data)
-                frames = self.decoder.decode(packet)
+                while self.running.is_set():
+                    for packet in self.container.demux(stream):
+                        if not self.running.is_set():
+                            break
+
+                        for frame in packet.decode():
+                            img = frame.to_ndarray(format="rgb24")
+                            with self.frame_lock:
+                                self.frame = img
+
+                            self.history.append(time.time())
             except av.AVError as e:
-                logging.warning(f"Decoder error: {e}")
-                continue
-
-            for frame in frames:
-                img = frame.to_ndarray(format="rgb24")
-                with self.frame_lock:
-                    self.frame = img
-                    self.last_frame_time = now
-
-            self.frame_times.append(now)
-            if len(self.frame_times) == self.average_window:
-                duration = self.frame_times[-1] - self.frame_times[0]
-                if duration > 0:
-                    video_fps = (len(self.frame_times) - 1) / duration
-                    self.history.append(video_fps)
+                logging.warning(f"Stream decode error: {e}")
+            except Exception as e:
+                logging.exception(f"Unexpected error in receiver thread: {e}")
+            finally:
+                try:
+                    if self.container:
+                        self.container.close()
+                        self.container = None
+                except Exception as e:
+                    logging.warning(f"Container close failed: {e}")
 
     def stop(self):
         self.running.clear()
-        self.sock.close()
