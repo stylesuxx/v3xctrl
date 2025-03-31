@@ -1,8 +1,9 @@
-from pygame import draw, Surface
+from pygame import draw, Surface, Rect
 from typing import Tuple
 
-from ui.widgets.BaseIndicatorWidget import BaseIndicatorWidget
 from ui.colors import WHITE
+from ui.helpers import clamp
+from ui.widgets.BaseIndicatorWidget import BaseIndicatorWidget
 
 
 class VerticalIndicatorWidget(BaseIndicatorWidget):
@@ -14,8 +15,12 @@ class VerticalIndicatorWidget(BaseIndicatorWidget):
         super().__init__(pos, size, **kwargs)
         self.bar_width = bar_width
 
+        assert self.range_mode in ("symmetric", "positive"), f"Invalid range_mode: {self.range_mode}"
+
     def draw(self, screen: Surface, value: float):
-        value = max(-1.0, min(1.0, value))
+        value = clamp(value, -1.0, 1.0)
+        color = self.color_fn(value) if self.color_fn else WHITE
+
         self.draw_background(screen)
 
         if self.range_mode == "symmetric":
@@ -28,6 +33,7 @@ class VerticalIndicatorWidget(BaseIndicatorWidget):
             y = self.pos[1] + self.height - self.padding - bar_height
 
         x = self.pos[0] + (self.width - self.bar_width) // 2
-        color = self.color_fn(value) if self.color_fn else WHITE
-        bar_height = max(0, bar_height)
-        draw.rect(screen, color, (x, y, self.bar_width, bar_height))
+        bar_rect = Rect(x, y, self.bar_width, bar_height)
+        if bar_height > 0:
+            draw.rect(screen, color, bar_rect)
+            draw.rect(screen, WHITE, bar_rect, width=1)

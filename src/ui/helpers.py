@@ -2,8 +2,8 @@ import time
 from typing import Tuple
 
 
-def clamp(val, min_val, max_val):
-    return max(min(val, max_val), min_val)
+def clamp(value, min_value, max_value):
+    return max(min(value, max_value), min_value)
 
 
 def interpolate_steering_color(steering: float) -> Tuple[int, int, int]:
