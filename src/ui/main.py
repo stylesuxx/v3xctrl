@@ -6,7 +6,7 @@ from collections import deque
 
 from ui.widgets import VerticalIndicatorWidget, HorizontalIndicatorWidget
 from ui.widgets import FpsWidget, StatusWidget
-from ui.helpers import interpolate_steering_color, interpolate_throttle_color
+from ui.helpers import interpolate_steering_color, interpolate_throttle_color, get_fps
 from ui.colors import BLACK
 from ui.VideoReceiver import VideoReceiver
 from ui.KeyAxisHandler import KeyAxisHandler
@@ -18,7 +18,7 @@ from rpi_4g_streamer.Message import Telemetry, Control
 # Settings
 WINDOW_TITLE = "RC - Streamer"
 PORT = 6666
-CONTROL_PORT = 6667
+CONTROL_PORT = 6668
 WIDTH, HEIGHT = 1280, 720
 LOOP_HZ = 60
 DEBUG_OVERLAY = True
@@ -138,10 +138,13 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 while running:
+    loop_history.append(time.time())
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             running = False
+            break
 
     if not running:
         break
@@ -157,9 +160,6 @@ while running:
         "ste": steering,
         "thr": throttle
     }))
-
-    loop_fps = clock.get_fps()
-    loop_history.append(loop_fps)
 
     with video_receiver.frame_lock:
         if video_receiver.frame is not None:
@@ -178,8 +178,8 @@ while running:
     connection_indicator.draw(screen)
 
     if DEBUG_OVERLAY:
-        widget_fps_loop.draw(screen, loop_history)
-        widget_video_loop.draw(screen, video_receiver.history)
+        widget_fps_loop.draw(screen, get_fps(loop_history))
+        widget_video_loop.draw(screen, get_fps(video_receiver.history))
 
     pygame.display.flip()
 

@@ -1,3 +1,4 @@
+import time
 from typing import Tuple
 
 
@@ -41,3 +42,10 @@ def interpolate_throttle_color(throttle: float) -> Tuple[int, int, int]:
         b = 0
 
     return (r, g, b)
+
+
+def get_fps(history, window_seconds: float = 1):
+    now = time.time()
+    cutoff = now - window_seconds
+    frames = [t for t in history if t >= cutoff]
+    return len(frames) / window_seconds if frames else 0.0
