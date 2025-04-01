@@ -6,51 +6,62 @@ valid the following conditions must be met:
 - The data must be of a Message subtype
 - The timestamp must be higher than the last received timestamp
 - Validate host (optional)
+
+NOTE: The kernel avoids buildup by dropping older UDP packets when new ones
+      arrive faster than the application can process them. Since we are only
+      interested in the most recent data, this behavior is beneficial and does
+      not require special handling on our side.
 """
 import logging
 import select
 import socket
 import threading
-from typing import Callable, Tuple
+from typing import Callable, Tuple, Optional
 
 from .Message import Message
 
 
 class UDPReceiver(threading.Thread):
-    TIMEOUT = 5
-    BUFFERSIZE = 4096
+    # Max possible datagram size
+    BUFFERSIZE = 65535
 
-    def __init__(self, sock: socket.socket, handler: Callable[[Message, Tuple[str, int]], None]):
+    def __init__(self,
+                 sock: socket.socket,
+                 handler: Callable[[Message, Tuple[str, int]], None],
+                 timeout: int = 5):
         super().__init__(daemon=True)
 
         self.socket = sock
+        assert self.socket.type == socket.SOCK_DGRAM, "UDPReceiver expects a UDP socket"
+
         self.handler = handler
+        self.timeout = timeout
+
         self.last_timestamp = 0
 
-        self.should_validate_host = False
-        self.valid_host = None
+        self._should_validate_host = False
+        self._expected_host: Optional[str] = None
 
-        self.running = threading.Event()
-        self.running.clear()
-
-    def set_socket(self, sock: socket.socket) -> None:
-        self.socket = sock
+        self._running = threading.Event()
 
     def is_valid_message(self, message: Message, addr: Tuple[str, int]) -> bool:
         if message.timestamp <= self.last_timestamp:
+            logging.debug("Skipping out of order message")
             return False
 
-        if self.should_validate_host and addr[0] != self.valid_host:
+        if self._should_validate_host and addr[0] != self._expected_host:
+            logging.debug("Skipping message from wrong host")
             return False
 
         return True
 
     def run(self) -> None:
-        self.running.set()
-        while self.running.is_set():
+        self._running.set()
+        while self._running.is_set():
             try:
-                ready, _, _ = select.select([self.socket], [], [], self.TIMEOUT)
+                ready, _, _ = select.select([self.socket], [], [], self.timeout)
                 if ready:
+                    # Read up to BUFFERSIZE, message boundaries are preserved
                     data, addr = self.socket.recvfrom(self.BUFFERSIZE)
 
                     if data:
@@ -61,13 +72,20 @@ class UDPReceiver(threading.Thread):
                                 self.handler(message, addr)
                         except Exception as e:
                             logging.warning(f"Error while processing packet {addr}: {e}")
+            except ValueError as e:
+                logging.error(f"Socket closed or invalid: {e}")
+                break
             except (socket.error, OSError) as e:
-                logging.debug(f"Socket error: {e}")
+                logging.error(f"Socket error: {e}")
+                continue
 
     def validate_host(self, host: str):
-        self.valid_host = host
-        self.should_validate_host = True
+        self._expected_host = host
+        self._should_validate_host = True
+
+    def is_running(self) -> bool:
+        return self._running.is_set()
 
     def stop(self) -> None:
-        if self.running.is_set():
-            self.running.clear()
+        if self._running.is_set():
+            self._running.clear()
