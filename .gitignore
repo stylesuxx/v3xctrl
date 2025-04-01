@@ -12,3 +12,4 @@ __pycache__
 /web-server/static/libs
 /web-server/configs
 /.pytest_cache
+*.toml

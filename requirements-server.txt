@@ -21,8 +21,10 @@ pluggy==1.5.0
 pycparser==2.22
 pyee==13.0.0
 pygame==2.6.1
+pygame-menu==4.5.2
 pylibsrtp==0.11.0
 pyOpenSSL==25.0.0
+pyperclip==1.9.0
 pytest==8.3.5
 typing_extensions==4.13.0
 watchdog==6.0.0
