@@ -2,3 +2,4 @@ from .FpsWidget import FpsWidget
 from .HorizontalIndicatorWidget import HorizontalIndicatorWidget
 from .VerticalIndicatorWidget import VerticalIndicatorWidget
 from .StatusWidget import StatusWidget
+from .StatusValueWidget import StatusValueWidget

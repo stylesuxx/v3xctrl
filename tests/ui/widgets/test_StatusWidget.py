@@ -1,54 +1,68 @@
-import pytest
+import unittest
+from unittest.mock import patch, MagicMock
+
 import pygame
 
-from ui.widgets.StatusWidget import StatusWidget
+from ui.colors import YELLOW, GREEN, RED, GREY
+from ui.widgets import StatusWidget
 
 
-@pytest.fixture(scope="module", autouse=True)
-def init_pygame():
-    pygame.init()
-    yield
-    pygame.quit()
+class TestStatusWidget(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        pygame.init()
+        cls.screen = pygame.Surface((200, 100))
+
+    @classmethod
+    def tearDownClass(cls):
+        pygame.quit()
+
+    def setUp(self):
+        self.widget = StatusWidget(position=(0, 0), size=20, label="TEST")
+
+    def test_initial_color_is_default(self):
+        self.assertEqual(self.widget.color, GREY)
+
+    def test_set_status_waiting(self):
+        self.widget.set_status("waiting")
+        self.assertEqual(self.widget.color, YELLOW)
+
+    def test_set_status_success(self):
+        self.widget.set_status("success")
+        self.assertEqual(self.widget.color, GREEN)
+
+    def test_set_status_fail(self):
+        self.widget.set_status("fail")
+        self.assertEqual(self.widget.color, RED)
+
+    def test_set_status_unknown_defaults(self):
+        self.widget.set_status("foobar")
+        self.assertEqual(self.widget.color, GREY)
+
+    @patch("pygame.draw.rect")
+    def test_draw_calls_draw_rect_and_blit(self, mock_draw_rect):
+        screen = MagicMock()
+        self.widget.draw(screen)
+
+        mock_draw_rect.assert_called_once_with(
+            self.widget.surface, self.widget.color, self.widget.square_rect
+        )
+        screen.blit.assert_called_once()
+
+    def test_draw_extra_is_called(self):
+        class ExtendedStatusWidget(StatusWidget):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.called = False
+
+            def draw_extra(self, surface):
+                self.called = True
+
+        widget = ExtendedStatusWidget((0, 0), 20, "Label")
+        screen = MagicMock()
+        widget.draw(screen)
+        self.assertTrue(widget.called)
 
 
-@pytest.fixture
-def screen():
-    return pygame.Surface((200, 100))  # Dummy screen
-
-
-def test_default_initialization():
-    widget = StatusWidget(position=(10, 10), size=20, label="Test")
-
-    assert widget.position == (10, 10)
-    assert widget.size == 20
-    assert widget.label == "Test"
-    assert widget.padding == 8
-    assert widget.color == widget.DEFAULT_COLOR
-
-
-def test_status_colors():
-    widget = StatusWidget(position=(0, 0), size=10, label="")
-
-    widget.set_status("waiting")
-    assert widget.color == widget.WAITING_COLOR
-
-    widget.set_status("success")
-    assert widget.color == widget.SUCCESS_COLOR
-
-    widget.set_status("fail")
-    assert widget.color == widget.FAIL_COLOR
-
-    widget.set_status("unknown")
-    assert widget.color == widget.DEFAULT_COLOR
-
-
-def test_draw_does_not_crash(screen):
-    widget = StatusWidget(position=(0, 0), size=20, label="DrawTest")
-    widget.set_status("success")
-
-    # Should not raise any errors
-    widget.draw(screen)
-
-    # Optionally, inspect a pixel from the widget area
-    color = screen.get_at((1, 1))
-    assert isinstance(color, pygame.Color)
+if __name__ == "__main__":
+    unittest.main()

@@ -1,0 +1,62 @@
+import pygame
+import unittest
+from unittest.mock import MagicMock
+
+from ui.colors import BLACK
+from ui.widgets import StatusValueWidget
+
+
+class TestStatusValueWidget(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        pygame.init()
+        cls.mock_screen = pygame.Surface((200, 100))
+
+    @classmethod
+    def tearDownClass(cls):
+        pygame.quit()
+
+    def setUp(self):
+        self.widget = StatusValueWidget(position=(0, 0), size=20, label="L")
+
+    def test_inherits_from_status_widget(self):
+        from ui.widgets.StatusWidget import StatusWidget
+        self.assertIsInstance(self.widget, StatusWidget)
+
+    def test_default_value_is_none(self):
+        self.assertIsNone(self.widget.value)
+
+    def test_set_value_updates_value(self):
+        self.widget.set_value(42)
+        self.assertEqual(self.widget.value, 42)
+
+    def test_draw_extra_renders_value_when_set(self):
+        # Mock font and surface methods
+        self.widget.set_value(99)
+
+        mock_surface = MagicMock()
+        mock_rendered = MagicMock()
+        mock_rendered.get_rect.return_value = pygame.Rect(0, 0, 10, 10)
+
+        self.widget.value_font = MagicMock()
+        self.widget.value_font.render.return_value = mock_rendered
+
+        self.widget.draw_extra(mock_surface)
+
+        self.widget.value_font.render.assert_called_once_with("99", True, BLACK)
+        mock_surface.blit.assert_called_once_with(mock_rendered, mock_rendered.get_rect())
+
+    def test_draw_extra_skips_render_when_none(self):
+        self.widget.set_value(None)
+        mock_surface = MagicMock()
+
+        # Replace font with a mock to ensure render isn't called
+        self.widget.value_font = MagicMock()
+        self.widget.draw_extra(mock_surface)
+
+        self.widget.value_font.render.assert_not_called()
+        mock_surface.blit.assert_not_called()
+
+
+if __name__ == "__main__":
+    unittest.main()

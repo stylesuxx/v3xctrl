@@ -1,112 +1,74 @@
-import pytest
-from unittest.mock import Mock
 import socket
 import time
+import unittest
+from unittest.mock import Mock
 
-from src.rpi_4g_streamer import UDPReceiver, UDPTransmitter, UDPPacket
+from src.rpi_4g_streamer import (
+  UDPReceiver,
+  UDPTransmitter,
+  UDPPacket
+)
 from src.rpi_4g_streamer.Message import Heartbeat
-
 from tests.rpi_4g_streamer.config import HOST, PORT, SLEEP
 
 
-@pytest.fixture(scope="session", autouse=True)
-def setup_teardown():
-    """Runs before all tests and cleans up after all tests."""
+class TestUDPTransmission(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.sock_tx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        cls.sock_tx.settimeout(1)
 
-    global sock_tx, sock_rx
-    sock_tx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock_tx.settimeout(1)
+        cls.sock_rx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        cls.sock_rx.bind((HOST, PORT))
+        cls.sock_rx.settimeout(1)
 
-    sock_rx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock_rx.bind((HOST, PORT))
-    sock_rx.settimeout(1)
+    @classmethod
+    def tearDownClass(cls):
+        cls.sock_tx.close()
+        cls.sock_rx.close()
 
-    yield  # Run tests
+    def setUp(self):
+        self.handler = Mock()
 
-    # Post-test teardown: Close sockets
-    sock_tx.close()
-    sock_rx.close()
+        self.receiver = UDPReceiver(self.sock_rx, self.handler)
+        self.receiver.start()
 
+        self.transmitter = UDPTransmitter(self.sock_tx)
+        self.transmitter.start()
+        self.transmitter.start_task()
 
-def test_udp_transmit_receive():
-    global sock_tx, sock_rx
+    def tearDown(self):
+        self.transmitter.stop()
+        self.receiver.stop()
 
-    handler = Mock()
+        self.transmitter.join()
+        self.receiver.join()
 
-    receiver = UDPReceiver(sock_rx, handler)
-    receiver.start()
+        self.assertFalse(self.transmitter.is_running())
+        self.assertFalse(self.receiver.is_running())
 
-    transmitter = UDPTransmitter(sock_tx)
-    transmitter.start()
-    transmitter.start_task()
+    def test_udp_transmit_receive(self):
+        self.transmitter.add_message(Heartbeat(), (HOST, PORT))
+        time.sleep(SLEEP)
 
-    transmitter.add_message(Heartbeat(), (HOST, PORT))
+        self.handler.assert_called_once()
 
-    time.sleep(SLEEP)
+    def test_udp_ignore_non_message_data(self):
+        packet = UDPPacket(b"", HOST, PORT)
+        self.transmitter.add(packet)
+        time.sleep(SLEEP)
 
-    transmitter.stop()
-    receiver.stop()
+        self.handler.assert_not_called()
 
-    transmitter.join()
-    receiver.join()
+    def test_udp_ignore_out_of_order(self):
+        # Should only handle the messages with timestamps 10 and 20
+        self.transmitter.add_message(Heartbeat(10), (HOST, PORT))
+        self.transmitter.add_message(Heartbeat(5), (HOST, PORT))  # should be ignored
+        self.transmitter.add_message(Heartbeat(20), (HOST, PORT))
+        time.sleep(SLEEP)
 
-    assert not transmitter.running.is_set()
-    assert not receiver.running.is_set()
-    handler.assert_called_once()
-
-
-def test_udp_ignore_non_message_data():
-    global sock_tx, sock_rx
-
-    handler = Mock()
-
-    receiver = UDPReceiver(sock_rx, handler)
-    receiver.start()
-
-    transmitter = UDPTransmitter(sock_tx)
-    transmitter.start()
-    transmitter.start_task()
-
-    packet = UDPPacket(b"", HOST, PORT)
-    transmitter.add(packet)
-
-    time.sleep(SLEEP)
-
-    transmitter.stop()
-    receiver.stop()
-
-    transmitter.join()
-    receiver.join()
-
-    assert not transmitter.running.is_set()
-    assert not receiver.running.is_set()
-    handler.assert_not_called()
+        self.assertEqual(self.handler.call_count, 2)
 
 
-def test_udp_ignore_out_of_order():
-    global sock_tx, sock_rx
-
-    handler = Mock()
-
-    receiver = UDPReceiver(sock_rx, handler)
-    receiver.start()
-
-    transmitter = UDPTransmitter(sock_tx)
-    transmitter.start()
-    transmitter.start_task()
-
-    transmitter.add_message(Heartbeat(10), (HOST, PORT))
-    transmitter.add_message(Heartbeat(5), (HOST, PORT))
-    transmitter.add_message(Heartbeat(20), (HOST, PORT))
-
-    time.sleep(SLEEP)
-
-    transmitter.stop()
-    receiver.stop()
-
-    transmitter.join()
-    receiver.join()
-
-    assert not transmitter.running.is_set()
-    assert not receiver.running.is_set()
-    handler.call_count == 2
+if __name__ == "__main__":
+    unittest.main()

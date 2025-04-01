@@ -6,6 +6,7 @@ from typing import Tuple
 from ui.widgets.Widget import Widget
 from ui.colors import WHITE, GREEN
 
+
 class FpsWidget(Widget):
     def __init__(self, position: Tuple[int, int], size: Tuple[int, int], label: str):
         super().__init__()

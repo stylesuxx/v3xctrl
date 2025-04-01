@@ -5,7 +5,7 @@ import time
 from collections import deque
 
 from ui.widgets import VerticalIndicatorWidget, HorizontalIndicatorWidget
-from ui.widgets import FpsWidget, StatusWidget
+from ui.widgets import FpsWidget, StatusValueWidget
 from ui.helpers import interpolate_steering_color, interpolate_throttle_color, get_fps
 from ui.colors import BLACK
 from ui.VideoReceiver import VideoReceiver
@@ -16,11 +16,12 @@ from rpi_4g_streamer.Message import Telemetry, Control
 
 
 # Settings
-WINDOW_TITLE = "RC - Streamer"
 PORT = 6666
 CONTROL_PORT = 6668
+
+WINDOW_TITLE = "RC - Streamer"
 WIDTH, HEIGHT = 1280, 720
-LOOP_HZ = 60
+LOOP_HZ = 600
 DEBUG_OVERLAY = True
 
 FPS_WIDGET_WIDTH = 100
@@ -84,7 +85,7 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption(WINDOW_TITLE)
 clock = pygame.time.Clock()
 
-connection_indicator = StatusWidget(position=(10, 180), size=20, label="Data")
+connection_indicator = StatusValueWidget(position=(10, 180), size=20, label="Data")
 connection_indicator.set_status("waiting")
 
 
@@ -140,6 +141,9 @@ signal.signal(signal.SIGINT, signal_handler)
 while running:
     loop_history.append(time.time())
 
+    data_left = server.transmitter.queue.qsize()
+    connection_indicator.set_value(data_left)
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -157,8 +161,9 @@ while running:
     steering = steering_axis.value
 
     server.send(Control({
-        "ste": steering,
-        "thr": throttle
+        "steering": steering,
+        "throttle": throttle,
+        "more": "Here comes some more data to create back pressure..... Here comes some more data to create back pressure..... Here comes some more data to create back pressure..... Here comes some more data to create back pressure..... Here comes some more data to create back pressure..... Here comes some more data to create back pressure.....",
     }))
 
     with video_receiver.frame_lock:

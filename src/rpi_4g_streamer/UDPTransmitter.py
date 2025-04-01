@@ -19,7 +19,7 @@ import logging
 from queue import Queue, Empty
 import socket
 import threading
-from typing import Tuple
+from typing import Tuple, Optional
 
 from .UDPPacket import UDPPacket
 from .Message import Message
@@ -34,9 +34,9 @@ class UDPTransmitter(threading.Thread):
         self.queue = Queue()
 
         self.loop = asyncio.new_event_loop()
-        self.task = None
+        self.task: Optional[asyncio.Future] = None
 
-        self.running = threading.Event()
+        self._running = threading.Event()
         self.process_stopped = threading.Event()
 
     def add_message(self, message: Message, addr: Tuple[str, int]):
@@ -48,13 +48,13 @@ class UDPTransmitter(threading.Thread):
         self.queue.put(udp_packet)
 
     def run(self) -> None:
-        self.running.set()
+        self._running.set()
         asyncio.set_event_loop(self.loop)
         self.loop.run_forever()
 
     async def process(self):
         try:
-            while self.running.is_set():
+            while self._running.is_set():
                 try:
                     packet = self.queue.get(timeout=1)
                     address = (packet.host, packet.port)
@@ -76,14 +76,26 @@ class UDPTransmitter(threading.Thread):
         if not self.task:
             self.task = asyncio.run_coroutine_threadsafe(self.process(), self.loop)
 
+    def is_running(self) -> bool:
+        return self._running.is_set()
+
     def stop(self) -> None:
-        if self.running.is_set():
-            self.running.clear()
+        """
+        Stop the transmitter and join the thread.
+
+        NOTE: `join()` is called internally to ensure the event loop
+              is fully shut down before closing. This prevents segfaults
+              caused by premature `loop.close()` while the thread is still
+              alive.
+        """
+        if self._running.is_set():
+            self._running.clear()
 
             self.process_stopped.wait()
 
             if self.task:
                 self.loop.call_soon_threadsafe(self.task.cancel)
+                self.task.result()
                 self.task = None
 
             self.loop.call_soon_threadsafe(self.loop.stop)

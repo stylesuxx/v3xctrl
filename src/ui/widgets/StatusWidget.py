@@ -1,16 +1,17 @@
-import pygame
-from pygame import Surface
+from pygame import Surface, font, Rect, SRCALPHA, draw
 from typing import Tuple
 
-from ui.widgets.Widget import Widget
 from ui.colors import WHITE, GREEN, RED, YELLOW, GREY
+from ui.widgets.Widget import Widget
 
 
 class StatusWidget(Widget):
-    WAITING_COLOR = YELLOW
-    SUCCESS_COLOR = GREEN
-    FAIL_COLOR = RED
-    DEFAULT_COLOR = GREY
+    STATUS_COLORS = {
+        "waiting": YELLOW,
+        "success": GREEN,
+        "fail": RED,
+        "default": GREY,
+    }
 
     def __init__(self, position: Tuple[int, int], size: int, label: str, padding: int = 8):
         super().__init__()
@@ -19,39 +20,39 @@ class StatusWidget(Widget):
         self.size = size
         self.label = label
         self.padding = padding
-        self.color = self.DEFAULT_COLOR
+        self.color = self.STATUS_COLORS["default"]
         self.background_alpha = 180
 
-    def set_status(self, status: str):
-        if status == "waiting":
-            self.color = self.WAITING_COLOR
-        elif status == "success":
-            self.color = self.SUCCESS_COLOR
-        elif status == "fail":
-            self.color = self.FAIL_COLOR
-        else:
-            self.color = self.DEFAULT_COLOR
-
-    def draw(self, screen: Surface) -> None:
         font_size = 14
-        font = pygame.font.SysFont("monospace", font_size, bold=True)
+        self.font = font.SysFont("monospace", font_size, bold=True)
 
-        label_surface = font.render(self.label, True, WHITE)
-        label_width = label_surface.get_width()
-        label_height = label_surface.get_height()
+        self.label_surface = self.font.render(self.label, True, WHITE)
+        label_width = self.label_surface.get_width()
+        label_height = self.label_surface.get_height()
 
         widget_height = max(self.size, label_height)
         widget_width = self.size + self.padding + label_width + self.padding
 
-        widget_surface = Surface((widget_width, widget_height), pygame.SRCALPHA)
-        widget_surface.fill((0, 0, 0, self.background_alpha))
-
         square_y = (widget_height - self.size) // 2
-        square_rect = pygame.Rect(0, square_y, self.size, self.size)
-        pygame.draw.rect(widget_surface, self.color, square_rect)
 
-        label_x = self.size + self.padding
-        label_y = (widget_height - label_height) // 2
-        widget_surface.blit(label_surface, (label_x, label_y))
+        self.label_x = self.size + self.padding
+        self.label_y = (widget_height - label_height) // 2
 
-        screen.blit(widget_surface, self.position)
+        self.surface = Surface((widget_width, widget_height), SRCALPHA)
+        self.square_rect = Rect(0, square_y, self.size, self.size)
+
+    def set_status(self, status: str):
+        self.color = self.STATUS_COLORS.get(status, self.STATUS_COLORS["default"])
+
+    def draw(self, screen: Surface) -> None:
+        self.surface.fill((0, 0, 0, self.background_alpha))
+
+        draw.rect(self.surface, self.color, self.square_rect)
+
+        self.surface.blit(self.label_surface, (self.label_x, self.label_y))
+        self.draw_extra(self.surface)
+
+        screen.blit(self.surface, self.position)
+
+    def draw_extra(self, surface: Surface):
+        pass  # Override in subclass to draw on top of self.surface
