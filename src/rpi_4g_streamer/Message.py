@@ -20,15 +20,13 @@ class Message(abc.ABC):
 
     def __init__(self, payload: dict, timestamp: float = None):
         """Initialize message with a dictionary payload."""
-        self.timestamp = timestamp
-        if not self.timestamp:
-            self.timestamp = time.time()
+        self.timestamp = time.time() if timestamp is None else timestamp
         self.payload = payload
 
     def to_bytes(self) -> bytes:
         """Serialize the message to bytes using msgpack."""
         return msgpack.packb({
-            "t": self.__class__.__name__,
+            "t": self.type,
             "p": self.payload,
             "d": self.timestamp,
         })
@@ -36,24 +34,34 @@ class Message(abc.ABC):
     @classmethod
     def from_bytes(cls, data: bytes):
         """Dynamically deserialize bytes into the correct message subclass."""
-        obj = msgpack.unpackb(data)
-        msg_type = obj["t"]
-        timestamp = obj["d"]
-        payload = obj["p"]
+        try:
+            obj = msgpack.unpackb(data)
+            msg_type = obj["t"]
+            timestamp = obj["d"]
+            payload = obj["p"]
+        except (KeyError, TypeError, msgpack.exceptions.ExtraData) as e:
+            raise ValueError("Malformed message payload") from e
 
         if msg_type in cls._registry:
             return cls._registry[msg_type](**payload, timestamp=timestamp)
         else:
             raise ValueError(f"Unknown message type: {msg_type}")
 
+    @property
+    def type(self) -> str:
+        return self.__class__.__name__
+
     def __repr__(self):
-        return f"{self.__class__.__name__}(payload={self.payload}, timestamp={self.timestamp})"
+        return f"{self.type}(payload={self.payload}, timestamp={self.timestamp})"
 
 
 class Telemetry(Message):
     """Message type for telemetry data."""
 
-    def __init__(self, v: dict = {}, timestamp: float = None):
+    def __init__(self, v: dict = None, timestamp: float = None):
+        if v is None:
+            v = {}
+
         super().__init__({
             "v": v
         }, timestamp)
@@ -67,7 +75,10 @@ class Telemetry(Message):
 class Control(Message):
     """Message type for telemetry data."""
 
-    def __init__(self, v: dict = {}, timestamp: float = None):
+    def __init__(self, v: dict = None, timestamp: float = None):
+        if v is None:
+            v = {}
+
         super().__init__({
             "v": v
         }, timestamp)
