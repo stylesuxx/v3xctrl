@@ -10,7 +10,7 @@ from ui.helpers import interpolate_steering_color, interpolate_throttle_color, g
 from ui.colors import BLACK
 from ui.VideoReceiver import VideoReceiver
 from ui.KeyAxisHandler import KeyAxisHandler
-from ui.Menu import Menu
+from ui.menu.Menu import Menu
 from ui.Settings import Settings
 
 from rpi_4g_streamer import Server, State
@@ -26,13 +26,24 @@ FPS_WIDGET_HEIGHT = 75
 FPS_AVERAGE_WINDOW = 30
 FPS_GRAPH_FRAMES = 300
 
-settings = Settings('settings.toml')
+settings_path = 'settings.toml'
+settings = Settings(settings_path)
 controls = settings.get("controls")
 ports = settings.get("ports")
 debug = settings.get('debug')
 framerate = settings.get('fps')
 video = settings.get('video')
 settings.save()
+
+menu = None
+
+
+def update_settings():
+    global debug, settings_path, settings, menu
+    settings = Settings(settings_path)
+    debug = settings.get('debug')
+    menu = None
+
 
 loop_history = deque(maxlen=300)
 
@@ -89,8 +100,6 @@ screen = pygame.display.set_mode((video["width"], video["height"]))
 pygame.display.set_caption(WINDOW_TITLE)
 clock = pygame.time.Clock()
 
-menu = Menu(video["width"], video["height"])
-
 connection_indicator = StatusValueWidget(position=(10, 180), size=20, label="Data")
 connection_indicator.set_status("waiting")
 
@@ -117,18 +126,17 @@ server.on(State.DISCONNECTED, disconnect_handler)
 server.on(State.CONNECTED, connect_handler)
 server.start()
 
-if debug:
-    widget_fps_loop = FpsWidget(
-        (10, 10),
-        (FPS_WIDGET_WIDTH, FPS_WIDGET_HEIGHT),
-        "Loop"
-    )
+widget_fps_loop = FpsWidget(
+    (10, 10),
+    (FPS_WIDGET_WIDTH, FPS_WIDGET_HEIGHT),
+    "Loop"
+)
 
-    widget_video_loop = FpsWidget(
-        (10, 10 + FPS_WIDGET_HEIGHT + 10),
-        (FPS_WIDGET_WIDTH, FPS_WIDGET_HEIGHT),
-        "Video"
-    )
+widget_video_loop = FpsWidget(
+    (10, 10 + FPS_WIDGET_HEIGHT + 10),
+    (FPS_WIDGET_WIDTH, FPS_WIDGET_HEIGHT),
+    "Video"
+)
 
 # Game loop FPS tracking
 loop_frame_count = 0
@@ -157,11 +165,14 @@ while running:
             running = False
             break
 
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-            menu.toggle()
+        elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+            if menu is None:
+                menu = Menu(video["width"], video["height"], settings, update_settings)
+            else:
+                menu = None
 
-    if menu.is_enabled():
-        menu.process_events(events)
+        elif menu is not None:
+            menu.handle_event(event)
 
     if not running:
         break
@@ -200,7 +211,8 @@ while running:
         widget_video_loop.draw(screen, get_fps(video_receiver.history))
 
     # Draw menu above everything else
-    menu.draw(screen)
+    if menu is not None:
+        menu.draw(screen)
 
     pygame.display.flip()
 

@@ -34,6 +34,17 @@ class TestSettings(unittest.TestCase):
         self.assertEqual(loaded.get("video")["width"], 640)
         self.assertEqual(loaded.get("video")["height"], 480)
 
+    def test_save_and_load_round_trip_one(self):
+        settings = Settings(self.path)
+        settings.set("debug", False)
+        settings.set("video", {"width": 640, "height": 480})
+        settings.save()
+
+        loaded = Settings(self.path)
+        self.assertEqual(loaded.get("debug"), False)
+        self.assertEqual(loaded.get("video")["width"], 640)
+        self.assertEqual(loaded.get("video")["height"], 480)
+
     def test_merge_partial_override(self):
         partial = {
             "video": {"width": 800},
