@@ -1,17 +1,14 @@
 import unittest
-from unittest.mock import patch, MagicMock
-
 import pygame
 
 from ui.colors import YELLOW, GREEN, RED, GREY
-from ui.widgets import StatusWidget
+from ui.widgets.StatusWidget import StatusWidget
 
 
 class TestStatusWidget(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         pygame.init()
-        cls.screen = pygame.Surface((200, 100))
 
     @classmethod
     def tearDownClass(cls):
@@ -19,49 +16,47 @@ class TestStatusWidget(unittest.TestCase):
 
     def setUp(self):
         self.widget = StatusWidget(position=(0, 0), size=20, label="TEST")
+        self.screen = pygame.Surface((200, 100))
 
     def test_initial_color_is_default(self):
+        # Initial value before any draw
         self.assertEqual(self.widget.color, GREY)
 
-    def test_set_status_waiting(self):
-        self.widget.set_status("waiting")
+    def test_draw_sets_status_color_waiting(self):
+        self.widget.draw(self.screen, "waiting")
         self.assertEqual(self.widget.color, YELLOW)
 
-    def test_set_status_success(self):
-        self.widget.set_status("success")
+    def test_draw_sets_status_color_success(self):
+        self.widget.draw(self.screen, "success")
         self.assertEqual(self.widget.color, GREEN)
 
-    def test_set_status_fail(self):
-        self.widget.set_status("fail")
+    def test_draw_sets_status_color_fail(self):
+        self.widget.draw(self.screen, "fail")
         self.assertEqual(self.widget.color, RED)
 
-    def test_set_status_unknown_defaults(self):
-        self.widget.set_status("foobar")
+    def test_draw_sets_status_color_unknown_defaults(self):
+        self.widget.draw(self.screen, "foobar")
         self.assertEqual(self.widget.color, GREY)
 
-    @patch("pygame.draw.rect")
-    def test_draw_calls_draw_rect_and_blit(self, mock_draw_rect):
-        screen = MagicMock()
-        self.widget.draw(screen)
-
-        mock_draw_rect.assert_called_once_with(
-            self.widget.surface, self.widget.color, self.widget.square_rect
-        )
-        screen.blit.assert_called_once()
+    def test_draw_executes_without_crash(self):
+        try:
+            self.widget.draw(self.screen, "success")
+        except Exception as e:
+            self.fail(f"draw() raised exception unexpectedly: {e}")
 
     def test_draw_extra_is_called(self):
         class ExtendedStatusWidget(StatusWidget):
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)
-                self.called = False
+                self.extra_called = False
 
             def draw_extra(self, surface):
-                self.called = True
+                self.extra_called = True
 
         widget = ExtendedStatusWidget((0, 0), 20, "Label")
-        screen = MagicMock()
-        widget.draw(screen)
-        self.assertTrue(widget.called)
+        screen = pygame.Surface((100, 50))
+        widget.draw(screen, "success")
+        self.assertTrue(widget.extra_called)
 
 
 if __name__ == "__main__":

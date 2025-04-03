@@ -25,6 +25,25 @@ class Settings:
         },
         "debug": True,
         "fps": 60,
+        "widgets": {
+            "fps": {
+                "width": 100,
+                "height": 75,
+                "average_window": 30,
+                "graph_frames": 300,
+            }
+        },
+        "settings": {
+            "title": "RC - Streamer",
+            "throttle": {
+                "step": 0.02,
+                "friction": 0.01,
+            },
+            "steering": {
+                "step": 0.05,
+                "friction": 0.02,
+            },
+        },
     }
 
     def __init__(self, path: str):

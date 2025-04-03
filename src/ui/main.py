@@ -2,224 +2,173 @@ import logging
 import pygame
 import signal
 import time
-from collections import deque
 
-from ui.widgets import VerticalIndicatorWidget, HorizontalIndicatorWidget
-from ui.widgets import FpsWidget, StatusValueWidget
-from ui.helpers import interpolate_steering_color, interpolate_throttle_color, get_fps
 from ui.colors import BLACK
-from ui.VideoReceiver import VideoReceiver
-from ui.KeyAxisHandler import KeyAxisHandler
 from ui.menu.Menu import Menu
-from ui.Settings import Settings
+from ui.Init import Init
+from ui.AppState import AppState
 
-from rpi_4g_streamer import Server, State
+from rpi_4g_streamer import State
 from rpi_4g_streamer.Message import Telemetry, Control
 
 
-# Settings
-WINDOW_TITLE = "RC - Streamer"
+logging.basicConfig(level=logging.DEBUG)
 
-FPS_WIDGET_WIDTH = 100
-FPS_WIDGET_HEIGHT = 75
+"""
+Load settings from file.
 
-FPS_AVERAGE_WINDOW = 30
-FPS_GRAPH_FRAMES = 300
+We have different kind of settings:
+1. Settings that require restart to take effect (e.g. ports, video settings)
+2. Settings that can be hot reloaded (e.g. controls, debug)
+3. Settings for which no UI elements are available (edit via config file only)
+"""
+settings = Init.settings("settings.toml")
 
-settings_path = 'settings.toml'
-settings = Settings(settings_path)
+# Those settings can be hot reloaded
 controls = settings.get("controls")
-ports = settings.get("ports")
-debug = settings.get('debug')
-framerate = settings.get('fps')
-video = settings.get('video')
-settings.save()
+debug = settings.get("debug")
 
-menu = None
+# Settings require restart to take effect
+PORTS = settings.get("ports")
+VIDEO = settings.get("video")
+FRAMERATE = settings.get('fps')
 
-
-def update_settings():
-    global debug, settings_path, settings, menu
-    settings = Settings(settings_path)
-    debug = settings.get('debug')
-    menu = None
+# no UI for those settings
+WINDOW_TITLE = settings.get("settings")["title"]
+FPS_SETTINGS = settings.get("widgets")["fps"]
+STEERING_SETTINGS = settings.get("settings")["steering"]
+THROTTLE_SETTINGS = settings.get("settings")["throttle"]
 
 
-loop_history = deque(maxlen=300)
-
-# Control logic state
-throttle = 0.0
-steering = 0.0
-throttle_step = 0.02
-steering_speed = 0.05
-throttle_friction = 0.01
-steering_friction = 0.02
-
-running = True
-
-steering_indicator = HorizontalIndicatorWidget(
-    pos=(video["width"] // 2 - 200 - 6, video["height"] - 30 - 6),
-    size=(412, 22),
-    bar_size=(20, 10),
-    range_mode="symmetric",
-    color_fn=interpolate_steering_color
-)
-
-throttle_indicator = VerticalIndicatorWidget(
-    pos=(14, video["height"] - 200 - 20 - 6),
-    size=(32, 212),
-    bar_width=20,
-    range_mode="positive",
-    color_fn=interpolate_throttle_color
-)
-
-throttle_axis = KeyAxisHandler(
-    positive=controls["keyboard"]["throttle_up"],
-    negative=controls["keyboard"]["throttle_down"],
-    step=throttle_step,
-    friction=throttle_friction,
-    min_val=0.0,
-    max_val=1.0
-)
-
-steering_axis = KeyAxisHandler(
-    positive=controls["keyboard"]["steering_right"],
-    negative=controls["keyboard"]["steering_left"],
-    step=steering_speed,
-    friction=steering_friction,
-    min_val=-1.0,
-    max_val=1.0
-)
-
-video_receiver = VideoReceiver(ports["video"])
-video_receiver.start()
-
-# Pygame setup
-pygame.init()
-screen = pygame.display.set_mode((video["width"], video["height"]))
-pygame.display.set_caption(WINDOW_TITLE)
-clock = pygame.time.Clock()
-
-connection_indicator = StatusValueWidget(position=(10, 180), size=20, label="Data")
-connection_indicator.set_status("waiting")
-
-
-def telemetry_handler(message: Telemetry) -> None:
+def telemetry_handler(state: AppState, message: Telemetry) -> None:
     """ TODO: Implement control message handling. """
     values = message.get_values()
     logging.debug(f"Received telemetry message: {values}")
 
 
-def disconnect_handler() -> None:
-    global connection_indicator
-    connection_indicator.set_status("fail")
+def disconnect_handler(state) -> None:
+    state.data = "fail"
 
 
-def connect_handler() -> None:
-    global connection_indicator
-    connection_indicator.set_status("success")
+def connect_handler(state) -> None:
+    state.data = "success"
 
 
-server = Server(ports["control"])
-server.subscribe(Telemetry, telemetry_handler)
-server.on(State.DISCONNECTED, disconnect_handler)
-server.on(State.CONNECTED, connect_handler)
-server.start()
+handlers = {
+    "messages": [(Telemetry, lambda m: telemetry_handler(state, m))],
+    "states": [(State.CONNECTED, lambda: connect_handler(state)),
+               (State.DISCONNECTED, lambda: disconnect_handler(state))]
+}
 
-widget_fps_loop = FpsWidget(
-    (10, 10),
-    (FPS_WIDGET_WIDTH, FPS_WIDGET_HEIGHT),
-    "Loop"
-)
-
-widget_video_loop = FpsWidget(
-    (10, 10 + FPS_WIDGET_HEIGHT + 10),
-    (FPS_WIDGET_WIDTH, FPS_WIDGET_HEIGHT),
-    "Video"
-)
-
-# Game loop FPS tracking
-loop_frame_count = 0
-last_loop_update = time.time()
+state = AppState((VIDEO["width"], VIDEO["height"]),
+                 WINDOW_TITLE,
+                 PORTS["video"],
+                 PORTS["control"],
+                 handlers,
+                 FPS_SETTINGS,
+                 controls["keyboard"],
+                 THROTTLE_SETTINGS,
+                 STEERING_SETTINGS)
 
 
-def signal_handler(sig, frame):
-    global running
-    if running:
-        running = False
-        print("Shutting down...")
+def update_settings():
+    """ Update settings after exiting menu """
+    global debug, controls, settings, state
+    settings = Init.settings()
+
+    controls = settings.get("controls")
+    debug = settings.get('debug')
+
+    state.menu = None
 
 
-signal.signal(signal.SIGINT, signal_handler)
-
-while running:
-    loop_history.append(time.time())
-
-    data_left = server.transmitter.queue.qsize()
-    connection_indicator.set_value(data_left)
-
-    events = pygame.event.get()
-    for event in events:
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            running = False
-            break
-
-        elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-            if menu is None:
-                menu = Menu(video["width"], video["height"], settings, update_settings)
-            else:
-                menu = None
-
-        elif menu is not None:
-            menu.handle_event(event)
-
-    if not running:
-        break
-
-    keys = pygame.key.get_pressed()
-    throttle_axis.update(keys)
-    steering_axis.update(keys)
-
-    throttle = throttle_axis.value
-    steering = steering_axis.value
-
-    server.send(Control({
-        "steering": steering,
-        "throttle": throttle,
-        "more": "Here comes some more data to create back pressure..... Here comes some more data to create back pressure..... Here comes some more data to create back pressure..... Here comes some more data to create back pressure..... Here comes some more data to create back pressure..... Here comes some more data to create back pressure.....",
-    }))
-
-    with video_receiver.frame_lock:
-        if video_receiver.frame is not None:
-            surface = pygame.image.frombuffer(video_receiver.frame.tobytes(), (video["width"], video["height"]), "RGB")
-            screen.blit(surface, (0, 0))
+def render_all(state):
+    with state.video_receiver.frame_lock:
+        if state.video_receiver.frame is not None:
+            surface = pygame.image.frombuffer(state.video_receiver.frame.tobytes(), (VIDEO["width"], VIDEO["height"]), "RGB")
+            state.screen.blit(surface, (0, 0))
         else:
             font = pygame.font.SysFont("monospace", 32, bold=True)
             no_signal_text = font.render("No Signal", True, (200, 0, 0))
-            text_rect = no_signal_text.get_rect(center=(video["width"] // 2, video["height"] // 2))
+            text_rect = no_signal_text.get_rect(center=(VIDEO["width"] // 2, VIDEO["height"] // 2))
 
-            screen.fill(BLACK)
-            screen.blit(no_signal_text, text_rect)
+            state.screen.fill(BLACK)
+            state.screen.blit(no_signal_text, text_rect)
 
-    steering_indicator.draw(screen, steering)
-    throttle_indicator.draw(screen, throttle)
-    connection_indicator.draw(screen)
+    for name, widget in state.widgets.items():
+        widget.draw(state.screen, getattr(state, name))
 
     if debug:
-        widget_fps_loop.draw(screen, get_fps(loop_history))
-        widget_video_loop.draw(screen, get_fps(video_receiver.history))
+        for name, widget in state.widgets_debug.items():
+            widget.draw(state.screen, getattr(state, name))
+
+    # Render errors on top of main UI
+    if state.server_error:
+        font = pygame.font.SysFont("monospace", 24, bold=True)
+        error_text = font.render(state.server_error, True, (255, 50, 50))
+        error_rect = error_text.get_rect(center=(VIDEO["width"] // 2, 50))
+        state.screen.blit(error_text, error_rect)
 
     # Draw menu above everything else
-    if menu is not None:
-        menu.draw(screen)
+    if state.menu is not None:
+        state.menu.draw(state.screen)
 
     pygame.display.flip()
 
-    clock.tick(framerate)
 
-server.stop()
-server.join()
+def update_all(state):
+    if not state.server_error:
+        data_left = state.server.transmitter.queue.qsize()
+        state.widgets["data"].set_value(data_left)
+    else:
+        state.data = "fail"
 
-video_receiver.stop()
-video_receiver.join()
+    keys = pygame.key.get_pressed()
+    state.throttle = state.key_handlers["throttle"].update(keys)
+    state.steering = state.key_handlers["steering"].update(keys)
+
+    if not state.server_error:
+        state.server.send(Control({
+            "steering": state.steering,
+            "throttle": state.throttle,
+        }))
+
+
+def handle_events(state):
+    events = pygame.event.get()
+    for event in events:
+        if event.type == pygame.QUIT:
+            state.running = False
+            return
+
+        elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+            if state.menu is None:
+                state.menu = Menu(VIDEO["width"], VIDEO["height"], settings, update_settings)
+            else:
+                state.menu = None
+
+        elif state.menu is not None:
+            state.menu.handle_event(event)
+
+
+def signal_handler(sig, frame, state):
+    if state.running:
+        state.running = False
+        print("Shutting down...")
+
+
+signal.signal(signal.SIGINT, lambda s, f: signal_handler(s, f, state))
+
+while state.running:
+    state.loop_history.append(time.time())
+
+    handle_events(state)
+    if not state.running:
+        break
+
+    update_all(state)
+    render_all(state)
+
+    state.clock.tick(FRAMERATE)
+
+state.shutdown()

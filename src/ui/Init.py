@@ -1,0 +1,53 @@
+import logging
+from typing import Tuple
+import pygame
+from pygame import display, time
+
+from rpi_4g_streamer import Server
+from ui.Settings import Settings
+from ui.VideoReceiver import VideoReceiver
+
+
+class Init:
+    @classmethod
+    def settings(self, path: str = "settings.toml") -> Settings:
+        settings = Settings(path)
+        settings.save()
+
+        return settings
+
+    @classmethod
+    def server(self, port: int, handlers: dict) -> Tuple[Server, str]:
+        try:
+            server = Server(port)
+
+            for type, callback in handlers.get("messages", []):
+                server.subscribe(type, callback)
+
+            for state, callback in handlers.get("states", []):
+                server.on(state, callback)
+
+            server.start()
+
+            return server, None
+        except OSError as e:
+            msg = "Control port already in use" if e.errno == 98 else f"Server error: {str(e)}"
+            logging.error(msg)
+
+            return None, msg
+
+    @classmethod
+    def ui(self, size: Tuple[int, int], title: str) -> Tuple[pygame.Surface, pygame.time.Clock]:
+        pygame.init()
+        screen = display.set_mode(size)
+        display.set_caption(title)
+        clock = time.Clock()
+
+        return screen, clock
+
+    @classmethod
+    def video_receiver(self, port: int) -> VideoReceiver:
+        video_receiver = VideoReceiver(port)
+        video_receiver.start()
+
+        return video_receiver

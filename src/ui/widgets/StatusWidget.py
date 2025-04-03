@@ -41,10 +41,9 @@ class StatusWidget(Widget):
         self.surface = Surface((widget_width, widget_height), SRCALPHA)
         self.square_rect = Rect(0, square_y, self.size, self.size)
 
-    def set_status(self, status: str):
+    def draw(self, screen: Surface, status: str) -> None:
         self.color = self.STATUS_COLORS.get(status, self.STATUS_COLORS["default"])
 
-    def draw(self, screen: Surface) -> None:
         self.surface.fill((0, 0, 0, self.background_alpha))
 
         draw.rect(self.surface, self.color, self.square_rect)
