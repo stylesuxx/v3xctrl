@@ -46,13 +46,24 @@ a=recvonly
 
         options = {
             "fflags": "nobuffer",
-            "protocol_whitelist": "file,crypto,data,udp,rtp"
+            "protocol_whitelist": "file,crypto,data,udp,rtp",
+            # "stimeout": "3000000",
+            # "analyzeduration": "1000000",
+            # "probesize": "2048"
         }
 
         while self.running.is_set():
             while self.running.is_set():
                 try:
-                    self.container = av.open(str(self.sdp_path), format="sdp", options=options)
+                    """
+                    NOTE: It takes a while for opening the container, av will
+                          not respect any timeouts at this point unfrotunately.
+                          Even when no stream is running, there will be a
+                          container but the demux will fail further downstream.
+                    """
+                    self.container = av.open(str(self.sdp_path),
+                                             format="sdp",
+                                             options=options)
                     break
                 except av.AVError as e:
                     logging.warning(f"av.open() failed: {e}")
@@ -82,6 +93,9 @@ a=recvonly
             except Exception as e:
                 logging.exception(f"Unexpected error in receiver thread: {e}")
             finally:
+                with self.frame_lock:
+                    self.frame = None
+
                 try:
                     if self.container:
                         self.container.close()
