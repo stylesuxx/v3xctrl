@@ -39,22 +39,27 @@ pip install -r requirements-server.txt
 ## Usage
 
 ### Testing
-Follow the [Hepers README](/stylesuxx/rc-stream/tree/master/docs/Client.md) to make sure your setup is capable of streaming in real-time.
+Follow the [Helpers README](/stylesuxx/rc-stream/tree/master/docs/Client.md) to make sure your setup is capable of streaming in real-time.
 
 ### Bash scripts
 The bash script directory contains `gstreamer` related functionality. Execute `send_cam.sh` on the client to send video to the server. Execute `gst-udp-sink.sh` on the server to receive video from the client.
 
-### Server
-On the server invoke:
+### Graphical User interface
+On the server simply start the GUI:
 
 ```bash
 cd src
-python -m rpi_4g_streamer.helpers.server $PORT
+python -m ui.main
+
+# Run with debug logs enabled
+python -m ui.main --log DEBUG
 ```
 
-The Server will bind to the given port and start listening for UDP packets from the client. Once a SYN packet is received from the client, the server will send one ack package and then continue sending `Command` packets every second.
+By default the UI will bind to ports **6666** for the video feed and **6667** for the control feed. In the console you will see your external IP and ports currently configured - this information can be used to configure your client. Make sure that you need to forward those port through your router to the machine running the GUI.
 
-The server will run connectivity checks. If no new packages has been seen from the client in a specified time frame, the connection is deemed disconnected and the server will exit.
+You can use *[ESC]* to toggle the menu on and off.
+
+> Keep in mind, that some settings will require you to restart the GUI to take effect.
 
 ### Client
 On the client invoke:

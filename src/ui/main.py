@@ -1,9 +1,11 @@
+import argparse
 import logging
 import pygame
 import signal
 import time
 
 from ui.colors import BLACK
+from ui.helpers import get_external_ip
 from ui.menu.Menu import Menu
 from ui.Init import Init
 from ui.AppState import AppState
@@ -12,7 +14,25 @@ from rpi_4g_streamer import State
 from rpi_4g_streamer.Message import Telemetry, Control
 
 
-logging.basicConfig(level=logging.DEBUG)
+parser = argparse.ArgumentParser(description="RC Streamer")
+parser.add_argument(
+    "--log",
+    default="ERROR",
+    help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). Default is ERROR."
+)
+
+args, unknown = parser.parse_known_args()
+
+level_name = args.log.upper()
+level = getattr(logging, level_name, None)
+
+if not isinstance(level, int):
+    raise ValueError(f"Invalid log level: {args.log}")
+
+logging.basicConfig(
+    level=level,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 """
 Load settings from file.
@@ -38,6 +58,14 @@ WINDOW_TITLE = settings.get("settings")["title"]
 FPS_SETTINGS = settings.get("widgets")["fps"]
 STEERING_SETTINGS = settings.get("settings")["steering"]
 THROTTLE_SETTINGS = settings.get("settings")["throttle"]
+
+ip = get_external_ip()
+print("================================")
+print(f"IP Address:   {ip}")
+print(f"Video port:   {PORTS['video']}")
+print(f"Control port: {PORTS['control']}")
+print("Make sure to forward this ports!")
+print("================================")
 
 
 def telemetry_handler(state: AppState, message: Telemetry) -> None:

@@ -1,5 +1,6 @@
 import time
 from typing import Tuple
+import urllib.request
 
 
 def clamp(value, min_value, max_value):
@@ -49,3 +50,8 @@ def get_fps(history, window_seconds: float = 1):
     cutoff = now - window_seconds
     frames = [t for t in history if t >= cutoff]
     return len(frames) / window_seconds if frames else 0.0
+
+
+def get_external_ip():
+    with urllib.request.urlopen('https://api.ipify.org') as response:
+        return response.read().decode('utf-8')
