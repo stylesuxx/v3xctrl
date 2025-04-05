@@ -1,14 +1,16 @@
 import argparse
 import logging
 import pygame
+import pygame.freetype
 import signal
 import time
 
-from ui.colors import BLACK
+from ui.colors import BLACK, RED
 from ui.helpers import get_external_ip
 from ui.menu.Menu import Menu
 from ui.Init import Init
 from ui.AppState import AppState
+from ui.MemoryTracker import MemoryTracker
 
 from rpi_4g_streamer import State
 from rpi_4g_streamer.Message import Telemetry, Control
@@ -19,6 +21,11 @@ parser.add_argument(
     "--log",
     default="ERROR",
     help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). Default is ERROR."
+)
+parser.add_argument(
+    "--mem-profile",
+    action="store_true",
+    help="Enable periodic memory tracking using tracemalloc."
 )
 
 args, unknown = parser.parse_known_args()
@@ -33,6 +40,11 @@ logging.basicConfig(
     level=level,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
+
+mem_tracker = None
+if args.mem_profile:
+    mem_tracker = MemoryTracker(interval=10, top=5)
+    mem_tracker.start()
 
 """
 Load settings from file.
@@ -52,6 +64,7 @@ debug = settings.get("debug")
 PORTS = settings.get("ports")
 VIDEO = settings.get("video")
 FRAMERATE = settings.get('fps')
+VIDEO_SIZE = (VIDEO["width"], VIDEO["height"])
 
 # no UI for those settings
 WINDOW_TITLE = settings.get("settings")["title"]
@@ -98,6 +111,11 @@ state = AppState((VIDEO["width"], VIDEO["height"]),
                  THROTTLE_SETTINGS,
                  STEERING_SETTINGS)
 
+FONTS = {
+    "mono_bold_24": pygame.freetype.SysFont("monospace", 24, bold=True),
+    "mono_bold_32": pygame.freetype.SysFont("monospace", 32, bold=True),
+}
+
 
 def update_settings():
     """ Update settings after exiting menu """
@@ -112,16 +130,18 @@ def update_settings():
 
 def render_all(state):
     with state.video_receiver.frame_lock:
-        if state.video_receiver.frame is not None:
-            surface = pygame.image.frombuffer(state.video_receiver.frame.tobytes(), (VIDEO["width"], VIDEO["height"]), "RGB")
+        frame = state.video_receiver.frame
+        if frame is not None:
+            surface = pygame.image.frombuffer(frame.tobytes(),
+                                              VIDEO_SIZE,
+                                              "RGB")
             state.screen.blit(surface, (0, 0))
         else:
-            font = pygame.font.SysFont("monospace", 32, bold=True)
-            no_signal_text = font.render("No Signal", True, (200, 0, 0))
-            text_rect = no_signal_text.get_rect(center=(VIDEO["width"] // 2, VIDEO["height"] // 2))
+            surface, rect = FONTS["mono_bold_32"].render("No Signal", RED)
+            rect.center = (VIDEO["width"] // 2, VIDEO["height"] // 2)
 
             state.screen.fill(BLACK)
-            state.screen.blit(no_signal_text, text_rect)
+            state.screen.blit(surface, rect)
 
     for name, widget in state.widgets.items():
         widget.draw(state.screen, getattr(state, name))
@@ -132,10 +152,9 @@ def render_all(state):
 
     # Render errors on top of main UI
     if state.server_error:
-        font = pygame.font.SysFont("monospace", 24, bold=True)
-        error_text = font.render(state.server_error, True, (255, 50, 50))
-        error_rect = error_text.get_rect(center=(VIDEO["width"] // 2, 50))
-        state.screen.blit(error_text, error_rect)
+        surface, rect = FONTS["mono_bold_24"].render(state.server_error, RED)
+        rect.center = (VIDEO["width"] // 2, 50)
+        state.screen.blit(surface, rect)
 
     # Draw menu above everything else
     if state.menu is not None:
@@ -145,7 +164,7 @@ def render_all(state):
 
 
 def update_all(state):
-    if not state.server_error:
+    if not state.server_error and "data" in state.widgets:
         data_left = state.server.transmitter.queue.qsize()
         state.widgets["data"].set_value(data_left)
     else:
@@ -200,3 +219,6 @@ while state.running:
     state.clock.tick(FRAMERATE)
 
 state.shutdown()
+
+if mem_tracker:
+    mem_tracker.stop()

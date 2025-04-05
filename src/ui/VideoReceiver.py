@@ -83,9 +83,8 @@ a=recvonly
                             break
 
                         for frame in packet.decode():
-                            img = frame.to_ndarray(format="rgb24")
                             with self.frame_lock:
-                                self.frame = img
+                                self.frame = frame.to_ndarray(format="rgb24")
 
                             self.history.append(time.time())
             except av.AVError as e:
