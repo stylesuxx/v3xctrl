@@ -97,11 +97,11 @@ class AppState:
 
     @property
     def fps_loop(self) -> float:
-        return get_fps(self.loop_history)
+        return get_fps(self.loop_history.copy())
 
     @property
     def fps_video(self) -> float:
-        return get_fps(self.video_receiver.history)
+        return get_fps(self.video_receiver.history.copy())
 
     def shutdown(self):
         pygame.quit()

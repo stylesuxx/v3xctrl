@@ -1,3 +1,4 @@
+from collections import deque
 import time
 from typing import Tuple
 import urllib.request
@@ -45,7 +46,7 @@ def interpolate_throttle_color(throttle: float) -> Tuple[int, int, int]:
     return (r, g, b)
 
 
-def get_fps(history, window_seconds: float = 1):
+def get_fps(history: deque, window_seconds: float = 1):
     now = time.time()
     cutoff = now - window_seconds
     frames = [t for t in history if t >= cutoff]
