@@ -5,7 +5,7 @@
   },
   "host": "192.168.1.100",
   "ports": {
-      "control": 6667,
+      "control": 6668,
       "video": 6666,
       "webinterface": 5000
   },

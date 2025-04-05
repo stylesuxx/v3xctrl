@@ -53,17 +53,12 @@ while [[ $# -gt 0 ]]; do
 done
 
 gst-launch-1.0 -v \
-  videotestsrc is-live=true ! \
-  "video/x-raw,width=$WIDTH,height=$HEIGHT,framerate=$FRAMERATE/1,format=NV12,interlace-mode=progressive" ! \
+  videotestsrc is-live=true pattern=smpte ! \
+  "video/x-raw,width=${WIDTH},height=${HEIGHT},framerate=${FRAMERATE}/1" ! \
   queue \
-    max-size-buffers=$SIZEBUFFERS \
-    max-size-time=$BUFFERTIME \
+    max-size-buffers=${SIZEBUFFERS} \
+    max-size-time=${BUFFERTIME} \
     leaky=downstream ! \
-  x264enc ! \
-  "video/x-h264,level=(string)4,profile=(string)high,stream-format=(string)byte-stream" ! \
+  x264enc tune=zerolatency bitrate=2048 speed-preset=superfast ! \
   rtph264pay config-interval=1 pt=96 ! \
-  queue \
-    max-size-buffers=$SIZEBUFFERS_UDP \
-    max-size-time=$BUFFERTIME_UDP \
-    leaky=downstream ! \
-  udpsink host=$HOST port=$PORT sync=false async=false
+  udpsink host=${HOST} port=${PORT}

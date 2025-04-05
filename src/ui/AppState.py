@@ -41,9 +41,8 @@ class AppState:
 
         self.screen, self.clock = Init.ui(self.size, self.title)
         self.video_receiver = Init.video_receiver(self.video_port)
-        self.server, self.server_error = Init.server(control_port,
+        self.server, self.server_error = Init.server(self.control_port,
                                                      server_handlers)
-
         self.data = "waiting"
 
         self.widgets = {

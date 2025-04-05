@@ -17,7 +17,7 @@ class Settings:
         },
         "ports": {
             "video": 6666,
-            "control": 6667,
+            "control": 6668,
         },
         "video": {
             "width": 1280,

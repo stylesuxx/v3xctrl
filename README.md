@@ -55,7 +55,9 @@ python -m ui.main
 python -m ui.main --log DEBUG
 ```
 
-By default the UI will bind to ports **6666** for the video feed and **6667** for the control feed. In the console you will see your external IP and ports currently configured - this information can be used to configure your client. Make sure that you need to forward those port through your router to the machine running the GUI.
+By default the UI will bind to ports **6666** for the video feed and **6668** for the control feed. In the console you will see your external IP and ports currently configured - this information can be used to configure your client.
+
+> Make sure that you need to forward those port through your router to the machine running the GUI. Be aware that **video port + 1** will also be bound to by python av lib when using RTP since it is reserving this port for RTCP - we do not use this, but this is handled internally by ffmpeg and nothing we can do about. Just keep that in mind when selecting ports.
 
 You can use *[ESC]* to toggle the menu on and off.
 
