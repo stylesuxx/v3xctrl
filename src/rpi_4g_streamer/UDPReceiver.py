@@ -28,7 +28,7 @@ class UDPReceiver(threading.Thread):
     def __init__(self,
                  sock: socket.socket,
                  handler: Callable[[Message, Tuple[str, int]], None],
-                 timeout: int = 5):
+                 timeout: int = 1):
         super().__init__(daemon=True)
 
         self.socket = sock

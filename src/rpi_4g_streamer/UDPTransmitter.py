@@ -27,7 +27,7 @@ from .Message import Message
 
 class UDPTransmitter(threading.Thread):
     def __init__(self, sock: socket.socket):
-        super().__init__()
+        super().__init__(daemon=True)
 
         self.socket = sock
 
@@ -56,7 +56,7 @@ class UDPTransmitter(threading.Thread):
         try:
             while self._running.is_set():
                 try:
-                    packet = self.queue.get(timeout=1)
+                    packet = self.queue.get(timeout=0.1)
                     address = (packet.host, packet.port)
                     self.socket.sendto(packet.data, address)
                     self.queue.task_done()
@@ -66,6 +66,8 @@ class UDPTransmitter(threading.Thread):
                     logging.warning(f"Socket error while sending: {e}")
                 except Exception as e:
                     logging.error(f"Unexpected transmit error: {e}", exc_info=True)
+
+                await asyncio.sleep(0.001)
 
         except asyncio.CancelledError:
             logging.info("Transmit task cancelled.")

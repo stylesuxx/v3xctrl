@@ -13,7 +13,7 @@ from .Message import Message
 
 class Base(threading.Thread):
     def __init__(self):
-        super().__init__()
+        super().__init__(daemon=True)
 
         self.state_handlers = []
         self.subscriptions = []
