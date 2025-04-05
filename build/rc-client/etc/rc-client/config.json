@@ -12,8 +12,10 @@
   "video": {
       "bitrate": 3000000,
       "framerate": 30,
-      "height": 864,
-      "width": 1536
+      "height": 720,
+      "width": 1280,
+      "record": false,
+      "recordPath": "/var/lib/rc-client/recordings"
   },
   "wifi": {
       "mode": "client",

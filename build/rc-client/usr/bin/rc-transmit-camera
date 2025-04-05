@@ -8,8 +8,20 @@ HEIGHT=$(jq -r '.video.height' "$CONFIG_PATH")
 FRAMERATE=$(jq -r '.video.framerate' "$CONFIG_PATH")
 BITRATE=$(jq -r '.video.bitrate' "$CONFIG_PATH")
 
-/usr/share/rc-client/gst/send_cam.sh $HOST $PORT \
-  --width $WIDTH \
-  --height $HEIGHT \
-  --framerate $FRAMERATE \
-  --bitrate $BITRATE
+RECORD=$(jq -r '.video.record' "$CONFIG_PATH")
+RECORD_PATH=$(jq -r '.video.recordPath' "$CONFIG_PATH")
+
+ARGS=(
+  "$HOST"
+  "$PORT"
+  --width "$WIDTH"
+  --height "$HEIGHT"
+  --framerate "$FRAMERATE"
+  --bitrate "$BITRATE"
+)
+
+if [ "$RECORD" = "true" ] && [ -n "$RECORD_PATH" ] && [ "$RECORD_PATH" != "null" ]; then
+  ARGS+=(--recording-dir "$RECORD_PATH")
+fi
+
+/usr/share/rc-client/gst/send_cam.sh "${ARGS[@]}"

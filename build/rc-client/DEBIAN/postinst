@@ -9,6 +9,13 @@ chown rc-user:rc-user /etc/rc-client
 chown rc-user:rc-user /etc/rc-client/*.json
 chmod a+r /etc/rc-client/config.json
 
+RECORD_DIR="/var/lib/rc-client/recordings"
+if [ ! -d "$RECORD_DIR" ]; then
+    mkdir -p "$RECORD_DIR"
+    chown rc-user:rc-user "$RECORD_DIR"
+    chmod a+rw "$RECORD_DIR"
+fi
+
 if command -v systemctl >/dev/null 2>&1; then
   systemctl daemon-reload
 

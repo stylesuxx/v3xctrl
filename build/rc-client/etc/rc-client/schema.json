@@ -53,12 +53,12 @@
         "width": {
           "propertyOrder": 10,
           "type": "integer",
-          "default": 1536
+          "default": 1280
         },
         "height": {
           "propertyOrder": 20,
           "type": "integer",
-          "default": 864
+          "default": 720
         },
         "framerate": {
           "propertyOrder": 30,
@@ -71,6 +71,18 @@
           "type": "integer",
           "default": 3000000,
           "description": "Bits per second"
+        },
+        "record": {
+          "propertyOrder": 50,
+          "type": "boolean",
+          "format": "checkbox",
+          "default": false
+        },
+        "recordPath": {
+          "propertyOrder": 60,
+          "type": "string",
+          "description": "Path to store recordings",
+          "default": "/var/lib/rc-client/recordings"
         }
       }
     },
