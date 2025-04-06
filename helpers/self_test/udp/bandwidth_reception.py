@@ -33,7 +33,7 @@ def tcp_upload(ip: str, port: int) -> float | None:
 
             sent_bytes = 0
             while sent_bytes < FILE_SIZE:
-                chunk = data[sent_bytes: sent_bytes + BUFFER_SIZE]
+                chunk = DATA[sent_bytes: sent_bytes + BUFFER_SIZE]
                 sock.sendall(chunk)
                 sent_bytes += len(chunk)
 
