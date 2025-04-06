@@ -46,7 +46,10 @@ python helpers/self_test/bandwidth_server.py 6666
 On the client run:
 
 ```bash
+screen
 python helpers/self_test/bandwidth_client.py 192.168.0.1 6666 /dev/ttyACM0
+
+# Use [CTRL - a, d] to disconnect from screen
 ```
 
 `/dev/ttyACM0` is the serial port of your 4G modem. When starting the script on the client, make sure it will run once you disconnect via SSH, so run through `screen`.
