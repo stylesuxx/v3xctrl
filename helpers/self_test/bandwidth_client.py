@@ -9,7 +9,7 @@ from datetime import datetime
 CSV_FILE = "bandwidth_log.csv"
 BUFFER_SIZE = 4096
 
-MB = 1
+MB = 5
 FILE_SIZE = MB * 1024 * 1024
 DATA = b"x" * FILE_SIZE
 
