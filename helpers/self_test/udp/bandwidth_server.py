@@ -43,6 +43,8 @@ def run_tcp_upload_server(port: int):
 
                         try:
                             conn.sendall(b'DONE')
+                            sock.shutdown(socket.SHUT_WR)
+                        # Let the server know we are done
                         except Exception as e:
                             print(f"Failed to send DONE ack: {e}")
 
