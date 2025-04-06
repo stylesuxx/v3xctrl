@@ -1,11 +1,6 @@
 #!/bin/bash
 
 if command -v systemctl >/dev/null 2>&1; then
-  systemctl stop \
-    rc-config-server \
-    rc-control \
-    rc-transmit-camera
-
   systemctl disable \
     rc-config-server \
     rc-service-manager \

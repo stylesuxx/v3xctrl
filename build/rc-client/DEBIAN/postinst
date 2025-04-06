@@ -44,5 +44,5 @@ if command -v systemctl >/dev/null 2>&1; then
     rc-service-manager \
     rc-wifi-mode
 
-  systemctl start rc-config-server
+  systemctl restart rc-config-server
 fi
