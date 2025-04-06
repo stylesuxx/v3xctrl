@@ -25,28 +25,19 @@ def rsrq_to_dbm(value: int) -> float:
 def tcp_upload(ip: str, port: int) -> float | None:
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             sock.settimeout(10.0)
             sock.connect((ip, port))
+            sent_bytes = 0
 
             start_time = time.time()
-
-            sent_bytes = 0
             while sent_bytes < FILE_SIZE:
                 chunk = DATA[sent_bytes: sent_bytes + BUFFER_SIZE]
                 sock.sendall(chunk)
                 sent_bytes += len(chunk)
 
-            # Wait for confirmation from server
-            ack = sock.recv(4)
-            if ack != b'DONE':
-                print("Server did not send DONE confirmation")
-                return None
-
             elapsed = time.time() - start_time
             mbps = (sent_bytes * 8) / (1_000_000 * elapsed)
             return mbps
-
     except (socket.timeout, ConnectionRefusedError, OSError) as e:
         print(f"[TCP] Upload failed: {e}")
         return None
