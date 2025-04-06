@@ -1,3 +1,4 @@
+import argparse
 import atlib
 import socket
 import time
@@ -79,3 +80,17 @@ def monitor_and_test(server_ip: str, port: int, modem: str):
             time.sleep(0.001)
     except KeyboardInterrupt:
         print("\nStopped by user.")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Monitor signal and send upload data to server on signal change.")
+    parser.add_argument("ip", help="IP address of the upload server")
+    parser.add_argument("port", type=int, help="TCP port of the upload server")
+    parser.add_argument("modem", type=str, help="Modem device path (e.g., /dev/ttyUSB2)")
+
+    args = parser.parse_args()
+    monitor_and_test(args.ip, args.port, args.modem)
+
+
+if __name__ == "__main__":
+    main()
