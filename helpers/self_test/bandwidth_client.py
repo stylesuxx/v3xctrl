@@ -6,7 +6,7 @@ import csv
 import os
 from datetime import datetime
 
-CSV_FILE = "udp_speed_log.csv"
+CSV_FILE = "bandwidth_log.csv"
 BUFFER_SIZE = 4096
 
 MB = 1

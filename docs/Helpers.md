@@ -34,6 +34,27 @@ Lower is better. Single direction time is estimated by just taking half of the R
 ### UDP hole duration
 Checks how long the hole stays open after the client initially punches through the NAT. We abort after 10 seconds, this is plenty to keep communication open since the client will send a heartbeat message at least once per second.
 
+## Bandwith details
+The initial bandwidth test is just a momentary snapshot, there is another tool which will help you profiling your general situation. Reception will differ on where you are. To profile bandwidth in your area, you can use the `bandwith` tests.
+
+On the server run:
+
+```bash
+python helpers/self_test/bandwidth_server.py 6666
+```
+
+On the client run:
+
+```bash
+python helpers/self_test/bandwidth_client.py 192.168.0.1 6666 /dev/ttyACM0
+```
+
+`/dev/ttyACM0` is the serial port of your 4G modem. When starting the script on the client, make sure it will run once you disconnect via SSH, so run through `screen`.
+
+Now you can start walking around the area you want to profile. The client will upload 5MB chunks of data every time the RSRP value changes from the last one.
+
+The client will log to stdout, but also to a CSV (`bandwidth_log.csv`) for later analysis.
+
 ## UDP
 In the `udp` folder you will find a dedicated test for profiling UDP performance. This is mainly useful if you want to compare carrier and see which time of the day/week has the lowest latency.
 
