@@ -25,7 +25,7 @@ def rsrq_to_dbm(value: int) -> float:
 def tcp_upload(ip: str, port: int) -> float | None:
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            sock.settimeout(10.0)
+            sock.settimeout(15.0)
             sock.connect((ip, port))
             sent_bytes = 0
 
@@ -34,6 +34,17 @@ def tcp_upload(ip: str, port: int) -> float | None:
                 chunk = DATA[sent_bytes: sent_bytes + BUFFER_SIZE]
                 sock.sendall(chunk)
                 sent_bytes += len(chunk)
+
+            # Wait for server acknowledgment
+            try:
+                sock.settimeout(5.0)
+                ack = sock.recv(4)
+                if ack != b'DONE':
+                    print("[TCP] Unexpected response from server.")
+                    return None
+            except socket.timeout:
+                print("[TCP] Timeout waiting for DONE ACK from server.")
+                return None
 
             elapsed = time.time() - start_time
             mbps = (sent_bytes * 8) / (1_000_000 * elapsed)

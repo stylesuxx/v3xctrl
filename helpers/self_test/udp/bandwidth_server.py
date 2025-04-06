@@ -41,6 +41,11 @@ def run_tcp_upload_server(port: int):
                                 print(f"Connection error: {e}")
                                 break
 
+                        try:
+                            conn.sendall(b'DONE')
+                        except Exception as e:
+                            print(f"Failed to send DONE ack: {e}")
+
                     duration = time.time() - start_time
                     speed = format_speed(received_bytes, duration)
 
@@ -58,7 +63,7 @@ def run_tcp_upload_server(port: int):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="TCP Upload Server")
+    parser = argparse.ArgumentParser(description="TCP Upload Server with ACK")
     parser.add_argument("port", type=int, help="Port to listen on")
 
     args = parser.parse_args()
