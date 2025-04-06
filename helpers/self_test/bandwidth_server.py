@@ -1,6 +1,7 @@
+import argparse
+import datetime
 import socket
 import time
-import argparse
 import traceback
 
 BUFFER_SIZE = 4096
@@ -51,9 +52,8 @@ def run_tcp_upload_server(port: int):
                     duration = time.time() - start_time
                     speed = format_speed(received_bytes, duration)
 
-                    print("--- Transfer Complete ---")
-                    print(f"Received {received_bytes / (1024*1024):.2f} MB in {duration:.2f} seconds")
-                    print(f"Upload speed: {speed}\n")
+                    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    print(f"[{timestamp}] Received {received_bytes / (1024*1024):.2f} MB in {duration:.2f} seconds - {speed}\n")
 
                 except Exception as e:
                     print(f"Error during client handling: {e}")

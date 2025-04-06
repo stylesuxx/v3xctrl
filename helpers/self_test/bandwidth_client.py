@@ -40,10 +40,16 @@ def tcp_upload(ip: str, port: int) -> float | None:
 
             # Wait for server acknowledgment
             try:
-                sock.settimeout(5.0)
-                ack = sock.recv(4)
+                sock.settimeout(10.0)
+                ack = b''
+                while len(ack) < 4:
+                    chunk = sock.recv(4 - len(ack))
+                    if not chunk:
+                        print("[TCP] Connection closed before full ACK.")
+                        return None
+                    ack += chunk
                 if ack != b'DONE':
-                    print("[TCP] Unexpected response from server.")
+                    print(f"[TCP] Unexpected response from server: {ack}")
                     return None
             except socket.timeout:
                 print("[TCP] Timeout waiting for DONE ACK from server.")
@@ -85,7 +91,7 @@ def monitor_and_test(server_ip: str, port: int, modem: str):
                 continue
 
             if rsrp_dbm != last_rsrp_dbm:
-                timestamp = datetime.now().isoformat()
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 mbps = tcp_upload(server_ip, port)
                 log_to_csv(timestamp, mbps, rsrp_dbm, rsrq_dbm)
                 print(f"[{timestamp}] RSRQ: {rsrq_dbm:.1f}, RSRP: {rsrp_dbm} dBm, Speed: {mbps:.2f} Mbps" if mbps else f"[{timestamp}] RSRQ: {rsrq_dbm:.1f}, RSRP: {rsrp_dbm} dBm, Upload failed.")
