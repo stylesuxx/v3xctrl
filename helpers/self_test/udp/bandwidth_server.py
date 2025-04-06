@@ -23,13 +23,13 @@ def run_tcp_upload_server(port: int):
 
             while True:
                 try:
+                    received_bytes = 0
+
                     print("Waiting for client...")
                     conn, addr = sock.accept()
                     print(f"+ Client connected from {addr}")
 
-                    received_bytes = 0
                     start_time = time.time()
-
                     with conn:
                         while True:
                             try:

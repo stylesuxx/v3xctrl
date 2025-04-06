@@ -35,6 +35,9 @@ def tcp_upload(ip: str, port: int) -> float | None:
                 sock.sendall(chunk)
                 sent_bytes += len(chunk)
 
+            # Let the server know we are done
+            sock.shutdown(socket.SHUT_WR)
+
             # Wait for server acknowledgment
             try:
                 sock.settimeout(5.0)
