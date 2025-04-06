@@ -23,10 +23,6 @@ def rsrq_to_dbm(value: int) -> float:
 
 
 def tcp_upload(ip: str, port: int) -> float | None:
-    BUFFER_SIZE = 4096
-    FILE_SIZE = 10 * 1024 * 1024  # 10MB
-    data = b"x" * FILE_SIZE
-
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
