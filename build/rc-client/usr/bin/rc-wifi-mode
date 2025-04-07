@@ -25,7 +25,7 @@ DEVICE_ID=$(awk '/Serial/ {print substr($NF, length($NF)-7)}' /proc/cpuinfo)
 SSID="rc-client-$DEVICE_ID"
 
 switch_to_ap() {
-  echo "[wifi] Switching to AP mode"
+  echo "Switching to AP mode"
 
   systemctl stop wpa_supplicant || true
   systemctl stop dhcpcd || true
@@ -66,7 +66,7 @@ EOF
 }
 
 switch_to_client() {
-  echo "[wifi] Switching to client mode"
+  echo "Switching to client mode"
 
   systemctl stop hostapd || true
   systemctl stop dnsmasq || true
@@ -78,17 +78,17 @@ switch_to_client() {
   systemctl start dhcpcd
   systemctl start wpa_supplicant
 
-  echo "[wifi] Waiting up to $FALLBACK_TIMEOUT seconds for IP..."
+  echo "Waiting up to $FALLBACK_TIMEOUT seconds for IP..."
 
   for i in $(seq 1 "$FALLBACK_TIMEOUT"); do
     if ip -4 addr show "$INTERFACE" | grep -q 'inet '; then
-      echo "[wifi] Client mode successful: IP assigned."
+      echo "Client mode successful: IP assigned."
       return 0
     fi
     sleep 1
   done
 
-  echo "[wifi] Client mode failed after $FALLBACK_TIMEOUT seconds. Falling back to AP mode."
+  echo "Client mode failed after $FALLBACK_TIMEOUT seconds. Falling back to AP mode."
   switch_to_ap
 }
 

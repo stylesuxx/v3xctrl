@@ -1,5 +1,5 @@
 import argparse
-import datetime
+from datetime import datetime
 import socket
 import time
 import traceback
