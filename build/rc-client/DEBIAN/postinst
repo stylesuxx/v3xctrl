@@ -42,7 +42,9 @@ if command -v systemctl >/dev/null 2>&1; then
   systemctl enable \
     rc-config-server \
     rc-service-manager \
-    rc-wifi-mode
+    rc-wifi-mode \
+    pigpiod
 
   systemctl restart rc-config-server
+  systemctl restart pigpiod
 fi
