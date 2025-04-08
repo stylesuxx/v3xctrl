@@ -1,8 +1,8 @@
-#! /bin/bash
-CONFIG_PATH="/etc/rc-client/config.json"
+#!/bin/bash
+set -e
 
+CONFIG_PATH="/etc/rc-client/config.json"
 HOST=$(jq -r '.host' "$CONFIG_PATH")
 PORT=$(jq -r '.ports.control' "$CONFIG_PATH")
 
-cd /usr/share/rc-client/git-src
-rc-python src/client.py $HOST $PORT
+rc-python -m rpi_4g_streamer.helpers.client "${HOST}" "${PORT}"
