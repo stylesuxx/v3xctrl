@@ -36,7 +36,8 @@ curl -o "${SERVER_LIB_PATH}/bootstrap3.min.css" "https://cdn.jsdelivr.net/npm/bo
 
 # Move python libraries
 mkdir -p ${PYTHON_LIB_PATH}
-cp -r "../src/rpi_4g_streamer" ${PYTHON_LIB_PATH}
+cd "${PWD}/.."
+cp -r "./src/rpi_4g_streamer" ${PYTHON_LIB_PATH}
 
 # Build the deb package
 gzip -9 -n "${DEST_DIR}/usr/share/doc/${NAME}/changelog"
