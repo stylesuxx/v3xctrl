@@ -39,11 +39,11 @@ pi.set_mode(steering_gpio, pigpio.OUTPUT)
 
 servo_min = 1000
 servo_max = 2000
-throttle_idle = 1000
-servo_center = (servo_max - servo_min) / 2
+throttle_idle = servo_min
+servo_center = (servo_max + servo_min) / 2
 
-pi.set_servo_pulse_width(throttle_gpio, servo_min)
-pi.set_servo_pulse_width(steering_gpio, servo_center)
+pi.set_servo_pulsewidth(throttle_gpio, servo_min)
+pi.set_servo_pulsewidth(steering_gpio, servo_center)
 
 
 def map_range(
@@ -73,15 +73,14 @@ def map_range(
 
 
 def control_handler(message: Control) -> None:
-    """ TODO: Implement control message handling. """
     values = message.get_values()
-    logging.debug(f"Received control message: {values}")
+    throttle_value = map_range(values['throttle'], 0, 1, servo_min, servo_max)
+    steering_value = map_range(values['steering'], -1, 1, servo_min, servo_max)
 
-    throttle_value = map_range(values['thr'], 0, 1, servo_min, servo_max)
-    steering_value = map_range(values['ste'], -1, 1, servo_min, servo_max)
+    logging.debug(f"Throttle: {throttle_value}; Steering: {steering_value}")
 
-    pi.set_servo_pulse_width(throttle_gpio, throttle_value)
-    pi.set_servo_pulse_width(steering_gpio, steering_value)
+    pi.set_servo_pulsewidth(throttle_gpio, throttle_value)
+    pi.set_servo_pulsewidth(steering_gpio, steering_value)
 
 
 def disconnect_handler() -> None:
@@ -92,8 +91,8 @@ def disconnect_handler() -> None:
     - Min throttle
     """
     logging.debug("Disconnected from server...")
-    pi.set_servo_pulse_width(throttle_gpio, throttle_idle)
-    pi.set_servo_pulse_width(steering_gpio, servo_center)
+    pi.set_servo_pulsewidth(throttle_gpio, throttle_idle)
+    pi.set_servo_pulsewidth(steering_gpio, servo_center)
 
 
 def signal_handler(sig, frame):
