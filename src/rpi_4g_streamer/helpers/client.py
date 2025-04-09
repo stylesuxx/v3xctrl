@@ -23,10 +23,25 @@ logging.basicConfig(level=logging.DEBUG)
 parser = argparse.ArgumentParser(description="Test connection performance.")
 parser.add_argument("host", help="The target IP address")
 parser.add_argument("port", type=int, help="The target port number")
+
+parser.add_argument("--throttle-min", type=int, default=1000,
+                    help="Minimum pulse width for throttle (default: 1000)")
+parser.add_argument("--throttle-max", type=int, default=2000,
+                    help="Maximum pulse width for throttle (default: 2000)")
+parser.add_argument("--steering-min", type=int, default=1000,
+                    help="Minimum pulse width for steering (default: 1000)")
+parser.add_argument("--steering-max", type=int, default=2000,
+                    help="Maximum pulse width for steering (default: 2000)")
+
 args = parser.parse_args()
 
 HOST = args.host
 PORT = args.port
+
+throttle_min = args.throttle_min
+throttle_max = args.throttle_max
+steering_min = args.steering_min
+steering_max = args.steering_max
 
 running = True
 
@@ -37,13 +52,11 @@ pi = pigpio.pi()
 pi.set_mode(throttle_gpio, pigpio.OUTPUT)
 pi.set_mode(steering_gpio, pigpio.OUTPUT)
 
-servo_min = 1000
-servo_max = 2000
-throttle_idle = servo_min
-servo_center = (servo_max + servo_min) / 2
+throttle_idle = throttle_min
+steering_center = (steering_max + steering_min) / 2
 
-pi.set_servo_pulsewidth(throttle_gpio, servo_min)
-pi.set_servo_pulsewidth(steering_gpio, servo_center)
+pi.set_servo_pulsewidth(throttle_gpio, throttle_min)
+pi.set_servo_pulsewidth(steering_gpio, steering_center)
 
 
 def map_range(
@@ -74,8 +87,8 @@ def map_range(
 
 def control_handler(message: Control) -> None:
     values = message.get_values()
-    throttle_value = map_range(values['throttle'], 0, 1, servo_min, servo_max)
-    steering_value = map_range(values['steering'], -1, 1, servo_min, servo_max)
+    throttle_value = map_range(values['throttle'], 0, 1, throttle_min, throttle_max)
+    steering_value = map_range(values['steering'], -1, 1, steering_min, steering_max)
 
     logging.debug(f"Throttle: {throttle_value}; Steering: {steering_value}")
 
@@ -92,7 +105,7 @@ def disconnect_handler() -> None:
     """
     logging.debug("Disconnected from server...")
     pi.set_servo_pulsewidth(throttle_gpio, throttle_idle)
-    pi.set_servo_pulsewidth(steering_gpio, servo_center)
+    pi.set_servo_pulsewidth(steering_gpio, steering_center)
 
 
 def signal_handler(sig, frame):

@@ -20,5 +20,15 @@
   "wifi": {
       "mode": "client",
       "routing": "wlan"
+  },
+  "controls": {
+      "throttle": {
+          "min": 1000,
+          "max": 2000
+      },
+      "steering": {
+          "min": 1000,
+          "max": 2000
+      }
   }
 }

@@ -137,6 +137,60 @@
           "default": true
         }
       }
+    },
+    "controls": {
+      "propertyOrder": 50,
+      "type": "object",
+      "title": "Controls",
+      "options": {
+        "collapsed": true,
+        "disable_edit_json": true,
+        "disable_properties": true
+      },
+      "properties": {
+        "throttle": {
+          "type": "object",
+          "title": "Throttle",
+          "options": {
+            "collapsed": false,
+            "disable_edit_json": true,
+            "disable_properties": true
+          },
+          "properties": {
+            "min": {
+              "type": "integer",
+              "default": 1000,
+              "description": "Minimum pulse width"
+            },
+            "max": {
+              "type": "integer",
+              "default": 2000,
+              "description": "Maximum pulse width"
+            }
+          }
+        },
+        "steering": {
+          "type": "object",
+          "title": "Steering",
+          "options": {
+            "collapsed": false,
+            "disable_edit_json": true,
+            "disable_properties": true
+          },
+          "properties": {
+            "min": {
+              "type": "integer",
+              "default": 1000,
+              "description": "Minimum pulse width"
+            },
+            "max": {
+              "type": "integer",
+              "default": 2000,
+              "description": "Maximum pulse width"
+            }
+          }
+        }
+      }
     }
   }
 }
