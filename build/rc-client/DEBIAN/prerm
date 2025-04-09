@@ -5,27 +5,27 @@ if command -v systemctl >/dev/null 2>&1; then
   # Reset services only on removal
   if [ "$1" = "remove" ]; then
     deb-systemd-helper disable \
-      rc-config-server \
-      rc-service-manager \
-      rc-wifi-mode
+      rc-config-server.service \
+      rc-service-manager.service \
+      rc-wifi-mode.service
 
     # Re-enable services we disabled during install
     deb-systemd-helper enable \
-      dhcpcd \
-      wpa_supplicant \
-      hostapd \
-      dnsmasq \
-      bluetooth \
-      rpi-eeprom-update \
-      rsync \
+      dhcpcd.service \
+      wpa_supplicant.service \
+      hostapd.service \
+      dnsmasq.service \
+      bluetooth.service \
+      rpi-eeprom-update.service \
+      rsync.service \
       triggerhappy triggerhappy.socket \
-      udisks2 \
+      udisks2.service \
       apt-daily.timer apt-daily-upgrade.timer \
       man-db.timer \
-      e2scrub_all.timer e2scrub_reap \
+      e2scrub_all.timer e2scrub_reap.service \
       fstrim.timer \
-      rsyslog \
-      rpi-display-backlight \
+      rsyslog.service \
+      rpi-display-backlight.service \
       remote-fs.target \
       nfs-client.target
   fi

@@ -25,33 +25,34 @@ if command -v systemctl >/dev/null 2>&1; then
 
   # Disable services that we do not need or are handled by other services
   deb-systemd-helper disable \
-    dhcpcd \
-    wpa_supplicant \
-    hostapd \
-    dnsmasq \
-    bluetooth \
-    rpi-eeprom-update \
-    rsync \
+    dhcpcd.service \
+    wpa_supplicant.service \
+    hostapd.service \
+    dnsmasq.service \
+    bluetooth.service \
+    rpi-eeprom-update.service \
+    rsync.service \
     triggerhappy triggerhappy.socket \
-    udisks2 \
+    udisks2.service \
     apt-daily.timer apt-daily-upgrade.timer \
     man-db.timer \
-    e2scrub_all.timer e2scrub_reap \
+    e2scrub_all.timer e2scrub_reap.service \
     fstrim.timer \
-    rsyslog \
-    rpi-display-backlight \
+    rsyslog.service \
+    rpi-display-backlight.service \
     remote-fs.target \
     nfs-client.target
 
   # Enable our services on start
   deb-systemd-helper enable \
-    rc-config-server \
-    rc-service-manager \
-    rc-wifi-mode \
-    pigpiod
+    rc-config-server.service \
+    rc-service-manager.service \
+    rc-wifi-mode.service \
+    pigpiod.service
 
   # Make sure the minimum requirements to sart the chain after install are in
   # place.
-  deb-systemd-helper restart rc-config-server
-  deb-systemd-helper restart pigpiod
+  deb-systemd-helper restart \
+    rc-config-server.service \
+    pigpiod.service
 fi
