@@ -148,7 +148,7 @@ If you are running the dev env and you just want to update your client, you can 
 This will re-build the rc-client package and install it over the already installed one.
 
 ## Services
-After installation there will be a few services available, some of them enabled by default. Systemd is used for service management and all the services can be checked controlled via systemd:
+After installation there will be a few services available, some of them enabled by default. Systemd is used for service management and all the services can be controlled via systemd:
 
 ```bash
 # See the status of a service
@@ -157,6 +157,8 @@ systemctl status rc-config-server
 # See the logs of a service
 journalctl -u rc-config-server
 ```
+
+> NOTE: Always start the services through `systemd`, this will assure that they will run with the correct users and permissions.
 
 ### rc-config-server (enabled by default)
 This service is responsible for the confiugration web interface. It is running on port 5000 by default and can be accessed via `http://$CLIENT_IP:5000/`.
