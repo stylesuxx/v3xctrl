@@ -66,26 +66,32 @@
           "default": 30,
           "description": "FPS"
         },
-        "bitrate": {
+        "iFramePeriod": {
           "propertyOrder": 40,
+          "type": "integer",
+          "default": 30,
+          "description": "amount of frames between I frames"
+        },
+        "bitrate": {
+          "propertyOrder": 50,
           "type": "integer",
           "default": 1800000,
           "description": "Bits per second"
         },
         "record": {
-          "propertyOrder": 50,
+          "propertyOrder": 60,
           "type": "boolean",
           "format": "checkbox",
           "default": false
         },
         "recordPath": {
-          "propertyOrder": 60,
+          "propertyOrder": 70,
           "type": "string",
           "description": "Path to store recordings",
           "default": "/var/lib/rc-client/recordings"
         },
         "testSource": {
-          "propertyOrder": 70,
+          "propertyOrder": 80,
           "type": "boolean",
           "format": "checkbox",
           "default": false,

@@ -1,6 +1,6 @@
 #! /bin/bash
 if [ $# -lt 2 ]; then
-    echo "Usage: $0 HOST PORT [--width val] [--height val] [--framerate val] [--bitrate val] [--buffertime val] [--sizebuffers val] [--recording-dir val] [--test-pattern]"
+    echo "Usage: $0 HOST PORT [--width val] [--height val] [--framerate val] [--bitrate val] [--buffertime val] [--sizebuffers val] [--recording-dir val] [--test-pattern] [--i-frame-period val]"
     exit 1
 fi
 
@@ -21,6 +21,7 @@ SIZEBUFFERS=5
 BUFFERTIME_UDP=150000000
 SIZEBUFFERS_UDP=5
 
+I_FRAME_PERIOD=30
 H264_PROFILE=0
 H264_LEVEL=31
 
@@ -37,6 +38,7 @@ while [[ $# -gt 0 ]]; do
     --sizebuffers) SIZEBUFFERS="$2"; shift 2 ;;
     --recording-dir) RECORDING_DIR="$2"; shift 2 ;;
     --test-pattern) USE_TEST_PATTERN=1; shift ;;
+    --i-frame-period) I_FRAME_PERIOD="$2"; shift 2 ;;
     *)
       echo "Unknown option: $1"
       exit 1
@@ -87,7 +89,7 @@ gst-launch-1.0 -v $SOURCE_BRANCH ! \
     video_bitrate=${BITRATE},\
     bitrate_mode=${BITRATE_MODE},\
     video_gop_size=${FRAMERATE},\
-    h264_i_frame_period=${FRAMERATE},\
+    h264_i_frame_period=${I_FRAME_PERIOD},\
     video_b_frames=0,\
     h264_profile=${H264_PROFILE},\
     h264_level=${H264_LEVEL}" ! \
