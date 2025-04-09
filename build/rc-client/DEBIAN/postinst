@@ -32,7 +32,7 @@ if command -v systemctl >/dev/null 2>&1; then
     bluetooth.service \
     rpi-eeprom-update.service \
     rsync.service \
-    triggerhappy triggerhappy.socket \
+    triggerhappy.service triggerhappy.socket \
     udisks2.service \
     apt-daily.timer apt-daily-upgrade.timer \
     man-db.timer \
