@@ -1,26 +1,30 @@
 #!/bin/bash
+set -e
 
-if ! id -u rc-user >/dev/null 2>&1; then
-  useradd --system --no-create-home --shell /usr/sbin/nologin rc-user
-  sudo usermod -aG video rc-user
+USER=rc-user
+
+# Create user and add to groups
+if ! getent passwd $USER > /dev/null; then
+  useradd --system --no-create-home --shell /usr/sbin/nologin $USER
 fi
+usermod -aG video $USER
 
-chown rc-user:rc-user /etc/rc-client
-chown rc-user:rc-user /etc/rc-client/*.json
-chmod a+r /etc/rc-client/config.json
+chown $USER:$USER /etc/rc-client
+find /etc/rc-client -maxdepth 1 -name '*.json' -exec chown $USER:$USER {} +
+chmod 640 /etc/rc-client/config.json
 
 RECORD_DIR="/var/lib/rc-client/recordings"
 if [ ! -d "$RECORD_DIR" ]; then
     mkdir -p "$RECORD_DIR"
-    chown rc-user:rc-user "$RECORD_DIR"
+    chown $USER:$USER "$RECORD_DIR"
     chmod a+rw "$RECORD_DIR"
 fi
 
 if command -v systemctl >/dev/null 2>&1; then
-  systemctl daemon-reload
+  deb-systemd-helper daemon-reload
 
-  # Disable services that we don not need or are handled by other services
-  systemctl disable \
+  # Disable services that we do not need or are handled by other services
+  deb-systemd-helper disable \
     dhcpcd \
     wpa_supplicant \
     hostapd \
@@ -39,12 +43,15 @@ if command -v systemctl >/dev/null 2>&1; then
     remote-fs.target \
     nfs-client.target
 
-  systemctl enable \
+  # Enable our services on start
+  deb-systemd-helper enable \
     rc-config-server \
     rc-service-manager \
     rc-wifi-mode \
     pigpiod
 
-  systemctl restart rc-config-server
-  systemctl restart pigpiod
+  # Make sure the minimum requirements to sart the chain after install are in
+  # place.
+  deb-systemd-helper restart rc-config-server
+  deb-systemd-helper restart pigpiod
 fi

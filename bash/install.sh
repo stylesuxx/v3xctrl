@@ -40,14 +40,15 @@ install_python() {
   rc-pip --version
 }
 
+# This is used when you want to build and install the deb from your local
+# development fork.
 build_and_install() {
   print_banner "BUILDING AND INSTALLING DEB"
 
   cd "../build"
   ./build-rc-client.sh
 
-  sudo apt remove -y rc-client
-  sudo apt install -y ./tmp/rc-client.deb
+  sudo apt install --reinstall -y ./tmp/rc-client.deb
 
   # Install python dependencies
   cd "${PWD}"

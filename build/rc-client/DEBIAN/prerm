@@ -1,28 +1,32 @@
 #!/bin/bash
+set -e
 
 if command -v systemctl >/dev/null 2>&1; then
-  systemctl disable \
-    rc-config-server \
-    rc-service-manager \
-    rc-wifi-mode
+  # Reset services only on removal
+  if [ "$1" = "remove" ]; then
+    deb-systemd-helper disable \
+      rc-config-server \
+      rc-service-manager \
+      rc-wifi-mode
 
-  # Enable services that we have disabled during installation
-  systemctl enable \
-    dhcpcd \
-    wpa_supplicant \
-    hostapd \
-    dnsmasq \
-    bluetooth \
-    rpi-eeprom-update \
-    rsync \
-    triggerhappy triggerhappy.socket \
-    udisks2 \
-    apt-daily.timer apt-daily-upgrade.timer \
-    man-db.timer \
-    e2scrub_all.timer e2scrub_reap \
-    fstrim.timer \
-    rsyslog \
-    rpi-display-backlight \
-    remote-fs.target \
-    nfs-client.target
+    # Re-enable services we disabled during install
+    deb-systemd-helper enable \
+      dhcpcd \
+      wpa_supplicant \
+      hostapd \
+      dnsmasq \
+      bluetooth \
+      rpi-eeprom-update \
+      rsync \
+      triggerhappy triggerhappy.socket \
+      udisks2 \
+      apt-daily.timer apt-daily-upgrade.timer \
+      man-db.timer \
+      e2scrub_all.timer e2scrub_reap \
+      fstrim.timer \
+      rsyslog \
+      rpi-display-backlight \
+      remote-fs.target \
+      nfs-client.target
+  fi
 fi
