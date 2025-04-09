@@ -48,7 +48,8 @@ build_and_install() {
   cd "../build"
   ./build-rc-client.sh
 
-  sudo apt install --reinstall -y ./tmp/rc-client.deb
+  sudo apt remove -y rc-client
+  sudo apt install -y ./tmp/rc-client.deb
 
   # Install python dependencies
   cd "${PWD}"
