@@ -22,7 +22,7 @@ fi
 
 if command -v systemctl >/dev/null 2>&1; then
   # Disable services that we do not need or are handled by other services
-  deb-systemd-helper disable \
+  systemctl disable \
     dhcpcd.service \
     wpa_supplicant.service \
     hostapd.service \
@@ -42,7 +42,7 @@ if command -v systemctl >/dev/null 2>&1; then
     nfs-client.target
 
   # Enable our services on start
-  deb-systemd-helper enable \
+  systemctl enable \
     rc-config-server.service \
     rc-service-manager.service \
     rc-wifi-mode.service \
@@ -50,7 +50,7 @@ if command -v systemctl >/dev/null 2>&1; then
 
   # Make sure the minimum requirements to start the chain after install are in
   # place.
-  deb-systemd-invoke restart \
+  systemctl restart \
     rc-config-server.service \
     pigpiod.service
 fi

@@ -4,13 +4,13 @@ set -e
 if command -v systemctl >/dev/null 2>&1; then
   # Reset services only on removal
   if [ "$1" = "remove" ]; then
-    deb-systemd-helper disable \
+    systemctl disable \
       rc-config-server.service \
       rc-service-manager.service \
       rc-wifi-mode.service
 
     # Re-enable services we disabled during install
-    deb-systemd-helper enable \
+    systemctl enable \
       dhcpcd.service \
       wpa_supplicant.service \
       hostapd.service \
