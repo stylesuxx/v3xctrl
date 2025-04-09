@@ -149,6 +149,7 @@
       },
       "properties": {
         "throttle": {
+          "propertyOrder": 10,
           "type": "object",
           "title": "Throttle",
           "options": {
@@ -158,18 +159,27 @@
           },
           "properties": {
             "min": {
+              "propertyOrder": 10,
               "type": "integer",
               "default": 1000,
               "description": "Minimum pulse width"
             },
             "max": {
+              "propertyOrder": 20,
               "type": "integer",
               "default": 2000,
               "description": "Maximum pulse width"
+            },
+            "failsafe": {
+              "propertyOrder": 30,
+              "type": "integer",
+              "default": 1000,
+              "description": "Pulse width when failsafe"
             }
           }
         },
         "steering": {
+          "propertyOrder": 20,
           "type": "object",
           "title": "Steering",
           "options": {
@@ -178,17 +188,31 @@
             "disable_properties": true
           },
           "properties": {
+            "propertyOrder": 10,
             "min": {
               "type": "integer",
               "default": 1000,
               "description": "Minimum pulse width"
             },
             "max": {
+              "propertyOrder": 20,
               "type": "integer",
               "default": 2000,
               "description": "Maximum pulse width"
+            },
+            "failsafe": {
+              "propertyOrder": 30,
+              "type": "integer",
+              "default": 1500,
+              "description": "Pulse width when failsafe"
             }
           }
+        },
+        "failsafeTimeout": {
+          "propertyOrder": 30,
+          "type": "integer",
+          "default": 3,
+          "description": "After this many seconds without a control packet, failsafe is triggered"
         }
       }
     }

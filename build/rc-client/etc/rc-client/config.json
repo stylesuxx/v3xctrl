@@ -22,13 +22,16 @@
       "routing": "wlan"
   },
   "controls": {
+      "failsafeTimeout": 3,
       "throttle": {
           "min": 1000,
-          "max": 2000
+          "max": 2000,
+          "failsafe": 1000
       },
       "steering": {
           "min": 1000,
-          "max": 2000
+          "max": 2000,
+          "failsafe": 1500
       }
   }
 }
