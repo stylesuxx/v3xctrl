@@ -44,12 +44,15 @@ install_python() {
 # development fork.
 build_and_install() {
   print_banner "BUILDING AND INSTALLING DEB"
+  PKG="rc-client"
 
   cd "../build"
-  ./build-rc-client.sh
+  ./build-${PKG}.sh
 
-  sudo apt remove -y rc-client
-  sudo apt install -y ./tmp/rc-client.deb
+  if dpkg -s "$PKG" >/dev/null 2>&1; then
+    sudo apt remove -y "$PKG"
+  fi
+  sudo apt install -y "./tmp/${PKG}.deb"
 
   # Install python dependencies
   cd "${PWD}"
