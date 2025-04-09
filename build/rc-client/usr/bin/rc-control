@@ -11,4 +11,6 @@ THROTTLE_MAX=$(jq -r '.controls.throttle.max' "$CONFIG_PATH")
 STEERING_MIN=$(jq -r '.controls.steering.min' "$CONFIG_PATH")
 STEERING_MAX=$(jq -r '.controls.steering.max' "$CONFIG_PATH")
 
-rc-python -m rpi_4g_streamer.helpers.client "${HOST}" "${PORT}"
+rc-python -m rpi_4g_streamer.helpers.client "${HOST}" "${PORT}" \
+  --throttle-min "${THROTTLE_MIN}" --throttle-max "${THROTTLE_MAX}" \
+  --steering-min "${STEERING_MIN}" --steering-max "${STEERING_MAX}" \
