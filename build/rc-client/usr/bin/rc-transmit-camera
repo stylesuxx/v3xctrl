@@ -11,6 +11,8 @@ BITRATE=$(jq -r '.video.bitrate' "$CONFIG_PATH")
 RECORD=$(jq -r '.video.record' "$CONFIG_PATH")
 RECORD_PATH=$(jq -r '.video.recordPath' "$CONFIG_PATH")
 
+TEST_SOURCE=$(jq -r '.video.testSource' "$CONFIG_PATH")
+
 ARGS=(
   "$HOST"
   "$PORT"
@@ -22,6 +24,10 @@ ARGS=(
 
 if [ "$RECORD" = "true" ] && [ -n "$RECORD_PATH" ] && [ "$RECORD_PATH" != "null" ]; then
   ARGS+=(--recording-dir "$RECORD_PATH")
+fi
+
+if [ "$TEST_SOURCE" = "true" ]; then
+  ARGS+=(--test-pattern)
 fi
 
 /usr/share/rc-client/gst/send_cam.sh "${ARGS[@]}"

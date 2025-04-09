@@ -83,6 +83,13 @@
           "type": "string",
           "description": "Path to store recordings",
           "default": "/var/lib/rc-client/recordings"
+        },
+        "testSource": {
+          "propertyOrder": 70,
+          "type": "boolean",
+          "format": "checkbox",
+          "default": false,
+          "description": "Use test source instead of camere - great for debugging"
         }
       }
     },
