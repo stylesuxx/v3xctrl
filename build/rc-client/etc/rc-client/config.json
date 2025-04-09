@@ -10,7 +10,7 @@
       "webinterface": 5000
   },
   "video": {
-      "bitrate": 3000000,
+      "bitrate": 1800000,
       "framerate": 30,
       "height": 720,
       "width": 1280,

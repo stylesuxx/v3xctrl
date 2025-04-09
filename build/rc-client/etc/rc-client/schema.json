@@ -69,7 +69,7 @@
         "bitrate": {
           "propertyOrder": 40,
           "type": "integer",
-          "default": 3000000,
+          "default": 1800000,
           "description": "Bits per second"
         },
         "record": {
