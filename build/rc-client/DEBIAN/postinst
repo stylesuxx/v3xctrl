@@ -21,8 +21,6 @@ if [ ! -d "$RECORD_DIR" ]; then
 fi
 
 if command -v systemctl >/dev/null 2>&1; then
-  deb-systemd-helper daemon-reload
-
   # Disable services that we do not need or are handled by other services
   deb-systemd-helper disable \
     dhcpcd.service \
@@ -50,9 +48,9 @@ if command -v systemctl >/dev/null 2>&1; then
     rc-wifi-mode.service \
     pigpiod.service
 
-  # Make sure the minimum requirements to sart the chain after install are in
+  # Make sure the minimum requirements to start the chain after install are in
   # place.
-  deb-systemd-helper restart \
+  deb-systemd-invoke restart \
     rc-config-server.service \
     pigpiod.service
 fi

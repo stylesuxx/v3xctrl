@@ -4,7 +4,7 @@
 On the server, make sure the following ports are open (you might need to forward them through your router) on your Server:
 
 - 6666: UDP for receiving video
-- 6667: UDP for receiving UDP messages
+- 6668: UDP for receiving UDP messages
 
 ## Setup
 Both - client and host need to be set up in order to communicate with each other, follow the setup guides to get everything going.
@@ -64,11 +64,18 @@ You can use *[ESC]* to toggle the menu on and off.
 > Keep in mind, that some settings will require you to restart the GUI to take effect.
 
 ### Client
-On the client invoke:
+On the client invoke we now need to initiate the video stream and control stream. Each of them is it's own service.
+
+To start the video stream, execute:
 
 ```bash
-cd src
-python -m rpi_4g_streamer.helpers.client $HOST $PORT
+sudo systemctl rc-transmit-camera start
+```
+
+If you can now see the video stream in the server UI, you can progress to starting the control stream. If you do not see the camera stream, check out the [Troubleshooting]() section.
+
+```bash
+rc-control
 ```
 
 On the client we can not bind to a specific port, instead we use one socket to send packets and to listen to. The first SYN package sent, basically opens up a hole through which the server can send packets back to the client.
