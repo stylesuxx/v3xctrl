@@ -5,7 +5,7 @@ import pygame.freetype
 import signal
 import time
 
-from ui.colors import BLACK, RED
+from ui.colors import BLACK, RED, WHITE
 from ui.helpers import get_external_ip
 from ui.menu.Menu import Menu
 from ui.Init import Init
@@ -138,10 +138,31 @@ def render_all(state):
             state.screen.blit(surface, (0, 0))
         else:
             surface, rect = FONTS["mono_bold_32"].render("No Signal", RED)
-            rect.center = (VIDEO["width"] // 2, VIDEO["height"] // 2)
+            rect.center = (VIDEO["width"] // 2, VIDEO["height"] // 2 - 40)
 
             state.screen.fill(BLACK)
             state.screen.blit(surface, rect)
+
+            info_data = [
+                ("Host", ip),
+                ("Video", str(PORTS['video'])),
+                ("Control", str(PORTS['control'])),
+            ]
+
+            key_x = VIDEO["width"] // 2 - 140
+            val_x = VIDEO["width"] // 2 - 10
+            base_y = VIDEO["height"] // 2 + 10
+            line_height = 36
+
+            for i, (key, val) in enumerate(info_data):
+                y = base_y + i * line_height
+                key_surf, key_rect = FONTS["mono_bold_24"].render(f"{key}:", WHITE)
+                key_rect.topleft = (key_x, y)
+                state.screen.blit(key_surf, key_rect)
+
+                val_surf, val_rect = FONTS["mono_bold_24"].render(val, WHITE)
+                val_rect.topleft = (val_x, y)
+                state.screen.blit(val_surf, val_rect)
 
     for name, widget in state.widgets.items():
         widget.draw(state.screen, getattr(state, name))
