@@ -32,11 +32,12 @@ jobs:
           pyinstaller --noconfirm --onefile --windowed -n V3XCTRL ui/main.py
 
       - name: Rename and Zip executable
+        shell: bash
         run: |
           cd src/dist
-          if [ "${{ runner.os }}" = "Windows" ]; then
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
             zip V3XCTRL-Windows.zip V3XCTRL.exe
-          elif [ "${{ runner.os }}" = "macOS" ]; then
+          elif [[ "${{ runner.os }}" == "macOS" ]]; then
             zip V3XCTRL-macOS.zip V3XCTRL
           else
             zip V3XCTRL-Linux.zip V3XCTRL
