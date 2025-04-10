@@ -78,18 +78,6 @@ check_for_modem() {
   fi
 }
 
-link_src_dir() {
-  TARGET_LINK="/usr/share/rc-client/git-src"
-
-  if [ ! -d $TARGET_LINK ]; then
-    cd ..
-    SRC_DIR=$(pwd)
-    cd ./build
-
-    sudo ln -s "$SRC_DIR" "$TARGET_LINK"
-  fi
-}
-
 case "$MODE" in
   update)
     build_and_install
@@ -99,7 +87,6 @@ case "$MODE" in
     install_python
     update_and_install
     build_and_install
-    link_src_dir
     check_for_modem
     ;;
 esac

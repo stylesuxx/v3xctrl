@@ -24,16 +24,19 @@
       },
       "properties": {
         "video": {
+          "propertyOrder": 10,
           "type": "integer",
           "default": 6666,
-          "description": "The port for the control channel"
-        },
-        "control": {
-          "type": "integer",
-          "default": 6667,
           "description": "The port to which video will be streamed to"
         },
+        "control": {
+          "propertyOrder": 20,
+          "type": "integer",
+          "default": 6668,
+          "description": "The port for the bi-directional control channel"
+        },
         "webinterface": {
+          "propertyOrder": 30,
           "type": "integer",
           "default": 5000,
           "description": "The port on which this interface should be running (requires reboot)"
@@ -64,13 +67,13 @@
           "propertyOrder": 30,
           "type": "integer",
           "default": 30,
-          "description": "FPS"
+          "description": "In frames/second (FPS)"
         },
         "iFramePeriod": {
           "propertyOrder": 40,
           "type": "integer",
           "default": 30,
-          "description": "amount of frames between I frames"
+          "description": "Amount of frames between I frames"
         },
         "bitrate": {
           "propertyOrder": 50,
@@ -82,20 +85,21 @@
           "propertyOrder": 60,
           "type": "boolean",
           "format": "checkbox",
-          "default": false
+          "default": false,
+          "description": "Record video stream to the client (make sure to use a high quality SD card)"
         },
         "recordPath": {
           "propertyOrder": 70,
           "type": "string",
-          "description": "Path to store recordings",
-          "default": "/var/lib/rc-client/recordings"
+          "default": "/var/lib/rc-client/recordings",
+          "description": "Path to store recordings"
         },
         "testSource": {
           "propertyOrder": 80,
           "type": "boolean",
           "format": "checkbox",
           "default": false,
-          "description": "Use test source instead of camere - great for debugging"
+          "description": "Use test source instead of camera - great for debugging"
         }
       }
     },
@@ -138,16 +142,21 @@
         "disable_edit_json": true,
         "disable_properties": true
       },
+      "description": "Before enabling autostart, make sure that the services work fine when started manually.",
       "properties": {
         "video": {
+          "propertyOrder": 10,
           "type": "boolean",
           "format": "checkbox",
-          "default": true
+          "default": true,
+          "description": "Automatically start video stream after boot"
         },
         "control": {
+          "propertyOrder": 20,
           "type": "boolean",
           "format": "checkbox",
-          "default": true
+          "default": true,
+          "description": "Automatically start control channel after boot"
         }
       }
     },
