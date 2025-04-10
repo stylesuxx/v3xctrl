@@ -11,13 +11,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-20.04, windows-latest, macos-latest]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
@@ -26,23 +26,37 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-server.txt pyinstaller
 
+      - name: Install staticx and tools (Linux only)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential patchelf upx zip
+          pip install staticx
+
       - name: Build executable with PyInstaller
         run: |
           cd src
           pyinstaller --noconfirm --onefile --windowed -n V3XCTRL ui/main.py
 
-      - name: Rename executable with OS and SHA
+      - name: Make static binary (Linux only)
+        if: runner.os == 'Linux'
+        run: |
+          staticx src/dist/V3XCTRL src/dist/V3XCTRL-static
+
+      - name: Rename output
         shell: bash
         run: |
           cd src/dist
           SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           if [[ "${{ runner.os }}" == "Windows" ]]; then
             mv V3XCTRL.exe V3XCTRL-Windows-$SHA.exe
+          elif [[ "${{ runner.os }}" == "macOS" ]]; then
+            mv V3XCTRL V3XCTRL-macOS-$SHA
           else
-            mv V3XCTRL V3XCTRL-${{ runner.os }}-$SHA
+            mv V3XCTRL-static V3XCTRL-Linux-$SHA
           fi
 
-      - name: Upload artifact
+      - name: Upload executable
         uses: actions/upload-artifact@v4
         with:
           name: V3XCTRL-${{ runner.os }}
