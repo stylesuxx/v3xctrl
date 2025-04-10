@@ -16,6 +16,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      # Set up Python 3.11 for macOS and Windows
+      - name: Set up Python 3.11 (Windows/macOS only)
+        if: runner.os != 'Linux'
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      # Install Python 3.11 from Deadsnakes on Linux
       - name: Install Python 3.11 from Deadsnakes (Linux only)
         if: runner.os == 'Linux'
         run: |
@@ -23,7 +31,8 @@ jobs:
           sudo apt update
           sudo apt install -y python3.11 python3.11-venv python3.11-dev
 
-      - name: Set up virtualenv (Linux only)
+      # Set up virtualenv and install deps on Linux
+      - name: Set up virtualenv + install requirements (Linux only)
         if: runner.os == 'Linux'
         run: |
           python3.11 -m venv venv
@@ -31,12 +40,14 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements-server.txt pyinstaller staticx
 
-      - name: Install dependencies (non-Linux)
+      # Install deps on Windows/macOS
+      - name: Install dependencies (Windows/macOS)
         if: runner.os != 'Linux'
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-server.txt pyinstaller
 
+      # Build with PyInstaller
       - name: Build executable with PyInstaller
         run: |
           if [ "${{ runner.os }}" = "Linux" ]; then
@@ -45,12 +56,14 @@ jobs:
           cd src
           pyinstaller --noconfirm --onefile --windowed -n V3XCTRL ui/main.py
 
+      # Make static binary with staticx (Linux only)
       - name: Make static binary with staticx (Linux only)
         if: runner.os == 'Linux'
         run: |
           source venv/bin/activate
           staticx src/dist/V3XCTRL src/dist/V3XCTRL-static
 
+      # Rename outputs with commit SHA
       - name: Rename output
         shell: bash
         run: |
@@ -64,6 +77,7 @@ jobs:
             mv V3XCTRL-static V3XCTRL-Linux-$SHA
           fi
 
+      # Upload result
       - name: Upload executable
         uses: actions/upload-artifact@v4
         with:
