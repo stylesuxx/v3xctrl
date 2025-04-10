@@ -1,0 +1,56 @@
+#/bin/bash
+# Build a custom Python version and package it into a Debian package.
+set -e
+
+VERSION=3.11.11
+
+NAME='rc-python'
+PWD=$(pwd)
+TMP_DIR="${PWD}/tmp"
+SRC_DIR="${PWD}/${NAME}"
+DEST_DIR="${TMP_DIR}/${NAME}"
+BASE_PATH="$PWD/tmp/python"
+DOWNLOAD_PATH="${BASE_PATH}/Python-${VERSION}.tgz"
+UNPACK_PATH="${BASE_PATH}/Python-${VERSION}"
+DONWLOAD_URL="https://www.python.org/ftp/python/${VERSION}/Python-${VERSION}.tgz"
+PREFIX="/opt/rc-python"
+
+SWAP_SIZE=8192
+SWAP_PATH="/etc/dphys-swapfile"
+
+
+mkdir -p ${BASE_PATH}
+cd ${BASE_PATH}
+
+# Only download if the unpacked directory doesn't exist
+if ! [ -d "$UNPACK_PATH" ]; then
+  wget "https://www.python.org/ftp/python/${VERSION}/Python-${VERSION}.tgz"
+  tar -xzf ${DOWNLOAD_PATH} -C .
+fi
+
+# Will only be fully built, if it has not been before, otherwise the compiled
+# files will be used.
+cd $UNPACK_PATH
+if [ ! -f "Makefile" ]; then
+  CFLAGS="-O3 -s" LDFLAGS="-s -Wl,-rpath,/opt/rc-python/lib" ./configure \
+    --prefix="${PREFIX}" \
+    --enable-shared \
+    --enable-optimizations \
+    --without-doc-strings \
+    --disable-test-modules \
+    --with-ensurepip=install
+fi
+make -j$(nproc)
+
+# Move everything into place and package it
+cd "${PWD}"
+cp -r "${SRC_DIR}/" "$DEST_DIR"
+
+make DESTDIR="${DEST_DIR}" altinstall
+gzip -9 -n "${DEST_DIR}/usr/share/doc/${NAME}/changelog"
+find "${DEST_DIR}/opt/rc-python" -name '__pycache__' -type d -exec rm -rf {} +
+find "${DEST_DIR}/opt/rc-python/lib" -name '*.so*' -exec chmod 644 {} +
+chown -R root:root "${DEST_DIR}"
+
+dpkg-deb --build "${DEST_DIR}"
+lintian "${TMP_DIR}/${NAME}.deb"
