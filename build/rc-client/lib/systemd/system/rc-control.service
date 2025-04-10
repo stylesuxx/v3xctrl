@@ -1,5 +1,6 @@
 [Unit]
-Description=RC Control channel
+Description=Control channel
+PartOf=rc-service-manager.service
 After=network.target
 
 [Service]
@@ -22,6 +23,3 @@ LimitMEMLOCK=infinity
 
 # Max allowed real-time priority
 LimitRTPRIO=infinity
-
-[Install]
-WantedBy=multi-user.target

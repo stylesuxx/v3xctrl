@@ -1,6 +1,7 @@
 [Unit]
-Description=RC Transmit Camera
+Description=Transmit Video
 After=network.target
+PartOf=rc-service-manager.service
 StartLimitIntervalSec=30
 StartLimitBurst=3
 
@@ -25,6 +26,3 @@ LimitMEMLOCK=infinity
 
 # Max allowed real-time priority
 LimitRTPRIO=infinity
-
-[Install]
-WantedBy=multi-user.target

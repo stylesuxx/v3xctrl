@@ -170,11 +170,11 @@ This service checks your wifi config on startup and starts your WiFi device in *
 This service starts services on startup according to the configuration.
 
 ### rc-video
-This service is responsible for sending the video feed to the server. It is not running by default and needs to be enabled in the config first.
+This service is responsible for sending the video feed to the server.
 
-> This service does not need to be enabled. It is started by the `rc-service-manager` service if enabled in the config
+> This service is not meant to be enabled. It is started by the `rc-service-manager` service if autostart is enabled in the config.
 
 ### rc-control
-This service is responsible for the control connection between client and server and is ultimately what controls the actuators. It is not running by default and needs to be enabled in the config first.
+This service is responsible for the control connection between client and server and is ultimately what controls the actuators.
 
-> This service does not need to be enabled explicitly via systemd. it is started by the `rc-service-manager` service if enabled in the config
+> This service is not meant to be enabled. It is started by the `rc-service-manager` service if autostart is enabled in the config.

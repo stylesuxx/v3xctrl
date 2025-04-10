@@ -1,5 +1,5 @@
 [Unit]
-Description=RC Service Manager (autostarts camera and control services)
+Description=Service Manager (autostarts video and control services)
 After=network.target rc-wifi-mode.service
 Requires=rc-wifi-mode.service
 
