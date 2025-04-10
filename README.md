@@ -1,4 +1,16 @@
 # RC-Streamer - not actually, codename, who knows...
+> Control your vehicle and stream video over 4G from anywhere.
+
+This project provides a platform to stream video and control servos via a 4G mobile connection using low cost, off the shelf hardware with minimal latency.
+
+The documentation is split into multiple files:
+
+- [Terminology](/stylesuxx/rc-stream/tree/master/docs/Terminology.md) - read this to understand the terminology of the project
+- [Recommended Hardware](/stylesuxx/rc-stream/tree/master/docs/Hardware.md) - Which hardware you are going to need
+- [Client Setup](/stylesuxx/rc-stream/tree/master/docs/Client.md) - How to set up your hardware (the client)
+- [Motivation](/stylesuxx/rc-stream/tree/master/docs/Motivation.md) - If you want to understand why things are implemented as they are, this document should help you
+- [Troubleshooting](/stylesuxx/rc-stream/tree/master/docs/Troubleshooting.md) - read this before opening issues, your problem might have already been solved
+- [Latency Breakdown](/stylesuxx/rc-stream/tree/master/docs/Latency.md) - how much latency is there and where does it come from?
 
 ## Configuration
 On the server, make sure the following ports are open (you might need to forward them through your router) on your Server:
