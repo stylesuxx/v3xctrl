@@ -28,7 +28,7 @@ mkdir -p "${PYTHON_LIB_PATH}"
 # Move files into place
 cd "${PWD}/.."
 cp -r "./web-server/." "${SERVER_BASE_PATH}"
-cp "./bash/send_cam.sh" "${GST_BASE_PATH}"
+cp "./bash/transmit-stream.sh" "${GST_BASE_PATH}"
 cp -r "./src/rpi_4g_streamer" ${PYTHON_LIB_PATH}
 
 # Delete cache dirs

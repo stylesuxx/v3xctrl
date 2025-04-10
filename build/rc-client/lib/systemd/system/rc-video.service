@@ -6,7 +6,7 @@ StartLimitBurst=3
 
 [Service]
 Environment="GST_PLUGIN_PATH=/usr/lib/aarch64-linux-gnu/gstreamer-1.0"
-ExecStart=/usr/bin/rc-transmit-camera
+ExecStart=/usr/bin/rc-video
 Restart=on-failure
 Type=simple
 User=rc-user

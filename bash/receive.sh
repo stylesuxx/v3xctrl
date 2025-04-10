@@ -1,10 +1,13 @@
 #! /bin/bash
+# Gstreamer reference pipeline for receiving H264 video stream
+# Use for testing on server
 if [ $# -ne 1 ]; then
     echo "Usage: $0 PORT"
     exit 1
 fi
 
 PORT="$1"
+
 DECODER_THREADS=2
 SIZEBUFFERS=5
 SIZETIME=50000000

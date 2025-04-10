@@ -34,7 +34,7 @@ def get_services():
         "rc-config-server",
         "rc-wifi-mode",
         "rc-service-manager",
-        "rc-transmit-camera",
+        "rc-video",
         "rc-control"
     ]
 

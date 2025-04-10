@@ -69,7 +69,7 @@ On the client invoke we now need to initiate the video stream and control stream
 To start the video stream, execute:
 
 ```bash
-sudo systemctl rc-transmit-camera start
+sudo systemctl rc-video start
 ```
 
 If you can now see the video stream in the server UI, you can progress to starting the control stream. If you do not see the camera stream, check out the [Troubleshooting]() section.

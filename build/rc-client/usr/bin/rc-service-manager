@@ -2,7 +2,7 @@
 # Start video and control services if autostart is enabled
 CONFIG_PATH="/etc/rc-client/config.json"
 
-VIDEO_SERVICE="rc-transmit-camera"
+VIDEO_SERVICE="rc-video"
 CONTROL_SERVICE="rc-control"
 
 START_VIDEO=$(jq -r '.autostart.video' "$CONFIG_PATH")

@@ -30,4 +30,4 @@ if [ "$TEST_SOURCE" = "true" ]; then
   ARGS+=(--test-pattern)
 fi
 
-/usr/share/rc-client/gst/send_cam.sh "${ARGS[@]}"
+/usr/share/rc-client/gst/transmit-stream.sh "${ARGS[@]}"

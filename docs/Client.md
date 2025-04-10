@@ -169,8 +169,8 @@ This service checks your wifi config on startup and starts your WiFi device in *
 ### rc-service-manager (enabled by default)
 This service starts services on startup according to the configuration.
 
-### rc-transmit-camera
-This service is responsible for sending the camera feed to the server. It is not running by default and needs to be enabled in the config first.
+### rc-video
+This service is responsible for sending the video feed to the server. It is not running by default and needs to be enabled in the config first.
 
 > This service does not need to be enabled. It is started by the `rc-service-manager` service if enabled in the config
 
