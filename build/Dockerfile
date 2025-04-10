@@ -14,4 +14,4 @@ COPY . /src
 WORKDIR /src
 
 # Run the build script
-RUN chmod +x build/build-python.sh && ./build/build-python.sh
+RUN chmod +x build/build-rc-python.sh && ./build/build-rc-python.sh
