@@ -32,10 +32,10 @@ jobs:
         run: |
           cd src/dist
           SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          mv V3XCTRL.exe V3XCTRL-Windows-$SHA.exe
+          mv V3XCTRL.exe V3XCTRL-$SHA.exe
 
       - name: Upload executable
         uses: actions/upload-artifact@v4
         with:
           name: V3XCTRL-Windows
-          path: src/dist/V3XCTRL-Windows-*.exe
+          path: src/dist/V3XCTRL-*.exe

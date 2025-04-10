@@ -34,7 +34,7 @@ class Settings:
             }
         },
         "settings": {
-            "title": "RC - Streamer",
+            "title": "V3XCTRL",
             "throttle": {
                 "step": 0.02,
                 "friction": 0.01,

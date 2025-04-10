@@ -32,10 +32,10 @@ jobs:
         run: |
           cd src/dist
           SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          mv V3XCTRL V3XCTRL-macOS-$SHA
+          mv V3XCTRL V3XCTRL-$SHA
 
       - name: Upload executable
         uses: actions/upload-artifact@v4
         with:
           name: V3XCTRL-macOS
-          path: src/dist/V3XCTRL-macOS-*
+          path: src/dist/V3XCTRL-*

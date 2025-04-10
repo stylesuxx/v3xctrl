@@ -41,10 +41,10 @@ jobs:
         run: |
           cd src/dist
           SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          mv V3XCTRL-static V3XCTRL-Linux-$SHA
+          mv V3XCTRL-static V3XCTRL-$SHA
 
       - name: Upload executable
         uses: actions/upload-artifact@v4
         with:
           name: V3XCTRL-Linux
-          path: src/dist/V3XCTRL-Linux-*
+          path: src/dist/V3XCTRL-*
