@@ -1,0 +1,50 @@
+name: Build V3XCTRL Executable (Linux)
+
+on:
+  push:
+    branches: [ master, develop ]
+  pull_request:
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Python 3.11 from Deadsnakes
+        run: |
+          sudo add-apt-repository ppa:deadsnakes/ppa -y
+          sudo apt update
+          sudo apt install -y python3.11 python3.11-venv python3.11-dev
+
+      - name: Set up virtualenv + install requirements
+        run: |
+          python3.11 -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements-server.txt pyinstaller staticx
+
+      - name: Build executable with PyInstaller
+        run: |
+          source venv/bin/activate
+          cd src
+          pyinstaller --noconfirm --onefile --windowed -n V3XCTRL ui/main.py
+
+      - name: Make static binary with staticx
+        run: |
+          source venv/bin/activate
+          staticx src/dist/V3XCTRL src/dist/V3XCTRL-static
+
+      - name: Rename output
+        shell: bash
+        run: |
+          cd src/dist
+          SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          mv V3XCTRL-static V3XCTRL-Linux-$SHA
+
+      - name: Upload executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: V3XCTRL-Linux
+          path: src/dist/V3XCTRL-Linux-*
