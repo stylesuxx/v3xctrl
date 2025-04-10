@@ -31,21 +31,19 @@ jobs:
           cd src
           pyinstaller --noconfirm --onefile --windowed -n V3XCTRL ui/main.py
 
-      - name: Rename and Zip executable
+      - name: Rename executable with OS and SHA
         shell: bash
         run: |
           cd src/dist
+          SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           if [[ "${{ runner.os }}" == "Windows" ]]; then
-            zip V3XCTRL-Windows.zip V3XCTRL.exe
-          elif [[ "${{ runner.os }}" == "macOS" ]]; then
-            zip V3XCTRL-macOS.zip V3XCTRL
+            mv V3XCTRL.exe V3XCTRL-Windows-$SHA.exe
           else
-            zip V3XCTRL-Linux.zip V3XCTRL
+            mv V3XCTRL V3XCTRL-${{ runner.os }}-$SHA
           fi
 
-      - name: Upload zipped executable
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: V3XCTRL-${{ runner.os }}
-          path: |
-            src/dist/V3XCTRL-*.zip
+          path: src/dist/V3XCTRL-*
