@@ -1,0 +1,38 @@
+name: Build Custom Python (arm64)
+
+on:
+  workflow_dispatch:  # Manual trigger only
+
+jobs:
+  build-arm64-deb:
+    name: Build Python DEB for ARM64
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout master branch
+        uses: actions/checkout@v4
+        with:
+          ref: master  # Always build from master
+
+      - name: Set up QEMU for ARM emulation
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build in ARM64 Docker container
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: build/Dockerfile
+          platforms: linux/arm64
+          push: false
+          outputs: type=local,dest=./build/out
+
+      - name: Upload built .deb package
+        uses: actions/upload-artifact@v4
+        with:
+          name: rc-python-arm64
+          path: build/out/tmp/*.deb
