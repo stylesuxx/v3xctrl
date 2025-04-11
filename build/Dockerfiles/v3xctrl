@@ -3,9 +3,10 @@ FROM arm64v8/debian:bullseye
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install base tools and deps for package build
-RUN apt update && apt install -y \
-    lintian \
-    ca-certificates
+RUN apt-get update
+RUN apt-get install -y \
+  lintian \
+  ca-certificates
 
 # Copy and install rc-python.deb
 COPY rc-python.deb /tmp/

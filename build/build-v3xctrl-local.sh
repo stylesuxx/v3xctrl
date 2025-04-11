@@ -14,6 +14,7 @@ SERVER_BASE_PATH="${BASE_PATH}/config-server/"
 SERVER_LIB_PATH="${SERVER_BASE_PATH}/static/libs/"
 
 GST_BASE_PATH="${BASE_PATH}/gst/"
+PYTHON_REQUIREMENTS="${ROOT_DIR}/requirements-client.txt"
 PYTHON_LIB_PATH="${DEST_DIR}/opt/rc-venv/lib/python3.11/site-packages/"
 
 # Clean up directory
@@ -40,6 +41,12 @@ find "${DEST_DIR}" -type d -name '__pycache__' -exec rm -r {} +
 curl -o "${SERVER_LIB_PATH}/jsoneditor.min.js" "https://raw.githubusercontent.com/jdorn/json-editor/master/dist/jsoneditor.min.js"
 curl -o "${SERVER_LIB_PATH}/jquery.min.js" "https://code.jquery.com/jquery-3.6.0.min.js"
 curl -o "${SERVER_LIB_PATH}/bootstrap3.min.css" "https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css"
+
+# Install python dependencies
+/opt/rc-python/bin/pip3.11 install \
+  --no-cache-dir \
+  --target "${PYTHON_LIB_PATH}" \
+  -r "${PYTHON_REQUIREMENTS}"
 
 # Build the deb package
 gzip -9 -n "${DEST_DIR}/usr/share/doc/${NAME}/changelog"
