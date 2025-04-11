@@ -28,10 +28,7 @@ mkdir -p "${PYTHON_LIB_PATH}"
 cp -r "${SRC_DIR}/" "$TMP_DIR"
 cp -r "${ROOT_DIR}/web-server/." "${SERVER_BASE_PATH}"
 cp "${ROOT_DIR}/bash/transmit-stream.sh" "${GST_BASE_PATH}"
-cp -r "${ROOT_DIR}/src/rpi_4g_streamer" ${PYTHON_LIB_PATH}
-
-# Delete cache dirs
-find "${DEST_DIR}" -type d -name '__pycache__' -exec rm -r {} +
+cp -r "${ROOT_DIR}/src/rpi_4g_streamer" "${PYTHON_LIB_PATH}"
 
 # Fetch static files for the web server
 curl -o "${SERVER_LIB_PATH}/jsoneditor.min.js" "https://raw.githubusercontent.com/jdorn/json-editor/master/dist/jsoneditor.min.js"
