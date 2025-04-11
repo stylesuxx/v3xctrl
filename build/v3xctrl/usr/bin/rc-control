@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-CONFIG_PATH="/etc/rc-client/config.json"
+CONFIG_PATH="/etc/v3xctrl/config.json"
 HOST=$(jq -r '.host' "$CONFIG_PATH")
 PORT=$(jq -r '.ports.control' "$CONFIG_PATH")
 

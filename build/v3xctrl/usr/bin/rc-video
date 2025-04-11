@@ -1,5 +1,6 @@
 #! /bin/bash
-CONFIG_PATH="/etc/rc-client/config.json"
+NAME="v3xctrl"
+CONFIG_PATH="/etc/${NAME}/config.json"
 
 HOST=$(jq -r '.host' "$CONFIG_PATH")
 PORT=$(jq -r '.ports.video' "$CONFIG_PATH")
@@ -30,4 +31,4 @@ if [ "$TEST_SOURCE" = "true" ]; then
   ARGS+=(--test-pattern)
 fi
 
-/usr/share/rc-client/gst/transmit-stream.sh "${ARGS[@]}"
+/usr/share/${NAME}/gst/transmit-stream.sh "${ARGS[@]}"

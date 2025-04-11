@@ -2,8 +2,9 @@
 
 NAME="v3xctrl"
 
-SRC_DIR="./build/${NAME}"
-TMP_DIR="./tmp"
+ROOT_DIR="/src"
+SRC_DIR="/src/build/${NAME}"
+TMP_DIR="/src/tmp"
 
 DEB_PATH="${TMP_DIR}/${NAME}.deb"
 DEST_DIR="${TMP_DIR}/$NAME"
@@ -25,9 +26,9 @@ mkdir -p "${PYTHON_LIB_PATH}"
 
 # Move files into place
 cp -r "${SRC_DIR}/" "$TMP_DIR"
-cp -r "./web-server/." "${SERVER_BASE_PATH}"
-cp "./bash/transmit-stream.sh" "${GST_BASE_PATH}"
-cp -r "./src/rpi_4g_streamer" ${PYTHON_LIB_PATH}
+cp -r "${ROOT_DIR}/web-server/." "${SERVER_BASE_PATH}"
+cp "${ROOT_DIR}/bash/transmit-stream.sh" "${GST_BASE_PATH}"
+cp -r "${ROOT_DIR}/src/rpi_4g_streamer" ${PYTHON_LIB_PATH}
 
 # Delete cache dirs
 find "${DEST_DIR}" -type d -name '__pycache__' -exec rm -r {} +

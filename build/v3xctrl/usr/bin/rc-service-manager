@@ -1,6 +1,6 @@
 #! /bin/bash
 # Start video and control services if autostart is enabled
-CONFIG_PATH="/etc/rc-client/config.json"
+CONFIG_PATH="/etc/v3xctrl/config.json"
 
 VIDEO_SERVICE="rc-video"
 CONTROL_SERVICE="rc-control"

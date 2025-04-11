@@ -1,7 +1,8 @@
 #!/bin/bash
 set -e
 
-USER=rc-user
+NAME="v3xctrl"
+USER="v3xctrl"
 
 # Create user and add to groups
 if ! getent passwd $USER > /dev/null; then
@@ -9,11 +10,11 @@ if ! getent passwd $USER > /dev/null; then
 fi
 usermod -aG video $USER
 
-chown $USER:$USER /etc/rc-client
-find /etc/rc-client -maxdepth 1 -name '*.json' -exec chown $USER:$USER {} +
-chmod 640 /etc/rc-client/config.json
+chown $USER:$USER "/etc/${NAME}"
+find "/etc/${NAME}" -maxdepth 1 -name '*.json' -exec chown $USER:$USER {} +
+chmod 640 "/etc/${NAME}/config.json"
 
-RECORD_DIR="/var/lib/rc-client/recordings"
+RECORD_DIR="/var/lib/${NAME}/recordings"
 if [ ! -d "$RECORD_DIR" ]; then
     mkdir -p "$RECORD_DIR"
     chown $USER:$USER "$RECORD_DIR"
