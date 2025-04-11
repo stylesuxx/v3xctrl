@@ -1,13 +1,12 @@
 #! /bin/bash
-# Command is expected to run from within the bash dir - functions are expected
-# to return to this folder after they finish.
+# Command is expected to be run from the root of the project diretory.
 set -e
 
 MODE=${1:-default}
 
 PWD=$(pwd)
 RC_PYTHON_URL="https://github.com/stylesuxx/rc-stream/releases/latest/rc-python.deb"
-DOWNLOAD_PATH="${PWD}/dependencies"
+DOWNLOAD_PATH="${PWD}/build/dependencies"
 
 print_banner() {
   local msg="$1"
@@ -31,8 +30,7 @@ install_python() {
     mkdir -p $DOWNLOAD_PATH
     cd $DOWNLOAD_PATH
     curl -O $RC_PYTHON_URL
-    sudo apt install -y ./rc-python.deb
-    cd $PWD
+    sudo apt install -y "${PWD}/build/tmp/rc-python.deb"
   fi
 
   # Print versions to make sure everything is in place and working
@@ -51,7 +49,7 @@ build_and_install() {
   if dpkg -s "$PKG" >/dev/null 2>&1; then
     sudo apt remove -y "$PKG"
   fi
-  sudo apt install -y "./tmp/${PKG}.deb"
+  sudo apt install -y "./build/tmp/${PKG}.deb"
 
   # Install python dependencies
   sudo rc-pip install -r ./requirements-client.txt
