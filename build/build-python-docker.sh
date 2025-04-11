@@ -7,17 +7,13 @@ VERSION=3.11.11
 NAME='rc-python'
 PWD=$(pwd)
 TMP_DIR="${PWD}/tmp"
-SRC_DIR="${PWD}/${NAME}"
+SRC_DIR="${PWD}/build/${NAME}"
 DEST_DIR="${TMP_DIR}/${NAME}"
 BASE_PATH="$PWD/tmp/python"
 DOWNLOAD_PATH="${BASE_PATH}/Python-${VERSION}.tgz"
 UNPACK_PATH="${BASE_PATH}/Python-${VERSION}"
 DONWLOAD_URL="https://www.python.org/ftp/python/${VERSION}/Python-${VERSION}.tgz"
 PREFIX="/opt/rc-python"
-
-SWAP_SIZE=8192
-SWAP_PATH="/etc/dphys-swapfile"
-
 
 mkdir -p ${BASE_PATH}
 cd ${BASE_PATH}
@@ -35,7 +31,6 @@ if [ ! -f "Makefile" ]; then
   CFLAGS="-O3 -s" LDFLAGS="-s -Wl,-rpath,/opt/rc-python/lib" ./configure \
     --prefix="${PREFIX}" \
     --enable-shared \
-    --enable-optimizations \
     --without-doc-strings \
     --disable-test-modules \
     --with-ensurepip=install
