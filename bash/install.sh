@@ -44,7 +44,7 @@ build_and_install() {
   print_banner "BUILDING AND INSTALLING DEB"
   PKG="v3xctrl"
 
-  ./build/build-${PKG}-local.sh
+  sudo ./build/build-${PKG}.sh
 
   if dpkg -s "$PKG" >/dev/null 2>&1; then
     sudo apt remove -y "$PKG"
@@ -52,7 +52,7 @@ build_and_install() {
   sudo apt install -y "./build/tmp/${PKG}.deb"
 
   # Install python dependencies
-  sudo rc-pip install -r ./requirements-client.txt
+  # sudo rc-pip install -r ./requirements-client.txt
 }
 
 fix_locale() {

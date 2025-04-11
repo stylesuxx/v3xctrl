@@ -17,4 +17,4 @@ COPY . /src
 WORKDIR /src
 
 # Run the build script
-RUN ./build/build-v3xctrl-docker.sh
+RUN ./build/build-v3xctrl.sh "/src"
