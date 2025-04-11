@@ -47,4 +47,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: v3xctrl-arm64
-          path: build/out/tmp/*.deb
+          path: build/out/src/tmp/*.deb
