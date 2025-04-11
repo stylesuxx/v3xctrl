@@ -63,8 +63,7 @@ Install `git`, clone the repository and run the installer:
 sudo apt update
 sudo apt install git -y
 git clone git@github.com:stylesuxx/rc-stream.git
-cd rc-stream/bash
-./install.sh
+./bash/install.sh
 ```
 
 You should now be able to access the config web interface at `http://192.168.1.89:5000/` - change the IP to the IP of your client.
