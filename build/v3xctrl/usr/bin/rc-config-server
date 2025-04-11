@@ -1,6 +1,6 @@
 #! /bin/bash
 # Bind config server to wlan0 IP if available, otherwise bind to 127.0.0.1
-NAME="v3xctrl
+NAME="v3xctrl"
 CONFIG_PATH="/etc/${NAME}/config.json"
 SCHEMA_PATH="/etc/${NAME}/schema.json"
 
