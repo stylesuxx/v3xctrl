@@ -2,9 +2,9 @@
 
 NAME="v3xctrl"
 
-ROOT_DIR="$(pwd)/build"
-TMP_DIR="${ROOT_DIR}/tmp"
-SRC_DIR="${ROOT_DIR}/${NAME}"
+ROOT_DIR="$(pwd)"
+TMP_DIR="${ROOT_DIR}/build/tmp"
+SRC_DIR="${ROOT_DIR}/build/${NAME}"
 
 DEB_PATH="${TMP_DIR}/${NAME}.deb"
 DEST_DIR="${TMP_DIR}/$NAME"
