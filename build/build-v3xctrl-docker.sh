@@ -1,11 +1,11 @@
 #! /bin/bash
 
 NAME="v3xctrl"
-PWD=$(pwd)
-TMP_DIR="${PWD}/tmp"
-SRC_DIR="${PWD}/build/${NAME}"
-DEST_DIR="${TMP_DIR}/$NAME"
 
+SRC_DIR="./build/${NAME}"
+TMP_DIR="./tmp"
+
+DEST_DIR="${TMP_DIR}/$NAME"
 BASE_PATH="${DEST_DIR}/usr/share/$NAME"
 
 SERVER_BASE_PATH="${BASE_PATH}/config-server/"
@@ -24,9 +24,9 @@ mkdir -p "${GST_BASE_PATH}"
 mkdir -p "${PYTHON_LIB_PATH}"
 
 # Move files into place
-cp -r "${PWD}/web-server/." "${SERVER_BASE_PATH}"
-cp "${PWD}/bash/transmit-stream.sh" "${GST_BASE_PATH}"
-cp -r "${PWD}/src/rpi_4g_streamer" ${PYTHON_LIB_PATH}
+cp -r "./web-server/." "${SERVER_BASE_PATH}"
+cp "./bash/transmit-stream.sh" "${GST_BASE_PATH}"
+cp -r "./src/rpi_4g_streamer" ${PYTHON_LIB_PATH}
 
 # Delete cache dirs
 find "${DEST_DIR}" -type d -name '__pycache__' -exec rm -r {} +

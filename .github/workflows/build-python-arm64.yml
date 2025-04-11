@@ -31,7 +31,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: build/Dockerfile/python
+          file: build/Dockerfiles/python
           platforms: linux/arm64
           push: false
           outputs: type=local,dest=./build/out
