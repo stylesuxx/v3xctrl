@@ -38,6 +38,11 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Debug file tree
+        run: |
+          echo "Listing contents of build/out"
+          find build/out
+
       - name: Upload built .deb package
         uses: actions/upload-artifact@v4
         with:
