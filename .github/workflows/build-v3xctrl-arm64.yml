@@ -1,4 +1,4 @@
-name: Build V3XCTRL (arm64)
+name: Build V3XCTRL deb (arm64)
 
 on:
   workflow_dispatch:
@@ -35,6 +35,8 @@ jobs:
           platforms: linux/arm64
           push: false
           outputs: type=local,dest=./build/out
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Upload built .deb package
         uses: actions/upload-artifact@v4

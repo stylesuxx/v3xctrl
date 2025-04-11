@@ -1,7 +1,12 @@
-name: Build Custom Python (arm64)
+name: Build Custom Python deb (arm64)
 
 on:
-  workflow_dispatch:  # Manual trigger only
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Git branch to build'
+        required: false
+        default: 'master'
 
 jobs:
   build-arm64-deb:
@@ -12,7 +17,7 @@ jobs:
       - name: Checkout master branch
         uses: actions/checkout@v4
         with:
-          ref: master  # Always build from master
+          ref: ${{ github.event.inputs.branch }}
 
       - name: Set up QEMU for ARM emulation
         uses: docker/setup-qemu-action@v3
@@ -30,6 +35,8 @@ jobs:
           platforms: linux/arm64
           push: false
           outputs: type=local,dest=./build/out
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Upload built .deb package
         uses: actions/upload-artifact@v4

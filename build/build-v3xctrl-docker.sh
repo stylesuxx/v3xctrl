@@ -39,7 +39,7 @@ curl -o "${SERVER_LIB_PATH}/bootstrap3.min.css" "https://cdn.jsdelivr.net/npm/bo
 
 # Build the deb package
 gzip -9 -n "${DEST_DIR}/usr/share/doc/${NAME}/changelog"
-sudo chown -R root:root "${DEST_DIR}"
+chown -R root:root "${DEST_DIR}"
 
 dpkg-deb --build "${DEST_DIR}"
 lintian "${TMP_DIR}/${NAME}.deb"
