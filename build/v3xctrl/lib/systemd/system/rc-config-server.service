@@ -8,8 +8,8 @@ Environment=PYENV_ROOT=/usr/local/pyenv
 Environment=PATH=/usr/local/pyenv/shims:/usr/local/pyenv/bin:/usr/bin:/bin
 ExecStart=/usr/bin/rc-config-server
 Restart=on-failure
-User=rc-user
-Group=rc-user
+User=v3xctrl
+Group=v3xctrl
 KillSignal=SIGINT
 WorkingDirectory=/usr/bin
 StandardOutput=journal

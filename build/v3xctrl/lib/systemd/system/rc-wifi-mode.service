@@ -5,6 +5,8 @@ Before=network.target
 
 [Service]
 Type=oneshot
+User=root
+Group=root
 ExecStart=/usr/bin/rc-wifi-mode
 RemainAfterExit=true
 
