@@ -5,9 +5,10 @@ NAME="v3xctrl"
 SRC_DIR="./build/${NAME}"
 TMP_DIR="./tmp"
 
+DEB_PATH="${TMP_DIR}/${NAME}.deb"
 DEST_DIR="${TMP_DIR}/$NAME"
-BASE_PATH="${DEST_DIR}/usr/share/$NAME"
 
+BASE_PATH="${DEST_DIR}/usr/share/$NAME"
 SERVER_BASE_PATH="${BASE_PATH}/config-server/"
 SERVER_LIB_PATH="${SERVER_BASE_PATH}/static/libs/"
 
@@ -41,5 +42,5 @@ curl -o "${SERVER_LIB_PATH}/bootstrap3.min.css" "https://cdn.jsdelivr.net/npm/bo
 gzip -9 -n "${DEST_DIR}/usr/share/doc/${NAME}/changelog"
 chown -R root:root "${DEST_DIR}"
 
-dpkg-deb --build "${DEST_DIR}"
+dpkg-deb --build "${DEST_DIR}" "${DEB_PATH}"
 lintian "${TMP_DIR}/${NAME}.deb"
