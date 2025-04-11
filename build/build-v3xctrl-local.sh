@@ -2,7 +2,7 @@
 
 NAME="v3xctrl"
 
-ROOT_DIR=$(pwd)
+ROOT_DIR="$(pwd)/build"
 TMP_DIR="${ROOT_DIR}/tmp"
 SRC_DIR="${ROOT_DIR}/${NAME}"
 
