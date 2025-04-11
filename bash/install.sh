@@ -54,7 +54,7 @@ build_and_install() {
   sudo apt install -y "./tmp/${PKG}.deb"
 
   # Install python dependencies
-  sudo rc-pip install -r ../requirements-client.txt
+  sudo rc-pip install -r ./requirements-client.txt
 }
 
 fix_locale() {
