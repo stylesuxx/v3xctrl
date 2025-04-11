@@ -44,6 +44,9 @@ curl -o "${SERVER_LIB_PATH}/bootstrap3.min.css" "https://cdn.jsdelivr.net/npm/bo
   --target "${PYTHON_LIB_PATH}" \
   -r "${PYTHON_REQUIREMENTS}"
 
+# Remove cache dirs
+find "${PYTHON_LIB_PATH}" -name '__pycache__' -type d -exec rm -rf {} +
+
 # Build the deb package
 gzip -9 -n "${DEST_DIR}/usr/share/doc/${NAME}/changelog"
 chown -R root:root "${DEST_DIR}"
