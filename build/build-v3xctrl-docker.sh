@@ -15,9 +15,8 @@ SERVER_LIB_PATH="${SERVER_BASE_PATH}/static/libs/"
 GST_BASE_PATH="${BASE_PATH}/gst/"
 PYTHON_LIB_PATH="${DEST_DIR}/opt/rc-venv/lib/python3.11/site-packages/"
 
-cp -r "${SRC_DIR}/" "$TMP_DIR"
-
 # Create dir structure
+mkdir -p "${TMP_DIR}"
 mkdir -p "${BASE_PATH}"
 mkdir -p "${SERVER_BASE_PATH}"
 mkdir -p "${SERVER_LIB_PATH}"
@@ -25,6 +24,7 @@ mkdir -p "${GST_BASE_PATH}"
 mkdir -p "${PYTHON_LIB_PATH}"
 
 # Move files into place
+cp -r "${SRC_DIR}/" "$TMP_DIR"
 cp -r "./web-server/." "${SERVER_BASE_PATH}"
 cp "./bash/transmit-stream.sh" "${GST_BASE_PATH}"
 cp -r "./src/rpi_4g_streamer" ${PYTHON_LIB_PATH}
@@ -43,4 +43,4 @@ gzip -9 -n "${DEST_DIR}/usr/share/doc/${NAME}/changelog"
 chown -R root:root "${DEST_DIR}"
 
 dpkg-deb --build "${DEST_DIR}" "${DEB_PATH}"
-lintian "${TMP_DIR}/${NAME}.deb"
+lintian "${DEB_PATH}"

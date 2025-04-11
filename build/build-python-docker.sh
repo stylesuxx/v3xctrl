@@ -8,7 +8,10 @@ NAME='rc-python'
 PWD=$(pwd)
 TMP_DIR="${PWD}/tmp"
 SRC_DIR="${PWD}/build/${NAME}"
+
+DEB_PATH="${TMP_DIR}/${NAME}.deb"
 DEST_DIR="${TMP_DIR}/${NAME}"
+
 BASE_PATH="$PWD/tmp/python"
 DOWNLOAD_PATH="${BASE_PATH}/Python-${VERSION}.tgz"
 UNPACK_PATH="${BASE_PATH}/Python-${VERSION}"
@@ -47,5 +50,5 @@ find "${DEST_DIR}/opt/rc-python" -name '__pycache__' -type d -exec rm -rf {} +
 find "${DEST_DIR}/opt/rc-python/lib" -name '*.so*' -exec chmod 644 {} +
 chown -R root:root "${DEST_DIR}"
 
-dpkg-deb --build "${DEST_DIR}"
-lintian "${TMP_DIR}/${NAME}.deb"
+dpkg-deb --build "${DEST_DIR}" "${DEB_PATH}"
+lintian "${DEB_PATH}"

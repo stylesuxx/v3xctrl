@@ -4,6 +4,8 @@ NAME="v3xctrl"
 PWD=$(pwd)
 TMP_DIR="${PWD}/tmp"
 SRC_DIR="${PWD}/${NAME}"
+
+DEB_PATH="${TMP_DIR}/${NAME}.deb"
 DEST_DIR="${TMP_DIR}/$NAME"
 
 BASE_PATH="${DEST_DIR}/usr/share/$NAME"
