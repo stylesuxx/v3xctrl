@@ -1,6 +1,6 @@
 #! /bin/bash
 
-NAME="rc-client"
+NAME="v3xctrl"
 PWD=$(pwd)
 TMP_DIR="${PWD}/tmp"
 SRC_DIR="${PWD}/${NAME}"
@@ -14,8 +14,6 @@ SERVER_LIB_PATH="${SERVER_BASE_PATH}/static/libs/"
 GST_BASE_PATH="${BASE_PATH}/gst/"
 PYTHON_LIB_PATH="${DEST_DIR}/opt/rc-venv/lib/python3.11/site-packages/"
 
-# Clean up directory
-sudo rm -r "${DEST_DIR}"
 cp -r "${SRC_DIR}/" "$TMP_DIR"
 
 # Create dir structure
@@ -26,10 +24,9 @@ mkdir -p "${GST_BASE_PATH}"
 mkdir -p "${PYTHON_LIB_PATH}"
 
 # Move files into place
-cd "${PWD}/.."
-cp -r "./web-server/." "${SERVER_BASE_PATH}"
-cp "./bash/transmit-stream.sh" "${GST_BASE_PATH}"
-cp -r "./src/rpi_4g_streamer" ${PYTHON_LIB_PATH}
+cp -r "${PWD}/web-server/." "${SERVER_BASE_PATH}"
+cp "${PWD}/bash/transmit-stream.sh" "${GST_BASE_PATH}"
+cp -r "${PWD}/src/rpi_4g_streamer" ${PYTHON_LIB_PATH}
 
 # Delete cache dirs
 find "${DEST_DIR}" -type d -name '__pycache__' -exec rm -r {} +
@@ -45,4 +42,4 @@ gzip -9 -n "${DEST_DIR}/usr/share/doc/${NAME}/changelog"
 sudo chown -R root:root "${DEST_DIR}"
 
 dpkg-deb --build "${DEST_DIR}"
-lintian $TMP_DIR/rc-client.deb
+lintian "${TMP_DIR}/${NAME}.deb"

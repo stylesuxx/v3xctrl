@@ -44,10 +44,10 @@ install_python() {
 # development fork.
 build_and_install() {
   print_banner "BUILDING AND INSTALLING DEB"
-  PKG="rc-client"
+  PKG="v3xctrl"
 
   cd "../build"
-  ./build-${PKG}.sh
+  ./build-${PKG}-local.sh
 
   if dpkg -s "$PKG" >/dev/null 2>&1; then
     sudo apt remove -y "$PKG"

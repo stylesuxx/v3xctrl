@@ -1,18 +1,23 @@
-name: Build Custom Python (arm64)
+name: Build V3XCTRL (arm64)
 
 on:
-  workflow_dispatch:  # Manual trigger only
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Git branch to build'
+        required: false
+        default: 'master'
 
 jobs:
   build-arm64-deb:
-    name: Build Python DEB for ARM64
+    name: Build V3XCTRL DEB for ARM64
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout master branch
+      - name: Checkout selected branch
         uses: actions/checkout@v4
         with:
-          ref: master  # Always build from master
+          ref: ${{ github.event.inputs.branch }}
 
       - name: Set up QEMU for ARM emulation
         uses: docker/setup-qemu-action@v3
@@ -26,7 +31,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: build/Dockerfile/python
+          file: build/Dockerfiles/v3xctrl
           platforms: linux/arm64
           push: false
           outputs: type=local,dest=./build/out
@@ -34,5 +39,5 @@ jobs:
       - name: Upload built .deb package
         uses: actions/upload-artifact@v4
         with:
-          name: rc-python-arm64
+          name: v3xctrl-arm64
           path: build/out/tmp/*.deb
