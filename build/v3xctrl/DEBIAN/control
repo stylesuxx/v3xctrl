@@ -1,4 +1,4 @@
-Package: rc-client
+Package: v3xctrl
 Version: 0.1.0
 Section: utils
 Priority: optional
