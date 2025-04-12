@@ -5,26 +5,31 @@ set -e
 VERSION=3.11.11
 
 NAME='rc-python'
-PWD=$(pwd)
-TMP_DIR="${PWD}/tmp"
-SRC_DIR="${PWD}/build/${NAME}"
+
+# Use first argument as ROOT_DIR if provided, otherwise fallback to current working dir
+ROOT_DIR="${1:-$(pwd)}"
+
+TMP_DIR="${ROOT_DIR}/build/tmp"
+SRC_DIR="${ROOT_DIR}/build/${NAME}"
 
 DEB_PATH="${TMP_DIR}/${NAME}.deb"
 DEST_DIR="${TMP_DIR}/${NAME}"
 
-BASE_PATH="$PWD/tmp/python"
+BASE_PATH="$ROOT_DIR/tmp/python"
 DOWNLOAD_PATH="${BASE_PATH}/Python-${VERSION}.tgz"
 UNPACK_PATH="${BASE_PATH}/Python-${VERSION}"
 DONWLOAD_URL="https://www.python.org/ftp/python/${VERSION}/Python-${VERSION}.tgz"
 PREFIX="/opt/rc-python"
 
-mkdir -p ${BASE_PATH}
+# Create dir structure
+mkdir -p "${TMP_DIR}"
+mkdir -p "${BASE_PATH}"
 cd ${BASE_PATH}
 
 # Only download if the unpacked directory doesn't exist
 if ! [ -d "$UNPACK_PATH" ]; then
-  wget "https://www.python.org/ftp/python/${VERSION}/Python-${VERSION}.tgz"
-  tar -xzf ${DOWNLOAD_PATH} -C .
+  curl -0 "${DOWNLOAD_PATH}" "https://www.python.org/ftp/python/${VERSION}/Python-${VERSION}.tgz"
+  tar -xzf "${DOWNLOAD_PATH}" -C "${BASE_PATH}"
 fi
 
 # Will only be fully built, if it has not been before, otherwise the compiled
@@ -41,7 +46,6 @@ fi
 make -j$(nproc)
 
 # Move everything into place and package it
-cd "${PWD}"
 cp -r "${SRC_DIR}/" "$DEST_DIR"
 
 make DESTDIR="${DEST_DIR}" altinstall

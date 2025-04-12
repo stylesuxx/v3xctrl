@@ -17,7 +17,7 @@ SERVER_LIB_PATH="${SERVER_BASE_PATH}/static/libs/"
 
 GST_BASE_PATH="${BASE_PATH}/gst/"
 PYTHON_REQUIREMENTS="${ROOT_DIR}/requirements-client.txt"
-PYTHON_LIB_PATH="${DEST_DIR}/opt/rc-venv/lib/python3.11/site-packages/"
+PYTHON_LIB_PATH="${DEST_DIR}/opt/rc-python/lib/python3.11/site-packages/"
 
 # Create dir structure
 mkdir -p "${TMP_DIR}"

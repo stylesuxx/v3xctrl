@@ -14,4 +14,4 @@ COPY . /src
 WORKDIR /src
 
 # Run the build script
-RUN ./build/build-python-docker.sh
+RUN ./build/build-python-docker.sh "/src"

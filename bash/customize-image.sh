@@ -53,12 +53,6 @@ sudo chroot "$MOUNT_DIR" /bin/bash -c "
 
   rm -f /tmp/*.deb
   apt-get clean
-
-  echo '[*] Enabling serial console login (raspi-config equivalent)...'
-  systemctl enable serial-getty@serial0.service
-
-  # Optional: disable hciuart if repurposing UART (uncomment if needed)
-  # systemctl disable hciuart.service
 "
 
 echo "[*] Setting enable_uart=1 in config.txt"
