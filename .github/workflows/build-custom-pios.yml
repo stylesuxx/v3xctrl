@@ -55,18 +55,13 @@ jobs:
     - name: Expand root filesystem in image
       run: |
         sudo apt-get install -y parted e2fsprogs
-        IMG="image/2022-09-22-raspios-bullseye-arm64-lite.img"
+        IMG="image/raspios-bullseye-arm64-lite.img"
 
-        # Resize image file
         truncate -s +1G "$IMG"
 
-        # Resize partition table
-        parted "$IMG" ---pretend-input-tty <<EOF
-resizepart 2 100%
-Yes
-EOF
+        # Resize partition 2 to end of disk
+        sudo parted "$IMG" resizepart 2 100% yes
 
-        # Setup loop and resize filesystem
         LOOP_DEV=$(sudo losetup -fP --show "$IMG")
         sudo e2fsck -f "${LOOP_DEV}p2"
         sudo resize2fs "${LOOP_DEV}p2"
