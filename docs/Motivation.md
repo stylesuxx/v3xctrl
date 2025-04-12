@@ -26,3 +26,14 @@ The server software should be cross platform compatible and work on Windows, Mac
 
 ## Configuarbility
 We do not want to limit the user in what they can do with this platform, so configuratbility and modability is a high priority. The client has a web-server for configuration and exposes an easily expandable JSON schema for settings.
+
+## Software
+As base we decided to use PiOS.
+
+> Unfortunately, Bookworm seems to have some issues with the RNDIS modem, so we went with Bullseye Lite 64Bit (Listed as legacy in th PI Imager utility).
+
+Generally speaking, the exact distribution should not matter too much. We will be using Python (a custom version) for most things and `gstreamer` for the rest.
+
+Feel free to see if your RNDIS modem works with Bookworm, then you can also use that instead of Bullseye. No matter which debian based OS you use, just make sure it is arm64 based.
+
+When preparing your SD card, use the [Raspberry Pi Imager Utility](https://www.raspberrypi.com/news/raspberry-pi-imager-imaging-utility/) and configure it to connect to your Wifi.

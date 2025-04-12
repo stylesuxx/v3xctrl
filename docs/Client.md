@@ -28,33 +28,19 @@ Power supply:
 * Step down converter to provide stable 5V@3A
 
 Modem:
-* 4G Modem - as long as it provides a rndis device, any is fine - as mentioned above, higher category is preferred.
+* 4G Modem - as long as it provides a rndis device, any is fine. Higher category is preferred.
 
-## Software
-As base we decided to use PiOS.
+## Installation (recommended)
+We provide a PiOS based - ready to flash image. Just download the image and flash it to your SD card using the [Raspberry Pi Imager Utility](https://www.raspberrypi.com/news/raspberry-pi-imager-imaging-utility/).
 
-> Unfortunately, Bookworm seems to have some issues with the RNDIS modem, so we went with Bullseye Lite 64Bit (Listed as legacy in th PI Imager utility).
-
-Generally speaking, the exact distribution should not matter too much. We will be using Python (a custom version) for most things and `gstreamer` for the rest.
-
-Feel free to see if your RNDIS modem works with Bookworm, then you can also use that instead of Bullseye. No matter which debian based OS you use, just make sure it is arm64 based.
-
-When preparing your SD card, use the [Raspberry Pi Imager Utility](https://www.raspberrypi.com/news/raspberry-pi-imager-imaging-utility/) and configure it to connect to your Wifi.
+Within Imager you can create your default user and also set up your Wifi.
 
 > Do not attach your 4G modem yet, let's first get the biggest chunk downloaded through your regular internet.
 
-## Serial Console (optional but recommended)
-You might want to enable debugging/login on the serial console. This will allow you an easy debugging port in case something goes wrong.
+## Installation (for development)
 
-```bash
-sudo raspi-config
-```
+> Even for development, it's recommended to use the provided, custom PiOS image and go from there.
 
-Navigate to `Interface Options` -> `Serial Port` -> `Would you like a login shell to be accessible over serial?` -> `Yes` -> `OK` -> `Finish`.
-
-Now you will be able to access the serial console via USB to serial adapter
-
-## Installation
 There is an install script in place which will help you to get most of the setup done for you.
 
 Install `git`, clone the repository and run the installer:
@@ -137,7 +123,18 @@ mtr google.com
 
 When running each of them, you should see different IP addresses on top indicating which device is being used for routing.
 
-## Update
+### Serial Console (optional but recommended)
+You might want to enable debugging/login on the serial console. This will allow you an easy debugging port in case something goes wrong.
+
+```bash
+sudo raspi-config
+```
+
+Navigate to `Interface Options` -> `Serial Port` -> `Would you like a login shell to be accessible over serial?` -> `Yes` -> `OK` -> `Finish`.
+
+Now you will be able to access the serial console via USB to serial adapter
+
+### Update
 If you are running the dev env and you just want to update your client, you can simply run the installer again passing the update Parameter:
 
 ```bash
