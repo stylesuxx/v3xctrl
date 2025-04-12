@@ -1,7 +1,7 @@
 [Unit]
 Description=Switch between Wi-Fi client and AP mode
-After=local-fs.target network-pre.target
-Before=network.target
+After=sys-subsystem-net-devices-wlan0.device
+Requires=sys-subsystem-net-devices-wlan0.device
 
 [Service]
 Type=oneshot

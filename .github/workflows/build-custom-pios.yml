@@ -1,0 +1,77 @@
+name: Build Custom PiOS Image
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Git branch to build'
+        required: true
+        default: 'main'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+    - name: Checkout selected branch
+      uses: actions/checkout@v3
+      with:
+        ref: ${{ github.event.inputs.branch }}
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          qemu-user-static binfmt-support kpartx dosfstools debootstrap \
+          xz-utils unzip wget jq
+
+    - name: Restore cached PiOS image
+      id: cache-pios
+      uses: actions/cache@v3
+      with:
+        path: image/2022-09-22-raspios-bullseye-arm64-lite.img.xz
+        key: pios-bullseye-arm64-lite-2022-09-22
+
+    - name: Download PiOS image if cache miss
+      if: steps.cache-pios.outputs.cache-hit != 'true'
+      run: |
+        mkdir -p image
+        wget -O image/2022-09-22-raspios-bullseye-arm64-lite.img.xz \
+          https://downloads.raspberrypi.com/raspios_lite_arm64/images/raspios_lite_arm64-2022-09-22/2022-09-22-raspios-bullseye-arm64-lite.img.xz
+
+    - name: Extract image
+      run: |
+        xz -dk image/2022-09-22-raspios-bullseye-arm64-lite.img.xz
+
+    - name: Download .deb files from latest release
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        REPO: ${{ github.repository }}
+      run: |
+        mkdir -p debs
+        for FILE in rc-python.deb v3xctrl.deb; do
+          url=$(curl -s -H "Authorization: token $GH_TOKEN" \
+              https://api.github.com/repos/${REPO}/releases/latest \
+              | jq -r ".assets[] | select(.name == \"${FILE}\") | .url")
+
+          if [ -z "$url" ]; then
+            echo "Error: $FILE not found in latest release"
+            exit 1
+          fi
+
+          curl -L -H "Authorization: token $GH_TOKEN" \
+               -H "Accept: application/octet-stream" "$url" \
+               -o "debs/$FILE"
+        done
+
+    - name: Customize PiOS image
+      run: |
+        sudo ./bash/customize-image.sh image/2022-09-22-raspios-bullseye-arm64-lite.img debs
+
+    - name: Upload final image
+      uses: actions/upload-artifact@v3
+      with:
+        name: custom-raspios-image
+        path: image/v3xctrl-raspios.img
