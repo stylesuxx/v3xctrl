@@ -100,12 +100,13 @@ jobs:
       run: |
         sudo ./bash/customize-image.sh image/raspios-bullseye-arm64-lite.img debs
 
-    - name: Compress final image
+    - name: Zip final image
       run: |
-        XZ_OPT="--no-sparse" xz -T0 -f image/v3xctrl-raspios.img
+        cd image
+        zip v3xctrl-raspios.zip v3xctrl-raspios.img
 
     - name: Upload final image
       uses: actions/upload-artifact@v4
       with:
         name: custom-raspios-image
-        path: image/v3xctrl-raspios.img.xz
+        path: image/v3xctrl-raspios.zip
