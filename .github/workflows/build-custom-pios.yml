@@ -43,7 +43,7 @@ jobs:
 
     - name: Extract image
       run: |
-        xz -dk image/2022-09-22-raspios-bullseye-arm64-lite.img.xz
+        xz -dk image/raspios-bullseye-arm64-lite.img.xz
 
     - name: Download .deb files from latest release
       env:
