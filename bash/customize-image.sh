@@ -13,7 +13,6 @@ sudo mkdir -p "$MOUNT_DIR"
 sudo mount "${LOOP_DEV}p2" "$MOUNT_DIR"
 
 echo "[*] Mounting boot partition (FAT32)"
-# This is required for editing config.txt and cmdline.txt
 sudo mount "${LOOP_DEV}p1" "$MOUNT_DIR/boot"
 
 echo "[*] Binding system directories"
@@ -30,7 +29,7 @@ sudo cp /usr/bin/qemu-aarch64-static "$MOUNT_DIR/usr/bin/"
 echo "[*] Copying .deb files into image"
 sudo cp "$DEB_DIR"/*.deb "$MOUNT_DIR/tmp/"
 
-echo "[*] Entering chroot to install packages and enable serial console"
+echo "[*] Entering chroot to install packages and configure serial login"
 sudo chroot "$MOUNT_DIR" /bin/bash -c "
   set -e
   export DEBIAN_FRONTEND=noninteractive
@@ -55,15 +54,22 @@ sudo chroot "$MOUNT_DIR" /bin/bash -c "
   rm -f /tmp/*.deb
   apt-get clean
 
-  echo '[*] Enabling serial console login...'
+  echo '[*] Enabling serial console login (raspi-config equivalent)...'
   systemctl enable serial-getty@serial0.service
+
+  # Optional: disable hciuart if repurposing UART (uncomment if needed)
+  # systemctl disable hciuart.service
 "
 
-echo "[*] Enabling UART in config.txt"
-echo "enable_uart=1" | sudo tee -a "$MOUNT_DIR/boot/config.txt" > /dev/null
+echo "[*] Setting enable_uart=1 in config.txt"
+if grep -q '^#*enable_uart=' "$MOUNT_DIR/boot/config.txt"; then
+  sudo sed -i 's/^#*enable_uart=.*/enable_uart=1/' "$MOUNT_DIR/boot/config.txt"
+else
+  echo "enable_uart=1" | sudo tee -a "$MOUNT_DIR/boot/config.txt" > /dev/null
+fi
 
-echo "[*] Enabling kernel console output in cmdline.txt"
-sudo sed -i 's/\brootwait\b/rootwait console=serial0,115200/' "$MOUNT_DIR/boot/cmdline.txt"
+echo "[*] Adding console=serial0,115200 before console=tty1 in cmdline.txt"
+sudo sed -i 's/console=tty1/console=serial0,115200 console=tty1/' "$MOUNT_DIR/boot/cmdline.txt"
 
 echo "[*] Cleaning up and unmounting"
 sudo umount "$MOUNT_DIR/boot"
