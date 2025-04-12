@@ -1,4 +1,4 @@
-name: Build V3XCTRL Executable (Linux)
+name: Build V3XCTRL GUI Executable (Linux)
 
 on:
   push:

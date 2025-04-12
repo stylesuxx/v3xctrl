@@ -1,4 +1,4 @@
-name: Build V3XCTRL Executable (macOS)
+name: Build V3XCTRL GUI Executable (macOS)
 
 on:
   push:
