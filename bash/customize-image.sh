@@ -17,7 +17,7 @@ for d in dev proc sys; do
   sudo mount --bind /$d "$MOUNT_DIR/$d"
 done
 
-# Also mount devpts for apt logging and pseudo-terminal support
+echo "[*] Mounting devpts for apt logging"
 sudo mount -t devpts devpts "$MOUNT_DIR/dev/pts"
 
 echo "[*] Copying qemu-aarch64-static for chroot emulation"
@@ -26,30 +26,40 @@ sudo cp /usr/bin/qemu-aarch64-static "$MOUNT_DIR/usr/bin/"
 echo "[*] Copying .deb files into image"
 sudo cp "$DEB_DIR"/*.deb "$MOUNT_DIR/tmp/"
 
-echo "[*] Entering chroot to install packages"
+echo "[*] Entering chroot to install packages and enable serial console"
 sudo chroot "$MOUNT_DIR" /bin/bash -c "
   set -e
   export DEBIAN_FRONTEND=noninteractive
 
-  # Disable libc-bin postinst to avoid qemu segfault
+  echo '[*] Disabling libc-bin postinst to avoid qemu segfault...'
   if [ -f /var/lib/dpkg/info/libc-bin.postinst ]; then
     mv /var/lib/dpkg/info/libc-bin.postinst /var/lib/dpkg/info/libc-bin.postinst.bak
     echo '#!/bin/sh' > /var/lib/dpkg/info/libc-bin.postinst
     chmod +x /var/lib/dpkg/info/libc-bin.postinst
   fi
 
+  echo '[*] Installing .deb packages...'
   apt-get update
   apt install -y /tmp/*.deb || true
   dpkg --configure -a || true
 
-  # Restore original libc-bin postinst
+  echo '[*] Restoring libc-bin postinst...'
   if [ -f /var/lib/dpkg/info/libc-bin.postinst.bak ]; then
     mv /var/lib/dpkg/info/libc-bin.postinst.bak /var/lib/dpkg/info/libc-bin.postinst
   fi
 
   rm -f /tmp/*.deb
   apt-get clean
+
+  echo '[*] Enabling serial console login...'
+  systemctl enable serial-getty@serial0.service
 "
+
+echo "[*] Enabling UART in config.txt"
+echo "enable_uart=1" | sudo tee -a "$MOUNT_DIR/boot/config.txt"
+
+echo "[*] Enabling console=serial0 in cmdline.txt"
+sudo sed -i 's/\brootwait\b/rootwait console=serial0,115200/' "$MOUNT_DIR/boot/cmdline.txt"
 
 echo "[*] Cleaning up and unmounting"
 sudo umount "$MOUNT_DIR/dev/pts"
@@ -59,5 +69,10 @@ done
 sudo umount "$MOUNT_DIR"
 sudo losetup -d "$LOOP_DEV"
 
-echo "[*] Saving modified image as image/v3xctrl-raspios.img"
-cp "$IMG" image/v3xctrl-raspios.img
+echo "[*] Compressing modified image"
+xz -T0 -f "$IMG"
+
+echo "[*] Moving compressed image to output"
+mv "$IMG.xz" image/v3xctrl-raspios.img.xz
+
+echo "[*] Done — output is image/v3xctrl-raspios.img.xz"
