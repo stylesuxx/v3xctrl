@@ -4,7 +4,6 @@ set -e
 IMG="$1"
 DEB_DIR="$2"
 MOUNT_DIR="mnt"
-NAME="v3xctrl"
 
 echo "[*] Setting up loop device for $IMG"
 LOOP_DEV=$(sudo losetup -fP --show "$IMG")
@@ -18,30 +17,47 @@ for d in dev proc sys; do
   sudo mount --bind /$d "$MOUNT_DIR/$d"
 done
 
+# Also mount devpts for apt logging and pseudo-terminal support
+sudo mount -t devpts devpts "$MOUNT_DIR/dev/pts"
+
 echo "[*] Copying qemu-aarch64-static for chroot emulation"
 sudo cp /usr/bin/qemu-aarch64-static "$MOUNT_DIR/usr/bin/"
 
-echo "[*] Copying .deb files"
+echo "[*] Copying .deb files into image"
 sudo cp "$DEB_DIR"/*.deb "$MOUNT_DIR/tmp/"
 
-echo "[*] Installing packages inside chroot"
+echo "[*] Entering chroot to install packages"
 sudo chroot "$MOUNT_DIR" /bin/bash -c "
-  chmod -x /var/lib/dpkg/info/libc-bin.postinst || true
+  set -e
+  export DEBIAN_FRONTEND=noninteractive
+
+  # Disable libc-bin postinst to avoid qemu segfault
+  if [ -f /var/lib/dpkg/info/libc-bin.postinst ]; then
+    mv /var/lib/dpkg/info/libc-bin.postinst /var/lib/dpkg/info/libc-bin.postinst.bak
+    echo '#!/bin/sh' > /var/lib/dpkg/info/libc-bin.postinst
+    chmod +x /var/lib/dpkg/info/libc-bin.postinst
+  fi
+
   apt-get update
-  apt-get upgrade -y
-  apt-get install -y /tmp/*.deb
-  chmod +x /var/lib/dpkg/info/libc-bin.postinst || true
-  dpkg --configure -a
-  rm /tmp/*.deb
+  apt install -y /tmp/*.deb || true
+  dpkg --configure -a || true
+
+  # Restore original libc-bin postinst
+  if [ -f /var/lib/dpkg/info/libc-bin.postinst.bak ]; then
+    mv /var/lib/dpkg/info/libc-bin.postinst.bak /var/lib/dpkg/info/libc-bin.postinst
+  fi
+
+  rm -f /tmp/*.deb
   apt-get clean
 "
 
-echo "[*] Cleaning up"
+echo "[*] Cleaning up and unmounting"
+sudo umount "$MOUNT_DIR/dev/pts"
 for d in dev proc sys; do
   sudo umount "$MOUNT_DIR/$d"
 done
 sudo umount "$MOUNT_DIR"
 sudo losetup -d "$LOOP_DEV"
 
-echo "[*] Saving modified image"
+echo "[*] Saving modified image as image/v3xctrl-raspios.img"
 cp "$IMG" image/v3xctrl-raspios.img
