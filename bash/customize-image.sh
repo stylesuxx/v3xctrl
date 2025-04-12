@@ -27,7 +27,7 @@ sudo cp "$DEB_DIR"/*.deb "$MOUNT_DIR/tmp/"
 echo "[*] Installing packages inside chroot"
 sudo chroot "$MOUNT_DIR" /bin/bash -c "
   apt-get update
-  dpkg -i /tmp/*.deb || apt-get install -f -y
+  apt-get install -y /tmp/*.deb
   rm /tmp/*.deb
   apt-get clean
 "
