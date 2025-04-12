@@ -15,7 +15,6 @@ BASE_PATH="${DEST_DIR}/usr/share/$NAME"
 SERVER_BASE_PATH="${BASE_PATH}/config-server/"
 SERVER_LIB_PATH="${SERVER_BASE_PATH}/static/libs/"
 
-GST_BASE_PATH="${BASE_PATH}/gst/"
 PYTHON_REQUIREMENTS="${ROOT_DIR}/requirements-client.txt"
 PYTHON_LIB_PATH="${DEST_DIR}/opt/rc-python/lib/python3.11/site-packages/"
 
@@ -24,13 +23,11 @@ mkdir -p "${TMP_DIR}"
 mkdir -p "${BASE_PATH}"
 mkdir -p "${SERVER_BASE_PATH}"
 mkdir -p "${SERVER_LIB_PATH}"
-mkdir -p "${GST_BASE_PATH}"
 mkdir -p "${PYTHON_LIB_PATH}"
 
 # Move files into place
 cp -r "${SRC_DIR}/" "$TMP_DIR"
 cp -r "${ROOT_DIR}/web-server/." "${SERVER_BASE_PATH}"
-cp "${ROOT_DIR}/bash/transmit-stream.sh" "${GST_BASE_PATH}"
 cp -r "${ROOT_DIR}/src/rpi_4g_streamer" "${PYTHON_LIB_PATH}"
 
 # Fetch static files for the web server

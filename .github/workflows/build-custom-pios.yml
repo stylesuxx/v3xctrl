@@ -98,7 +98,7 @@ jobs:
 
     - name: Customize PiOS image
       run: |
-        sudo ./bash/customize-image.sh image/raspios-bullseye-arm64-lite.img debs
+        sudo ./build/customize-image.sh image/raspios-bullseye-arm64-lite.img debs
 
     - name: Upload final image
       uses: actions/upload-artifact@v4
