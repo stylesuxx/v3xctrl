@@ -28,7 +28,7 @@ cd ${BASE_PATH}
 
 # Only download if the unpacked directory doesn't exist
 if ! [ -d "$UNPACK_PATH" ]; then
-  curl -0 "${DOWNLOAD_PATH}" "https://www.python.org/ftp/python/${VERSION}/Python-${VERSION}.tgz"
+  curl -o "${DOWNLOAD_PATH}" "https://www.python.org/ftp/python/${VERSION}/Python-${VERSION}.tgz"
   tar -xzf "${DOWNLOAD_PATH}" -C "${BASE_PATH}"
 fi
 
