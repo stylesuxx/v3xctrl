@@ -31,15 +31,15 @@ jobs:
       id: cache-pios
       uses: actions/cache@v4
       with:
-        path: image/2022-09-22-raspios-bullseye-arm64-lite.img.xz
-        key: pios-bullseye-arm64-lite-2022-09-22
+        path: image/raspios-bullseye-arm64-lite.img.xz
+        key: raspios-bullseye-arm64-lite
 
     - name: Download PiOS image if cache miss
       if: steps.cache-pios.outputs.cache-hit != 'true'
       run: |
         mkdir -p image
-        wget -O image/2022-09-22-raspios-bullseye-arm64-lite.img.xz \
-          https://downloads.raspberrypi.com/raspios_lite_arm64/images/raspios_lite_arm64-2022-09-22/2022-09-22-raspios-bullseye-arm64-lite.img.xz
+        wget -O image/raspios-bullseye-arm64-lite.img.xz \
+          https://downloads.raspberrypi.com/raspios_lite_arm64/images/raspios_lite_arm64-2023-05-03/2023-05-03-raspios-bullseye-arm64-lite.img.xz
 
     - name: Extract image
       run: |
