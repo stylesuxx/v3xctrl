@@ -102,7 +102,7 @@ jobs:
 
     - name: Compress final image
       run: |
-        xz -T0 --no-sparse --keep -f image/v3xctrl-raspios.img
+        XZ_OPT="--no-sparse" xz -T0 -f image/v3xctrl-raspios.img
 
     - name: Upload final image
       uses: actions/upload-artifact@v4
