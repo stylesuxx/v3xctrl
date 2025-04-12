@@ -1,4 +1,4 @@
-name: Build Custom Python deb (arm64)
+name: Build Python deb (arm64)
 
 on:
   workflow_dispatch:

@@ -1,12 +1,9 @@
 name: Build V3XCTRL deb (arm64)
 
 on:
-  workflow_dispatch:
-    inputs:
-      branch:
-        description: 'Git branch to build'
-        required: false
-        default: 'master'
+  push:
+    branches: [ master, develop ]
+  pull_request:
 
 jobs:
   build-arm64-deb:
