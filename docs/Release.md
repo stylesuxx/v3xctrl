@@ -1,5 +1,5 @@
 # Release
-Everything can be build via GitHub workflows.
+Everything can be build via GitHub workflows, currently making the release is still a manual process.
 
 ## Server
 This one is straight forward, new artifact are built on every push and PR.
@@ -25,3 +25,9 @@ This will result in an artifact with a deb file, attach that to the latest relea
 
 TODO: as above - do this automatically when tagging
 TODO: This does not take too long to build, we could consider building this on every push and PR too.
+
+
+## Image
+Building of the custom PiOS image is triggered manually. This will use the `deb` packages attached to the latest release. Once the image is built, it can be attached to the latest release.
+
+TODO: as above - do this automatically when tagging

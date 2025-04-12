@@ -26,8 +26,12 @@ sudo cp "$DEB_DIR"/*.deb "$MOUNT_DIR/tmp/"
 
 echo "[*] Installing packages inside chroot"
 sudo chroot "$MOUNT_DIR" /bin/bash -c "
+  chmod -x /var/lib/dpkg/info/libc-bin.postinst || true
   apt-get update
+  apt-get upgrade -y
   apt-get install -y /tmp/*.deb
+  chmod +x /var/lib/dpkg/info/libc-bin.postinst || true
+  dpkg --configure -a
   rm /tmp/*.deb
   apt-get clean
 "
