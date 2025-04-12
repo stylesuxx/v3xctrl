@@ -57,7 +57,7 @@ class AppState:
                 pos=(14, self.size[1] - 200 - 20 - 6),
                 size=(32, 212),
                 bar_width=20,
-                range_mode="positive",
+                range_mode="symmetric",
                 color_fn=interpolate_throttle_color
             ),
             "data": StatusValueWidget(position=(10, 180),
@@ -82,7 +82,7 @@ class AppState:
                 negative=self.controls["throttle_down"],
                 step=self.throttle_settings["step"],
                 friction=self.throttle_settings["friction"],
-                min_val=0.0,
+                min_val=-1.0,
                 max_val=1.0
             ),
             "steering": KeyAxisHandler(

@@ -26,7 +26,7 @@ parser.add_argument("port", type=int, help="The target port number")
 
 parser.add_argument("--throttle-min", type=int, default=1000,
                     help="Minimum pulse width for throttle (default: 1000)")
-parser.add_argument("--throttle-mid", type=int, default=1200,
+parser.add_argument("--throttle-idle", type=int, default=1200,
                     help="Mid pulse width for throttle (default: 1200)")
 parser.add_argument("--throttle-max", type=int, default=2000,
                     help="Maximum pulse width for throttle (default: 2000)")
@@ -41,7 +41,7 @@ HOST = args.host
 PORT = args.port
 
 throttle_min = args.throttle_min
-throttle_mid = args.throttle_mid
+throttle_idle = args.throttle_idle
 throttle_max = args.throttle_max
 steering_min = args.steering_min
 steering_max = args.steering_max
@@ -55,10 +55,9 @@ pi = pigpio.pi()
 pi.set_mode(throttle_gpio, pigpio.OUTPUT)
 pi.set_mode(steering_gpio, pigpio.OUTPUT)
 
-throttle_idle = throttle_mid
 steering_center = (steering_max + steering_min) / 2
 
-pi.set_servo_pulsewidth(throttle_gpio, throttle_mid)
+pi.set_servo_pulsewidth(throttle_gpio, throttle_idle)
 pi.set_servo_pulsewidth(steering_gpio, steering_center)
 
 
@@ -93,11 +92,9 @@ def control_handler(message: Control) -> None:
     
     # Determine throttle pulse forward or reverse
     if values['throttle'] > 0:
-        throttle_value = map_range(values['throttle'], 0, 1, 1201, throttle_max)
-    elif values['throttle'] < 0:
-        throttle_value = map_range(values['throttle'], -1, 0, throttle_min, 1199)
+        throttle_value = map_range(values['throttle'], 0, 1, throttle_idle, throttle_max)
     else:
-        throttle_value = 1200  # Idle
+        throttle_value = map_range(values['throttle'], -1, 0, throttle_min, throttle_idle)
 
     steering_value = map_range(values['steering'], -1, 1, steering_min, steering_max)
 
