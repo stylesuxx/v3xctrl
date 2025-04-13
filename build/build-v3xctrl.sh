@@ -22,7 +22,7 @@ PYTHON_LIB_PATH="${DEST_DIR}/opt/rc-venv/lib/python3.11/site-packages/"
 # Clean up previous build (only relevant when re-building on dev setup)
 # In workflows we start with a clean environment anyway
 rm -r "${DEST_DIR}"
-em "${DEB_PATH}"
+rm "${DEB_PATH}"
 
 # Create dir structure
 mkdir -p "${TMP_DIR}"
