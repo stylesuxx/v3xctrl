@@ -51,3 +51,12 @@ jobs:
         with:
           name: V3XCTRL-Linux
           path: src/dist/V3XCTRL-*
+
+  call-cleanup:
+    name: Cleanup old workflow runs
+    needs: build-linux
+    uses: ./.github/workflows/cleanup-old-runs.yml
+    with:
+      branch: ${{ github.event.inputs.branch }}
+      keep_run_id: ${{ github.run_id }}
+      workflow_name: ${{ github.workflow }}

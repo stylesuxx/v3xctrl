@@ -42,3 +42,12 @@ jobs:
         with:
           name: V3XCTRL-Windows
           path: src/dist/V3XCTRL-*.exe
+
+  call-cleanup:
+    name: Cleanup old workflow runs
+    needs: build-windows
+    uses: ./.github/workflows/cleanup-old-runs.yml
+    with:
+      branch: ${{ github.event.inputs.branch }}
+      keep_run_id: ${{ github.run_id }}
+      workflow_name: ${{ github.workflow }}

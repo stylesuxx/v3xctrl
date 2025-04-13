@@ -105,3 +105,12 @@ jobs:
       with:
         name: custom-raspios-image
         path: image/v3xctrl-raspios.img.xz
+
+  call-cleanup:
+    name: Cleanup old workflow runs
+    needs: build
+    uses: ./.github/workflows/cleanup-old-runs.yml
+    with:
+      branch: ${{ github.event.inputs.branch }}
+      keep_run_id: ${{ github.run_id }}
+      workflow_name: ${{ github.workflow }}
