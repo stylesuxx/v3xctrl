@@ -1,2 +1,2 @@
 #!/bin/sh
-exec /opt/rc-python/bin/python "$@"
+exec /opt/rc-venv/bin/python "$@"

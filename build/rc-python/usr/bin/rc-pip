@@ -1,2 +1,2 @@
 #!/bin/sh
-exec /opt/rc-python/bin/pip "$@"
+exec /opt/rc-venv/bin/pip "$@"
