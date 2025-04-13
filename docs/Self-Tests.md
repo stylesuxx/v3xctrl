@@ -1,15 +1,15 @@
-# Helpers
-There are a couple of helper scripts that are used for testing and debugging. They are located in the `helpers` directory.
+# Self Tests
+There are a couple of helper scripts that are used for testing and debugging. They are located in the `self-test` directory.
 
 ## Selftest
 `client.py` and `server.py` will run a selftest on the client and server respectively. They will send a few packets and check if they are received correctly. If they are not received correctly, they will print an error message.
 
 ```bash
 # On server start the server helper
-python helpers/self_test/server.py 6667
+python ./self_test/server.py 6667
 
 # On client, run the client helper with the servers IP and port
-python helpers/self_test/client.py 192.168.0.1 6667
+python ./self_test/client.py 192.168.0.1 6667
 ```
 
 > Results will be displayed by the server script.
@@ -40,14 +40,14 @@ The initial bandwidth test is just a momentary snapshot, there is another tool w
 On the server run:
 
 ```bash
-python helpers/self_test/bandwidth_server.py 6666
+python ./self_test/bandwidth_server.py 6666
 ```
 
 On the client run:
 
 ```bash
 screen
-python helpers/self_test/bandwidth_client.py 192.168.0.1 6666 /dev/ttyACM0
+python ./self_test/bandwidth_client.py 192.168.0.1 6666 /dev/ttyACM0
 
 # Use [CTRL - a, d] to disconnect from screen
 ```
@@ -65,14 +65,14 @@ The script will run for 24hours, logging count, loss mean, min and max RTT every
 
 ```bash
 # On server:
-python ./helpers/self_test/udp/server.py 6666
+python ./self_test/udp/server.py 6666
 
 # On client:
-python ./helpers/self_test/udp/client.py 192.168.0.1 6666
+python ./self_test/udp/client.py 192.168.0.1 6666
 
 # On client with different interval
-python ./helpers/self_test/udp/client.py 192.168.0.1 6666 --interval 5
+python ./self_test/udp/client.py 192.168.0.1 6666 --interval 5
 
 # On client log to file and print to stdout every minute
-python -u ./helpers/self_test/udp/client.py 192.168.0.1 6666 --interval 1 | tee results.tsv
+python -u ./self_test/udp/client.py 192.168.0.1 6666 --interval 1 | tee results.tsv
 ```
