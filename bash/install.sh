@@ -26,6 +26,27 @@ update_and_install() {
   sudo apt install -y mtr screen lintian
 }
 
+build_pyton() {
+  SWAP_SIZE=8192
+  SWAP_PATH="/etc/dphys-swapfile"
+
+  # Increase swap size
+  sudo dphys-swapfile swapoff
+  sudo sed -i \
+    -e "s/^CONF_SWAPSIZE=.*/CONF_SWAPSIZE=${SWAP_SIZE}/" \
+    -e "s/^#CONF_MAXSWAP=.*/CONF_MAXSWAP=${SWAP_SIZE}/" \
+    $SWAP_PATH
+  sudo dphys-swapfile setup
+  sudo dphys-swapfile swapon
+
+  sudo apt update
+  sudo apt install -y build-essential libssl-dev libbz2-dev libsqlite3-dev \
+    liblzma-dev libreadline-dev libctypes-ocaml-dev libcurses-ocaml-dev \
+    libffi-dev
+
+  sudo ./build/build-python-docker.sh
+}
+
 install_python() {
   if ! dpkg -s rc-python >/dev/null 2>&1; then
     mkdir -p $DOWNLOAD_PATH
@@ -73,6 +94,9 @@ check_for_modem() {
 }
 
 case "$MODE" in
+  update)
+    build_python
+    ;;
   update)
     build_and_install
     ;;

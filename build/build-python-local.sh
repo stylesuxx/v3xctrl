@@ -5,37 +5,23 @@ set -e
 VERSION=3.11.11
 
 NAME='rc-python'
-PWD=$(pwd)
-TMP_DIR="${PWD}/tmp"
-SRC_DIR="${PWD}/${NAME}"
+
+# Use first argument as ROOT_DIR if provided, otherwise fallback to current working dir
+ROOT_DIR="${1:-$(pwd)}"
+
+TMP_DIR="${ROOT_DIR}/tmp"
+SRC_DIR="${ROOT_DIR}/${NAME}"
 
 DEB_PATH="${TMP_DIR}/${NAME}.deb"
 DEST_DIR="${TMP_DIR}/${NAME}"
 
-BASE_PATH="$PWD/tmp/python"
+BASE_PATH="$ROOT_DIR/tmp/python"
 DOWNLOAD_PATH="${BASE_PATH}/Python-${VERSION}.tgz"
 UNPACK_PATH="${BASE_PATH}/Python-${VERSION}"
 DONWLOAD_URL="https://www.python.org/ftp/python/${VERSION}/Python-${VERSION}.tgz"
 PREFIX="/opt/rc-python"
 
-SWAP_SIZE=8192
-SWAP_PATH="/etc/dphys-swapfile"
-
-# Increase swap size
-sudo dphys-swapfile swapoff
-sudo sed -i \
-  -e "s/^CONF_SWAPSIZE=.*/CONF_SWAPSIZE=${SWAP_SIZE}/" \
-  -e "s/^#CONF_MAXSWAP=.*/CONF_MAXSWAP=${SWAP_SIZE}/" \
-  $SWAP_PATH
-sudo dphys-swapfile setup
-sudo dphys-swapfile swapon
-
-# Install build dependencies
-sudo apt update
-sudo apt install -y build-essential libssl-dev libbz2-dev libsqlite3-dev \
-  liblzma-dev libreadline-dev libctypes-ocaml-dev libcurses-ocaml-dev \
-  libffi-dev
-
+sudo rm -r "$DEST_DIR"
 mkdir -p ${BASE_PATH}
 cd ${BASE_PATH}
 
@@ -60,8 +46,6 @@ fi
 make -j$(nproc)
 
 # Move everything into place and package it
-sudo rm -r "$DEST_DIR"
-cd "${PWD}"
 cp -r "${SRC_DIR}/" "$DEST_DIR"
 
 make DESTDIR="${DEST_DIR}" altinstall

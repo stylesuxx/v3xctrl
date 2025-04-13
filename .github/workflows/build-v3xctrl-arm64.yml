@@ -61,3 +61,12 @@ jobs:
         with:
           name: v3xctrl-arm64
           path: build/out/src/build/tmp/*.deb
+
+  call-cleanup:
+    name: Cleanup old workflow runs
+    needs: build-arm64-deb
+    uses: ./.github/workflows/cleanup-old-runs.yml
+    with:
+      branch: ${{ github.event.inputs.branch }}
+      keep_run_id: ${{ github.run_id }}
+      workflow_name: ${{ github.workflow }}
