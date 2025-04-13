@@ -47,4 +47,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: rc-python-arm64
-          path: build/out/src/tmp/*.deb
+          path: build/out/src/build/tmp/*.deb
