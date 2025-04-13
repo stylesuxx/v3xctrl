@@ -21,6 +21,11 @@ UNPACK_PATH="${BASE_PATH}/Python-${VERSION}"
 DONWLOAD_URL="https://www.python.org/ftp/python/${VERSION}/Python-${VERSION}.tgz"
 PREFIX="/opt/rc-python"
 
+# Clean up previous build (only relevant when re-building on dev setup)
+# In workflows we start with a clean environment anyway
+rm -r "${DEST_DIR}"
+rm "${DEB_PATH}"
+
 # Create dir structure
 mkdir -p "${TMP_DIR}"
 mkdir -p "${BASE_PATH}"
