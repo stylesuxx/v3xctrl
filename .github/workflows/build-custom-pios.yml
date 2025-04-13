@@ -24,8 +24,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y \
-          qemu-user-static binfmt-support kpartx dosfstools debootstrap \
-          xz-utils unzip wget jq
+          xz-utils wget jq
 
     - name: Restore cached PiOS image
       id: cache-pios
@@ -51,29 +50,6 @@ jobs:
     - name: Extract image
       run: |
         xz -dk image/raspios-bullseye-arm64-lite.img.xz
-
-    - name: Expand root filesystem in image
-      run: |
-        sudo apt-get install -y parted e2fsprogs
-        IMG="image/raspios-bullseye-arm64-lite.img"
-
-        # Grow image file by 1G
-        truncate -s +1G "$IMG"
-
-        # Tell parted to script without prompts and expand partition 2
-        sudo parted -s "$IMG" resizepart 2 100%
-
-        # Setup loop device
-        LOOP_DEV=$(sudo losetup -fP --show "$IMG")
-
-        # Run e2fsck non-interactively
-        sudo e2fsck -fy "${LOOP_DEV}p2"
-
-        # Resize filesystem to fill partition
-        sudo resize2fs "${LOOP_DEV}p2"
-
-        # Cleanup
-        sudo losetup -d "$LOOP_DEV"
 
     - name: Download .deb files from latest release
       env:

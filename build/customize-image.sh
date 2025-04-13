@@ -5,6 +5,28 @@ IMG="$1"
 DEB_DIR="$2"
 MOUNT_DIR="mnt"
 
+echo "[*] Installing dependencies"
+sudo apt-get update
+sudo apt-get install -y parted e2fsprogs qemu-user-static binfmt-support \
+  kpartx dosfstools debootstrap xz-utils
+
+echo "[*] Expanding root file system"
+# Grow image file by 1G
+truncate -s +1G "$IMG"
+
+# Tell parted to script without prompts and expand partition 2
+sudo parted -s "$IMG" resizepart 2 100%
+
+# Setup loop device
+LOOP_DEV=$(sudo losetup -fP --show "$IMG")
+
+# Run e2fsck non-interactively
+sudo e2fsck -fy "${LOOP_DEV}p2"
+
+# Resize filesystem to fill partition
+sudo resize2fs "${LOOP_DEV}p2"
+sudo losetup -d "$LOOP_DEV"
+
 echo "[*] Setting up loop device for $IMG"
 LOOP_DEV=$(sudo losetup -fP --show "$IMG")
 
