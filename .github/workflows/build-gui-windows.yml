@@ -25,7 +25,7 @@ jobs:
       - name: Build executable with PyInstaller
         run: |
           cd src
-          pyinstaller --noconfirm --onefile --windowed -n V3XCTRL ui/main.py
+          pyinstaller --noconfirm --onefile -n V3XCTRL ui/main.py
 
       - name: Rename output
         shell: bash
