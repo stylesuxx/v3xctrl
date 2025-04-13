@@ -1,7 +1,11 @@
 #!/bin/sh
 set -e
 
+$ Remove venv
 VENV=/opt/rc-venv
 if [ -d "$VENV" ]; then
     rm -rf "$VENV"
 fi
+
+# Remove all __pycache__ dirs
+find /opt/rc-python -type d -name '__pycache__' -exec rm -rf {} +

@@ -47,31 +47,23 @@ build_python() {
   sudo ./build/build-python.sh
 }
 
-install_python() {
-  if ! dpkg -s rc-python >/dev/null 2>&1; then
-    mkdir -p $DOWNLOAD_PATH
-    cd $DOWNLOAD_PATH
-    curl -O $RC_PYTHON_URL
-    sudo apt install -y "${PWD}/build/tmp/rc-python.deb"
-  fi
-
-  # Print versions to make sure everything is in place and working
-  rc-python --version
-  rc-pip --version
-}
-
-# This is used when you want to build and install the deb from your local
-# development fork.
-build_and_install() {
-  print_banner "BUILDING AND INSTALLING DEB"
-  PKG="v3xctrl"
-
-  sudo ./build/build-${PKG}.sh
+install_deb() {
+  PKG="$1"
+  print_banner "INSTALLING ${PKG}"
 
   if dpkg -s "$PKG" >/dev/null 2>&1; then
     sudo apt remove -y "$PKG"
   fi
   sudo apt install -y "./build/tmp/${PKG}.deb"
+}
+
+# This is used when you want to build and install the deb from your local
+# development fork.
+build_v3xctrl() {
+  print_banner "BUILDING V3XCTRL"
+  PKG="v3xctrl"
+
+  sudo ./build/build-${PKG}.sh
 }
 
 fix_locale() {
@@ -96,15 +88,21 @@ check_for_modem() {
 case "$MODE" in
   python)
     build_python
+    install_deb rc-python
+
+    # Print versions to make sure everything is in place and working
+    rc-python --version
+    rc-pip --version
     ;;
   update)
-    build_and_install
+    build_v3xctrl
+    install_deb v3xctrl
     ;;
   *)
     fix_locale
     install_python
     update_and_install
-    build_and_install
+    build_v3xctrl
     check_for_modem
     ;;
 esac
