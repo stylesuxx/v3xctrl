@@ -5,7 +5,7 @@ on:
     inputs:
       branch:
         description: 'Git branch to build'
-        required: false
+        required: true
         default: 'master'
 
 jobs:
