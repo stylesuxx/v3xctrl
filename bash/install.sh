@@ -44,7 +44,7 @@ build_python() {
     liblzma-dev libreadline-dev libctypes-ocaml-dev libcurses-ocaml-dev \
     libffi-dev
 
-  sudo ./build/build-python-docker.sh
+  sudo ./build/build-python.sh
 }
 
 install_python() {
