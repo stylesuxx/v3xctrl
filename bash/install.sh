@@ -94,7 +94,7 @@ check_for_modem() {
 }
 
 case "$MODE" in
-  update)
+  python)
     build_python
     ;;
   update)
