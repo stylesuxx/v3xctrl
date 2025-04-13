@@ -26,7 +26,7 @@ update_and_install() {
   sudo apt install -y mtr screen lintian
 }
 
-build_pyton() {
+build_python() {
   SWAP_SIZE=8192
   SWAP_PATH="/etc/dphys-swapfile"
 
