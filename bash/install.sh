@@ -21,8 +21,9 @@ print_banner() {
 update_and_install() {
   print_banner "UPDATING OS AND INSTALLING DEPENDENCIES"
 
-  sudo apt update && sudo apt upgrade -y
-  sudo apt install -y git mtr screen lintian
+  sudo apt update
+  sudo apt upgrade -y
+  sudo apt install -y mtr screen lintian
 }
 
 install_python() {
@@ -50,9 +51,6 @@ build_and_install() {
     sudo apt remove -y "$PKG"
   fi
   sudo apt install -y "./build/tmp/${PKG}.deb"
-
-  # Install python dependencies
-  # sudo rc-pip install -r ./requirements-client.txt
 }
 
 fix_locale() {

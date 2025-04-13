@@ -5,8 +5,9 @@ NAME="v3xctrl"
 # Use first argument as ROOT_DIR if provided, otherwise fallback to current working dir
 ROOT_DIR="${1:-$(pwd)}"
 
-TMP_DIR="${ROOT_DIR}/build/tmp"
-SRC_DIR="${ROOT_DIR}/build/${NAME}"
+BUILD_DIR="${ROOT_DIR}/build"
+TMP_DIR="${BUILD_DIR}/tmp"
+SRC_DIR="${BUILD_DIR}/${NAME}"
 
 DEB_PATH="${TMP_DIR}/${NAME}.deb"
 DEST_DIR="${TMP_DIR}/$NAME"
@@ -15,11 +16,13 @@ BASE_PATH="${DEST_DIR}/usr/share/$NAME"
 SERVER_BASE_PATH="${BASE_PATH}/config-server/"
 SERVER_LIB_PATH="${SERVER_BASE_PATH}/static/libs/"
 
-PYTHON_REQUIREMENTS="${ROOT_DIR}/requirements-client.txt"
-PYTHON_LIB_PATH="${DEST_DIR}/opt/rc-python/lib/python3.11/site-packages/"
+PYTHON_REQUIREMENTS="${BUILD_DIR}/requirements/client.txt"
+PYTHON_LIB_PATH="${DEST_DIR}/opt/rc-venv/lib/python3.11/site-packages/"
 
-# Clean up previous build (only relevant when dev building)
+# Clean up previous build (only relevant when re-building on dev setup)
+# In workflows we start with a clean environment anyway
 rm -r "${DEST_DIR}"
+em "${DEB_PATH}"
 
 # Create dir structure
 mkdir -p "${TMP_DIR}"
@@ -39,7 +42,7 @@ curl -o "${SERVER_LIB_PATH}/jquery.min.js" "https://code.jquery.com/jquery-3.6.0
 curl -o "${SERVER_LIB_PATH}/bootstrap3.min.css" "https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css"
 
 # Install python dependencies
-/opt/rc-python/bin/pip3.11 install \
+rc-pip install \
   --no-cache-dir \
   --target "${PYTHON_LIB_PATH}" \
   -r "${PYTHON_REQUIREMENTS}"

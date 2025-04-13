@@ -54,6 +54,14 @@ git clone git@github.com:stylesuxx/rc-stream.git
 
 You should now be able to access the config web interface at `http://192.168.1.89:5000/` - change the IP to the IP of your client.
 
+
+### Update
+To update the client package you again run the install script, but you can omit all the steps apart from building and installing the package.
+
+```bash
+./bash/install.sh update
+```
+
 ### Custom Python
 During installation a custom python version is installed. It is isolated from the system python and uses it's own environment.
 
