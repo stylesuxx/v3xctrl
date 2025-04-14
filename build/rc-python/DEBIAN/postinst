@@ -2,8 +2,9 @@
 set -e
 
 PYTHON=/opt/rc-python/bin/python3.11
-
 VENV=/opt/rc-venv
-if [ ! -d "$VENV" ]; then
-    "$PYTHON" -m venv "$VENV"
+
+# Create venv if it doesn't exist
+if [ ! -d "$VENV/bin" ]; then
+  "$PYTHON" -m venv "$VENV"
 fi

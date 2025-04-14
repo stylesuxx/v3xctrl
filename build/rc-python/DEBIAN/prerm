@@ -1,10 +1,10 @@
 #!/bin/sh
 set -e
 
-$ Remove venv
+# Remove venv
 VENV=/opt/rc-venv
 if [ -d "$VENV" ]; then
-    rm -rf "$VENV"
+  rm -rf "$VENV"
 fi
 
 # Remove all __pycache__ dirs

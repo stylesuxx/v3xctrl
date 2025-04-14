@@ -13,11 +13,27 @@ The documentation is split into multiple files:
 - [Troubleshooting](/master/docs/Troubleshooting.md) - read this before opening issues, your problem might have already been solved
 - [Latency Breakdown](/master/docs/Latency.md) - how much latency is there and where does it come from?
 
-## Configuration
+## Quickstart
+This section is meant to get you up and running within minutes.
+
+### Prerequisites
+- A Raspberry Pi Zero 2 W
+- A SD card (good quality, at least 8GB - if you want to save videos, bigger is better)
+- A 4G modem
+- Electronic speed controller - ESC (with PWM input)
+- Servo (with PWM input)
+
+### Server Configuration
 On the server, make sure the following ports are open (you might need to forward them through your router) on your Server:
 
-- `6666`: UDP for receiving video
+- `6666`: UDP for receiving video (UDP & TCP for running self-tests)
 - `6668`: UDP for receiving UDP messages
+
+Download and extract the GUI for your operating system:
+
+* [Linux]()
+* [Windows]()
+* [MacOS]()
 
 ## Setup
 Both - client and host need to be set up in order to communicate with each other, follow the setup guides to get everything going.
