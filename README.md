@@ -14,9 +14,15 @@ The documentation is split into multiple files:
 - [Latency Breakdown](/master/docs/Latency.md) - how much latency is there and where does it come from?
 
 ## Quickstart
+
 This section is meant to get you up and running within minutes.
 
+> In this quickstart guide, we assume that the login user is `pi` and the clients host name has been set to `v3xctrl` - substitute those to the values you used during client setup.
+
+> Do not attach the modem yet, first run through the setup and attach the modem in the last step. This will help you in debugging, should some issues arise.
+
 ### Prerequisites
+
 - A Raspberry Pi Zero 2 W
 - A SD card (good quality, at least 8GB - if you want to save videos, bigger is better)
 - A 4G modem
@@ -24,48 +30,98 @@ This section is meant to get you up and running within minutes.
 - Servo (with PWM input)
 
 ### Server Configuration
+
 On the server, make sure the following ports are open (you might need to forward them through your router) on your Server:
 
 - `6666`: UDP for receiving video (UDP & TCP for running self-tests)
 - `6668`: UDP for receiving UDP messages
 
-Download and extract the GUI for your operating system:
+Download, extract and run the GUI for your operating system:
 
-* [Linux]()
-* [Windows]()
-* [MacOS]()
-
-## Setup
-Both - client and host need to be set up in order to communicate with each other, follow the setup guides to get everything going.
-
-> This is work in progress, the ultimate goal is to provide a *.deb file for the client to just install and be done with it - we are not at that point yet. Helper scripts are in place to assist you in getting things done.
+* [Linux](/releases/latest/GUI_Linux.zip)
+* [Windows](/releases/latest/GUI_Windows.zip)
+* [MacOS](/releases/latest/GUI_MacOS.zip)
 
 ### Client
-You can find a detailed setup guide for the **client** in the [Client](/stylesuxx/rc-stream/tree/master/docs/Client.md) file.
 
-### Host
-You can run any flavor of Linux as your host system, you will need to install gstreamer libraries and Python Version `>=3.11.4`.
+Make sure to follow the [client setup guide](/master/docs/Client.md#installation-recommended) in the Client.
 
-I suggest you do this via `pyenv`:
+Once the image is flashed an you have verified you can connect to the clients web server under: `http://v3xctrl.local:5000`
 
-```bash
-curl -fsSL https://pyenv.run | bash
-pyenv install 3.11.4
-pyenv global 3.11.4
-python --version
-```
+* Set the host field, to your servers IP address
+* In the "video" section, make sure that the "testSource" is enabled
 
-Then clone the repo, create a `venv` and install dependencies:
+Click "Save".
+
+#### Testing video stream
+
+Connect via SSH to the client and start the video service:
 
 ```bash
-git clone git@github.com:stylesuxx/rc-stream.git
-cd rc-stream
-python -m venv .
-source bin/activate
-pip install -r requirements-server.txt
+ssh pi@v3xctrl.local
+sudo systemctl start rc-video
 ```
 
-## Usage
+After a couple of seconds you should see a video feed in the server GUI. Should this not be the case, follow the [Troubleshooting Guide](/master/docs/Troubleshooting.md#video-stream).
+
+##### Testing video transmission with camera
+
+Now that we have verified that video streaming is working, we want to make sure that the camera is working too.
+
+In the web-interface, uncheck the "testSource" checkbox in the video section and restart the video stream via command line:
+
+```bash
+sudo systemctl restart rc-video
+```
+
+After a couple of seconds you should see the live camera feed in the server GUI. Should this not be the case, follow the [Troubleshooting Guide](/master/docs/Troubleshooting.md#video-stream).
+
+
+#### Testing control
+
+The easiest way to test the control channel is to attach a servo (since it does not need calibration in contrary to an ESC).
+
+By default the following GPIO pins are used for PWM:
+
+* `18`: Throttle
+* `13`: Steering
+
+Start the control service:
+
+```bash
+sudo systemctl start rc-control
+```
+
+#### Auto start video stream & control
+
+After you have verified, that the video stream and control channel are working as expected, you can enable auto starting them on bootup:
+
+In the web-interface, check "video" and "control" in the "Autostart" section and hit "Save".
+
+
+#### Force data over modem
+
+After verifying that two way communication works, it is time to attach the modem and force the whole traffic over it.
+
+Attach the modem and verify that it is picked up by the operating system:
+
+```bash
+ip a s
+```
+
+You should now see a device named `eth0` or `usb0` - if you only see `lo` and `wlan0`, than your modem is not being picked up - check the [troubleshooting guide](/master/docs/Troubleshooting.md#modem).
+
+In the web-interface, force all traffic to go through this RNDIS device:
+
+* In the WiFi section set routing to `rndis`
+
+Hit "Save" and reboot the device:
+
+```bash
+sudo reboot
+```
+
+## WIP...
 
 ### Testing
 Follow the [Helpers README](/stylesuxx/rc-stream/tree/master/docs/Client.md) to make sure your setup is capable of streaming in real-time.
@@ -116,37 +172,3 @@ Similar to the server, the client is also running those sanity checks and will a
 The client should definetly have the shorter threshold for those checks in order to not lose control over the attached device.
 
 > This is also the file you want to use as your main entry point for custom client functionality.
-
-## Development
-
-### Tests
-Run tests:
-
-```bash
-# All
-python -m pytest tests
-
-# Just ui
-python -m pytest tests/ui
-
-# Just server
-python -m pytest tests/rpi_4g_streamer
-```
-
-Watch for file changes and re-run tests automatically:
-
-```bash
-python watch_tests.py
-```
-
-### DEB Packages
-The `./build` directory contains build scripts and skeleton directories for creating Debian packages. When publishing a new release, those packages should be attached.
-
-Build the packages on the target system:
-
-```bash
-cd ./build
-./build.sh
-```
-
-The `*.deb` files can then be found in `./tmp` directory.`

@@ -23,7 +23,7 @@ update_and_install() {
 
   sudo apt update
   sudo apt upgrade -y
-  sudo apt install -y mtr screen lintian
+  sudo apt install -y mtr minicom screen lintian
 }
 
 build_python() {

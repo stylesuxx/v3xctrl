@@ -98,7 +98,7 @@
           "propertyOrder": 80,
           "type": "boolean",
           "format": "checkbox",
-          "default": false,
+          "default": true,
           "description": "Use test source instead of camera - great for debugging"
         }
       }

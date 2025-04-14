@@ -17,7 +17,7 @@
       "width": 1280,
       "record": false,
       "recordPath": "/var/lib/v3xctrl/recordings",
-      "testSource": false
+      "testSource": true
   },
   "wifi": {
       "mode": "client",

@@ -63,8 +63,22 @@ If the `Video` FPS counter does not show the configured FPS (30 per defautlt), t
 > As a reference, with a Cat 1, 4G modem your maximum upload speed will be 5Mbps. Benchmarks have shown that more realistically your upload will be at around 3.5Mbps on average. But this depends a lot on your provider and the coverage in your area.
 
 ### A lot of blocking/artifacts
+
 We are using h264 encoded video. This format uses reference frames (I frames) and the following frames are encoded based on the reference frames. If the reference frame is not received, then the following frames will be displayed wrongly and it might result in blocking/artifacting.
 
 In this case you will also see a drop in vide framerate - use the same steps to mitigate the issue as described above.
 
 You can also try to decrease the `iFramePeriod` in the `video` config section. This will increase the number of I frames and thus reduce the blocking/artifacting.
+
+## Modem
+
+If the modem is not showing up in `ip a s`:
+
+- Check that the modem is correctly connected and powered on
+
+See what `dmesg` says:
+
+* Unplug the modem
+* Clear dmesg: `sudo dmesg -c`
+* Plug in the modem
+* Check dmesg: `sudo dmesg -c`
