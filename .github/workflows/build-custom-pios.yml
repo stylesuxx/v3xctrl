@@ -24,7 +24,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y \
-          xz-utils wget jq
+          wget jq
 
     - name: Restore cached PiOS image
       id: cache-pios
@@ -46,10 +46,6 @@ jobs:
       with:
         path: image/raspios-bullseye-arm64-lite.img.xz
         key: raspios-bullseye-arm64-lite
-
-    - name: Extract image
-      run: |
-        xz -dk image/raspios-bullseye-arm64-lite.img.xz
 
     - name: Download .deb files from latest release
       env:
@@ -74,7 +70,7 @@ jobs:
 
     - name: Customize PiOS image
       run: |
-        sudo ./build/customize-image.sh image/raspios-bullseye-arm64-lite.img debs
+        sudo ./build/customize-image.sh mnt image/raspios-bullseye-arm64-lite.img.xz debs image/v3xctrl-raspios.img.xz
 
     - name: Upload final image
       uses: actions/upload-artifact@v4

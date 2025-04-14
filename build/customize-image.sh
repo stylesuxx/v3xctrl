@@ -1,24 +1,34 @@
 #!/bin/bash
 set -e
 
-IMG="$1"
-DEB_DIR="$2"
-MOUNT_DIR="mnt"
+MOUNT_DIR="$1"
+IMG="$2"
+DEB_DIR="$3"
+IMG_DESTINATION="$4"
+
+IMG_UNCOMPRESSED="${IMG%.xz}"
 
 echo "[*] Installing dependencies"
 sudo apt-get update
 sudo apt-get install -y parted e2fsprogs qemu-user-static binfmt-support \
   kpartx dosfstools debootstrap xz-utils
 
+echo "[*] Cleanup previous run"
+rm -rf "${IMG_UNCOMPRESSED}"
+rm -rf "${IMG_DESTINATION}"
+
+echo "[*] Extract image"
+xz -dk "${IMG}"
+
 echo "[*] Expanding root file system"
 # Grow image file by 1G
-truncate -s +1G "$IMG"
+truncate -s +1G "$IMG_UNCOMPRESSED"
 
 # Tell parted to script without prompts and expand partition 2
-sudo parted -s "$IMG" resizepart 2 100%
+sudo parted -s "$IMG_UNCOMPRESSED" resizepart 2 100%
 
 # Setup loop device
-LOOP_DEV=$(sudo losetup -fP --show "$IMG")
+LOOP_DEV=$(sudo losetup -fP --show "$IMG_UNCOMPRESSED")
 
 # Run e2fsck non-interactively
 sudo e2fsck -fy "${LOOP_DEV}p2"
@@ -27,8 +37,8 @@ sudo e2fsck -fy "${LOOP_DEV}p2"
 sudo resize2fs "${LOOP_DEV}p2"
 sudo losetup -d "$LOOP_DEV"
 
-echo "[*] Setting up loop device for $IMG"
-LOOP_DEV=$(sudo losetup -fP --show "$IMG")
+echo "[*] Setting up loop device for $IMG_UNCOMPRESSED"
+LOOP_DEV=$(sudo losetup -fP --show "$IMG_UNCOMPRESSED")
 
 echo "[*] Mounting root partition"
 sudo mkdir -p "$MOUNT_DIR"
@@ -97,9 +107,9 @@ sudo umount "$MOUNT_DIR"
 sudo losetup -d "$LOOP_DEV"
 
 echo "[*] Compressing modified image"
-xz -T0 -f "$IMG"
+xz -T0 -f "$IMG_UNCOMPRESSED"
 
 echo "[*] Moving compressed image to output"
-mv "$IMG.xz" image/v3xctrl-raspios.img.xz
+mv "$IMG_UNCOMPRESSED.xz" ${IMG_DESTINATION}
 
-echo "[*] Done — flashable image: image/v3xctrl-raspios.img.xz"
+echo "[*] Done — flashable image: ${IMG_DESTINATION}"

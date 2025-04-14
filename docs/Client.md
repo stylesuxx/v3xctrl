@@ -1,47 +1,43 @@
 # Client
-There are multiple hardware platforms that can be used as clients. We decided to go with a 'Raspberry Pi Zero 2 W' for this project.
 
-The 'Raspberry Pi Zero 2 W' has most of what we need:
-* small size
-* widely available
-* hardware video encoder
-* dedicated camera platform
-* USB
-* Wifi
-* 2x Hardware PWM (with 500MHz clock - use pigpio)
-* GPIO
-
-The 'RPi Zero 2 W' has no issues encoding video streams in realtime in 1920x1080@30fps. This will only be feasible with higher category 4G modems but obviously lower resolution won't be an issue either.
-
-## Hardware
-The client will be interacting with different sensor and actuators. This is a selection of some useful things to consider:
-
-Sensors:
-* INA219 for measuring battery voltage
-* GPS ()
-
-Actuators:
-* Speedcontroller (PWM based) - preferably with BEC to supply Servo(s) with power
-* Servo(s) (PWM based)
-
-Power supply:
-* Step down converter to provide stable 5V@3A
-
-Modem:
-* 4G Modem - as long as it provides a rndis device, any is fine. Higher category is preferred.
+The client is the heart of the project: Transmitting video, receiving control commands, and managing the actuators.
 
 ## Installation (recommended)
-We provide a PiOS based - ready to flash image. Just download the image and flash it to your SD card using the [Raspberry Pi Imager Utility](https://www.raspberrypi.com/news/raspberry-pi-imager-imaging-utility/).
 
-Within Imager you can create your default user and also set up your Wifi.
+We provide a PiOS based - ready to flash - image. Just [download the image](/releases/latest/v3xctrl-raspios.img.xz) and flash it to your SD card using the [Raspberry Pi Imager Utility](https://www.raspberrypi.com/news/raspberry-pi-imager-imaging-utility/).
 
-> Do not attach your 4G modem yet, let's first get the biggest chunk downloaded through your regular internet.
+When Imager asks you to apply OS customization settings, select "Edit Settings" and set up the following:
+
+General tab
+* Set hostname to something unique in your network, e.g.: `v3xctrl`
+* Set username and password - if you don't set this, the defaults will be applied, e.g.: `pi` and `raspberry`
+* Configure wireless LAN - set SSID and password of your home network
+
+Services tab
+* Enable SSH
+* Enable "public-key authentication only" (optional, but recommended)
+
+Then "Save" and "Yes" to apply the settings.
+
+### Verification
+
+> Do not attach your 4G modem yet, we want to make sure that everything is working through your internal network first.
+
+Once done, insert the SD card into your RPI and power up - it will take a while, but after about a minute you should be able to connect via SSH using your user and hostname:
+
+```bash
+ssh pi@v3xctrl.local
+```
+
+If you can connect, you are ready for the next step of the configuration.
+
+If you can not connect, check the [trouble shooting section](/master/docs/Troubleshooting.md#ssh-connection)
 
 ## Installation (for development)
 
 > Even for development, it's recommended to use the provided, custom PiOS image and go from there.
 
-There is an install script in place which will help you to get most of the setup done for you.
+There is an install script in place which will help you to get your dev environment going.
 
 Install `git`, clone the repository and run the installer:
 
@@ -56,6 +52,7 @@ You should now be able to access the config web interface at `http://192.168.1.8
 
 
 ### Update
+
 To update the client package you again run the install script, but you can omit all the steps apart from building and installing the package.
 
 ```bash
@@ -63,6 +60,7 @@ To update the client package you again run the install script, but you can omit 
 ```
 
 ### Custom Python
+
 During installation a custom python version is installed. It is isolated from the system python and uses it's own environment.
 
 It has it's own interpreter and pip:
@@ -73,6 +71,7 @@ rc-pip --version
 ```
 
 ### Modem setup
+
 Plug in your modem, it should be recognizes as a RNDIS network device.
 
 Check with:
@@ -90,6 +89,7 @@ dmesg -c
 ```
 
 #### Routeing traffic
+
 We want to make sure that all internal traffic is routed through the wifi adapter. All external traffic should go through the 4G modem.
 
 > This assumes you use the default dhcpcd and not NetworkManager!
@@ -132,6 +132,9 @@ mtr google.com
 When running each of them, you should see different IP addresses on top indicating which device is being used for routing.
 
 ### Serial Console (optional but recommended)
+
+> **Note:** This is already enabled when using our custom image.
+
 You might want to enable debugging/login on the serial console. This will allow you an easy debugging port in case something goes wrong.
 
 ```bash
@@ -143,6 +146,7 @@ Navigate to `Interface Options` -> `Serial Port` -> `Would you like a login shel
 Now you will be able to access the serial console via USB to serial adapter
 
 ### Update
+
 If you are running the dev env and you just want to update your client, you can simply run the installer again passing the update Parameter:
 
 ```bash
@@ -152,14 +156,18 @@ If you are running the dev env and you just want to update your client, you can 
 This will re-build the rc-client package and install it over the already installed one.
 
 ## Services
-After installation there will be a few services available, some of them enabled by default. Systemd is used for service management and all the services can be controlled via systemd:
+
+After installation there will be a few services available, some of them enabled by default. `systemd` is used for service management and all the services can be controlled by it:
 
 ```bash
 # See the status of a service
 systemctl status rc-config-server
 
-# See the logs of a service
-journalctl -u rc-config-server
+# Restart a service
+systemctl restart rc-config-server
+
+# See the last 50 lines of a service log
+journalctl -u rc-config-server -n50
 ```
 
 > NOTE: Always start the services through `systemd`, this will assure that they will run with the correct users and permissions.

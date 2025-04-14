@@ -2,6 +2,16 @@
 
 If you encounter any issues, this document will help you troubleshoot and resolve them.
 
+## SSH connection
+If after installation and first boot, you can not connect via SSH, check the following:
+
+- Make sure your client gets assigned an IP address by your router
+- Make sure you are using the correct hostname
+- Try connecting to IP directly instead of using the hostname
+
+### No IP assigned
+If on the router you can not see your client in the list of connected devices, it is very likely that you did not set your WiFi credentials correctly when flashing the image. Double check the settings and flash the image again.
+
 ## Config Server
 The webserver for configuration is started by default after installing the package.
 

@@ -1,5 +1,5 @@
 # Release
-Everything can be build via GitHub workflows or directly on the server/client. Preferably we just use Github workflows to build everything, but quotas are in place, so during development it might be better more efficient to build on the client/server itself.
+Everything can be build via GitHub workflows or directly on the server/client. Preferably we just use Github workflows to build everything, but quotas are in place and during development it might be easier and more efficient to build on the server/client itself.
 
 ## Locally
 
@@ -19,6 +19,15 @@ This will install dependencies and build v3xctrl on the client itself:
 ```bash
 ./bash/install.sh update
 ```
+
+#### Image
+Base image, deb packages for python and v3xctrl need to be in place. Also a directory to mount everything needs to be in place, then run:
+
+```bash
+./build/customize-image.sh ./build/tmp/mnt ./build/tmp/dependencies/raspios-bullseye-arm64-lite.img.xz ./build/tmp/dependencies/debs ./build/tmp/v3xctrl-raspios.img.xz
+```
+
+> **NOTE**: the image builder script is meant to be run on the server, it uses chroot and qemu. Technically you can also run it on the client and then simply skip copying qemu static.
 
 ## Github Workflows
 ### Server
