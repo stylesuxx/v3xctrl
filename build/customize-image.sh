@@ -97,6 +97,11 @@ fi
 echo "[*] Adding console=serial0,115200 before console=tty1 in cmdline.txt"
 sudo sed -i 's/console=tty1/console=serial0,115200 console=tty1/' "$MOUNT_DIR/boot/cmdline.txt"
 
+if ! grep -q 'fsck.repair=yes' "$MOUNT_DIR/boot/cmdline.txt"; then
+  echo "[*] Appending fsck.repair=yes to cmdline.txt"
+  sudo sed -i 's/$/ fsck.repair=yes/' "$MOUNT_DIR/boot/cmdline.txt"
+fi
+
 echo "[*] Cleaning up and unmounting"
 sudo umount "$MOUNT_DIR/boot"
 sudo umount "$MOUNT_DIR/dev/pts"
