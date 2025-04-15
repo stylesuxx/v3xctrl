@@ -11,8 +11,8 @@ The most comfortable way is to do this via `pyenv`:
 
 ```bash
 curl -fsSL https://pyenv.run | bash
-pyenv install 3.11.4
-pyenv global 3.11.4
+pyenv install 3.11.9
+pyenv global 3.11.9
 python --version
 ```
 
@@ -23,12 +23,13 @@ git clone git@github.com:stylesuxx/rc-stream.git
 cd rc-stream
 python -m venv .
 source bin/activate
-pip install -r requirements-dev.txt
 ```
 
-Run the GUI:
+Install dependencies and run the GUI:
 
 ```bash
+pip install -r ./requirements-dev.txt
+
 cd src
 python -m ui.main
 
@@ -36,9 +37,17 @@ python -m ui.main
 python -m ui.main --log DEBUG
 ```
 
-### Windows
+### Windows 11
 
-Dev setup under windows is a bit more complicated and should only be used if you really want to punish yourself.
+> Please do not ask for support on how to develop on Windows. Non of the projects devs use Windows, we can't (don't want to) help you with that.
+
+Dev setup under Windows 11 is a bit more complicated and should only be used if you really hate yourself.
+
+Use [pyenv-win](https://github.com/pyenv-win/pyenv-win) to get your python venv going - use the setup via `PowerShell` (this is the tested path).
+
+> In PowerShell you might need to run `Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process` for windows to not complain about permissions.
+
+Follow the steps from above to fetch the repo, install dependencies and start the GUI.
 
 ## Client
 

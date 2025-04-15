@@ -1,6 +1,7 @@
 import av
 from collections import deque
 import logging
+import tempfile
 import threading
 import time
 import os
@@ -20,7 +21,7 @@ class VideoReceiver(threading.Thread):
 
         self.history = deque(maxlen=100)
 
-        self.sdp_path = Path(f"/tmp/rtp_{self.port}.sdp")
+        self.sdp_path = Path(tempfile.gettempdir()) / f"rtp_{self.port}.sdp"
         self.container = None
 
     def _write_sdp(self):
