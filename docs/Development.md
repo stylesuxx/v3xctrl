@@ -159,6 +159,10 @@ If you are running the dev env and you just want to update your client, you can 
 This will re-build the rc-client package and install it over the already installed one.
 
 
+## Helper scripts
+
+The bash script directory contains `gstreamer` related functionality. You will find two scripts to help you verify/test your video pipeline, they are gstreamer based transmitters and receivers. You can use them during development to produce a video stream close to what the client sends.
+
 ## Tests
 
 Run tests:

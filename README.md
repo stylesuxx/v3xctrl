@@ -121,54 +121,17 @@ Hit "Save" and reboot the device:
 sudo reboot
 ```
 
-## WIP...
+## Support
 
-### Testing
-Follow the [Helpers README](/stylesuxx/rc-stream/tree/master/docs/Client.md) to make sure your setup is capable of streaming in real-time.
+If you have any questions or problems, feel free to open an issue. Please make sure to check the [Troubleshooting Guide](/master/docs/Troubleshooting.md) first, your problem might have already been solved.
 
-### Bash scripts
-The bash script directory contains `gstreamer` related functionality. Execute `send_cam.sh` on the client to send video to the server. Execute `gst-udp-sink.sh` on the server to receive video from the client.
+## Development
 
-### Graphical User interface
-On the server simply start the GUI:
+Check the following documentation if you are interested in contributing to the project:
 
-```bash
-cd src
-python -m ui.main
+- [Development](/master/docs/Development.md) - how to setup your development environment
+- [Release](/master/docs/Release.md) - how to release a new version of the project
 
-# Run with debug logs enabled
-python -m ui.main --log DEBUG
-```
+### Contributing
 
-By default the UI will bind to ports **6666** for the video feed and **6668** for the control feed. In the console you will see your external IP and ports currently configured - this information can be used to configure your client.
-
-> Make sure that you need to forward those port through your router to the machine running the GUI. Be aware that **video port + 1** will also be bound to by python av lib when using RTP since it is reserving this port for RTCP - we do not use this, but this is handled internally by ffmpeg and nothing we can do about. Just keep that in mind when selecting ports.
-
-You can use *[ESC]* to toggle the menu on and off.
-
-> Keep in mind, that some settings will require you to restart the GUI to take effect.
-
-### Client
-On the client invoke we now need to initiate the video stream and control stream. Each of them is it's own service.
-
-To start the video stream, execute:
-
-```bash
-sudo systemctl rc-video start
-```
-
-If you can now see the video stream in the server UI, you can progress to starting the control stream. If you do not see the camera stream, check out the [Troubleshooting]() section.
-
-```bash
-rc-control
-```
-
-On the client we can not bind to a specific port, instead we use one socket to send packets and to listen to. The first SYN package sent, basically opens up a hole through which the server can send packets back to the client.
-
-Once the initial SYN/ACK packages have been exchanged, the client will start sending telemetry packets every second.
-
-Similar to the server, the client is also running those sanity checks and will also exit if no package has been seen in a specified amount of time.
-
-The client should definetly have the shorter threshold for those checks in order to not lose control over the attached device.
-
-> This is also the file you want to use as your main entry point for custom client functionality.
+PR's are welcome, please direct them against the develop branch. Feel free to open issues if you have any questions or problems.

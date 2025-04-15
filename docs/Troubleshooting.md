@@ -72,6 +72,8 @@ You can also try to decrease the `iFramePeriod` in the `video` config section. T
 
 ## Modem
 
+> SIM activation can be fineky at times. It is highly recommended to initially activate the SIM card on a phone, disable the pin and make sure that data works. Activation might differ from country to country and can be very hard to streamline just via the modem. Once you disabled the PIN and made sure that data works, the SIM card will most likely also work in the modem.
+
 If the modem is not showing up in `ip a s`:
 
 - Check that the modem is correctly connected and powered on
