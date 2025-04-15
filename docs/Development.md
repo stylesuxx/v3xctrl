@@ -36,6 +36,10 @@ python -m ui.main
 python -m ui.main --log DEBUG
 ```
 
+### Windows
+
+Dev setup under windows is a bit more complicated and should only be used if you really want to punish yourself.
+
 ## Client
 
 > Even for development, it's recommended to use the provided, custom PiOS image and go from there.

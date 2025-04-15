@@ -51,20 +51,29 @@ journalctl -u rc-config-server -n50
 > NOTE: Always start the services through `systemd`, this will assure that they will run with the correct users and permissions.
 
 ### rc-config-server (enabled by default)
+
 This service is responsible for the confiugration web interface. It is running on port 5000 by default and can be accessed via `http://$CLIENT_IP:5000/`.
 
 ### rc-wifi-mode (enabled by default)
+
 This service checks your wifi config on startup and starts your WiFi device in **client** or **access point** mode.
 
 ### rc-service-manager (enabled by default)
+
 This service starts services on startup according to the configuration.
 
+### rc-cleanup (enabled by default)
+
+This service is responsible for cleaning up fragments of a previous unclean shutdown.
+
 ### rc-video
+
 This service is responsible for sending the video feed to the server.
 
 > This service is not meant to be enabled. It is started by the `rc-service-manager` service if autostart is enabled in the config.
 
 ### rc-control
+
 This service is responsible for the control connection between client and server and is ultimately what controls the actuators.
 
 > This service is not meant to be enabled. It is started by the `rc-service-manager` service if autostart is enabled in the config.

@@ -47,6 +47,7 @@ if command -v systemctl >/dev/null 2>&1; then
     rc-config-server.service \
     rc-service-manager.service \
     rc-wifi-mode.service \
+    rc-cleanup.service \
     pigpiod.service
 
   # Make sure the minimum requirements to start the chain after install are in

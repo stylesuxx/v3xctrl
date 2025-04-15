@@ -1,0 +1,15 @@
+[Unit]
+Description=Recover from unclean shutdown
+DefaultDependencies=no
+Before=sysinit.target
+Wants=network-pre.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+ExecStart=/usr/bin/rc-cleanup
+RemainAfterExit=yes
+
+[Install]
+WantedBy=sysinit.target
