@@ -2,8 +2,8 @@
 # Gstreamer reference pipeline for sending H264 video stream
 # Use for testing on server
 
-HOST="127.0.0.1"
-PORT=6666
+HOST=$1
+PORT=$2
 
 WIDTH=1280
 HEIGHT=720

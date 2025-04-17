@@ -91,7 +91,7 @@
         "recordPath": {
           "propertyOrder": 70,
           "type": "string",
-          "default": "/var/lib/v3xctrl/recordings",
+          "default": "/data/recordings",
           "description": "Path to store recordings"
         },
         "testSource": {

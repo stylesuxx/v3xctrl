@@ -66,15 +66,6 @@ build_v3xctrl() {
   sudo ./build/build-${PKG}.sh
 }
 
-fix_locale() {
-  print_banner "FIXING LOCALE"
-
-  local LOCALE="en_US.UTF-8"
-  sudo sed -i "s/^# *$LOCALE UTF-8/$LOCALE UTF-8/" /etc/locale.gen
-  sudo locale-gen
-  sudo update-locale LANG=$LOCALE
-}
-
 check_for_modem() {
   local IFACE=$(ip -o link show | awk -F': ' '{print $2}' | grep -vE '^(lo|wlan0)$' | head -n1)
 
@@ -99,8 +90,6 @@ case "$MODE" in
     install_deb v3xctrl
     ;;
   *)
-    fix_locale
-    install_python
     update_and_install
     build_v3xctrl
     check_for_modem

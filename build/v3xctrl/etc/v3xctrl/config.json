@@ -16,7 +16,7 @@
       "height": 720,
       "width": 1280,
       "record": false,
-      "recordPath": "/var/lib/v3xctrl/recordings",
+      "recordPath": "/data/recordings",
       "testSource": true
   },
   "wifi": {

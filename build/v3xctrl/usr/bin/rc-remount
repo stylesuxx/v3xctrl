@@ -1,0 +1,28 @@
+#!/bin/bash
+set -e
+
+if [[ "$EUID" -ne 0 ]]; then
+  echo "Please run as root"
+  exit 1
+fi
+
+if [[ "$1" != "ro" && "$1" != "rw" ]]; then
+  echo "Usage: $0 [ro|rw]"
+  exit 1
+fi
+
+TARGET="$1"
+echo "[*] Remounting / and /boot as $TARGET..."
+
+# Remount live
+mountpoint -q / && mount -o remount,"$TARGET" /
+echo "  - / remounted as $TARGET"
+
+mountpoint -q /boot && mount -o remount,"$TARGET" /boot
+echo "  - /boot remounted as $TARGET"
+
+echo "[*] Updating /etc/fstab..."
+sed -i -E "s|^(PARTUUID=[^[:space:]]+\s+/+\s+ext4\s+)[^[:space:]]+|\1${TARGET},noatime|" /etc/fstab
+sed -i -E "s|^(PARTUUID=[^[:space:]]+\s+/boot\s+vfat\s+)[^[:space:]]+|\1${TARGET}|" /etc/fstab
+
+echo "[*] Done — / and /boot set to $TARGET and will persist after reboot."
