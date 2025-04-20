@@ -1,5 +1,26 @@
 # Release
-Everything can be build via GitHub workflows or directly on the server/client. Preferably we just use Github workflows to build everything, but quotas are in place and during development it might be easier and more efficient to build on the server/client itself.
+Everything can be build via GitHub workflows, directly on the server/client or via chroot. Preferably we just use Github workflows to build everything, but quotas are in place and during development it might be easier and more efficient to build on the server/client itself.
+
+## Chroot
+Probably the most convenient way to bundle everything up on your (Linux) dev machine. Start by installing the dependencies:
+
+```bash
+sudo ./build/prepare-host.sh
+```
+
+Now you can run the build script which builds the deb files:
+
+```bash
+sudo ./build/build-in-chroot.sh
+```
+
+This will build python only once, but will keep re-building the `v3xctrl` package. After build the deb files will be moved into place for building the image:
+
+```bash
+./build/customize-image.sh
+```
+
+After that you can find the custom image in `./build/tmp/v3xctrl.img.xz`.
 
 ## Locally
 

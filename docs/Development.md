@@ -1,7 +1,8 @@
 # Development
 
-This is a quickstart for development.
+This document aims in helping you get your development environment set up for both the server and client.
 
+> If you are just a regular user, you can skip this section.
 
 ## Server (GUI)
 
@@ -21,8 +22,8 @@ Then clone the repo, create a `venv` and install dependencies:
 ```bash
 git clone git@github.com:stylesuxx/rc-stream.git
 cd rc-stream
-python -m venv .
-source bin/activate
+python -m venv ./venv
+source ./venv/bin/activate
 ```
 
 Install dependencies and run the GUI:
@@ -52,6 +53,24 @@ Follow the steps from above to fetch the repo, install dependencies and start th
 ## Client
 
 > Even for development, it's recommended to use the provided, custom PiOS image and go from there.
+
+### Setup
+
+By default th `/root` and `/` partitions are mounted read-only. In order to be able to build on the client itself, you need to switch to read-write mode:
+
+```bash
+sudo rc-remount rw
+```
+
+This will switch the partitions to read-write mode and disable the overlay fs. This is persistent, until you switch back to read-only mode and requires a `reboot` to take effect.
+
+Do not forget to switch back to read-only mode when done:
+
+```bash
+sudo rc-remount ro
+```
+
+### Install
 
 There is an install script in place which will help you to get your dev environment going.
 

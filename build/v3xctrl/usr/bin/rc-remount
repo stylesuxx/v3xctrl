@@ -1,28 +1,54 @@
 #!/bin/bash
-set -e
+set -euo pipefail
+
+NAME=$0
+CMDLINE="/boot/cmdline.txt"
+CMDLINE_CONTENT=$(cat "$CMDLINE")
+FSTAB="/etc/fstab"
 
 if [[ "$EUID" -ne 0 ]]; then
   echo "Please run as root"
   exit 1
 fi
 
-if [[ "$1" != "ro" && "$1" != "rw" ]]; then
+if [[ $# -ne 1 || ( "$1" != "ro" && "$1" != "rw" ) ]]; then
   echo "Usage: $0 [ro|rw]"
   exit 1
 fi
 
 TARGET="$1"
-echo "[*] Remounting / and /boot as $TARGET..."
 
-# Remount live
-mountpoint -q / && mount -o remount,"$TARGET" /
-echo "  - / remounted as $TARGET"
+# Ensure /boot is writable before editing cmdline.txt
+echo "[${NAME}] Ensuring /boot is writable..."
+if mountpoint -q /boot; then
+  mount_opts=$(findmnt -n -o OPTIONS /boot)
+  if echo "$mount_opts" | grep -q '\<ro\>'; then
+    echo "[${NAME}] Remounting /boot as rw for modification..."
+    mount -o remount,rw /boot
+  fi
+fi
 
-mountpoint -q /boot && mount -o remount,"$TARGET" /boot
-echo "  - /boot remounted as $TARGET"
+if [[ "$TARGET" == "ro" ]]; then
+  if ! grep -qw 'boot=overlay' "$CMDLINE"; then
+    echo "[${NAME}] Enabling overlay (read-only)..."
+    echo "boot=overlay $CMDLINE_CONTENT" > "$CMDLINE"
+  else
+    echo "[${NAME}] Overlay already enabled."
+  fi
+fi
 
-echo "[*] Updating /etc/fstab..."
-sed -i -E "s|^(PARTUUID=[^[:space:]]+\s+/+\s+ext4\s+)[^[:space:]]+|\1${TARGET},noatime|" /etc/fstab
-sed -i -E "s|^(PARTUUID=[^[:space:]]+\s+/boot\s+vfat\s+)[^[:space:]]+|\1${TARGET}|" /etc/fstab
+if [[ "$TARGET" == "rw" ]]; then
+  if grep -qw 'boot=overlay' "$CMDLINE"; then
+    echo "[${NAME}] Disabling overlay (read-write)..."
+    sed -i 's/\bboot=overlay\b//' "$CMDLINE"
+  else
+    echo "[${NAME}] Overlay already disabled."
+  fi
+fi
 
-echo "[*] Done — / and /boot set to $TARGET and will persist after reboot."
+echo "[${NAME}] Updating /etc/fstab mount options for /boot..."
+sed -i -E \
+  "s|^(\s*PARTUUID=[^[:space:]]+\s+/boot\s+vfat\s+)[^[:space:]]+|\1${TARGET}|" \
+  "$FSTAB"
+
+echo "[${NAME}] Done — overlay mode set to $TARGET. Reboot to apply."

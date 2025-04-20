@@ -1,0 +1,16 @@
+[Unit]
+Description=Run first boot script if present
+ConditionPathExists=/boot/firstboot.sh
+After=local-fs.target basic.target
+Before=getty@tty1.service
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+ExecStart=/boot/firstboot.sh
+RemainAfterExit=true
+StandardOutput=journal+console
+StandardError=journal+console
+
+[Install]
+WantedBy=multi-user.target

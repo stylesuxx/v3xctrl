@@ -1,12 +1,10 @@
 #! /bin/bash
 # Command is expected to be run from the root of the project diretory.
+# This script is meant for easy package rebuild and install during development.
 set -e
 
 MODE=${1:-default}
-
 PWD=$(pwd)
-RC_PYTHON_URL="https://github.com/stylesuxx/rc-stream/releases/latest/rc-python.deb"
-DOWNLOAD_PATH="${PWD}/build/dependencies"
 
 print_banner() {
   local msg="$1"
@@ -91,7 +89,6 @@ case "$MODE" in
     ;;
   *)
     update_and_install
-    build_v3xctrl
     check_for_modem
     ;;
 esac

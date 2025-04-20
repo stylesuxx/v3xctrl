@@ -1,6 +1,10 @@
 #! /bin/bash
 # Gstreamer reference pipeline for sending H264 video stream
 # Use for testing on server
+if [ $# -ne 2 ]; then
+    echo "Usage: $0 HOST PORT"
+    exit 1
+fi
 
 HOST=$1
 PORT=$2
