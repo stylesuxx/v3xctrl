@@ -34,8 +34,15 @@ partprobe
 e2fsck -fy "$PART"
 resize2fs "$PART"
 
-# Set to read-only mode.
-# initrd.img has already been built during image generation
+# Enable overlay fs
+# This creates /boot/initrd.img* and adds boot=overlay to cmdline.txt
+# In order to disable the overlay fs, it is enough to remove the boot=overlay
+# parameter from cmdline.txt
+#
+# This needs to happen at runtime - during image generation not everything is
+# in place yet.
+echo "[rc-firstboot] Enabling overlay fs..."
+raspi-config nonint enable_overlayfs
 rc-remount ro
 
 echo "[rc-firstboot] Cleaning up..."

@@ -23,13 +23,15 @@ Then "Save" and "Yes" to apply the settings.
 
 > Do not attach your 4G modem yet, we want to make sure that everything is working through your internal network first.
 
-Once done, insert the SD card into your RPI and power up - it will take a while, but after about a minute you should be able to connect via SSH using your user and hostname:
+Once done, insert the SD card into your RPI and power up - it will take a while, but after about two and a half minutes you should be able to connect via SSH using your user and hostname:
 
 ```bash
 ssh pi@v3xctrl.local
 ```
 
 If you can connect, you are ready for the next step of the configuration.
+
+> Be aware that only the first boot will take longer, afterwards you should be able to connect via SSH after about 30 seconds from plugging in the client.
 
 If you can not connect, check the [trouble shooting section](/master/docs/Troubleshooting.md#ssh-connection)
 

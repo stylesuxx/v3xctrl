@@ -31,8 +31,4 @@ if [ -f /var/lib/dpkg/info/libc-bin.postinst.bak ]; then
   mv /var/lib/dpkg/info/libc-bin.postinst.bak /var/lib/dpkg/info/libc-bin.postinst
 fi
 
-echo '[CHROOT] Building initrd.img for overlayfs...'
-raspi-config nonint enable_overlayfs
-sed -i 's/\bboot=overlay\b//' "/boot/cmdline.txt"
-
 chown $USER:$USER '/data/recordings'
