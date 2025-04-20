@@ -14,6 +14,8 @@ DEB_DIR="${TMP_DIR}/dependencies/debs"
 IMG="${TMP_DIR}/dependencies/raspios.img.xz"
 IMG_WORK="${TMP_DIR}/v3xctrl.img"
 INITRD="${TMP_DIR}/initrd.img"
+SSHD_CONFIG="${MOUNT_DIR}/etc/ssh/sshd_config"
+MOTD_CONFIG="${MOUNT_DIR}/etc/motd"
 
 IMG_UNCOMPRESSED="${IMG%.xz}"
 
@@ -99,9 +101,18 @@ ln -s /data/log "$MOUNT_DIR/var/log"
 
 echo "[HOST] Move config files to persistent storage"
 if [ -f "$MOUNT_DIR/etc/v3xctrl/config.json" ]; then
+    chmod a+r "$MOUNT_DIR/etc/v3xctrl/config.json"
     mv "$MOUNT_DIR/etc/v3xctrl/config.json" "$MOUNT_DIR/data/config/config.json"
     ln -sf /data/config/config.json "$MOUNT_DIR/etc/v3xctrl/config.json"
 fi
+
+echo "[HOST] Adjust SSH welcome message"
+if grep -qE '^\s*PrintLastLog' "$SSHD_CONFIG"; then
+    sed -i 's/^\s*PrintLastLog.*/PrintLastLog no/' "$SSHD_CONFIG"
+else
+    echo 'PrintLastLog no' >> "$SSHD_CONFIG"
+fi
+sed -i 's|^\(session[[:space:]]\+optional[[:space:]]\+pam_motd\.so[[:space:]]\+noupdate\)|#\1|' "${MOUNT_DIR}/etc/pam.d/sshd"
 
 echo "[HOST] Setting enable_uart=1 in config.txt"
 if grep -q '^#*enable_uart=' "$MOUNT_DIR/boot/config.txt"; then
@@ -109,9 +120,6 @@ if grep -q '^#*enable_uart=' "$MOUNT_DIR/boot/config.txt"; then
 else
   echo "enable_uart=1" | tee -a "$MOUNT_DIR/boot/config.txt" > /dev/null
 fi
-
-#echo "[HOST] Adding console=serial0,115200 before console=tty1 in cmdline.txt"
-#sed -i 's/console=tty1/console=serial0,115200 console=tty1/' "$MOUNT_DIR/boot/cmdline.txt"
 
 if ! grep -q 'fsck.repair=yes' "$MOUNT_DIR/boot/cmdline.txt"; then
   echo "[HOST] Appending fsck.repair=yes to cmdline.txt"
