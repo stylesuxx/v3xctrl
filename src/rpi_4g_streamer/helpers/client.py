@@ -34,6 +34,8 @@ parser.add_argument("--steering-min", type=int, default=1000,
                     help="Minimum pulse width for steering (default: 1000)")
 parser.add_argument("--steering-max", type=int, default=2000,
                     help="Maximum pulse width for steering (default: 2000)")
+parser.add_argument("--steering-trim", type=int, default=0,
+                    help="Pulse width to trim steering center (default: 0)" )
 
 args = parser.parse_args()
 
@@ -45,6 +47,7 @@ throttle_idle = args.throttle_idle
 throttle_max = args.throttle_max
 steering_min = args.steering_min
 steering_max = args.steering_max
+steering_trim = args.steering_trim
 
 running = True
 
@@ -55,7 +58,9 @@ pi = pigpio.pi()
 pi.set_mode(throttle_gpio, pigpio.OUTPUT)
 pi.set_mode(steering_gpio, pigpio.OUTPUT)
 
-steering_center = (steering_max + steering_min) / 2
+steering_center = (steering_max + steering_min) / 2 + steering_trim
+# Clamp result between defined min/max pulewidth
+steering_center = max(steering_min, min(steering_max, steering_center))
 
 pi.set_servo_pulsewidth(throttle_gpio, throttle_idle)
 pi.set_servo_pulsewidth(steering_gpio, steering_center)
@@ -96,7 +101,10 @@ def control_handler(message: Control) -> None:
     else:
         throttle_value = map_range(values['throttle'], -1, 0, throttle_min, throttle_idle)
 
-    steering_value = map_range(values['steering'], -1, 1, steering_min, steering_max)
+    # Add steering trim to output
+    steering_value = map_range(values['steering'], -1, 1, steering_min, steering_max) + steering_trim
+    # Clamp result between defined min/max pulewidth
+    steering_value = max(steering_min, min(steering_max, steering_value))
 
     logging.debug(f"Throttle: {throttle_value}; Steering: {steering_value}")
 
