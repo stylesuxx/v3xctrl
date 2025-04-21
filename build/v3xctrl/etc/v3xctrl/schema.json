@@ -253,12 +253,15 @@
         "disable_edit_json": true,
         "disable_properties": true
       },
-      "samba": {
-        "propertyOrder": 10,
-        "type": "boolean",
-        "format": "checkbox",
-        "default": false,
-        "description": "Enable SAMBA network share for recording directory"
+      "properties": {
+        "samba": {
+          "propertyOrder": 10,
+          "type": "boolean",
+          "format": "checkbox",
+          "default": false,
+          "description": "Enable SAMBA network share for recording directory"
+        }
       }
+    }
   }
 }
