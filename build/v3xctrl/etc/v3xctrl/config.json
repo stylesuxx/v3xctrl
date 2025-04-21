@@ -35,5 +35,8 @@
           "max": 2000,
           "failsafe": 1500
       }
+  },
+  "extras": {
+      "samba": false
   }
 }

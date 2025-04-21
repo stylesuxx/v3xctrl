@@ -20,11 +20,14 @@ fi
 
 echo '[CHROOT] Installing .deb packages...'
 apt-get update
+apt install -y samba
 apt install -y /tmp/*.deb || true
 dpkg --configure -a || true
 
 rm -f /tmp/*.deb
 apt-get clean
+
+systemctl disable smbd
 
 echo '[CHROOT] Restoring libc-bin postinst...'
 if [ -f /var/lib/dpkg/info/libc-bin.postinst.bak ]; then

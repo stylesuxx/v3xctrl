@@ -9,6 +9,7 @@ fi
 USER="v3xctrl"
 
 TMP_DIR="./build/tmp"
+CONF_DIR="./build/configs"
 MOUNT_DIR="${TMP_DIR}/mnt-image"
 DEB_DIR="${TMP_DIR}/dependencies/debs"
 IMG="${TMP_DIR}/dependencies/raspios.img.xz"
@@ -18,10 +19,8 @@ SSHD_CONFIG="${MOUNT_DIR}/etc/ssh/sshd_config"
 MOTD_CONFIG="${MOUNT_DIR}/etc/motd"
 
 IMG_UNCOMPRESSED="${IMG%.xz}"
-
 MOUNT_BIND_DIRS="dev proc sys"
 LOCALE="en_US.UTF-8"
-
 
 echo "[HOST] Cleanup previous run"
 rm -rf "${IMG_UNCOMPRESSED}"
@@ -58,6 +57,7 @@ done
 mkdir -p "$MOUNT_DIR"
 mount "${LOOP_DEV}p2" "$MOUNT_DIR"
 mount "${LOOP_DEV}p1" "$MOUNT_DIR/boot"
+
 mkdir -p "$MOUNT_DIR/data"
 mount "${LOOP_DEV}p3" "$MOUNT_DIR/data"
 
@@ -65,22 +65,16 @@ echo "[HOST] Creating structure under /data"
 mkdir -p "${MOUNT_DIR}/data"/{log,config,recordings}
 chmod a+rw "${MOUNT_DIR}/data/recordings"
 
-echo "[HOST] Updating /etc/fstab with /data and tmpfs"
+echo "[HOST] Updating /etc/fstab with /data"
 PARTUUID=$(blkid -s PARTUUID -o value "${LOOP_DEV}p3")
 tee -a "$MOUNT_DIR/etc/fstab" > /dev/null <<EOF
 PARTUUID=${PARTUUID} /data ext4 defaults 0 2
 EOF
 
-echo "[HOST] Copying files to boot partition"
-cp "./build/firstboot.sh" "$MOUNT_DIR/boot/firstboot.sh"
-chmod +x "$MOUNT_DIR/boot/firstboot.sh"
-
-echo "[HOST] Binding system directories"
+echo "[HOST] Binding system directories..."
 for d in $MOUNT_BIND_DIRS; do
   mount --bind /$d "$MOUNT_DIR/$d"
 done
-
-echo "[HOST] Mounting devpts for apt logging and pseudo-terminals"
 mount -t devpts devpts "$MOUNT_DIR/dev/pts"
 
 echo "[HOST] Copying qemu-aarch64-static for chroot emulation"
@@ -114,7 +108,14 @@ else
 fi
 sed -i 's|^\(session[[:space:]]\+optional[[:space:]]\+pam_motd\.so[[:space:]]\+noupdate\)|#\1|' "${MOUNT_DIR}/etc/pam.d/sshd"
 
-echo "[HOST] Setting enable_uart=1 in config.txt"
+echo "[HOST] Move config files into place"
+cp "${CONF_DIR}/smb.conf" "$MOUNT_DIR/etc/samba/smb.conf"
+
+echo "[HOST] Copying files to boot partition..."
+cp "./build/firstboot.sh" "$MOUNT_DIR/boot/firstboot.sh"
+chmod +x "$MOUNT_DIR/boot/firstboot.sh"
+
+echo "[HOST] Setting boot variables..."
 if grep -q '^#*enable_uart=' "$MOUNT_DIR/boot/config.txt"; then
   sed -i 's/^#*enable_uart=.*/enable_uart=1/' "$MOUNT_DIR/boot/config.txt"
 else
@@ -122,12 +123,10 @@ else
 fi
 
 if ! grep -q 'fsck.repair=yes' "$MOUNT_DIR/boot/cmdline.txt"; then
-  echo "[HOST] Appending fsck.repair=yes to cmdline.txt"
   sed -i 's/$/ fsck.repair=yes/' "$MOUNT_DIR/boot/cmdline.txt"
 fi
 
 if grep -qw 'quiet' "$MOUNT_DIR/boot/cmdline.txt"; then
-  echo "[HOST] Removing 'quiet' from cmdline.txt"
   sed -i 's/\bquiet\b//g' "$MOUNT_DIR/boot/cmdline.txt"
 fi
 
@@ -144,4 +143,4 @@ losetup -d "$LOOP_DEV"
 echo "[HOST] Compressing modified image"
 xz -T0 -f "$IMG_WORK"
 
-echo "[HOST] Done — flashable image: ${IMG_WORK}.xz"
+echo "[HOST] Done - flashable image: ${IMG_WORK}.xz"

@@ -237,6 +237,22 @@
           "description": "After this many seconds without a control packet, failsafe is triggered"
         }
       }
-    }
+    },
+    "extras": {
+      "propertyOrder": 60,
+      "type": "object",
+      "title": "Extras",
+      "options": {
+        "collapsed": true,
+        "disable_edit_json": true,
+        "disable_properties": true
+      },
+      "samba": {
+        "propertyOrder": 10,
+        "type": "boolean",
+        "format": "checkbox",
+        "default": false,
+        "description": "Enable SAMBA network share for recording directory"
+      }
   }
 }

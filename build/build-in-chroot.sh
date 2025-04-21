@@ -60,6 +60,7 @@ cp -r "./build/requirements" "${MOUNT_DIR}/src/build"
 cp -r "./build/build-python.sh" "${MOUNT_DIR}/src/build"
 cp -r "./build/build-v3xctrl.sh" "${MOUNT_DIR}/src/build"
 cp -r "./web-server" "${MOUNT_DIR}/src"
+cp -r "./src" "${MOUNT_DIR}/src"
 cp "./build/chroot/build-debs.sh" "${MOUNT_DIR}"
 chmod +x "${MOUNT_DIR}/build-debs.sh"
 

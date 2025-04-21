@@ -7,6 +7,7 @@ CONTROL_SERVICE="rc-control"
 
 START_VIDEO=$(jq -r '.autostart.video' "$CONFIG_PATH")
 START_CONTROL=$(jq -r '.autostart.control' "$CONFIG_PATH")
+START_SAMBA=$(jq -r '.extras.samba' "$CONFIG_PATH")
 ROUTING_MODE=$(jq -r '.wifi.routing' "$CONFIG_PATH")
 
 rc-route-manager "${ROUTING_MODE}"
@@ -19,6 +20,11 @@ fi
 if [ "$START_CONTROL" = "true" ]; then
   echo "Starting control service..."
   systemctl start "$CONTROL_SERVICE"
+fi
+
+if [ "$START_SAMBA" = "true" ]; then
+  echo "Starting samba service..."
+  systemctl start smbd
 fi
 
 exit 0
