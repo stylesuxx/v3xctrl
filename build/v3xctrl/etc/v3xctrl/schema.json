@@ -232,7 +232,7 @@
               "propertyOrder": 40,
               "type": "integer",
               "default": 0,
-              "description": "Pulse width for trim"
+              "description": "Center position offset, can be negative or positive. Adjust if vehicle does not move straight."
             }
           }
         },
