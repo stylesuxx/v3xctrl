@@ -233,6 +233,12 @@
               "type": "integer",
               "default": 1500,
               "description": "Pulse width when failsafe"
+            },
+            "trim": {
+              "propertyOrder": 40,
+              "type": "integer",
+              "default": 0,
+              "description": "Pulse width for trim"
             }
           }
         },
