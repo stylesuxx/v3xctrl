@@ -7,7 +7,7 @@ from ui.menu.BaseWidget import BaseWidget
 
 
 class Checkbox(BaseWidget):
-    BOX_SIZE = 20
+    BOX_SIZE = 25
     BOX_MARGIN = 10
 
     LABEL_COLOR = (220, 220, 220)
@@ -30,14 +30,7 @@ class Checkbox(BaseWidget):
         self.checked = checked
 
         self.box_rect = Rect(self.x, self.y, self.BOX_SIZE, self.BOX_SIZE)
-
-        # Label rendering
         self.label_surface, self.label_rect = self.font.render(self.label, self.LABEL_COLOR)
-        self.label_rect.topleft = (self.x + self.BOX_SIZE + self.BOX_MARGIN, self.y)
-
-        # Align vertical center of label and box
-        label_baseline = self.y + self.label_rect.height
-        self.box_rect.y = label_baseline - self.BOX_SIZE
 
         # Pre-render checkbox surface with 3D effect
         self.box_surface = pygame.Surface((self.BOX_SIZE, self.BOX_SIZE))
@@ -58,11 +51,9 @@ class Checkbox(BaseWidget):
         self.x = x
         self.y = y
 
-        self.box_rect.x = x
-        self.box_rect.y = y
-
+        self.box_rect.topleft = (x, y)
         self.label_rect.x = x + self.BOX_SIZE + self.BOX_MARGIN
-        self.label_rect.y = y
+        self.label_rect.y = y + (self.BOX_SIZE - self.label_rect.height) // 2
 
     def draw(self, surface: Surface):
         surface.blit(self.box_surface, self.box_rect.topleft)
