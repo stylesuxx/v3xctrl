@@ -21,8 +21,6 @@ class NumberInput(BaseWidget):
 
     def __init__(self,
                  label: str,
-                 x: int,
-                 y: int,
                  label_width: int,
                  input_width: int,
                  min_val: int,
@@ -31,9 +29,8 @@ class NumberInput(BaseWidget):
                  mono_font: Font,
                  on_change=None,
                  input_padding: int = 10):
+        super().__init__()
 
-        self.x = x
-        self.y = y
         self.label_width = label_width
         self.input_width = input_width
         self.min_val = min_val
@@ -74,7 +71,18 @@ class NumberInput(BaseWidget):
 
         # Create Label surface - it does not change
         self.label_surface, self.label_rect = self.font.render(label, self.LABEL_COLOR)
-        self.label_y_centered = self.input_rect.centery - self.label_rect.height // 2
+
+    def set_position(self, x: int, y: int):
+        super().set_position(x, y)
+
+        self.input_rect.x = self.x + self.label_width + self.input_padding
+        self.input_rect.y = self.y
+
+        self.label_rect.x = self.x
+        self.label_rect.y = self.input_rect.centery - self.label_rect.height // 2
+
+        self.cursor_y_start = self.input_rect.y + (self.input_rect.height - self.cursor_height) // 2
+        self.cursor_y_end = self.cursor_y_start + self.cursor_height
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN and self.focused:
@@ -117,7 +125,7 @@ class NumberInput(BaseWidget):
         text_rect.centery = self.input_rect.centery
 
         # Draw label and input field (with value)
-        surface.blit(self.label_surface, (self.x, self.label_y_centered))
+        surface.blit(self.label_surface, self.label_rect.topleft)
         surface.blit(self.input_surface, self.input_rect.topleft)
         surface.blit(text_surface, text_rect)
 
