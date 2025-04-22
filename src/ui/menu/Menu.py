@@ -8,15 +8,16 @@ from ui.menu.NumberInput import NumberInput
 from ui.menu.Checkbox import Checkbox
 from ui.menu.Button import Button
 from ui.menu.KeyMappingWidget import KeyMappingWidget
+from ui.colors import BLACK, WHITE, GREEN, RED, YELLOW, GREY, LIGHT_GREY, MID_GREY, DARK_GREY
 
 
 class Menu:
-    BG_COLOR = (30, 30, 30)
-    TAB_ACTIVE_COLOR = (90, 90, 90)
-    TAB_INACTIVE_COLOR = (50, 50, 50)
+    BG_COLOR = DARK_GREY
+    TAB_ACTIVE_COLOR = MID_GREY
+    TAB_INACTIVE_COLOR = GREY
     TAB_SEPARATOR_COLOR = BG_COLOR
-    FONT_COLOR = (255, 255, 255)
-    LINE_COLOR = (255, 255, 255)
+    FONT_COLOR = WHITE
+    LINE_COLOR = WHITE
 
     def __init__(self,
                  width: int,
@@ -66,22 +67,27 @@ class Menu:
 
         self.video_input = NumberInput(
             "Video",
-            self.padding,
-            self.tab_height + self.padding + 60,
-            90, 75,
-            1, 65535,
-            self.label_font, self.mono_font,
+            label_width=90,
+            input_width=75,
+            min_val=1,
+            max_val=65535,
+            font=self.label_font,
+            mono_font=self.mono_font,
             on_change=lambda v: self._on_port_change("video", v)
         )
+        self.video_input.set_position(self.padding, self.tab_height + self.padding + 60)
+
         self.control_input = NumberInput(
             "Control",
-            self.padding,
-            self.tab_height + self.padding + 100,
-            90, 75,
-            1, 65535,
-            self.label_font, self.mono_font,
+            label_width=90,
+            input_width=75,
+            min_val=1,
+            max_val=65535,
+            font=self.label_font,
+            mono_font=self.mono_font,
             on_change=lambda v: self._on_port_change("control", v)
         )
+        self.control_input.set_position(self.padding, self.tab_height + self.padding + 100)
 
         # Miscellaneous widgets
         self.debug_checkbox = Checkbox(
@@ -212,6 +218,17 @@ class Menu:
 
                 widget.draw(surface)
                 row_y += 40
+
+            pygame.joystick.init()
+
+            gamepads = []
+
+            # Detect all connected joysticks
+            for i in range(pygame.joystick.get_count()):
+                joystick = pygame.joystick.Joystick(i)
+                joystick.init()
+                gamepads.append(joystick)
+                print(f"Detected gamepad {i}: {joystick.get_name()} with {joystick.get_numaxes()} axes, {joystick.get_numbuttons()} buttons")
 
         if self.active_tab == "General":
             ports_section_y = self.tab_height + self.padding

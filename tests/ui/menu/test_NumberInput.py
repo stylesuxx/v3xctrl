@@ -17,8 +17,6 @@ class TestNumberInput(unittest.TestCase):
         self.font = pygame.freetype.SysFont("Courier", 20)
         self.input = NumberInput(
             label="Test",
-            x=0,
-            y=0,
             label_width=100,
             input_width=100,
             min_val=1,
@@ -27,6 +25,7 @@ class TestNumberInput(unittest.TestCase):
             mono_font=self.font,
             on_change=lambda v: setattr(self, "changed_to", v)
         )
+        self.input.set_position(0, 0)
         self.input.focused = True
         self.changed_to = None
 
