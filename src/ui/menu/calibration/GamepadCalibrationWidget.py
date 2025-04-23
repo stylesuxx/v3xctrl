@@ -6,6 +6,7 @@ from typing import List, Callable, Dict
 
 from ui.menu.Button import Button
 from ui.menu.Select import Select
+from ui.menu.Checkbox import Checkbox
 from ui.colors import WHITE, GREY
 from ui.menu.calibration.GamepadCalibrator import GamepadCalibrator, CalibratorState
 from ui.menu.BaseWidget import BaseWidget
@@ -27,6 +28,7 @@ class GamepadCalibrationWidget(BaseWidget):
         self.selected_index: int = 0
         self.calibrator: GamepadCalibrator | None = None
         self._gamepads_dirty: bool = False
+        self.invert_axes: Dict[str, bool] = {k: False for k in ["steering", "throttle", "brake"]}
 
         self.calibrate_button = Button(
             label="Start Calibration",
@@ -44,11 +46,20 @@ class GamepadCalibrationWidget(BaseWidget):
             callback=self.set_selected_gamepad
         )
 
+        self.invert_checkboxes: Dict[str, Checkbox] = {
+            name: Checkbox(
+                label="Invert",
+                font=font,
+                checked=False,
+                on_change=lambda state, k=name: self.toggle_invert(k, state)
+            ) for name in ["steering", "throttle", "brake"]
+        }
+
         self.calibrate_button.set_position(self.x, self.y + 50)
         self.controller_select.set_position(self.x, self.y)
 
         pygame.joystick.init()
-        self._refresh_gamepads()  # Ensure settings are applied immediately on startup
+        self._refresh_gamepads()
         self.thread = threading.Thread(target=self._background_gamepad_refresh, daemon=True)
         self.thread.start()
 
@@ -97,6 +108,9 @@ class GamepadCalibrationWidget(BaseWidget):
             self.calibrator.state = CalibratorState.COMPLETE
             self.calibrator._settings = settings
             self.calibrator.get_settings = lambda: settings
+            for k in self.invert_axes:
+                self.invert_axes[k] = settings.get(k, {}).get("invert", False)
+                self.invert_checkboxes[k].checked = self.invert_axes[k]
 
     def get_selected_index(self) -> int:
         return self.selected_index
@@ -113,10 +127,12 @@ class GamepadCalibrationWidget(BaseWidget):
                 js = self.gamepads[self.selected_index]
                 guid = js.get_guid()
                 settings = self.calibrator.get_settings()
-                print("Calibration settings for", guid)
-                print(settings)
-                self.known_calibrations[guid] = settings
-                self.on_calibration_done(guid, settings)
+                settings_with_inversion = settings.copy()
+                for k in settings_with_inversion:
+                    settings_with_inversion[k]["invert"] = self.invert_axes.get(k, False)
+
+                self.known_calibrations[guid] = settings_with_inversion
+                self.on_calibration_done(guid, settings_with_inversion)
 
         self.calibrator = GamepadCalibrator(
             on_start=lambda: (
@@ -127,10 +143,21 @@ class GamepadCalibrationWidget(BaseWidget):
         )
         self.calibrator.start()
 
+    def toggle_invert(self, key: str, state: bool) -> None:
+        self.invert_axes[key] = state
+        if self.selected_index < len(self.gamepads):
+            js = self.gamepads[self.selected_index]
+            guid = js.get_guid()
+            if guid in self.known_calibrations:
+                self.known_calibrations[guid][key]["invert"] = state
+                self.on_calibration_done(guid, self.known_calibrations[guid])
+
     def handle_event(self, event: pygame.event.Event) -> None:
         if self.gamepads:
             self.calibrate_button.handle_event(event)
             self.controller_select.handle_event(event)
+            for checkbox in self.invert_checkboxes.values():
+                checkbox.handle_event(event)
 
     def draw(self, surface: Surface) -> None:
         if self._gamepads_dirty:
@@ -176,9 +203,17 @@ class GamepadCalibrationWidget(BaseWidget):
                                                   ("Brake", "brake")]):
                     data = settings[key]
                     if data["axis"] is not None:
-                        self._draw_bar(surface, label, safe_get_axis(data["axis"]),
-                                       data["min"], data["max"], data.get("center"),
+                        value = safe_get_axis(data["axis"])
+                        min_val = data["min"]
+                        max_val = data["max"]
+                        center_val = data.get("center")
+                        if self.invert_axes.get(key):
+                            min_val, max_val = max_val, min_val
+                        self._draw_bar(surface, label, value,
+                                       min_val, max_val, center_val,
                                        x=self.x + 150, y=y_base + i * self.BAR_SPACING)
+                        self.invert_checkboxes[key].set_position(self.x + 580, y_base + i * self.BAR_SPACING)
+                        self.invert_checkboxes[key].draw(surface)
 
         elif self.calibrator.stage is not None:
             for i, (label, active) in enumerate(self.calibrator.get_steps()):
@@ -198,10 +233,12 @@ class GamepadCalibrationWidget(BaseWidget):
 
         pygame.draw.rect(surface, GREY, (x, y, width, height), 1)
         fill_ratio = (value - min_val) / (max_val - min_val) if max_val != min_val else 0.5
+        fill_ratio = max(0.0, min(1.0, fill_ratio))
         fill_px = int(fill_ratio * width)
         pygame.draw.rect(surface, WHITE, (x, y, fill_px, height))
 
         if center_val is not None:
             center_ratio = (center_val - min_val) / (max_val - min_val) if max_val != min_val else 0.5
+            center_ratio = max(0.0, min(1.0, center_ratio))
             center_px = int(center_ratio * width)
             pygame.draw.line(surface, (200, 200, 0), (x + center_px, y), (x + center_px, y + height), 2)
