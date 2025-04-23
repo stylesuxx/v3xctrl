@@ -104,6 +104,9 @@ class GamepadCalibrationWidget(BaseWidget):
         guid = js.get_guid()
         if guid in self.known_calibrations:
             settings = self.known_calibrations[guid]
+            for k in ["steering", "throttle", "brake"]:
+                if "invert" not in settings.get(k, {}):
+                    settings.setdefault(k, {})["invert"] = False
             self.calibrator = GamepadCalibrator(lambda: None, lambda: None)
             self.calibrator.state = CalibratorState.COMPLETE
             self.calibrator._settings = settings
@@ -154,10 +157,13 @@ class GamepadCalibrationWidget(BaseWidget):
 
     def handle_event(self, event: pygame.event.Event) -> None:
         if self.gamepads:
-            self.calibrate_button.handle_event(event)
-            self.controller_select.handle_event(event)
-            for checkbox in self.invert_checkboxes.values():
-                checkbox.handle_event(event)
+            if self.controller_select.expanded:
+                self.controller_select.handle_event(event)
+            else:
+                self.calibrate_button.handle_event(event)
+                self.controller_select.handle_event(event)
+                for checkbox in self.invert_checkboxes.values():
+                    checkbox.handle_event(event)
 
     def draw(self, surface: Surface) -> None:
         if self._gamepads_dirty:
@@ -173,8 +179,8 @@ class GamepadCalibrationWidget(BaseWidget):
             surface.blit(text, rect)
             return
 
-        self.controller_select.draw(surface)
         self.calibrate_button.draw(surface)
+        self.controller_select.draw(surface)
 
         if not self.calibrator:
             return
