@@ -20,14 +20,14 @@ PART="/dev/mmcblk0p3"
 echo "[rc-firstboot] Resizing $PART to fill disk..."
 parted -s /dev/mmcblk0 resizepart 3 100%
 partprobe
-
 sleep 2
 udevadm settle
-
+e2fsck -fy "$PART"
+mount "$PART" /data && umount /data
 e2fsck -fy "$PART"
 resize2fs "$PART"
 
-echo "[HOST] Updating /etc/fstab with /data and mounting"
+echo "[rc-firstboot] Updating /etc/fstab with /data and mounting"
 PARTUUID=$(blkid -s PARTUUID -o value "${PART}")
 tee -a "/etc/fstab" > /dev/null <<EOF
 PARTUUID=${PARTUUID} /data ext4 defaults 0 2
