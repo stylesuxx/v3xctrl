@@ -65,12 +65,6 @@ echo "[HOST] Creating structure under /data"
 mkdir -p "${MOUNT_DIR}/data"/{log,config,recordings}
 chmod a+rw "${MOUNT_DIR}/data/recordings"
 
-echo "[HOST] Updating /etc/fstab with /data"
-PARTUUID=$(blkid -s PARTUUID -o value "${LOOP_DEV}p3")
-tee -a "$MOUNT_DIR/etc/fstab" > /dev/null <<EOF
-PARTUUID=${PARTUUID} /data ext4 defaults 0 2
-EOF
-
 echo "[HOST] Binding system directories..."
 for d in $MOUNT_BIND_DIRS; do
   mount --bind /$d "$MOUNT_DIR/$d"
@@ -83,23 +77,11 @@ cp /usr/bin/qemu-aarch64-static "$MOUNT_DIR/usr/bin/"
 echo "[HOST] Copying .deb files into image"
 cp "$DEB_DIR"/*.deb "$MOUNT_DIR/tmp/"
 
-echo "[HOST] Linking /var/log to /data/log"
-mv "$MOUNT_DIR/var/log" "${MOUNT_DIR}/data"
-rm -rf "$MOUNT_DIR/var/log"
-ln -s /data/log "$MOUNT_DIR/var/log"
-
 echo "[HOST] Entering chroot to install packages and configure serial login"
 cp "./build/chroot/customize-image.sh" "${MOUNT_DIR}"
 chmod +x "${MOUNT_DIR}/customize-image.sh"
 chroot "$MOUNT_DIR" "/customize-image.sh"
 rm "${MOUNT_DIR}/customize-image.sh"
-
-echo "[HOST] Move config files to persistent storage"
-if [ -f "$MOUNT_DIR/etc/v3xctrl/config.json" ]; then
-    chmod a+r "$MOUNT_DIR/etc/v3xctrl/config.json"
-    mv "$MOUNT_DIR/etc/v3xctrl/config.json" "$MOUNT_DIR/data/config/config.json"
-    ln -sf /data/config/config.json "$MOUNT_DIR/etc/v3xctrl/config.json"
-fi
 
 echo "[HOST] Adjust SSH welcome message"
 if grep -qE '^\s*PrintLastLog' "$SSHD_CONFIG"; then
