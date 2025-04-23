@@ -10,8 +10,6 @@
 set -xe
 exec > /boot/firstboot.log 2>&1
 
-#local cmdline="/boot/cmdline.txt"
-
 while [ -f "/var/lib/raspberrypi-sys-mods/set-wlan" ]; do
   echo "[rc-firstboot] Waiting for set-wlan to finish..."
   sleep 1
@@ -19,20 +17,39 @@ done
 
 PART="/dev/mmcblk0p3"
 
-# Preferably we do this during image creation, but those configs are not yet in
-# place and are only generated during firstboot.
-echo "[rc-firstboot] Moving configs into place..."
-if [ -f "/etc/wpa_supplicant/wpa_supplicant.conf" ]; then
-  mv "/etc/wpa_supplicant/wpa_supplicant.conf" "/data/config/wpa_supplicant.conf"
-  ln -sf /data/config/wpa_supplicant.conf "/etc/wpa_supplicant/wpa_supplicant.conf"
-fi
-
 echo "[rc-firstboot] Resizing $PART to fill disk..."
-umount "${PART}"
 parted -s /dev/mmcblk0 resizepart 3 100%
 partprobe
+
+sleep 2
+udevadm settle
+
 e2fsck -fy "$PART"
 resize2fs "$PART"
+
+echo "[HOST] Updating /etc/fstab with /data and mounting"
+PARTUUID=$(blkid -s PARTUUID -o value "${PART}")
+tee -a "/etc/fstab" > /dev/null <<EOF
+PARTUUID=${PARTUUID} /data ext4 defaults 0 2
+EOF
+
+mount /data
+
+echo "[rc-firstboot] Linking /var/log to /data/log"
+mv "/var/log" "/data"
+ln -s /data/log "/var/log"
+
+echo "[rc-firstboot] Move config files to persistent storage"
+if [ -f "/etc/v3xctrl/config.json" ]; then
+    chmod a+r "/etc/v3xctrl/config.json"
+    mv "/etc/v3xctrl/config.json" "/data/config/config.json"
+    ln -sf "/data/config/config.json" "/etc/v3xctrl/config.json"
+fi
+
+if [ -f "/etc/wpa_supplicant/wpa_supplicant.conf" ]; then
+  mv "/etc/wpa_supplicant/wpa_supplicant.conf" "/data/config/wpa_supplicant.conf"
+  ln -sf "/data/config/wpa_supplicant.conf" "/etc/wpa_supplicant/wpa_supplicant.conf"
+fi
 
 # Enable overlay fs
 # This creates /boot/initrd.img* and adds boot=overlay to cmdline.txt

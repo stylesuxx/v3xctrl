@@ -11,27 +11,21 @@ locale-gen
 echo "LANG=$LOCALE" > /etc/default/locale
 update-locale LANG=$LOCALE
 
-echo '[CHROOT] Disabling libc-bin postinst to avoid qemu segfault...'
-if [ -f /var/lib/dpkg/info/libc-bin.postinst ]; then
-  mv /var/lib/dpkg/info/libc-bin.postinst /var/lib/dpkg/info/libc-bin.postinst.bak
-  echo '#!/bin/sh' > /var/lib/dpkg/info/libc-bin.postinst
-  chmod +x /var/lib/dpkg/info/libc-bin.postinst
-fi
-
-echo '[CHROOT] Installing .deb packages...'
+echo '[CHROOT] Installing dependencies...'
 apt-get update
 apt install -y samba
-apt install -y /tmp/*.deb || true
-dpkg --configure -a || true
+apt install -y /tmp/*.deb
 
 rm -f /tmp/*.deb
 apt-get clean
 
-systemctl disable smbd
+echo '[CHROOT] Enabling firstboot service...'
+systemctl enable rc-firstboot.service
 
-echo '[CHROOT] Restoring libc-bin postinst...'
-if [ -f /var/lib/dpkg/info/libc-bin.postinst.bak ]; then
-  mv /var/lib/dpkg/info/libc-bin.postinst.bak /var/lib/dpkg/info/libc-bin.postinst
-fi
+echo '[CHROOT] Setting up Samba...'
+usermod -s /bin/bash "${USER}"
+echo -e "${USER}\n${USER}" | smbpasswd -a -s "${USER}"
+smbpasswd -e "${USER}"
+systemctl disable smbd
 
 chown $USER:$USER '/data/recordings'

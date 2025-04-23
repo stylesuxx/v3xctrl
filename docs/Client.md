@@ -54,7 +54,7 @@ journalctl -u rc-config-server -n50
 
 ### rc-config-server (enabled by default)
 
-This service is responsible for the confiugration web interface. It is running on port 5000 by default and can be accessed via `http://$CLIENT_IP:5000/`.
+This service is responsible for the confiugration web interface. It is running on port 5000 by default and can be accessed via `http://v3xctrl.local:5000/`.
 
 ### rc-wifi-mode (enabled by default)
 
@@ -79,3 +79,9 @@ This service is responsible for sending the video feed to the server.
 This service is responsible for the control connection between client and server and is ultimately what controls the actuators.
 
 > This service is not meant to be enabled. It is started by the `rc-service-manager` service if autostart is enabled in the config.
+
+### SAMBA share
+
+There is a samba share for the recordings directory. You can access it via `smb://v3xctrl.local/recordings`. Use the username and password are both `v3xctrl`.
+
+Samba is not enabled by default, you need to enable it in the config in the `Extras` section.
