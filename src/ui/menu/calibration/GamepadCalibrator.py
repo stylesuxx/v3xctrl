@@ -1,33 +1,7 @@
 import pygame
-from enum import Enum, auto
-from dataclasses import dataclass, field
 from typing import Optional, Callable, List, Dict, Tuple
 
-
-class CalibrationStage(Enum):
-    STEERING = "steering"
-    STEERING_CENTER = "steering_center"
-    THROTTLE = "throttle"
-    BRAKE = "brake"
-
-
-class CalibratorState(Enum):
-    PAUSE = auto()
-    ACTIVE = auto()
-    COMPLETE = auto()
-
-
-@dataclass
-class AxisCalibrationData:
-    axis: Optional[int] = None
-    baseline: Optional[List[float]] = None
-    detection_frames: int = 0
-    max_values: List[float] = field(default_factory=list)
-    max_last: Optional[float] = None
-    max_stable: int = 0
-    idle_last: Optional[float] = None
-    idle_stable: int = 0
-    idle_samples: List[float] = field(default_factory=list)
+from ui.menu.calibration.defs import CalibrationStage, CalibratorState, AxisCalibrationData
 
 
 class GamepadCalibrator:
@@ -49,12 +23,13 @@ class GamepadCalibrator:
     def __init__(self,
                  on_start: Optional[Callable[[], None]] = None,
                  on_done: Optional[Callable[[], None]] = None):
+        self.on_start = on_start
+        self.on_done = on_done
+
         self.stage: Optional[CalibrationStage] = None
         self.state: CalibratorState = CalibratorState.PAUSE
         self.pause_start_time: int = 0
         self.pending_stage: Optional[CalibrationStage] = None
-        self.on_start = on_start
-        self.on_done = on_done
         self.axes: Dict[str, AxisCalibrationData] = {
             "steering": AxisCalibrationData(),
             "throttle": AxisCalibrationData(),
@@ -64,8 +39,9 @@ class GamepadCalibrator:
     def start(self) -> None:
         if self.on_start:
             self.on_start()
-        self.stage = CalibrationStage.STEERING
+
         self.state = CalibratorState.ACTIVE
+        self.stage = CalibrationStage.STEERING
 
     def _pause_and_queue(self, next_stage: CalibrationStage) -> None:
         self.state = CalibratorState.PAUSE
@@ -79,6 +55,7 @@ class GamepadCalibrator:
             label = self.STEP_LABELS.get(key)
             if label:
                 steps.append((label, key == active_stage))
+
         return steps
 
     def update(self, axes: List[float]) -> None:
@@ -87,6 +64,7 @@ class GamepadCalibrator:
                 self.stage = self.pending_stage
                 self.pending_stage = None
                 self.state = CalibratorState.ACTIVE
+
             return
 
         if self.state != CalibratorState.ACTIVE or self.stage is None:
@@ -99,17 +77,15 @@ class GamepadCalibrator:
         elif self.stage == CalibrationStage.THROTTLE:
             self._detect_and_record_axis('throttle', axes, exclude=['steering'], next_stage=CalibrationStage.BRAKE)
         elif self.stage == CalibrationStage.BRAKE:
-            self._detect_and_record_axis('brake', axes, exclude=['steering', 'throttle'], on_complete=self._complete)
+            self._detect_and_record_axis('brake', axes, exclude=['steering'], on_complete=self._complete)
 
     def _detect_and_record_axis(self,
                                  name: str,
                                  axes: List[float],
-                                 exclude: Optional[List[str]] = None,
+                                 exclude: List[str] = [],
                                  next_stage: Optional[CalibrationStage] = None,
                                  on_complete: Optional[Callable[[], None]] = None) -> None:
         axis_data = self.axes[name]
-        if exclude is None:
-            exclude = []
         excluded_indices = [self.axes[e].axis for e in exclude if self.axes[e].axis is not None]
 
         if axis_data.axis is None:
@@ -167,11 +143,13 @@ class GamepadCalibrator:
                         self._pause_and_queue(next_stage)
             else:
                 axis_data.idle_stable = 0
+
             axis_data.idle_last = value
 
     def _complete(self) -> None:
         self.state = CalibratorState.COMPLETE
         self.stage = None
+
         if self.on_done:
             self.on_done()
 
