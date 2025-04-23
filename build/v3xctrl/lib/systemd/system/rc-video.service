@@ -15,7 +15,7 @@ Group=v3xctrl
 
 # Real-time priority
 CPUSchedulingPolicy=rr
-CPUSchedulingPriority=99
+CPUSchedulingPriority=95
 
 # Highest I/O priority
 IOSchedulingClass=realtime
