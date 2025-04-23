@@ -83,15 +83,16 @@ cp /usr/bin/qemu-aarch64-static "$MOUNT_DIR/usr/bin/"
 echo "[HOST] Copying .deb files into image"
 cp "$DEB_DIR"/*.deb "$MOUNT_DIR/tmp/"
 
+echo "[HOST] Linking /var/log to /data/log"
+mv "$MOUNT_DIR/var/log" "${MOUNT_DIR}/data"
+rm -rf "$MOUNT_DIR/var/log"
+ln -s /data/log "$MOUNT_DIR/var/log"
+
 echo "[HOST] Entering chroot to install packages and configure serial login"
 cp "./build/chroot/customize-image.sh" "${MOUNT_DIR}"
 chmod +x "${MOUNT_DIR}/customize-image.sh"
 chroot "$MOUNT_DIR" "/customize-image.sh"
 rm "${MOUNT_DIR}/customize-image.sh"
-
-echo "[HOST] Linking /var/log to /data/log"
-rm -rf "$MOUNT_DIR/var/log"
-ln -s /data/log "$MOUNT_DIR/var/log"
 
 echo "[HOST] Move config files to persistent storage"
 if [ -f "$MOUNT_DIR/etc/v3xctrl/config.json" ]; then
