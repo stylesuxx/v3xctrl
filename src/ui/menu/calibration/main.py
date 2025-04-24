@@ -3,12 +3,14 @@ from pygame.freetype import SysFont
 
 from ui.colors import DARK_GREY
 from ui.menu.calibration.GamepadCalibrationWidget import GamepadCalibrationWidget
+from ui.menu.calibration.GamepadManager import GamepadManager
 
-# Optional: Preloaded calibration data for a known GUID (mocked here for example)
-known_calibrations = {
+
+# This mocks what will be saved in the config file after a calibration
+calibrations = {
     "030003f05e0400008e02000010010000": {
         "steering": {"axis": 0, "min": -1.0, "max": 1.0, "center": 0.0},
-        "throttle": {"axis": 4, "min": -1.0, "max": 0.0, "center": None},
+        "throttle": {"axis": 4, "min": -1.0, "max": 0.0, "center": None, "invert": True},
         "brake": {"axis": 4, "min": 0.0, "max": 1.0, "center": None},
     }
 }
@@ -29,13 +31,18 @@ pygame.display.set_caption("Gamepad Calibration")
 clock = pygame.time.Clock()
 font = SysFont("Arial", 24)
 
-# Initialize the calibration widget with callback and known calibrations
+gamepad_manager = GamepadManager()
+for guid, calibration in calibrations.items():
+    gamepad_manager.set_calibration(guid, calibration)
+
 calibration_widget = GamepadCalibrationWidget(
     font=font,
-    on_calibration_done=on_calibration_done,
-    known_calibrations=known_calibrations
+    manager=gamepad_manager,
+    on_calibration_done=on_calibration_done
 )
 calibration_widget.set_position(50, 50)
+
+gamepad_manager.start()
 
 running = True
 while running:
@@ -51,7 +58,7 @@ while running:
     pygame.display.flip()
     clock.tick(30)
 
-calibration_widget.manager.stop()
-calibration_widget.manager.join()
+gamepad_manager.stop()
+gamepad_manager.join()
 
 pygame.quit()
