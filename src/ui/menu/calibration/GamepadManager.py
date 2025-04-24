@@ -1,6 +1,6 @@
 import pygame
 import threading
-from typing import Callable, List
+from typing import Callable, List, Optional, Dict
 
 
 class GamepadManager:
@@ -12,7 +12,12 @@ class GamepadManager:
         self._lock = threading.Lock()
         self._gamepads: List[pygame.joystick.Joystick] = []
         self._selected_index: int = 0
+        self._settings: Dict[str, dict] = {}  # Calibration/settings per GUID
         self._observers: List[Callable[[List[pygame.joystick.Joystick]], None]] = []
+
+        self._active_guid: Optional[str] = None
+        self._active_gamepad: Optional[pygame.joystick.Joystick] = None
+        self._active_settings: Optional[dict] = None
 
         self._stop_event = threading.Event()
         self._thread = threading.Thread(target=self._background_loop, daemon=True)
@@ -52,13 +57,67 @@ class GamepadManager:
         with self._lock:
             self._observers.append(callback)
 
-    def get_selected_index(self) -> int:
+    def get_gamepads(self) -> List[pygame.joystick.Joystick]:
+        return list(self._gamepads)
+
+    def get_selected_gamepad(self) -> Optional[pygame.joystick.Joystick]:
         with self._lock:
-            return self._selected_index
+            if 0 <= self._selected_index < len(self._gamepads):
+                return self._gamepads[self._selected_index]
+            return None
+
+    def get_selected_index(self) -> int:
+        return self._selected_index
 
     def set_selected_index(self, index: int):
         with self._lock:
             self._selected_index = index
+
+    def set_calibration(self, guid: str, settings: dict):
+        with self._lock:
+            self._settings[guid] = settings
+
+    def get_calibration(self, guid: str) -> Optional[dict]:
+        return self._settings.get(guid)
+
+    def set_active(self, guid: str):
+        with self._lock:
+            js = next((j for j in self._gamepads if j.get_guid() == guid), None)
+            settings = self._settings.get(guid)
+
+            self._active_guid = None
+            self._active_gamepad = None
+            self._active_settings = None
+            if js and settings:
+                if not js.get_init():
+                    js.init()
+                self._active_guid = guid
+                self._active_gamepad = js
+                self._active_settings = settings
+
+    def read_inputs(self) -> Optional[Dict[str, float]]:
+        js, settings = self._active_gamepad, self._active_settings
+        if not js or not js.get_init() or not settings:
+            return None
+
+        pygame.event.pump()
+        values = {}
+        for key, cfg in settings.items():
+            axis = cfg.get("axis")
+            if axis is not None and 0 <= axis < js.get_numaxes():
+                try:
+                    raw = js.get_axis(axis)
+                    if cfg.get("invert"):
+                        raw = -raw
+                    min_val = cfg.get("min", -1)
+                    max_val = cfg.get("max", 1)
+                    norm = (raw - min_val) / (max_val - min_val) if max_val != min_val else 0.5
+                    norm = max(0.0, min(1.0, norm))
+                    values[key] = norm
+                except pygame.error:
+                    continue
+
+        return values
 
     def stop(self):
         self._stop_event.set()
