@@ -7,6 +7,9 @@
 # before we can set the partitions RO - otherwise we risk that the set-wlan
 # service does it's job, but never actually deletes itself.
 
+# If at all possible add functionality to the image customization script instead
+# of here. Only things that really NEED to be don here, should be.
+
 set -xe
 exec > /boot/firstboot.log 2>&1
 
