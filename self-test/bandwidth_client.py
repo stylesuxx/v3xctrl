@@ -97,7 +97,7 @@ def monitor_and_test(server_ip: str, port: int, modem: str):
                 print(f"[{timestamp}] RSRQ: {rsrq_dbm:.1f}, RSRP: {rsrp_dbm} dBm, Speed: {mbps:.2f} Mbps" if mbps else f"[{timestamp}] RSRQ: {rsrq_dbm:.1f}, RSRP: {rsrp_dbm} dBm, Upload failed.")
                 last_rsrp_dbm = rsrp_dbm
 
-            time.sleep(0.001)
+            time.sleep(0.02)
     except KeyboardInterrupt:
         print("\nStopped by user.")
 

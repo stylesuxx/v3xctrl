@@ -67,7 +67,7 @@ class UDPTransmitter(threading.Thread):
                 except Exception as e:
                     logging.error(f"Unexpected transmit error: {e}", exc_info=True)
 
-                await asyncio.sleep(0.001)
+                await asyncio.sleep(0.02)
 
         except asyncio.CancelledError:
             logging.info("Transmit task cancelled.")
