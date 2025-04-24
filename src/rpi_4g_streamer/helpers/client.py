@@ -94,7 +94,7 @@ def map_range(
 
 def control_handler(message: Control) -> None:
     values = message.get_values()
-    
+
     # Determine throttle pulse forward or reverse
     if values['throttle'] > 0:
         throttle_value = map_range(values['throttle'], 0, 1, throttle_idle, throttle_max)

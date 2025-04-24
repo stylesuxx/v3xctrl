@@ -3,75 +3,69 @@ import threading
 from typing import Callable, List, Optional, Dict
 
 
-class GamepadManager:
+class GamepadManager(threading.Thread):
     REFRESH_INTERVAL_MS = 1000
 
     def __init__(self):
+        super().__init__(daemon=True)
         pygame.joystick.init()
 
         self._lock = threading.Lock()
-        self._gamepads: List[pygame.joystick.Joystick] = []
-        self._selected_index: int = 0
+        self._gamepads: Dict[str, pygame.joystick.Joystick] = {}
         self._settings: Dict[str, dict] = {}  # Calibration/settings per GUID
-        self._observers: List[Callable[[List[pygame.joystick.Joystick]], None]] = []
+        self._observers: List[Callable[[Dict[str, pygame.joystick.Joystick]], None]] = []
 
         self._active_guid: Optional[str] = None
         self._active_gamepad: Optional[pygame.joystick.Joystick] = None
         self._active_settings: Optional[dict] = None
 
         self._stop_event = threading.Event()
-        self._thread = threading.Thread(target=self._background_loop, daemon=True)
-        self._thread.start()
 
-    def _background_loop(self):
+    def run(self):
         while not self._stop_event.is_set():
-            gamepads = []
+            gamepads: Dict[str, pygame.joystick.Joystick] = {}
             for i in range(pygame.joystick.get_count()):
                 try:
                     js = pygame.joystick.Joystick(i)
                     if not js.get_init():
                         js.init()
-                    gamepads.append(js)
+                    gamepads[js.get_guid()] = js
                 except pygame.error:
                     continue
 
-            with self._lock:
-                changed = self._gamepads_changed(gamepads)
-                if changed:
-                    self._gamepads = gamepads
-                    self._selected_index = min(self._selected_index, len(gamepads) - 1)
-                observers = list(self._observers)
+            guids = set(gamepads.keys())
+            previous_guids = set(self._gamepads.keys())
 
-            for cb in observers:
-                cb(gamepads)
+            if guids != previous_guids:
+                with self._lock:
+                    self._gamepads = gamepads
+
+                    # If active GUID still matches one of the new gamepads, rebind it
+                    if self._active_guid:
+                        matching = gamepads.get(self._active_guid)
+                        if matching:
+                            if not self._active_gamepad or not self._active_settings:
+                                self._set_active_unlocked(self._active_guid)
+                        else:
+                            self._active_gamepad = None
+                            self._active_settings = None
+
+                    observers = list(self._observers)
+
+                for cb in observers:
+                    cb(gamepads)
 
             pygame.time.wait(self.REFRESH_INTERVAL_MS)
-
-    def _gamepads_changed(self, new_gamepads: List[pygame.joystick.Joystick]) -> bool:
-        return (
-            len(new_gamepads) != len(self._gamepads) or
-            any(a.get_instance_id() != b.get_instance_id() for a, b in zip(new_gamepads, self._gamepads))
-        )
 
     def add_observer(self, callback: Callable[[List[pygame.joystick.Joystick]], None]):
         with self._lock:
             self._observers.append(callback)
 
     def get_gamepads(self) -> List[pygame.joystick.Joystick]:
-        return list(self._gamepads)
+        return self._gamepads
 
-    def get_selected_gamepad(self) -> Optional[pygame.joystick.Joystick]:
-        with self._lock:
-            if 0 <= self._selected_index < len(self._gamepads):
-                return self._gamepads[self._selected_index]
-            return None
-
-    def get_selected_index(self) -> int:
-        return self._selected_index
-
-    def set_selected_index(self, index: int):
-        with self._lock:
-            self._selected_index = index
+    def get_gamepad(self, guid: str) -> pygame.joystick.Joystick:
+        return self._gamepads[guid]
 
     def set_calibration(self, guid: str, settings: dict):
         with self._lock:
@@ -82,25 +76,30 @@ class GamepadManager:
 
     def set_active(self, guid: str):
         with self._lock:
-            js = next((j for j in self._gamepads if j.get_guid() == guid), None)
-            settings = self._settings.get(guid)
+            self._set_active_unlocked(guid)
 
-            self._active_guid = None
-            self._active_gamepad = None
-            self._active_settings = None
-            if js and settings:
-                if not js.get_init():
-                    js.init()
-                self._active_guid = guid
-                self._active_gamepad = js
-                self._active_settings = settings
+    def _set_active_unlocked(self, guid: str):
+        self._active_guid = guid
+
+        js = self._gamepads.get(self._active_guid)
+        settings = self._settings.get(self._active_guid)
+
+        self._active_gamepad = None
+        self._active_settings = None
+        if js and settings:
+            if not js.get_init():
+                js.init()
+            self._active_gamepad = js
+            self._active_settings = settings
 
     def read_inputs(self) -> Optional[Dict[str, float]]:
-        js, settings = self._active_gamepad, self._active_settings
+        with self._lock:
+            js = self._active_gamepad
+            settings = self._active_settings
+
         if not js or not js.get_init() or not settings:
             return None
 
-        pygame.event.pump()
         values = {}
         for key, cfg in settings.items():
             axis = cfg.get("axis")
@@ -121,4 +120,3 @@ class GamepadManager:
 
     def stop(self):
         self._stop_event.set()
-        self._thread.join()

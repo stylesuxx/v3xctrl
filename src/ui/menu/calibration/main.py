@@ -51,4 +51,7 @@ while running:
     pygame.display.flip()
     clock.tick(30)
 
+calibration_widget.manager.stop()
+calibration_widget.manager.join()
+
 pygame.quit()
