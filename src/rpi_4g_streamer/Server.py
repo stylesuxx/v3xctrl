@@ -65,7 +65,7 @@ class Server(Base):
             if self.state == State.CONNECTED:
                 self.check_heartbeat()
 
-            time.sleep(0.001)
+            time.sleep(0.02)
 
     def stop(self):
         if self.started.is_set():
