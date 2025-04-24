@@ -19,11 +19,17 @@ class GamepadCalibrationWidget(BaseWidget):
     BAR_SPACING = 50
     INSTRUCTION_Y_OFFSET = 140
 
-    def __init__(self, font: Font, on_calibration_done: Callable[[str, dict], None] = lambda guid, settings: None, known_calibrations: Dict[str, dict] = {}):
+    def __init__(
+        self,
+        font: Font,
+        manager: GamepadManager,
+        on_calibration_done: Callable[[str, dict], None] = lambda guid, settings: None,
+    ):
         super().__init__()
         self.font = font
+        self.manager = manager
         self.on_calibration_done = on_calibration_done
-        self.known_calibrations = known_calibrations
+
         self.selected_guid: Optional[str] = None
         self.calibrator: Optional[GamepadCalibrator] = None
         self.invert_axes: Dict[str, bool] = {k: False for k in ["steering", "throttle", "brake"]}
@@ -33,9 +39,7 @@ class GamepadCalibrationWidget(BaseWidget):
         self.calibrate_button: Button
         self.invert_checkboxes: Dict[str, Checkbox]
 
-        self.manager = GamepadManager()
         self.manager.add_observer(self._on_gamepads_changed)
-        self.manager.start()
 
         self._create_ui(font)
         self.set_position(self.x, self.y)
@@ -119,7 +123,8 @@ class GamepadCalibrationWidget(BaseWidget):
                 for k in settings_with_inversion:
                     settings_with_inversion[k]["invert"] = self.invert_axes.get(k, False)
 
-                self.known_calibrations[guid] = settings_with_inversion
+                self.manager.set_calibration(guid, settings_with_inversion)
+                self.manager.set_active(guid)
                 self.on_calibration_done(guid, settings_with_inversion)
 
         self.calibrator = GamepadCalibrator(
@@ -139,15 +144,15 @@ class GamepadCalibrationWidget(BaseWidget):
 
     def _apply_known_calibration(self, js: pygame.joystick.Joystick) -> None:
         guid = js.get_guid()
-        if guid in self.known_calibrations:
-            settings = self.known_calibrations[guid]
-            for k in ["steering", "throttle", "brake"]:
-                if "invert" not in settings.get(k, {}):
-                    settings.setdefault(k, {})["invert"] = False
+        settings = self.manager.get_calibration(guid)
+        if settings:
+            self.manager.set_active(guid)  # <-- this line is the fix
+
             self.calibrator = GamepadCalibrator(lambda: None, lambda: None)
             self.calibrator.state = CalibratorState.COMPLETE
             self.calibrator._settings = settings
             self.calibrator.get_settings = lambda: settings
+
             for k in self.invert_axes:
                 self.invert_axes[k] = settings.get(k, {}).get("invert", False)
                 self.invert_checkboxes[k].checked = self.invert_axes[k]
@@ -157,9 +162,11 @@ class GamepadCalibrationWidget(BaseWidget):
         js = self.gamepads.get(self.selected_guid)
         if js:
             guid = js.get_guid()
-            if guid in self.known_calibrations:
-                self.known_calibrations[guid][key]["invert"] = state
-                self.on_calibration_done(guid, self.known_calibrations[guid])
+            settings = self.manager.get_calibration(guid)
+            if settings:
+                settings[key]["invert"] = state
+                self.manager.set_calibration(guid, settings)
+                self.on_calibration_done(guid, settings)
 
     def draw(self, surface: Surface) -> None:
         if not self.gamepads:
@@ -194,34 +201,36 @@ class GamepadCalibrationWidget(BaseWidget):
             self.calibrator.update(axes)
 
     def _draw_calibration_bars(self, surface: Surface):
-        settings = self.calibrator.get_settings()
-        js = self.gamepads.get(self.selected_guid)
-        if not js:
+        inputs = self.manager.read_inputs()
+        if not inputs:
             return
 
-        def safe_get_axis(axis_idx):
-            try:
-                return js.get_axis(axis_idx)
-            except (AttributeError, IndexError, pygame.error):
-                return 0.0
+        settings = self.manager.get_calibration(self.selected_guid)
+        if not settings:
+            return
 
         y_base = self.y + self.INSTRUCTION_Y_OFFSET
         for i, (label, key) in enumerate([("Steering", "steering"),
                                           ("Throttle", "throttle"),
                                           ("Brake", "brake")]):
-            data = settings[key]
-            if data["axis"] is not None:
-                value = safe_get_axis(data["axis"])
-                min_val = data["min"]
-                max_val = data["max"]
-                center_val = data.get("center")
-                if self.invert_axes.get(key):
-                    min_val, max_val = max_val, min_val
-                self._draw_bar(surface, label, value,
-                               min_val, max_val, center_val,
-                               x=self.x + 150, y=y_base + i * self.BAR_SPACING)
-                self.invert_checkboxes[key].set_position(self.x + 580, y_base + i * self.BAR_SPACING)
-                self.invert_checkboxes[key].draw(surface)
+            value = inputs.get(key, 0.0)
+            config = settings.get(key, {})
+            min_val = config.get("min", -1.0)
+            max_val = config.get("max", 1.0)
+            center_val = config.get("center")
+            is_inverted = config.get("invert", False)
+
+            if center_val is None and is_inverted:
+                min_val, max_val = -max_val, -min_val
+
+            self._draw_bar(
+                surface, label, value,
+                min_val, max_val, center_val,
+                x=self.x + 150, y=y_base + i * self.BAR_SPACING
+            )
+
+            self.invert_checkboxes[key].set_position(self.x + 580, y_base + i * self.BAR_SPACING)
+            self.invert_checkboxes[key].draw(surface)
 
     def _draw_calibration_steps(self, surface: Surface):
         y_base = self.y + self.INSTRUCTION_Y_OFFSET

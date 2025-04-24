@@ -1,6 +1,21 @@
+"""
+GamepadManager does what the name implies:
+* Checks for new gampepads regularly
+* Updates the list of active gamepads
+* Updates the list of active settings
+* Notifies observers when the list of gamepads or settings changes
+
+One gamepad can be active at a time, but there can be multiple gamepads
+connected. The manager will provide you with the latest input reads from the
+active gampad, normalized based on the calibration.
+
+NOTE: Make sure to add observers before starting the GampadManager, otherwise
+      you might miss the first update.
+"""
+
 import pygame
 import threading
-from typing import Callable, List, Optional, Dict
+from typing import Callable, List, Optional, Dict, Set
 
 
 class GamepadManager(threading.Thread):
@@ -19,6 +34,8 @@ class GamepadManager(threading.Thread):
         self._active_gamepad: Optional[pygame.joystick.Joystick] = None
         self._active_settings: Optional[dict] = None
 
+        self._previous_guids: Set[str] = set()
+
         self._stop_event = threading.Event()
 
     def run(self):
@@ -34,11 +51,10 @@ class GamepadManager(threading.Thread):
                     continue
 
             guids = set(gamepads.keys())
-            previous_guids = set(self._gamepads.keys())
-
-            if guids != previous_guids:
+            if guids != self._previous_guids:
                 with self._lock:
                     self._gamepads = gamepads
+                    self._previous_guids = guids
 
                     # If active GUID still matches one of the new gamepads, rebind it
                     if self._active_guid:
@@ -106,13 +122,19 @@ class GamepadManager(threading.Thread):
             if axis is not None and 0 <= axis < js.get_numaxes():
                 try:
                     raw = js.get_axis(axis)
+
+                    min_val = cfg.get("min", -1.0)
+                    max_val = cfg.get("max", 1.0)
+
                     if cfg.get("invert"):
                         raw = -raw
-                    min_val = cfg.get("min", -1)
-                    max_val = cfg.get("max", 1)
-                    norm = (raw - min_val) / (max_val - min_val) if max_val != min_val else 0.5
-                    norm = max(0.0, min(1.0, norm))
-                    values[key] = norm
+                        min_val, max_val = -min_val, -max_val
+
+                    lower = min(min_val, max_val)
+                    upper = max(min_val, max_val)
+                    clamped = max(lower, min(upper, raw))
+
+                    values[key] = clamped
                 except pygame.error:
                     continue
 

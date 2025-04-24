@@ -29,7 +29,9 @@ running = True
 while running:
     screen.fill(DARK_GREY)
 
-    pygame.event.get()
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
 
     inputs = gamepad_manager.read_inputs()
     print(inputs)
