@@ -1,7 +1,7 @@
 import pygame
 
 from ui.colors import DARK_GREY
-from ui.menu.calibration.GamepadManager import GamepadManager
+from ui.GamepadManager import GamepadManager
 
 active_guid = "030003f05e0400008e02000010010000"
 calibrations = {

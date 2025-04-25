@@ -80,11 +80,11 @@ class GamepadCalibrator:
             self._detect_and_record_axis('brake', axes, exclude=['steering'], on_complete=self._complete)
 
     def _detect_and_record_axis(self,
-                                 name: str,
-                                 axes: List[float],
-                                 exclude: List[str] = [],
-                                 next_stage: Optional[CalibrationStage] = None,
-                                 on_complete: Optional[Callable[[], None]] = None) -> None:
+                                name: str,
+                                axes: List[float],
+                                exclude: List[str] = [],
+                                next_stage: Optional[CalibrationStage] = None,
+                                on_complete: Optional[Callable[[], None]] = None) -> None:
         axis_data = self.axes[name]
         excluded_indices = [self.axes[e].axis for e in exclude if self.axes[e].axis is not None]
 
