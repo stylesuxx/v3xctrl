@@ -15,7 +15,7 @@ NOTE: Make sure to add observers before starting the GampadManager, otherwise
 
 import pygame
 import threading
-from typing import Callable, List, Optional, Dict, Set
+from typing import Callable, List, Optional, Dict, Set, Tuple
 
 
 class GamepadManager(threading.Thread):
@@ -111,6 +111,53 @@ class GamepadManager(threading.Thread):
             self._active_gamepad = js
             self._active_settings = settings
 
+    def _clamp(self, raw: float, min_val: float, max_val: float) -> float:
+        lower = min(min_val, max_val)
+        upper = max(min_val, max_val)
+        clamped = max(lower, min(upper, raw))
+
+        return clamped
+
+    def _remap_centered(self,
+                        value,
+                        calibrated: Tuple[float, float, float],
+                        normalized: Tuple[float, float, float]) -> float:
+        in_min, in_center, in_max = calibrated
+        out_min, out_center, out_max = normalized
+        if value < in_center:
+            in_span = in_center - in_min
+            out_span = out_center - out_min
+
+            if in_span == 0:
+                return 0
+
+            scale = (value - in_min) / in_span
+            return out_min + out_span * scale
+        else:
+            in_span = in_max - in_center
+            out_span = out_max - out_center
+
+            if in_span == 0:
+                return 0
+
+            scale = (value - in_center) / in_span
+            return out_center + scale * out_span
+
+    def _remap(self,
+               value,
+               calibrated: Tuple[float, float],
+               normalized: Tuple[float, float]) -> float:
+        in_min, in_max = calibrated
+        out_min, out_max = normalized
+        in_span = in_max - in_min
+        out_span = out_max - out_min
+
+        if in_span == 0:
+            return 0
+
+        scale = (value - in_min) / in_span
+        return out_min + scale * out_span
+
     def read_inputs(self) -> Optional[Dict[str, float]]:
         with self._lock:
             js = self._active_gamepad
@@ -125,19 +172,29 @@ class GamepadManager(threading.Thread):
             if axis is not None and 0 <= axis < js.get_numaxes():
                 try:
                     raw = js.get_axis(axis)
+                    normalized = 0
 
-                    min_val = cfg.get("min", -1.0)
-                    max_val = cfg.get("max", 1.0)
+                    invert = cfg.get("invert")
+                    min_cal = cfg.get("min")
+                    max_cal = cfg.get("max")
+                    raw = self._clamp(raw, min_cal, max_cal)
 
-                    if cfg.get("invert"):
-                        raw = -raw
-                        min_val, max_val = -min_val, -max_val
+                    center_cal = cfg.get("center", None)
+                    if center_cal is not None:
+                        cal = (min_cal, center_cal, max_cal)
+                        out = (-1.0, 0.0, 1.0)
 
-                    lower = min(min_val, max_val)
-                    upper = max(min_val, max_val)
-                    clamped = max(lower, min(upper, raw))
+                        normalized = self._remap_centered(raw, cal, out)
+                        if invert:
+                            normalized = -normalized
+                    else:
+                        if invert:
+                            min_cal, max_cal = max_cal, min_cal
+                        cal = (min_cal, max_cal)
+                        out = (0.0, 1.0)
+                        normalized = self._remap(raw, cal, out)
 
-                    values[key] = clamped
+                    values[key] = normalized
                 except pygame.error:
                     continue
 
