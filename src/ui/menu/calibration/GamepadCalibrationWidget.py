@@ -242,13 +242,14 @@ class GamepadCalibrationWidget(BaseWidget):
                                           ("Brake", "brake")]):
             value = inputs.get(key, 0.0)
             config = settings.get(key, {})
-            min_val = config.get("min", -1.0)
-            max_val = config.get("max", 1.0)
-            center_val = config.get("center")
-            is_inverted = config.get("invert", False)
 
-            if center_val is None and is_inverted:
-                min_val, max_val = -max_val, -min_val
+            center = config.get("center")
+            center_val = None
+            min_val = 0.0
+            max_val = 1.0
+            if center is not None:
+                center_val = 0.0
+                min_val = -1.0
 
             self._draw_bar(
                 surface, label, value,
