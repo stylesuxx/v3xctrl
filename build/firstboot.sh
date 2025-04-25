@@ -38,9 +38,18 @@ EOF
 
 mount /data
 
-echo "[rc-firstboot] Linking /var/log to /data/log"
+echo "[rc-firstboot] Linking /var/log and /var/swap"
 mv "/var/log" "/data"
-ln -s /data/log "/var/log"
+ln -s "/data/log" "/var/log"
+
+dphys-swapfile swapoff
+if [ -f /var/swap ]; then
+  mv "/var/swap" "/data/swap"
+fi
+sed -i \
+  -e 's|^#\?CONF_SWAPFILE=.*|CONF_SWAPFILE=/data/swap|' \
+  /etc/dphys-swapfile
+dphys-swapfile swapon
 
 echo "[rc-firstboot] Move config files to persistent storage"
 if [ -f "/etc/v3xctrl/config.json" ]; then
