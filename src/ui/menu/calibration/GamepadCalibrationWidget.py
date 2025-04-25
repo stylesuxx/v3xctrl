@@ -3,13 +3,13 @@ from pygame import Surface
 from pygame.freetype import Font
 from typing import Callable, Dict, Optional
 
+from ui.GamepadManager import GamepadManager
 from ui.menu.BaseWidget import BaseWidget
 from ui.menu.Button import Button
 from ui.menu.Select import Select
 from ui.menu.Checkbox import Checkbox
 from ui.colors import WHITE, GREY
 from ui.menu.calibration.GamepadCalibrator import GamepadCalibrator, CalibratorState
-from ui.menu.calibration.GamepadManager import GamepadManager
 
 
 class GamepadCalibrationWidget(BaseWidget):

@@ -2,8 +2,8 @@ import pygame
 from pygame.freetype import SysFont
 
 from ui.colors import DARK_GREY
+from ui.GamepadManager import GamepadManager
 from ui.menu.calibration.GamepadCalibrationWidget import GamepadCalibrationWidget
-from ui.menu.calibration.GamepadManager import GamepadManager
 
 
 # This mocks what will be saved in the config file after a calibration
