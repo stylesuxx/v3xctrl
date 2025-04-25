@@ -266,8 +266,8 @@ while state.running:
 
     state.clock.tick(FRAMERATE)
 
-state.shutdown()
 gamepad_manager.stop()
+state.shutdown()
 
 if mem_tracker:
     mem_tracker.stop()
