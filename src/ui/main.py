@@ -60,8 +60,8 @@ settings = Init.settings("settings.toml")
 # Those settings can be hot reloaded
 controls = settings.get("controls")
 debug = settings.get("debug")
-input = settings.get("input")
-calibrations = settings.get("calibrations")
+input = settings.get("input", {})
+calibrations = settings.get("calibrations", {})
 
 # Settings require restart to take effect
 PORTS = settings.get("ports")
@@ -101,7 +101,8 @@ def connect_handler(state) -> None:
 gamepad_manager = GamepadManager()
 for guid, calibration in calibrations.items():
     gamepad_manager.set_calibration(guid, calibration)
-gamepad_manager.set_active(input["guid"])
+if "guid" in input:
+    gamepad_manager.set_active(input["guid"])
 gamepad_manager.start()
 
 handlers = {
@@ -134,11 +135,12 @@ def update_settings():
     controls = settings.get("controls")
     debug = settings.get('debug')
 
-    input = settings.get("input")
-    calibrations = settings.get("calibrations")
+    input = settings.get("input", {})
+    calibrations = settings.get("calibrations", {})
     for guid, calibration in calibrations.items():
         gamepad_manager.set_calibration(guid, calibration)
-    gamepad_manager.set_active(input["guid"])
+    if "guid" in input:
+        gamepad_manager.set_active(input["guid"])
 
     state.menu = None
 
@@ -215,7 +217,7 @@ def update_all(state):
         state.steering = values["steering"]
         throttle = values["throttle"]
         brake = values["brake"]
-        state.throttle = (throttle - brake) / 2
+        state.throttle = (throttle - brake)
 
     if not state.server_error:
         state.server.send(Control({
