@@ -7,6 +7,7 @@ import time
 
 from ui.colors import BLACK, RED, WHITE
 from ui.helpers import get_external_ip
+from ui.menu.calibration.GamepadManager import GamepadManager
 from ui.menu.Menu import Menu
 from ui.Init import Init
 from ui.AppState import AppState
@@ -59,6 +60,8 @@ settings = Init.settings("settings.toml")
 # Those settings can be hot reloaded
 controls = settings.get("controls")
 debug = settings.get("debug")
+input = settings.get("input")
+calibrations = settings.get("calibrations")
 
 # Settings require restart to take effect
 PORTS = settings.get("ports")
@@ -95,6 +98,12 @@ def connect_handler(state) -> None:
     state.data = "success"
 
 
+gamepad_manager = GamepadManager()
+for guid, calibration in calibrations.items():
+    gamepad_manager.set_calibration(guid, calibration)
+gamepad_manager.set_active(input["guid"])
+gamepad_manager.start()
+
 handlers = {
     "messages": [(Telemetry, lambda m: telemetry_handler(state, m))],
     "states": [(State.CONNECTED, lambda: connect_handler(state)),
@@ -124,6 +133,12 @@ def update_settings():
 
     controls = settings.get("controls")
     debug = settings.get('debug')
+
+    input = settings.get("input")
+    calibrations = settings.get("calibrations")
+    for guid, calibration in calibrations.items():
+        gamepad_manager.set_calibration(guid, calibration)
+    gamepad_manager.set_active(input["guid"])
 
     state.menu = None
 
@@ -195,6 +210,13 @@ def update_all(state):
     state.throttle = state.key_handlers["throttle"].update(keys)
     state.steering = state.key_handlers["steering"].update(keys)
 
+    values = gamepad_manager.read_inputs()
+    if values:
+        state.steering = values["steering"]
+        throttle = values["throttle"]
+        brake = values["brake"]
+        state.throttle = (throttle - brake) / 2
+
     if not state.server_error:
         state.server.send(Control({
             "steering": state.steering,
@@ -240,6 +262,7 @@ while state.running:
     state.clock.tick(FRAMERATE)
 
 state.shutdown()
+gamepad_manager.stop()
 
 if mem_tracker:
     mem_tracker.stop()
