@@ -84,6 +84,11 @@ class NumberInput(BaseWidget):
         self.cursor_y_start = self.input_rect.y + (self.input_rect.height - self.cursor_height) // 2
         self.cursor_y_end = self.cursor_y_start + self.cursor_height
 
+    def get_size(self) -> tuple[int, int]:
+        width = self.label_width + self.input_padding + self.input_width
+        height = self.input_rect.height
+        return width, height
+
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN and self.focused:
             if event.key == pygame.K_BACKSPACE and self.cursor_pos > 0:

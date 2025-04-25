@@ -87,6 +87,9 @@ class GamepadManager(threading.Thread):
         with self._lock:
             self._settings[guid] = settings
 
+    def get_calibrations(self) -> List[dict]:
+        return self._settings
+
     def get_calibration(self, guid: str) -> Optional[dict]:
         return self._settings.get(guid)
 

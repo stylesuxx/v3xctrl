@@ -17,6 +17,7 @@ class Select:
     BORDER_WIDTH = 1
     OPTION_HEIGHT = 30
     CARET_PADDING = 10
+    LABEL_PADDING = 10
 
     def __init__(self,
                  label: str,
@@ -56,6 +57,12 @@ class Select:
         self.disabled = False
         self._render_label_and_caret()
 
+    def get_size(self) -> tuple[int, int]:
+        width = self.label_width + self.LABEL_PADDING + self.width
+        height = self.rect.height
+
+        return width, height
+
     def _render_label_and_caret(self):
         color = self.FONT_COLOR_DISABLED if self.disabled else self.FONT_COLOR
         self.label_surface, self.label_rect = self.font.render(self.label, color)
@@ -74,7 +81,7 @@ class Select:
         self.x = x
         self.y = y
 
-        self.rect = Rect(x + self.label_width + 10, y, self.width, self.OPTION_HEIGHT)
+        self.rect = Rect(x + self.label_width + self.LABEL_PADDING, y, self.width, self.OPTION_HEIGHT)
         self.label_rect.topleft = (x, y + self.rect.height // 2 - self.label_rect.height // 2)
         self._update_option_rects()
 
