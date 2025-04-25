@@ -35,6 +35,9 @@ class Button:
 
         self._render_label(self.FONT_COLOR)
 
+    def get_size(self) -> tuple[int, int]:
+        return self.rect.width, self.rect.height
+
     def set_position(self, x: int, y: int):
         self.rect.topleft = (x, y)
         self._update_label_position()

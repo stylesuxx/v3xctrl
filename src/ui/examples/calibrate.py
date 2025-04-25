@@ -16,6 +16,10 @@ calibrations = {
 }
 
 
+def on_calibration_start():
+    print("Calibration started")
+
+
 def on_calibration_done(guid: str, settings: dict):
     print(f"\n[CALIBRATION DONE] Joystick GUID: {guid}")
     for axis, data in settings.items():
@@ -38,6 +42,7 @@ for guid, calibration in calibrations.items():
 calibration_widget = GamepadCalibrationWidget(
     font=font,
     manager=gamepad_manager,
+    on_calibration_start=on_calibration_start,
     on_calibration_done=on_calibration_done
 )
 calibration_widget.set_position(50, 50)

@@ -16,6 +16,10 @@ class BaseWidget(ABC):
     def draw(self, surface: Surface) -> None:
         pass
 
+    @abstractmethod
+    def get_size(self) -> tuple[int, int]:
+        pass
+
     def set_position(self, x: int, y: int) -> None:
         self.x = x
         self.y = y

@@ -69,6 +69,16 @@ class KeyMappingWidget(BaseWidget):
         self.remap_button.set_position(self.button_x, y)
         self.key_text_center = (self.x + 160, center_y)
 
+    def get_size(self) -> tuple[int, int]:
+        button_width, button_height = self.remap_button.get_size()
+        label_width = self.label_rect.width
+        key_label_width = 100  # Conservative estimate for key name width
+        spacing = self.button_x - (self.x + label_width)  # gap between label and key name
+        total_width = label_width + spacing + key_label_width + (button_width if self.button_x > 0 else 0)
+
+        height = max(self.label_rect.height, button_height)
+        return total_width, height
+
     def enable(self):
         self.remap_button.enable()
 

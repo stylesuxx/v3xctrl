@@ -47,6 +47,11 @@ class Checkbox(BaseWidget):
                 self.checked = not self.checked
                 self.on_change(self.checked)
 
+    def get_size(self) -> tuple[int, int]:
+        width = self.BOX_SIZE + self.BOX_MARGIN + self.label_rect.width
+        height = max(self.BOX_SIZE, self.label_rect.height)
+        return width, height
+
     def set_position(self, x, y):
         self.x = x
         self.y = y

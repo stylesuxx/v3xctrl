@@ -7,7 +7,7 @@ import time
 
 from ui.colors import BLACK, RED, WHITE
 from ui.helpers import get_external_ip
-from ui.menu.calibration.GamepadManager import GamepadManager
+from ui.GamepadManager import GamepadManager
 from ui.menu.Menu import Menu
 from ui.Init import Init
 from ui.AppState import AppState
@@ -233,7 +233,12 @@ def handle_events(state):
 
         elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
             if state.menu is None:
-                state.menu = Menu(VIDEO["width"], VIDEO["height"], settings, update_settings)
+                state.menu = Menu(
+                    VIDEO["width"],
+                    VIDEO["height"],
+                    gamepad_manager,
+                    settings,
+                    update_settings)
             else:
                 state.menu = None
 

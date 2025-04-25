@@ -3,12 +3,16 @@ from pygame import Surface
 import pygame.freetype
 from typing import Callable
 
+from ui.GamepadManager import GamepadManager
 from ui.Settings import Settings
+
+from ui.menu.calibration.GamepadCalibrationWidget import GamepadCalibrationWidget
 from ui.menu.NumberInput import NumberInput
 from ui.menu.Checkbox import Checkbox
 from ui.menu.Button import Button
 from ui.menu.KeyMappingWidget import KeyMappingWidget
-from ui.colors import BLACK, WHITE, GREEN, RED, YELLOW, GREY, LIGHT_GREY, MID_GREY, DARK_GREY
+
+from ui.colors import WHITE, GREY, MID_GREY, DARK_GREY
 
 
 class Menu:
@@ -22,10 +26,12 @@ class Menu:
     def __init__(self,
                  width: int,
                  height: int,
+                 gamepad_manager: GamepadManager,
                  settings: Settings,
                  callback: Callable[[], None]):
         self.width = width
         self.height = height
+        self.gamepad_manager = gamepad_manager
         self.settings = settings
         self.callback = callback
 
@@ -111,6 +117,13 @@ class Menu:
             )
             self.key_widgets.append(widget)
 
+        self.calibration_widget = GamepadCalibrationWidget(
+            font=self.label_font,
+            manager=gamepad_manager,
+            on_calibration_start=self._on_calibration_start,
+            on_calibration_done=self._on_calibration_done
+        )
+
         self.video_input.value = str(self.ports["video"])
         self.video_input.cursor_pos = len(self.video_input.value)
 
@@ -132,10 +145,22 @@ class Menu:
             for widget in self.key_widgets:
                 widget.enable()
 
-    def _on_port_change(self, name, value):
+    def _on_calibration_start(self):
+        self.save_button.disable()
+        self.exit_button.disable()
+        for widget in self.key_widgets:
+            widget.disable()
+
+    def _on_calibration_done(self, guid: str, settings: dict):
+        self.save_button.enable()
+        self.exit_button.enable()
+        for widget in self.key_widgets:
+            widget.enable()
+
+    def _on_port_change(self, name: str, value: str):
         self.ports[name] = int(value)
 
-    def _on_debug_change(self, value):
+    def _on_debug_change(self, value: str):
         self.debug = value
 
     def _save_button_callback(self):
@@ -144,7 +169,11 @@ class Menu:
             self.settings.set("debug", self.debug)
 
         elif self.active_tab == "Input":
-            pass
+            guid = self.calibration_widget.get_selected_guid()
+            self.settings.set("input", {"guid": guid})
+
+            calibrations = self.gamepad_manager.get_calibrations()
+            self.settings.set("calibrations", calibrations)
 
         self.settings.save()
 
@@ -181,6 +210,8 @@ class Menu:
         elif self.active_tab == "Input":
             for widget in self.key_widgets:
                 widget.handle_event(event)
+
+            self.calibration_widget.handle_event(event)
 
     def _draw_headline(self, surface: Surface, title: str, y: int) -> int:
         heading_surface, _ = self.font_headline.render(title, self.FONT_COLOR)
@@ -219,16 +250,11 @@ class Menu:
                 widget.draw(surface)
                 row_y += 40
 
-            pygame.joystick.init()
-
-            gamepads = []
-
-            # Detect all connected joysticks
-            for i in range(pygame.joystick.get_count()):
-                joystick = pygame.joystick.Joystick(i)
-                joystick.init()
-                gamepads.append(joystick)
-                print(f"Detected gamepad {i}: {joystick.get_name()} with {joystick.get_numaxes()} axes, {joystick.get_numbuttons()} buttons")
+            row_y += 20
+            baseline = self._draw_headline(surface, "Input device", row_y)
+            row_y = baseline + 20
+            self.calibration_widget.set_position(self.padding, row_y)
+            self.calibration_widget.draw(surface)
 
         if self.active_tab == "General":
             ports_section_y = self.tab_height + self.padding

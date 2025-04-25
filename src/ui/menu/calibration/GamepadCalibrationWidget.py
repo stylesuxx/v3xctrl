@@ -17,37 +17,43 @@ class GamepadCalibrationWidget(BaseWidget):
     BAR_WIDTH = 400
     BAR_HEIGHT = 30
     BAR_SPACING = 50
-    INSTRUCTION_Y_OFFSET = 140
+    INSTRUCTION_Y_OFFSET = 70
+    BARS_X_OFFSSET = 100
+    INVERT_X_OFFSET = 530
 
     def __init__(
         self,
         font: Font,
         manager: GamepadManager,
+        on_calibration_start: Callable[[], None] = lambda: None,
         on_calibration_done: Callable[[str, dict], None] = lambda guid, settings: None,
     ):
         super().__init__()
         self.font = font
         self.manager = manager
+        self.on_calibration_start = on_calibration_start
         self.on_calibration_done = on_calibration_done
 
         self.selected_guid: Optional[str] = None
         self.calibrator: Optional[GamepadCalibrator] = None
         self.invert_axes: Dict[str, bool] = {k: False for k in ["steering", "throttle", "brake"]}
-        self.gamepads: Dict[str, pygame.joystick.Joystick] = {}
 
         self.controller_select: Select
         self.calibrate_button: Button
         self.invert_checkboxes: Dict[str, Checkbox]
 
-        self.manager.add_observer(self._on_gamepads_changed)
-
         self._create_ui(font)
         self.set_position(self.x, self.y)
+
+        # Initialize with current gamepads, and attach observer
+        self.gamepads: Dict[str, pygame.joystick.Joystick] = self.manager.get_gamepads()
+        self._on_gamepads_changed(self.gamepads)
+        self.manager.add_observer(self._on_gamepads_changed)
 
     def _create_ui(self, font: Font):
         self.controller_select = Select(
             label="Controller",
-            label_width=150,
+            label_width=-10,
             width=400,
             font=font,
             callback=self.set_selected_gamepad
@@ -55,8 +61,8 @@ class GamepadCalibrationWidget(BaseWidget):
 
         self.calibrate_button = Button(
             label="Start Calibration",
-            width=200,
-            height=50,
+            width=190,
+            height=35,
             font=font,
             callback=self._start_calibration
         )
@@ -102,10 +108,30 @@ class GamepadCalibrationWidget(BaseWidget):
         self.controller_select.set_options(name_list, selected_index=selected_index)
         self._apply_known_calibration(self.gamepads[self.selected_guid])
 
+    def get_selected_guid(self):
+        return self.selected_guid
+
+    def get_size(self) -> tuple[int, int]:
+        select_width, select_height = self.controller_select.get_size()
+        button_width, button_height = self.calibrate_button.get_size()
+
+        total_width = select_width + 10 + button_width
+        max_height = max(select_height, button_height)
+
+        return total_width, max_height
+
     def set_position(self, x: int, y: int) -> None:
         super().set_position(x, y)
         self.controller_select.set_position(x, y)
-        self.calibrate_button.set_position(x, y + 60)
+
+        # Vertically center the button relative to the select
+        select_width, select_height = self.controller_select.get_size()
+        _, button_height = self.calibrate_button.get_size()
+
+        select_y_center = y + select_height // 2
+        button_y = select_y_center - button_height // 2
+
+        self.calibrate_button.set_position(x + select_width + 20, button_y)
 
     def _start_calibration(self) -> None:
         if self.calibrator and self.calibrator.state == CalibratorState.ACTIVE:
@@ -130,7 +156,8 @@ class GamepadCalibrationWidget(BaseWidget):
         self.calibrator = GamepadCalibrator(
             on_start=lambda: (
                 self.calibrate_button.disable(),
-                self.controller_select.disable()
+                self.controller_select.disable(),
+                self.on_calibration_start()
             ),
             on_done=on_done
         )
@@ -226,10 +253,10 @@ class GamepadCalibrationWidget(BaseWidget):
             self._draw_bar(
                 surface, label, value,
                 min_val, max_val, center_val,
-                x=self.x + 150, y=y_base + i * self.BAR_SPACING
+                x=self.x + self.BARS_X_OFFSSET, y=y_base + i * self.BAR_SPACING
             )
 
-            self.invert_checkboxes[key].set_position(self.x + 580, y_base + i * self.BAR_SPACING)
+            self.invert_checkboxes[key].set_position(self.x + self.INVERT_X_OFFSET, y_base + i * self.BAR_SPACING)
             self.invert_checkboxes[key].draw(surface)
 
     def _draw_calibration_steps(self, surface: Surface):
