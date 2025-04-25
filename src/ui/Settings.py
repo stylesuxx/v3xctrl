@@ -91,8 +91,15 @@ class Settings:
         if "controls" in data:
             data = data.copy()
             data["controls"] = self._serialize_controls(data["controls"])
+        return self._remove_none(data)
 
-        return data
+    def _remove_none(self, obj):
+        if isinstance(obj, dict):
+            return {k: self._remove_none(v) for k, v in obj.items() if v is not None}
+        elif isinstance(obj, list):
+            return [self._remove_none(v) for v in obj if v is not None]
+        else:
+            return obj
 
     def _deserialize(self, data):
         if "controls" in data:
