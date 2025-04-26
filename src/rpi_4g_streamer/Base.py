@@ -2,16 +2,19 @@
 Base class for Server AND Client - disregard the name, they share more
 than you might think.
 """
+from abc import ABC, abstractmethod
 import threading
 import logging
 from typing import Tuple, Callable
 import time
 
 from .State import State
-from .Message import Message
+from .Message import Message, Heartbeat
 
 
-class Base(threading.Thread):
+class Base(threading.Thread, ABC):
+    STATE_CHECK_INTERVAL_MS = 1000
+
     def __init__(self):
         super().__init__(daemon=True)
 
@@ -63,7 +66,20 @@ class Base(threading.Thread):
             if handler['state'] == new_state:
                 handler['func']()
 
-    def send(self, message: Message, addr: Tuple[str, int]) -> None:
+    @abstractmethod
+    def send() -> None:
+        pass
+
+    def heartbeat(self):
+        """
+        If nothing has been sent in a while, send a hearbeat to keep the client
+        open.
+        """
+        now = time.time()
+        if now - self.last_sent_timestamp > self.last_sent_timeout:
+            self.send(Heartbeat())
+
+    def _send(self, message: Message, addr: Tuple[str, int]) -> None:
         if self.transmitter:
             self.transmitter.add_message(message, addr)
             self.last_sent_timestamp = time.time()

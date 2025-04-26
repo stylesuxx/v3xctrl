@@ -10,7 +10,7 @@ from tests.rpi_4g_streamer.config import HOST, PORT
 
 class TestServer(unittest.TestCase):
     def setUp(self):
-        self.base_send_patcher = patch("src.rpi_4g_streamer.Server.Base.send")
+        self.base_send_patcher = patch("src.rpi_4g_streamer.Server.Base._send")
         self.mock_base_send = self.base_send_patcher.start()
 
         self.patcher_transmitter = patch("src.rpi_4g_streamer.Server.UDPTransmitter")
@@ -24,13 +24,16 @@ class TestServer(unittest.TestCase):
         self.mock_transmitter_cls.return_value = self.mock_transmitter
         self.mock_handler_cls.return_value = self.mock_handler
 
-        self.server = Server(port=44444)
+        self.server = Server(port=PORT)
         self.server.get_last_address = MagicMock(return_value=(HOST, PORT))
 
     def tearDown(self):
         self.base_send_patcher.stop()
         self.patcher_transmitter.stop()
         self.patcher_handler.stop()
+        if self.server.running.is_set() or self.server.started.is_set():
+            self.server.running.set()
+            self.server.stop()
         self.server.socket.close()
 
     def test_initial_state(self):
@@ -69,21 +72,21 @@ class TestServer(unittest.TestCase):
         self.server.send(msg)
         self.mock_base_send.assert_not_called()
 
-    def test_check_heartbeat_triggers_send(self):
+    def test_heartbeat_triggers_send(self):
         self.server.last_sent_timestamp = time.time() - 11
         self.server.last_sent_timeout = 10
         self.server.state = State.CONNECTED
 
-        self.server.check_heartbeat()
+        self.server.heartbeat()
         self.mock_base_send.assert_called_once()
         args = self.mock_base_send.call_args[0]
         self.assertIsInstance(args[0], Heartbeat)
-        self.assertIsInstance(args[0], Heartbeat)
 
-    def test_check_heartbeat_does_not_send_too_early(self):
+    def test_heartbeat_does_not_send_too_early(self):
         self.server.last_sent_timestamp = time.time()
         self.server.last_sent_timeout = 10
-        self.server.check_heartbeat()
+
+        self.server.heartbeat()
         self.mock_base_send.assert_not_called()
 
     def test_stop_properly_shuts_down(self):
