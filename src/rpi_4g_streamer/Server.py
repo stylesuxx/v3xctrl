@@ -3,7 +3,7 @@ import time
 import socket
 
 from .Base import Base
-from .Message import Message, Syn, Ack, Heartbeat
+from .Message import Message, Syn, Ack
 from .MessageHandler import MessageHandler
 from .State import State
 from .UDPTransmitter import UDPTransmitter
@@ -24,23 +24,14 @@ class Server(Base):
         self.message_handler = MessageHandler(self.socket)
 
     def syn_handler(self, message: Syn, addr: Tuple[str, int]) -> None:
-        super().send(Ack(), addr)
+        super()._send(Ack(), addr)
         if self.state == State.WAITING:
             self.handle_state_change(State.CONNECTED)
 
     def send(self, message: Message) -> None:
         addr = self.get_last_address()
         if addr:
-            super().send(message, addr)
-
-    def check_heartbeat(self):
-        """
-        If nothing has been sent in a while, send a hearbeat to keep the client
-        open.
-        """
-        now = time.time()
-        if now - self.last_sent_timestamp > self.last_sent_timeout:
-            self.send(Heartbeat())
+            super()._send(message, addr)
 
     def run(self):
         self.started.set()
@@ -57,15 +48,14 @@ class Server(Base):
             if self.state == State.DISCONNECTED:
                 self.handle_state_change(State.WAITING)
 
-            if self.state == State.WAITING:
-                time.sleep(1)
-            else:
+            elif self.state == State.WAITING:
+                pass
+
+            elif self.state == State.CONNECTED:
                 self.check_timeout()
+                self.heartbeat()
 
-            if self.state == State.CONNECTED:
-                self.check_heartbeat()
-
-            time.sleep(0.02)
+            time.sleep(self.STATE_CHECK_INTERVAL_MS / 1000)
 
     def stop(self):
         if self.started.is_set():

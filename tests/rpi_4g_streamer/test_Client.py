@@ -19,19 +19,31 @@ class TestClient(unittest.TestCase):
     def tearDownClass(cls):
         cls.sock_tx.close()
 
-    def test_client_lifecycle(self):
-        client = Client(HOST, PORT)
-        client.start()
-        self.assertTrue(client.started.is_set())
+    def setUp(self):
+        # Setup fresh client for each test
+        self.client = Client(HOST, PORT)
 
-        client.stop()
-        client.join()
-        self.assertFalse(client.running.is_set())
-        self.assertFalse(client.started.is_set())
+    def tearDown(self):
+        # Clean up client after each test
+        if self.client.running.is_set():
+            self.client.stop()
+            self.client.join()
+        elif self.client.started.is_set():
+            self.client.running.set()
+            self.client.stop()
+            self.client.join()
+
+    def test_client_lifecycle(self):
+        self.client.start()
+        self.assertTrue(self.client.started.is_set())
+
+        self.client.stop()
+        self.client.join()
+        self.assertFalse(self.client.running.is_set())
+        self.assertFalse(self.client.started.is_set())
 
     def test_client_receive_message(self):
-        client = Client(HOST, PORT)
-        client.start()
+        self.client.start()
 
         tx = UDPTransmitter(self.sock_tx)
         tx.start()
@@ -40,52 +52,50 @@ class TestClient(unittest.TestCase):
         tx.add_message(Heartbeat(), (HOST, PORT))
         time.sleep(SLEEP)
 
-        client.stop()
         tx.stop()
-
-        client.join()
         tx.join()
 
-        self.assertFalse(client.running.is_set())
+        self.client.stop()
+        self.client.join()
 
-    @patch("src.rpi_4g_streamer.Client.Base.send")
+        self.assertFalse(self.client.running.is_set())
+
+    @patch("src.rpi_4g_streamer.Client.Base._send")
     def test_client_heartbeat_triggers_send(self, mock_send):
-        client = Client(HOST, PORT)
-        client.initialize()
+        self.client.initialize()
 
-        client.state = State.CONNECTED
-        client.last_sent_timeout = 1
-        client.last_sent_timestamp = time.time() - 2
+        self.client.state = State.CONNECTED
+        self.client.last_sent_timeout = 1
+        self.client.last_sent_timestamp = time.time() - 2
 
-        client.check_heartbeat()
+        self.client.heartbeat()
         self.assertTrue(mock_send.called)
         msg, addr = mock_send.call_args[0]
         self.assertIsInstance(msg, Heartbeat)
         self.assertEqual(addr, (HOST, PORT))
 
-        client.message_handler.stop()
-        client.transmitter.stop()
-        client.message_handler.join()
-        client.transmitter.join()
-        client.socket.close()
+        self.client.message_handler.stop()
+        self.client.transmitter.stop()
+        self.client.message_handler.join()
+        self.client.transmitter.join()
+        self.client.socket.close()
 
-    @patch("src.rpi_4g_streamer.Client.Base.send")
+    @patch("src.rpi_4g_streamer.Client.Base._send")
     def test_client_no_heartbeat_if_recent(self, mock_send):
-        client = Client(HOST, PORT)
-        client.initialize()
+        self.client.initialize()
 
-        client.state = State.CONNECTED
-        client.last_sent_timeout = 10
-        client.last_sent_timestamp = time.time()
+        self.client.state = State.CONNECTED
+        self.client.last_sent_timeout = 10
+        self.client.last_sent_timestamp = time.time()
 
-        client.check_heartbeat()
+        self.client.heartbeat()
         mock_send.assert_not_called()
 
-        client.message_handler.stop()
-        client.transmitter.stop()
-        client.message_handler.join()
-        client.transmitter.join()
-        client.socket.close()
+        self.client.message_handler.stop()
+        self.client.transmitter.stop()
+        self.client.message_handler.join()
+        self.client.transmitter.join()
+        self.client.socket.close()
 
 
 if __name__ == "__main__":

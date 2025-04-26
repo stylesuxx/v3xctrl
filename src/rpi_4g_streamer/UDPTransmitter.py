@@ -61,13 +61,11 @@ class UDPTransmitter(threading.Thread):
                     self.socket.sendto(packet.data, address)
                     self.queue.task_done()
                 except Empty:
-                    pass
+                    await asyncio.sleep(0.01)
                 except OSError as e:
                     logging.warning(f"Socket error while sending: {e}")
                 except Exception as e:
                     logging.error(f"Unexpected transmit error: {e}", exc_info=True)
-
-                await asyncio.sleep(0.02)
 
         except asyncio.CancelledError:
             logging.info("Transmit task cancelled.")

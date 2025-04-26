@@ -30,10 +30,6 @@ class Client(Base):
         self.port = port
         self.server_address = (self.host, self.port)
 
-        self.interval = {
-            "syn": 1,
-        }
-
         # Consider client disconnected if it has not seen a packet from the
         # server for 3 seconds
         self.no_message_timeout = 3
@@ -47,16 +43,7 @@ class Client(Base):
 
     def send(self, message: Message) -> None:
         """ Messages are always sent to the server. """
-        super().send(message, self.server_address)
-
-    def check_heartbeat(self):
-        """
-        If nothing has been sent in a while, send a hearbeat to keep the hole
-        open.
-        """
-        now = time.time()
-        if now - self.last_sent_timestamp > self.last_sent_timeout:
-            self.send(Heartbeat())
+        super()._send(message, self.server_address)
 
     def initialize(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -97,16 +84,14 @@ class Client(Base):
                 self.re_initialize()
                 self.handle_state_change(State.WAITING)
 
-            if self.state == State.WAITING:
+            elif self.state == State.WAITING:
                 self.send(Syn())
-                time.sleep(self.interval["syn"])
-            else:
+
+            elif self.state == State.CONNECTED:
                 self.check_timeout()
+                self.heartbeat()
 
-            if self.state == State.CONNECTED:
-                self.check_heartbeat()
-
-            time.sleep(0.02)
+            time.sleep(self.STATE_CHECK_INTERVAL_MS / 1000)
 
     def stop(self):
         if self.started.is_set():
