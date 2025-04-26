@@ -15,7 +15,7 @@ Group=v3xctrl
 
 # Real-time priority
 CPUSchedulingPolicy=rr
-CPUSchedulingPriority=95
+CPUSchedulingPriority=45
 
 # Highest I/O priority
 IOSchedulingClass=realtime
@@ -26,3 +26,6 @@ LimitMEMLOCK=infinity
 
 # Max allowed real-time priority
 LimitRTPRIO=infinity
+
+# Fail fast if system call like sched_setscheduler() fails
+SystemCallErrorAction=abort
