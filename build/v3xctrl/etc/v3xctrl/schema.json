@@ -202,7 +202,7 @@
               "propertyOrder": 40,
               "type": "integer",
               "default": 1200,
-              "description": "The centert throttle position between forwards and brake/backwards"
+              "description": "Pulsewidth for throttle position between forwards and brake/backwards"
             }
           }
         },
