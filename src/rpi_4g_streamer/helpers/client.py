@@ -35,7 +35,7 @@ parser.add_argument("--steering-min", type=int, default=1000,
 parser.add_argument("--steering-max", type=int, default=2000,
                     help="Maximum pulse width for steering (default: 2000)")
 parser.add_argument("--steering-trim", type=int, default=0,
-                    help="Pulse width to trim steering center (default: 0)" )
+                    help="Pulse width to trim steering center (default: 0)")
 
 args = parser.parse_args()
 
