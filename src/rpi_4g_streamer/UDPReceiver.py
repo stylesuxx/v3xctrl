@@ -28,7 +28,7 @@ class UDPReceiver(threading.Thread):
     def __init__(self,
                  sock: socket.socket,
                  handler: Callable[[Message, Tuple[str, int]], None],
-                 timeout: int = 1):
+                 timeout: int = 0.1):
         super().__init__(daemon=True)
 
         self.socket = sock
@@ -57,27 +57,40 @@ class UDPReceiver(threading.Thread):
 
     def run(self) -> None:
         self._running.set()
-        while self._running.is_set():
-            try:
-                ready, _, _ = select.select([self.socket], [], [], self.timeout)
-                if ready:
-                    # Read up to BUFFERSIZE, message boundaries are preserved
-                    data, addr = self.socket.recvfrom(self.BUFFERSIZE)
+        try:
+            while self._running.is_set():
+                try:
+                    ready, _, _ = select.select([self.socket], [], [], self.timeout)
+                except (ValueError, socket.error, OSError) as e:
+                    logging.error(f"Socket error during select: {e}")
+                    break
 
-                    if data:
-                        try:
-                            message = Message.from_bytes(data)
-                            if self.is_valid_message(message, addr):
-                                self.last_timestamp = message.timestamp
-                                self.handler(message, addr)
-                        except Exception as e:
-                            logging.warning(f"Error while processing packet {addr}: {e}")
-            except ValueError as e:
-                logging.error(f"Socket closed or invalid: {e}")
-                break
-            except (socket.error, OSError) as e:
-                logging.error(f"Socket error: {e}")
-                continue
+                # Timeout, no data ready
+                if not ready:
+                    continue
+
+                try:
+                    data, addr = self.socket.recvfrom(self.BUFFERSIZE)
+                except (socket.error, OSError) as e:
+                    logging.error(f"Socket error during recvfrom: {e}")
+                    break
+
+                # No data received
+                if not data:
+                    continue
+
+                try:
+                    message = Message.from_bytes(data)
+                except Exception as e:
+                    logging.warning(f"Error while decoding packet from {addr}: {e}")
+                    continue
+
+                if self.is_valid_message(message, addr):
+                    self.last_timestamp = message.timestamp
+                    self.handler(message, addr)
+
+        finally:
+            self._running.clear()
 
     def validate_host(self, host: str):
         self._expected_host = host
