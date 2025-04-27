@@ -62,6 +62,7 @@ settings = Init.settings("settings.toml")
 controls = settings.get("controls")
 debug = settings.get("debug")
 input = settings.get("input", {})
+widgets = settings.get('widgets', {})
 calibrations = settings.get("calibrations", {})
 
 # Settings require restart to take effect
@@ -125,11 +126,12 @@ state = AppState((VIDEO["width"], VIDEO["height"]),
 
 def update_settings():
     """ Update settings after exiting menu """
-    global debug, controls, settings, state
+    global debug, controls, settings, state, widgets
     settings = Init.settings()
 
     controls = settings.get("controls")
     debug = settings.get('debug')
+    widgets = settings.get('widgets', {})
 
     input = settings.get("input", {})
     calibrations = settings.get("calibrations", {})
@@ -178,7 +180,9 @@ def render_all(state):
                 state.screen.blit(val_surf, val_rect)
 
     for name, widget in state.widgets.items():
-        widget.draw(state.screen, getattr(state, name))
+        display = widgets.get(name, {"display": True}).get("display")
+        if display:
+            widget.draw(state.screen, getattr(state, name))
 
     if debug:
         for name, widget in state.widgets_debug.items():

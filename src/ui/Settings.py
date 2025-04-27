@@ -31,6 +31,12 @@ class Settings:
                 "height": 75,
                 "average_window": 30,
                 "graph_frames": 300,
+            },
+            "steering": {
+                "display": True
+            },
+            "throttle": {
+                "display": True
             }
         },
         "settings": {

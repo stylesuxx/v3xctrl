@@ -63,6 +63,7 @@ class Menu:
         # General widgets
         self.debug = self.settings.get("debug", False)
         self.ports = self.settings.get("ports", {})
+        self.widgets = self.settings.get("widgets", {})
 
         self.video_input = NumberInput(
             "Video",
@@ -94,6 +95,20 @@ class Menu:
             font=LABEL_FONT,
             checked=self.settings.get("debug", False),
             on_change=lambda v: self._on_debug_change(v)
+        )
+
+        self.steering_checkbox = Checkbox(
+            label="Enable Steering overlay",
+            font=LABEL_FONT,
+            checked=self.widgets.get("steering", {}).get("display", False),
+            on_change=lambda v: self._on_steering_change(v)
+        )
+
+        self.throttle_checkbox = Checkbox(
+            label="Enable Throttle overlay",
+            font=LABEL_FONT,
+            checked=self.widgets.get("throttle", {}).get("display", False),
+            on_change=lambda v: self._on_throttle_change(v)
         )
 
         # Input widgets
@@ -160,10 +175,17 @@ class Menu:
     def _on_debug_change(self, value: str):
         self.debug = value
 
+    def _on_steering_change(self, value: str):
+        self.widgets["steering"]["display"] = value
+
+    def _on_throttle_change(self, value: str):
+        self.widgets["throttle"]["display"] = value
+
     def _save_button_callback(self):
         if self.active_tab == "General":
             self.settings.set("ports", self.ports)
             self.settings.set("debug", self.debug)
+            self.settings.set("widgets", self.widgets)
 
         elif self.active_tab == "Input":
             guid = self.calibration_widget.get_selected_guid()
@@ -204,6 +226,8 @@ class Menu:
             self.video_input.handle_event(event)
             self.control_input.handle_event(event)
             self.debug_checkbox.handle_event(event)
+            self.steering_checkbox.handle_event(event)
+            self.throttle_checkbox.handle_event(event)
 
         elif self.active_tab == "Input":
             for widget in self.key_widgets:
@@ -275,7 +299,14 @@ class Menu:
 
             # Set checkbox y dynamically
             y = baseline + 20
-            self.debug_checkbox.set_position(self.padding, y)
-            self.debug_checkbox.draw(surface)
+            checkboxes = [
+                self.debug_checkbox,
+                self.steering_checkbox,
+                self.throttle_checkbox
+            ]
+            for checkbox in checkboxes:
+                checkbox.set_position(self.padding, y)
+                checkbox.draw(surface)
+                y += 40
 
             surface.blit(note_surface, note_rect)
