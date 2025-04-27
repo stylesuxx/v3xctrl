@@ -198,11 +198,11 @@
               "default": 1000,
               "description": "Pulse width when failsafe"
             },
-            "idle": {
-              "propertyOrder": 40,
+            "gpio": {
+              "propertyOrder": 50,
               "type": "integer",
-              "default": 1200,
-              "description": "Pulsewidth for throttle position between forwards and brake/backwards"
+              "default": 18,
+              "description": "GPIO for ESC (throttle)"
             }
           }
         },
@@ -234,12 +234,13 @@
               "default": 1500,
               "description": "Pulse width when failsafe"
             },
-            "trim": {
-              "propertyOrder": 40,
+            "gpio": {
+              "propertyOrder": 50,
               "type": "integer",
-              "default": 0,
-              "description": "Pulse width for trim"
+              "default": 13,
+              "description": "GPIO for steering servo"
             }
+
           }
         },
         "failsafeTimeout": {

@@ -37,6 +37,11 @@ parser.add_argument("--steering-max", type=int, default=2000,
 parser.add_argument("--steering-trim", type=int, default=0,
                     help="Pulse width to trim steering center (default: 0)")
 
+parser.add_argument("--throttle-gpio", type=int, default=18,
+                    help="GPIO pin number for throttle signal (default: 18)")
+parser.add_argument("--steering-gpio", type=int, default=13,
+                    help="GPIO pin number for steering signal (default: 13)")
+
 args = parser.parse_args()
 
 HOST = args.host
@@ -51,8 +56,8 @@ steering_trim = args.steering_trim
 
 running = True
 
-throttle_gpio = 18  # PWM0
-steering_gpio = 13  # PWM1
+throttle_gpio = args.throttle_gpio  # PWM0
+steering_gpio = args.steering_gpio  # PWM1
 
 pi = pigpio.pi()
 pi.set_mode(throttle_gpio, pigpio.OUTPUT)
