@@ -21,7 +21,7 @@ update_and_install() {
 
   sudo apt update
   sudo apt upgrade -y
-  sudo apt install -y mtr minicom screen lintian
+  sudo apt install -y mtr minicom screen lintian bc stress-ng
 }
 
 build_python() {
