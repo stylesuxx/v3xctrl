@@ -228,8 +228,8 @@
               "default": 1500,
               "description": "Pulse width when failsafe"
             }
-           }
           }
+         }
         },
         "failsafeTimeout": {
           "propertyOrder": 30,
@@ -267,17 +267,19 @@
         "disable_edit_json": true,
         "disable_properties": true
       },
-      "throttle": {
-        "propertyOrder": 10,
-        "type": "integer",
-        "default": 18,
-        "description": "GPIO for ESC (throttle)"
+      "properties": {
+        "throttle": {
+          "propertyOrder": 10,
+          "type": "integer",
+          "default": 18,
+          "description": "GPIO for ESC (throttle)"
       },
-      "steering": {
-        "propertyOrder": 20,
-        "type": "integer",
-        "default": 13,
-        "description": "GPIO for steering servo"
+        "steering": {
+          "propertyOrder": 20,
+          "type": "integer",
+          "default": 13,
+          "description": "GPIO for steering servo"
       }
+     }
    } 
 }
