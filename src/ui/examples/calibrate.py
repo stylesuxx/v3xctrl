@@ -1,7 +1,7 @@
 import pygame
-from pygame.freetype import SysFont
 
 from ui.colors import DARK_GREY
+from ui.fonts import LABEL_FONT
 from ui.GamepadManager import GamepadManager
 from ui.menu.calibration.GamepadCalibrationWidget import GamepadCalibrationWidget
 
@@ -38,14 +38,13 @@ size = (1280, 720)
 screen = pygame.display.set_mode(size, pygame.DOUBLEBUF | pygame.SCALED)
 pygame.display.set_caption("Gamepad Calibration")
 clock = pygame.time.Clock()
-font = SysFont("Arial", 24)
 
 gamepad_manager = GamepadManager()
 for guid, calibration in calibrations.items():
     gamepad_manager.set_calibration(guid, calibration)
 
 calibration_widget = GamepadCalibrationWidget(
-    font=font,
+    font=LABEL_FONT,
     manager=gamepad_manager,
     on_calibration_start=on_calibration_start,
     on_calibration_done=on_calibration_done

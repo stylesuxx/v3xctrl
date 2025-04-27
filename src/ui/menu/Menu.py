@@ -1,6 +1,5 @@
 import pygame
 from pygame import Surface
-import pygame.freetype
 from typing import Callable
 
 from ui.GamepadManager import GamepadManager
@@ -13,6 +12,7 @@ from ui.menu.Button import Button
 from ui.menu.KeyMappingWidget import KeyMappingWidget
 
 from ui.colors import WHITE, GREY, MID_GREY, DARK_GREY
+from ui.fonts import MAIN_FONT, LABEL_FONT, TEXT_FONT, MONO_FONT
 
 
 class Menu:
@@ -35,16 +35,9 @@ class Menu:
         self.settings = settings
         self.callback = callback
 
-        self.font = pygame.freetype.SysFont("freesansbold", 30)
-        self.font_headline = pygame.freetype.SysFont("freesansbold", 30)
-        self.text_font = pygame.freetype.SysFont("freesans", 16)
-
-        self.button_font = pygame.freetype.SysFont("freesansbold", 30)
-        self.label_font = pygame.freetype.SysFont("freesansbold", 20)
-        self.mono_font = pygame.freetype.SysFont("couriernew", 20)
-
         self.tabs = ["General", "Video", "Input"]
         self.active_tab = self.tabs[0]
+        self.disable_tabs = False
 
         self.tab_height = 60
         self.footer_height = 60
@@ -56,14 +49,14 @@ class Menu:
         self.save_button = Button(
             "Save",
             100, 40,
-            self.button_font,
+            MAIN_FONT,
             self._save_button_callback)
         self.save_button.set_position(self.width - 240, button_y)
 
         self.exit_button = Button(
             "Back",
             100, 40,
-            self.button_font,
+            MAIN_FONT,
             self._exit_button_callback)
         self.exit_button.set_position(self.width - 120, button_y)
 
@@ -77,8 +70,8 @@ class Menu:
             input_width=75,
             min_val=1,
             max_val=65535,
-            font=self.label_font,
-            mono_font=self.mono_font,
+            font=LABEL_FONT,
+            mono_font=MONO_FONT,
             on_change=lambda v: self._on_port_change("video", v)
         )
         self.video_input.set_position(self.padding, self.tab_height + self.padding + 60)
@@ -89,8 +82,8 @@ class Menu:
             input_width=75,
             min_val=1,
             max_val=65535,
-            font=self.label_font,
-            mono_font=self.mono_font,
+            font=LABEL_FONT,
+            mono_font=MONO_FONT,
             on_change=lambda v: self._on_port_change("control", v)
         )
         self.control_input.set_position(self.padding, self.tab_height + self.padding + 100)
@@ -98,7 +91,7 @@ class Menu:
         # Miscellaneous widgets
         self.debug_checkbox = Checkbox(
             label="Enable Debug Overlay",
-            font=self.label_font,
+            font=LABEL_FONT,
             checked=self.settings.get("debug", False),
             on_change=lambda v: self._on_debug_change(v)
         )
@@ -111,14 +104,14 @@ class Menu:
             widget = KeyMappingWidget(
                 control_name=name,
                 key_code=key,
-                font=self.label_font,
+                font=LABEL_FONT,
                 on_key_change=lambda new_key, name=name: self._on_control_key_change(name, new_key),
                 on_remap_toggle=self._on_remap_toggle
             )
             self.key_widgets.append(widget)
 
         self.calibration_widget = GamepadCalibrationWidget(
-            font=self.label_font,
+            font=LABEL_FONT,
             manager=gamepad_manager,
             on_calibration_start=self._on_calibration_start,
             on_calibration_done=self._on_calibration_done
@@ -135,23 +128,27 @@ class Menu:
 
     def _on_remap_toggle(self, is_remapping: bool):
         if is_remapping:
+            self.disable_tabs = True
             self.save_button.disable()
             self.exit_button.disable()
             for widget in self.key_widgets:
                 widget.disable()
         else:
+            self.disable_tabs = False
             self.save_button.enable()
             self.exit_button.enable()
             for widget in self.key_widgets:
                 widget.enable()
 
     def _on_calibration_start(self):
+        self.disable_tabs = True
         self.save_button.disable()
         self.exit_button.disable()
         for widget in self.key_widgets:
             widget.disable()
 
     def _on_calibration_done(self, guid: str, settings: dict):
+        self.disable_tabs = False
         self.save_button.enable()
         self.exit_button.enable()
         for widget in self.key_widgets:
@@ -198,9 +195,10 @@ class Menu:
         self.exit_button.handle_event(event)
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            for tab, rect in self.tab_rects.items():
-                if rect.collidepoint(event.pos):
-                    self.active_tab = tab
+            if not self.disable_tabs:
+                for tab, rect in self.tab_rects.items():
+                    if rect.collidepoint(event.pos):
+                        self.active_tab = tab
 
         if self.active_tab == "General":
             self.video_input.handle_event(event)
@@ -214,7 +212,7 @@ class Menu:
             self.calibration_widget.handle_event(event)
 
     def _draw_headline(self, surface: Surface, title: str, y: int) -> int:
-        heading_surface, _ = self.font_headline.render(title, self.FONT_COLOR)
+        heading_surface, _ = MAIN_FONT.render(title, self.FONT_COLOR)
         heading_pos = (self.padding, y)
         surface.blit(heading_surface, heading_pos)
         pygame.draw.line(surface, self.LINE_COLOR,
@@ -231,7 +229,7 @@ class Menu:
             pygame.draw.rect(surface, color, rect)
             if i > 0:
                 pygame.draw.line(surface, self.TAB_SEPARATOR_COLOR, rect.topleft, rect.bottomleft, 2)
-            label_surface, label_rect = self.font.render(tab, self.FONT_COLOR)
+            label_surface, label_rect = MAIN_FONT.render(tab, self.FONT_COLOR)
             label_rect.center = rect.center
             surface.blit(label_surface, label_rect)
 
@@ -265,7 +263,7 @@ class Menu:
 
             # Note about restarting
             note_text = "Remember to restart the app after changing the ports!"
-            note_surface, note_rect = self.text_font.render(note_text, self.FONT_COLOR)
+            note_surface, note_rect = TEXT_FONT.render(note_text, self.FONT_COLOR)
             note_rect.topleft = (
                 self.padding,
                 self.control_input.y + self.control_input.input_height + 20

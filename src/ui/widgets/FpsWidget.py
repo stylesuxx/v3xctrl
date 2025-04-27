@@ -3,8 +3,9 @@ import pygame
 from pygame import Surface
 from typing import Tuple
 
-from ui.widgets.Widget import Widget
 from ui.colors import WHITE, GREEN
+from ui.fonts import BOLD_MONO_FONT
+from ui.widgets.Widget import Widget
 
 
 class FpsWidget(Widget):
@@ -22,16 +23,15 @@ class FpsWidget(Widget):
         self.graph_frames = 300
         self.history = deque(maxlen=self.graph_frames)
 
-        font_size = 16
-        self.font = pygame.font.SysFont("monospace", font_size, bold=True)
+        self.font = BOLD_MONO_FONT
 
         top_padding = 2
-        label_offset = font_size / 2 + top_padding
-        self.label = self.font.render(label, True, WHITE)
-        self.label_rect = self.label.get_rect(center=(self.width // 2, label_offset))
+        label_offset = self.font.size / 2 + top_padding
+        self.label, self.label_rect = self.font.render(label, WHITE)
+        self.label_rect.center = (self.width // 2, label_offset)
 
         self.surface = Surface((self.width, self.height), pygame.SRCALPHA)
-        self.value_offset = label_offset + font_size
+        self.value_offset = label_offset + self.font.size
 
         self.graph_top = int(self.height * 0.5)
         self.graph_height = self.height - self.graph_top
@@ -53,8 +53,8 @@ class FpsWidget(Widget):
         # Draw label in top half
         self.surface.blit(self.label, self.label_rect)
 
-        fps_value = self.font.render(f"{average_fps:.1f} FPS", True, WHITE)
-        value_rect = fps_value.get_rect(center=(self.width // 2, self.value_offset))
+        fps_value, value_rect = self.font.render(f"{average_fps:.1f} FPS", WHITE)
+        value_rect.center = (self.width // 2, self.value_offset)
         self.surface.blit(fps_value, value_rect)
 
         # Graph in bottom half

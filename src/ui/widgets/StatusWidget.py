@@ -1,7 +1,8 @@
-from pygame import Surface, font, Rect, SRCALPHA, draw
+from pygame import Surface, Rect, SRCALPHA, draw
 from typing import Tuple
 
 from ui.colors import WHITE, GREEN, RED, YELLOW, GREY
+from ui.fonts import SMALL_MONO_FONT
 from ui.widgets.Widget import Widget
 
 
@@ -23,12 +24,11 @@ class StatusWidget(Widget):
         self.color = self.STATUS_COLORS["default"]
         self.background_alpha = 180
 
-        font_size = 14
-        self.font = font.SysFont("monospace", font_size, bold=True)
+        self.font = SMALL_MONO_FONT
 
-        self.label_surface = self.font.render(self.label, True, WHITE)
-        label_width = self.label_surface.get_width()
-        label_height = self.label_surface.get_height()
+        self.label_surface, self.label_surface_rect = self.font.render(self.label, WHITE)
+        label_width = self.label_surface_rect.width
+        label_height = self.label_surface_rect.height
 
         widget_height = max(self.size, label_height)
         widget_width = self.size + self.padding + label_width + self.padding
