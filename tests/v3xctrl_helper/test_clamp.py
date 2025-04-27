@@ -1,4 +1,4 @@
-from src.ui.helpers import clamp
+from src.v3xctrl_helper import clamp
 
 
 def test_clamp():

@@ -17,6 +17,8 @@ import pygame
 import threading
 from typing import Callable, List, Optional, Dict, Set, Tuple
 
+from v3xctrl_helper import clamp
+
 
 class GamepadManager(threading.Thread):
     REFRESH_INTERVAL_MS = 1000
@@ -111,13 +113,6 @@ class GamepadManager(threading.Thread):
             self._active_gamepad = js
             self._active_settings = settings
 
-    def _clamp(self, raw: float, min_val: float, max_val: float) -> float:
-        lower = min(min_val, max_val)
-        upper = max(min_val, max_val)
-        clamped = max(lower, min(upper, raw))
-
-        return clamped
-
     def _remap_centered(self,
                         value,
                         calibrated: Tuple[float, float, float],
@@ -177,7 +172,7 @@ class GamepadManager(threading.Thread):
                     invert = cfg.get("invert")
                     min_cal = cfg.get("min")
                     max_cal = cfg.get("max")
-                    raw = self._clamp(raw, min_cal, max_cal)
+                    raw = clamp(raw, min_cal, max_cal)
 
                     center_cal = cfg.get("center", None)
                     if center_cal is not None:

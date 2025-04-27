@@ -3,9 +3,7 @@ import time
 from typing import Tuple
 import urllib.request
 
-
-def clamp(value, min_value, max_value):
-    return max(min(value, max_value), min_value)
+from v3xctrl_helper import clamp
 
 
 def interpolate_steering_color(steering: float) -> Tuple[int, int, int]:

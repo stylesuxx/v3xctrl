@@ -2,8 +2,8 @@ from pygame import draw, Surface, Rect
 from typing import Tuple
 
 from ui.colors import WHITE
-from ui.helpers import clamp
 from ui.widgets.BaseIndicatorWidget import BaseIndicatorWidget
+from v3xctrl_helper import clamp
 
 
 class HorizontalIndicatorWidget(BaseIndicatorWidget):

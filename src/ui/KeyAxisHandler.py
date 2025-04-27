@@ -1,7 +1,7 @@
 import math
 from pygame.key import ScancodeWrapper
 
-from ui.helpers import clamp
+from v3xctrl_helper import clamp
 
 
 class KeyAxisHandler:
