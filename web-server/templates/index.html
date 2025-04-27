@@ -19,7 +19,7 @@
 
               <ul class="nav navbar-nav">
                 <li>
-                  <a class="restart" href="">Restart</a>
+                  <a class="reboot" href="">Restart</a>
                 </li>
               </ul>
 
@@ -49,6 +49,17 @@
           <div id="service_status_container">
             <p>Loading service states...</p>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="reboot-backdrop" class="modal-backdrop fade hidden"></div>
+
+    <div id="rebootModal" class="modal fade hidden" tabindex="-1" role="dialog" aria-hidden="true">
+      <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content text-center" style="padding: 20px;">
+          <h2>Rebooting...</h2>
+          <p><span id="reboot-countdown">60</span> seconds</p>
         </div>
       </div>
     </div>
@@ -86,10 +97,41 @@
         }
       });
 
-      $('a.restart').on('click', function(e) {
+      $('a.reboot').on('click', function(e) {
         e.preventDefault();
-        console.log("Restarting...")
+
+        const $modal = $('#rebootModal');
+        const $backdrop = $('#reboot-backdrop');
+        const $countdown = $('#reboot-countdown');
+        let secondsLeft = 30;
+
+        $modal.removeClass('hidden fade').addClass('in').css({
+          display: 'block',
+          opacity: 1
+        });
+        $backdrop.removeClass('hidden fade').addClass('in').css({
+          display: 'block',
+          opacity: 0.5
+        });
+        $('body').addClass('modal-open');
+
+        $countdown.text(secondsLeft);
+
+        const countdownTimer = setInterval(function() {
+          secondsLeft--;
+          $countdown.text(secondsLeft);
+
+          if (secondsLeft <= 0) {
+            clearInterval(countdownTimer);
+            location.reload();
+          }
+        }, 1000);
+
+        $.post('/reboot').fail(function() {
+          console.warn("Reboot POST failed — likely already rebooting.");
+        });
       });
+
 
       $('#custom-tabs a').on('click', function(e) {
         e.preventDefault();

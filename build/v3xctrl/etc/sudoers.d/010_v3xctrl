@@ -1,0 +1,1 @@
+v3xctrl ALL=(ALL) NOPASSWD: /sbin/reboot

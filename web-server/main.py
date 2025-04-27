@@ -28,6 +28,12 @@ def save_config():
     return jsonify({"message": "Saved!"})
 
 
+@app.route('/reboot', methods=['POST'])
+def reboot():
+    subprocess.run(["sudo", "reboot", "-f"])
+    return jsonify({"message": "Rebooting..."})
+
+
 @app.route('/services', methods=['GET'])
 def get_services():
     services = [
