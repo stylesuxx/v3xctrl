@@ -262,7 +262,7 @@
       "type": "object",
       "title": "Pin mapping",
       "options": {
-        "collapsed": false,
+        "collapsed": true,
         "disable_edit_json": true,
         "disable_properties": true
       },
