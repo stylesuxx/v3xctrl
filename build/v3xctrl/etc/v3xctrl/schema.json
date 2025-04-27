@@ -272,14 +272,14 @@
           "type": "integer",
           "default": 18,
           "description": "GPIO for ESC (throttle)"
-      },
+        },
         "steering": {
           "propertyOrder": 20,
           "type": "integer",
           "default": 13,
-          "description": "GPIO for steering servo"
+          "description": "GPIO for Servo (steering)"
+        }
       }
-     }
     }
   } 
 }
