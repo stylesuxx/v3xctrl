@@ -31,30 +31,29 @@ class TestStatusValueWidget(unittest.TestCase):
         self.assertEqual(self.widget.value, 42)
 
     def test_draw_extra_renders_value_when_set(self):
-        # Mock font and surface methods
         self.widget.set_value(99)
 
         mock_surface = MagicMock()
         mock_rendered = MagicMock()
-        mock_rendered.get_rect.return_value = pygame.Rect(0, 0, 10, 10)
+        mock_rect = pygame.Rect(0, 0, 10, 10)
 
-        self.widget.value_font = MagicMock()
-        self.widget.value_font.render.return_value = mock_rendered
+        self.widget.font = MagicMock()
+        self.widget.font.render.return_value = (mock_rendered, mock_rect)
 
         self.widget.draw_extra(mock_surface)
 
-        self.widget.value_font.render.assert_called_once_with("99", True, BLACK)
-        mock_surface.blit.assert_called_once_with(mock_rendered, mock_rendered.get_rect())
+        self.widget.font.render.assert_called_once_with("99", BLACK)
+        mock_surface.blit.assert_called_once_with(mock_rendered, mock_rect)
 
     def test_draw_extra_skips_render_when_none(self):
         self.widget.set_value(None)
         mock_surface = MagicMock()
 
         # Replace font with a mock to ensure render isn't called
-        self.widget.value_font = MagicMock()
+        self.widget.font = MagicMock()
         self.widget.draw_extra(mock_surface)
 
-        self.widget.value_font.render.assert_not_called()
+        self.widget.font.render.assert_not_called()
         mock_surface.blit.assert_not_called()
 
 
