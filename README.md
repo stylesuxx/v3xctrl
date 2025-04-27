@@ -13,6 +13,10 @@ The documentation is split into multiple files:
 - [Troubleshooting](/master/docs/Troubleshooting.md) - read this before opening issues, your problem might have already been solved
 - [Latency Breakdown](/master/docs/Latency.md) - how much latency is there and where does it come from?
 
+## Support
+
+If you need any help feel free to open an [issue here](https://github.com/stylesuxx/v3xctrl/issues), or even better, join us on [Discord](https://discord.gg/uF4hf8UBBW).
+
 ## Quickstart
 
 This section is meant to get you up and running within minutes.
