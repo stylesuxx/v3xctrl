@@ -197,6 +197,12 @@
               "type": "integer",
               "default": 1000,
               "description": "Pulse width when failsafe"
+            },
+            "idle": {
+              "propertyOrder": 40,
+              "type": "integer",
+              "default": 1200,
+              "description": "Pulsewidth for throttle position between forwards and brake/backwards"
             }
           }
         },
@@ -227,6 +233,12 @@
               "type": "integer",
               "default": 1500,
               "description": "Pulse width when failsafe"
+            },
+            "trim": {
+              "propertyOrder": 40,
+              "type": "integer",
+              "default": 0,
+              "description": "Pulse width for trim"
             }
           }
         },
