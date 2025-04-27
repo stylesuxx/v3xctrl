@@ -229,7 +229,6 @@
               "description": "Pulse width when failsafe"
             }
           }
-         }
         },
         "failsafeTimeout": {
           "propertyOrder": 30,
@@ -281,5 +280,6 @@
           "description": "GPIO for steering servo"
       }
      }
-   } 
+    }
+  } 
 }
