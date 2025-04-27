@@ -197,12 +197,6 @@
               "type": "integer",
               "default": 1000,
               "description": "Pulse width when failsafe"
-            },
-            "gpio": {
-              "propertyOrder": 50,
-              "type": "integer",
-              "default": 18,
-              "description": "GPIO for ESC (throttle)"
             }
           }
         },
@@ -233,14 +227,8 @@
               "type": "integer",
               "default": 1500,
               "description": "Pulse width when failsafe"
-            },
-            "gpio": {
-              "propertyOrder": 50,
-              "type": "integer",
-              "default": 13,
-              "description": "GPIO for steering servo"
             }
-
+           }
           }
         },
         "failsafeTimeout": {
@@ -269,6 +257,27 @@
           "description": "Enable SAMBA network share for recording directory"
         }
       }
-    }
-  }
+    },
+    "gpio":{
+      "propertyOrder":70,
+      "type": "object",
+      "title": "Pin mapping",
+      "options": {
+        "collapsed": false,
+        "disable_edit_json": true,
+        "disable_properties": true
+      },
+      "throttle": {
+        "propertyOrder": 10,
+        "type": "integer",
+        "default": 18,
+        "description": "GPIO for ESC (throttle)"
+      },
+      "steering": {
+        "propertyOrder": 20,
+        "type": "integer",
+        "default": 13,
+        "description": "GPIO for steering servo"
+      }
+   } 
 }

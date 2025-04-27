@@ -28,17 +28,19 @@
       "throttle": {
           "min": 1000,
           "max": 2000,
-          "failsafe": 1000,
-          "gpio": 18
+          "failsafe": 1000
       },
       "steering": {
           "min": 1000,
           "max": 2000,
-          "failsafe": 1500,
-          "gpio": 13
+          "failsafe": 1500
       }
   },
   "extras": {
       "samba": false
+  },
+  "gpio": {
+      "throttle": 18,
+      "steering": 13
   }
 }
