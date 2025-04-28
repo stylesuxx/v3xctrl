@@ -13,6 +13,7 @@ NOTE: The kernel avoids buildup by dropping older UDP packets when new ones
       not require special handling on our side.
 """
 import logging
+import queue
 import select
 import socket
 import threading
@@ -44,6 +45,9 @@ class UDPReceiver(threading.Thread):
 
         self._running = threading.Event()
 
+        self._queue = queue.Queue(maxsize=100)
+        self._worker_thread = threading.Thread(target=self._worker_loop, daemon=True)
+
     def is_valid_message(self, message: Message, addr: Tuple[str, int]) -> bool:
         if message.timestamp <= self.last_timestamp:
             logging.debug("Skipping out of order message")
@@ -57,6 +61,7 @@ class UDPReceiver(threading.Thread):
 
     def run(self) -> None:
         self._running.set()
+        self._worker_thread.start()
         try:
             while self._running.is_set():
                 try:
@@ -87,10 +92,23 @@ class UDPReceiver(threading.Thread):
 
                 if self.is_valid_message(message, addr):
                     self.last_timestamp = message.timestamp
-                    self.handler(message, addr)
+                    try:
+                        self._queue.put_nowait((message, addr))
+                    except queue.Full:
+                        logging.warning("Handler queue full, dropping packet")
 
         finally:
             self._running.clear()
+
+    def _worker_loop(self) -> None:
+        while self.is_running():
+            try:
+                message, addr = self._queue.get(timeout=self.timeout)
+                self.handler(message, addr)
+            except queue.Empty:
+                continue
+            except Exception as e:
+                logging.error(f"Error in handler: {e}")
 
     def validate_host(self, host: str):
         self._expected_host = host

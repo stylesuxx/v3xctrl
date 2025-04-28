@@ -16,7 +16,7 @@ import time
 from typing import Tuple
 
 from .Base import Base
-from .Message import Message, Syn, Ack, Heartbeat
+from .Message import Message, Syn, Ack
 from .MessageHandler import MessageHandler
 from .State import State
 from .UDPTransmitter import UDPTransmitter

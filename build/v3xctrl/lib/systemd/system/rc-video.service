@@ -26,6 +26,3 @@ LimitMEMLOCK=infinity
 
 # Max allowed real-time priority
 LimitRTPRIO=infinity
-
-# Fail fast if system call like sched_setscheduler() fails
-SystemCallErrorAction=abort
