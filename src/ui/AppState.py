@@ -59,11 +59,9 @@ class AppState:
                 bar_width=20,
                 range_mode="symmetric",
                 color_fn=interpolate_throttle_color
-            ),
-            "data": StatusValueWidget(position=(10, 180),
-                                      size=20,
-                                      label="Data")
+            )
         }
+
         self.widgets_debug = {
           "fps_loop": FpsWidget(
               (10, 10),
@@ -74,8 +72,14 @@ class AppState:
               (10, 10 + self.fps_settings["height"] + 10),
               (self.fps_settings["width"], self.fps_settings["height"]),
               "Video"
+          ),
+          "data": StatusValueWidget(
+              position=(10, 180),
+              size=20,
+              label="Data"
           )
         }
+
         self.key_handlers = {
             "throttle": KeyAxisHandler(
                 positive=self.controls["throttle_up"],

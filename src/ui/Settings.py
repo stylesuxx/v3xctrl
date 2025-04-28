@@ -24,7 +24,10 @@ class Settings:
             "height": 720,
         },
         "debug": True,
-        "fps": 60,
+        "timing": {
+            "main_loop_fps": 60,
+            "control_update_hz": 30,
+        },
         "widgets": {
             "fps": {
                 "width": 100,

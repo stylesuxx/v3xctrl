@@ -68,7 +68,10 @@ calibrations = settings.get("calibrations", {})
 # Settings require restart to take effect
 PORTS = settings.get("ports")
 VIDEO = settings.get("video")
-FRAMERATE = settings.get('fps')
+TIMING = settings.get("timing", {})
+MAIN_LOOP_FPS = TIMING.get('main_loop_fps', 60)
+CONTROL_RATE_FREQUENCY = TIMING.get('control_update_hz', 30)
+CONTROL_INTERVAL = 1.0 / CONTROL_RATE_FREQUENCY
 VIDEO_SIZE = (VIDEO["width"], VIDEO["height"])
 
 # no UI for those settings
@@ -201,10 +204,10 @@ def render_all(state):
     pygame.display.flip()
 
 
-def update_all(state):
-    if not state.server_error and "data" in state.widgets:
+def handle_control(state):
+    if not state.server_error and "data" in state.widgets_debug:
         data_left = state.server.transmitter.queue.qsize()
-        state.widgets["data"].set_value(data_left)
+        state.widgets_debug["data"].set_value(data_left)
     else:
         state.data = "fail"
 
@@ -256,17 +259,22 @@ def signal_handler(sig, frame, state):
 
 signal.signal(signal.SIGINT, lambda s, f: signal_handler(s, f, state))
 
+last_control_update = time.monotonic()
 while state.running:
+    now = time.monotonic()
     state.loop_history.append(time.time())
 
     handle_events(state)
     if not state.running:
         break
 
-    update_all(state)
+    if now - last_control_update >= CONTROL_INTERVAL:
+        handle_control(state)
+        last_control_update = now
+
     render_all(state)
 
-    state.clock.tick(FRAMERATE)
+    state.clock.tick(MAIN_LOOP_FPS)
 
 gamepad_manager.stop()
 state.shutdown()
