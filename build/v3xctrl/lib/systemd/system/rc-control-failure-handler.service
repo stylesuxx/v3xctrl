@@ -1,0 +1,10 @@
+[Unit]
+Description=Handle rc-control failure
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/rc-control-failed
+User=root
+
+[Install]
+WantedBy=multi-user.target

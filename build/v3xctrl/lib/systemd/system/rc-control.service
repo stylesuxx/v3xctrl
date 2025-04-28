@@ -1,11 +1,11 @@
 [Unit]
 Description=Control channel
 PartOf=rc-service-manager.service
-After=network.target
+OnFailure=rc-control-failure-handler.service
 
 [Service]
 ExecStart=/usr/bin/rc-control
-Restart=on-failure
+Restart=no
 Type=simple
 User=v3xctrl
 Group=v3xctrl
