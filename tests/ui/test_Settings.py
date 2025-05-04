@@ -20,7 +20,7 @@ class TestSettings(unittest.TestCase):
         Path(self.path).unlink()
         settings = Settings(self.path)
         self.assertEqual(settings.get("debug"), True)
-        self.assertEqual(settings.get("fps"), 60)
+        self.assertEqual(settings.get("timing").get("main_loop_fps"), 60)
         self.assertEqual(settings.settings["video"]["width"], 1280)
 
     def test_save_and_load_round_trip(self):
