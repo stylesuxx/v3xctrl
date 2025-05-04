@@ -8,7 +8,7 @@ on:
         type: string
       keep_run_id:
         required: true
-        type: number
+        type: string
       workflow_name:
         required: true
         type: string
