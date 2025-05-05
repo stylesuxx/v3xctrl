@@ -1,18 +1,3 @@
-name: Cleanup Old Workflow Runs
-
-on:
-  workflow_call:
-    inputs:
-      branch:
-        required: true
-        type: string
-      keep_run_id:
-        required: true
-        type: string
-      workflow_name:
-        required: true
-        type: string
-
 jobs:
   cleanup:
     runs-on: ubuntu-latest
@@ -20,23 +5,25 @@ jobs:
       - name: Install GitHub CLI
         run: sudo apt-get install -y gh jq
 
+      - name: Authenticate GitHub CLI
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: echo "${GH_TOKEN}" | gh auth login --with-token
+
       - name: Cleanup old workflow runs on branch
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           echo "Cleaning up workflow: ${{ inputs.workflow_name }}"
           echo "On branch: ${{ inputs.branch }}"
           echo "Keeping current run ID: ${{ inputs.keep_run_id }}"
 
-          # Get workflow ID
           WORKFLOW_ID=$(gh api -X GET "/repos/${{ github.repository }}/actions/workflows" \
             --jq ".workflows[] | select(.name==\"${{ inputs.workflow_name }}\") | .id")
 
-          # Get recent runs on this branch
           gh api -X GET "/repos/${{ github.repository }}/actions/workflows/$WORKFLOW_ID/runs?branch=${{ inputs.branch }}&per_page=100" \
             > runs.json
 
-          # Find most recent successful run (excluding current one)
           LATEST_SUCCESS_ID=$(jq "[.workflow_runs[] | select(.conclusion==\"success\" and .id != ${{ inputs.keep_run_id }})][0].id" runs.json)
 
           echo "Latest successful run ID: $LATEST_SUCCESS_ID"
