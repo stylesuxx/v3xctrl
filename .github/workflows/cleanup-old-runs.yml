@@ -24,6 +24,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
+          export GH_TOKEN="${GH_TOKEN}"
+
           echo "Cleaning up workflow: ${{ inputs.workflow_name }}"
           echo "On branch: ${{ inputs.branch }}"
           echo "Keeping current run ID: ${{ inputs.keep_run_id }}"
