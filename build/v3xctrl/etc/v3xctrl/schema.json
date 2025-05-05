@@ -192,11 +192,11 @@
               "default": 2000,
               "description": "Maximum pulse width"
             },
-            "failsafe": {
+            "idle": {
               "propertyOrder": 30,
               "type": "integer",
-              "default": 1000,
-              "description": "Pulse width when failsafe"
+              "default": 1200,
+              "description": "Pulse width for idle"
             }
           }
         },
@@ -227,6 +227,12 @@
               "type": "integer",
               "default": 1500,
               "description": "Pulse width when failsafe"
+            },
+            "trim": {
+              "propertyOrder": 40,
+              "type": "integer",
+              "default": 0,
+              "description": "Trim for steering (-/+) offset from center (max - min) / 2"
             }
           }
         },
