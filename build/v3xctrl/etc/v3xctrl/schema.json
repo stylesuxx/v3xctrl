@@ -222,14 +222,8 @@
               "default": 2000,
               "description": "Maximum pulse width"
             },
-            "failsafe": {
-              "propertyOrder": 30,
-              "type": "integer",
-              "default": 1500,
-              "description": "Pulse width when failsafe"
-            },
             "trim": {
-              "propertyOrder": 40,
+              "propertyOrder": 30,
               "type": "integer",
               "default": 0,
               "description": "Trim for steering (-/+) offset from center (max - min) / 2"
@@ -277,13 +271,13 @@
           "propertyOrder": 10,
           "type": "integer",
           "default": 18,
-          "description": "GPIO for ESC (throttle)"
+          "description": "GPIO for ESC"
         },
         "steering": {
           "propertyOrder": 20,
           "type": "integer",
           "default": 13,
-          "description": "GPIO for Servo (steering)"
+          "description": "GPIO for Servo"
         }
       }
     }
