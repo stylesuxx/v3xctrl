@@ -86,3 +86,5 @@ jobs:
       branch: ${{ github.event.inputs.branch }}
       keep_run_id: ${{ github.run_id }}
       workflow_name: ${{ github.workflow }}
+    secrets:
+      GH_PAT: ${{ secrets.GH_PAT }}
