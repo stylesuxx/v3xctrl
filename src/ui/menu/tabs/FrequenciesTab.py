@@ -11,13 +11,14 @@ class FrequenciesTab(Tab):
 
         self.timing = self.settings.get("timing", {})
 
-        self.label_width = 160
-        self.input_width = 75
+        label_width = 170
+        input_width = 75
+        element_padding = 10
 
         self.video_input = NumberInput(
             "Main Loop FPS",
-            label_width=self.label_width,
-            input_width=self.input_width,
+            label_width=label_width,
+            input_width=input_width,
             min_val=1, max_val=120,
             font=LABEL_FONT, mono_font=MONO_FONT,
             on_change=lambda v: self._on_rate_change("main_loop_fps", v)
@@ -25,18 +26,37 @@ class FrequenciesTab(Tab):
 
         self.control_input = NumberInput(
             "Control Frequency",
-            label_width=self.label_width,
-            input_width=self.input_width,
+            label_width=label_width,
+            input_width=input_width,
             min_val=1, max_val=120,
             font=LABEL_FONT, mono_font=MONO_FONT,
             on_change=lambda v: self._on_rate_change("control_update_hz", v)
         )
 
-        self.video_input.set_position(padding, y_offset + padding + 60)
-        self.control_input.set_position(padding, y_offset + padding + 100)
+        self.latency_input = NumberInput(
+            "Latency Frequency",
+            label_width=label_width,
+            input_width=input_width,
+            min_val=1, max_val=120,
+            font=LABEL_FONT, mono_font=MONO_FONT,
+            on_change=lambda v: self._on_rate_change("latency_check_hz", v)
+        )
+
+        y_position = y_offset + padding + 60
+
+        self.video_input.set_position(padding, y_position)
+        width, height = self.video_input.get_size()
+        y_position += height + element_padding
+
+        self.control_input.set_position(padding, y_position)
+        width, height = self.control_input.get_size()
+        y_position += height + element_padding
+
+        self.latency_input.set_position(padding, y_position)
 
         self.video_input.value = str(self.timing.get("main_loop_fps", ""))
         self.control_input.value = str(self.timing.get("control_update_hz", ""))
+        self.latency_input.value = str(self.timing.get("latency_check_hz", ""))
 
     def _on_rate_change(self, name: str, value: str):
         self.timing[name] = int(value)
@@ -44,6 +64,7 @@ class FrequenciesTab(Tab):
     def handle_event(self, event: event.Event):
         self.video_input.handle_event(event)
         self.control_input.handle_event(event)
+        self.latency_input.handle_event(event)
 
     def draw(self, surface: Surface):
         y = self.y_offset + self.padding
@@ -51,25 +72,7 @@ class FrequenciesTab(Tab):
 
         self.video_input.draw(surface)
         self.control_input.draw(surface)
-
-        """
-        note_text = "Remember to restart the app after changing the ports!"
-        note_surface, note_rect = TEXT_FONT.render(note_text, WHITE)
-        note_rect.topleft = (
-            self.padding,
-            self.control_input.y + self.control_input.input_height + 20
-        )
-        surface.blit(note_surface, note_rect)
-
-        misc_y = note_rect.bottom + self.padding + 10
-        self._draw_headline(surface, "Miscellaneous", misc_y)
-
-        y = misc_y + 60
-        for checkbox in [self.debug_checkbox, self.steering_checkbox, self.throttle_checkbox]:
-            checkbox.set_position(self.padding, y)
-            checkbox.draw(surface)
-            y += 40
-        """
+        self.latency_input.draw(surface)
 
     def get_settings(self) -> dict:
         return {

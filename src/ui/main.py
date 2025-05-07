@@ -100,9 +100,7 @@ def telemetry_handler(state: AppState, message: Telemetry) -> None:
 def latency_handler(state: AppState, message: Telemetry) -> None:
     now = time.time()
     timestamp = message.timestamp
-    diff = now - timestamp
-    diff_ms = round(diff * 1000)
-    logging.debug(f"Received latency message: {diff_ms}ms")
+    diff_ms = round((now - timestamp) * 1000)
 
     if diff_ms <= 80:
         state.latency = "green"
@@ -112,6 +110,7 @@ def latency_handler(state: AppState, message: Telemetry) -> None:
         state.latency = "red"
 
     state.widgets_debug["latency"].set_value(diff_ms)
+    logging.debug(f"Received latency message: {diff_ms}ms")
 
 
 def disconnect_handler(state) -> None:
@@ -151,7 +150,9 @@ state = AppState((VIDEO["width"], VIDEO["height"]),
 
 def update_settings():
     """ Update settings after exiting menu """
-    global debug, controls, settings, state, widgets, main_loop_fps, control_interval
+    global debug, controls, settings, state, widgets, main_loop_fps
+    global control_interval, latency_interval
+
     settings = Init.settings()
 
     controls = settings.get("controls")
@@ -160,8 +161,12 @@ def update_settings():
 
     timing = settings.get("timing", {})
     main_loop_fps = timing.get('main_loop_fps', 60)
+
     control_rate_frequency = timing.get('control_update_hz', 30)
     control_interval = 1.0 / control_rate_frequency
+
+    latency_check_frequency = timing.get('latency_check_hz', 30)
+    latency_interval = 1.0 / latency_check_frequency
 
     input = settings.get("input", {})
     calibrations = settings.get("calibrations", {})

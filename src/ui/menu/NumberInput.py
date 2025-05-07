@@ -110,6 +110,8 @@ class NumberInput(BaseWidget):
                     new_val = max(self.min_val, int(self.value or 0) - 1)
                     self.value = str(new_val)
                     self.cursor_pos = len(self.value)
+                    if self.on_change:
+                        self.on_change(self.value)
             elif event.unicode.isdigit() and len(self.value) < 5:
                 try:
                     new_val = self.value[:self.cursor_pos] + event.unicode + self.value[self.cursor_pos:]
