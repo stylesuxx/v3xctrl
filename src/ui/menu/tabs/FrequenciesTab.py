@@ -5,7 +5,7 @@ from ui.menu.NumberInput import NumberInput
 from ui.fonts import LABEL_FONT, MONO_FONT
 
 
-class VideoTab(Tab):
+class FrequenciesTab(Tab):
     def __init__(self, settings: dict, width: int, height: int, padding: int, y_offset: int):
         super().__init__(settings, width, height, padding, y_offset)
 
