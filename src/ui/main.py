@@ -1,7 +1,6 @@
 import argparse
 import logging
 import pygame
-import pygame.freetype
 import signal
 import time
 
@@ -64,14 +63,14 @@ debug = settings.get("debug")
 input = settings.get("input", {})
 widgets = settings.get('widgets', {})
 calibrations = settings.get("calibrations", {})
+timing = settings.get("timing", {})
+main_loop_fps = timing.get('main_loop_fps', 60)
+control_rate_frequency = timing.get('control_update_hz', 30)
+control_interval = 1.0 / control_rate_frequency
 
 # Settings require restart to take effect
 PORTS = settings.get("ports")
 VIDEO = settings.get("video")
-TIMING = settings.get("timing", {})
-MAIN_LOOP_FPS = TIMING.get('main_loop_fps', 60)
-CONTROL_RATE_FREQUENCY = TIMING.get('control_update_hz', 30)
-CONTROL_INTERVAL = 1.0 / CONTROL_RATE_FREQUENCY
 VIDEO_SIZE = (VIDEO["width"], VIDEO["height"])
 
 # no UI for those settings
@@ -129,12 +128,17 @@ state = AppState((VIDEO["width"], VIDEO["height"]),
 
 def update_settings():
     """ Update settings after exiting menu """
-    global debug, controls, settings, state, widgets
+    global debug, controls, settings, state, widgets, main_loop_fps, control_interval
     settings = Init.settings()
 
     controls = settings.get("controls")
     debug = settings.get('debug')
     widgets = settings.get('widgets', {})
+
+    timing = settings.get("timing", {})
+    main_loop_fps = timing.get('main_loop_fps', 60)
+    control_rate_frequency = timing.get('control_update_hz', 30)
+    control_interval = 1.0 / control_rate_frequency
 
     input = settings.get("input", {})
     calibrations = settings.get("calibrations", {})
@@ -268,13 +272,14 @@ while state.running:
     if not state.running:
         break
 
-    if now - last_control_update >= CONTROL_INTERVAL:
+    if now - last_control_update >= control_interval:
         handle_control(state)
         last_control_update = now
 
     render_all(state)
 
-    state.clock.tick(MAIN_LOOP_FPS)
+    state.clock.tick(main_loop_fps)
+
 
 gamepad_manager.stop()
 state.shutdown()

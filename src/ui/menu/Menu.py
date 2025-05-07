@@ -5,14 +5,11 @@ from typing import Callable
 from ui.GamepadManager import GamepadManager
 from ui.Settings import Settings
 
-from ui.menu.calibration.GamepadCalibrationWidget import GamepadCalibrationWidget
-from ui.menu.NumberInput import NumberInput
-from ui.menu.Checkbox import Checkbox
 from ui.menu.Button import Button
-from ui.menu.KeyMappingWidget import KeyMappingWidget
+from ui.menu.tabs import GeneralTab, InputTab, VideoTab
 
 from ui.colors import WHITE, GREY, MID_GREY, DARK_GREY
-from ui.fonts import MAIN_FONT, LABEL_FONT, TEXT_FONT, MONO_FONT
+from ui.fonts import MAIN_FONT
 
 
 class Menu:
@@ -21,7 +18,6 @@ class Menu:
     TAB_INACTIVE_COLOR = GREY
     TAB_SEPARATOR_COLOR = BG_COLOR
     FONT_COLOR = WHITE
-    LINE_COLOR = WHITE
 
     def __init__(self,
                  width: int,
@@ -35,7 +31,7 @@ class Menu:
         self.settings = settings
         self.callback = callback
 
-        self.tabs = ["General", "Video", "Input"]
+        self.tabs = ["General", "Frequencies", "Input"]
         self.active_tab = self.tabs[0]
         self.disable_tabs = False
 
@@ -60,150 +56,56 @@ class Menu:
             self._exit_button_callback)
         self.exit_button.set_position(self.width - 120, button_y)
 
-        # General widgets
-        self.debug = self.settings.get("debug", False)
-        self.ports = self.settings.get("ports", {})
-        self.widgets = self.settings.get("widgets", {})
-
-        self.video_input = NumberInput(
-            "Video",
-            label_width=90,
-            input_width=75,
-            min_val=1,
-            max_val=65535,
-            font=LABEL_FONT,
-            mono_font=MONO_FONT,
-            on_change=lambda v: self._on_port_change("video", v)
-        )
-        self.video_input.set_position(self.padding, self.tab_height + self.padding + 60)
-
-        self.control_input = NumberInput(
-            "Control",
-            label_width=90,
-            input_width=75,
-            min_val=1,
-            max_val=65535,
-            font=LABEL_FONT,
-            mono_font=MONO_FONT,
-            on_change=lambda v: self._on_port_change("control", v)
-        )
-        self.control_input.set_position(self.padding, self.tab_height + self.padding + 100)
-
-        # Miscellaneous widgets
-        self.debug_checkbox = Checkbox(
-            label="Enable Debug Overlay",
-            font=LABEL_FONT,
-            checked=self.settings.get("debug", False),
-            on_change=lambda v: self._on_debug_change(v)
-        )
-
-        self.steering_checkbox = Checkbox(
-            label="Enable Steering overlay",
-            font=LABEL_FONT,
-            checked=self.widgets.get("steering", {}).get("display", False),
-            on_change=lambda v: self._on_steering_change(v)
-        )
-
-        self.throttle_checkbox = Checkbox(
-            label="Enable Throttle overlay",
-            font=LABEL_FONT,
-            checked=self.widgets.get("throttle", {}).get("display", False),
-            on_change=lambda v: self._on_throttle_change(v)
-        )
-
-        # Input widgets
-        keyboard_controls = self.settings.get("controls", {}).get("keyboard", {})
-        self.key_widgets = []
-
-        for name, key in keyboard_controls.items():
-            widget = KeyMappingWidget(
-                control_name=name,
-                key_code=key,
-                font=LABEL_FONT,
-                on_key_change=lambda new_key, name=name: self._on_control_key_change(name, new_key),
-                on_remap_toggle=self._on_remap_toggle
-            )
-            self.key_widgets.append(widget)
-
-        self.calibration_widget = GamepadCalibrationWidget(
-            font=LABEL_FONT,
-            manager=gamepad_manager,
-            on_calibration_start=self._on_calibration_start,
-            on_calibration_done=self._on_calibration_done
-        )
-
-        self.video_input.value = str(self.ports["video"])
-        self.video_input.cursor_pos = len(self.video_input.value)
-
-        self.control_input.value = str(self.ports["control"])
-        self.control_input.cursor_pos = len(self.control_input.value)
-
         self.background = pygame.Surface((self.width, self.height))
         self.background.fill(self.BG_COLOR)
 
-    def _on_remap_toggle(self, is_remapping: bool):
-        if is_remapping:
+        self.tab_views = {
+            "General": GeneralTab(
+                settings=self.settings,
+                width=self.width,
+                height=self.height,
+                padding=self.padding,
+                y_offset=self.tab_height
+            ),
+            "Input": InputTab(
+                settings=self.settings,
+                width=self.width,
+                height=self.height,
+                padding=self.padding,
+                y_offset=self.tab_height,
+                gamepad_manager=self.gamepad_manager,
+                on_active_toggle=self._on_active_toggle
+            ),
+            "Frequencies": VideoTab(
+                settings=self.settings,
+                width=self.width,
+                height=self.height,
+                padding=self.padding,
+                y_offset=self.tab_height
+            ),
+        }
+
+    def _on_active_toggle(self, active: bool):
+        if active:
             self.disable_tabs = True
             self.save_button.disable()
             self.exit_button.disable()
-            for widget in self.key_widgets:
-                widget.disable()
         else:
             self.disable_tabs = False
             self.save_button.enable()
             self.exit_button.enable()
-            for widget in self.key_widgets:
-                widget.enable()
-
-    def _on_calibration_start(self):
-        self.disable_tabs = True
-        self.save_button.disable()
-        self.exit_button.disable()
-        for widget in self.key_widgets:
-            widget.disable()
-
-    def _on_calibration_done(self, guid: str, settings: dict):
-        self.disable_tabs = False
-        self.save_button.enable()
-        self.exit_button.enable()
-        for widget in self.key_widgets:
-            widget.enable()
-
-    def _on_port_change(self, name: str, value: str):
-        self.ports[name] = int(value)
-
-    def _on_debug_change(self, value: str):
-        self.debug = value
-
-    def _on_steering_change(self, value: str):
-        self.widgets["steering"]["display"] = value
-
-    def _on_throttle_change(self, value: str):
-        self.widgets["throttle"]["display"] = value
 
     def _save_button_callback(self):
-        if self.active_tab == "General":
-            self.settings.set("ports", self.ports)
-            self.settings.set("debug", self.debug)
-            self.settings.set("widgets", self.widgets)
+        settings = self.tab_views[self.active_tab].get_settings()
 
-        elif self.active_tab == "Input":
-            guid = self.calibration_widget.get_selected_guid()
-            self.settings.set("input", {"guid": guid})
-
-            calibrations = self.gamepad_manager.get_calibrations()
-            self.settings.set("calibrations", calibrations)
+        for key, val in settings.items():
+            self.settings.set(key, val)
 
         self.settings.save()
 
     def _exit_button_callback(self):
         self.active_tab = self.tabs[0]
         self.callback()
-
-    def _on_control_key_change(self, control_name, key_code):
-        controls = self.settings.get("controls")
-        keyboard = controls.setdefault("keyboard", {})
-        keyboard[control_name] = key_code
 
     def _generate_tab_rects(self):
         tab_width = self.width // len(self.tabs)
@@ -222,28 +124,7 @@ class Menu:
                     if rect.collidepoint(event.pos):
                         self.active_tab = tab
 
-        if self.active_tab == "General":
-            self.video_input.handle_event(event)
-            self.control_input.handle_event(event)
-            self.debug_checkbox.handle_event(event)
-            self.steering_checkbox.handle_event(event)
-            self.throttle_checkbox.handle_event(event)
-
-        elif self.active_tab == "Input":
-            for widget in self.key_widgets:
-                widget.handle_event(event)
-
-            self.calibration_widget.handle_event(event)
-
-    def _draw_headline(self, surface: Surface, title: str, y: int) -> int:
-        heading_surface, _ = MAIN_FONT.render(title, self.FONT_COLOR)
-        heading_pos = (self.padding, y)
-        surface.blit(heading_surface, heading_pos)
-        pygame.draw.line(surface, self.LINE_COLOR,
-                         (self.padding, y + 40),
-                         (self.width - self.padding, y + 40), 2)
-
-        return y + 40
+        self.tab_views[self.active_tab].handle_event(event)
 
     def draw(self, surface: Surface):
         surface.blit(self.background, (0, 0))
@@ -260,53 +141,4 @@ class Menu:
         self.save_button.draw(surface)
         self.exit_button.draw(surface)
 
-        if self.active_tab == "Input":
-            ports_section_y = self.tab_height + self.padding
-            baseline = self._draw_headline(surface, "Keyboard", ports_section_y)
-
-            # Draw each key remapping row
-            row_y = baseline + 20
-            for widget in self.key_widgets:
-                widget.set_position(self.padding, row_y)
-
-                widget.draw(surface)
-                row_y += 40
-
-            row_y += 20
-            baseline = self._draw_headline(surface, "Input device", row_y)
-            row_y = baseline + 20
-            self.calibration_widget.set_position(self.padding, row_y)
-            self.calibration_widget.draw(surface)
-
-        if self.active_tab == "General":
-            ports_section_y = self.tab_height + self.padding
-            self._draw_headline(surface, "Ports", ports_section_y)
-
-            self.video_input.draw(surface)
-            self.control_input.draw(surface)
-
-            # Note about restarting
-            note_text = "Remember to restart the app after changing the ports!"
-            note_surface, note_rect = TEXT_FONT.render(note_text, self.FONT_COLOR)
-            note_rect.topleft = (
-                self.padding,
-                self.control_input.y + self.control_input.input_height + 20
-            )
-
-            # --- Miscellaneous section ---
-            misc_section_y = note_rect.bottom + self.padding + 10
-            baseline = self._draw_headline(surface, "Miscellaneous", misc_section_y)
-
-            # Set checkbox y dynamically
-            y = baseline + 20
-            checkboxes = [
-                self.debug_checkbox,
-                self.steering_checkbox,
-                self.throttle_checkbox
-            ]
-            for checkbox in checkboxes:
-                checkbox.set_position(self.padding, y)
-                checkbox.draw(surface)
-                y += 40
-
-            surface.blit(note_surface, note_rect)
+        self.tab_views[self.active_tab].draw(surface)
