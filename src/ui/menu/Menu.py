@@ -39,22 +39,30 @@ class Menu:
         self.footer_height = 60
         self.padding = 20
 
-        self.tab_rects = self._generate_tab_rects()
+        save_button_x = self.width - 240
+        exit_button_x = self.width - 120
+
+        button_width = 100
+        button_height = 40
 
         button_y = self.height - self.footer_height
+
+        self.tab_rects = self._generate_tab_rects()
+
         self.save_button = Button(
             "Save",
-            100, 40,
+            button_width, button_height,
             MAIN_FONT,
             self._save_button_callback)
-        self.save_button.set_position(self.width - 240, button_y)
 
         self.exit_button = Button(
             "Back",
-            100, 40,
+            button_width, button_height,
             MAIN_FONT,
             self._exit_button_callback)
-        self.exit_button.set_position(self.width - 120, button_y)
+
+        self.save_button.set_position(save_button_x, button_y)
+        self.exit_button.set_position(exit_button_x, button_y)
 
         self.background = pygame.Surface((self.width, self.height))
         self.background.fill(self.BG_COLOR)
