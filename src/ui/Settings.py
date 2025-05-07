@@ -27,6 +27,7 @@ class Settings:
         "timing": {
             "main_loop_fps": 60,
             "control_update_hz": 30,
+            "latency_check_hz": 1,
         },
         "widgets": {
             "fps": {

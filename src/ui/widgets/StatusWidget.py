@@ -12,6 +12,9 @@ class StatusWidget(Widget):
         "success": GREEN,
         "fail": RED,
         "default": GREY,
+        "green": GREEN,
+        "yellow": YELLOW,
+        "red": RED,
     }
 
     def __init__(self, position: Tuple[int, int], size: int, label: str, padding: int = 8):

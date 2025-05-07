@@ -16,7 +16,7 @@ import time
 import traceback
 
 from rpi_4g_streamer import Client, State
-from rpi_4g_streamer.Message import Control, Telemetry
+from rpi_4g_streamer.Message import Control, Telemetry, Latency
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -112,6 +112,10 @@ def control_handler(message: Control) -> None:
     pi.set_servo_pulsewidth(steering_gpio, steering_value)
 
 
+def latency_handler(message: Latency) -> None:
+    client.send(message)
+
+
 def disconnect_handler() -> None:
     """
     When disconnected:
@@ -135,6 +139,7 @@ client = Client(HOST, PORT)
 
 # Subscribe to messages received from the server
 client.subscribe(Control, control_handler)
+client.subscribe(Latency, latency_handler)
 
 # Subscribe to life-cycle events
 client.on(State.DISCONNECTED, disconnect_handler)

@@ -44,6 +44,7 @@ class AppState:
         self.server, self.server_error = Init.server(self.control_port,
                                                      server_handlers)
         self.data = "waiting"
+        self.latency = "default"
 
         self.widgets = {
             "steering": HorizontalIndicatorWidget(
@@ -75,8 +76,13 @@ class AppState:
           ),
           "data": StatusValueWidget(
               position=(10, 180),
-              size=20,
+              size=26,
               label="Data"
+          ),
+          "latency": StatusValueWidget(
+              position=(10, 216),
+              size=26,
+              label="Latency"
           )
         }
 

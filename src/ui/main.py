@@ -14,7 +14,7 @@ from ui.AppState import AppState
 from ui.MemoryTracker import MemoryTracker
 
 from rpi_4g_streamer import State
-from rpi_4g_streamer.Message import Telemetry, Control
+from rpi_4g_streamer.Message import Telemetry, Control, Latency
 
 
 parser = argparse.ArgumentParser(description="RC Streamer")
@@ -66,7 +66,10 @@ calibrations = settings.get("calibrations", {})
 timing = settings.get("timing", {})
 main_loop_fps = timing.get('main_loop_fps', 60)
 control_rate_frequency = timing.get('control_update_hz', 30)
+latency_check_frequency = timing.get('latency_check_hz', 1)
+
 control_interval = 1.0 / control_rate_frequency
+latency_interval = 1.0 / latency_check_frequency
 
 # Settings require restart to take effect
 PORTS = settings.get("ports")
@@ -94,6 +97,23 @@ def telemetry_handler(state: AppState, message: Telemetry) -> None:
     logging.debug(f"Received telemetry message: {values}")
 
 
+def latency_handler(state: AppState, message: Telemetry) -> None:
+    now = time.time()
+    timestamp = message.timestamp
+    diff = now - timestamp
+    diff_ms = round(diff * 1000)
+    logging.debug(f"Received latency message: {diff_ms}ms")
+
+    if diff_ms <= 80:
+        state.latency = "green"
+    elif diff_ms <= 150:
+        state.latency = "yellow"
+    else:
+        state.latency = "red"
+
+    state.widgets_debug["latency"].set_value(diff_ms)
+
+
 def disconnect_handler(state) -> None:
     state.data = "fail"
 
@@ -110,7 +130,10 @@ if "guid" in input:
 gamepad_manager.start()
 
 handlers = {
-    "messages": [(Telemetry, lambda m: telemetry_handler(state, m))],
+    "messages": [
+        (Telemetry, lambda m: telemetry_handler(state, m)),
+        (Latency, lambda m: latency_handler(state, m)),
+      ],
     "states": [(State.CONNECTED, lambda: connect_handler(state)),
                (State.DISCONNECTED, lambda: disconnect_handler(state))]
 }
@@ -264,6 +287,7 @@ def signal_handler(sig, frame, state):
 signal.signal(signal.SIGINT, lambda s, f: signal_handler(s, f, state))
 
 last_control_update = time.monotonic()
+last_latency_check = last_control_update
 while state.running:
     now = time.monotonic()
     state.loop_history.append(time.time())
@@ -275,6 +299,12 @@ while state.running:
     if now - last_control_update >= control_interval:
         handle_control(state)
         last_control_update = now
+
+    # Send latency message
+    if now - last_latency_check >= latency_interval:
+        if not state.server_error:
+            state.server.send(Latency())
+        last_latency_check = now
 
     render_all(state)
 
