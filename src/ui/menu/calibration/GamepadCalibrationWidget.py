@@ -193,7 +193,6 @@ class GamepadCalibrationWidget(BaseWidget):
             if settings:
                 settings[key]["invert"] = state
                 self.manager.set_calibration(guid, settings)
-                self.on_calibration_done(guid, settings)
 
     def draw(self, surface: Surface) -> None:
         if not self.gamepads:
