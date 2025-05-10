@@ -26,7 +26,7 @@ class GamepadCalibrationWidget(BaseWidget):
         font: Font,
         manager: GamepadManager,
         on_calibration_start: Callable[[], None] = lambda: None,
-        on_calibration_done: Callable[[str, dict], None] = lambda guid, settings: None,
+        on_calibration_done: Callable[[], None] = lambda: None,
     ):
         super().__init__()
         self.font = font
@@ -151,7 +151,7 @@ class GamepadCalibrationWidget(BaseWidget):
 
                 self.manager.set_calibration(guid, settings_with_inversion)
                 self.manager.set_active(guid)
-                self.on_calibration_done(guid, settings_with_inversion)
+                self.on_calibration_done()
 
         self.calibrator = GamepadCalibrator(
             on_start=lambda: (
