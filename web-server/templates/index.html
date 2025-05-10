@@ -4,6 +4,34 @@
     <title>V3XCTRL Config Editor</title>
     <script src="{{ url_for('static', filename='libs/jquery.min.js') }}"></script>
     <script src="{{ url_for('static', filename='libs/jsoneditor.min.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/tabs.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/functions.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/handlers.js') }}"></script>
+
+    <script>
+      $(function() {
+        const schema = {{ schema|tojson }};
+        const startval = {{ config|tojson }};
+
+        const editor = initEditor(schema, startval);
+        registerTabHandler();
+        registerClickHandlers(editor);
+        setCalibrationValues(editor);
+      });
+    </script>
+
+    <style>
+      .label-same {
+        width: 120px;
+      }
+
+      .mb-15 {
+        margin-bottom: 15px;
+      }
+    </style>
+
     <link rel="stylesheet" href="{{ url_for('static', filename='libs/bootstrap3.min.css') }}">
   </head>
 
@@ -36,6 +64,7 @@
       <ul class="nav nav-tabs" role="tablist" id="custom-tabs">
         <li class="active"><a href="#editor-tab" role="tab" data-toggle="tab">Config Editor</a></li>
         <li><a href="#services-tab" role="tab" data-toggle="tab">Services</a></li>
+        <li><a href="#calibration-tab" role="tab" data-toggle="tab">Calibration</a></li>
       </ul>
 
       <div class="tab-content" style="margin-top: 20px;">
@@ -48,6 +77,76 @@
         <div class="tab-pane" id="services-tab">
           <div id="service_status_container">
             <p>Loading service states...</p>
+          </div>
+        </div>
+
+        <div class="tab-pane" id="calibration-tab">
+          <div class="row">
+            <div class="col-md-12">
+              <div class="alert alert-info">
+                <strong>NOTE:</strong> Set min value first: Decrease until the servo makes clicking noises and then increase one ore two steps back. Do the same for the max value, just in the other direction. Once min and max are set, trim until steering is straight.
+              </div>
+            </div>
+          </div>
+
+          <div class="row mb-15">
+            <form class="form-inline steering min col-md-12">
+              <div class="form-group">
+                <label class="label-same control-label">Steering Min</label>
+                <input
+                  class="form-control steering-min"
+                  type="number"
+                  value="0"
+                  step=10
+                />
+
+                <button class="set btn btn-secondary" type="submit">Set</button>
+                <button class="increase btn btn-secondary" type="submit">+10</button>
+                <button class="decrease btn btn-secondary" type="submit">-10</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="row mb-15">
+            <form class="form-inline steering max col-md-12">
+              <div class="form-group">
+                <label class="label-same control-label">Steering Max</label>
+                <input
+                  class="form-control steering-max"
+                  type="number"
+                  value="0"
+                  step=10
+                />
+
+                <button class="set btn btn-secondary" type="submit">Set</button>
+                <button class="increase btn btn-secondary" type="submit">+10</button>
+                <button class="decrease btn btn-secondary" type="submit">-10</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="row mb-15">
+            <form class="form-inline steering trim col-md-12">
+              <div class="form-group">
+                <label class="label-same control-label">Steering Trim</label>
+                <input
+                  class="form-control steering-trim"
+                  type="number"
+                  value="0"
+                  step=10
+                />
+
+                <button class="set btn btn-secondary" type="submit">Set</button>
+                <button class="increase btn btn-secondary" type="submit">+10</button>
+                <button class="decrease btn btn-secondary" type="submit">-10</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="row mb-15">
+            <div class="col-md-12">
+              <button class="btn btn-primary save-calibration">Save calibration</button>
+            </div>
           </div>
         </div>
       </div>
@@ -63,105 +162,5 @@
         </div>
       </div>
     </div>
-
-    <script>
-      const schema = {{ schema|tojson }};
-      const startval = {{ config|tojson }};
-
-      const editor = new JSONEditor(document.getElementById('editor_holder'), {
-        schema: schema,
-        startval: startval,
-        theme: 'bootstrap3'
-      });
-
-      $('#save').on('click', function() {
-        $('#response').text("");
-        const updatedData = editor.getValue();
-        const errors = editor.validate();
-
-        if(errors.length ==0) {
-          $.ajax({
-            url: '/save',
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify(updatedData),
-            success: function(res) {
-                $messageContainer = $('#response');
-                $messageContainer.text(res.message);
-                $messageContainer.stop(true, true)
-                  .fadeIn(200)
-                  .delay(2000)
-                  .fadeOut(600);
-            }
-          });
-        }
-      });
-
-      $('a.reboot').on('click', function(e) {
-        e.preventDefault();
-
-        const $modal = $('#rebootModal');
-        const $backdrop = $('#reboot-backdrop');
-        const $countdown = $('#reboot-countdown');
-        let secondsLeft = 30;
-
-        $modal.removeClass('hidden fade').addClass('in').css({
-          display: 'block',
-          opacity: 1
-        });
-        $backdrop.removeClass('hidden fade').addClass('in').css({
-          display: 'block',
-          opacity: 0.5
-        });
-        $('body').addClass('modal-open');
-
-        $countdown.text(secondsLeft);
-
-        const countdownTimer = setInterval(function() {
-          secondsLeft--;
-          $countdown.text(secondsLeft);
-
-          if (secondsLeft <= 0) {
-            clearInterval(countdownTimer);
-            location.reload();
-          }
-        }, 1000);
-
-        $.post('/reboot').fail(function() {
-          console.warn("Reboot POST failed — likely already rebooting.");
-        });
-      });
-
-
-      $('#custom-tabs a').on('click', function(e) {
-        e.preventDefault();
-
-        $('#custom-tabs li').removeClass('active');
-        $(this).parent().addClass('active');
-
-        $('.tab-pane').hide();
-        $($(this).attr('href')).show();
-
-        // Load service status if needed
-        if ($(this).attr('href') === '#services-tab') {
-          $.get('/services', function(data) {
-            const container = $('#service_status_container');
-            container.empty();
-
-            if (data.services && data.services.length > 0) {
-              data.services.forEach(service => {
-                const statusClass = service.active ? 'text-success' : 'text-danger';
-                container.append(
-                  `<p><strong>${service.name} (${service.type})</strong>: <span class="${statusClass}">${service.active ? 'Active' : 'Inactive'}</span></p>`
-                );
-              });
-            } else {
-              container.text('No service info available.');
-            }
-          });
-        }
-      });
-    </script>
-
   </body>
 </html>

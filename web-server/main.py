@@ -34,6 +34,17 @@ def reboot():
     return jsonify({"message": "Rebooting..."})
 
 
+@app.route('/set-pwm', methods=['POST'])
+def set_pwm():
+    data = request.json
+
+    gpio = str(data['gpio'])
+    value = str(data['value'])
+
+    subprocess.run(["pigs", "s", gpio, value])
+    return jsonify({gpio: gpio, value: value})
+
+
 @app.route('/services', methods=['GET'])
 def get_services():
     services = [
