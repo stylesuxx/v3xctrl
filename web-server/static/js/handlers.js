@@ -57,8 +57,18 @@ const registerClickHandlers = (editor) => {
     });
   });
 
-  $('button.save-calibration').on('click', function(e) {
-    // TODO: Set calibration values
+  $('button.save-steering-calibration').on('click', function(e) {
+    const $calibration = $('#calibration-tab');
+    const min = parseInt($calibration.find('.steering.min input').val());
+    const max = parseInt($calibration.find('.steering.max input').val());
+    const trim = parseInt($calibration.find('.steering.trim input').val());
+
+    const values = editor.getValue();
+    values.controls.steering.min = min;
+    values.controls.steering.max = max;
+    values.controls.steering.trim = trim;
+
+    editor.setValue(values);
 
     $("#save").click();
   });

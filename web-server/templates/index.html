@@ -5,9 +5,9 @@
     <script src="{{ url_for('static', filename='libs/jquery.min.js') }}"></script>
     <script src="{{ url_for('static', filename='libs/jsoneditor.min.js') }}"></script>
 
+    <script src="{{ url_for('static', filename='js/functions.js') }}"></script>
     <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
     <script src="{{ url_for('static', filename='js/tabs.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/functions.js') }}"></script>
     <script src="{{ url_for('static', filename='js/handlers.js') }}"></script>
 
     <script>
@@ -19,6 +19,7 @@
         registerTabHandler();
         registerClickHandlers(editor);
         setCalibrationValues(editor);
+        checkServices();
       });
     </script>
 
@@ -81,71 +82,81 @@
         </div>
 
         <div class="tab-pane" id="calibration-tab">
-          <div class="row">
+          <div class="row service-warning">
             <div class="col-md-12">
-              <div class="alert alert-info">
-                <strong>NOTE:</strong> Set min value first: Decrease until the servo makes clicking noises and then increase one ore two steps back. Do the same for the max value, just in the other direction. Once min and max are set, trim until steering is straight.
+              <div class="alert alert-danger">
+                Calibration can not be run while control service is running. Stop the control service first!
               </div>
             </div>
           </div>
 
-          <div class="row mb-15">
-            <form class="form-inline steering min col-md-12">
-              <div class="form-group">
-                <label class="label-same control-label">Steering Min</label>
-                <input
-                  class="form-control steering-min"
-                  type="number"
-                  value="0"
-                  step=10
-                />
-
-                <button class="set btn btn-secondary" type="submit">Set</button>
-                <button class="increase btn btn-secondary" type="submit">+10</button>
-                <button class="decrease btn btn-secondary" type="submit">-10</button>
+          <div class="calibration-content hidden">
+            <div class="row">
+              <div class="col-md-12">
+                <div class="alert alert-info">
+                  <strong>NOTE:</strong> Set min value first: Decrease until the servo makes clicking noises (or your preferred maximum is reached) and then increase one ore two steps back. Do the same for the max value, just in the other direction. Once min and max are set, trim until steering is straight.
+                </div>
               </div>
-            </form>
-          </div>
+            </div>
 
-          <div class="row mb-15">
-            <form class="form-inline steering max col-md-12">
-              <div class="form-group">
-                <label class="label-same control-label">Steering Max</label>
-                <input
-                  class="form-control steering-max"
-                  type="number"
-                  value="0"
-                  step=10
-                />
+            <div class="row mb-15">
+              <form class="form-inline steering min col-md-12">
+                <div class="form-group">
+                  <label class="label-same control-label">Steering Min</label>
+                  <input
+                    class="form-control steering-min"
+                    type="number"
+                    value="0"
+                    step=10
+                  />
 
-                <button class="set btn btn-secondary" type="submit">Set</button>
-                <button class="increase btn btn-secondary" type="submit">+10</button>
-                <button class="decrease btn btn-secondary" type="submit">-10</button>
+                  <button class="set btn btn-secondary" type="submit">Set</button>
+                  <button class="increase btn btn-secondary" type="submit">+10</button>
+                  <button class="decrease btn btn-secondary" type="submit">-10</button>
+                </div>
+              </form>
+            </div>
+
+            <div class="row mb-15">
+              <form class="form-inline steering max col-md-12">
+                <div class="form-group">
+                  <label class="label-same control-label">Steering Max</label>
+                  <input
+                    class="form-control steering-max"
+                    type="number"
+                    value="0"
+                    step=10
+                  />
+
+                  <button class="set btn btn-secondary" type="submit">Set</button>
+                  <button class="increase btn btn-secondary" type="submit">+10</button>
+                  <button class="decrease btn btn-secondary" type="submit">-10</button>
+                </div>
+              </form>
+            </div>
+
+            <div class="row mb-15">
+              <form class="form-inline steering trim col-md-12">
+                <div class="form-group">
+                  <label class="label-same control-label">Steering Trim</label>
+                  <input
+                    class="form-control steering-trim"
+                    type="number"
+                    value="0"
+                    step=10
+                  />
+
+                  <button class="set btn btn-secondary" type="submit">Set</button>
+                  <button class="increase btn btn-secondary" type="submit">+10</button>
+                  <button class="decrease btn btn-secondary" type="submit">-10</button>
+                </div>
+              </form>
+            </div>
+
+            <div class="row mb-15">
+              <div class="col-md-12">
+                <button class="btn btn-primary save-steering-calibration">Save calibration</button>
               </div>
-            </form>
-          </div>
-
-          <div class="row mb-15">
-            <form class="form-inline steering trim col-md-12">
-              <div class="form-group">
-                <label class="label-same control-label">Steering Trim</label>
-                <input
-                  class="form-control steering-trim"
-                  type="number"
-                  value="0"
-                  step=10
-                />
-
-                <button class="set btn btn-secondary" type="submit">Set</button>
-                <button class="increase btn btn-secondary" type="submit">+10</button>
-                <button class="decrease btn btn-secondary" type="submit">-10</button>
-              </div>
-            </form>
-          </div>
-
-          <div class="row mb-15">
-            <div class="col-md-12">
-              <button class="btn btn-primary save-calibration">Save calibration</button>
             </div>
           </div>
         </div>

@@ -10,6 +10,31 @@ function setCalibrationValues(editor) {
   $('input.steering-trim').val(steeringTrim);
 }
 
+function checkServices() {
+  $.get('/services', function(data) {
+    const container = $('#service_status_container');
+    container.empty();
+
+    if (data.services && data.services.length > 0) {
+      data.services.forEach(service => {
+        if(service.name === 'rc-control') {
+          if(!service.active) {
+            $('.service-warning').addClass('hidden');
+            $('.calibration-content').removeClass('hidden');
+          }
+        }
+
+        const statusClass = service.active ? 'text-success' : 'text-danger';
+        container.append(
+          `<p><strong>${service.name} (${service.type})</strong>: <span class="${statusClass}">${service.active ? 'Active' : 'Inactive'}</span></p>`
+        );
+      });
+    } else {
+      container.text('No service info available.');
+    }
+  });
+}
+
 function setPwm(gpio, value) {
   $.ajax({
     url: '/set-pwm',
