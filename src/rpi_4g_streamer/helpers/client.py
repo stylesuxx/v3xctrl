@@ -26,8 +26,8 @@ parser.add_argument("port", type=int, help="The target port number")
 
 parser.add_argument("--throttle-min", type=int, default=1000,
                     help="Minimum pulse width for throttle (default: 1000)")
-parser.add_argument("--throttle-idle", type=int, default=1200,
-                    help="Mid pulse width for throttle (default: 1200)")
+parser.add_argument("--throttle-idle", type=int, default=1500,
+                    help="Mid pulse width for throttle (default: 1500)")
 parser.add_argument("--throttle-max", type=int, default=2000,
                     help="Maximum pulse width for throttle (default: 2000)")
 parser.add_argument("--steering-min", type=int, default=1000,
