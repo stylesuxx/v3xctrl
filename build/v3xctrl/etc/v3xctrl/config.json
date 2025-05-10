@@ -28,8 +28,8 @@
       "throttle": {
           "min": 1000,
           "max": 2000,
-          "failsafe": 1000,
-          "idle": 1200
+          "failsafe": 1500,
+          "idle": 1500
       },
       "steering": {
           "min": 1000,

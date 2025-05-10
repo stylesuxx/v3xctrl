@@ -73,6 +73,22 @@ const registerClickHandlers = (editor) => {
     $("#save").click();
   });
 
+  $('button.save-throttle-calibration').on('click', function(e) {
+    const $calibration = $('#calibration-tab');
+    const min = parseInt($calibration.find('.throttle.min input').val());
+    const max = parseInt($calibration.find('.throttle.max input').val());
+    const idle = parseInt($calibration.find('.throttle.idle input').val());
+
+    const values = editor.getValue();
+    values.controls.throttle.min = min;
+    values.controls.throttle.max = max;
+    values.controls.throttle.idle = idle;
+
+    editor.setValue(values);
+
+    $("#save").click();
+  });
+
   $('form.steering button').on('click', function(e) {
     e.preventDefault();
 
@@ -80,8 +96,6 @@ const registerClickHandlers = (editor) => {
     $form = $this.closest('form');
     $input = $form.find('input');
     value = parseInt($input.val());
-
-    console.log($form)
 
     if($this.hasClass('increase')) {
       value += 10;
@@ -102,6 +116,28 @@ const registerClickHandlers = (editor) => {
 
     // TODO: read pin dynamically
     gpio = 13;
+    setPwm(gpio, value);
+  });
+
+  $('form.throttle button').on('click', function(e) {
+    e.preventDefault();
+
+    $this = $(this);
+    $form = $this.closest('form');
+    $input = $form.find('input');
+    value = parseInt($input.val());
+
+    if($this.hasClass('increase')) {
+      value += 10;
+    }
+
+    if($this.hasClass('decrease')) {
+      value -= 10;
+    }
+    $input.val(value);
+
+    // TODO: read pin dynamically
+    gpio = 18;
     setPwm(gpio, value);
   });
 };

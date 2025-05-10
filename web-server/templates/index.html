@@ -91,71 +91,143 @@
           </div>
 
           <div class="calibration-content hidden">
-            <div class="row">
-              <div class="col-md-12">
-                <div class="alert alert-info">
-                  <strong>NOTE:</strong> Set min value first: Decrease until the servo makes clicking noises (or your preferred maximum is reached) and then increase one ore two steps back. Do the same for the max value, just in the other direction. Once min and max are set, trim until steering is straight.
+            <div class="steering-wrapper">
+              <div class="row">
+                <div class="col-md-12">
+                  <div class="alert alert-info">
+                    <strong>NOTE:</strong> Set min value first: Decrease until the servo makes clicking noises (or your preferred maximum is reached) and then increase one ore two steps back. Do the same for the max value, just in the other direction. Once min and max are set, trim until steering is straight.
+                  </div>
+                </div>
+              </div>
+
+              <div class="row mb-15">
+                <form class="form-inline steering min col-md-12">
+                  <div class="form-group">
+                    <label class="label-same control-label">Steering Min</label>
+                    <input
+                      class="form-control steering-min"
+                      type="number"
+                      value="0"
+                      step=10
+                    />
+
+                    <button class="set btn btn-secondary" type="submit">Send</button>
+                    <button class="increase btn btn-secondary" type="submit">+10</button>
+                    <button class="decrease btn btn-secondary" type="submit">-10</button>
+                  </div>
+                </form>
+              </div>
+
+              <div class="row mb-15">
+                <form class="form-inline steering max col-md-12">
+                  <div class="form-group">
+                    <label class="label-same control-label">Steering Max</label>
+                    <input
+                      class="form-control steering-max"
+                      type="number"
+                      value="0"
+                      step=10
+                    />
+
+                    <button class="set btn btn-secondary" type="submit">Send</button>
+                    <button class="increase btn btn-secondary" type="submit">+10</button>
+                    <button class="decrease btn btn-secondary" type="submit">-10</button>
+                  </div>
+                </form>
+              </div>
+
+              <div class="row mb-15">
+                <form class="form-inline steering trim col-md-12">
+                  <div class="form-group">
+                    <label class="label-same control-label">Steering Trim</label>
+                    <input
+                      class="form-control steering-trim"
+                      type="number"
+                      value="0"
+                      step=10
+                    />
+
+                    <button class="set btn btn-secondary" type="submit">Send</button>
+                    <button class="increase btn btn-secondary" type="submit">+10</button>
+                    <button class="decrease btn btn-secondary" type="submit">-10</button>
+                  </div>
+                </form>
+              </div>
+
+              <div class="row mb-15">
+                <div class="col-md-12">
+                  <button class="btn btn-primary save-steering-calibration">Save calibration</button>
                 </div>
               </div>
             </div>
 
-            <div class="row mb-15">
-              <form class="form-inline steering min col-md-12">
-                <div class="form-group">
-                  <label class="label-same control-label">Steering Min</label>
-                  <input
-                    class="form-control steering-min"
-                    type="number"
-                    value="0"
-                    step=10
-                  />
-
-                  <button class="set btn btn-secondary" type="submit">Set</button>
-                  <button class="increase btn btn-secondary" type="submit">+10</button>
-                  <button class="decrease btn btn-secondary" type="submit">-10</button>
+            <div class="throttle-wrapper">
+              <div class="row">
+                <div class="col-md-12">
+                  <div class="alert alert-info">
+                    <strong>NOTE:</strong> Check the order of operation for calibrating your ESC. Usually it involves sending, throttle min (Reverse), max (Forward) and idle (neutral). You will most likely not need to adjust min and max, but rather send those 3 throttle values in a specific order (according to your ESCs manual). You might need to send min or max value even before plugging in the ESC.
+                  </div>
                 </div>
-              </form>
-            </div>
+              </div>
 
-            <div class="row mb-15">
-              <form class="form-inline steering max col-md-12">
-                <div class="form-group">
-                  <label class="label-same control-label">Steering Max</label>
-                  <input
-                    class="form-control steering-max"
-                    type="number"
-                    value="0"
-                    step=10
-                  />
+              <div class="row mb-15">
+                <form class="form-inline throttle min col-md-12">
+                  <div class="form-group">
+                    <label class="label-same control-label">Throttle Min (Reverse)</label>
+                    <input
+                      class="form-control throttle-min"
+                      type="number"
+                      value="0"
+                      step=10
+                    />
 
-                  <button class="set btn btn-secondary" type="submit">Set</button>
-                  <button class="increase btn btn-secondary" type="submit">+10</button>
-                  <button class="decrease btn btn-secondary" type="submit">-10</button>
+                    <button class="set btn btn-secondary" type="submit">Send</button>
+                    <button class="increase btn btn-secondary" type="submit">+10</button>
+                    <button class="decrease btn btn-secondary" type="submit">-10</button>
+                  </div>
+                </form>
+              </div>
+
+              <div class="row mb-15">
+                <form class="form-inline throttle max col-md-12">
+                  <div class="form-group">
+                    <label class="label-same control-label">Throttle Max (Forward)</label>
+                    <input
+                      class="form-control throttle-max"
+                      type="number"
+                      value="0"
+                      step=10
+                    />
+
+                    <button class="set btn btn-secondary" type="submit">Send</button>
+                    <button class="increase btn btn-secondary" type="submit">+10</button>
+                    <button class="decrease btn btn-secondary" type="submit">-10</button>
+                  </div>
+                </form>
+              </div>
+
+              <div class="row mb-15">
+                <form class="form-inline throttle idle col-md-12">
+                  <div class="form-group">
+                    <label class="label-same control-label">Throttle Neutral</label>
+                    <input
+                      class="form-control throttle-idle"
+                      type="number"
+                      value="0"
+                      step=10
+                    />
+
+                    <button class="set btn btn-secondary" type="submit">Send</button>
+                    <button class="increase btn btn-secondary" type="submit">+10</button>
+                    <button class="decrease btn btn-secondary" type="submit">-10</button>
+                  </div>
+                </form>
+              </div>
+
+              <div class="row mb-15">
+                <div class="col-md-12">
+                  <button class="btn btn-primary save-throttle-calibration">Save calibration</button>
                 </div>
-              </form>
-            </div>
-
-            <div class="row mb-15">
-              <form class="form-inline steering trim col-md-12">
-                <div class="form-group">
-                  <label class="label-same control-label">Steering Trim</label>
-                  <input
-                    class="form-control steering-trim"
-                    type="number"
-                    value="0"
-                    step=10
-                  />
-
-                  <button class="set btn btn-secondary" type="submit">Set</button>
-                  <button class="increase btn btn-secondary" type="submit">+10</button>
-                  <button class="decrease btn btn-secondary" type="submit">-10</button>
-                </div>
-              </form>
-            </div>
-
-            <div class="row mb-15">
-              <div class="col-md-12">
-                <button class="btn btn-primary save-steering-calibration">Save calibration</button>
               </div>
             </div>
           </div>
