@@ -203,6 +203,22 @@
               "type": "integer",
               "default": 1200,
               "description": "Pulsewidth for throttle position between forwards and brake/backwards"
+            },
+            "scaleForward": {
+              "propertyOrder": 50,
+              "type": "integer",
+              "default": 100,
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Scales the throttle forward range as a percentage of the maximum possible value"
+            },
+            "scaleReverse": {
+              "propertyOrder": 60,
+              "type": "integer",
+              "default": 100,
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Scales the throttle reverse range as a percentage of the maximum possible value"
             }
           }
         },
@@ -240,8 +256,16 @@
               "default": 0,
               "description": "Pulse width for trim"
             },
-            "invert": {
+            "scale": {
               "propertyOrder": 50,
+              "type": "integer",
+              "default": 100,
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Scales the steering output range as a percentage of the maximum possible value"
+            },
+            "invert": {
+              "propertyOrder": 60,
               "type": "boolean",
               "format": "checkbox",
               "default": false,

@@ -8,11 +8,14 @@ PORT=$(jq -r '.ports.control' "$CONFIG_PATH")
 THROTTLE_MIN=$(jq -r '.controls.throttle.min' "$CONFIG_PATH")
 THROTTLE_MAX=$(jq -r '.controls.throttle.max' "$CONFIG_PATH")
 THROTTLE_IDLE=$(jq -r '.controls.throttle.idle' "$CONFIG_PATH")
+THROTTLE_SCALE_FORWARD=$(jq -r '.controls.throttle.scaleForward' "$CONFIG_PATH")
+THROTTLE_SCALE_REVERSE=$(jq -r '.controls.throttle.scaleReverse' "$CONFIG_PATH")
 
 STEERING_MIN=$(jq -r '.controls.steering.min' "$CONFIG_PATH")
 STEERING_MAX=$(jq -r '.controls.steering.max' "$CONFIG_PATH")
 STEERING_TRIM=$(jq -r '.controls.steering.trim' "$CONFIG_PATH")
 STEERING_INVERT=$(jq -r '.controls.steering.invert' "$CONFIG_PATH")
+STEERING_SCALE=$(jq -r '.controls.steering.scale' "$CONFIG_PATH")
 
 ARGS=""
 
@@ -23,5 +26,8 @@ fi
 rc-python -m rpi_4g_streamer.helpers.client "${HOST}" "${PORT}" \
   --throttle-min "${THROTTLE_MIN}" --throttle-max "${THROTTLE_MAX}" \
   --throttle-idle "${THROTTLE_IDLE}" \
+  --forward-scale "${THROTTLE_SCALE_FORWARD}" \
+  --reverse-scale "${THROTTLE_SCALE_REVERSE}" \
   --steering-min "${STEERING_MIN}" --steering-max "${STEERING_MAX}" \
-  --steering-trim "${STEERING_TRIM}" ${ARGS}
+  --steering-trim "${STEERING_TRIM}" --steering-scale "${STEERING_SCALE}" \
+  ${ARGS}

@@ -40,6 +40,12 @@ parser.add_argument("--steering-trim", type=int, default=0,
                     help="Pulse width to trim steering center (default: 0)")
 parser.add_argument("--steering-invert", action="store_true",
                     help="Invert steering direction (default: False)")
+parser.add_argument("--steering-scale", type=int, default=100,
+                    help="Max percent of range for steering (default: 100)")
+parser.add_argument("--forward-scale", type=int, default=100,
+                    help="Max percent of range for forward throttle (default: 100)")
+parser.add_argument("--reverse-scale", type=int, default=100,
+                    help="Max percent of range for reverse throttle (default: 100)")
 
 args = parser.parse_args()
 
@@ -49,11 +55,18 @@ PORT = args.port
 throttle_min = args.throttle_min
 throttle_idle = args.throttle_idle
 throttle_max = args.throttle_max
+forward_scale = args.forward_scale
+reverse_scale = args.reverse_scale
 
 steering_min = args.steering_min
 steering_max = args.steering_max
 steering_trim = args.steering_trim
 steering_invert = args.steering_invert
+steering_scale = args.steering_scale
+
+forward_multiplier = forward_scale / 100.0
+reverse_multiplier = reverse_scale / 100.0
+steering_multiplier = steering_scale / 100.0
 
 steering_left = -1
 steering_right = 1
@@ -109,15 +122,20 @@ def map_range(
 
 def control_handler(message: Control) -> None:
     values = message.get_values()
+    raw_throttle = values['throttle']
+    raw_steering = values['steering']
 
     # Determine throttle pulse forward or reverse
-    if values['throttle'] > 0:
-        throttle_value = map_range(values['throttle'], 0, 1, throttle_idle, throttle_max)
+    if raw_throttle > 0:
+        scaled_throttle = raw_throttle * forward_multiplier
+        throttle_value = map_range(scaled_throttle, 0, 1, throttle_idle, throttle_max)
     else:
-        throttle_value = map_range(values['throttle'], -1, 0, throttle_min, throttle_idle)
+        scaled_throttle = raw_throttle * reverse_multiplier
+        throttle_value = map_range(scaled_throttle, -1, 0, throttle_min, throttle_idle)
 
     # Map, add trim and clamp
-    steering_value = map_range(values['steering'], steering_left, steering_right, steering_min, steering_max) + (steering_trim * trim_multiplier)
+    scaled_steering = raw_steering * steering_multiplier
+    steering_value = map_range(scaled_steering, steering_left, steering_right, steering_min, steering_max) + (steering_trim * trim_multiplier)
     steering_value = clamp(steering_value, steering_min, steering_max)
 
     logging.debug(f"Throttle: {throttle_value}; Steering: {steering_value}")
