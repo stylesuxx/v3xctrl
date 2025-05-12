@@ -35,7 +35,8 @@
           "min": 1000,
           "max": 2000,
           "failsafe": 1500,
-          "trim": 0
+          "trim": 0,
+          "invert": false
       }
   },
   "extras": {

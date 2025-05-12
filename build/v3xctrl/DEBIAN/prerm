@@ -16,7 +16,6 @@ if command -v systemctl >/dev/null 2>&1; then
       wpa_supplicant.service \
       hostapd.service \
       dnsmasq.service \
-      bluetooth.service \
       rpi-eeprom-update.service \
       rsync.service \
       triggerhappy.service triggerhappy.socket \
@@ -28,6 +27,13 @@ if command -v systemctl >/dev/null 2>&1; then
       rsyslog.service \
       rpi-display-backlight.service \
       remote-fs.target \
-      nfs-client.target
+      nfs-client.target \
+      nmbd.service \
+      keyboard-setup.service \
+      rng-tools-debian.service \
+      bluetooth.service \
+      bthelper@hci0.service \
+      hciuart.service \
+      ModemManager.service
   fi
 fi

@@ -216,8 +216,8 @@
             "disable_properties": true
           },
           "properties": {
-            "propertyOrder": 10,
             "min": {
+              "propertyOrder": 10,
               "type": "integer",
               "default": 1000,
               "description": "Minimum pulse width"
@@ -239,6 +239,13 @@
               "type": "integer",
               "default": 0,
               "description": "Pulse width for trim"
+            },
+            "invert": {
+              "propertyOrder": 50,
+              "type": "boolean",
+              "format": "checkbox",
+              "default": false,
+              "description": "Invert steering"
             }
           }
         },

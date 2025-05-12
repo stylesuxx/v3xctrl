@@ -18,6 +18,8 @@ import traceback
 from rpi_4g_streamer import Client, State
 from rpi_4g_streamer.Message import Control, Telemetry, Latency
 
+from v3xctrl_helper import clamp
+
 logging.basicConfig(level=logging.DEBUG)
 
 parser = argparse.ArgumentParser(description="Test connection performance.")
@@ -36,6 +38,8 @@ parser.add_argument("--steering-max", type=int, default=2000,
                     help="Maximum pulse width for steering (default: 2000)")
 parser.add_argument("--steering-trim", type=int, default=0,
                     help="Pulse width to trim steering center (default: 0)")
+parser.add_argument("--steering-invert", action="store_true",
+                    help="Invert steering direction (default: False)")
 
 args = parser.parse_args()
 
@@ -45,9 +49,20 @@ PORT = args.port
 throttle_min = args.throttle_min
 throttle_idle = args.throttle_idle
 throttle_max = args.throttle_max
+
 steering_min = args.steering_min
 steering_max = args.steering_max
 steering_trim = args.steering_trim
+steering_invert = args.steering_invert
+
+steering_left = -1
+steering_right = 1
+trim_multiplier = 1
+
+if steering_invert:
+    steering_left = 1
+    steering_right = -1
+    trim_multiplier = -1
 
 running = True
 
@@ -87,7 +102,7 @@ def map_range(
     if in_min == in_max:
         raise ValueError("Input range cannot be zero")
 
-    clamped = max(min(value, in_max), in_min)
+    clamped = clamp(value, in_min, in_max)
     normalized = (clamped - in_min) / (in_max - in_min)
     return int(servo_min + normalized * (servo_max - servo_min))
 
@@ -101,10 +116,9 @@ def control_handler(message: Control) -> None:
     else:
         throttle_value = map_range(values['throttle'], -1, 0, throttle_min, throttle_idle)
 
-    # Add steering trim to output
-    steering_value = map_range(values['steering'], -1, 1, steering_min, steering_max) + steering_trim
-    # Clamp result between defined min/max pulewidth
-    steering_value = max(steering_min, min(steering_max, steering_value))
+    # Map, add trim and clamp
+    steering_value = map_range(values['steering'], steering_left, steering_right, steering_min, steering_max) + (steering_trim * trim_multiplier)
+    steering_value = clamp(steering_value, steering_min, steering_max)
 
     logging.debug(f"Throttle: {throttle_value}; Steering: {steering_value}")
 
