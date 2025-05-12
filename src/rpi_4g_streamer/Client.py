@@ -34,6 +34,10 @@ class Client(Base):
         # server for 3 seconds
         self.no_message_timeout = 3
 
+        # Resolve host to IP - this is required for host checks in the UDP
+        # receiver
+        self.host_ip = socket.gethostbyname(self.host)
+
     def syn_handler(self, message: Syn, addr: Tuple[str, int]) -> None:
         self.send(Ack())
 
@@ -50,7 +54,7 @@ class Client(Base):
         self.socket.settimeout(1)
 
         self.transmitter = UDPTransmitter(self.socket)
-        self.message_handler = MessageHandler(self.socket, self.host)
+        self.message_handler = MessageHandler(self.socket, self.host_ip)
 
         self.transmitter.start()
         self.transmitter.start_task()

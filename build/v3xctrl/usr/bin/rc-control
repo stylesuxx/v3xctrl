@@ -24,4 +24,4 @@ rc-python -m rpi_4g_streamer.helpers.client "${HOST}" "${PORT}" \
   --throttle-min "${THROTTLE_MIN}" --throttle-max "${THROTTLE_MAX}" \
   --throttle-idle "${THROTTLE_IDLE}" \
   --steering-min "${STEERING_MIN}" --steering-max "${STEERING_MAX}" \
-  --steering-trim "${STEERING_TRIM}" "${ARGS}"
+  --steering-trim "${STEERING_TRIM}" ${ARGS}

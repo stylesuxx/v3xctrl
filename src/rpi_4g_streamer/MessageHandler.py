@@ -15,15 +15,15 @@ from .Message import Message
 
 
 class MessageHandler(threading.Thread):
-    def __init__(self, sock: socket.socket, valid_host: str = None):
+    def __init__(self, sock: socket.socket, valid_host_ip: str = None):
         super().__init__(daemon=True)
 
         self.socket = sock
         self.handlers = []
 
         self.rx = UDPReceiver(self.socket, self.handler)
-        if valid_host:
-            self.rx.validate_host(valid_host)
+        if valid_host_ip:
+            self.rx.validate_host(valid_host_ip)
 
         self.started = threading.Event()
         self.started.clear()

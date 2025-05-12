@@ -110,8 +110,8 @@ class UDPReceiver(threading.Thread):
             except Exception as e:
                 logging.error(f"Error in handler: {e}")
 
-    def validate_host(self, host: str):
-        self._expected_host = host
+    def validate_host(self, host_ip: str):
+        self._expected_host = host_ip
         self._should_validate_host = True
 
     def is_running(self) -> bool:
