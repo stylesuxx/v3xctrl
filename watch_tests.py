@@ -4,6 +4,7 @@ import subprocess
 import time
 import threading
 
+
 class TestRunner(FileSystemEventHandler):
     def __init__(self):
         super().__init__()

@@ -42,6 +42,9 @@
           "invert": false
       }
   },
+  "modem": {
+    "path": "/dev/ttyACM0"
+  },
   "extras": {
       "samba": false
   }

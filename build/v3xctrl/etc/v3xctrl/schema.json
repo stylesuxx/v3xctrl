@@ -281,8 +281,26 @@
         }
       }
     },
-    "extras": {
+    "modem": {
       "propertyOrder": 60,
+      "type": "object",
+      "title": "Modem",
+      "options": {
+        "collapsed": true,
+        "disable_edit_json": true,
+        "disable_properties": true
+      },
+      "properties": {
+        "path": {
+          "propertyOrder": 10,
+          "type": "string",
+          "description": "Path to the modem device",
+          "default": "/dev/ttyACM0"
+        }
+      }
+    },
+    "extras": {
+      "propertyOrder": 70,
       "type": "object",
       "title": "Extras",
       "options": {

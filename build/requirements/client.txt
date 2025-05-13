@@ -1,4 +1,4 @@
 Flask==3.1.0
 msgpack==1.1.0
-atlib==0.2.0
+atlib==0.3.0
 pigpio==1.78
