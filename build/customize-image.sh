@@ -109,6 +109,10 @@ if ! grep -q 'fsck.repair=yes' "$MOUNT_DIR/boot/cmdline.txt"; then
   sed -i 's/$/ fsck.repair=yes/' "$MOUNT_DIR/boot/cmdline.txt"
 fi
 
+if ! grep -q 'usbcore.autosuspend=-1' "$MOUNT_DIR/boot/cmdline.txt"; then
+  sed -i 's/$/ usbcore.autosuspend=-1/' "$MOUNT_DIR/boot/cmdline.txt"
+fi
+
 if grep -qw 'quiet' "$MOUNT_DIR/boot/cmdline.txt"; then
   sed -i 's/\bquiet\b//g' "$MOUNT_DIR/boot/cmdline.txt"
 fi
