@@ -1,0 +1,14 @@
+import time
+
+from rpi_4g_streamer.Telemetry import Telemetry
+
+
+telemetry = Telemetry('/dev/ttyACM0')
+telemetry.start()
+
+while True:
+    print(telemetry.get_telemetry())
+    time.sleep(1)
+
+telemetry.stop()
+telemetry.join()
