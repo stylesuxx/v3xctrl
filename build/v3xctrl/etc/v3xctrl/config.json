@@ -12,7 +12,7 @@
   "video": {
       "bitrate": 1800000,
       "framerate": 30,
-      "iFramePeriod": 30,
+      "iFramePeriod": 15,
       "height": 720,
       "width": 1280,
       "record": false,
