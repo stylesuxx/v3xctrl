@@ -17,6 +17,8 @@ STEERING_TRIM=$(jq -r '.controls.steering.trim' "$CONFIG_PATH")
 STEERING_INVERT=$(jq -r '.controls.steering.invert' "$CONFIG_PATH")
 STEERING_SCALE=$(jq -r '.controls.steering.scale' "$CONFIG_PATH")
 
+MODEM_PATH=$(jq -r '.modem.path' "$CONFIG_PATH")
+
 ARGS=""
 
 if [ "$STEERING_INVERT" = "true" ]; then
@@ -30,4 +32,5 @@ rc-python -m rpi_4g_streamer.helpers.client "${HOST}" "${PORT}" \
   --reverse-scale "${THROTTLE_SCALE_REVERSE}" \
   --steering-min "${STEERING_MIN}" --steering-max "${STEERING_MAX}" \
   --steering-trim "${STEERING_TRIM}" --steering-scale "${STEERING_SCALE}" \
+  --modem-path "${MODEM_PATH}" \
   ${ARGS}

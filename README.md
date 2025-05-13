@@ -96,6 +96,20 @@ Start the control service:
 sudo systemctl start rc-control
 ```
 
+#### Calibration
+
+##### Steering
+Steering calibration is quite straight forward, adjust min and max value according to your servo.
+
+Decrease the min value until your preferred position is reached or until the servo starts making noises (that is a sign that you went to far) and dial the range back a bit.
+
+Do the same for the max value, just increasing instead of decreasing the value.
+
+Make sure to adjust trim such that the servo is centered. You will most likely have to fine tune this value during operation, but you should be able to make raw adjustments at this point.
+
+##### Throttle
+**IMPORTANT:** Make sure you read the manual for your ESC, calibration for throttle differs from manufacturer to manufacturer. Most likely you will not have to change, min, max and idle values. Instead you will have to send min, idle and max values in a specific order.
+
 #### Auto start video stream & control
 
 After you have verified, that the video stream and control channel are working as expected, you can enable auto starting them on bootup:

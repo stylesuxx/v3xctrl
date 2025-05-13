@@ -16,6 +16,7 @@ import time
 import traceback
 
 from rpi_4g_streamer import Client, State
+from rpi_4g_streamer.Telemetry import Telemetry as TelemetryHandler
 from rpi_4g_streamer.Message import Control, Telemetry, Latency
 
 from v3xctrl_helper import clamp
@@ -46,6 +47,8 @@ parser.add_argument("--forward-scale", type=int, default=100,
                     help="Max percent of range for forward throttle (default: 100)")
 parser.add_argument("--reverse-scale", type=int, default=100,
                     help="Max percent of range for reverse throttle (default: 100)")
+parser.add_argument("--modem-path", type=str, default="/dev/ttyACM0",
+                    help="Path to modem device (default: /dev/ttyACM0)")
 
 args = parser.parse_args()
 
@@ -63,6 +66,8 @@ steering_max = args.steering_max
 steering_trim = args.steering_trim
 steering_invert = args.steering_invert
 steering_scale = args.steering_scale
+
+modem_path = args.modem_path
 
 forward_multiplier = forward_scale / 100.0
 reverse_multiplier = reverse_scale / 100.0
@@ -92,6 +97,9 @@ steering_center = max(steering_min, min(steering_max, steering_center))
 
 pi.set_servo_pulsewidth(throttle_gpio, throttle_idle)
 pi.set_servo_pulsewidth(steering_gpio, steering_center)
+
+telemetry = TelemetryHandler(modem_path)
+telemetry.start()
 
 
 def map_range(
@@ -182,15 +190,11 @@ signal.signal(signal.SIGINT, signal_handler)
 
 try:
     while running:
-        """ TODO: Implement your functionality to communicat with the server. """
-        client.send(Telemetry({
-            'lat': 0,
-            'lon': 0,
-            'bar': 3,
-            'qty': 3
-        }))
+        telemetry_data = telemetry.get_telemetry()
+        telemetry_message = Telemetry(telemetry_data)
+        client.send(telemetry_message)
 
-        time.sleep(10)
+        time.sleep(1)
 
 except Exception as e:
     logging.error(f"An error occurred: {e}")
@@ -198,5 +202,9 @@ except Exception as e:
 
 finally:
     client.stop()
+    telemetry.stop()
+
     client.join()
+    telemetry.join()
+
     sys.exit(0)
