@@ -21,8 +21,6 @@ from rpi_4g_streamer.Message import Control, Telemetry, Latency
 
 from v3xctrl_helper import clamp
 
-logging.basicConfig(level=logging.DEBUG)
-
 parser = argparse.ArgumentParser(description="Test connection performance.")
 parser.add_argument("host", help="The target IP address")
 parser.add_argument("port", type=int, help="The target port number")
@@ -49,6 +47,8 @@ parser.add_argument("--reverse-scale", type=int, default=100,
                     help="Max percent of range for reverse throttle (default: 100)")
 parser.add_argument("--modem-path", type=str, default="/dev/ttyACM0",
                     help="Path to modem device (default: /dev/ttyACM0)")
+parser.add_argument("--log", default="ERROR",
+                    help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). (default: ERROR")
 
 args = parser.parse_args()
 
@@ -68,6 +68,17 @@ steering_invert = args.steering_invert
 steering_scale = args.steering_scale
 
 modem_path = args.modem_path
+
+level_name = args.log.upper()
+level = getattr(logging, level_name, None)
+
+if not isinstance(level, int):
+    raise ValueError(f"Invalid log level: {args.log}")
+
+logging.basicConfig(
+    level=level,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 forward_multiplier = forward_scale / 100.0
 reverse_multiplier = reverse_scale / 100.0

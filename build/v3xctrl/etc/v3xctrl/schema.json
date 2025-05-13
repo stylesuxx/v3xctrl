@@ -258,6 +258,7 @@
             },
             "scale": {
               "propertyOrder": 50,
+              "title": "Scale (in percent)",
               "type": "integer",
               "default": 100,
               "minimum": 1,
@@ -266,10 +267,11 @@
             },
             "invert": {
               "propertyOrder": 60,
+              "title": "Invert steering",
               "type": "boolean",
               "format": "checkbox",
               "default": false,
-              "description": "Invert steering"
+              "description": "Invert steering direction"
             }
           }
         },
@@ -293,6 +295,7 @@
       "properties": {
         "path": {
           "propertyOrder": 10,
+          "title": "Path",
           "type": "string",
           "description": "Path to the modem device",
           "default": "/dev/ttyACM0"
@@ -310,11 +313,26 @@
       },
       "properties": {
         "samba": {
+          "title": "SAMBA",
           "propertyOrder": 10,
           "type": "boolean",
           "format": "checkbox",
           "default": false,
           "description": "Enable SAMBA network share for recording directory"
+        },
+        "logLevel": {
+          "title": "Log Level",
+          "propertyOrder": 20,
+          "type": "string",
+          "required": true,
+          "default": "ERROR",
+          "enum": [
+            "CRITICAL",
+            "ERROR",
+            "WARNING",
+            "INFO",
+            "DEBUG"
+          ]
         }
       }
     }
