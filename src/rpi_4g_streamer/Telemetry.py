@@ -5,6 +5,7 @@ here.
 The only public interface is the get_telemetry() method.
 """
 from atlib import AIR780EU
+import copy
 import logging
 from typing import Dict
 import threading
@@ -12,9 +13,10 @@ import time
 
 
 class Telemetry(threading.Thread):
-    def __init__(self, modem: str = None):
+    def __init__(self, modem: str = None, interval: float = 1.0):
         super().__init__(daemon=True)
 
+        self._interval = interval
         self.telemetry = {
             'sig': {
                 'rsrq': 255,
@@ -34,8 +36,15 @@ class Telemetry(threading.Thread):
         self._lock = threading.Lock()
         try:
             self._modem = AIR780EU(modem) if modem else None
-        except:
-            logging.error("Failed to initialize modem!")
+            if not self._modem:
+                logging.warning("Modem unavailable; telemetry will contain placeholders.")
+        except Exception as e:
+            logging.error("Failed to initialize modem: %s", e)
+
+    def _set_signal_unknown(self):
+        with self._lock:
+            self.telemetry['sig']['rsrq'] = 255
+            self.telemetry['sig']['rsrp'] = 255
 
     def _update_signal(self) -> None:
         try:
@@ -43,11 +52,10 @@ class Telemetry(threading.Thread):
             with self._lock:
                 self.telemetry['sig']['rsrq'] = signal_quality.rsrq
                 self.telemetry['sig']['rsrp'] = signal_quality.rsrp
-        except:
-            self.telemetry['sig']['rsrq'] = 255
-            self.telemetry['sig']['rsrp'] = 255
+        except Exception as e:
+            self._set_signal_unknown()
 
-            logging.error("Failed fetching signal information")
+            logging.error("Failed fetching signal information: %s", e)
 
     def run(self) -> None:
         self._running.set()
@@ -55,14 +63,14 @@ class Telemetry(threading.Thread):
             try:
                 if self._modem:
                     self._update_signal()
-            finally:
-                pass
+            except Exception as e:
+                logging.error("Telemetry loop error: %s", e)
 
-            time.sleep(1)
+            time.sleep(self._interval)
 
     def get_telemetry(self) -> Dict:
         with self._lock:
-            return self.telemetry.copy()
+            return copy.deepcopy(self.telemetry)
 
     def stop(self) -> None:
         self._running.clear()
