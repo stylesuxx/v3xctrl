@@ -28,6 +28,8 @@ H264_LEVEL=31
 RECORDING_DIR=""
 USE_TEST_PATTERN=0
 
+SIZEBUFFERS_WRITE=30
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --width) WIDTH="$2"; shift 2 ;;
@@ -53,12 +55,12 @@ if [ -n "$RECORDING_DIR" ]; then
   TIMESTAMP=$(date +%Y%m%d-%H%M%S)
   FILENAME="$RECORDING_DIR/stream-$TIMESTAMP.ts"
 
-  TEE_BRANCH="t. ! queue ! h264parse ! mpegtsmux ! filesink location=$FILENAME"
+  TEE_BRANCH="t. ! queue leaky=downstream max-size-buffers=$SIZEBUFFERS_WRITE ! h264parse ! mpegtsmux ! filesink sync=false async=false location=$FILENAME"
 fi
 
 SOURCE_BRANCH="libcamerasrc"
 if [ "$USE_TEST_PATTERN" -eq 1 ]; then
-  SOURCE_BRANCH="videotestsrc is-live=true pattern=smpte"
+  SOURCE_BRANCH="videotestsrc is-live=true pattern=smpte ! queue ! timeoverlay halignment=center valignment=center"
 fi
 
 # Encoder:
