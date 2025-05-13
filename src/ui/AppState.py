@@ -6,7 +6,7 @@ from ui.helpers import get_fps, interpolate_steering_color, interpolate_throttle
 from ui.Init import Init
 from ui.KeyAxisHandler import KeyAxisHandler
 from ui.widgets import VerticalIndicatorWidget, HorizontalIndicatorWidget
-from ui.widgets import StatusValueWidget, FpsWidget
+from ui.widgets import StatusValueWidget, FpsWidget, SignalQualityWidget
 
 
 class AppState:
@@ -45,6 +45,10 @@ class AppState:
                                                      server_handlers)
         self.data = "waiting"
         self.latency = "default"
+        self.signal_quality = {
+            "rsrq": 255,
+            "rsrp": 255,
+        }
 
         self.widgets = {
             "steering": HorizontalIndicatorWidget(
@@ -60,7 +64,11 @@ class AppState:
                 bar_width=20,
                 range_mode="symmetric",
                 color_fn=interpolate_throttle_color
-            )
+            ),
+            "signal_quality": SignalQualityWidget(
+                (self.size[0] - 70 - 10, 10),
+                (70, 50)
+            ),
         }
 
         self.widgets_debug = {

@@ -3,3 +3,4 @@ from .HorizontalIndicatorWidget import HorizontalIndicatorWidget
 from .VerticalIndicatorWidget import VerticalIndicatorWidget
 from .StatusWidget import StatusWidget
 from .StatusValueWidget import StatusValueWidget
+from .SignalQualityWidget import SignalQualityWidget

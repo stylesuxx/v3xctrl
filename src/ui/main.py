@@ -94,10 +94,15 @@ print("================================")
 def telemetry_handler(state: AppState, message: Telemetry) -> None:
     """ TODO: Implement control message handling. """
     values = message.get_values()
+    state.signal_quality = {
+        "rsrq": values["sig"]["rsrq"],
+        "rsrp": values["sig"]["rsrp"],
+    }
+
     logging.debug(f"Received telemetry message: {values}")
 
 
-def latency_handler(state: AppState, message: Telemetry) -> None:
+def latency_handler(state: AppState, message: Latency) -> None:
     now = time.time()
     timestamp = message.timestamp
     diff_ms = round((now - timestamp) * 1000)
