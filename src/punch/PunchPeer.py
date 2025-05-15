@@ -54,8 +54,10 @@ class PunchPeer:
             results[pt][0] = self.register_with_rendezvous(sockets[pt], ann)
 
         threads = [threading.Thread(target=reg_worker, args=(pt,)) for pt in sockets]
-        for t in threads: t.start()
-        for t in threads: t.join()
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
 
         return {pt: results[pt][0] for pt in results}
 
@@ -64,3 +66,23 @@ class PunchPeer:
             sock_map["video"].sendto(b'poke-video', (peer_info.get_ip(), peer_info.get_video_port()))
             sock_map["control"].sendto(b'poke-control', (peer_info.get_ip(), peer_info.get_control_port()))
             time.sleep(0.3)
+
+    def rendezvous_and_punch(self, role: str, sockets: dict[str, socket.socket]) -> tuple[dict[str, socket.socket], dict[str, PeerInfo]]:
+        peer_info = self.register_all(sockets, role=role)
+        if not all(isinstance(p, PeerInfo) for p in peer_info.values()):
+            raise RuntimeError("[!] Registration failed or incomplete")
+        self.send_pokes(sockets, peer_info["video"])
+        return sockets, peer_info
+
+    def finalize_sockets(self, sockets: dict[str, socket.socket]):
+        for sock in sockets.values():
+            sock.settimeout(None)
+
+    def setup(self, role: str, ports: dict[str, int]) -> tuple[dict[str, socket.socket], dict[str, PeerInfo]]:
+        sockets = {
+            pt: self.bind_socket(pt.upper(), port)
+            for pt, port in ports.items()
+        }
+        sockets, peer_info = self.rendezvous_and_punch(role, sockets)
+        self.finalize_sockets(sockets)
+        return sockets, peer_info

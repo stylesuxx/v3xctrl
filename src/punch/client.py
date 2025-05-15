@@ -1,56 +1,42 @@
-import socket
+import argparse
 import threading
 import time
 
 from punch import PunchPeer
-from rpi_4g_streamer.Message import PeerInfo, Syn
+from rpi_4g_streamer.Message import Syn
 
-RENDEZVOUS_SERVER = 'rendezvous.websium.at'
-# RENDEZVOUS_SERVER = '192.168.1.100'
-RENDEZVOUS_PORT = 8888
-ID = "test123"
+VIDEO_PORT = 26666
+CONTROL_PORT = 26668
 
-PREDEFINED_VIDEO_PORT = 45000
-VIDEO_INTERVAL = 1
-CONTROL_INTERVAL = 1
+DEFAULT_RENDEZVOUS_SERVER = 'rendezvous.websium.at'
+# DEFAULT_RENDEZVOUS_SERVER = '192.168.1.100'
+DEFAULT_RENDEZVOUS_PORT = 8888
 
 
 class PunchClient(PunchPeer):
     def run(self):
-        # Set up sockets
-        sockets = {
-            "video": socket.socket(socket.AF_INET, socket.SOCK_DGRAM),
-            "control": self.bind_socket("CONTROL")
+        ports = {
+            "video": VIDEO_PORT,
+            "control": CONTROL_PORT
         }
-        sockets["video"].bind(('', PREDEFINED_VIDEO_PORT))
-        print(f"[+] Bound VIDEO socket to {sockets['video'].getsockname()}")
 
-        # Register both
-        peer_info = self.register_all(sockets, role="client")
+        sockets, peer_info = self.setup("client", ports)
 
-        if not all(isinstance(p, PeerInfo) for p in peer_info.values()):
-            print("[!] Invalid peer info received")
-            return
+        ip = peer_info["video"].get_ip()
+        vp, cp = peer_info["video"].get_video_port(), peer_info["control"].get_control_port()
 
-        server_ip = peer_info["video"].get_ip()
-        video_port = peer_info["video"].get_video_port()
-        control_port = peer_info["control"].get_control_port()
+        print(f"[✓] Server IP: {ip}")
+        print(f"    VIDEO port: {vp}")
+        print(f"    CONTROL port: {cp}")
 
-        sockets["video"].settimeout(None)
-        sockets["control"].settimeout(None)
-
-        print(f"[✓] Server IP: {server_ip}")
-        print(f"    VIDEO port: {video_port}")
-        print(f"    CONTROL port: {control_port}")
-
-        threading.Thread(target=self.video_sender, args=(sockets["video"], server_ip, video_port), daemon=True).start()
-        self.control_loop(sockets["control"], server_ip, control_port)
+        threading.Thread(target=self.video_sender, args=(sockets["video"], ip, vp), daemon=True).start()
+        self.control_loop(sockets["control"], ip, cp)
 
     def video_sender(self, sock, ip, port):
         while True:
             sock.sendto(Syn().to_bytes(), (ip, port))
             print(f"[→] Sent to {ip}:{port}")
-            time.sleep(VIDEO_INTERVAL)
+            time.sleep(1)
 
     def control_loop(self, sock, ip, port):
         def receiver():
@@ -63,8 +49,18 @@ class PunchClient(PunchPeer):
         while True:
             sock.sendto(Syn().to_bytes(), (ip, port))
             print(f"[→] Sent to {ip}:{port}")
-            time.sleep(CONTROL_INTERVAL)
+            time.sleep(1)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="UDP Punch Server")
+    parser.add_argument("id", help="Session ID (required positional argument)")
+    parser.add_argument("--server", default=DEFAULT_RENDEZVOUS_SERVER, help="Rendezvous server address")
+    parser.add_argument("--port", type=int, default=DEFAULT_RENDEZVOUS_PORT, help="Rendezvous server port")
+
+    return parser.parse_args()
 
 
 if __name__ == "__main__":
-    PunchClient(RENDEZVOUS_SERVER, RENDEZVOUS_PORT, ID).run()
+    args = parse_args()
+    PunchClient(args.server, args.port, args.id).run()
