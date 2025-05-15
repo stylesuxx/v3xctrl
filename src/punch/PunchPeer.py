@@ -1,11 +1,8 @@
-"""
-Registration times out after 300 sec. If no peer could be found in this time.
-"""
-
 import socket
 import time
+import threading
 
-from rpi_4g_streamer.Message import Message, ClientAnnouncement, ServerAnnouncement, PeerInfo  # Adjust path as needed
+from rpi_4g_streamer.Message import Message, PeerAnnouncement, PeerInfo
 
 
 class PunchPeer:
@@ -24,11 +21,7 @@ class PunchPeer:
         return sock
 
     def register_with_rendezvous(self, sock, announcement_msg):
-        """
-        Send a PeerAnnouncement message and wait for PeerInfo.
-        """
-        assert isinstance(announcement_msg, (ClientAnnouncement, ServerAnnouncement))
-
+        assert isinstance(announcement_msg, PeerAnnouncement)
         sock.settimeout(1)
         start_time = time.time()
 
@@ -39,13 +32,11 @@ class PunchPeer:
 
                 data, _ = sock.recvfrom(1024)
                 peer_msg = Message.from_bytes(data)
-
                 if isinstance(peer_msg, PeerInfo):
                     print(f"[✓] Got peer info: {peer_msg}")
                     return peer_msg
                 else:
                     print(f"[!] Unexpected message type: {peer_msg.type}")
-
             except socket.timeout:
                 time.sleep(self.ANNOUNCE_INTERVAL)
             except Exception as e:
@@ -54,3 +45,22 @@ class PunchPeer:
 
         print(f"[!] Timeout registering: {announcement_msg}")
         return None
+
+    def register_all(self, sockets: dict[str, socket.socket], role: str) -> dict[str, PeerInfo]:
+        results = {pt: [None] for pt in sockets.keys()}
+
+        def reg_worker(pt):
+            ann = PeerAnnouncement(r=role, i=self.session_id, p=pt)
+            results[pt][0] = self.register_with_rendezvous(sockets[pt], ann)
+
+        threads = [threading.Thread(target=reg_worker, args=(pt,)) for pt in sockets]
+        for t in threads: t.start()
+        for t in threads: t.join()
+
+        return {pt: results[pt][0] for pt in results}
+
+    def send_pokes(self, sock_map: dict[str, socket.socket], peer_info: PeerInfo):
+        for _ in range(3):
+            sock_map["video"].sendto(b'poke-video', (peer_info.get_ip(), peer_info.get_video_port()))
+            sock_map["control"].sendto(b'poke-control', (peer_info.get_ip(), peer_info.get_control_port()))
+            time.sleep(0.3)

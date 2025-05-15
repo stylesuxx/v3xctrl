@@ -1,41 +1,50 @@
+import socket
 import threading
 import time
 
 from punch import PunchPeer
-from rpi_4g_streamer.Message import ClientAnnouncement, PeerInfo, Syn
+from rpi_4g_streamer.Message import PeerInfo, Syn
 
 RENDEZVOUS_SERVER = 'rendezvous.websium.at'
+# RENDEZVOUS_SERVER = '192.168.1.100'
 RENDEZVOUS_PORT = 8888
 ID = "test123"
 
+PREDEFINED_VIDEO_PORT = 45000
 VIDEO_INTERVAL = 1
 CONTROL_INTERVAL = 1
 
 
 class PunchClient(PunchPeer):
     def run(self):
-        video_sock = self.bind_socket("VIDEO")
-        control_sock = self.bind_socket("CONTROL")
+        # Set up sockets
+        sockets = {
+            "video": socket.socket(socket.AF_INET, socket.SOCK_DGRAM),
+            "control": self.bind_socket("CONTROL")
+        }
+        sockets["video"].bind(('', PREDEFINED_VIDEO_PORT))
+        print(f"[+] Bound VIDEO socket to {sockets['video'].getsockname()}")
 
-        info = self.register_with_rendezvous(video_sock, ClientAnnouncement(self.session_id))
+        # Register both
+        peer_info = self.register_all(sockets, role="client")
 
-        if not isinstance(info, PeerInfo) or not isinstance(info, PeerInfo):
+        if not all(isinstance(p, PeerInfo) for p in peer_info.values()):
             print("[!] Invalid peer info received")
             return
 
-        server_ip = info.get_ip()
-        video_port = info.get_video_port()
-        control_port = info.get_control_port()
+        server_ip = peer_info["video"].get_ip()
+        video_port = peer_info["video"].get_video_port()
+        control_port = peer_info["control"].get_control_port()
 
-        video_sock.settimeout(None)
-        control_sock.settimeout(None)
+        sockets["video"].settimeout(None)
+        sockets["control"].settimeout(None)
 
         print(f"[✓] Server IP: {server_ip}")
         print(f"    VIDEO port: {video_port}")
         print(f"    CONTROL port: {control_port}")
 
-        threading.Thread(target=self.video_sender, args=(video_sock, server_ip, video_port), daemon=True).start()
-        self.control_loop(control_sock, server_ip, control_port)
+        threading.Thread(target=self.video_sender, args=(sockets["video"], server_ip, video_port), daemon=True).start()
+        self.control_loop(sockets["control"], server_ip, control_port)
 
     def video_sender(self, sock, ip, port):
         while True:
