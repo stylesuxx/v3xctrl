@@ -1,4 +1,5 @@
 import threading
+import time
 
 from punch import PunchPeer
 from rpi_4g_streamer.Message import ServerAnnouncement, Ack
@@ -6,8 +7,7 @@ from rpi_4g_streamer.Message import ServerAnnouncement, Ack
 VIDEO_PORT = 12345
 CONTROL_PORT = 12346
 
-#RENDEZVOUS_SERVER = '192.168.1.100'
-RENDEZVOUS_SERVER = 'home.websium.at'
+RENDEZVOUS_SERVER = 'rendezvous.websium.at'
 RENDEZVOUS_PORT = 8888
 ID = "test123"
 
@@ -38,6 +38,11 @@ class PunchServer(PunchPeer):
         client_ip = video_result[0].get_ip()
         client_video_port = video_result[0].get_video_port()
         client_control_port = control_result[0].get_control_port()
+
+        for _ in range(3):
+            video_sock.sendto(b'poke-video', (client_ip, client_video_port))
+            control_sock.sendto(b'poke-control', (client_ip, client_control_port))
+            time.sleep(0.3)
 
         print(f"[✓] Ready to receive from client:")
         print(f"    VIDEO: {client_ip}:{client_video_port}")

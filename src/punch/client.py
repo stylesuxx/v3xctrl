@@ -4,8 +4,7 @@ import time
 from punch import PunchPeer
 from rpi_4g_streamer.Message import ClientAnnouncement, PeerInfo, Syn
 
-#RENDEZVOUS_SERVER = '192.168.1.100'
-RENDEZVOUS_SERVER = '62.178.46.35'
+RENDEZVOUS_SERVER = 'rendezvous.websium.at'
 RENDEZVOUS_PORT = 8888
 ID = "test123"
 

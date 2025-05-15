@@ -79,7 +79,7 @@ def main():
                         "ts": time.time()
                     }
 
-                    print(f"[+] Registered SERVER ({port_type}) for session '{session_id}' from {addr}")
+                    print(f"[+] Registered SERVER for session '{session_id}' from {addr} ({port_type})")
 
                 elif isinstance(msg, ClientAnnouncement):
                     session_id = msg.get_id()
