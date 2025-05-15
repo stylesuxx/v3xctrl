@@ -2,10 +2,15 @@ import threading
 import time
 
 from punch import PunchPeer
+from rpi_4g_streamer.Message import ClientAnnouncement, PeerInfo, Syn
+
+#RENDEZVOUS_SERVER = '192.168.1.100'
+RENDEZVOUS_SERVER = '62.178.46.35'
+RENDEZVOUS_PORT = 8888
+ID = "test123"
 
 VIDEO_INTERVAL = 1
 CONTROL_INTERVAL = 1
-ID = "test123"
 
 
 class PunchClient(PunchPeer):
@@ -13,15 +18,15 @@ class PunchClient(PunchPeer):
         video_sock = self.bind_socket("VIDEO")
         control_sock = self.bind_socket("CONTROL")
 
-        video_info = self.register_with_rendezvous(video_sock, "client")
-        control_info = self.register_with_rendezvous(control_sock, "client")
+        info = self.register_with_rendezvous(video_sock, ClientAnnouncement(self.session_id))
 
-        if not video_info or 'peer_ip' not in video_info or 'ports' not in video_info:
+        if not isinstance(info, PeerInfo) or not isinstance(info, PeerInfo):
             print("[!] Invalid peer info received")
             return
 
-        server_ip = video_info['peer_ip']
-        video_port, control_port = video_info['ports']
+        server_ip = info.get_ip()
+        video_port = info.get_video_port()
+        control_port = info.get_control_port()
 
         video_sock.settimeout(None)
         control_sock.settimeout(None)
@@ -35,28 +40,23 @@ class PunchClient(PunchPeer):
 
     def video_sender(self, sock, ip, port):
         while True:
-            sock.sendto(b"VIDEO_FRAME", (ip, port))
-            print(f"[→] Sent VIDEO_FRAME to {ip}:{port}")
+            sock.sendto(Syn().to_bytes(), (ip, port))
+            print(f"[→] Sent to {ip}:{port}")
             time.sleep(VIDEO_INTERVAL)
 
     def control_loop(self, sock, ip, port):
         def receiver():
             while True:
-                try:
-                    data, addr = sock.recvfrom(1024)
-                    decoded = data.decode(errors='ignore')
-                    print(f"[←] CONTROL response from {addr}: {decoded}")
-                except Exception as e:
-                    print(f"[!] Control receive error: {e}")
-                    break
+                _, addr = sock.recvfrom(1024)
+                print(f"[C] from {addr[0]}:{addr[1]}")
 
         threading.Thread(target=receiver, daemon=True).start()
 
         while True:
-            sock.sendto(b"CONTROL_PING", (ip, port))
-            print(f"[→] Sent CONTROL_PING to {ip}:{port}")
+            sock.sendto(Syn().to_bytes(), (ip, port))
+            print(f"[→] Sent to {ip}:{port}")
             time.sleep(CONTROL_INTERVAL)
 
 
 if __name__ == "__main__":
-    PunchClient(ID).run()
+    PunchClient(RENDEZVOUS_SERVER, RENDEZVOUS_PORT, ID).run()

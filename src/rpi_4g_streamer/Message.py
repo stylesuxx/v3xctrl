@@ -118,3 +118,61 @@ class Command(Message):
 class Heartbeat(Message):
     def __init__(self, timestamp: float = None):
         super().__init__({}, timestamp)
+
+
+"""
+Message types used for UDP hole punching
+"""
+
+
+class ServerAnnouncement(Message):
+    def __init__(self, i: str, p: str, timestamp: float = None):
+        super().__init__({
+            "i": i,
+            "p": p,
+        }, timestamp)
+
+        self.id = i
+        self.port_type = p
+
+    def get_id(self) -> str:
+        return self.id
+
+    def get_port_type(self) -> str:
+        return self.port_type
+
+
+class ClientAnnouncement(Message):
+    def __init__(self, id: str, timestamp: float = None):
+        super().__init__({
+            "id": id,
+        }, timestamp)
+
+        self.id = id
+
+    def get_id(self) -> str:
+        return self.id
+
+
+class PeerInfo(Message):
+    """Message for transmitting peer connection details (IP and ports)."""
+
+    def __init__(self, ip: str, video_port: int, control_port: int, timestamp: float = None):
+        super().__init__({
+            "ip": ip,
+            "video_port": video_port,
+            "control_port": control_port,
+        }, timestamp)
+
+        self.ip = ip
+        self.video_port = video_port
+        self.control_port = control_port
+
+    def get_ip(self) -> str:
+        return self.ip
+
+    def get_video_port(self) -> int:
+        return self.video_port
+
+    def get_control_port(self) -> int:
+        return self.control_port

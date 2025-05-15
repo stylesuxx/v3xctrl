@@ -1,9 +1,14 @@
 import threading
 
 from punch import PunchPeer
+from rpi_4g_streamer.Message import ServerAnnouncement, Ack
 
 VIDEO_PORT = 12345
 CONTROL_PORT = 12346
+
+#RENDEZVOUS_SERVER = '192.168.1.100'
+RENDEZVOUS_SERVER = 'home.websium.at'
+RENDEZVOUS_PORT = 8888
 ID = "test123"
 
 
@@ -15,8 +20,9 @@ class PunchServer(PunchPeer):
         video_result = [None]
         control_result = [None]
 
-        def reg_wrapper(sock, type_str, result_holder):
-            result_holder[0] = self.register_with_rendezvous(sock, "server", type_str)
+        def reg_wrapper(sock, port_type: str, result_holder):
+            announcement = ServerAnnouncement(i=self.session_id, p=port_type)
+            result_holder[0] = self.register_with_rendezvous(sock, announcement)
 
         t1 = threading.Thread(target=reg_wrapper, args=(video_sock, "video", video_result))
         t2 = threading.Thread(target=reg_wrapper, args=(control_sock, "control", control_result))
@@ -29,9 +35,9 @@ class PunchServer(PunchPeer):
             print("[!] Registration failed")
             return
 
-        client_ip = video_result[0]['peer_ip']
-        client_video_port = video_result[0]['peer_port']
-        client_control_port = control_result[0]['peer_port']
+        client_ip = video_result[0].get_ip()
+        client_video_port = video_result[0].get_video_port()
+        client_control_port = control_result[0].get_control_port()
 
         print(f"[✓] Ready to receive from client:")
         print(f"    VIDEO: {client_ip}:{client_video_port}")
@@ -47,23 +53,15 @@ class PunchServer(PunchPeer):
         print(f"[V] Listening on {sock.getsockname()}")
         while True:
             data, addr = sock.recvfrom(2048)
-            try:
-                decoded = data.decode('utf-8', errors='ignore')
-                print(f"[V] from {addr}: {len(data)} bytes | data: {decoded}")
-            except Exception:
-                print(f"[V] from {addr}: {len(data)} bytes | raw: {data}")
+            print(f"[V] from {addr}")
 
     def control_listener(self, sock):
         print(f"[C] Listening on {sock.getsockname()}")
         while True:
             data, addr = sock.recvfrom(1024)
-            try:
-                decoded = data.decode('utf-8', errors='ignore')
-                print(f"[C] from {addr}: {decoded}")
-            except Exception:
-                print(f"[C] from {addr}: {data}")
-            sock.sendto(b"CONTROL_ACK", addr)
+            print(f"[C] from {addr}")
+            sock.sendto(Ack().to_bytes(), addr)
 
 
 if __name__ == "__main__":
-    PunchServer(ID).run()
+    PunchServer(RENDEZVOUS_SERVER, RENDEZVOUS_PORT, ID).run()

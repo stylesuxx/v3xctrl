@@ -1,20 +1,23 @@
+"""
+Client and Server keep announcing themselves. Timestamps are updated with each
+new announce, so as long as announcements are coming in, the session will not
+expire.
+"""
+
 import socket
-import json
 import threading
 import time
 
-PORT = 8888
+from rpi_4g_streamer.Message import Message, ClientAnnouncement, ServerAnnouncement, PeerInfo  # Adjust path as needed
 
-# Time in which a connection has to be established before it is considered
-# expired.
-TIMEOUT = 300
+
+PORT = 8888
+TIMEOUT = 10
 CLEANUP_INTERVAL = 5
 
 # session_id -> {'server': {'video': {...}, 'control': {...}}, 'client': {...}}
 sessions = {}
 lock = threading.Lock()
-
-valid_roles = ["server", "client"]
 valid_types = ["video", "control"]
 
 
@@ -53,66 +56,75 @@ def main():
     while True:
         try:
             data, addr = sock.recvfrom(1024)
+
             try:
-                msg = json.loads(data.decode('utf-8'))
+                msg = Message.from_bytes(data)
             except Exception:
-                print(f"[!] Malformed JSON from {addr}")
-                continue
-
-            role = msg.get("role")
-            session_id = msg.get("id")
-
-            if role not in valid_roles or not session_id:
-                print(f"[!] Invalid message from {addr}: {msg}")
+                print(f"[!] Malformed message from {addr}")
                 continue
 
             with lock:
-                session = sessions.setdefault(session_id, {})
+                if isinstance(msg, ServerAnnouncement):
+                    session_id = msg.get_id()
+                    port_type = msg.get_port_type()
 
-                if role == "server":
-                    reg_type = msg.get("type")
-                    if reg_type not in valid_types:
-                        print(f"[!] Server message missing 'type': {msg}")
+                    if port_type not in valid_types:
+                        print(f"[!] Invalid server type '{port_type}' from {addr}")
                         continue
 
+                    session = sessions.setdefault(session_id, {})
                     session.setdefault("server", {})
-                    session["server"][reg_type] = {
+                    session["server"][port_type] = {
                         "addr": addr,
-                        "ts": time.time(),
+                        "ts": time.time()
                     }
 
-                    print(f"[+] Registered SERVER ({reg_type}) for session '{session_id}' from {addr}")
+                    print(f"[+] Registered SERVER ({port_type}) for session '{session_id}' from {addr}")
 
-                elif role == "client":
+                elif isinstance(msg, ClientAnnouncement):
+                    session_id = msg.get_id()
+                    session = sessions.setdefault(session_id, {})
                     session["client"] = {
                         "addr": addr,
                         "ts": time.time()
                     }
                     print(f"[+] Registered CLIENT for session '{session_id}' from {addr}")
 
-                # Check if all parts are present
+                else:
+                    print(f"[!] Unknown or unsupported message type from {addr}: {msg.type}")
+                    continue
+
+                # Check if all roles are present
+                session_id = msg.get_id()
+                session = sessions.get(session_id, {})
+
                 if "client" in session and "server" in session and \
-                        "video" in session["server"] and "control" in session["server"]:
+                   "video" in session["server"] and \
+                   "control" in session["server"]:
+
                     client_addr = session["client"]["addr"]
                     video_addr = session["server"]["video"]["addr"]
                     control_addr = session["server"]["control"]["addr"]
 
-                    # Send compact peer info to client
-                    sock.sendto(json.dumps({
-                        "peer_ip": video_addr[0],  # same for both
-                        "ports": [video_addr[1], control_addr[1]]
-                    }).encode(), client_addr)
+                    # Send PeerInfo to client
+                    peer_info_client = PeerInfo(
+                        ip=video_addr[0],
+                        video_port=video_addr[1],
+                        control_port=control_addr[1]
+                    )
+                    sock.sendto(peer_info_client.to_bytes(), client_addr)
 
-                    # Send client info to both server sockets
-                    for t in ["video", "control"]:
-                        sock.sendto(json.dumps({
-                            "peer_ip": client_addr[0],
-                            "peer_port": client_addr[1]
-                        }).encode(), session["server"][t]["addr"])
+                    # Send PeerInfo to both server sockets
+                    for role_type in ["video", "control"]:
+                        peer_info_server = PeerInfo(
+                            ip=client_addr[0],
+                            video_port=client_addr[1],
+                            control_port=client_addr[1]  # Simplified: same port for both on client side
+                        )
+                        sock.sendto(peer_info_server.to_bytes(), session["server"][role_type]["addr"])
 
-                    print(f"[✓] Matched '{session_id}': "
-                          f"server: {video_addr[0]}"
-                          f"<-> client: {client_addr[0]}")
+                    print(f"[✓] Matched session '{session_id}': "
+                          f"server {video_addr[0]} ↔ client {client_addr[0]}")
 
                     del sessions[session_id]
 
