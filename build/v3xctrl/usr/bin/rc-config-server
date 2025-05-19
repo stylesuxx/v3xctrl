@@ -1,6 +1,8 @@
 #! /bin/bash
 # Bind config server to wlan0 IP if available, otherwise bind to 127.0.0.1
-NAME="v3xctrl"
+ENV_PATH="/run/v3xctrl.env"
+source "${ENV_PATH}"
+
 CONFIG_PATH="/etc/${NAME}/config.json"
 SCHEMA_PATH="/etc/${NAME}/schema.json"
 
@@ -8,7 +10,6 @@ get_wlan0_ip() {
   ip -4 addr show wlan0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}'
 }
 
-PORT=$(jq -r '.ports.webinterface' "$CONFIG_PATH")
 HOST=$(get_wlan0_ip)
 if [ -z "$HOST" ]; then
   HOST="127.0.0.1"
@@ -18,4 +19,4 @@ rc-python "/usr/share/${NAME}/config-server/main.py" \
   --config "$CONFIG_PATH" \
   --schema "$SCHEMA_PATH" \
   --host "$HOST" \
-  --port "$PORT"
+  --port "$ports_webinterface"

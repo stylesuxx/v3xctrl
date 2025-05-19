@@ -1,39 +1,24 @@
 #! /bin/bash
-NAME="v3xctrl"
-CONFIG_PATH="/etc/${NAME}/config.json"
+set -e
 
-# TODO: We need to have an extra script to read host and port, since it could be
-#       static or set via rendezvouz server.
-HOST=$(jq -r '.server.host' "$CONFIG_PATH")
-PORT=$(jq -r '.ports.video' "$CONFIG_PATH")
-
-BIND_PORT=$(jq -r '.ports.video' "$CONFIG_PATH")
-
-WIDTH=$(jq -r '.video.width' "$CONFIG_PATH")
-HEIGHT=$(jq -r '.video.height' "$CONFIG_PATH")
-FRAMERATE=$(jq -r '.video.framerate' "$CONFIG_PATH")
-BITRATE=$(jq -r '.video.bitrate' "$CONFIG_PATH")
-
-RECORD=$(jq -r '.video.record' "$CONFIG_PATH")
-RECORD_PATH=$(jq -r '.video.recordPath' "$CONFIG_PATH")
-
-TEST_SOURCE=$(jq -r '.video.testSource' "$CONFIG_PATH")
+ENV_PATH="/run/v3xctrl.env"
+source "${ENV_PATH}"
 
 ARGS=(
-  "$HOST"
-  "$PORT"
-  "$BIND_PORT"
-  --width "$WIDTH"
-  --height "$HEIGHT"
-  --framerate "$FRAMERATE"
-  --bitrate "$BITRATE"
+  "$server_host"
+  "$ports_video"
+  "$ports_video"
+  --width "$video_width"
+  --height "$video_height"
+  --framerate "$video_framerate"
+  --bitrate "$video_bitrate"
 )
 
-if [ "$RECORD" = "true" ] && [ -n "$RECORD_PATH" ] && [ "$RECORD_PATH" != "null" ]; then
-  ARGS+=(--recording-dir "$RECORD_PATH")
+if [ "$video_record" = "true" ] && [ -n "$video_recordPath" ] && [ "$video_recordPath" != "null" ]; then
+  ARGS+=(--recording-dir "$video_recordPath")
 fi
 
-if [ "$TEST_SOURCE" = "true" ]; then
+if [ "$video_testSource" = "true" ]; then
   ARGS+=(--test-pattern)
 fi
 

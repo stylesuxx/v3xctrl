@@ -1,0 +1,15 @@
+[Unit]
+Description=Setup env for all other services
+DefaultDependencies=no
+RequiresMountsFor=/data
+After=local-fs.target
+Before=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/v3xctrl-write-env
+RemainAfterExit=true
+TimeoutStartSec=10s
+
+[Install]
+WantedBy=multi-user.target

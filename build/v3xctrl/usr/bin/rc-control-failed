@@ -1,15 +1,11 @@
 #!/bin/bash
 set -e
 
-CONFIG_PATH="/etc/v3xctrl/config.json"
-
-# TODO: jq is rather slow - it might make sense to do parsing via python script
-# instead
-FAILSAFE_THROTTLE=$(jq -r '.controls.throttle.failsafe' "$CONFIG_PATH")
-FAILSAFE_STEERING=$(jq -r '.controls.steering.failsafe' "$CONFIG_PATH")
+ENV_PATH="/run/v3xctrl.env"
+source "${ENV_PATH}"
 
 GPIO_THROTTLE=18
 GPIO_STEERING=13
 
-pigs s $GPIO_THROTTLE $FAILSAFE_THROTTLE
-pigs s $GPIO_STEERING $FAILSAFE_STEERING
+pigs s $GPIO_THROTTLE $controls_throttle_failsafe
+pigs s $GPIO_STEERING $controls_steering_failsafe

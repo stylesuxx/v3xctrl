@@ -1,7 +1,7 @@
 [Unit]
 Description=RC Config Server
-After=network.target rc-wifi-mode.service
-Requires=rc-wifi-mode.service
+After=network.target rc-wifi-mode.service v3xctrl-setup-env.service
+Requires=rc-wifi-mode.service v3xctrl-setup-env.service
 
 [Service]
 Environment=PYENV_ROOT=/usr/local/pyenv

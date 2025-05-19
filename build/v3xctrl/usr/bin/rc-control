@@ -1,42 +1,23 @@
 #!/bin/bash
 set -e
 
-CONFIG_PATH="/etc/v3xctrl/config.json"
-
-# TODO: We need to have an extra script to read host and port, since it could be
-#       static or set via rendezvouz server.
-HOST=$(jq -r '.server.host' "$CONFIG_PATH")
-PORT=$(jq -r '.ports.control' "$CONFIG_PATH")
-
-BIND_PORT=$(jq -r '.ports.control' "$CONFIG_PATH")
-
-THROTTLE_MIN=$(jq -r '.controls.throttle.min' "$CONFIG_PATH")
-THROTTLE_MAX=$(jq -r '.controls.throttle.max' "$CONFIG_PATH")
-THROTTLE_IDLE=$(jq -r '.controls.throttle.idle' "$CONFIG_PATH")
-THROTTLE_SCALE_FORWARD=$(jq -r '.controls.throttle.scaleForward' "$CONFIG_PATH")
-THROTTLE_SCALE_REVERSE=$(jq -r '.controls.throttle.scaleReverse' "$CONFIG_PATH")
-
-STEERING_MIN=$(jq -r '.controls.steering.min' "$CONFIG_PATH")
-STEERING_MAX=$(jq -r '.controls.steering.max' "$CONFIG_PATH")
-STEERING_TRIM=$(jq -r '.controls.steering.trim' "$CONFIG_PATH")
-STEERING_INVERT=$(jq -r '.controls.steering.invert' "$CONFIG_PATH")
-STEERING_SCALE=$(jq -r '.controls.steering.scale' "$CONFIG_PATH")
-
-MODEM_PATH=$(jq -r '.modem.path' "$CONFIG_PATH")
-LOG_LEVEL=$(jq -r '.extras.logLevel' "$CONFIG_PATH")
+ENV_PATH="/run/v3xctrl.env"
+source "${ENV_PATH}"
 
 ARGS=""
-
-if [ "$STEERING_INVERT" = "true" ]; then
+if [ "$control_steering_invert" = "true" ]; then
   ARGS+="--steering-invert"
 fi
 
-rc-python -m rpi_4g_streamer.helpers.client "${HOST}" "${PORT}" "${BIND_PORT}" \
-  --throttle-min "${THROTTLE_MIN}" --throttle-max "${THROTTLE_MAX}" \
-  --throttle-idle "${THROTTLE_IDLE}" \
-  --forward-scale "${THROTTLE_SCALE_FORWARD}" \
-  --reverse-scale "${THROTTLE_SCALE_REVERSE}" \
-  --steering-min "${STEERING_MIN}" --steering-max "${STEERING_MAX}" \
-  --steering-trim "${STEERING_TRIM}" --steering-scale "${STEERING_SCALE}" \
-  --modem-path "${MODEM_PATH}" --log "${LOG_LEVEL}" \
+rc-python -m rpi_4g_streamer.helpers.client "${server_host}" "${ports_control}" "${ports_control_bind}" \
+  --throttle-min "${controls_throttle_min}" \
+  --throttle-max "${controls_throttle_max}" \
+  --throttle-idle "${controls_throttle_idle}" \
+  --forward-scale "${controls_throttle_scaleForward}" \
+  --reverse-scale "${controls_throttle_scaleReverse}" \
+  --steering-min "${controls_steering_min}" \
+  --steering-max "${controls_steering_max}" \
+  --steering-trim "${controls_steering_trim}" \
+  --steering-scale "${controls_steering_scale}" \
+  --modem-path "${modem_path}" --log "${extras_logLevel}" \
   ${ARGS}

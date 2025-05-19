@@ -1,11 +1,10 @@
 #!/bin/bash
-NAME="v3xctrl"
-CONFIG_PATH="/etc/${NAME}/config.json"
+ENV_PATH="/run/v3xctrl.env"
+source "${ENV_PATH}"
 
 RED='\033[0;31m'
 NC='\033[0m'
 IP=$(ip -4 addr show wlan0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
-PORT=$(jq -r '.ports.webinterface' "$CONFIG_PATH")
 
 echo -e "\
 
@@ -19,7 +18,7 @@ echo -e "\
 
  Video eXchange and ConTRoL                         /vɛks kənˈtɹoʊl/
 
- Web Configurator:   http://${IP}:${PORT}
+ Web Configurator:   http://${IP}:${ports_webinterface}
  Start video stream: sudo systemctl start rc-video
  Start control:      sudo systemctl start rc-control
  Mount Read/Write:   sudo rc-remount rw"

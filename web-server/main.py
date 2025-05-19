@@ -25,6 +25,9 @@ def save_config():
     with open(config_path, 'w') as f:
         json.dump(data, f, indent=4)
 
+    # Write env file
+    subprocess.run(["sudo", "/usr/bin/v3xctrl-write-env"])
+
     return jsonify({"message": "Saved!"})
 
 
