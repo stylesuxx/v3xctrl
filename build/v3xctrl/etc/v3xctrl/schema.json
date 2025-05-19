@@ -33,12 +33,19 @@
           "default": "192.168.0.1",
           "description": "Used in direct mode only"
         },
-        "rendezvousServer": {
+        "rendezvousId": {
           "propertyOrder": 30,
+          "type": "string",
+          "title": "Rendezvous ID",
+          "default": "foobar",
+          "description": "Needs to be the same on client and server"
+        },
+        "rendezvousServer": {
+          "propertyOrder": 40,
           "type": "string",
           "title": "Rendezvous Server",
           "default": "rendezvous.websium.at",
-          "description": "Used in rendezvous mode only"
+          "description": "Used in rendezvous mode only (only change if you are using your own rendezvous server)"
         }
       }
     },

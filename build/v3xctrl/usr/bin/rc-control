@@ -8,6 +8,8 @@ CONFIG_PATH="/etc/v3xctrl/config.json"
 HOST=$(jq -r '.server.host' "$CONFIG_PATH")
 PORT=$(jq -r '.ports.control' "$CONFIG_PATH")
 
+BIND_PORT=$(jq -r '.ports.control' "$CONFIG_PATH")
+
 THROTTLE_MIN=$(jq -r '.controls.throttle.min' "$CONFIG_PATH")
 THROTTLE_MAX=$(jq -r '.controls.throttle.max' "$CONFIG_PATH")
 THROTTLE_IDLE=$(jq -r '.controls.throttle.idle' "$CONFIG_PATH")
@@ -29,7 +31,7 @@ if [ "$STEERING_INVERT" = "true" ]; then
   ARGS+="--steering-invert"
 fi
 
-rc-python -m rpi_4g_streamer.helpers.client "${HOST}" "${PORT}" \
+rc-python -m rpi_4g_streamer.helpers.client "${HOST}" "${PORT}" "${BIND_PORT}" \
   --throttle-min "${THROTTLE_MIN}" --throttle-max "${THROTTLE_MAX}" \
   --throttle-idle "${THROTTLE_IDLE}" \
   --forward-scale "${THROTTLE_SCALE_FORWARD}" \

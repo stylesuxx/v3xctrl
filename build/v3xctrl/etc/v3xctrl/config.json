@@ -6,7 +6,8 @@
   "server": {
       "mode": "direct",
       "host": "192.168.1.100",
-      "rendezvousServer": "rendezvous.websium.at"
+      "rendezvousServer": "rendezvous.websium.at",
+      "rendezvousId": "foobar"
   },
   "ports": {
       "control": 6668,
