@@ -54,7 +54,7 @@ def get_fps(history: deque, window_seconds: float = 1) -> float:
 
 def get_external_ip(timeout: int = 5) -> str:
     try:
-        with urllib.request.urlopen('https://api.iaaaapify.org', timeout=timeout) as response:
+        with urllib.request.urlopen('https://api.ipify.org', timeout=timeout) as response:
             return response.read().decode('utf-8')
     except Exception:
         logging.warning("Could not get external IP address")

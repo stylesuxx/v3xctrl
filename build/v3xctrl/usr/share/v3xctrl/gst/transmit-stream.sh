@@ -102,5 +102,5 @@ gst-launch-1.0 -v $SOURCE_BRANCH ! \
       max-size-time=$BUFFERTIME_UDP \
       leaky=downstream ! \
     rtph264pay config-interval=1 pt=96 ! \
-    udpsink host=$HOST port=$PORT sync=false async=false \
+    udpsink host=$HOST bind-port=$PORT port=$PORT sync=false async=false \
     $TEE_BRANCH

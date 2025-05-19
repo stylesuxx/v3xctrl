@@ -51,6 +51,7 @@ class Client(Base):
 
     def initialize(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.socket.bind("0.0.0.0", self.port)
         self.socket.settimeout(1)
 
         self.transmitter = UDPTransmitter(self.socket)
