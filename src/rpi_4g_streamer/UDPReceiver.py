@@ -54,7 +54,7 @@ class UDPReceiver(threading.Thread):
             return False
 
         if self._should_validate_host and addr[0] != self._expected_host:
-            logging.debug("Skipping message from wrong host")
+            logging.debug(f"Skipping message from wrong host: {addr[0]}")
             return False
 
         return True

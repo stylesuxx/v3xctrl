@@ -28,14 +28,13 @@ if command -v systemctl >/dev/null 2>&1; then
       rsyslog.service \
       rpi-display-backlight.service \
       remote-fs.target \
-      nfs-client.target
-# \
-#nmbd.service \
-#keyboard-setup.service \
-#rng-tools-debian.service \
-#bluetooth.service \
-#bthelper@hci0.service \
-#hciuart.service \
-#ModemManager.service
+      nfs-client.target \
+      nmbd.service \
+      keyboard-setup.service \
+      rng-tools-debian.service \
+      bluetooth.service \
+      bthelper@hci0.service \
+      hciuart.service \
+      ModemManager.service
   fi
 fi
