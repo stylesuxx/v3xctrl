@@ -7,6 +7,8 @@ CONFIG_PATH="/etc/${NAME}/config.json"
 HOST=$(jq -r '.server.host' "$CONFIG_PATH")
 PORT=$(jq -r '.ports.video' "$CONFIG_PATH")
 
+BIND_PORT=$(jq -r '.ports.video' "$CONFIG_PATH")
+
 WIDTH=$(jq -r '.video.width' "$CONFIG_PATH")
 HEIGHT=$(jq -r '.video.height' "$CONFIG_PATH")
 FRAMERATE=$(jq -r '.video.framerate' "$CONFIG_PATH")
@@ -20,6 +22,7 @@ TEST_SOURCE=$(jq -r '.video.testSource' "$CONFIG_PATH")
 ARGS=(
   "$HOST"
   "$PORT"
+  "$BIND_PORT"
   --width "$WIDTH"
   --height "$HEIGHT"
   --framerate "$FRAMERATE"

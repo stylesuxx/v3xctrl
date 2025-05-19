@@ -1,12 +1,13 @@
 #! /bin/bash
 if [ $# -lt 2 ]; then
-    echo "Usage: $0 HOST PORT [--width val] [--height val] [--framerate val] [--bitrate val] [--buffertime val] [--sizebuffers val] [--recording-dir val] [--test-pattern] [--i-frame-period val]"
+    echo "Usage: $0 HOST PORT BIND_PORT [--width val] [--height val] [--framerate val] [--bitrate val] [--buffertime val] [--sizebuffers val] [--recording-dir val] [--test-pattern] [--i-frame-period val]"
     exit 1
 fi
 
 HOST="$1"
 PORT="$2"
-shift 2
+BIND_PORT="$3"
+shift 3
 
 WIDTH=1280
 HEIGHT=720
@@ -102,5 +103,5 @@ gst-launch-1.0 -v $SOURCE_BRANCH ! \
       max-size-time=$BUFFERTIME_UDP \
       leaky=downstream ! \
     rtph264pay config-interval=1 pt=96 ! \
-    udpsink host=$HOST bind-port=$PORT port=$PORT sync=false async=false \
+    udpsink host=$HOST port=$PORT bind-port=$BIND_PORT sync=false async=false \
     $TEE_BRANCH

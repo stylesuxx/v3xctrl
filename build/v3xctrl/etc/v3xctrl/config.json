@@ -3,7 +3,6 @@
       "control": false,
       "video": false
   },
-  "host": "192.168.1.100",
   "server": {
       "mode": "direct",
       "host": "192.168.1.100",
@@ -52,6 +51,6 @@
   },
   "extras": {
       "samba": false,
-      "logLevel": "ERROR"
+      "logLevel": "DEBUG"
   }
 }
