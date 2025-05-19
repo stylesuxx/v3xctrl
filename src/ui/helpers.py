@@ -1,4 +1,5 @@
 from collections import deque
+import logging
 import time
 from typing import Tuple
 import urllib.request
@@ -44,13 +45,17 @@ def interpolate_throttle_color(throttle: float) -> Tuple[int, int, int]:
     return (r, g, b)
 
 
-def get_fps(history: deque, window_seconds: float = 1):
+def get_fps(history: deque, window_seconds: float = 1) -> float:
     now = time.time()
     cutoff = now - window_seconds
     frames = [t for t in history if t >= cutoff]
     return len(frames) / window_seconds if frames else 0.0
 
 
-def get_external_ip():
-    with urllib.request.urlopen('https://api.ipify.org') as response:
-        return response.read().decode('utf-8')
+def get_external_ip(timeout: int = 5) -> str:
+    try:
+        with urllib.request.urlopen('https://api.iaaaapify.org', timeout=timeout) as response:
+            return response.read().decode('utf-8')
+    except Exception:
+        logging.warning("Could not get external IP address")
+        return "0.0.0.0"
