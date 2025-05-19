@@ -23,11 +23,12 @@ from .UDPTransmitter import UDPTransmitter
 
 
 class Client(Base):
-    def __init__(self, host, port):
+    def __init__(self, host: str, port: int, bind_port: int = None):
         super().__init__()
 
         self.host = host
         self.port = port
+        self.bind_port = bind_port
         self.server_address = (self.host, self.port)
 
         # Consider client disconnected if it has not seen a packet from the
@@ -51,8 +52,11 @@ class Client(Base):
 
     def initialize(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.socket.bind("0.0.0.0", self.port)
         self.socket.settimeout(1)
+
+        if self.bind_port:
+            # Bind to specific internal port (important for hole punching)
+            self.socket.bind(("0.0.0.0", self.bind_port))
 
         self.transmitter = UDPTransmitter(self.socket)
         self.message_handler = MessageHandler(self.socket, self.host_ip)

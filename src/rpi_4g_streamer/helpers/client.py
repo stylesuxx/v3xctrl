@@ -24,6 +24,7 @@ from v3xctrl_helper import clamp
 parser = argparse.ArgumentParser(description="Test connection performance.")
 parser.add_argument("host", help="The target IP address")
 parser.add_argument("port", type=int, help="The target port number")
+parser.add_argument("bind_port", type=int, help="The internal port number")
 
 parser.add_argument("--throttle-min", type=int, default=1000,
                     help="Minimum pulse width for throttle (default: 1000)")
@@ -54,6 +55,7 @@ args = parser.parse_args()
 
 HOST = args.host
 PORT = args.port
+BIND_PORT = args.bind_port
 
 throttle_min = args.throttle_min
 throttle_idle = args.throttle_idle
@@ -186,7 +188,7 @@ def signal_handler(sig, frame):
         print("Shutting down...")
 
 
-client = Client(HOST, PORT)
+client = Client(HOST, PORT, BIND_PORT)
 
 # Subscribe to messages received from the server
 client.subscribe(Control, control_handler)
