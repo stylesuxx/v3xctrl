@@ -4,6 +4,11 @@
       "video": false
   },
   "host": "192.168.1.100",
+  "server": {
+      "mode": "direct",
+      "host": "192.168.1.100",
+      "rendezvousServer": "rendezvous.websium.at"
+  },
   "ports": {
       "control": 6668,
       "video": 6666,

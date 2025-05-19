@@ -2,7 +2,10 @@
 set -e
 
 CONFIG_PATH="/etc/v3xctrl/config.json"
-HOST=$(jq -r '.host' "$CONFIG_PATH")
+
+# TODO: We need to have an extra script to read host and port, since it could be
+#       static or set via rendezvouz server.
+HOST=$(jq -r '.server.host' "$CONFIG_PATH")
 PORT=$(jq -r '.ports.control' "$CONFIG_PATH")
 
 THROTTLE_MIN=$(jq -r '.controls.throttle.min' "$CONFIG_PATH")

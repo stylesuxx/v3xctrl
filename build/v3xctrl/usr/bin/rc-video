@@ -2,8 +2,11 @@
 NAME="v3xctrl"
 CONFIG_PATH="/etc/${NAME}/config.json"
 
-HOST=$(jq -r '.host' "$CONFIG_PATH")
+# TODO: We need to have an extra script to read host and port, since it could be
+#       static or set via rendezvouz server.
+HOST=$(jq -r '.server.host' "$CONFIG_PATH")
 PORT=$(jq -r '.ports.video' "$CONFIG_PATH")
+
 WIDTH=$(jq -r '.video.width' "$CONFIG_PATH")
 HEIGHT=$(jq -r '.video.height' "$CONFIG_PATH")
 FRAMERATE=$(jq -r '.video.framerate' "$CONFIG_PATH")

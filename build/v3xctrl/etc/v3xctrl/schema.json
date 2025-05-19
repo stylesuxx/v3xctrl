@@ -7,11 +7,40 @@
     "disable_properties": true
   },
   "properties": {
-    "host": {
+    "server": {
       "propertyOrder": 10,
-      "type": "string",
-      "description": "Preferably IP address or hostname if you don't have a static IP",
-      "default": "192.168.0.1"
+      "title": "Server",
+      "type": "object",
+      "options": {
+        "collapsed": false,
+        "disable_edit_json": true,
+        "disable_properties": true
+      },
+      "properties": {
+        "mode": {
+          "propertyOrder": 10,
+          "title": "Connection Mode",
+          "type": "string",
+          "enum": ["direct", "rendezvous"],
+          "required": true,
+          "default": "direct",
+          "description": "Choose how the client connects to the server."
+        },
+        "host": {
+          "propertyOrder": 20,
+          "type": "string",
+          "title": "Host",
+          "default": "192.168.0.1",
+          "description": "Used in direct mode only"
+        },
+        "rendezvousServer": {
+          "propertyOrder": 30,
+          "type": "string",
+          "title": "Rendezvous Server",
+          "default": "rendezvous.websium.at",
+          "description": "Used in rendezvous mode only"
+        }
+      }
     },
     "ports": {
       "propertyOrder": 20,
