@@ -73,7 +73,7 @@ if __name__ == "__main__":
 
     # Step 1: Punch holes
     peer = PunchPeer(args.server, args.port, args.id)
-    sockets, _ = peer.setup("server", LOCAL_BIND_PORTS)
+    sockets, _, addr = peer.setup("server", LOCAL_BIND_PORTS)
 
     # Step 2: Listen for incoming client data
     TestServer(sockets).run()
