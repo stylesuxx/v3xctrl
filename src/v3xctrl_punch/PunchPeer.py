@@ -150,4 +150,4 @@ class PunchPeer:
         }
         peer_info = self.rendezvous_and_punch(role, sockets)
         #self.finalize_sockets(sockets)
-        return peer_info
+        return sockets, peer_info

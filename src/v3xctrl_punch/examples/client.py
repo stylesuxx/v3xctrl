@@ -22,15 +22,18 @@ DEFAULT_RENDEZVOUS_PORT = 8888
 
 
 class TestClient:
-    def __init__(self, peer_info):
+    def __init__(self, sockets, peer_info):
         self.peer_info = peer_info
 
         self.remote_ip = peer_info["video"].get_ip()
         self.remote_video_port = peer_info["video"].get_video_port()
         self.remote_control_port = peer_info["control"].get_control_port()
 
-        self.video_sock = self._bind_udp(LOCAL_BIND_PORTS["video"])
-        self.control_sock = self._bind_udp(LOCAL_BIND_PORTS["control"])
+        #self.video_sock = self._bind_udp(LOCAL_BIND_PORTS["video"])
+        #self.control_sock = self._bind_udp(LOCAL_BIND_PORTS["control"])
+
+        self.video_sock = sockets["video"]
+        self.control_sock = sockets["control"]
 
     def _bind_udp(self, port):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -83,7 +86,7 @@ if __name__ == "__main__":
 
     # Step 1: Punch holes and get peer info
     punch = PunchPeer(args.server, args.port, args.id)
-    peer_info = punch.setup("client", LOCAL_BIND_PORTS)
+    sockets, peer_info = punch.setup("client", LOCAL_BIND_PORTS)
 
     # Step 2: Start client logic with freshly bound sockets
-    TestClient(peer_info).run()
+    TestClient(sockets, peer_info).run()
