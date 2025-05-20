@@ -1,9 +1,17 @@
 #! /bin/bash
 # Start video and control services if autostart is enabled
+set -e
+
 ENV_PATH="/run/v3xctrl.env"
 source "${ENV_PATH}"
 
+# Client or AP mode, falls to AP if can not connect to default network
 rc-route-manager "${wifi_routing}"
+
+if [ "$server_mode" = "rendezvous" ]; then
+  echo "Registering with rendezvous server..."
+  v3xctrl-rendezvous
+fi
 
 if [ "$autostart_video" = "true" ]; then
   echo "Starting video service..."

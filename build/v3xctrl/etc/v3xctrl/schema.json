@@ -37,7 +37,7 @@
           "propertyOrder": 30,
           "type": "string",
           "title": "Rendezvous ID",
-          "default": "foobar",
+          "default": "test123",
           "description": "Needs to be the same on client and server"
         },
         "rendezvousServer": {

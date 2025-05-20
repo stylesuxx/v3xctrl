@@ -4,7 +4,7 @@ import threading
 import time
 import socket
 
-from punch import PunchPeer
+from v3xctrl_punch.PunchPeer import PunchPeer
 from rpi_4g_streamer.Message import Ack
 
 logging.basicConfig(

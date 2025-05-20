@@ -7,7 +7,7 @@ source "${ENV_PATH}"
 ARGS=(
   "$server_host"
   "$ports_video"
-  "$ports_video"
+  "$ports_video_bind"
   --width "$video_width"
   --height "$video_height"
   --framerate "$video_framerate"

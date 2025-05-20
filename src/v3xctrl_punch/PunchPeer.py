@@ -30,7 +30,7 @@ class PunchPeer:
         while time.time() - start_time < self.register_timeout:
             try:
                 sock.sendto(announcement_msg.to_bytes(), (self.server, self.port))
-                logging.info(f"Sent {announcement_msg.type} from port {sock.getsockname()[1]}")
+                logging.info(f"Sent {announcement_msg.type} from port {sock.getsockname()[1]} to {self.server}:{self.port}")
 
                 data, _ = sock.recvfrom(1024)
                 peer_msg = Message.from_bytes(data)
