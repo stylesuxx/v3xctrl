@@ -34,8 +34,9 @@ class Telemetry(threading.Thread):
 
         self._running = threading.Event()
         self._lock = threading.Lock()
+        self._modem = None
         try:
-            self._modem = AIR780EU(modem) if modem else None
+            self._modem = AIR780EU(modem)
             if not self._modem:
                 logging.warning("Modem unavailable; telemetry will contain placeholders.")
         except Exception as e:
