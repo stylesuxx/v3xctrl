@@ -141,7 +141,7 @@ class PunchPeer:
     def finalize_sockets(self, sockets: dict[str, socket.socket]):
         for sock in sockets.values():
             sock.settimeout(None)
-            sock.close()
+            #sock.close()
 
     def setup(self, role: str, ports: dict[str, int]) -> dict[str, PeerInfo]:
         sockets = {
@@ -149,5 +149,5 @@ class PunchPeer:
             for pt, port in ports.items()
         }
         peer_info = self.rendezvous_and_punch(role, sockets)
-        self.finalize_sockets(sockets)
+        #self.finalize_sockets(sockets)
         return peer_info
