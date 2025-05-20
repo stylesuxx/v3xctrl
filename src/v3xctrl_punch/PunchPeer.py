@@ -149,5 +149,5 @@ class PunchPeer:
             for pt, port in ports.items()
         }
         peer_info = self.rendezvous_and_punch(role, sockets)
-        #self.finalize_sockets(sockets)
-        return sockets, peer_info
+        self.finalize_sockets(sockets)
+        return (sockets, peer_info)
