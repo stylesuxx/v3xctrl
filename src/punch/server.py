@@ -1,48 +1,59 @@
 import argparse
+import logging
 import threading
+import time
+import socket
 
 from punch import PunchPeer
 from rpi_4g_streamer.Message import Ack
 
-VIDEO_PORT = 16666
-CONTROL_PORT = 16668
+logging.basicConfig(
+    level="DEBUG",
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+LOCAL_BIND_PORTS = {
+    "video": 16666,
+    "control": 16668
+}
 
 DEFAULT_RENDEZVOUS_SERVER = 'rendezvous.websium.at'
-# RENDEZVOUS_SERVER = '192.168.1.100'
 DEFAULT_RENDEZVOUS_PORT = 8888
 
 
-class PunchServer(PunchPeer):
+class TestServer:
+    def __init__(self):
+        self.video_sock = self._bind_udp(LOCAL_BIND_PORTS['video'])
+        self.control_sock = self._bind_udp(LOCAL_BIND_PORTS['control'])
+
+    def _bind_udp(self, port):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind(('', port))
+
+        return sock
+
     def run(self):
-        ports = {
-            "video": VIDEO_PORT,
-            "control": CONTROL_PORT
-        }
+        threading.Thread(target=self.video_listener, daemon=True, name="VideoListener").start()
+        threading.Thread(target=self.control_listener, daemon=True, name="ControlListener").start()
 
-        sockets, peer_info = self.setup("server", ports)
-
-        ip = peer_info["video"].get_ip()
-        vp, cp = peer_info["video"].get_video_port(), peer_info["control"].get_control_port()
-
-        print(f"[✓] Ready to receive from client:")
-        print(f"    VIDEO: {ip}:{vp}")
-        print(f"    CONTROL: {ip}:{cp}")
-
-        threading.Thread(target=self.video_listener, args=(sockets["video"],), daemon=True).start()
-        self.control_listener(sockets["control"])
-
-    def video_listener(self, sock):
-        print(f"[V] Listening on {sock.getsockname()}")
         while True:
-            data, addr = sock.recvfrom(2048)
-            print(f"[V] from {addr}")
+            time.sleep(1)
 
-    def control_listener(self, sock):
-        print(f"[C] Listening on {sock.getsockname()}")
+    def video_listener(self):
+        logging.info(f"[V] Listening on {self.video_sock.getsockname()}")
         while True:
-            _, addr = sock.recvfrom(1024)
-            print(f"[C] from {addr}")
-            sock.sendto(Ack().to_bytes(), addr)
+            _, addr = self.video_sock.recvfrom(2048)
+            logging.info(f"[V] from {addr}")
+
+    def control_listener(self):
+        logging.info(f"[C] Listening on {self.control_sock.getsockname()}")
+        while True:
+            _, addr = self.control_sock.recvfrom(1024)
+            logging.info(f"[C] from {addr}")
+
+            self.control_sock.sendto(Ack().to_bytes(), addr)
+            logging.info(f"[C] to {addr}")
 
 
 def parse_args():
@@ -56,4 +67,10 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
-    PunchServer(args.server, args.port, args.id).run()
+
+    # Step 1: Punch holes
+    peer = PunchPeer(args.server, args.port, args.id)
+    _ = peer.setup("server", LOCAL_BIND_PORTS)
+
+    # Step 2: Listen for incoming client data
+    TestServer().run()
