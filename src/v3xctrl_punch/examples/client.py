@@ -22,25 +22,12 @@ DEFAULT_RENDEZVOUS_PORT = 8888
 
 
 class TestClient:
-    def __init__(self, sockets, peer_info):
-        self.peer_info = peer_info
-
-        self.remote_ip = peer_info["video"].get_ip()
-        self.remote_video_port = peer_info["video"].get_video_port()
-        self.remote_control_port = peer_info["control"].get_control_port()
-
-        #self.video_sock = self._bind_udp(LOCAL_BIND_PORTS["video"])
-        #self.control_sock = self._bind_udp(LOCAL_BIND_PORTS["control"])
-
+    def __init__(self, sockets, addrs):
         self.video_sock = sockets["video"]
         self.control_sock = sockets["control"]
 
-    def _bind_udp(self, port):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.bind(('0.0.0.0', port))
-
-        return sock
+        self.remote_video_addr = addrs["video"]
+        self.remote_control_addr = addrs["control"]
 
     def run(self):
         threading.Thread(target=self.video_sender, daemon=True).start()
@@ -50,10 +37,10 @@ class TestClient:
             time.sleep(1)
 
     def video_sender(self):
-        logging.info(f"[V] Sending from {self.video_sock.getsockname()} to {(self.remote_ip, self.remote_video_port)}")
+        logging.info(f"[V] Sending from {self.video_sock.getsockname()} to {self.remote_video_addr}")
         while True:
-            self.video_sock.sendto(Syn().to_bytes(), (self.remote_ip, self.remote_video_port))
-            logging.info(f"[V] to {self.remote_ip}:{self.remote_video_port}")
+            self.video_sock.sendto(Syn().to_bytes(), self.remote_video_addr)
+            logging.info(f"[V] to {self.remote_video_addr}")
             time.sleep(1)
 
     def control_loop(self):
@@ -65,10 +52,10 @@ class TestClient:
 
         threading.Thread(target=receiver, daemon=True).start()
 
-        logging.info(f"[C] Sending from {self.control_sock.getsockname()} to {(self.remote_ip, self.remote_control_port)}")
+        logging.info(f"[C] Sending from {self.control_sock.getsockname()} to {self.remote_control_addr}")
         while True:
-            self.control_sock.sendto(Syn().to_bytes(), (self.remote_ip, self.remote_control_port))
-            logging.info(f"[C] to {self.remote_ip}:{self.remote_control_port}")
+            self.control_sock.sendto(Syn().to_bytes(), self.remote_control_addr)
+            logging.info(f"[C] to {self.remote_control_addr}")
             time.sleep(1)
 
 
@@ -84,9 +71,7 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
 
-    # Step 1: Punch holes and get peer info
     punch = PunchPeer(args.server, args.port, args.id)
-    sockets, peer_info = punch.setup("client", LOCAL_BIND_PORTS)
+    sockets, _, addrs = punch.setup("client", LOCAL_BIND_PORTS)
 
-    # Step 2: Start client logic with freshly bound sockets
-    TestClient(sockets, peer_info).run()
+    TestClient(sockets, addrs).run()
