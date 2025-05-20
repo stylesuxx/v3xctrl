@@ -3,7 +3,15 @@ import socket
 import time
 import threading
 
-from rpi_4g_streamer.Message import Message, PeerAnnouncement, PeerInfo
+from rpi_4g_streamer.Message import (
+    Message, PeerAnnouncement, PeerInfo,
+    Syn, SynAck, Ack
+)
+
+
+class AckTimeoutError(Exception):
+    """Raised when Ack is not received within the expected time window."""
+    pass
 
 
 class PunchPeer:
@@ -34,17 +42,17 @@ class PunchPeer:
 
                 data, _ = sock.recvfrom(1024)
                 peer_msg = Message.from_bytes(data)
+
                 if isinstance(peer_msg, PeerInfo):
                     logging.info(f"Got peer info: {peer_msg}")
-
                     return peer_msg
                 else:
                     logging.debug(f"Unexpected message type: {peer_msg.type}")
+
             except socket.timeout:
                 time.sleep(self.ANNOUNCE_INTERVAL)
             except Exception as e:
                 logging.error(f"Registration error: {e}")
-
                 return None
 
         logging.error(f"Timeout registering: {announcement_msg}")
@@ -65,17 +73,68 @@ class PunchPeer:
 
         return {pt: results[pt][0] for pt in results}
 
-    def send_pokes(self, sock_map: dict[str, socket.socket], peer_info: PeerInfo):
-        for _ in range(3):
-            sock_map["video"].sendto(b'poke-video', (peer_info.get_ip(), peer_info.get_video_port()))
-            sock_map["control"].sendto(b'poke-control', (peer_info.get_ip(), peer_info.get_control_port()))
-            time.sleep(0.3)
+    def _handshake(self, sock: socket.socket, addr: tuple, interval=0.5, timeout=10.0):
+        logging.info(f"Starting Syn loop to {addr}")
+        sock.settimeout(interval)
+        start_time = time.time()
+        received_synack = False
+        sent_ack = False
 
-    def rendezvous_and_punch(self, role: str, sockets: dict[str, socket.socket]) -> tuple[dict[str, socket.socket], dict[str, PeerInfo]]:
+        while time.time() - start_time < timeout:
+            try:
+                sock.sendto(Syn().to_bytes(), addr)
+                logging.info(f"Sent Syn to {addr}")
+
+                data, source = sock.recvfrom(1024)
+                msg = Message.from_bytes(data)
+
+                if isinstance(msg, Syn):
+                    sock.sendto(SynAck().to_bytes(), source)
+                    logging.info(f"Replied with SynAck to Syn from {source}")
+
+                elif isinstance(msg, SynAck):
+                    logging.info(f"Received SynAck from {source}")
+                    sock.sendto(Ack().to_bytes(), source)
+                    logging.info(f"Sent Ack to {source}")
+                    received_synack = True
+                    sent_ack = True
+
+                elif isinstance(msg, Ack):
+                    logging.info(f"Received final Ack from {source}")
+                    return True
+
+                if received_synack and sent_ack:
+                    return True
+
+            except socket.timeout:
+                continue
+            except Exception as e:
+                logging.error(f"[!] Handshake error: {e}")
+                continue
+
+            time.sleep(interval)
+
+        raise AckTimeoutError(f"No Ack received from {addr} after {timeout:.1f}s")
+
+    def rendezvous_and_punch(self, role: str, sockets: dict[str, socket.socket]) -> dict[str, PeerInfo]:
         peer_info = self.register_all(sockets, role=role)
         if not all(isinstance(p, PeerInfo) for p in peer_info.values()):
             raise RuntimeError("Registration failed or incomplete")
-        self.send_pokes(sockets, peer_info["video"])
+
+        peer = peer_info["video"]
+        ip = peer.get_ip()
+        video_port = peer.get_video_port()
+        control_port = peer.get_control_port()
+
+        threads = [
+            threading.Thread(target=self._handshake, args=(sockets["video"], (ip, video_port))),
+            threading.Thread(target=self._handshake, args=(sockets["control"], (ip, control_port)))
+        ]
+
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
 
         return peer_info
 
@@ -84,12 +143,11 @@ class PunchPeer:
             sock.settimeout(None)
             sock.close()
 
-    def setup(self, role: str, ports: dict[str, int]) -> tuple[dict[str, socket.socket], dict[str, PeerInfo]]:
+    def setup(self, role: str, ports: dict[str, int]) -> dict[str, PeerInfo]:
         sockets = {
             pt: self.bind_socket(pt.upper(), port)
             for pt, port in ports.items()
         }
         peer_info = self.rendezvous_and_punch(role, sockets)
         self.finalize_sockets(sockets)
-
         return peer_info

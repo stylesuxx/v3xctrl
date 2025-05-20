@@ -99,6 +99,11 @@ class Ack(Message):
         super().__init__({}, timestamp)
 
 
+class SynAck(Message):
+    def __init__(self, timestamp: float = None):
+        super().__init__({}, timestamp)
+
+
 class Latency(Message):
     def __init__(self, timestamp: float = None):
         super().__init__({}, timestamp)
