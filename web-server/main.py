@@ -51,6 +51,7 @@ def set_pwm():
 @app.route('/services', methods=['GET'])
 def get_services():
     services = [
+        "v3xctrl-setup-env",
         "v3xctrl-config-server",
         "v3xctrl-wifi-mode",
         "v3xctrl-service-manager",
