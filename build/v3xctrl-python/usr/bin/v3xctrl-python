@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /opt/v3xctrl-venv/bin/python "$@"

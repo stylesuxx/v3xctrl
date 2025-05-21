@@ -1,8 +1,8 @@
 #!/bin/sh
 set -e
 
-PYTHON=/opt/rc-python/bin/python3.11
-VENV=/opt/rc-venv
+PYTHON=/opt/v3xctrl-python/bin/python3.11
+VENV=/opt/v3xctrl-venv
 
 # Create venv if it doesn't exist
 if [ ! -d "$VENV/bin" ]; then

@@ -9,7 +9,7 @@ if [ "$control_steering_invert" = "true" ]; then
   ARGS+="--steering-invert"
 fi
 
-rc-python -m rpi_4g_streamer.helpers.client "${server_host}" "${ports_control}" "${ports_control_bind}" \
+v3xctrl-python -m rpi_4g_streamer.helpers.client "${server_host}" "${ports_control}" "${ports_control_bind}" \
   --throttle-min "${controls_throttle_min}" \
   --throttle-max "${controls_throttle_max}" \
   --throttle-idle "${controls_throttle_idle}" \

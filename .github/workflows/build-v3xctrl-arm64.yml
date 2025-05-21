@@ -19,23 +19,23 @@ jobs:
         with:
           ref: ${{ github.event.inputs.branch }}
 
-      - name: Download rc-python.deb for Docker image
+      - name: Download v3xctrl-python.deb for Docker image
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ASSET_ID=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
             https://api.github.com/repos/${{ github.repository }}/releases/latest \
-            | jq '.assets[] | select(.name == "rc-python.deb") | .id')
+            | jq '.assets[] | select(.name == "v3xctrl-python.deb") | .id')
 
           if [ -z "$ASSET_ID" ]; then
-            echo "Error: rc-python.deb not found in latest release."
+            echo "Error: v3xctrl-python.deb not found in latest release."
             exit 1
           fi
 
           curl -L -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/octet-stream" \
             https://api.github.com/repos/${{ github.repository }}/releases/assets/$ASSET_ID \
-            -o rc-python.deb
+            -o v3xctrl-python.deb
 
       - name: Set up QEMU for ARM emulation
         uses: docker/setup-qemu-action@v3

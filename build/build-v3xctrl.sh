@@ -17,7 +17,7 @@ SERVER_BASE_PATH="${BASE_PATH}/config-server/"
 SERVER_LIB_PATH="${SERVER_BASE_PATH}/static/libs/"
 
 PYTHON_REQUIREMENTS="${BUILD_DIR}/requirements/client.txt"
-PYTHON_LIB_PATH="${DEST_DIR}/opt/rc-venv/lib/python3.11/site-packages/"
+PYTHON_LIB_PATH="${DEST_DIR}/opt/v3xctrl-venv/lib/python3.11/site-packages/"
 
 # Clean up previous build (only relevant when re-building on dev setup)
 # In workflows we start with a clean environment anyway
@@ -46,7 +46,7 @@ curl -o "${SERVER_LIB_PATH}/jquery.min.js" "https://code.jquery.com/jquery-3.6.0
 curl -o "${SERVER_LIB_PATH}/bootstrap3.min.css" "https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css"
 
 # Install python dependencies
-rc-pip install \
+v3xctrl-pip install \
   --no-cache-dir \
   --target "${PYTHON_LIB_PATH}" \
   -r "${PYTHON_REQUIREMENTS}"

@@ -46,7 +46,7 @@ jobs:
       - name: Upload built .deb package
         uses: actions/upload-artifact@v4
         with:
-          name: rc-python-arm64
+          name: v3xctrl-python-arm64
           path: build/out/src/build/tmp/*.deb
 
   call-cleanup:

@@ -77,11 +77,11 @@ check_for_modem() {
 case "$MODE" in
   python)
     build_python
-    install_deb rc-python
+    install_deb v3xctrl-python
 
     # Print versions to make sure everything is in place and working
-    rc-python --version
-    rc-pip --version
+    v3xctrl-python --version
+    v3xctrl-pip --version
     ;;
   update)
     build_v3xctrl

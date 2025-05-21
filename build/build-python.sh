@@ -4,7 +4,7 @@ set -e
 
 VERSION=3.11.11
 
-NAME='rc-python'
+NAME='v3xctrl-python'
 
 # Use first argument as ROOT_DIR if provided, otherwise fallback to current working dir
 ROOT_DIR="${1:-$(pwd)}"
@@ -19,7 +19,7 @@ BASE_PATH="$ROOT_DIR/tmp/python"
 DOWNLOAD_PATH="${BASE_PATH}/Python-${VERSION}.tgz"
 UNPACK_PATH="${BASE_PATH}/Python-${VERSION}"
 DONWLOAD_URL="https://www.python.org/ftp/python/${VERSION}/Python-${VERSION}.tgz"
-PREFIX="/opt/rc-python"
+PREFIX="/opt/${NAME}"
 
 # Clean up previous build (only relevant when re-building on dev setup)
 # In workflows we start with a clean environment anyway
@@ -41,7 +41,7 @@ fi
 # files will be used.
 cd $UNPACK_PATH
 if [ ! -f "Makefile" ]; then
-  CFLAGS="-O3 -s" LDFLAGS="-s -Wl,-rpath,/opt/rc-python/lib" ./configure \
+  CFLAGS="-O3 -s" LDFLAGS="-s -Wl,-rpath,/opt/v3xctrl-python/lib" ./configure \
     --prefix="${PREFIX}" \
     --enable-shared \
     --without-doc-strings \
@@ -55,8 +55,8 @@ cp -r "${SRC_DIR}/" "$DEST_DIR"
 
 make DESTDIR="${DEST_DIR}" altinstall
 gzip -9 -n "${DEST_DIR}/usr/share/doc/${NAME}/changelog"
-find "${DEST_DIR}/opt/rc-python" -name '__pycache__' -type d -exec rm -rf {} +
-find "${DEST_DIR}/opt/rc-python/lib" -name '*.so*' -exec chmod 644 {} +
+find "${DEST_DIR}/opt/v3xctrl-python" -name '__pycache__' -type d -exec rm -rf {} +
+find "${DEST_DIR}/opt/v3xctrl-python/lib" -name '*.so*' -exec chmod 644 {} +
 chown -R root:root "${DEST_DIR}"
 
 dpkg-deb --build "${DEST_DIR}" "${DEB_PATH}"

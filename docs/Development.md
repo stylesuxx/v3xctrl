@@ -101,8 +101,8 @@ During installation a custom python version is installed. It is isolated from th
 It has it's own interpreter and pip:
 
 ```bash
-rc-python --version
-rc-pip --version
+v3xctrl-python --version
+v3xctrl-pip --version
 ```
 
 ### Modem setup

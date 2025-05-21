@@ -7,7 +7,7 @@ config.yml
 __pycache__
 *.db
 *.deb
-/build/rc-client/usr/share
+/build/v3xctrl-client/usr/share
 /build/tmp
 /web-server/static/libs
 /web-server/configs

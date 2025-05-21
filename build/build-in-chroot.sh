@@ -14,6 +14,18 @@ DEB_PATH="${TMP_DIR}/dependencies/debs"
 IMG_UNCOMPRESSED="${IMG%.xz}"
 MOUNT_BIND_DIRS="dev proc sys"
 
+cleanup() {
+  echo "[HOST] Cleaning up and unmounting"
+  umount -lf "$MOUNT_DIR/boot" 2>/dev/null || true
+  umount -lf "$MOUNT_DIR/dev/pts" 2>/dev/null || true
+  for d in $MOUNT_BIND_DIRS; do
+    umount -lf "$MOUNT_DIR/$d" 2>/dev/null || true
+  done
+  umount -lf "$MOUNT_DIR" 2>/dev/null || true
+  losetup -d "$LOOP_DEV" 2>/dev/null || true
+}
+trap cleanup EXIT
+
 if [ ! -f "${IMG_WORK}" ]; then
   echo "[HOST] Extract image"
   xz -dk "${IMG}"
@@ -54,7 +66,7 @@ cp /usr/bin/qemu-aarch64-static "$MOUNT_DIR/usr/bin/"
 echo "[HOST] Moving build files into place"
 mkdir -p "${MOUNT_DIR}/src"
 
-cp -r "./build/rc-python" "${MOUNT_DIR}/src/build"
+cp -r "./build/v3xctrl-python" "${MOUNT_DIR}/src/build"
 cp -r "./build/v3xctrl" "${MOUNT_DIR}/src/build"
 cp -r "./build/requirements" "${MOUNT_DIR}/src/build"
 cp -r "./build/build-python.sh" "${MOUNT_DIR}/src/build"
@@ -67,12 +79,3 @@ chmod +x "${MOUNT_DIR}/build-debs.sh"
 echo "[HOST] Entering chroot and starting build"
 chroot "$MOUNT_DIR" "./build-debs.sh"
 cp ${MOUNT_DIR}/src/build/tmp/*.deb "${DEB_PATH}"
-
-echo "[HOST] Cleaning up and unmounting"
-umount "$MOUNT_DIR/boot"
-umount "$MOUNT_DIR/dev/pts"
-for d in $MOUNT_BIND_DIRS; do
-  umount "$MOUNT_DIR/$d"
-done
-umount "$MOUNT_DIR"
-losetup -d "$LOOP_DEV"

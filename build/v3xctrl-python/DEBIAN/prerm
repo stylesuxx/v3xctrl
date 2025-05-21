@@ -2,10 +2,10 @@
 set -e
 
 # Remove venv
-VENV=/opt/rc-venv
+VENV=/opt/v3xctrl-venv
 if [ -d "$VENV" ]; then
   rm -rf "$VENV"
 fi
 
 # Remove all __pycache__ dirs
-find /opt/rc-python -type d -name '__pycache__' -exec rm -rf {} +
+find /opt/v3xctrl-python -type d -name '__pycache__' -exec rm -rf {} +

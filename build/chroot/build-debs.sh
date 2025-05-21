@@ -10,7 +10,7 @@ apt install -y \
 
 cd /src
 
-if ! dpkg -s rc-python >/dev/null 2>&1; then
+if ! dpkg -s v3xctrl-python >/dev/null 2>&1; then
   echo '[CHROOT] Fixing locale'
   echo "$LOCALE UTF-8" >> /etc/locale.gen
   locale-gen
@@ -19,7 +19,7 @@ if ! dpkg -s rc-python >/dev/null 2>&1; then
 
   echo '[CHROOT] Building Python'
   ./build/build-python.sh /src
-  apt install -y ./build/tmp/rc-python.deb
+  apt install -y ./build/tmp/v3xctrl-python.deb
 fi
 
 echo '[CHROOT] Building v3xctrl'

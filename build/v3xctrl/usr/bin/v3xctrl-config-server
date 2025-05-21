@@ -15,7 +15,7 @@ if [ -z "$HOST" ]; then
   HOST="127.0.0.1"
 fi
 
-rc-python "/usr/share/${NAME}/config-server/main.py" \
+v3xctrl-python "/usr/share/${NAME}/config-server/main.py" \
   --config "$CONFIG_PATH" \
   --schema "$SCHEMA_PATH" \
   --host "$HOST" \
