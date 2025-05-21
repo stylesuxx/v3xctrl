@@ -1,7 +1,7 @@
 [Unit]
 Description=Transmit Video
 After=network.target
-PartOf=rc-service-manager.service
+PartOf=v3xctrl-service-manager.service
 StartLimitIntervalSec=30
 StartLimitBurst=3
 

@@ -60,7 +60,7 @@ This service is responsible for the confiugration web interface. It is running o
 
 This service checks your wifi config on startup and starts your WiFi device in **client** or **access point** mode.
 
-### rc-service-manager (enabled by default)
+### v3xctrl-service-manager (enabled by default)
 
 This service starts services on startup according to the configuration.
 
@@ -72,13 +72,13 @@ This service is responsible for cleaning up fragments of a previous unclean shut
 
 This service is responsible for sending the video feed to the server.
 
-> This service is not meant to be enabled. It is started by the `rc-service-manager` service if autostart is enabled in the config.
+> This service is not meant to be enabled. It is started by the `v3xctrl-service-manager` service if autostart is enabled in the config.
 
 ### v3xctrl-control
 
 This service is responsible for the control connection between client and server and is ultimately what controls the actuators.
 
-> This service is not meant to be enabled. It is started by the `rc-service-manager` service if autostart is enabled in the config.
+> This service is not meant to be enabled. It is started by the `v3xctrl-service-manager` service if autostart is enabled in the config.
 
 ### SAMBA share
 

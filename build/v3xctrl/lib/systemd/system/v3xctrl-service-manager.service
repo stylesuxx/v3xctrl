@@ -7,7 +7,7 @@ Requires=v3xctrl-wifi-mode.service pigpiod.service v3xctrl-setup-env.service
 Type=oneshot
 User=root
 Group=root
-ExecStart=/usr/bin/rc-service-manager
+ExecStart=/usr/bin/v3xctrl-service-manager
 RemainAfterExit=true
 
 [Install]

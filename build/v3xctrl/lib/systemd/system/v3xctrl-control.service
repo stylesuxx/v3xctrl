@@ -1,6 +1,6 @@
 [Unit]
 Description=Control channel
-PartOf=rc-service-manager.service
+PartOf=v3xctrl-service-manager.service
 OnFailure=v3xctrl-control-failure-handler.service
 
 [Service]

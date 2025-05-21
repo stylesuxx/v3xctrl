@@ -53,7 +53,7 @@ def get_services():
     services = [
         "v3xctrl-config-server",
         "v3xctrl-wifi-mode",
-        "rc-service-manager",
+        "v3xctrl-service-manager",
         "v3xctrl-video",
         "v3xctrl-control"
     ]
