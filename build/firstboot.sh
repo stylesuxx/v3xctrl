@@ -14,13 +14,13 @@ set -xe
 exec > /boot/firstboot.log 2>&1
 
 while [ -f "/var/lib/raspberrypi-sys-mods/set-wlan" ]; do
-  echo "[rc-firstboot] Waiting for set-wlan to finish..."
+  echo "[v3xctrl-firstboot] Waiting for set-wlan to finish..."
   sleep 1
 done
 
 PART="/dev/mmcblk0p3"
 
-echo "[rc-firstboot] Resizing $PART to fill disk..."
+echo "[v3xctrl-firstboot] Resizing $PART to fill disk..."
 parted -s /dev/mmcblk0 resizepart 3 100%
 partprobe
 sleep 2
@@ -30,7 +30,7 @@ mount "$PART" /data && umount /data
 e2fsck -fy "$PART"
 resize2fs "$PART"
 
-echo "[rc-firstboot] Updating /etc/fstab with /data and mounting"
+echo "[v3xctrl-firstboot] Updating /etc/fstab with /data and mounting"
 PARTUUID=$(blkid -s PARTUUID -o value "${PART}")
 tee -a "/etc/fstab" > /dev/null <<EOF
 PARTUUID=${PARTUUID} /data ext4 defaults 0 2
@@ -38,7 +38,7 @@ EOF
 
 mount /data
 
-echo "[rc-firstboot] Linking /var/log and /var/swap"
+echo "[v3xctrl-firstboot] Linking /var/log and /var/swap"
 mv "/var/log" "/data"
 ln -s "/data/log" "/var/log"
 
@@ -51,7 +51,7 @@ sed -i \
   /etc/dphys-swapfile
 dphys-swapfile swapon
 
-echo "[rc-firstboot] Move config files to persistent storage"
+echo "[v3xctrl-firstboot] Move config files to persistent storage"
 if [ -f "/etc/v3xctrl/config.json" ]; then
     chmod a+r "/etc/v3xctrl/config.json"
     mv "/etc/v3xctrl/config.json" "/data/config/config.json"
@@ -70,14 +70,14 @@ fi
 #
 # This needs to happen at runtime - during image generation not everything is
 # in place yet.
-echo "[rc-firstboot] Enabling overlay fs..."
+echo "[v3xctrl-firstboot] Enabling overlay fs..."
 raspi-config nonint enable_overlayfs
 rc-remount ro
 
-echo "[rc-firstboot] Cleaning up..."
-systemctl disable rc-firstboot.service
-systemctl mask rc-firstboot.service
+echo "[v3xctrl-firstboot] Cleaning up..."
+systemctl disable v3xctrl-firstboot.service
+systemctl mask v3xctrl-firstboot.service
 rm -f /boot/firstboot.sh
 
-echo "[rc-firstboot] First boot setup complete."
+echo "[v3xctrl-firstboot] First boot setup complete."
 reboot

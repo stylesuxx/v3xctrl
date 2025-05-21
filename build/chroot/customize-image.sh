@@ -20,7 +20,7 @@ rm -f /tmp/*.deb
 apt-get clean
 
 echo '[CHROOT] Enabling firstboot service...'
-systemctl enable rc-firstboot.service
+systemctl enable v3xctrl-firstboot.service
 
 echo '[CHROOT] Setting up Samba...'
 usermod -s /bin/bash "${USER}"
