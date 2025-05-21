@@ -72,7 +72,7 @@ fi
 # in place yet.
 echo "[v3xctrl-firstboot] Enabling overlay fs..."
 raspi-config nonint enable_overlayfs
-rc-remount ro
+v3xctrl-remount ro
 
 echo "[v3xctrl-firstboot] Cleaning up..."
 systemctl disable v3xctrl-firstboot.service

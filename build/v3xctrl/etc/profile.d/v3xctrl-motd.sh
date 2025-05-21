@@ -20,5 +20,5 @@ echo -e "\
 
  Web Configurator:   http://${IP}:${ports_webinterface}
  Start video stream: sudo systemctl start v3xctrl-video
- Start control:      sudo systemctl start
- Mount Read/Write:   sudo rc-remount rw"
+ Start control:      sudo systemctl start v3xctrl-control
+ Mount Read/Write:   sudo v3xctrl-remount rw"

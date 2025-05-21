@@ -59,7 +59,7 @@ Follow the steps from above to fetch the repo, install dependencies and start th
 By default th `/root` and `/` partitions are mounted read-only. In order to be able to build on the client itself, you need to switch to read-write mode:
 
 ```bash
-sudo rc-remount rw
+sudo v3xctrl-remount rw
 ```
 
 This will switch the partitions to read-write mode and disable the overlay fs. This is persistent, until you switch back to read-only mode and requires a `reboot` to take effect.
@@ -67,7 +67,7 @@ This will switch the partitions to read-write mode and disable the overlay fs. T
 Do not forget to switch back to read-only mode when done:
 
 ```bash
-sudo rc-remount ro
+sudo v3xctrl-remount ro
 ```
 
 ### Install
