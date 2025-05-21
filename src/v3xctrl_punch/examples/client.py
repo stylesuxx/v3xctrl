@@ -2,10 +2,11 @@ import argparse
 import logging
 import threading
 import time
-import socket
 
 from v3xctrl_punch.PunchPeer import PunchPeer
 from rpi_4g_streamer.Message import Syn
+
+from v3xctrl_punch.helper import control_loop
 
 logging.basicConfig(
     level="DEBUG",
@@ -30,8 +31,8 @@ class TestClient:
         self.remote_control_addr = addrs["control"]
 
     def run(self):
-        threading.Thread(target=self.video_sender, daemon=True).start()
-        threading.Thread(target=self.control_loop, daemon=True).start()
+        #threading.Thread(target=self.video_sender, daemon=True).start()
+        threading.Thread(target=control_loop, args=(self.control_sock, self.remote_control_addr), daemon=True).start()
 
         while True:
             time.sleep(1)
@@ -41,21 +42,6 @@ class TestClient:
         while True:
             self.video_sock.sendto(Syn().to_bytes(), self.remote_video_addr)
             logging.info(f"[V] to {self.remote_video_addr}")
-            time.sleep(1)
-
-    def control_loop(self):
-        def receiver():
-            logging.info(f"[C] Listening on {self.control_sock.getsockname()}")
-            while True:
-                _, addr = self.control_sock.recvfrom(1024)
-                logging.info(f"[C] from {addr[0]}:{addr[1]}")
-
-        threading.Thread(target=receiver, daemon=True).start()
-
-        logging.info(f"[C] Sending from {self.control_sock.getsockname()} to {self.remote_control_addr}")
-        while True:
-            self.control_sock.sendto(Syn().to_bytes(), self.remote_control_addr)
-            logging.info(f"[C] to {self.remote_control_addr}")
             time.sleep(1)
 
 

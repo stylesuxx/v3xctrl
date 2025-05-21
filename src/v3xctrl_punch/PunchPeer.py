@@ -87,7 +87,7 @@ class PunchPeer:
         sent_ack = False
 
         # Start keepalive to maintain NAT mapping
-        threading.Thread(target=self._keepalive_sender, args=(sock, addr), daemon=True).start()
+        #threading.Thread(target=self._keepalive_sender, args=(sock, addr), daemon=True).start()
 
         while time.time() - start_time < timeout:
             try:

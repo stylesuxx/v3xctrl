@@ -2,10 +2,9 @@ import argparse
 import logging
 import threading
 import time
-import socket
 
 from v3xctrl_punch.PunchPeer import PunchPeer
-from rpi_4g_streamer.Message import Ack, Syn
+from v3xctrl_punch.helper import control_loop
 
 logging.basicConfig(
     level="DEBUG",
@@ -23,8 +22,8 @@ DEFAULT_RENDEZVOUS_PORT = 8888
 
 class TestServer:
     def __init__(self, sockets, addrs):
-        #self.video_sock = self._bind_udp(LOCAL_BIND_PORTS['video'])
-        #self.control_sock = self._bind_udp(LOCAL_BIND_PORTS['control'])
+        #self.video_sock = bind_udp(LOCAL_BIND_PORTS['video'])
+        #self.control_sock = bind_udp(LOCAL_BIND_PORTS['control'])
 
         self.video_sock = sockets["video"]
         self.control_sock = sockets["control"]
@@ -32,16 +31,9 @@ class TestServer:
         self.remote_video_addr = addrs["video"]
         self.remote_control_addr = addrs["control"]
 
-    def _bind_udp(self, port):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.bind(('0.0.0.0', port))
-
-        return sock
-
     def run(self):
         # threading.Thread(target=self.video_listener, daemon=True, name="VideoListener").start()
-        threading.Thread(target=self.control_listener, daemon=True, name="ControlListener").start()
+        threading.Thread(target=control_loop, args=(self.control_sock, self.remote_control_addr), daemon=True, name="ControlListener").start()
 
         while True:
             time.sleep(1)
@@ -51,21 +43,6 @@ class TestServer:
         while True:
             _, addr = self.video_sock.recvfrom(2048)
             logging.info(f"[V] from {addr}")
-
-    def control_loop(self):
-        def receiver():
-            logging.info(f"[C] Listening on {self.control_sock.getsockname()}")
-            while True:
-                _, addr = self.control_sock.recvfrom(1024)
-                logging.info(f"[C] from {addr[0]}:{addr[1]}")
-
-        threading.Thread(target=receiver, daemon=True).start()
-
-        logging.info(f"[C] Sending from {self.control_sock.getsockname()} to {self.remote_control_addr}")
-        while True:
-            self.control_sock.sendto(Syn().to_bytes(), self.remote_control_addr)
-            logging.info(f"[C] to {self.remote_control_addr}")
-            time.sleep(1)
 
 
 def parse_args():
@@ -82,7 +59,7 @@ if __name__ == "__main__":
 
     # Step 1: Punch holes
     peer = PunchPeer(args.server, args.port, args.id)
-    sockets, _, addr = peer.setup("server", LOCAL_BIND_PORTS)
+    sockets, _, addrs = peer.setup("server", LOCAL_BIND_PORTS)
 
     # Step 2: Listen for incoming client data
-    TestServer(sockets).run()
+    TestServer(sockets, addrs).run()
