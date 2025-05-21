@@ -22,17 +22,15 @@ DEFAULT_RENDEZVOUS_PORT = 8888
 
 class TestServer:
     def __init__(self, sockets, addrs):
-        #self.video_sock = bind_udp(LOCAL_BIND_PORTS['video'])
+        #self.video_sock = sockets["video"]
+        self.video_sock = bind_udp(LOCAL_BIND_PORTS['video'])
         self.control_sock = bind_udp(LOCAL_BIND_PORTS['control'])
-
-        self.video_sock = sockets["video"]
-        #self.control_sock = sockets["control"]
 
         self.remote_video_addr = addrs["video"]
         self.remote_control_addr = addrs["control"]
 
     def run(self):
-        # threading.Thread(target=self.video_listener, daemon=True, name="VideoListener").start()
+        threading.Thread(target=self.video_listener, daemon=True, name="VideoListener").start()
         threading.Thread(target=control_loop, args=(self.control_sock, self.remote_control_addr), daemon=True, name="ControlListener").start()
 
         while True:

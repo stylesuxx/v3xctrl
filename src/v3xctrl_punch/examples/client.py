@@ -4,7 +4,7 @@ import threading
 import time
 
 from v3xctrl_punch.PunchPeer import PunchPeer
-from rpi_4g_streamer.Message import Syn
+from rpi_4g_streamer.Message import Syn, Heartbeat
 
 from v3xctrl_punch.helper import control_loop, bind_udp
 
@@ -24,15 +24,15 @@ DEFAULT_RENDEZVOUS_PORT = 8888
 
 class TestClient:
     def __init__(self, sockets, addrs):
-        self.video_sock = sockets["video"]
-        #self.control_sock = sockets["control"]
+        #self.video_sock = sockets["video"]
+        self.video_sock = bind_udp(LOCAL_BIND_PORTS['video'])
         self.control_sock = bind_udp(LOCAL_BIND_PORTS['control'])
 
         self.remote_video_addr = addrs["video"]
         self.remote_control_addr = addrs["control"]
 
     def run(self):
-        #threading.Thread(target=self.video_sender, daemon=True).start()
+        threading.Thread(target=self.video_sender, daemon=True).start()
         threading.Thread(target=control_loop, args=(self.control_sock, self.remote_control_addr), daemon=True).start()
 
         while True:
@@ -41,7 +41,7 @@ class TestClient:
     def video_sender(self):
         logging.info(f"[V] Sending from {self.video_sock.getsockname()} to {self.remote_video_addr}")
         while True:
-            self.video_sock.sendto(Syn().to_bytes(), self.remote_video_addr)
+            self.video_sock.sendto(Heartbeat().to_bytes(), self.remote_video_addr)
             logging.info(f"[V] to {self.remote_video_addr}")
             time.sleep(1)
 
