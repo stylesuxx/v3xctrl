@@ -1,7 +1,7 @@
 [Unit]
 Description=Control channel
 PartOf=rc-service-manager.service
-OnFailure=rc-control-failure-handler.service
+OnFailure=v3xctrl-control-failure-handler.service
 
 [Service]
 ExecStart=/usr/bin/v3xctrl-control
