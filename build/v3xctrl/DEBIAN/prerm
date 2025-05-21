@@ -7,7 +7,7 @@ if command -v systemctl >/dev/null 2>&1; then
     systemctl disable \
       v3xctrl-config-server.service \
       rc-service-manager.service \
-      rc-cleanup.service \
+      v3xctrl-cleanup.service \
       v3xctrl-wifi-mode.service \
       v3xctrl-setup-env.service
 

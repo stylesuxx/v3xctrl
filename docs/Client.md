@@ -64,7 +64,7 @@ This service checks your wifi config on startup and starts your WiFi device in *
 
 This service starts services on startup according to the configuration.
 
-### rc-cleanup (enabled by default)
+### v3xctrl-cleanup (enabled by default)
 
 This service is responsible for cleaning up fragments of a previous unclean shutdown.
 

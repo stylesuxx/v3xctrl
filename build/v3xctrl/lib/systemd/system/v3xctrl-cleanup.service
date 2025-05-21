@@ -8,7 +8,7 @@ Wants=network-pre.target
 Type=oneshot
 User=root
 Group=root
-ExecStart=/usr/bin/rc-cleanup
+ExecStart=/usr/bin/v3xctrl-cleanup
 RemainAfterExit=yes
 
 [Install]
