@@ -1,9 +1,9 @@
 [Unit]
-Description=Handle rc-control failure
+Description=Handle  failure
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/rc-control-failed
+ExecStart=/usr/bin/v3xctrl-control-failed
 User=root
 
 [Install]

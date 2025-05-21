@@ -4,7 +4,7 @@ PartOf=rc-service-manager.service
 OnFailure=rc-control-failure-handler.service
 
 [Service]
-ExecStart=/usr/bin/rc-control
+ExecStart=/usr/bin/v3xctrl-control
 Restart=no
 Type=simple
 User=v3xctrl

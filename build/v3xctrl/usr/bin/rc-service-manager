@@ -20,7 +20,7 @@ fi
 
 if [ "$autostart_control" = "true" ]; then
   echo "Starting control service..."
-  systemctl start rc-control
+  systemctl start v3xctrl-control
 fi
 
 if [ "$extras_samba" = "true" ]; then

@@ -93,7 +93,7 @@ By default the following GPIO pins are used for PWM:
 Start the control service:
 
 ```bash
-sudo systemctl start rc-control
+sudo systemctl start v3xctrl-control
 ```
 
 #### Calibration

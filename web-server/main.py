@@ -55,7 +55,7 @@ def get_services():
         "v3xctrl-wifi-mode",
         "rc-service-manager",
         "v3xctrl-video",
-        "rc-control"
+        "v3xctrl-control"
     ]
 
     data = {"services": []}

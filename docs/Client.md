@@ -74,7 +74,7 @@ This service is responsible for sending the video feed to the server.
 
 > This service is not meant to be enabled. It is started by the `rc-service-manager` service if autostart is enabled in the config.
 
-### rc-control
+### v3xctrl-control
 
 This service is responsible for the control connection between client and server and is ultimately what controls the actuators.
 

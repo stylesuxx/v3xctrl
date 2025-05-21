@@ -25,7 +25,7 @@ function checkServices() {
 
     if (data.services && data.services.length > 0) {
       data.services.forEach(service => {
-        if(service.name === 'rc-control') {
+        if(service.name === 'v3xctrl-control') {
           if(!service.active) {
             $('.service-warning').addClass('hidden');
             $('.calibration-content').removeClass('hidden');
