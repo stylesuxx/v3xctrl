@@ -41,18 +41,18 @@ After installation there will be a few services available, some of them enabled 
 
 ```bash
 # See the status of a service
-systemctl status rc-config-server
+systemctl status v3xctrl-config-server
 
 # Restart a service
-systemctl restart rc-config-server
+systemctl restart v3xctrl-config-server
 
 # See the last 50 lines of a service log
-journalctl -u rc-config-server -n50
+journalctl -u v3xctrl-config-server -n50
 ```
 
 > NOTE: Always start the services through `systemd`, this will assure that they will run with the correct users and permissions.
 
-### rc-config-server (enabled by default)
+### v3xctrl-config-server (enabled by default)
 
 This service is responsible for the confiugration web interface. It is running on port 5000 by default and can be accessed via `http://v3xctrl.local:5000/`.
 

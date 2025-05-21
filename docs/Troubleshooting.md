@@ -21,15 +21,15 @@ The webserver is by default running on port `5000` and can be accessed via `http
 If you can not connect to the webserver, check the following:
 
 - Make sure you are using the correct IP address - check your router
-- Make sure the webserver is running: `systemctl status rc-config-server`
+- Make sure the webserver is running: `systemctl status v3xctrl-config-server`
 - If it is not running, enable it and start:
 
 ```bash
-sudo systemctl enable rc-config-server
-sudo systemctl start rc-config-server
+sudo systemctl enable v3xctrl-config-server
+sudo systemctl start v3xctrl-config-server
 ```
 
-- If status is failed, check the logs: `journalctl -u rc-config-server -n 50`
+- If status is failed, check the logs: `journalctl -u v3xctrl-config-server -n 50`
 
 ## Video stream
 

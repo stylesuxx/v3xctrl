@@ -51,7 +51,7 @@ def set_pwm():
 @app.route('/services', methods=['GET'])
 def get_services():
     services = [
-        "rc-config-server",
+        "v3xctrl-config-server",
         "v3xctrl-wifi-mode",
         "rc-service-manager",
         "rc-video",
