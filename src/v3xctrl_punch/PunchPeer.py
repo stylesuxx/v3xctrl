@@ -148,6 +148,7 @@ class PunchPeer:
 
         for t in threads.values():
             t.start()
+
         for t in threads.values():
             t.join()
 
@@ -156,7 +157,7 @@ class PunchPeer:
     def finalize_sockets(self, sockets: dict[str, socket.socket]):
         for sock in sockets.values():
             sock.settimeout(None)
-            # sock.close()
+            sock.close()
 
     def setup(self, role: str, ports: dict[str, int]) -> tuple[dict[str, socket.socket], dict[str, PeerInfo], dict[str, tuple]]:
         sockets = {

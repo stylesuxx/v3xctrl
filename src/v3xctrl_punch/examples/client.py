@@ -6,7 +6,7 @@ import time
 from v3xctrl_punch.PunchPeer import PunchPeer
 from rpi_4g_streamer.Message import Syn
 
-from v3xctrl_punch.helper import control_loop
+from v3xctrl_punch.helper import control_loop, bind_udp
 
 logging.basicConfig(
     level="DEBUG",
@@ -25,7 +25,8 @@ DEFAULT_RENDEZVOUS_PORT = 8888
 class TestClient:
     def __init__(self, sockets, addrs):
         self.video_sock = sockets["video"]
-        self.control_sock = sockets["control"]
+        #self.control_sock = sockets["control"]
+        self.control_sock = bind_udp(LOCAL_BIND_PORTS['control'])
 
         self.remote_video_addr = addrs["video"]
         self.remote_control_addr = addrs["control"]
