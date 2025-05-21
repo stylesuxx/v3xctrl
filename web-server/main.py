@@ -52,7 +52,7 @@ def set_pwm():
 def get_services():
     services = [
         "rc-config-server",
-        "rc-wifi-mode",
+        "v3xctrl-wifi-mode",
         "rc-service-manager",
         "rc-video",
         "rc-control"

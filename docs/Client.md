@@ -56,7 +56,7 @@ journalctl -u rc-config-server -n50
 
 This service is responsible for the confiugration web interface. It is running on port 5000 by default and can be accessed via `http://v3xctrl.local:5000/`.
 
-### rc-wifi-mode (enabled by default)
+### v3xctrl-wifi-mode (enabled by default)
 
 This service checks your wifi config on startup and starts your WiFi device in **client** or **access point** mode.
 

@@ -30,7 +30,14 @@ switch_to_ap() {
   echo "Switching to AP mode"
 
   systemctl stop wpa_supplicant || true
-  systemctl stop dhcpcd || true
+
+  # Disable DHCP for wlan0 in dhcpcd.conf
+  if ! grep -q "^denyinterfaces $INTERFACE" /etc/dhcpcd.conf; then
+    echo "denyinterfaces $INTERFACE" > /etc/dhcpcd.conf.override
+    cat /etc/dhcpcd.conf >> /etc/dhcpcd.conf.override
+    mv /etc/dhcpcd.conf.override /etc/dhcpcd.conf
+  fi
+  systemctl restart dhcpcd
 
   ip link set "$INTERFACE" down
   ip addr flush dev "$INTERFACE"
@@ -73,12 +80,15 @@ switch_to_client() {
   systemctl stop hostapd || true
   systemctl stop dnsmasq || true
 
+  # Make sure wlan0 can get an IP via DHCP
+  sed -i "/^denyinterfaces $INTERFACE/d" /etc/dhcpcd.conf
+
   ip link set "$INTERFACE" down
   ip addr flush dev "$INTERFACE"
   ip link set "$INTERFACE" up
 
-  systemctl start dhcpcd
   systemctl start wpa_supplicant
+  systemctl restart dhcpcd
 
   echo "Waiting up to $FALLBACK_TIMEOUT seconds for IP..."
 

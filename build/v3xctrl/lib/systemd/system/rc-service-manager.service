@@ -1,7 +1,7 @@
 [Unit]
 Description=Service Manager (autostarts video and control services)
-After=network.target rc-wifi-mode.service v3xctrl-setup-env
-Requires=rc-wifi-mode.service pigpiod.service v3xctrl-setup-env
+After=network.target v3xctrl-wifi-mode.service v3xctrl-setup-env.service
+Requires=v3xctrl-wifi-mode.service pigpiod.service v3xctrl-setup-env.service
 
 [Service]
 Type=oneshot

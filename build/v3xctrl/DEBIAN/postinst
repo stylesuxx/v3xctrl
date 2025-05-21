@@ -17,7 +17,6 @@ chmod 640 "/etc/${NAME}/config.json"
 if command -v systemctl >/dev/null 2>&1; then
   # Disable services that we do not need or are handled by other services
   systemctl disable \
-    dhcpcd.service \
     wpa_supplicant.service \
     hostapd.service \
     dnsmasq.service \
@@ -45,8 +44,8 @@ if command -v systemctl >/dev/null 2>&1; then
   systemctl enable \
     rc-config-server.service \
     rc-service-manager.service \
-    rc-wifi-mode.service \
     rc-cleanup.service \
+    v3xctrl-wifi-mode.service \
     v3xctrl-setup-env.service \
     pigpiod.service
 

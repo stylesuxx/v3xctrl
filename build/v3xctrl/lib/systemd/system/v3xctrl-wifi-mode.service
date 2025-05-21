@@ -7,7 +7,7 @@ Requires=sys-subsystem-net-devices-wlan0.device
 Type=oneshot
 User=root
 Group=root
-ExecStart=/usr/bin/rc-wifi-mode
+ExecStart=/usr/bin/v3xctrl-wifi-mode
 RemainAfterExit=true
 
 [Install]
