@@ -37,11 +37,11 @@ while [[ $# -gt 0 ]]; do
     --height) HEIGHT="$2"; shift 2 ;;
     --framerate) FRAMERATE="$2"; shift 2 ;;
     --bitrate) BITRATE="$2"; shift 2 ;;
+    --recording-dir) RECORDING_DIR="$2"; shift 2 ;;
+    --i-frame-period) I_FRAME_PERIOD="$2"; shift 2 ;;
     --buffertime) BUFFERTIME="$2"; shift 2 ;;
     --sizebuffers) SIZEBUFFERS="$2"; shift 2 ;;
-    --recording-dir) RECORDING_DIR="$2"; shift 2 ;;
     --test-pattern) USE_TEST_PATTERN=1; shift ;;
-    --i-frame-period) I_FRAME_PERIOD="$2"; shift 2 ;;
     *)
       echo "Unknown option: $1"
       exit 1

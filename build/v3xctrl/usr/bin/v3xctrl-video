@@ -12,6 +12,7 @@ ARGS=(
   --height "$video_height"
   --framerate "$video_framerate"
   --bitrate "$video_bitrate"
+  --i-frame-period "$video_iFramePeriod"
 )
 
 if [ "$video_record" = "true" ] && [ -n "$video_recordPath" ] && [ "$video_recordPath" != "null" ]; then
