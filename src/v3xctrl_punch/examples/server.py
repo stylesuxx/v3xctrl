@@ -3,8 +3,8 @@ import logging
 import threading
 import time
 
+from v3xctrl_punch.examples.TestPeer import TestPeer
 from v3xctrl_punch.PunchPeer import PunchPeer
-from v3xctrl_punch.helper import control_loop, bind_udp
 
 logging.basicConfig(
     level="DEBUG",
@@ -20,21 +20,25 @@ DEFAULT_RENDEZVOUS_SERVER = 'rendezvous.websium.at'
 DEFAULT_RENDEZVOUS_PORT = 8888
 
 
-class TestServer:
-    def __init__(self, sockets, addrs):
-        #self.video_sock = sockets["video"]
-        self.video_sock = bind_udp(LOCAL_BIND_PORTS['video'])
-        self.control_sock = bind_udp(LOCAL_BIND_PORTS['control'])
-
-        self.remote_video_addr = addrs["video"]
-        self.remote_control_addr = addrs["control"]
-
+class TestServer(TestPeer):
     def run(self):
-        threading.Thread(target=self.video_listener, daemon=True, name="VideoListener").start()
-        threading.Thread(target=control_loop, args=(self.control_sock, self.remote_control_addr), daemon=True, name="ControlListener").start()
+        threading.Thread(
+            target=self.video_listener,
+            daemon=True,
+            name="VideoListener"
+        ).start()
+        threading.Thread(
+            target=self.control_loop,
+            args=(self.control_sock, self.remote_control_addr),
+            daemon=True,
+            name="ControlLoop"
+        ).start()
 
-        while True:
-            time.sleep(1)
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            logging.info("Exiting...")
 
     def video_listener(self):
         logging.info(f"[V] Listening on {self.video_sock.getsockname()}")
@@ -58,7 +62,7 @@ if __name__ == "__main__":
 
     # Step 1: Punch holes
     peer = PunchPeer(args.server, args.port, args.id)
-    sockets, _, addrs = peer.setup("server", LOCAL_BIND_PORTS)
+    peerAddresses = peer.setup("server", LOCAL_BIND_PORTS)
 
     # Step 2: Listen for incoming client data
-    TestServer(sockets, addrs).run()
+    TestServer(LOCAL_BIND_PORTS, peerAddresses).run()

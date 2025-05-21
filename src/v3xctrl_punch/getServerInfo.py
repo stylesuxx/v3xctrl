@@ -37,19 +37,17 @@ if __name__ == "__main__":
     }
 
     punch = PunchPeer(args.server, args.port, args.id)
-    peer_info = punch.setup("client", ports)
+    peer_addresses = punch.setup("client", ports)
 
-    peer = peer_info["video"]
-    ip = peer.get_ip()
-    video = peer.get_video_port()
-    control = peer.get_control_port()
+    video = peer_addresses["video"]
+    control = peer_addresses["control"]
 
     print(json.dumps({
         "server": {
-            "host": ip
+            "host": video[0]
         },
         "ports": {
-            "video": video,
-            "control": control
+            "video": video[1],
+            "control": control[1]
         }
     }, indent=2))

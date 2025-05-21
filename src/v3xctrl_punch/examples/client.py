@@ -3,10 +3,9 @@ import logging
 import threading
 import time
 
+from v3xctrl_punch.examples.TestPeer import TestPeer
 from v3xctrl_punch.PunchPeer import PunchPeer
-from rpi_4g_streamer.Message import Syn, Heartbeat
-
-from v3xctrl_punch.helper import control_loop, bind_udp
+from rpi_4g_streamer.Message import Heartbeat
 
 logging.basicConfig(
     level="DEBUG",
@@ -22,25 +21,35 @@ DEFAULT_RENDEZVOUS_SERVER = 'rendezvous.websium.at'
 DEFAULT_RENDEZVOUS_PORT = 8888
 
 
-class TestClient:
-    def __init__(self, addrs):
-        self.video_sock = bind_udp(LOCAL_BIND_PORTS['video'])
-        self.control_sock = bind_udp(LOCAL_BIND_PORTS['control'])
-
-        self.remote_video_addr = addrs["video"]
-        self.remote_control_addr = addrs["control"]
+class TestClient(TestPeer):
+    def __init__(self, ports, addresses):
+        super().__init__(ports, addresses)
 
         self.remote_video_addr_formatted = f"{self.remote_video_addr[0]}:{self.remote_video_addr[1]}"
 
     def run(self):
-        threading.Thread(target=self.video_sender, daemon=True).start()
-        threading.Thread(target=control_loop, args=(self.control_sock, self.remote_control_addr), daemon=True).start()
+        threading.Thread(
+            target=self.video_sender,
+            daemon=True,
+            name="VideoSender"
+        ).start()
+        threading.Thread(
+            target=self.control_loop,
+            args=(self.control_sock, self.remote_control_addr),
+            daemon=True,
+            name="ControlLoop"
+        ).start()
 
-        while True:
-            time.sleep(1)
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            logging.info("Exiting...")
 
     def video_sender(self):
-        logging.info(f"[V] Sending from {self.video_sock.getsockname()} to {self.remote_video_addr}")
+        sock_name = self.video_sock.getsockname()
+        sock_formatted = f"{sock_name[0]}:{sock_name[1]}"
+        logging.info(f"[V] Sending from {sock_formatted} to {self.remote_video_addr_formatted}")
         while True:
             self.video_sock.sendto(Heartbeat().to_bytes(), self.remote_video_addr)
             logging.info(f"[V] to   {self.remote_video_addr_formatted}")
@@ -60,6 +69,6 @@ if __name__ == "__main__":
     args = parse_args()
 
     punch = PunchPeer(args.server, args.port, args.id)
-    sockets, _, addrs = punch.setup("client", LOCAL_BIND_PORTS)
+    peer_addresses = punch.setup("client", LOCAL_BIND_PORTS)
 
-    TestClient(addrs).run()
+    TestClient(LOCAL_BIND_PORTS, peer_addresses).run()

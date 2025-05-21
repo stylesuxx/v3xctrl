@@ -26,6 +26,7 @@ class PunchPeer:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.bind(('0.0.0.0', port))
         logging.info(f"Bound {name} socket to {sock.getsockname()}")
+
         return sock
 
     def register_with_rendezvous(self, sock, announcement_msg):
@@ -71,28 +72,19 @@ class PunchPeer:
 
         return {pt: results[pt][0] for pt in results}
 
-    def _keepalive_sender(self, sock, addr):
-        while True:
-            try:
-                sock.sendto(b'\x00', addr)
-            except Exception:
-                pass
-            time.sleep(0.5)
-
-    def _handshake(self, sock: socket.socket, addr: tuple, interval=0.5, timeout=10.0):
-        logging.info(f"Starting Syn loop to {addr}")
+    def _handshake(self, sock: socket.socket, addr: tuple, interval: int = 1, timeout: int = 15):
+        logging.info(f"Starting handshake with {addr}")
         sock.settimeout(interval)
-        start_time = time.time()
+
         received_synack = False
         sent_ack = False
 
-        # Start keepalive to maintain NAT mapping
-        #threading.Thread(target=self._keepalive_sender, args=(sock, addr), daemon=True).start()
-
+        start_time = time.time()
         while time.time() - start_time < timeout:
             try:
-                sock.sendto(Syn().to_bytes(), addr)
-                logging.info(f"Sent Syn to {addr}")
+                if not received_synack:
+                    sock.sendto(Syn().to_bytes(), addr)
+                    logging.info(f"Sent Syn to {addr}")
 
                 data, source = sock.recvfrom(1024)
                 msg = Message.from_bytes(data)
@@ -102,9 +94,9 @@ class PunchPeer:
                     logging.info(f"Replied with SynAck to Syn from {source}")
 
                 elif isinstance(msg, SynAck):
-                    logging.info(f"Received SynAck from {source}")
                     sock.sendto(Ack().to_bytes(), source)
-                    logging.info(f"Sent Ack to {source}")
+                    logging.info(f"Replied with Ack to SynAck from {source}")
+
                     received_synack = True
                     sent_ack = True
 
@@ -135,14 +127,15 @@ class PunchPeer:
         video_port = peer.get_video_port()
         control_port = peer.get_control_port()
 
-        handshake_addrs = {}
-
+        peer_addresses = {}
         threads = {
             "video": threading.Thread(
-                target=lambda: handshake_addrs.update({"video": self._handshake(sockets["video"], (ip, video_port))})
+                target=lambda: peer_addresses.update({"video": self._handshake(sockets["video"], (ip, video_port))}),
+                name="HandshakeVideo"
             ),
             "control": threading.Thread(
-                target=lambda: handshake_addrs.update({"control": self._handshake(sockets["control"], (ip, control_port))})
+                target=lambda: peer_addresses.update({"control": self._handshake(sockets["control"], (ip, control_port))}),
+                name="HandshakeControl"
             )
         }
 
@@ -152,7 +145,7 @@ class PunchPeer:
         for t in threads.values():
             t.join()
 
-        return peer_info, handshake_addrs
+        return peer_addresses
 
     def finalize_sockets(self, sockets: dict[str, socket.socket]):
         for sock in sockets.values():
@@ -164,6 +157,7 @@ class PunchPeer:
             pt: self.bind_socket(pt.upper(), port)
             for pt, port in ports.items()
         }
-        peer_info, addrs = self.rendezvous_and_punch(role, sockets)
+        peer_addresses = self.rendezvous_and_punch(role, sockets)
         self.finalize_sockets(sockets)
-        return sockets, peer_info, addrs
+
+        return peer_addresses
