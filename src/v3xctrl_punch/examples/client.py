@@ -23,13 +23,14 @@ DEFAULT_RENDEZVOUS_PORT = 8888
 
 
 class TestClient:
-    def __init__(self, sockets, addrs):
-        #self.video_sock = sockets["video"]
+    def __init__(self, addrs):
         self.video_sock = bind_udp(LOCAL_BIND_PORTS['video'])
         self.control_sock = bind_udp(LOCAL_BIND_PORTS['control'])
 
         self.remote_video_addr = addrs["video"]
         self.remote_control_addr = addrs["control"]
+
+        self.remote_video_addr_formatted = f"{self.remote_video_addr[0]}:{self.remote_video_addr[1]}"
 
     def run(self):
         threading.Thread(target=self.video_sender, daemon=True).start()
@@ -42,7 +43,7 @@ class TestClient:
         logging.info(f"[V] Sending from {self.video_sock.getsockname()} to {self.remote_video_addr}")
         while True:
             self.video_sock.sendto(Heartbeat().to_bytes(), self.remote_video_addr)
-            logging.info(f"[V] to {self.remote_video_addr}")
+            logging.info(f"[V] to   {self.remote_video_addr_formatted}")
             time.sleep(1)
 
 
@@ -61,4 +62,4 @@ if __name__ == "__main__":
     punch = PunchPeer(args.server, args.port, args.id)
     sockets, _, addrs = punch.setup("client", LOCAL_BIND_PORTS)
 
-    TestClient(sockets, addrs).run()
+    TestClient(addrs).run()

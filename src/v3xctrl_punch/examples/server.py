@@ -40,7 +40,8 @@ class TestServer:
         logging.info(f"[V] Listening on {self.video_sock.getsockname()}")
         while True:
             _, addr = self.video_sock.recvfrom(2048)
-            logging.info(f"[V] from {addr}")
+            addr_formatted = f"{addr[0]}:{addr[1]}"
+            logging.info(f"[V] from {addr_formatted}")
 
 
 def parse_args():
