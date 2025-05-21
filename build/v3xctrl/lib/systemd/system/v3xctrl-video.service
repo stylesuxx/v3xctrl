@@ -7,7 +7,7 @@ StartLimitBurst=3
 
 [Service]
 Environment="GST_PLUGIN_PATH=/usr/lib/aarch64-linux-gnu/gstreamer-1.0"
-ExecStart=/usr/bin/rc-video
+ExecStart=/usr/bin/v3xctrl-video
 Restart=on-failure
 Type=simple
 User=v3xctrl

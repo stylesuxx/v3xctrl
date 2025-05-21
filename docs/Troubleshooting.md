@@ -39,11 +39,11 @@ sudo systemctl start v3xctrl-config-server
 
 If you made sure that the port is forwarded correctly and still not receiving the video stream, try the following:
 
-- Check the status of the `rc-video` service: `systemctl status rc-video` - this service is not started automatically unless you enable it to be autostarted in the config.
-- Try to start it manually: `sudo systemctl start rc-video`
+- Check the status of the `v3xctrl-video` service: `systemctl status v3xctrl-video` - this service is not started automatically unless you enable it to be autostarted in the config.
+- Try to start it manually: `sudo systemctl start v3xctrl-video`
 
 If there is still no video stream:
-- Check the logs of the `rc-video` service: `journalctl -u rc-video -n 50` - this will give you more information about what is going on with the service.
+- Check the logs of the `v3xctrl-video` service: `journalctl -u v3xctrl-video -n 50` - this will give you more information about what is going on with the service.
 
 Often times an issue can be a bad connection with the camera. To rule out the camera as an error source you can enable `testSource` in the `video` config section, this will send a test pattern instead of the camera feed to the client.
 

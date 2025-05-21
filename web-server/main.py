@@ -54,7 +54,7 @@ def get_services():
         "v3xctrl-config-server",
         "v3xctrl-wifi-mode",
         "rc-service-manager",
-        "rc-video",
+        "v3xctrl-video",
         "rc-control"
     ]
 

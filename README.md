@@ -63,7 +63,7 @@ Connect via SSH to the client and start the video service:
 
 ```bash
 ssh pi@v3xctrl.local
-sudo systemctl start rc-video
+sudo systemctl start v3xctrl-video
 ```
 
 After a couple of seconds you should see a video feed in the server GUI. Should this not be the case, follow the [Troubleshooting Guide](/master/docs/Troubleshooting.md#video-stream).
@@ -75,7 +75,7 @@ Now that we have verified that video streaming is working, we want to make sure 
 In the web-interface, uncheck the "testSource" checkbox in the video section and restart the video stream via command line:
 
 ```bash
-sudo systemctl restart rc-video
+sudo systemctl restart v3xctrl-video
 ```
 
 After a couple of seconds you should see the live camera feed in the server GUI. Should this not be the case, follow the [Troubleshooting Guide](/master/docs/Troubleshooting.md#video-stream).

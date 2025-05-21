@@ -68,7 +68,7 @@ This service starts services on startup according to the configuration.
 
 This service is responsible for cleaning up fragments of a previous unclean shutdown.
 
-### rc-video
+### v3xctrl-video
 
 This service is responsible for sending the video feed to the server.
 

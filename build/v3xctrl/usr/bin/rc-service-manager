@@ -15,7 +15,7 @@ fi
 
 if [ "$autostart_video" = "true" ]; then
   echo "Starting video service..."
-  systemctl start rc-video
+  systemctl start v3xctrl-video
 fi
 
 if [ "$autostart_control" = "true" ]; then
