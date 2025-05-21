@@ -214,6 +214,10 @@ except Exception as e:
     traceback.print_exc()
 
 finally:
+    pi.set_servo_pulsewidth(throttle_gpio, 0)
+    pi.set_servo_pulsewidth(steering_gpio, 0)
+    pi.stop()
+
     client.stop()
     telemetry.stop()
 
