@@ -1,4 +1,8 @@
 #!/bin/bash
+
+# Setup the routing either via wlan or rndis device local traffic will always be
+# routed through wlan.
+
 set -e
 
 if [[ "$1" != "wlan" && "$1" != "rndis" ]]; then
@@ -38,9 +42,9 @@ fi
 echo "Using $PRIMARY_IF as default route interface"
 
 # Find gateway for selected interface
-GW=$(ip route show dev "$PRIMARY_IF" | awk '/default/ {print $3}')
+GW=$(ip -4 route show default dev "$PRIMARY_IF" | awk '{print $3}' | head -n1 | tr -d '\r\n')
 if [ -z "$GW" ]; then
-  GW=$(ip route | grep "^default.*$PRIMARY_IF" | awk '{print $3}')
+  GW=$(ip route | grep "^default.*$PRIMARY_IF" | awk '{print $3}' | head -n1 | tr -d '\r\n')
 fi
 
 if [ -z "$GW" ]; then
