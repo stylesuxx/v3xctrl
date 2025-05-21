@@ -9,7 +9,7 @@ The configuration should be pretty self-explanatory. The one setting you will ha
 ### WiFi
 WiFi can either be run in client or in AP mode. In client mode it will try to connect to the network configured when you initially flashed the image. In AP mode, it will spawn it's own WiFi network to which you can connect to.
 
-The default AP network is `rc-client-<device_id>`.
+The default AP network is `v3xctrl-<device_id>`.
 The default password is `raspberry`.
 
 I suggest to keep the device in client mode as long as you are setting it up and then switch it to AP mode when you are done. This will allow you to connect to the device on the field via your phone.

@@ -20,8 +20,8 @@ python --version
 Then clone the repo, create a `venv` and install dependencies:
 
 ```bash
-git clone git@github.com:stylesuxx/rc-stream.git
-cd rc-stream
+git clone git@github.com:stylesuxx/v3xctrl.git
+cd v3xctrl
 python -m venv ./venv
 source ./venv/bin/activate
 ```
@@ -79,7 +79,7 @@ Install `git`, clone the repository and run the installer:
 ```bash
 sudo apt update
 sudo apt install git -y
-git clone git@github.com:stylesuxx/rc-stream.git
+git clone git@github.com:stylesuxx/v3xctrl.git
 ./bash/install.sh
 ```
 
@@ -188,7 +188,7 @@ If you are running the dev env and you just want to update your client, you can 
 ./install.sh update
 ```
 
-This will re-build the rc-client package and install it over the already installed one.
+This will re-build the `v3xctrl` package and install it over the already installed one.
 
 
 ## Helper scripts
