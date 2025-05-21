@@ -5,7 +5,7 @@ if command -v systemctl >/dev/null 2>&1; then
   # Reset services only on removal
   if [ "$1" = "remove" ]; then
     systemctl disable \
-      rc-config-server.service \
+      v3xctrl-config-server.service \
       rc-service-manager.service \
       rc-cleanup.service \
       v3xctrl-wifi-mode.service \

@@ -6,7 +6,7 @@ Requires=v3xctrl-wifi-mode.service v3xctrl-setup-env.service
 [Service]
 Environment=PYENV_ROOT=/usr/local/pyenv
 Environment=PATH=/usr/local/pyenv/shims:/usr/local/pyenv/bin:/usr/bin:/bin
-ExecStart=/usr/bin/rc-config-server
+ExecStart=/usr/bin/v3xctrl-config-server
 Restart=on-failure
 User=v3xctrl
 Group=v3xctrl

@@ -114,6 +114,6 @@ else
 fi
 
 # If the web-interface is already active, restart it to bind to the new IP
-if systemctl is-active --quiet rc-config-server; then
-  systemctl restart rc-config-server
+if systemctl is-active --quiet v3xctrl-config-server; then
+  systemctl restart v3xctrl-config-server
 fi
