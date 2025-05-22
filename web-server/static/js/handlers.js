@@ -28,7 +28,7 @@ const registerClickHandlers = (editor) => {
     const $modal = $('#rebootModal');
     const $backdrop = $('#reboot-backdrop');
     const $countdown = $('#reboot-countdown');
-    let secondsLeft = 30;
+    let secondsLeft = 45;
 
     $modal.removeClass('hidden fade').addClass('in').css({
       display: 'block',

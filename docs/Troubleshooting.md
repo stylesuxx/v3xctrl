@@ -84,3 +84,21 @@ See what `dmesg` says:
 * Clear dmesg: `sudo dmesg -c`
 * Plug in the modem
 * Check dmesg: `sudo dmesg -c`
+
+### Checking routing
+To verify which device internet traffic is routed through, check the following commands
+
+```bash
+ip route show default
+```
+
+The default route with the lowest priority (or none at all) will be chosen one. You can further verify:
+
+```
+> ip route get 8.8.8.8
+
+8.8.8.8 via 192.168.10.1 dev eth0 src 192.168.10.2 uid 1000
+    cache
+```
+
+This will show through which device the traffic is routed. In this case it is routed through `eth0`, which is the RDNIS modem.
