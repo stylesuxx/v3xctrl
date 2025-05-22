@@ -1,5 +1,7 @@
 from collections import deque
+import logging
 import pygame
+import threading
 from typing import Tuple
 
 from ui.helpers import get_fps, interpolate_steering_color, interpolate_throttle_color
@@ -7,6 +9,8 @@ from ui.Init import Init
 from ui.KeyAxisHandler import KeyAxisHandler
 from ui.widgets import VerticalIndicatorWidget, HorizontalIndicatorWidget
 from ui.widgets import StatusValueWidget, FpsWidget, SignalQualityWidget
+
+from v3xctrl_udp_relay.Peer import Peer
 
 
 class AppState:
@@ -40,9 +44,22 @@ class AppState:
         self.running = True
 
         self.screen, self.clock = Init.ui(self.size, self.title)
+
+        self.video_receiver = None
+        self.server_error = None
+        self.server = None
+
+        self.relay_enable = False
+        self.relay_server = None
+        self.relay_port = 8888
+        self.relay_id = None
+
+        """
         self.video_receiver = Init.video_receiver(self.video_port)
         self.server, self.server_error = Init.server(self.control_port,
                                                      server_handlers)
+        """
+
         self.data = "waiting"
         self.latency = "default"
         self.signal_quality = {
@@ -113,12 +130,38 @@ class AppState:
             )
         }
 
+    def setup_relay(self, relay_server: str = None, relay_id: str = None):
+        self.relay_enable = True
+        self.relay_server = relay_server
+        self.relay_id = relay_id
+
+    def setup_ports(self):
+        def task():
+            if self.relay_enable:
+                local_bind_ports = {
+                    "video": self.video_port,
+                    "control": self.control_port
+                }
+                peer = Peer(self.relay_server, self.relay_port, self.relay_id)
+                peer.setup("server", local_bind_ports)
+
+            self.video_receiver = Init.video_receiver(self.video_port)
+            self.server, self.server_error = Init.server(self.control_port,
+                                                         self.server_handlers)
+
+            logging.info("Port setup complete.")
+
+        threading.Thread(target=task, daemon=True).start()
+
     @property
     def fps_loop(self) -> float:
         return get_fps(self.loop_history.copy())
 
     @property
     def fps_video(self) -> float:
+        if self.video_receiver is None:
+            return 0.0
+
         return get_fps(self.video_receiver.history.copy())
 
     def shutdown(self):
@@ -128,5 +171,6 @@ class AppState:
             self.server.stop()
             self.server.join()
 
-        self.video_receiver.stop()
-        self.video_receiver.join()
+        if self.video_receiver:
+            self.video_receiver.stop()
+            self.video_receiver.join()

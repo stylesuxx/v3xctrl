@@ -61,12 +61,13 @@ settings = Init.settings("settings.toml")
 controls = settings.get("controls")
 debug = settings.get("debug")
 input = settings.get("input", {})
-widgets = settings.get('widgets', {})
+widgets = settings.get("widgets", {})
 calibrations = settings.get("calibrations", {})
 timing = settings.get("timing", {})
-main_loop_fps = timing.get('main_loop_fps', 60)
-control_rate_frequency = timing.get('control_update_hz', 30)
-latency_check_frequency = timing.get('latency_check_hz', 1)
+main_loop_fps = timing.get("main_loop_fps", 60)
+control_rate_frequency = timing.get("control_update_hz", 30)
+latency_check_frequency = timing.get("latency_check_hz", 1)
+relay = settings.get("relay", {})
 
 control_interval = 1.0 / control_rate_frequency
 latency_interval = 1.0 / latency_check_frequency
@@ -82,17 +83,18 @@ FPS_SETTINGS = settings.get("widgets")["fps"]
 STEERING_SETTINGS = settings.get("settings")["steering"]
 THROTTLE_SETTINGS = settings.get("settings")["throttle"]
 
-ip = get_external_ip()
-print("================================")
-print(f"IP Address:   {ip}")
-print(f"Video port:   {PORTS['video']}")
-print(f"Control port: {PORTS['control']}")
-print("Make sure to forward this ports!")
-print("================================")
+if not relay["enabled"]:
+    ip = get_external_ip()
+
+    print("================================")
+    print(f"IP Address:   {ip}")
+    print(f"Video port:   {PORTS['video']}")
+    print(f"Control port: {PORTS['control']}")
+    print("Make sure to forward this ports!")
+    print("================================")
 
 
 def telemetry_handler(state: AppState, message: Telemetry) -> None:
-    """ TODO: Implement control message handling. """
     values = message.get_values()
     state.signal_quality = {
         "rsrq": values["sig"]["rsrq"],
@@ -184,20 +186,29 @@ def update_settings():
 
 
 def render_all(state):
-    with state.video_receiver.frame_lock:
-        frame = state.video_receiver.frame
-        if frame is not None:
-            surface = pygame.image.frombuffer(frame.tobytes(),
-                                              VIDEO_SIZE,
-                                              "RGB")
-            state.screen.blit(surface, (0, 0))
-        else:
-            surface, rect = BOLD_32_MONO_FONT.render("No Signal", RED)
-            rect.center = (VIDEO["width"] // 2, VIDEO["height"] // 2 - 40)
+    frame = None
+    if state.video_receiver:
+        with state.video_receiver.frame_lock:
+            frame = state.video_receiver.frame
+            if frame is not None:
+                surface = pygame.image.frombuffer(frame.tobytes(),
+                                                  VIDEO_SIZE,
+                                                  "RGB")
+                state.screen.blit(surface, (0, 0))
 
-            state.screen.fill(BLACK)
+    if frame is None:
+        surface, rect = BOLD_32_MONO_FONT.render("No Signal", RED)
+        rect.center = (VIDEO["width"] // 2, VIDEO["height"] // 2 - 40)
+
+        state.screen.fill(BLACK)
+        state.screen.blit(surface, rect)
+
+        if relay["enabled"]:
+            surface, rect = BOLD_32_MONO_FONT.render("Waiting for data...", RED)
+            rect.center = (VIDEO["width"] // 2, VIDEO["height"] // 2 + 10)
             state.screen.blit(surface, rect)
 
+        if not relay["enabled"]:
             info_data = [
                 ("Host", ip),
                 ("Video", str(PORTS['video'])),
@@ -242,7 +253,7 @@ def render_all(state):
 
 
 def handle_control(state):
-    if not state.server_error and "data" in state.widgets_debug:
+    if state.server and not state.server_error and "data" in state.widgets_debug:
         data_left = state.server.transmitter.queue.qsize()
         state.widgets_debug["data"].set_value(data_left)
     else:
@@ -259,7 +270,7 @@ def handle_control(state):
         brake = values["brake"]
         state.throttle = (throttle - brake)
 
-    if not state.server_error:
+    if state.server and not state.server_error:
         state.server.send(Control({
             "steering": state.steering,
             "throttle": state.throttle,
@@ -296,6 +307,11 @@ def signal_handler(sig, frame, state):
 
 signal.signal(signal.SIGINT, lambda s, f: signal_handler(s, f, state))
 
+if relay["enabled"]:
+    state.setup_relay(relay["server"], relay["id"])
+
+state.setup_ports()
+
 last_control_update = time.monotonic()
 last_latency_check = last_control_update
 while state.running:
@@ -312,7 +328,7 @@ while state.running:
 
     # Send latency message
     if now - last_latency_check >= latency_interval:
-        if not state.server_error:
+        if state.server and not state.server_error:
             state.server.send(Latency())
         last_latency_check = now
 

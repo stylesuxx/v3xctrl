@@ -15,6 +15,11 @@ class Settings:
               "steering_right": pygame.K_d,
           }
         },
+        "relay": {
+            "enabled": False,
+            "server": "rendezvous.websium.at",
+            "id": "test123"
+        },
         "ports": {
             "video": 6666,
             "control": 6668,
