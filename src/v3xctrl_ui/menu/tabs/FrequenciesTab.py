@@ -1,8 +1,9 @@
 from pygame import event, Surface
 
-from v3xctrl_ui.menu.tabs.Tab import Tab
-from v3xctrl_ui.menu.NumberInput import NumberInput
 from v3xctrl_ui.fonts import LABEL_FONT, MONO_FONT
+from v3xctrl_ui.menu import NumberInput
+
+from .Tab import Tab
 
 
 class FrequenciesTab(Tab):

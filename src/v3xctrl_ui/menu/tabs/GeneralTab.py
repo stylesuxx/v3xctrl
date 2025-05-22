@@ -1,13 +1,13 @@
 from pygame import Surface, event
 
-from v3xctrl_ui.menu.tabs.Tab import Tab
-
-from v3xctrl_ui.menu.Checkbox import Checkbox
-from v3xctrl_ui.menu.NumberInput import NumberInput
-from v3xctrl_ui.menu.TextInput import TextInput
-
 from v3xctrl_ui.colors import WHITE
 from v3xctrl_ui.fonts import LABEL_FONT, TEXT_FONT, MONO_FONT
+
+from v3xctrl_ui.menu import Checkbox
+from v3xctrl_ui.menu import NumberInput
+from v3xctrl_ui.menu import TextInput
+
+from .Tab import Tab
 
 
 class GeneralTab(Tab):

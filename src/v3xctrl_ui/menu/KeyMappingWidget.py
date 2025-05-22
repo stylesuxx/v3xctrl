@@ -3,7 +3,7 @@ from pygame import Surface
 from pygame.freetype import Font
 from typing import Callable
 
-from v3xctrl_ui.menu.Button import Button
+from v3xctrl_ui.menu import Button
 from v3xctrl_ui.menu.BaseWidget import BaseWidget
 
 

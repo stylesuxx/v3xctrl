@@ -1,3 +1,3 @@
-from v3xctrl_ui.menu.tabs.GeneralTab import GeneralTab
-from v3xctrl_ui.menu.tabs.InputTab import InputTab
-from v3xctrl_ui.menu.tabs.FrequenciesTab import FrequenciesTab
+from .FrequenciesTab import FrequenciesTab
+from .GeneralTab import GeneralTab
+from .InputTab import InputTab

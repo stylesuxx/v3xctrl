@@ -1,9 +1,11 @@
 from pygame import Surface, event
 
-from v3xctrl_ui.menu.tabs.Tab import Tab
-from v3xctrl_ui.menu.KeyMappingWidget import KeyMappingWidget
+from v3xctrl_ui.menu import KeyMappingWidget
+
 from v3xctrl_ui.menu.calibration.GamepadCalibrationWidget import GamepadCalibrationWidget
 from v3xctrl_ui.fonts import LABEL_FONT
+
+from .Tab import Tab
 
 
 class InputTab(Tab):
