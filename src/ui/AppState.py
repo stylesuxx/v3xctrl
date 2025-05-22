@@ -54,12 +54,6 @@ class AppState:
         self.relay_port = 8888
         self.relay_id = None
 
-        """
-        self.video_receiver = Init.video_receiver(self.video_port)
-        self.server, self.server_error = Init.server(self.control_port,
-                                                     server_handlers)
-        """
-
         self.data = "waiting"
         self.latency = "default"
         self.signal_quality = {
