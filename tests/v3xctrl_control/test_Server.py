@@ -2,19 +2,19 @@ import time
 import unittest
 from unittest.mock import patch, MagicMock
 
-from src.rpi_4g_streamer import Server, State
-from src.rpi_4g_streamer.Message import Syn, Heartbeat, Message
+from src.v3xctrl_control import Server, State
+from src.v3xctrl_control.Message import Syn, Heartbeat, Message
 
-from tests.rpi_4g_streamer.config import HOST, PORT
+from tests.v3xctrl_control.config import HOST, PORT
 
 
 class TestServer(unittest.TestCase):
     def setUp(self):
-        self.base_send_patcher = patch("src.rpi_4g_streamer.Server.Base._send")
+        self.base_send_patcher = patch("src.v3xctrl_control.Server.Base._send")
         self.mock_base_send = self.base_send_patcher.start()
 
-        self.patcher_transmitter = patch("src.rpi_4g_streamer.Server.UDPTransmitter")
-        self.patcher_handler = patch("src.rpi_4g_streamer.Server.MessageHandler")
+        self.patcher_transmitter = patch("src.v3xctrl_control.Server.UDPTransmitter")
+        self.patcher_handler = patch("src.v3xctrl_control.Server.MessageHandler")
 
         self.mock_transmitter_cls = self.patcher_transmitter.start()
         self.mock_handler_cls = self.patcher_handler.start()

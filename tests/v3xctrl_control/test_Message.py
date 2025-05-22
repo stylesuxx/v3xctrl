@@ -1,7 +1,7 @@
 import unittest
 import time
 
-from src.rpi_4g_streamer.Message import (
+from src.v3xctrl_control.Message import (
     Message,
     Heartbeat,
     Syn,

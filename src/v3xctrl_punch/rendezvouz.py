@@ -2,7 +2,7 @@ import socket
 import threading
 import time
 
-from rpi_4g_streamer.Message import Message, PeerAnnouncement, PeerInfo
+from v3xctrl_control.Message import Message, PeerAnnouncement, PeerInfo
 
 PORT = 8888
 TIMEOUT = 10

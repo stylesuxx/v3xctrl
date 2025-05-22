@@ -3,7 +3,7 @@ from typing import Tuple
 import pygame
 from pygame import display, time
 
-from rpi_4g_streamer import Server
+from v3xctrl_control import Server
 
 from v3xctrl_ui.Settings import Settings
 from v3xctrl_ui.VideoReceiver import VideoReceiver

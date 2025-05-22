@@ -207,7 +207,7 @@ python -m pytest tests
 python -m pytest tests/v3xctrl-ui
 
 # Just server
-python -m pytest tests/rpi_4g_streamer
+python -m pytest tests/v3xctrl_control
 ```
 
 Watch for file changes and re-run tests automatically:

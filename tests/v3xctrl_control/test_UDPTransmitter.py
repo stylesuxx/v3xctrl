@@ -1,7 +1,7 @@
 import socket
 import unittest
 
-from src.rpi_4g_streamer import UDPTransmitter, UDPPacket
+from src.v3xctrl_control import UDPTransmitter, UDPPacket
 
 
 class FakeMessage:

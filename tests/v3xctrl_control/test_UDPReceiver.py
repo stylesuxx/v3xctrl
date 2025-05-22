@@ -2,8 +2,8 @@ import socket
 import time
 import unittest
 
-from src.rpi_4g_streamer import UDPReceiver
-from src.rpi_4g_streamer.Message import Message
+from src.v3xctrl_control import UDPReceiver
+from src.v3xctrl_control.Message import Message
 
 
 class FakeMessage:

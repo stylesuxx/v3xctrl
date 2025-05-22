@@ -1,8 +1,8 @@
 import socket
 import time
 
-from rpi_4g_streamer import MessageHandler, UDPTransmitter
-from rpi_4g_streamer.Message import Heartbeat
+from v3xctrl_control import MessageHandler, UDPTransmitter
+from v3xctrl_control.Message import Heartbeat
 
 HOST = "0.0.0.0"
 PORT = 6666

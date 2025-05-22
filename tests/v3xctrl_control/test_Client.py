@@ -3,10 +3,10 @@ import time
 import unittest
 from unittest.mock import patch
 
-from src.rpi_4g_streamer import Client, UDPTransmitter, State
-from src.rpi_4g_streamer.Message import Heartbeat
+from src.v3xctrl_control import Client, UDPTransmitter, State
+from src.v3xctrl_control.Message import Heartbeat
 
-from tests.rpi_4g_streamer.config import HOST, PORT, SLEEP
+from tests.v3xctrl_control.config import HOST, PORT, SLEEP
 
 
 class TestClient(unittest.TestCase):
@@ -60,7 +60,7 @@ class TestClient(unittest.TestCase):
 
         self.assertFalse(self.client.running.is_set())
 
-    @patch("src.rpi_4g_streamer.Client.Base._send")
+    @patch("src.v3xctrl_control.Client.Base._send")
     def test_client_heartbeat_triggers_send(self, mock_send):
         self.client.initialize()
 
@@ -80,7 +80,7 @@ class TestClient(unittest.TestCase):
         self.client.transmitter.join()
         self.client.socket.close()
 
-    @patch("src.rpi_4g_streamer.Client.Base._send")
+    @patch("src.v3xctrl_control.Client.Base._send")
     def test_client_no_heartbeat_if_recent(self, mock_send):
         self.client.initialize()
 

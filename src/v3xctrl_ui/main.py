@@ -13,8 +13,8 @@ from v3xctrl_ui.Init import Init
 from v3xctrl_ui.AppState import AppState
 from v3xctrl_ui.MemoryTracker import MemoryTracker
 
-from rpi_4g_streamer import State
-from rpi_4g_streamer.Message import Telemetry, Control, Latency
+from v3xctrl_control import State
+from v3xctrl_control.Message import Telemetry, Control, Latency
 
 
 parser = argparse.ArgumentParser(description="RC Streamer")

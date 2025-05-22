@@ -3,13 +3,13 @@ import time
 import unittest
 from unittest.mock import Mock
 
-from src.rpi_4g_streamer import (
+from src.v3xctrl_control import (
   UDPReceiver,
   UDPTransmitter,
   UDPPacket
 )
-from src.rpi_4g_streamer.Message import Heartbeat
-from tests.rpi_4g_streamer.config import HOST, PORT, SLEEP
+from src.v3xctrl_control.Message import Heartbeat
+from tests.v3xctrl_control.config import HOST, PORT, SLEEP
 
 
 class TestUDPTransmission(unittest.TestCase):

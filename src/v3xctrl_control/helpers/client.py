@@ -15,9 +15,9 @@ import sys
 import time
 import traceback
 
-from rpi_4g_streamer import Client, State
-from rpi_4g_streamer.Telemetry import Telemetry as TelemetryHandler
-from rpi_4g_streamer.Message import Control, Telemetry, Latency
+from v3xctrl_control import Client, State
+from v3xctrl_control.Telemetry import Telemetry as TelemetryHandler
+from v3xctrl_control.Message import Control, Telemetry, Latency
 
 from v3xctrl_helper import clamp
 

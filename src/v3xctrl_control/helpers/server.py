@@ -5,8 +5,8 @@ import sys
 import time
 import traceback
 
-from rpi_4g_streamer import Server, State
-from rpi_4g_streamer.Message import Telemetry, Control
+from v3xctrl_control import Server, State
+from v3xctrl_control.Message import Telemetry, Control
 
 
 logging.basicConfig(level=logging.DEBUG)

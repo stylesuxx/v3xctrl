@@ -3,10 +3,10 @@ import time
 import unittest
 from unittest.mock import Mock
 
-from src.rpi_4g_streamer import MessageHandler, UDPTransmitter
-from src.rpi_4g_streamer.Message import Heartbeat, Ack
+from src.v3xctrl_control import MessageHandler, UDPTransmitter
+from src.v3xctrl_control.Message import Heartbeat, Ack
 
-from tests.rpi_4g_streamer.config import HOST, PORT, SLEEP
+from tests.v3xctrl_control.config import HOST, PORT, SLEEP
 
 
 class TestMessageHandler(unittest.TestCase):

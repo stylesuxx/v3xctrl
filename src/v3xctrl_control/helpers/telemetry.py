@@ -1,6 +1,6 @@
 import time
 
-from rpi_4g_streamer.Telemetry import Telemetry
+from v3xctrl_control.Telemetry import Telemetry
 
 
 telemetry = Telemetry('/dev/ttyACM0')
