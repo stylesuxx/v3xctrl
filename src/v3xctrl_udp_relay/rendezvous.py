@@ -7,7 +7,7 @@ from rpi_4g_streamer.Message import Message, PeerAnnouncement, PeerInfo
 
 
 class UDPRelayServer:
-    RELAY_PUBLIC_IP = ""
+    RELAY_PUBLIC_IP = "91.151.16.62"
     PORT = 8888
     TIMEOUT = 10
     CLEANUP_INTERVAL = 5

@@ -19,42 +19,39 @@ class Peer:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.bind(('0.0.0.0', port))
         logging.info(f"Bound {name} socket to {sock.getsockname()}")
-
         return sock
 
-    def register_with_relay(self, sock: socket.socket, port_type: str, role: str) -> bool:
+    def register_with_relay(self, sock: socket.socket, port_type: str, role: str) -> PeerInfo | None:
         msg = PeerAnnouncement(r=role, i=self.session_id, p=port_type)
         sock.settimeout(1)
         start_time = time.time()
 
         while time.time() - start_time < self.register_timeout:
             try:
-                # Send the registration announcement
                 sock.sendto(msg.to_bytes(), (self.server, self.port))
                 logging.debug(f"Sent {port_type} announcement to {self.server}:{self.port} from {sock.getsockname()}")
 
-                # Wait for PeerInfo from the relay
                 data, _ = sock.recvfrom(1024)
                 msg = Message.from_bytes(data)
 
                 if isinstance(msg, PeerInfo):
                     logging.info(f"[Relay] Received PeerInfo for {port_type}: {msg}")
-                    return True
+                    return msg
 
             except socket.timeout:
                 time.sleep(self.ANNOUNCE_INTERVAL)
             except Exception as e:
                 logging.error(f"[Relay] Error during {port_type} registration: {e}")
-                return False
+                return None
 
         logging.error(f"Timeout waiting for PeerInfo for {port_type}")
-        return False
+        return None
 
-    def register_all(self, sockets: dict[str, socket.socket], role: str) -> bool:
-        success = {pt: [False] for pt in sockets.keys()}
+    def register_all(self, sockets: dict[str, socket.socket], role: str) -> dict[str, PeerInfo]:
+        results = {pt: [None] for pt in sockets.keys()}
 
         def reg_worker(pt):
-            success[pt][0] = self.register_with_relay(sockets[pt], pt, role)
+            results[pt][0] = self.register_with_relay(sockets[pt], pt, role)
 
         threads = [threading.Thread(target=reg_worker, args=(pt,)) for pt in sockets]
         for t in threads:
@@ -62,16 +59,23 @@ class Peer:
         for t in threads:
             t.join()
 
-        return all(success[pt][0] for pt in success)
+        return {pt: results[pt][0] for pt in results}
 
-    def setup(self, role: str, ports: dict[str, int]) -> dict[str, socket.socket]:
+    def setup(self, role: str, ports: dict[str, int]) -> dict[str, PeerInfo]:
         sockets = {
             pt: self.bind_socket(pt.upper(), port)
             for pt, port in ports.items()
         }
 
-        self.register_all(sockets, role)
+        peer_info_map = self.register_all(sockets, role)
         self.finalize_sockets(sockets)
+
+        address_map = {
+            "video": (peer_info_map["video"].get_ip(), peer_info_map["video"].get_video_port()),
+            "control": (peer_info_map["control"].get_ip(), peer_info_map["control"].get_control_port())
+        }
+
+        return address_map
 
     def finalize_sockets(self, sockets: dict[str, socket.socket]):
         for sock in sockets.values():

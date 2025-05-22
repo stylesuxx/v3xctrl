@@ -3,8 +3,8 @@ import logging
 import threading
 import time
 
+from v3xctrl_punch.examples.TestPeer import TestPeer
 from v3xctrl_udp_relay.Peer import Peer
-from v3xctrl_udp_relay.examples.TestPeer import TestPeer
 
 logging.basicConfig(
     level="DEBUG",
@@ -61,6 +61,6 @@ if __name__ == "__main__":
     args = parse_args()
 
     peer = Peer(args.server, args.port, args.id)
-    peer.setup("server", LOCAL_BIND_PORTS)
+    peer_addresses = peer.setup("server", LOCAL_BIND_PORTS)
 
-    TestServer(args.server, args.port, LOCAL_BIND_PORTS).run()
+    TestServer(LOCAL_BIND_PORTS, peer_addresses).run()

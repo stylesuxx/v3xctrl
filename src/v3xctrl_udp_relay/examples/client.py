@@ -3,8 +3,8 @@ import logging
 import threading
 import time
 
+from v3xctrl_punch.examples.TestPeer import TestPeer
 from v3xctrl_udp_relay.Peer import Peer
-from v3xctrl_udp_relay.examples.TestPeer import TestPeer
 from rpi_4g_streamer.Message import Heartbeat
 
 logging.basicConfig(
@@ -22,8 +22,8 @@ DEFAULT_RENDEZVOUS_PORT = 8888
 
 
 class TestClient(TestPeer):
-    def __init__(self, server, port, ports):
-        super().__init__(server, port, ports)
+    def __init__(self, ports, addresses):
+        super().__init__(ports, addresses)
 
         self.remote_video_addr_formatted = f"{self.remote_video_addr[0]}:{self.remote_video_addr[1]}"
 
@@ -69,6 +69,6 @@ if __name__ == "__main__":
     args = parse_args()
 
     peer = Peer(args.server, args.port, args.id)
-    peer.setup("client", LOCAL_BIND_PORTS)
+    peer_addresses = peer.setup("client", LOCAL_BIND_PORTS)
 
-    TestClient(args.server, args.port, LOCAL_BIND_PORTS).run()
+    TestClient(LOCAL_BIND_PORTS, peer_addresses).run()
