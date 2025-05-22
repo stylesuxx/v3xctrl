@@ -7,7 +7,7 @@ import pygame.freetype
 from pygame.event import Event
 from pygame.locals import K_BACKSPACE, K_LEFT, K_RIGHT, K_UP, K_DOWN, KEYDOWN, MOUSEBUTTONDOWN
 
-from src.ui.menu.NumberInput import NumberInput
+from v3xctrl_ui.menu.NumberInput import NumberInput
 
 
 class TestNumberInput(unittest.TestCase):

@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 import pygame
 
-from ui.widgets import VerticalIndicatorWidget
+from v3xctrl_ui.widgets import VerticalIndicatorWidget
 
 
 class TestVerticalIndicatorWidget(unittest.TestCase):

@@ -6,7 +6,7 @@ import pygame
 import pygame.freetype
 from unittest.mock import MagicMock
 
-from ui.menu.KeyMappingWidget import KeyMappingWidget
+from v3xctrl_ui.menu.KeyMappingWidget import KeyMappingWidget
 
 
 class TestKeyMappingWidget(unittest.TestCase):

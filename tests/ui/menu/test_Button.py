@@ -5,7 +5,8 @@ import pygame
 import pygame.freetype
 import unittest
 from unittest.mock import MagicMock
-from ui.menu.Button import Button  # Adjust the import path as needed
+
+from v3xctrl_ui.menu.Button import Button
 
 
 class TestButton(unittest.TestCase):

@@ -7,7 +7,7 @@ from pygame.freetype import SysFont
 from pygame.event import Event
 from pygame.locals import MOUSEBUTTONDOWN, MOUSEMOTION
 
-from ui.menu.Select import Select
+from v3xctrl_ui.menu.Select import Select
 
 
 class TestSelect(unittest.TestCase):

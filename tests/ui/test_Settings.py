@@ -4,7 +4,7 @@ from pathlib import Path
 import pygame
 import tomli_w
 
-from src.ui.Settings import Settings
+from v3xctrl_ui.Settings import Settings
 
 
 class TestSettings(unittest.TestCase):

@@ -32,10 +32,10 @@ Install dependencies and run the GUI:
 pip install -r ./requirements-dev.txt
 
 cd src
-python -m ui.main
+python -m v3xctrl_ui.main
 
 # Run with debug logs enabled
-python -m ui.main --log DEBUG
+python -m v3xctrl_ui.main --log DEBUG
 ```
 
 ### Windows 11
@@ -204,7 +204,7 @@ Run tests:
 python -m pytest tests
 
 # Just ui
-python -m pytest tests/ui
+python -m pytest tests/v3xctrl-ui
 
 # Just server
 python -m pytest tests/rpi_4g_streamer

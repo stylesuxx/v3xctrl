@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 import pygame
 
-from ui.widgets.FpsWidget import FpsWidget
+from v3xctrl_ui.widgets.FpsWidget import FpsWidget
 
 
 class TestFpsWidget(unittest.TestCase):

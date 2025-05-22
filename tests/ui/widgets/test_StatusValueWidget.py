@@ -2,8 +2,8 @@ import pygame
 import unittest
 from unittest.mock import MagicMock
 
-from ui.colors import BLACK
-from ui.widgets import StatusValueWidget
+from v3xctrl_ui.colors import BLACK
+from v3xctrl_ui.widgets import StatusValueWidget
 
 
 class TestStatusValueWidget(unittest.TestCase):
@@ -20,7 +20,7 @@ class TestStatusValueWidget(unittest.TestCase):
         self.widget = StatusValueWidget(position=(0, 0), size=20, label="L")
 
     def test_inherits_from_status_widget(self):
-        from ui.widgets.StatusWidget import StatusWidget
+        from v3xctrl_ui.widgets.StatusWidget import StatusWidget
         self.assertIsInstance(self.widget, StatusWidget)
 
     def test_default_value_is_none(self):

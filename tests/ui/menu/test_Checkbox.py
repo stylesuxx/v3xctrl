@@ -4,7 +4,7 @@ os.environ["SDL_VIDEODRIVER"] = "dummy"
 import unittest
 import pygame
 from pygame.freetype import SysFont
-from ui.menu.Checkbox import Checkbox
+from v3xctrl_ui.menu.Checkbox import Checkbox
 
 
 class TestCheckbox(unittest.TestCase):
