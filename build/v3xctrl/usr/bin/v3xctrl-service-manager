@@ -10,6 +10,11 @@ if [ "$server_mode" = "rendezvous" ]; then
   v3xctrl-rendezvous
 fi
 
+if [ "$server_mode" = "relay" ]; then
+  echo "Registering with relay server..."
+  v3xctrl-relay
+fi
+
 if [ "$autostart_video" = "true" ]; then
   echo "Starting video service..."
   systemctl start v3xctrl-video

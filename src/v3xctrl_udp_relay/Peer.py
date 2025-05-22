@@ -9,7 +9,7 @@ from rpi_4g_streamer.Message import PeerAnnouncement, Message, PeerInfo
 class Peer:
     ANNOUNCE_INTERVAL = 1
 
-    def __init__(self, server: str, port: int, session_id: str, register_timeout: int = 30):
+    def __init__(self, server: str, port: int, session_id: str, register_timeout: int = 300):
         self.server = server
         self.port = port
         self.session_id = session_id

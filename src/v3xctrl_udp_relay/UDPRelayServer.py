@@ -6,45 +6,48 @@ import time
 from rpi_4g_streamer.Message import Message, PeerAnnouncement, PeerInfo
 
 
-class UDPRelayServer:
-    RELAY_PUBLIC_IP = "91.151.16.62"
-    PORT = 8888
-    TIMEOUT = 10
+class UDPRelayServer(threading.Thread):
+    TIMEOUT = 60
     CLEANUP_INTERVAL = 5
+    RECEIVE_BUFFER = 2048
     VALID_TYPES = ["video", "control"]
-    ROLES = ["client", "server"]
+    VALID_ROLES = ["client", "server"]
 
-    def __init__(self):
-        self.sessions = {}    # session_id -> role -> port_type -> {"addr": (ip, port), "ts": float}
-        self.relay_map = {}   # (ip, port) -> {"target": (ip, port), "ts": float}
+    def __init__(self, ip: str, port: int):
+        super().__init__(daemon=True)
+        self.ip = ip
+        self.port = port
+
+        self.running = threading.Event()
+        self.running.set()
+
+        self.sessions = {}
+        self.relay_map = {}
         self.lock = threading.Lock()
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.bind(('0.0.0.0', self.PORT))
+        self.sock.bind(('0.0.0.0', self.port))
 
     def clean_expired_entries(self):
-        while True:
+        while self.running.is_set():
             now = time.time()
             with self.lock:
-                expired_keys = [
-                    key for key, values in self.relay_map.items()
-                    if now - values["ts"] > self.TIMEOUT
-                ]
-                for key in expired_keys:
-                    logging.info(f"Removed expired relay entry: {key}")
-                    del self.relay_map[key]
+                # Check for expired mappings
+                for key, values in list(self.relay_map.items()):
+                    if now - values["ts"] > self.TIMEOUT:
+                        logging.info(f"Removed expired mapping: {key}")
+                        del self.relay_map[key]
 
-                expired_sids = [
-                    sid for sid, peers in self.sessions.items()
-                    if all(
-                        now - entry["ts"] > self.TIMEOUT
-                        for role in peers.values()
-                        for entry in role.values()
-                    )
-                ]
-                for sid in expired_sids:
-                    logging.info(f"Removed expired session: {sid}")
-                    del self.sessions[sid]
+                # Check for expired sessions
+                for sid, peers in self.sessions.items():
+                    expired = True
+                    for role in peers.values():
+                        for entry in role.values():
+                            if now - entry["ts"] <= self.TIMEOUT:
+                                expired = False
+                    if expired:
+                        logging.info(f"Removed expired session: {sid}")
+                        del self.sessions[sid]
 
             time.sleep(self.CLEANUP_INTERVAL)
 
@@ -53,7 +56,7 @@ class UDPRelayServer:
         role = msg.get_role()
         port_type = msg.get_port_type()
 
-        if role not in self.ROLES or port_type not in self.VALID_TYPES:
+        if role not in self.VALID_ROLES or port_type not in self.VALID_TYPES:
             logging.warning(f"Invalid announcement from {addr} — role={role}, port_type={port_type}")
             return
 
@@ -66,34 +69,27 @@ class UDPRelayServer:
 
             if all(
                 r in session and all(pt in session[r] for pt in self.VALID_TYPES)
-                for r in self.ROLES
+                for r in self.VALID_ROLES
             ):
                 client = session["client"]
                 server = session["server"]
 
                 for pt in self.VALID_TYPES:
-                    client_addr = client[pt]["addr"]
-                    server_addr = server[pt]["addr"]
-
-                    self.relay_map[client_addr] = {
-                        "target": server_addr,
+                    self.relay_map[client[pt]["addr"]] = {
+                        "target": server[pt]["addr"],
                         "ts": time.time()
                     }
-                    self.relay_map[server_addr] = {
-                        "target": client_addr,
+                    self.relay_map[server[pt]["addr"]] = {
+                        "target": client[pt]["addr"],
                         "ts": time.time()
                     }
 
                 try:
-                    relay_ip = self.RELAY_PUBLIC_IP
-                    relay_port = self.PORT
-
                     peer_info = PeerInfo(
-                        ip=relay_ip,
-                        video_port=relay_port,
-                        control_port=relay_port,
+                        ip=self.ip,
+                        video_port=self.port,
+                        control_port=self.port,
                     )
-
                     for pt in self.VALID_TYPES:
                         self.sock.sendto(peer_info.to_bytes(), client[pt]["addr"])
                         self.sock.sendto(peer_info.to_bytes(), server[pt]["addr"])
@@ -110,12 +106,12 @@ class UDPRelayServer:
             entry["ts"] = time.time()
 
     def run(self):
-        logging.info(f"UDP Relay server listening on port {self.PORT}")
+        logging.info(f"UDP Relay server listening on {self.ip}:{self.port}")
         threading.Thread(target=self.clean_expired_entries, daemon=True).start()
 
-        while True:
+        while self.running.is_set():
             try:
-                data, addr = self.sock.recvfrom(2048)
+                data, addr = self.sock.recvfrom(self.RECEIVE_BUFFER)
 
                 with self.lock:
                     if addr in self.relay_map:
@@ -131,11 +127,16 @@ class UDPRelayServer:
                 except Exception:
                     logging.info(f"Dropped malformed message from {addr}")
 
+            except OSError:
+                if not self.running.is_set():
+                    break
+                logging.error("Socket error", exc_info=True)
             except Exception as e:
-                logging.error(f"Error: {e}")
+                logging.error(f"Unhandled error: {e}")
 
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    server = UDPRelayServer()
-    server.run()
+    def shutdown(self):
+        self.running.clear()
+        try:
+            self.sock.close()
+        except Exception as e:
+            logging.warning(f"Error closing socket: {e}")
