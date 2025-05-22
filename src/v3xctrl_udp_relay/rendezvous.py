@@ -7,6 +7,7 @@ from rpi_4g_streamer.Message import Message, PeerAnnouncement, PeerInfo
 
 
 class UDPRelayServer:
+    RELAY_PUBLIC_IP = ""
     PORT = 8888
     TIMEOUT = 10
     CLEANUP_INTERVAL = 5
@@ -84,20 +85,18 @@ class UDPRelayServer:
                     }
 
                 try:
-                    peer_info_for_client = PeerInfo(
-                        ip=server["video"]["addr"][0],
-                        video_port=server["video"]["addr"][1],
-                        control_port=server["control"]["addr"][1],
-                    )
-                    peer_info_for_server = PeerInfo(
-                        ip=client["video"]["addr"][0],
-                        video_port=client["video"]["addr"][1],
-                        control_port=client["control"]["addr"][1],
+                    relay_ip = self.RELAY_PUBLIC_IP
+                    relay_port = self.PORT
+
+                    peer_info = PeerInfo(
+                        ip=relay_ip,
+                        video_port=relay_port,
+                        control_port=relay_port,
                     )
 
                     for pt in self.VALID_TYPES:
-                        self.sock.sendto(peer_info_for_client.to_bytes(), client[pt]["addr"])
-                        self.sock.sendto(peer_info_for_server.to_bytes(), server[pt]["addr"])
+                        self.sock.sendto(peer_info.to_bytes(), client[pt]["addr"])
+                        self.sock.sendto(peer_info.to_bytes(), server[pt]["addr"])
                 except Exception as e:
                     logging.error(f"Error sending PeerInfo: {e}")
 
