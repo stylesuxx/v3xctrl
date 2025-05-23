@@ -9,11 +9,10 @@ from v3xctrl_control.Message import PeerAnnouncement, Message, PeerInfo
 class Peer:
     ANNOUNCE_INTERVAL = 1
 
-    def __init__(self, server: str, port: int, session_id: str, register_timeout: int = 300):
+    def __init__(self, server: str, port: int, session_id: str):
         self.server = server
         self.port = port
         self.session_id = session_id
-        self.register_timeout = register_timeout
 
     def bind_socket(self, name: str, port: int = 0) -> socket.socket:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -24,28 +23,23 @@ class Peer:
     def register_with_relay(self, sock: socket.socket, port_type: str, role: str) -> PeerInfo | None:
         msg = PeerAnnouncement(r=role, i=self.session_id, p=port_type)
         sock.settimeout(1)
-        start_time = time.time()
 
-        while time.time() - start_time < self.register_timeout:
-            try:
-                sock.sendto(msg.to_bytes(), (self.server, self.port))
-                logging.debug(f"Sent {port_type} announcement to {self.server}:{self.port} from {sock.getsockname()}")
+        try:
+            sock.sendto(msg.to_bytes(), (self.server, self.port))
+            logging.debug(f"Sent {port_type} announcement to {self.server}:{self.port} from {sock.getsockname()}")
 
-                data, _ = sock.recvfrom(1024)
-                msg = Message.from_bytes(data)
+            data, _ = sock.recvfrom(1024)
+            msg = Message.from_bytes(data)
 
-                if isinstance(msg, PeerInfo):
-                    logging.info(f"[Relay] Received PeerInfo for {port_type}: {msg}")
-                    return msg
+            if isinstance(msg, PeerInfo):
+                logging.info(f"[Relay] Received PeerInfo for {port_type}: {msg}")
+                return msg
 
-            except socket.timeout:
-                time.sleep(self.ANNOUNCE_INTERVAL)
-            except Exception as e:
-                logging.error(f"[Relay] Error during {port_type} registration: {e}")
-                return None
-
-        logging.error(f"Timeout waiting for PeerInfo for {port_type}")
-        return None
+        except socket.timeout:
+            time.sleep(self.ANNOUNCE_INTERVAL)
+        except Exception as e:
+            logging.error(f"[Relay] Error during {port_type} registration: {e}")
+            return None
 
     def register_all(self, sockets: dict[str, socket.socket], role: str) -> dict[str, PeerInfo]:
         results = {pt: [None] for pt in sockets.keys()}
