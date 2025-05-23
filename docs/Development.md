@@ -215,3 +215,9 @@ Watch for file changes and re-run tests automatically:
 ```bash
 python watch_tests.py
 ```
+
+Run tests with coverage, show missing:
+
+```bash
+python -m pytest --cov=v3xctrl_ui.menu.TextInput --cov-report=term-missing tests/v3xctrl_ui/menu/test_TextInput.py
+```

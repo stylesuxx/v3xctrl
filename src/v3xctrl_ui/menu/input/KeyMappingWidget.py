@@ -3,8 +3,8 @@ from pygame import Surface
 from pygame.freetype import Font
 from typing import Callable
 
-from v3xctrl_ui.menu import Button
-from v3xctrl_ui.menu.BaseWidget import BaseWidget
+from v3xctrl_ui.menu.input import Button
+from .BaseWidget import BaseWidget
 
 
 class KeyMappingWidget(BaseWidget):

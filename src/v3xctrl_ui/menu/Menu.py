@@ -6,7 +6,7 @@ from typing import Callable
 from v3xctrl_ui.GamepadManager import GamepadManager
 from v3xctrl_ui.Settings import Settings
 
-from v3xctrl_ui.menu import Button
+from v3xctrl_ui.menu.input import Button
 from v3xctrl_ui.menu.tabs import GeneralTab, InputTab, FrequenciesTab
 
 from v3xctrl_ui.colors import WHITE, GREY, MID_GREY, DARK_GREY

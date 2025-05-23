@@ -4,7 +4,7 @@ os.environ["SDL_VIDEODRIVER"] = "dummy"
 import unittest
 import pygame
 from pygame.freetype import SysFont
-from v3xctrl_ui.menu.Checkbox import Checkbox
+from v3xctrl_ui.menu.input import Checkbox
 
 
 class TestCheckbox(unittest.TestCase):
@@ -72,6 +72,29 @@ class TestCheckbox(unittest.TestCase):
         self.assertEqual(checkbox.y, 80)
         self.assertEqual(checkbox.box_rect.topleft, (50, 80))
         self.assertEqual(checkbox.label_rect.x, 50 + checkbox.BOX_SIZE + checkbox.BOX_MARGIN)
+
+    def test_get_size(self):
+        checkbox = Checkbox("SizeTest", font=self.font, checked=False, on_change=self.on_change)
+        width, height = checkbox.get_size()
+        expected_width = checkbox.BOX_SIZE + checkbox.BOX_MARGIN + checkbox.label_rect.width
+        expected_height = max(checkbox.BOX_SIZE, checkbox.label_rect.height)
+        self.assertEqual(width, expected_width)
+        self.assertEqual(height, expected_height)
+
+    def test_draw_checked_and_unchecked(self):
+        checkbox = Checkbox("DrawTest", font=self.font, checked=False, on_change=self.on_change)
+        # unchecked draw
+        try:
+            checkbox.draw(self.screen)
+        except Exception as e:
+            self.fail(f"draw() raised exception when unchecked: {e}")
+
+        # checked draw (draws the check marks)
+        checkbox.checked = True
+        try:
+            checkbox.draw(self.screen)
+        except Exception as e:
+            self.fail(f"draw() raised exception when checked: {e}")
 
 
 if __name__ == '__main__':

@@ -6,7 +6,7 @@ import pygame
 import pygame.freetype
 from unittest.mock import MagicMock
 
-from v3xctrl_ui.menu.KeyMappingWidget import KeyMappingWidget
+from v3xctrl_ui.menu.input import KeyMappingWidget
 
 
 class TestKeyMappingWidget(unittest.TestCase):
@@ -63,6 +63,25 @@ class TestKeyMappingWidget(unittest.TestCase):
             self.widget.draw(surface)
         except Exception as e:
             self.fail(f"Draw should not raise exception: {e}")
+
+    def test_get_size_returns_correct_tuple(self):
+        width, height = self.widget.get_size()
+        self.assertIsInstance(width, int)
+        self.assertIsInstance(height, int)
+        self.assertGreater(width, 0)
+        self.assertGreater(height, 0)
+
+    def test_enable_calls_button_enable(self):
+        self.widget.remap_button.disable()
+        self.assertTrue(self.widget.remap_button.disabled)
+        self.widget.enable()
+        self.assertFalse(self.widget.remap_button.disabled)
+
+    def test_disable_calls_button_disable(self):
+        self.widget.remap_button.enable()
+        self.assertFalse(self.widget.remap_button.disabled)
+        self.widget.disable()
+        self.assertTrue(self.widget.remap_button.disabled)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 from pygame import event, Surface
 
 from v3xctrl_ui.fonts import LABEL_FONT, MONO_FONT
-from v3xctrl_ui.menu import NumberInput
+from v3xctrl_ui.menu.input import NumberInput
 
 from .Tab import Tab
 

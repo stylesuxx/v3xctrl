@@ -3,9 +3,7 @@ from pygame import Surface, event
 from v3xctrl_ui.colors import WHITE
 from v3xctrl_ui.fonts import LABEL_FONT, TEXT_FONT, MONO_FONT
 
-from v3xctrl_ui.menu import Checkbox
-from v3xctrl_ui.menu import NumberInput
-from v3xctrl_ui.menu import TextInput
+from v3xctrl_ui.menu.input import Checkbox, NumberInput, TextInput
 
 from .Tab import Tab
 

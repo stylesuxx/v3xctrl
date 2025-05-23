@@ -3,7 +3,7 @@ from pygame import Surface, Rect
 from pygame.freetype import Font
 from typing import Callable
 
-from v3xctrl_ui.menu.BaseWidget import BaseWidget
+from .BaseWidget import BaseWidget
 
 
 class Checkbox(BaseWidget):

@@ -3,16 +3,13 @@ from pygame import Surface
 from pygame.freetype import Font
 from typing import Callable, Dict, Optional
 
+from v3xctrl_ui.colors import WHITE, GREY
 from v3xctrl_ui.GamepadManager import GamepadManager
 
-from v3xctrl_ui.colors import WHITE, GREY
-
-from v3xctrl_ui.menu import Button
-from v3xctrl_ui.menu import Checkbox
-from v3xctrl_ui.menu import Select
-
-from v3xctrl_ui.menu.BaseWidget import BaseWidget
 from v3xctrl_ui.menu.calibration.GamepadCalibrator import GamepadCalibrator, CalibratorState
+
+from v3xctrl_ui.menu.input import Button, Checkbox, Select
+from v3xctrl_ui.menu.input.BaseWidget import BaseWidget
 
 
 class GamepadCalibrationWidget(BaseWidget):

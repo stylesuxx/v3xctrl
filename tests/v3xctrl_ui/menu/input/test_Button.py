@@ -6,7 +6,7 @@ import pygame.freetype
 import unittest
 from unittest.mock import MagicMock
 
-from v3xctrl_ui.menu.Button import Button
+from v3xctrl_ui.menu.input import Button
 
 
 class TestButton(unittest.TestCase):
@@ -79,6 +79,38 @@ class TestButton(unittest.TestCase):
             self.button.draw(self.screen)
         except Exception as e:
             self.fail(f"Button.draw() raised an exception: {e}")
+
+    def test_get_size(self):
+        width, height = self.button.get_size()
+        self.assertEqual(width, self.button.rect.width)
+        self.assertEqual(height, self.button.rect.height)
+
+    def test_draw_states(self):
+        surface = pygame.Surface((200, 100))
+
+        # Normal (not hovered, not active, enabled)
+        self.button.hovered = False
+        self.button.active = False
+        self.button.disabled = False
+        self.button.draw(surface)
+
+        # Hovered (mouse over, not active, enabled)
+        self.button.hovered = True
+        self.button.active = False
+        self.button.disabled = False
+        self.button.draw(surface)
+
+        # Active (mouse down inside)
+        self.button.hovered = True
+        self.button.active = True
+        self.button.disabled = False
+        self.button.draw(surface)
+
+        # Disabled (no interaction)
+        self.button.hovered = False
+        self.button.active = False
+        self.button.disabled = True
+        self.button.draw(surface)
 
 
 if __name__ == "__main__":
