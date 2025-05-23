@@ -78,39 +78,45 @@ class UDPRelayServer(threading.Thread):
         self.running = threading.Event()
         self.running.set()
 
+    def _is_entry_expired(self, entry, now):
+        return (now - entry["ts"]) > self.TIMEOUT
+
     def clean_expired_entries(self):
         while self.running.is_set():
             now = time.time()
-            with self.lock:
-                role_expiry_map = {}
-                for addr, entry in list(self.relay_map.items()):
-                    session_id = entry["session"]
-                    role = entry["role"]
-                    port_type = entry["port_type"]
-                    expired = now - entry["ts"] > self.TIMEOUT
-                    role_expiry_map.setdefault((session_id, role), {})[port_type] = expired
+            expired_roles = set()
 
-                for (session_id, role), port_expiry in role_expiry_map.items():
-                    if all(port_expiry.get(port_type, False) for port_type in PortType):
+            with self.lock:
+                # Phase 1: Identify expired mappings per (session, role)
+                for addr, entry in list(self.relay_map.items()):
+                    if self._is_entry_expired(entry, now):
+                        key = (entry["session"], entry["role"])
+                        expired_roles.setdefault(key, set()).add(entry["port_type"])
+
+                # Phase 2: Expire relay mappings and roles
+                for (session_id, role), expired_types in expired_roles.items():
+                    if all(pt in expired_types for pt in PortType):
                         for addr, entry in list(self.relay_map.items()):
                             if entry["session"] == session_id and entry["role"] == role:
                                 del self.relay_map[addr]
                                 logging.debug(f"Expired mapping for {session_id}:{role}:{entry['port_type']} at {addr}")
+
                         if session_id in self.sessions:
                             self.sessions[session_id].roles[role] = {}
                             logging.debug(f"Removed expired role {role} from session {session_id}")
 
+                # Phase 3: Expire whole session if all roles are empty or timed out
                 for sid, session in list(self.sessions.items()):
-                    all_expired = True
-                    any_in_relay = False
+                    expired = True
                     for role_dict in session.roles.values():
                         for peer in role_dict.values():
-                            if now - peer.ts <= self.TIMEOUT:
-                                all_expired = False
-                            if peer.addr in self.relay_map:
-                                any_in_relay = True
+                            if (now - peer.ts) <= self.TIMEOUT:
+                                expired = False
+                                break
+                        if not expired:
+                            break
 
-                    if all_expired and not any_in_relay:
+                    if expired:
                         del self.sessions[sid]
                         logging.info(f"Removed expired session: {sid}")
 
