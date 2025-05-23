@@ -46,7 +46,9 @@ class SignalQualityWidget(Widget):
         return -140 if value == 255 else value - 140
 
     def _rsrq_to_dbm(self, value: int) -> float:
-        return -20.0 if value == 255 else (value * 0.5) - 19.5
+        if value == 255:
+            return None
+        return (value - 40) / 2
 
     def _get_bars(self, value: int) -> int:
         rsrp_dbm = self._rsrp_to_dbm(value)
@@ -63,11 +65,14 @@ class SignalQualityWidget(Widget):
 
     def _get_quality(self, value: int) -> SignalQuality:
         rsrq_dbm = self._rsrq_to_dbm(value)
-        if rsrq_dbm >= -10:
+        if rsrq_dbm is None:
+            return SignalQuality.POOR
+
+        if rsrq_dbm >= -7:
             return SignalQuality.EXCELLENT
-        elif rsrq_dbm >= -15:
+        elif rsrq_dbm >= -12:
             return SignalQuality.GOOD
-        elif rsrq_dbm >= -20:
+        elif rsrq_dbm >= -17:
             return SignalQuality.FAIR
         else:
             return SignalQuality.POOR
