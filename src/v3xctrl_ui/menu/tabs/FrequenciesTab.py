@@ -1,4 +1,4 @@
-from pygame import event, Surface
+from pygame import Surface
 
 from v3xctrl_ui.fonts import LABEL_FONT, MONO_FONT
 from v3xctrl_ui.menu.input import NumberInput
@@ -14,7 +14,6 @@ class FrequenciesTab(Tab):
 
         label_width = 170
         input_width = 75
-        element_padding = 10
 
         self.video_input = NumberInput(
             "Main Loop FPS",
@@ -43,37 +42,37 @@ class FrequenciesTab(Tab):
             on_change=lambda v: self._on_rate_change("latency_check_hz", v)
         )
 
-        y_position = y_offset + padding + 60
-
-        self.video_input.set_position(padding, y_position)
-        width, height = self.video_input.get_size()
-        y_position += height + element_padding
-
-        self.control_input.set_position(padding, y_position)
-        width, height = self.control_input.get_size()
-        y_position += height + element_padding
-
-        self.latency_input.set_position(padding, y_position)
-
         self.video_input.value = str(self.timing.get("main_loop_fps", ""))
         self.control_input.value = str(self.timing.get("control_update_hz", ""))
         self.latency_input.value = str(self.timing.get("latency_check_hz", ""))
 
+        self.elements = [
+            self.video_input,
+            self.control_input,
+            self.latency_input,
+        ]
+
     def _on_rate_change(self, name: str, value: str):
         self.timing[name] = int(value)
 
-    def handle_event(self, event: event.Event):
-        self.video_input.handle_event(event)
-        self.control_input.handle_event(event)
-        self.latency_input.handle_event(event)
-
-    def draw(self, surface: Surface):
+    def _draw_frequency_section(self, surface: Surface, y: int) -> int:
         y = self.y_offset + self.padding
         self._draw_headline(surface, "Update Frequencies", y)
 
+        y = self.y_offset + self.padding + self.y_offset_headline
+        self.video_input.set_position(self.padding, y)
         self.video_input.draw(surface)
+
+        y += self.video_input.get_size()[1] + self.y_element_padding
+        self.control_input.set_position(self.padding, y)
         self.control_input.draw(surface)
+
+        y += self.control_input.get_size()[1] + self.y_element_padding
+        self.latency_input.set_position(self.padding, y)
         self.latency_input.draw(surface)
+
+    def draw(self, surface: Surface):
+        y = self._draw_frequency_section(surface, 0)
 
     def get_settings(self) -> dict:
         return {

@@ -60,6 +60,11 @@ class Checkbox(BaseWidget):
         self.label_rect.x = x + self.BOX_SIZE + self.BOX_MARGIN
         self.label_rect.y = y + (self.BOX_SIZE - self.label_rect.height) // 2
 
+    def set_checked(self, checked: bool):
+        if self.checked != checked:
+            self.checked = checked
+            self.on_change(self.checked)
+
     def draw(self, surface: Surface):
         surface.blit(self.box_surface, self.box_rect.topleft)
 

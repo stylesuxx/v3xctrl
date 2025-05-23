@@ -5,7 +5,7 @@ import pygame
 from pygame import Surface, event
 
 from v3xctrl_ui.colors import WHITE
-from v3xctrl_ui.fonts import MAIN_FONT
+from v3xctrl_ui.fonts import MAIN_FONT, TEXT_FONT
 
 
 class Tab(ABC):
@@ -16,11 +16,10 @@ class Tab(ABC):
         self.padding = padding
         self.y_offset = y_offset
 
-    def get_settings(self) -> dict:
-        return self.settings
-
-    def set_settings(self, settings: dict):
-        self.settings = settings
+        self.y_offset_headline = 60
+        self.y_element_padding = 10
+        self.y_section_padding = 25
+        self.y_note_padding = 10
 
     def _draw_headline(self, surface: Surface, title: str, y: int):
         text_surface, _ = MAIN_FONT.render(title, WHITE)
@@ -31,8 +30,19 @@ class Tab(ABC):
 
         return y + 40
 
-    @abstractmethod
+    def _draw_note(self, surface: Surface, text: str, y: int) -> int:
+        note_surface, note_rect = TEXT_FONT.render(text, WHITE)
+        note_rect.topleft = (self.padding, y)
+        surface.blit(note_surface, note_rect)
+
+        return y + note_rect.height
+
     def handle_event(self, event: event.Event):
+        for element in self.elements:
+            element.handle_event(event)
+
+    @abstractmethod
+    def get_settings(self) -> dict:
         raise NotImplementedError
 
     @abstractmethod

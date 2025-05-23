@@ -83,9 +83,9 @@ FPS_SETTINGS = settings.get("widgets")["fps"]
 STEERING_SETTINGS = settings.get("settings")["steering"]
 THROTTLE_SETTINGS = settings.get("settings")["throttle"]
 
-if not relay["enabled"]:
-    ip = get_external_ip()
+ip = get_external_ip()
 
+if not relay["enabled"]:
     print("================================")
     print(f"IP Address:   {ip}")
     print(f"Video port:   {PORTS['video']}")

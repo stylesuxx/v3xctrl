@@ -35,6 +35,8 @@ class InputTab(Tab):
             on_calibration_done=self._on_calibration_done
         )
 
+        self.elements = self.key_widgets + [self.calibration_widget]
+
     def _on_active_toggle(self, active: bool):
         self.on_active_toggle(active)
 
@@ -58,27 +60,31 @@ class InputTab(Tab):
         for widget in self.key_widgets:
             widget.enable()
 
-    def handle_event(self, event: event.Event):
-        for widget in self.key_widgets:
-            widget.handle_event(event)
-        self.calibration_widget.handle_event(event)
+    def _draw_keyboard_section(self, surface: Surface, y: int) -> int:
+        y += self.y_offset + self.padding
+        self._draw_headline(surface, "Keyboard", y)
 
-    def draw(self, surface: Surface):
-        y = self.y_offset + self.padding
-        y = self._draw_headline(surface, "Keyboard", y)
-
-        y += 20
+        y += self.y_offset_headline
         for widget in self.key_widgets:
             widget.set_position(self.padding, y)
             widget.draw(surface)
-            y += 40
+            y += widget.get_size()[1] + self.y_element_padding
 
-        y += 20
-        y = self._draw_headline(surface, "Input device", y)
+        return y
 
-        y += 20
+    def _draw_input_section(self, surface: Surface, y: int) -> int:
+        y += self.y_section_padding
+        self._draw_headline(surface, "Input device", y)
+
+        y += self.y_offset_headline
         self.calibration_widget.set_position(self.padding, y)
         self.calibration_widget.draw(surface)
+
+        return y
+
+    def draw(self, surface: Surface):
+        y = self._draw_keyboard_section(surface, 0)
+        y = self._draw_input_section(surface, y)
 
     def get_settings(self) -> dict:
         return {
