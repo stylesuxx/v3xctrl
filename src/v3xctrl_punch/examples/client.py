@@ -5,7 +5,7 @@ import time
 
 from v3xctrl_punch.examples.TestPeer import TestPeer
 from v3xctrl_punch.PunchPeer import PunchPeer
-from rpi_4g_streamer.Message import Heartbeat
+from v3xctrl_control.Message import Heartbeat
 
 logging.basicConfig(
     level="DEBUG",

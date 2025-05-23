@@ -3,7 +3,7 @@ import socket
 import time
 import threading
 
-from rpi_4g_streamer.Message import (
+from v3xctrl_control.Message import (
     Message, PeerAnnouncement, PeerInfo,
     Syn, SynAck, Ack
 )

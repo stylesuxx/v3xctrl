@@ -3,7 +3,7 @@ import socket
 import threading
 import time
 
-from rpi_4g_streamer.Message import Heartbeat
+from v3xctrl_control.Message import Heartbeat
 
 
 class TestPeer:

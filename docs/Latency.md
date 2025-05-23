@@ -54,3 +54,7 @@ This means we have a total, combined latency (end to end) of 64.6ms - 132.3ms.
 > **End to end latency below 150ms is generally considered acceptable for responsive remote control.**
 
 > **NOTE**: You can clearly see, that our **largest contributor to latency is in the network**. Choosing a good, reliable 4G provider is crucial for a smooth user experience.
+
+
+## UDP Relay
+When using the UDP Relay instead of the direct connection, the latency increases slightly.

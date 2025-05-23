@@ -3,7 +3,7 @@ import socket
 import threading
 import time
 
-from rpi_4g_streamer.Message import Message, PeerAnnouncement, PeerInfo
+from v3xctrl_control.Message import Message, PeerAnnouncement, PeerInfo
 
 
 class UDPRelayServer(threading.Thread):
@@ -67,13 +67,23 @@ class UDPRelayServer(threading.Thread):
 
             logging.info(f"Registered {role.upper()} {port_type} for session '{session_id}' from {addr}")
 
-            if all(
-                r in session and all(pt in session[r] for pt in self.VALID_TYPES)
-                for r in self.VALID_ROLES
-            ):
+            session_complete = True
+            for role in self.ROLES:
+                if role not in session:
+                    session_complete = False
+                    break
+                for port_type in self.VALID_TYPES:
+                    if port_type not in session[role]:
+                        session_complete = False
+                        break
+                if not session_complete:
+                    break
+
+            if session_complete:
                 client = session["client"]
                 server = session["server"]
 
+                # Register relay map entries
                 for pt in self.VALID_TYPES:
                     self.relay_map[client[pt]["addr"]] = {
                         "target": server[pt]["addr"],
@@ -90,6 +100,7 @@ class UDPRelayServer(threading.Thread):
                         video_port=self.port,
                         control_port=self.port,
                     )
+
                     for pt in self.VALID_TYPES:
                         self.sock.sendto(peer_info.to_bytes(), client[pt]["addr"])
                         self.sock.sendto(peer_info.to_bytes(), server[pt]["addr"])
