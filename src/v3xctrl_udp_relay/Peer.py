@@ -13,6 +13,7 @@ class Peer:
         self.server = server
         self.port = port
         self.session_id = session_id
+        self._abort_event = threading.Event()
 
     def bind_socket(self, name: str, port: int = 0) -> socket.socket:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -24,22 +25,23 @@ class Peer:
         msg = PeerAnnouncement(r=role, i=self.session_id, p=port_type)
         sock.settimeout(1)
 
-        try:
-            sock.sendto(msg.to_bytes(), (self.server, self.port))
-            logging.debug(f"Sent {port_type} announcement to {self.server}:{self.port} from {sock.getsockname()}")
+        while not self._abort_event.is_set():
+            try:
+                sock.sendto(msg.to_bytes(), (self.server, self.port))
+                logging.debug(f"Sent {port_type} announcement to {self.server}:{self.port} from {sock.getsockname()}")
 
-            data, _ = sock.recvfrom(1024)
-            msg = Message.from_bytes(data)
+                data, _ = sock.recvfrom(1024)
+                msg = Message.from_bytes(data)
 
-            if isinstance(msg, PeerInfo):
-                logging.info(f"[Relay] Received PeerInfo for {port_type}: {msg}")
-                return msg
+                if isinstance(msg, PeerInfo):
+                    logging.info(f"[Relay] Received PeerInfo for {port_type}: {msg}")
+                    return msg
 
-        except socket.timeout:
-            time.sleep(self.ANNOUNCE_INTERVAL)
-        except Exception as e:
-            logging.error(f"[Relay] Error during {port_type} registration: {e}")
-            return None
+            except socket.timeout:
+                time.sleep(self.ANNOUNCE_INTERVAL)
+            except Exception as e:
+                logging.error(f"[Relay] Error during {port_type} registration: {e}")
+                return None
 
     def register_all(self, sockets: dict[str, socket.socket], role: str) -> dict[str, PeerInfo]:
         results = {pt: [None] for pt in sockets.keys()}
@@ -75,3 +77,6 @@ class Peer:
         for sock in sockets.values():
             sock.settimeout(None)
             sock.close()
+
+    def abort(self):
+        self._abort_event.set()

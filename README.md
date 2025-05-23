@@ -35,16 +35,22 @@ This section is meant to get you up and running within minutes.
 
 ### Server Configuration
 
-On the server, make sure the following ports are open (you might need to forward them through your router) on your Server:
-
-- `6666`: UDP for receiving video (UDP & TCP for running self-tests)
-- `6668`: UDP for receiving UDP messages
-
 Download, extract and run the GUI for your operating system:
 
 * [Linux](/releases/latest/GUI_Linux.zip)
 * [Windows](/releases/latest/GUI_Windows.zip)
 * [MacOS](/releases/latest/GUI_MacOS.zip)
+
+On the server, make sure the following ports are open (you might need to forward them through your router) on your Server:
+
+- `6666`: UDP for receiving video (UDP & TCP for running self-tests)
+- `6668`: UDP for receiving UDP messages
+
+#### No static IP or mobile network
+
+If your server does not have a static IP or you are on a mobile network, you will have to use the UDP Relay instead of configuring port forwarding:
+
+After starting the GUI, enter the Menu and check the "Enable UDP Relay" checkbox. If you are using the default server, a valid ID can be requested in our [Discord](https://discord.gg/uF4hf8UBBW).
 
 ### Client
 
