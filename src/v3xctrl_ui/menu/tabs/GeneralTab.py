@@ -118,12 +118,13 @@ class GeneralTab(Tab):
         y += self.control_input.get_size()[1] + self.y_note_padding
         note_text = "A restart is required to apply port changes!"
         y = self._draw_note(surface, note_text, y)
+        y += self.y_note_padding_bottom
 
         return y
 
     def _draw_relay_section(self, surface: Surface, y: int) -> int:
         y += self.y_section_padding
-        self._draw_headline(surface, "UDP Relay", y)
+        self._draw_headline(surface, "UDP Relay", y, True)
 
         y += self.y_offset_headline
         self.relay_server_input.set_position(self.padding, y)
@@ -140,12 +141,13 @@ class GeneralTab(Tab):
         y += self.relay_enabled_checkbox.get_size()[1] + self.y_note_padding
         note_text = "A restart is required to apply UDP Relay settings!"
         y = self._draw_note(surface, note_text, y)
+        y += self.y_note_padding_bottom
 
         return y
 
     def _draw_debug_section(self, surface: Surface, y: int) -> int:
         y += self.y_section_padding
-        self._draw_headline(surface, "Miscellaneous", y)
+        self._draw_headline(surface, "Miscellaneous", y, True)
 
         y += self.y_offset_headline
         for checkbox in [self.debug_checkbox, self.steering_checkbox, self.throttle_checkbox]:

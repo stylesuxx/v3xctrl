@@ -74,7 +74,7 @@ class InputTab(Tab):
 
     def _draw_input_section(self, surface: Surface, y: int) -> int:
         y += self.y_section_padding
-        self._draw_headline(surface, "Input device", y)
+        self._draw_headline(surface, "Input device", y, True)
 
         y += self.y_offset_headline
         self.calibration_widget.set_position(self.padding, y)

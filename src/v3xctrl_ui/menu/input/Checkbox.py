@@ -1,8 +1,10 @@
 import pygame
 from pygame import Surface, Rect
 from pygame.freetype import Font
+import pygame.gfxdraw
 from typing import Callable
 
+from v3xctrl_ui.colors import MID_GREY, WHITE, DARK_GREY, GAINSBORO
 from .BaseWidget import BaseWidget
 
 
@@ -10,12 +12,10 @@ class Checkbox(BaseWidget):
     BOX_SIZE = 25
     BOX_MARGIN = 10
 
-    LABEL_COLOR = (220, 220, 220)
-    BG_COLOR = (255, 255, 255)
-    CHECK_COLOR = (0, 0, 0)
-
-    BORDER_LIGHT_COLOR = (180, 180, 180)
-    BORDER_DARK_COLOR = (100, 100, 100)
+    LABEL_COLOR = GAINSBORO
+    BG_COLOR = WHITE
+    CHECK_COLOR = MID_GREY
+    BORDER_COLOR = DARK_GREY
 
     def __init__(self,
                  label: str,
@@ -31,15 +31,6 @@ class Checkbox(BaseWidget):
 
         self.box_rect = Rect(self.x, self.y, self.BOX_SIZE, self.BOX_SIZE)
         self.label_surface, self.label_rect = self.font.render(self.label, self.LABEL_COLOR)
-
-        # Pre-render checkbox surface with 3D effect
-        self.box_surface = pygame.Surface((self.BOX_SIZE, self.BOX_SIZE))
-        self.box_surface.fill(self.BG_COLOR)
-
-        pygame.draw.line(self.box_surface, self.BORDER_LIGHT_COLOR, (0, 0), (self.BOX_SIZE - 1, 0))  # top
-        pygame.draw.line(self.box_surface, self.BORDER_LIGHT_COLOR, (0, 0), (0, self.BOX_SIZE - 1))  # left
-        pygame.draw.line(self.box_surface, self.BORDER_DARK_COLOR, (0, self.BOX_SIZE - 1), (self.BOX_SIZE - 1, self.BOX_SIZE - 1))  # bottom
-        pygame.draw.line(self.box_surface, self.BORDER_DARK_COLOR, (self.BOX_SIZE - 1, 0), (self.BOX_SIZE - 1, self.BOX_SIZE - 1))  # right
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -58,7 +49,7 @@ class Checkbox(BaseWidget):
 
         self.box_rect.topleft = (x, y)
         self.label_rect.x = x + self.BOX_SIZE + self.BOX_MARGIN
-        self.label_rect.y = y + (self.BOX_SIZE - self.label_rect.height) // 2
+        self.label_rect.centery = self.box_rect.centery
 
     def set_checked(self, checked: bool):
         if self.checked != checked:
@@ -66,15 +57,16 @@ class Checkbox(BaseWidget):
             self.on_change(self.checked)
 
     def draw(self, surface: Surface):
-        surface.blit(self.box_surface, self.box_rect.topleft)
+        # Draw outer rounded rectangle (always shown)
+        pygame.draw.rect(surface, self.BG_COLOR, self.box_rect, border_radius=4)
+        pygame.draw.rect(surface, self.BORDER_COLOR, self.box_rect, width=1, border_radius=4)
 
+        # Draw inner circle if checked
         if self.checked:
-            pad = 4
-            pygame.draw.line(surface, self.CHECK_COLOR,
-                             (self.box_rect.left + pad, self.box_rect.centery),
-                             (self.box_rect.centerx, self.box_rect.bottom - pad), 2)
-            pygame.draw.line(surface, self.CHECK_COLOR,
-                             (self.box_rect.centerx, self.box_rect.bottom - pad),
-                             (self.box_rect.right - pad, self.box_rect.top + pad), 2)
+            center = self.box_rect.center
+            radius = self.BOX_SIZE // 2 - 4
+            pygame.gfxdraw.filled_circle(surface, center[0], center[1], radius, self.CHECK_COLOR)
+            pygame.gfxdraw.aacircle(surface, center[0], center[1], radius, self.CHECK_COLOR)
 
+        # Draw label
         surface.blit(self.label_surface, self.label_rect)

@@ -17,8 +17,8 @@ TabEntry = namedtuple("TabEntry", ["name", "rect", "view"])
 
 class Menu:
     BG_COLOR = DARK_GREY
-    TAB_ACTIVE_COLOR = MID_GREY
-    TAB_INACTIVE_COLOR = GREY
+    TAB_ACTIVE_COLOR = DARK_GREY
+    TAB_INACTIVE_COLOR = (50, 50, 50)
     TAB_SEPARATOR_COLOR = BG_COLOR
     FONT_COLOR = WHITE
 
@@ -134,10 +134,15 @@ class Menu:
 
     def _draw_tabs(self, surface: Surface):
         for i, entry in enumerate(self.tabs):
-            color = self.TAB_ACTIVE_COLOR if entry.name == self.active_tab else self.TAB_INACTIVE_COLOR
-            pygame.draw.rect(surface, color, entry.rect)
+            is_active = entry.name == self.active_tab
+            color = self.TAB_ACTIVE_COLOR if is_active else self.TAB_INACTIVE_COLOR
+
+            draw_rect = entry.rect.copy()
+            pygame.draw.rect(surface, color, draw_rect)
+
             if i > 0:
                 pygame.draw.line(surface, self.TAB_SEPARATOR_COLOR, entry.rect.topleft, entry.rect.bottomleft, 2)
+
             label_surface, label_rect = MAIN_FONT.render(entry.name, self.FONT_COLOR)
             label_rect.center = entry.rect.center
             surface.blit(label_surface, label_rect)

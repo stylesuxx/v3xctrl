@@ -19,14 +19,32 @@ class Tab(ABC):
         self.y_offset_headline = 60
         self.y_element_padding = 10
         self.y_section_padding = 25
-        self.y_note_padding = 10
+        self.y_note_padding = 14
+        self.y_note_padding_bottom = 5
 
-    def _draw_headline(self, surface: Surface, title: str, y: int):
+    def _draw_headline(self, surface: Surface, title: str, y: int, draw_top_line: bool = False):
+        line_padding = 10
+        line_width = 2
+
         text_surface, _ = MAIN_FONT.render(title, WHITE)
         surface.blit(text_surface, (self.padding, y))
-        pygame.draw.line(surface, WHITE,
-                         (self.padding, y + 40),
-                         (self.width - self.padding, y + 40), 2)
+        height = text_surface.get_height()
+
+        line_padding_top = y - line_padding - line_width
+        line_padding_bottom = y + height + line_padding
+
+        if draw_top_line:
+            pygame.draw.line(
+                surface, WHITE,
+                (self.padding, line_padding_top),
+                (self.width - self.padding, line_padding_top), line_width
+            )
+
+        pygame.draw.line(
+            surface, WHITE,
+            (self.padding, line_padding_bottom),
+            (self.width - self.padding, line_padding_bottom), line_width
+        )
 
         return y + 40
 
