@@ -41,28 +41,6 @@ class TestNumberInput(unittest.TestCase):
         self.assertEqual(self.input.value, "2")
         self.assertEqual(self.input.get_value(), 2)
 
-    def test_cursor_navigation_and_backspace(self):
-        self.input.handle_event(Event(KEYDOWN, {"unicode": "4", "key": 0}))
-        self.input.handle_event(Event(KEYDOWN, {"unicode": "2", "key": 0}))
-        self.assertEqual(self.input.value, "42")
-
-        self.input.handle_event(Event(KEYDOWN, {"key": K_LEFT}))
-        self.assertEqual(self.input.cursor_pos, 1)
-
-        self.input.handle_event(Event(KEYDOWN, {"key": K_BACKSPACE}))
-        self.assertEqual(self.input.value, "2")
-        self.assertEqual(self.input.cursor_pos, 0)
-
-    def test_arrow_key_increment_decrement(self):
-        self.input.value = "3"
-        self.input.cursor_pos = 1
-        self.input.handle_event(Event(KEYDOWN, {"key": K_UP}))
-        self.assertEqual(self.input.get_value(), 4)
-        self.assertEqual(self.changed_to, "4")
-
-        self.input.handle_event(Event(KEYDOWN, {"key": K_DOWN}))
-        self.assertEqual(self.input.get_value(), 3)
-
     def test_out_of_range_rejection(self):
         self.input.min_val = 1
         self.input.max_val = 3
@@ -70,15 +48,6 @@ class TestNumberInput(unittest.TestCase):
         self.input.cursor_pos = 1
         self.input.handle_event(Event(KEYDOWN, {"unicode": "9", "key": 0}))
         self.assertEqual(self.input.value, "3")  # Rejected
-
-    def test_cursor_does_not_exceed_bounds(self):
-        self.input.value = "123"
-        self.input.cursor_pos = 3
-        self.input.handle_event(Event(KEYDOWN, {"key": K_RIGHT}))
-        self.assertEqual(self.input.cursor_pos, 3)
-
-        self.input.handle_event(Event(KEYDOWN, {"key": K_LEFT}))
-        self.assertEqual(self.input.cursor_pos, 2)
 
     def test_get_value_fallback(self):
         self.input.value = "notanumber"
@@ -104,18 +73,6 @@ class TestNumberInput(unittest.TestCase):
         self.input.handle_event(event)
 
         self.assertTrue(0 <= self.input.cursor_pos <= len(self.input.value))
-
-    def test_arrow_key_increment_and_decrement(self):
-        self.input.value = "5"
-        self.input.cursor_pos = 1
-
-        self.input.handle_event(pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_UP}))
-        self.assertEqual(self.input.value, "6")
-        self.assertEqual(self.input.cursor_pos, len(self.input.value))
-
-        self.input.handle_event(pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_DOWN}))
-        self.assertEqual(self.input.value, "5")
-        self.assertEqual(self.input.cursor_pos, len(self.input.value))
 
     def test_reject_invalid_digit_input(self):
         self.input.min_val = 1
@@ -167,6 +124,49 @@ class TestNumberInput(unittest.TestCase):
         event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": pos, "button": 1})
         self.input.handle_event(event)
         self.assertFalse(self.input.focused)
+
+    def test_cursor_navigation_and_backspace(self):
+        self.input.handle_event(Event(KEYDOWN, {"unicode": "4", "key": pygame.K_4}))
+        self.input.handle_event(Event(KEYDOWN, {"unicode": "2", "key": pygame.K_2}))
+        self.assertEqual(self.input.value, "42")
+
+        self.input.handle_event(Event(KEYDOWN, {"key": K_LEFT, "unicode": ''}))
+        self.assertEqual(self.input.cursor_pos, 1)
+
+        self.input.handle_event(Event(KEYDOWN, {"key": K_BACKSPACE, "unicode": ''}))
+        self.assertEqual(self.input.value, "2")
+        self.assertEqual(self.input.cursor_pos, 0)
+
+    def test_arrow_key_increment_decrement(self):
+        self.input.value = "3"
+        self.input.cursor_pos = 1
+        self.input.handle_event(Event(KEYDOWN, {"key": K_UP, "unicode": ''}))
+        self.assertEqual(self.input.get_value(), 4)
+        self.assertEqual(self.changed_to, "4")
+
+        self.input.handle_event(Event(KEYDOWN, {"key": K_DOWN, "unicode": ''}))
+        self.assertEqual(self.input.get_value(), 3)
+
+    def test_cursor_does_not_exceed_bounds(self):
+        self.input.value = "123"
+        self.input.cursor_pos = 3
+        self.input.handle_event(Event(KEYDOWN, {"key": K_RIGHT, "unicode": ''}))
+        self.assertEqual(self.input.cursor_pos, 3)
+
+        self.input.handle_event(Event(KEYDOWN, {"key": K_LEFT, "unicode": ''}))
+        self.assertEqual(self.input.cursor_pos, 2)
+
+    def test_arrow_key_increment_and_decrement(self):
+        self.input.value = "5"
+        self.input.cursor_pos = 1
+
+        self.input.handle_event(pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_UP, "unicode": ''}))
+        self.assertEqual(self.input.value, "6")
+        self.assertEqual(self.input.cursor_pos, len(self.input.value))
+
+        self.input.handle_event(pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_DOWN, "unicode": ''}))
+        self.assertEqual(self.input.value, "5")
+        self.assertEqual(self.input.cursor_pos, len(self.input.value))
 
 
 if __name__ == "__main__":

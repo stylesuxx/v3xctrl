@@ -106,6 +106,17 @@ class BaseInput(BaseWidget):
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             self._handle_mouse(event.pos)
+        elif event.type == pygame.KEYDOWN and self.focused:
+            self._handle_keydown(event)
+
+    def _handle_keydown(self, event):
+        if event.key == pygame.K_BACKSPACE and self.cursor_pos > 0:
+            self.value = self.value[:self.cursor_pos - 1] + self.value[self.cursor_pos:]
+            self.cursor_pos -= 1
+        elif event.key == pygame.K_LEFT:
+            self.cursor_pos = max(0, self.cursor_pos - 1)
+        elif event.key == pygame.K_RIGHT:
+            self.cursor_pos = min(len(self.value), self.cursor_pos + 1)
 
     def get_value(self):
         return self.value

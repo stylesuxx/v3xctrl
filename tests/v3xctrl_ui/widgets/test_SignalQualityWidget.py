@@ -20,7 +20,7 @@ class TestSignalQualityWidget(unittest.TestCase):
         self.assertTrue(w.bar_spacing > 0)
         self.assertTrue(w.bar_width > 0)
         self.assertTrue(w.bar_max_height > 0)
-        self.assertTrue(w.extra_right_padding in (0,1))
+        self.assertTrue(w.extra_right_padding in (0, 1))
 
     def test_rsrp_to_dbm_mapping(self):
         w = self.widget
