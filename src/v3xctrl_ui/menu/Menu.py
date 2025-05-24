@@ -1,3 +1,4 @@
+import sys
 from collections import namedtuple
 import pygame
 from pygame import Surface
@@ -55,10 +56,18 @@ class Menu:
         self.active_tab = self.tabs[0].name
         self.disable_tabs = False
 
+        # Button positions
+        button_y = self.height - self.footer_height
+        quit_button_x = self.padding
         save_button_x = self.width - (button_width + self.padding) * 2
         exit_button_x = self.width - button_width - self.padding
 
-        button_y = self.height - self.footer_height
+        # Buttons
+        self.quit_button = Button(
+            "Quit",
+            button_width, button_height,
+            MAIN_FONT,
+            self._quit_button_callback)
 
         self.save_button = Button(
             "Save",
@@ -72,6 +81,7 @@ class Menu:
             MAIN_FONT,
             self._exit_button_callback)
 
+        self.quit_button.set_position(quit_button_x, button_y)
         self.save_button.set_position(save_button_x, button_y)
         self.exit_button.set_position(exit_button_x, button_y)
 
@@ -110,10 +120,12 @@ class Menu:
             self.disable_tabs = True
             self.save_button.disable()
             self.exit_button.disable()
+            self.quit_button.disable()
         else:
             self.disable_tabs = False
             self.save_button.enable()
             self.exit_button.enable()
+            self.quit_button.enable()
 
     def _get_active_tab(self) -> TabEntry:
         return next((t for t in self.tabs if t.name == self.active_tab), None)
@@ -122,32 +134,32 @@ class Menu:
         tab = self._get_active_tab()
         if tab:
             settings = tab.view.get_settings()
-
             for key, val in settings.items():
                 self.settings.set(key, val)
-
             self.settings.save()
 
     def _exit_button_callback(self):
         self.active_tab = self.tabs[0].name
         self.callback()
 
+    def _quit_button_callback(self):
+        pygame.quit()
+        sys.exit()
+
     def _draw_tabs(self, surface: Surface):
         for i, entry in enumerate(self.tabs):
             is_active = entry.name == self.active_tab
             color = self.TAB_ACTIVE_COLOR if is_active else self.TAB_INACTIVE_COLOR
-
             draw_rect = entry.rect.copy()
             pygame.draw.rect(surface, color, draw_rect)
-
             if i > 0:
                 pygame.draw.line(surface, self.TAB_SEPARATOR_COLOR, entry.rect.topleft, entry.rect.bottomleft, 2)
-
             label_surface, label_rect = MAIN_FONT.render(entry.name, self.FONT_COLOR)
             label_rect.center = entry.rect.center
             surface.blit(label_surface, label_rect)
 
     def handle_event(self, event):
+        self.quit_button.handle_event(event)
         self.save_button.handle_event(event)
         self.exit_button.handle_event(event)
 
@@ -164,6 +176,7 @@ class Menu:
     def draw(self, surface: Surface):
         surface.blit(self.background, (0, 0))
         self._draw_tabs(surface)
+        self.quit_button.draw(surface)
         self.save_button.draw(surface)
         self.exit_button.draw(surface)
 

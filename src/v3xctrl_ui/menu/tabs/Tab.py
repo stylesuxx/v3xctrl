@@ -16,7 +16,7 @@ class Tab(ABC):
         self.padding = padding
         self.y_offset = y_offset
 
-        self.y_offset_headline = 60
+        self.y_offset_headline = 55
         self.y_element_padding = 10
         self.y_section_padding = 25
         self.y_note_padding = 14
