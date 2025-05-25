@@ -36,6 +36,8 @@
           "failsafe": 1500,
           "scaleForward": 100,
           "scaleReverse": 100,
+          "minForward": 0,
+          "minReverse": 0,
           "idle": 1500
       },
       "steering": {

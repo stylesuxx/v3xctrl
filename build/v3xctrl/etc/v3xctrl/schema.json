@@ -255,6 +255,18 @@
               "minimum": 1,
               "maximum": 100,
               "description": "Scales the throttle reverse range as a percentage of the maximum possible value"
+            },
+            "minForward": {
+              "propertyOrder": 70,
+              "type": "integer",
+              "default": 0,
+              "description": "Compensate for 'dead-zone' of ESC. Set this to a value just slightly before the motor starts spinning forward."
+            },
+            "minReverse": {
+              "propertyOrder": 80,
+              "type": "integer",
+              "default": 0,
+              "description": "Compensate for 'dead-zone' of ESC. Set this to a value just slightly before the motor starts spinning reverse."
             }
           }
         },

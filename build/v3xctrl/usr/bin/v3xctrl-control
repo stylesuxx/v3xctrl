@@ -15,6 +15,8 @@ v3xctrl-python -m v3xctrl_control.helpers.client "${server_host}" "${ports_contr
   --throttle-idle "${controls_throttle_idle}" \
   --forward-scale "${controls_throttle_scaleForward}" \
   --reverse-scale "${controls_throttle_scaleReverse}" \
+  --forward-boost "${controls_throttle_minForward}" \
+  --reverse-boost "${controls_throttle_minReverse}" \
   --steering-min "${controls_steering_min}" \
   --steering-max "${controls_steering_max}" \
   --steering-trim "${controls_steering_trim}" \

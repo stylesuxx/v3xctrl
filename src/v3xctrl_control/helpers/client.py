@@ -46,6 +46,10 @@ parser.add_argument("--forward-scale", type=int, default=100,
                     help="Max percent of range for forward throttle (default: 100)")
 parser.add_argument("--reverse-scale", type=int, default=100,
                     help="Max percent of range for reverse throttle (default: 100)")
+parser.add_argument("--forward-boost", type=int, default=0,
+                    help="Minimum pulse width offset for going forward (default: 0)")
+parser.add_argument("--reverse-boost", type=int, default=0,
+                    help="Minimum pulse width offset for going reverse (default: 0)")
 parser.add_argument("--modem-path", type=str, default="/dev/ttyACM0",
                     help="Path to modem device (default: /dev/ttyACM0)")
 parser.add_argument("--log", default="ERROR",
@@ -62,6 +66,12 @@ throttle_idle = args.throttle_idle
 throttle_max = args.throttle_max
 forward_scale = args.forward_scale
 reverse_scale = args.reverse_scale
+
+forward_boost = args.forward_boost
+reverse_boost = args.reverse_boost
+
+forward_min = throttle_idle + forward_boost
+reverse_min = throttle_idle - reverse_boost
 
 steering_min = args.steering_min
 steering_max = args.steering_max
@@ -149,10 +159,10 @@ def control_handler(message: Control) -> None:
     # Determine throttle pulse forward or reverse
     if raw_throttle > 0:
         scaled_throttle = raw_throttle * forward_multiplier
-        throttle_value = map_range(scaled_throttle, 0, 1, throttle_idle, throttle_max)
+        throttle_value = map_range(scaled_throttle, 0, 1, forward_min, throttle_max)
     else:
         scaled_throttle = raw_throttle * reverse_multiplier
-        throttle_value = map_range(scaled_throttle, -1, 0, throttle_min, throttle_idle)
+        throttle_value = map_range(scaled_throttle, -1, 0, throttle_min, reverse_min)
 
     # Map, add trim and clamp
     scaled_steering = raw_steering * steering_multiplier
