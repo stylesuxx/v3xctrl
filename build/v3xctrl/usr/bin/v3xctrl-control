@@ -5,7 +5,7 @@ ENV_PATH="/run/v3xctrl.env"
 source "${ENV_PATH}"
 
 ARGS=""
-if [ "$control_steering_invert" = "true" ]; then
+if [ "$controls_steering_invert" = "true" ]; then
   ARGS+="--steering-invert"
 fi
 

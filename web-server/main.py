@@ -73,25 +73,15 @@ def get_services():
             active_state = props.get("ActiveState", "")
             result = props.get("Result", "")
 
-            if service_type == "oneshot":
-                # oneshot services should finish and result=success
-                is_success = (
-                    active_state == "active" and
-                    result == "success"
-                )
-            else:
-                # all other services should be actively running
-                is_success = (active_state == "active")
-
         except subprocess.CalledProcessError:
-            is_success = False
             service_type = "unknown"
+            active_state = "unknown"
             result = "error"
 
         data["services"].append({
             "name": service,
             "type": service_type,
-            "active": is_success,
+            "state": active_state,
             "result": result
         })
 

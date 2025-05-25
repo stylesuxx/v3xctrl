@@ -26,15 +26,34 @@ function checkServices() {
     if (data.services && data.services.length > 0) {
       data.services.forEach(service => {
         if(service.name === 'v3xctrl-control') {
-          if(!service.active) {
+          if(!service.active_state) {
             $('.service-warning').addClass('hidden');
             $('.calibration-content').removeClass('hidden');
           }
         }
 
-        const statusClass = service.active ? 'text-success' : 'text-danger';
+        let success = false;
+        if(service.type === 'oneshot') {
+          if(
+            service.result === 'success' &&
+            ['active', 'activating'].includes(service.state)
+          ) {
+            success = true;
+          }
+        }
+
+        if(service.type === 'simple') {
+          if(
+            service.result === 'success' &&
+            service.state === 'active'
+          ) {
+            success = true;
+          }
+        }
+
+        const statusClass = success ? 'text-success' : 'text-danger';
         container.append(
-          `<p><strong>${service.name} (${service.type})</strong>: <span class="${statusClass}">${service.active ? 'Active' : 'Inactive'}</span></p>`
+          `<p><strong>${service.name} (${service.type})</strong>: <span class="${statusClass}">${service.state}</span></p>`
         );
       });
     } else {
