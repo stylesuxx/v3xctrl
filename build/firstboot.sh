@@ -38,10 +38,6 @@ EOF
 
 mount /data
 
-echo "[v3xctrl-firstboot] Linking /var/log and /var/swap"
-mv "/var/log" "/data"
-ln -s "/data/log" "/var/log"
-
 dphys-swapfile swapoff
 if [ -f /var/swap ]; then
   mv "/var/swap" "/data/swap"

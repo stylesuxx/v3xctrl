@@ -195,6 +195,23 @@ This will re-build the `v3xctrl` package and install it over the already install
 
 The bash script directory contains `gstreamer` related functionality. You will find two scripts to help you verify/test your video pipeline, they are gstreamer based transmitters and receivers. You can use them during development to produce a video stream close to what the client sends.
 
+## Logging
+
+When switching from RO to RW mode, persistent systemd logging is enabled. To show a list of available boot logs:
+
+```bash
+journalctl --list-boots
+```
+
+To view the boot log of a specific boot:
+
+```bash
+journalctl -b $BOOT_ID --no-pager
+journalctl -b 0 --no-pager   # Current
+journalctl -b -1 --no-pager  # Previous boot
+
+```
+
 ## Tests
 
 Run tests:

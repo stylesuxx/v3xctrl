@@ -118,6 +118,8 @@ if grep -qw 'quiet' "$MOUNT_DIR/boot/cmdline.txt"; then
 fi
 
 echo "[HOST] Cleaning up and unmounting"
+rm -r "$MOUNT_DIR/var/log/journal"
+
 umount "$MOUNT_DIR/boot"
 umount "$MOUNT_DIR/data"
 umount "$MOUNT_DIR/dev/pts"
