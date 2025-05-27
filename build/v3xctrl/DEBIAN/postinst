@@ -39,7 +39,8 @@ if command -v systemctl >/dev/null 2>&1; then
     bthelper@hci0.service \
     hciuart.service \
     ModemManager.service \
-    pigpiod.service
+    pigpiod.service \
+    dhcpcd.service
 
   # Enable our services on start
   systemctl enable \

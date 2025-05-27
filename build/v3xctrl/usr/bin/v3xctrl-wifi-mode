@@ -1,4 +1,10 @@
 #!/bin/bash
+
+# Make sure dhcpcd service is disabled!
+#
+# We either blacklist or enable wlan0 from dhcpcd.conf, but we will start it in
+# any case, so all other devices will get an IP via DHCP.
+
 set -e
 
 ENV_PATH="/run/v3xctrl.env"
