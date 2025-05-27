@@ -63,6 +63,35 @@ class TestSignalQualityWidget(unittest.TestCase):
             except Exception as e:
                 self.fail(f"Draw failed for signal {sig}: {e}")
 
+    def test_draw_no_modem_state(self):
+        # Ensure _draw_no_modem runs without error
+        sig = {'rsrp': -1, 'rsrq': -1}
+        try:
+            self.widget.draw(self.screen, sig)
+        except Exception as e:
+            self.fail(f"_draw_no_modem failed: {e}")
+
+    def test_padding_and_layout(self):
+        w = self.widget
+        self.assertTrue(w.side_padding > 0)
+        self.assertTrue(w.top_bottom_padding > 0)
+        self.assertLess(w.side_padding * 2 + w.BAR_COUNT * w.bar_width +
+                        (w.BAR_COUNT - 1) * w.bar_spacing + w.extra_right_padding, w.width + 2)
+
+    def test_invalid_rsrq_still_maps(self):
+        w = self.widget
+        self.assertEqual(w._get_quality(255), SignalQuality.POOR)
+        self.assertEqual(w._get_quality(-1), SignalQuality.POOR)
+
+    def test_invalid_rsrp_still_draws(self):
+        # Test fallback or boundary for invalid rsrp values
+        signals = [{'rsrp': -1, 'rsrq': 15}, {'rsrp': 999, 'rsrq': 15}]
+        for sig in signals:
+            try:
+                self.widget.draw(self.screen, sig)
+            except Exception as e:
+                self.fail(f"Draw failed for rsrp edge case: {sig}: {e}")
+
 
 if __name__ == "__main__":
     unittest.main()

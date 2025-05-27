@@ -19,8 +19,8 @@ class Telemetry(threading.Thread):
         self._interval = interval
         self.telemetry = {
             'sig': {
-                'rsrq': 255,
-                'rsrp': 255
+                'rsrq': -1,
+                'rsrp': -1
             },
             'loc': {
                 'lat': 0,
@@ -44,8 +44,8 @@ class Telemetry(threading.Thread):
 
     def _set_signal_unknown(self):
         with self._lock:
-            self.telemetry['sig']['rsrq'] = 255
-            self.telemetry['sig']['rsrp'] = 255
+            self.telemetry['sig']['rsrq'] = -1
+            self.telemetry['sig']['rsrp'] = -1
 
     def _update_signal(self) -> None:
         try:

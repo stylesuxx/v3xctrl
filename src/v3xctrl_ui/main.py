@@ -121,7 +121,7 @@ def latency_handler(state: AppState, message: Latency) -> None:
 
 
 def disconnect_handler(state) -> None:
-    state.data = "fail"
+    state.reset_data()
 
 
 def connect_handler(state) -> None:

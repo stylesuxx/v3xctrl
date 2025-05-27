@@ -1,8 +1,11 @@
 from enum import IntEnum
+import math
 from pygame import Surface, Rect, SRCALPHA
+import pygame
+import pygame.gfxdraw
 from typing import Tuple
 
-from v3xctrl_ui.colors import WHITE, GREEN, RED, YELLOW, ORANGE, GREY
+from v3xctrl_ui.colors import WHITE, GREEN, RED, YELLOW, ORANGE, GREY, BLACK
 from v3xctrl_ui.widgets.Widget import Widget
 
 
@@ -77,7 +80,44 @@ class SignalQualityWidget(Widget):
         else:
             return SignalQuality.POOR
 
+    def _draw_no_modem(self, screen: Surface) -> None:
+        bg_surface = pygame.Surface((self.width, self.height), SRCALPHA)
+        bg_surface.fill((*BLACK, 180))
+
+        symbol_surface = pygame.Surface((self.width, self.height), SRCALPHA)
+
+        # Geometry with same padding as bar display
+        drawable_width = self.width - 2 * self.side_padding
+        drawable_height = self.height - 2 * self.top_bottom_padding
+        cx = self.side_padding + drawable_width // 2
+        cy = self.top_bottom_padding + drawable_height // 2
+        outer_radius = min(drawable_width, drawable_height) // 2 - 2
+        stroke = max(2, outer_radius // 4)
+
+        # Draw solid red ring on symbol surface
+        pygame.gfxdraw.filled_circle(symbol_surface, cx, cy, outer_radius, RED)
+        pygame.gfxdraw.filled_circle(symbol_surface, cx, cy, outer_radius - stroke, (0, 0, 0, 0))
+
+        # Draw slash
+        angle1 = math.radians(135)
+        angle2 = math.radians(315)
+        r = outer_radius - stroke // 2
+
+        x1 = int(cx + r * math.cos(angle1))
+        y1 = int(cy + r * math.sin(angle1))
+        x2 = int(cx + r * math.cos(angle2))
+        y2 = int(cy + r * math.sin(angle2))
+
+        pygame.draw.line(symbol_surface, RED, (x1, y1), (x2, y2), width=stroke + 2)
+
+        bg_surface.blit(symbol_surface, (0, 0))
+        screen.blit(bg_surface, self.position)
+
     def draw(self, screen: Surface, signal: dict) -> None:
+        if signal['rsrp'] == -1 or signal['rsrq'] == -1:
+            self._draw_no_modem(screen)
+            return
+
         bars = self._get_bars(signal['rsrp'])
         quality = self._get_quality(signal['rsrq'])
 

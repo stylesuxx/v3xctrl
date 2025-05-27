@@ -38,8 +38,6 @@ class AppState:
         self.steering_settings = steering_settings
 
         self.loop_history = deque(maxlen=300)
-        self.throttle = 0.0
-        self.steering = 0.0
         self.menu = None
         self.running = True
 
@@ -54,12 +52,14 @@ class AppState:
         self.relay_port = 8888
         self.relay_id = None
 
-        self.data = "waiting"
-        self.latency = "default"
-        self.signal_quality = {
-            "rsrq": 255,
-            "rsrp": 255,
-        }
+        # Data for widgets_debug
+        self.data = None
+        self.latency = None
+
+        # Data for widgets
+        self.throttle = None
+        self.steering = None
+        self.signal_quality = None
 
         self.widgets = {
             "steering": HorizontalIndicatorWidget(
@@ -124,6 +124,8 @@ class AppState:
             )
         }
 
+        self.reset_data()
+
     def setup_relay(self, relay_server: str = None, relay_id: str = None):
         self.relay_enable = True
         self.relay_server = relay_server
@@ -157,6 +159,21 @@ class AppState:
             return 0.0
 
         return get_fps(self.video_receiver.history.copy())
+
+    def reset_data(self) -> None:
+        # Data for widgets_debug
+        self.data = "waiting"
+        self.latency = "default"
+
+        # Data for widgets
+        self.throttle = 0.0
+        self.steering = 0.0
+        self.signal_quality = {
+            "rsrq": -1,
+            "rsrp": -1,
+        }
+
+        self.widgets_debug["latency"].set_value(None)
 
     def shutdown(self):
         pygame.quit()
