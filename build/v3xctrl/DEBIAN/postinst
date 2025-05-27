@@ -38,7 +38,8 @@ if command -v systemctl >/dev/null 2>&1; then
     bluetooth.service \
     bthelper@hci0.service \
     hciuart.service \
-    ModemManager.service
+    ModemManager.service \
+    pigpiod.service
 
   # Enable our services on start
   systemctl enable \
@@ -47,7 +48,7 @@ if command -v systemctl >/dev/null 2>&1; then
     v3xctrl-cleanup.service \
     v3xctrl-wifi-mode.service \
     v3xctrl-setup-env.service \
-    pigpiod.service
+    v3xctrl-pigpiod.service
 
   # Make sure the minimum requirements to start the chain after install are in
   # place.

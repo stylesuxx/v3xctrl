@@ -9,7 +9,8 @@ if command -v systemctl >/dev/null 2>&1; then
       v3xctrl-service-manager.service \
       v3xctrl-cleanup.service \
       v3xctrl-wifi-mode.service \
-      v3xctrl-setup-env.service
+      v3xctrl-setup-env.service \
+      v3xctrl-pigpiod.service
 
     # Re-enable services we disabled during install
     systemctl enable \
@@ -34,6 +35,7 @@ if command -v systemctl >/dev/null 2>&1; then
       bluetooth.service \
       bthelper@hci0.service \
       hciuart.service \
-      ModemManager.service
+      ModemManager.service \
+      pigpiod.service
   fi
 fi
