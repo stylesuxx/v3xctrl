@@ -63,8 +63,10 @@ class SignalQualityWidget(Widget):
             return 3
         elif rsrp_dbm >= -110:
             return 2
-        else:
+        elif rsrp_dbm >= -120:
             return 1
+        else:
+            return 0
 
     def _get_quality(self, value: int) -> SignalQuality:
         rsrq_dbm = self._rsrq_to_dbm(value)
@@ -114,12 +116,15 @@ class SignalQualityWidget(Widget):
         screen.blit(bg_surface, self.position)
 
     def draw(self, screen: Surface, signal: dict) -> None:
-        if signal['rsrp'] == -1 or signal['rsrq'] == -1:
+        rsrp = signal.get('rsrp')
+        rsrq = signal.get('rsrq')
+
+        if rsrp in (-1, 255) or rsrq in (-1, 255):
             self._draw_no_modem(screen)
             return
 
-        bars = self._get_bars(signal['rsrp'])
-        quality = self._get_quality(signal['rsrq'])
+        bars = self._get_bars(rsrp)
+        quality = self._get_quality(rsrq)
 
         bg_color = {
             SignalQuality.POOR: RED,
