@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 import pygame
 
 from v3xctrl_ui.colors import WHITE, GREY
@@ -44,23 +45,21 @@ class TestTextWidget(unittest.TestCase):
             self.fail(f"draw() raised an exception unexpectedly: {e}")
 
     def test_text_is_centered(self):
-        # Create a dummy font render output with predictable size
-        dummy_surface = pygame.Surface((40, 10))
+        dummy_surface = pygame.Surface((40, 10), pygame.SRCALPHA)
         dummy_rect = pygame.Rect(0, 0, 40, 10)
 
-        # Monkey patch font.render
-        original_render = self.widget.font.render
-        self.widget.font.render = lambda text, color: (dummy_surface, dummy_rect)
+        class DummyFont:
+            def render(self, text, color):
+                return dummy_surface, dummy_rect
 
-        try:
-            self.widget.draw(self.screen, "Centered")
-            expected_x = (self.widget.length - 40) // 2
-            expected_y = self.widget.top_padding
-            # Check if the dummy_surface was likely blitted at expected location
-            pixel = self.widget.surface.get_at((expected_x + 1, expected_y + 1))
-            self.assertNotEqual(pixel.a, 0)
-        finally:
-            self.widget.font.render = original_render
+        self.widget.font = DummyFont()
+
+        self.widget.draw(self.screen, "Centered")
+        expected_x = (self.widget.length - 40) // 2
+        expected_y = self.widget.top_padding
+
+        pixel = self.widget.surface.get_at((expected_x + 1, expected_y + 1))
+        self.assertNotEqual(pixel.a, 0)
 
 
 if __name__ == "__main__":
