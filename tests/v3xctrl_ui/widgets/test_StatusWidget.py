@@ -2,7 +2,7 @@ import unittest
 import pygame
 
 from v3xctrl_ui.colors import YELLOW, GREEN, RED, GREY
-from v3xctrl_ui.widgets.StatusWidget import StatusWidget
+from v3xctrl_ui.widgets import StatusWidget
 
 
 class TestStatusWidget(unittest.TestCase):

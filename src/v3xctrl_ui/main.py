@@ -100,6 +100,8 @@ def telemetry_handler(state: AppState, message: Telemetry) -> None:
         "rsrq": values["sig"]["rsrq"],
         "rsrp": values["sig"]["rsrp"],
     }
+    band = values["cell"]["band"]
+    state.band = f"Band {band}"
 
     logging.debug(f"Received telemetry message: {values}")
 

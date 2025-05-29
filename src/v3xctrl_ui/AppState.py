@@ -7,8 +7,14 @@ from typing import Tuple
 from v3xctrl_ui.helpers import get_fps, interpolate_steering_color, interpolate_throttle_color
 from v3xctrl_ui.Init import Init
 from v3xctrl_ui.KeyAxisHandler import KeyAxisHandler
-from v3xctrl_ui.widgets import VerticalIndicatorWidget, HorizontalIndicatorWidget
-from v3xctrl_ui.widgets import StatusValueWidget, FpsWidget, SignalQualityWidget
+from v3xctrl_ui.widgets import (
+  VerticalIndicatorWidget,
+  HorizontalIndicatorWidget,
+  StatusValueWidget,
+  FpsWidget,
+  SignalQualityWidget,
+  TextWidget,
+)
 
 from v3xctrl_udp_relay.Peer import Peer
 
@@ -60,6 +66,7 @@ class AppState:
         self.throttle = None
         self.steering = None
         self.signal_quality = None
+        self.band = "Band ?"
 
         self.widgets = {
             "steering": HorizontalIndicatorWidget(
@@ -80,6 +87,10 @@ class AppState:
                 (self.size[0] - 70 - 10, 10),
                 (70, 50)
             ),
+            "band": TextWidget(
+                (self.size[0] - 70 - 10, 10 + 50),
+                70
+            )
         }
 
         self.widgets_debug = {
