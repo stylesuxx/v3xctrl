@@ -48,6 +48,24 @@ def set_pwm():
     return jsonify({gpio: gpio, value: value})
 
 
+@app.route('/service/start', methods=['POST'])
+def start_service():
+    data = request.json
+    name = str(data['name'])
+
+    subprocess.run(["sudo", "systemctl", "start", name])
+    return jsonify({"message": f"Started service: {name}"})
+
+
+@app.route('/service/stop', methods=['POST'])
+def stop_service():
+    data = request.json
+    name = str(data['name'])
+
+    subprocess.run(["sudo", "systemctl", "stop", name])
+    return jsonify({"message": f"Stopped service: {name}"})
+
+
 @app.route('/services', methods=['GET'])
 def get_services():
     services = [

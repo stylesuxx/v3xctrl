@@ -20,11 +20,21 @@ function setCalibrationValues(editor) {
 
 function checkServices() {
   $.get('/services', function(data) {
-    const container = $('#service_status_container');
-    container.empty();
+    const $container = $('#service_status_container');
+    $container.empty();
 
     if (data.services && data.services.length > 0) {
+      var $tableWrapper = $('<table />', {
+        class: 'table table-striped',
+      });
+      var $tableHead = $('<thead><tr><th>Service</th><th>Type</th><th>Status</th><th><th/></tr></thead>');
+      $tableWrapper.append($tableHead);
+      var $table = $('<tbody />');
+
       data.services.forEach(service => {
+        var $row = $('<tr />', {
+          'data-name': service.name,
+        });
         if(service.name === 'v3xctrl-control') {
           if(!service.active_state) {
             $('.service-warning').addClass('hidden');
@@ -52,12 +62,80 @@ function checkServices() {
         }
 
         const statusClass = success ? 'text-success' : 'text-danger';
-        container.append(
-          `<p><strong>${service.name} (${service.type})</strong>: <span class="${statusClass}">${service.state}</span></p>`
-        );
+        const $line = $('<p />', {'data-name': service.name})
+        $line.append(`<strong>${service.name} (${service.type})</strong>: <span class="${statusClass}">${service.state}</span>`)
+
+        $row.append(`<td><strong>${service.name}</strong></td>`);
+        $row.append(`<td>${service.type}</td>`);
+        $row.append(`<td><span class="${statusClass}">${service.state}</span></td>`);
+
+        $button = $('<td />');
+        $row.append($button);
+
+        if(service.type === 'simple') {
+          if(success) {
+            $button.append('<button class="service-stop btn btn-primary">Stop</button>');
+          } else {
+            $button.append('<button class="service-start btn btn-primary">Start</button>');
+          }
+        }
+
+        $table.append($row);
+      });
+
+      $tableWrapper.append($table);
+      $container.append($tableWrapper);
+
+      // Register click handlers for start/stop
+      $('button.service-start').on('click', function(e) {
+        e.preventDefault();
+
+        var $this = $(this);
+        var $row = $this.closest('tr');
+        var name = $row.data('name');
+
+        startService(name);
+      });
+
+      $('button.service-stop').on('click', function(e) {
+        e.preventDefault();
+
+        var $this = $(this);
+        var $row = $this.closest('tr');
+        var name = $row.data('name');
+
+        stopService(name);
       });
     } else {
-      container.text('No service info available.');
+      $container.text('No service info available.');
+    }
+  });
+}
+
+function startService(name) {
+  $.ajax({
+    url: '/service/start',
+    method: 'POST',
+    contentType: 'application/json',
+    data: JSON.stringify({
+      name: name
+    }),
+    success: function(res) {
+      checkServices();
+    }
+  });
+}
+
+function stopService(name) {
+  $.ajax({
+    url: '/service/stop',
+    method: 'POST',
+    contentType: 'application/json',
+    data: JSON.stringify({
+      name: name
+    }),
+    success: function(res) {
+      checkServices();
     }
   });
 }
