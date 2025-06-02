@@ -15,6 +15,11 @@ if [ "$server_mode" = "relay" ]; then
   v3xctrl-relay
 fi
 
+if [ "$modem_limitBands" = "true" ]; then
+  echo "Limiting bands..."
+  v3xctrl-set-bands $modem_allowedBands
+fi
+
 if [ "$autostart_video" = "true" ]; then
   echo "Starting video service..."
   systemctl start v3xctrl-video

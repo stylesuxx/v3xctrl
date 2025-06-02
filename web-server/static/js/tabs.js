@@ -16,5 +16,9 @@ const registerTabHandler = () => {
     if ($(this).attr('href') === '#dmesg-tab') {
       getDmesg();
     }
+
+    if ($(this).attr('href') === '#modem-tab') {
+      getAllowedBands();
+    }
   });
 };

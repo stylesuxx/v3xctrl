@@ -4,10 +4,20 @@ set -e
 ENV_PATH="/run/v3xctrl.env"
 CONFIG_PATH="/etc/v3xctrl/config.json"
 
-jq -r 'paths(scalars) as $p |
+# Export everything except modem.allowedBands
+jq -r '
+  paths(scalars) as $p |
+  select($p != ["modem", "allowedBands"] and ($p[0:2] != ["modem", "allowedBands"])) |
   [($p | map(tostring) | join("_")), (getpath($p))] |
-  "\(.[0])=\(.[1])"' "${CONFIG_PATH}" > "${ENV_PATH}"
+  "\(.[0])=\(.[1])"
+' "$CONFIG_PATH" >> "$ENV_PATH"
 
+# Append modem.allowedBands as comma-separated string
+jq -r '
+  .modem.allowedBands?
+  | select(type == "array")
+  | "modem_allowedBands=" + (join(","))
+' "$CONFIG_PATH" >> "$ENV_PATH"
 source "${ENV_PATH}"
 
 # Custom adaptations that are not part of the config JSON

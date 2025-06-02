@@ -1,0 +1,7 @@
+#! /bin/bash
+ENV_PATH="/run/v3xctrl.env"
+source "${ENV_PATH}"
+
+BANDS="$1"
+
+v3xctrl-python -m v3xctrl_helper.modem.set_allowed_bands $modem_path "$BANDS"

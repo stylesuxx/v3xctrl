@@ -93,6 +93,16 @@ def get_dmesg():
     })
 
 
+@app.route('/modem/bands', methods=['GET'])
+def get_modem_bands():
+    output = subprocess.check_output(
+        ["v3xctrl-get-bands"],
+        stderr=subprocess.DEVNULL
+    ).decode().strip()
+
+    return output
+
+
 @app.route('/services', methods=['GET'])
 def get_services():
     services = [

@@ -168,17 +168,6 @@ function getServiceLog(name) {
   });
 }
 
-function getDmesg() {
-  $.ajax({
-    url: '/dmesg',
-    method: 'GET',
-    success: function(res) {
-      var $log = $("#dmesg")
-      $log.val(res.log);
-    }
-  });
-}
-
 function setPwm(gpio, value) {
   $.ajax({
     url: '/set-pwm',
@@ -191,5 +180,29 @@ function setPwm(gpio, value) {
     success: function(res) {
       console.log("Done...")
     }
+  });
+}
+
+function get(path, callback) {
+  $.ajax({
+    method: 'GET',
+    url: path,
+    success: callback,
+  });
+}
+
+function getDmesg() {
+  get('/dmesg', function(res) {
+    $("#dmesg").val(res.log);
+  });
+}
+
+function getAllowedBands() {
+  get('/modem/bands', function(res) {
+    console.log(res);
+    var bands = JSON.parse(res);
+    console.log(bands);
+
+    $("#modem-tab p").text('Allowed bands: ' + bands.join(', '));
   });
 }
