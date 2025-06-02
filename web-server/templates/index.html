@@ -66,6 +66,7 @@
         <li class="active"><a href="#editor-tab" role="tab" data-toggle="tab">Config Editor</a></li>
         <li><a href="#services-tab" role="tab" data-toggle="tab">Services</a></li>
         <li><a href="#calibration-tab" role="tab" data-toggle="tab">Calibration</a></li>
+        <li><a href="#dmesg-tab" role="tab" data-toggle="tab">DMESG</a></li>
       </ul>
 
       <div class="tab-content" style="margin-top: 20px;">
@@ -78,6 +79,11 @@
         <div class="tab-pane" id="services-tab">
           <div id="service_status_container">
             <p>Loading service states...</p>
+          </div>
+
+          <div id="service-log-wrapper">
+            <textarea id="service-log" class="hidden form-control" rows="50" readonly></textarea>
+            <p></p>
           </div>
         </div>
 
@@ -231,6 +237,14 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <div class="tab-pane" id="dmesg-tab">
+          <div class="form-group">
+            <button class="btn btn-primary dmesg-refresh">Refresh</button>
+          </div>
+
+          <textarea id="dmesg" class="form-control" rows="100" readonly></textarea>
         </div>
       </div>
     </div>

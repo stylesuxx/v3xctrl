@@ -66,6 +66,33 @@ def stop_service():
     return jsonify({"message": f"Stopped service: {name}"})
 
 
+@app.route('/service/log', methods=['POST'])
+def get_log():
+    data = request.json
+    name = str(data['name'])
+
+    output = subprocess.check_output(
+        ["journalctl", "-n", "50", "--no-page", "-u", name],
+        stderr=subprocess.DEVNULL
+    ).decode().strip()
+
+    return jsonify({
+      "log": output
+    })
+
+
+@app.route('/dmesg', methods=['GET'])
+def get_dmesg():
+    output = subprocess.check_output(
+        ["dmesg"],
+        stderr=subprocess.DEVNULL
+    ).decode().strip()
+
+    return jsonify({
+      "log": output
+    })
+
+
 @app.route('/services', methods=['GET'])
 def get_services():
     services = [

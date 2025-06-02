@@ -140,4 +140,8 @@ const registerClickHandlers = (editor) => {
     gpio = 18;
     setPwm(gpio, value);
   });
+
+  $('button.dmesg-refresh').on('click', function(e) {
+    getDmesg();
+  });
 };

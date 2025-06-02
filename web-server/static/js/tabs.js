@@ -12,5 +12,9 @@ const registerTabHandler = () => {
     if ($(this).attr('href') === '#services-tab') {
       checkServices();
     }
+
+    if ($(this).attr('href') === '#dmesg-tab') {
+      getDmesg();
+    }
   });
 };

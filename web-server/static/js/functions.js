@@ -27,7 +27,7 @@ function checkServices() {
       var $tableWrapper = $('<table />', {
         class: 'table table-striped',
       });
-      var $tableHead = $('<thead><tr><th>Service</th><th>Type</th><th>Status</th><th><th/></tr></thead>');
+      var $tableHead = $('<thead><tr><th>Service</th><th>Type</th><th>Status</th><th></th><th></th></tr></thead>');
       $tableWrapper.append($tableHead);
       var $table = $('<tbody />');
 
@@ -80,6 +80,8 @@ function checkServices() {
           }
         }
 
+        $row.append('<td><button class="service-log btn btn-secondary">Show logs</button></td>');
+
         $table.append($row);
       });
 
@@ -105,6 +107,16 @@ function checkServices() {
         var name = $row.data('name');
 
         stopService(name);
+      });
+
+      $('button.service-log').on('click', function(e) {
+        e.preventDefault();
+
+        var $this = $(this);
+        var $row = $this.closest('tr');
+        var name = $row.data('name');
+
+        getServiceLog(name);
       });
     } else {
       $container.text('No service info available.');
@@ -136,6 +148,33 @@ function stopService(name) {
     }),
     success: function(res) {
       checkServices();
+    }
+  });
+}
+
+function getServiceLog(name) {
+  $.ajax({
+    url: '/service/log',
+    method: 'POST',
+    contentType: 'application/json',
+    data: JSON.stringify({
+      name: name
+    }),
+    success: function(res) {
+      var $log = $("#service-log")
+      $log.val(res.log);
+      $log.removeClass("hidden");
+    }
+  });
+}
+
+function getDmesg() {
+  $.ajax({
+    url: '/dmesg',
+    method: 'GET',
+    success: function(res) {
+      var $log = $("#dmesg")
+      $log.val(res.log);
     }
   });
 }
