@@ -5,7 +5,7 @@ ENV_PATH="/run/v3xctrl.env"
 source "${ENV_PATH}"
 
 json=$(
-  v3xctrl-python -m v3xctrl_punch.getServerInfo \
+  v3xctrl-python -m v3xctrl_punch.apps.getServerInfo \
     "${server_rendezvousServer}" "${server_rendezvousId}" \
     --port 8888 \
     --port-video "${ports_video_bind}" \

@@ -21,8 +21,8 @@ from v3xctrl_control.Message import Message, PeerAnnouncement, PeerInfo
 
 
 class Role(Enum):
-    CLIENT = "client"
-    SERVER = "server"
+    STREAMER = "streamer"
+    VIEWER = "viewer"
 
 
 class PortType(Enum):
@@ -39,12 +39,15 @@ class PeerEntry:
 class Session:
     def __init__(self):
         self.roles = {
-            Role.CLIENT: {},
-            Role.SERVER: {}
+            Role.STREAMER: {},
+            Role.VIEWER: {}
         }
 
     def register(self, role: Role, port_type: PortType, addr):
+        new_peer = port_type not in self.roles[role]
         self.roles[role][port_type] = PeerEntry(addr)
+
+        return new_peer
 
     def is_ready(self, role: Role):
         for port_type in PortType:
@@ -59,7 +62,7 @@ class Session:
 
 class UDPRelayServer(threading.Thread):
     TIMEOUT = 10
-    CLEANUP_INTERVAL = 5
+    CLEANUP_INTERVAL = 1
     RECEIVE_BUFFER = 2048
 
     def __init__(self, ip: str, port: int):
@@ -84,7 +87,7 @@ class UDPRelayServer(threading.Thread):
     def clean_expired_entries(self):
         while self.running.is_set():
             now = time.time()
-            expired_roles = set()
+            expired_roles = {}
 
             with self.lock:
                 # Phase 1: Identify expired mappings per (session, role)
@@ -99,24 +102,33 @@ class UDPRelayServer(threading.Thread):
                         for addr, entry in list(self.relay_map.items()):
                             if entry["session"] == session_id and entry["role"] == role:
                                 del self.relay_map[addr]
-                                logging.debug(f"Expired mapping for {session_id}:{role}:{entry['port_type']} at {addr}")
+                                logging.info(f"Expired mapping for {session_id}:{role}:{entry['port_type']} at {addr}")
 
                         if session_id in self.sessions:
                             self.sessions[session_id].roles[role] = {}
-                            logging.debug(f"Removed expired role {role} from session {session_id}")
+                            logging.info(f"Removed expired role {role} from session {session_id}")
 
-                # Phase 3: Expire whole session if all roles are empty or timed out
+                # Phase 3: Expire whole session if:
+                # - it has no relay mappings AND
+                # - no recent PeerEntry timestamps
                 for sid, session in list(self.sessions.items()):
-                    expired = True
+                    has_mapping = any(
+                        entry["session"] == sid for entry in self.relay_map.values()
+                    )
+
+                    if has_mapping:
+                        continue
+
+                    all_expired = True
                     for role_dict in session.roles.values():
                         for peer in role_dict.values():
                             if (now - peer.ts) <= self.TIMEOUT:
-                                expired = False
+                                all_expired = False
                                 break
-                        if not expired:
+                        if not all_expired:
                             break
 
-                    if expired:
+                    if all_expired:
                         del self.sessions[sid]
                         logging.info(f"Removed expired session: {sid}")
 
@@ -132,21 +144,23 @@ class UDPRelayServer(threading.Thread):
             role = Role(msg.get_role())
             port_type = PortType(msg.get_port_type())
         except ValueError:
-            logging.warning(f"Invalid announcement from {addr} — role={msg.get_role()}, port_type={msg.get_port_type()}")
+            logging.debug(f"Invalid announcement from {addr} — role={msg.get_role()}, port_type={msg.get_port_type()}")
             return
 
-        other_role = Role.SERVER if role == Role.CLIENT else Role.CLIENT
+        other_role = Role.VIEWER if role == Role.STREAMER else Role.STREAMER
         now = time.time()
         with self.lock:
             session = self.sessions.setdefault(session_id, Session())
-            session.register(role, port_type, addr)
+            is_new_peer = session.register(role, port_type, addr)
+            if is_new_peer:
+                logging.info(f"Registered {role.name}:{port_type.name} for session '{session_id}' from {addr}")
 
-            logging.info(f"Registered {role.name} {port_type.name} for session '{session_id}' from {addr}")
             if session.is_ready(role) and session.is_ready(other_role):
                 is_first_time = True
                 for port_type in PortType:
-                    client = session.get_peer(Role.CLIENT, port_type)
-                    server = session.get_peer(Role.SERVER, port_type)
+                    client = session.get_peer(Role.STREAMER, port_type)
+                    server = session.get_peer(Role.VIEWER, port_type)
+
                     if not client or not server:
                         continue
 
@@ -157,14 +171,14 @@ class UDPRelayServer(threading.Thread):
                         "target": server.addr,
                         "ts": now,
                         "session": session_id,
-                        "role": Role.CLIENT,
+                        "role": Role.STREAMER,
                         "port_type": port_type
                     }
                     self.relay_map[server.addr] = {
                         "target": client.addr,
                         "ts": now,
                         "session": session_id,
-                        "role": Role.SERVER,
+                        "role": Role.VIEWER,
                         "port_type": port_type
                     }
 
@@ -178,14 +192,17 @@ class UDPRelayServer(threading.Thread):
                                     peer_info.to_bytes(),
                                     session.get_peer(role, port_type).addr
                                 )
+
+                        logging.info(f"New session established: '{session_id}'")
+
                     else:
                         for port_type, peer in session.roles[role].items():
                             self.sock.sendto(peer_info.to_bytes(), peer.addr)
 
+                        logging.info(f"Existing session reconnected: '{session_id}'")
+
                 except Exception as e:
                     logging.error(f"Error sending PeerInfo: {e}", exc_info=True)
-
-                logging.info(f"Relay mapping and PeerInfo update complete for session '{session_id}'")
 
     def forward_packet(self, data, addr):
         entry = self.relay_map.get(addr)
@@ -211,9 +228,11 @@ class UDPRelayServer(threading.Thread):
                     if isinstance(msg, PeerAnnouncement):
                         self.handle_peer_announcement(msg, addr)
                     else:
-                        logging.info(f"Unsupported message type from {addr}")
+                        # Might happen during re-connect before both - video
+                        # and control - have reconnected
+                        logging.debug(f"Unsupported message type from {addr}")
                 except Exception:
-                    logging.info(f"Dropped malformed message from {addr}")
+                    logging.debug(f"Dropped malformed message from {addr}")
 
             except OSError:
                 if not self.running.is_set():

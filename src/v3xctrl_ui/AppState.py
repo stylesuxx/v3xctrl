@@ -150,7 +150,7 @@ class AppState:
                     "control": self.control_port
                 }
                 peer = Peer(self.relay_server, self.relay_port, self.relay_id)
-                peer.setup("server", local_bind_ports)
+                peer.setup("viewer", local_bind_ports)
 
             self.video_receiver = Init.video_receiver(self.video_port)
             self.server, self.server_error = Init.server(self.control_port,

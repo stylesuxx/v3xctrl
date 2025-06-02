@@ -37,7 +37,7 @@ if __name__ == "__main__":
     }
 
     punch = PunchPeer(args.server, args.port, args.id)
-    peer_addresses = punch.setup("client", ports)
+    peer_addresses = punch.setup("streamer", ports)
 
     video = peer_addresses["video"]
     control = peer_addresses["control"]

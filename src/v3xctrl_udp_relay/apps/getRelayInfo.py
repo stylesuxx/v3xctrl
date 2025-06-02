@@ -37,7 +37,7 @@ if __name__ == "__main__":
     }
 
     peer = Peer(args.server, args.port, args.id)
-    peer_addresses = peer.setup("client", ports)
+    peer_addresses = peer.setup("streamer", ports)
 
     video = peer_addresses["video"]
     control = peer_addresses["control"]
