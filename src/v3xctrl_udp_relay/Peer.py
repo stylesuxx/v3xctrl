@@ -40,8 +40,8 @@ class Peer:
             except socket.timeout:
                 time.sleep(self.ANNOUNCE_INTERVAL)
             except Exception as e:
-                logging.error(f"[Relay] Error during {port_type} registration: {e}")
-                return None
+                logging.debug(f"[Relay] Error during {port_type} registration: {e}")
+                continue
 
     def register_all(self, sockets: dict[str, socket.socket], role: str) -> dict[str, PeerInfo]:
         results = {pt: [None] for pt in sockets.keys()}
