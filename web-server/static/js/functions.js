@@ -42,6 +42,7 @@ function checkServices() {
           }
         }
 
+        let stateLabel = "Failed";
         let success = false;
         if(service.type === 'oneshot') {
           if(
@@ -49,6 +50,11 @@ function checkServices() {
             ['active', 'activating'].includes(service.state)
           ) {
             success = true;
+
+            stateLabel = "Ran";
+            if(service.state == 'activating') {
+              stateLabel = "Running";
+            }
           }
         }
 
@@ -58,6 +64,7 @@ function checkServices() {
             service.state === 'active'
           ) {
             success = true;
+            stateLabel = "Active";
           }
         }
 
@@ -67,7 +74,7 @@ function checkServices() {
 
         $row.append(`<td><strong>${service.name}</strong></td>`);
         $row.append(`<td>${service.type}</td>`);
-        $row.append(`<td><span class="${statusClass}">${service.state}</span></td>`);
+        $row.append(`<td><span class="${statusClass}">${stateLabel}</span></td>`);
 
         $button = $('<td />');
         $row.append($button);
