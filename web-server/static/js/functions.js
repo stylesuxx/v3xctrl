@@ -59,6 +59,7 @@ function checkServices() {
         }
 
         if(service.type === 'simple') {
+          stateLabel  = "Inactive";
           if(
             service.result === 'success' &&
             service.state === 'active'
