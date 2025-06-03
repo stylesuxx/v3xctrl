@@ -17,6 +17,7 @@
 
         const editor = initEditor(schema, startval);
         registerTabHandler();
+        activateTabFromHash();
         registerClickHandlers(editor);
         setCalibrationValues(editor);
         checkServices();
