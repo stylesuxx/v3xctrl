@@ -88,6 +88,21 @@ function checkServices() {
           }
         }
 
+        if(service.type === 'oneshot') {
+          if(
+            service.result === 'success' &&
+            ['active', 'activating'].includes(service.state)
+          ) {
+            if(service.state == 'activating') {
+              $button.append('<button class="service-stop btn btn-primary">Stop</button>');
+            } else {
+              $button.append('<button class="service-restart btn btn-primary">Restart</button>');
+            }
+          } else {
+            $button.append('<button class="service-restart btn btn-primary">Restart</button>');
+          }
+        }
+
         $row.append('<td><button class="service-log btn btn-secondary">Show logs</button></td>');
 
         $table.append($row);
@@ -115,6 +130,16 @@ function checkServices() {
         var name = $row.data('name');
 
         stopService(name);
+      });
+
+      $('button.service-restart').on('click', function(e) {
+        e.preventDefault();
+
+        var $this = $(this);
+        var $row = $this.closest('tr');
+        var name = $row.data('name');
+
+        restartService(name);
       });
 
       $('button.service-log').on('click', function(e) {
@@ -149,6 +174,20 @@ function startService(name) {
 function stopService(name) {
   $.ajax({
     url: '/service/stop',
+    method: 'POST',
+    contentType: 'application/json',
+    data: JSON.stringify({
+      name: name
+    }),
+    success: function(res) {
+      checkServices();
+    }
+  });
+}
+
+function restartService(name) {
+  $.ajax({
+    url: '/service/restart',
     method: 'POST',
     contentType: 'application/json',
     data: JSON.stringify({

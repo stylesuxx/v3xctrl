@@ -66,6 +66,15 @@ def stop_service():
     return jsonify({"message": f"Stopped service: {name}"})
 
 
+@app.route('/service/restart', methods=['POST'])
+def restart_service():
+    data = request.json
+    name = str(data['name'])
+
+    subprocess.run(["sudo", "systemctl", "restart", name])
+    return jsonify({"message": f"Restarted service: {name}"})
+
+
 @app.route('/service/log', methods=['POST'])
 def get_log():
     data = request.json
