@@ -22,7 +22,10 @@
       "width": 1280,
       "record": false,
       "recordPath": "/data/recordings",
-      "testSource": true
+      "testSource": true,
+      "camera": {
+        "enableHdr": false
+      }
   },
   "wifi": {
       "mode": "client",

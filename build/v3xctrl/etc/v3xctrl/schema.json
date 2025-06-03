@@ -89,53 +89,80 @@
         "disable_properties": true
       },
       "properties": {
-        "width": {
+        "camera": {
           "propertyOrder": 10,
+          "type": "object",
+          "title": "Camera Settings",
+          "options": {
+            "collapsed": true,
+            "disable_edit_json": true,
+            "disable_properties": true
+          },
+          "properties": {
+            "enableHdr": {
+              "propertyOrder": 10,
+              "title": "Enable HDR",
+              "description": "Only supported on PiCam V3 - highly recommended (more FOV and better handling of dark/bright transitions)",
+              "type": "boolean",
+              "format": "checkbox",
+              "default": false
+            }
+          }
+        },
+        "width": {
+          "propertyOrder": 20,
+          "title": "Width",
+          "description": "Setting also needs to also be adjusted in the viewer",
           "type": "integer",
           "default": 1280
         },
         "height": {
-          "propertyOrder": 20,
+          "propertyOrder": 30,
+          "title": "Height",
+          "description": "Setting also needs to also be adjusted in the viewer",
           "type": "integer",
           "default": 720
         },
         "framerate": {
-          "propertyOrder": 30,
+          "propertyOrder": 40,
+          "title":" FPS",
+          "description": "Setting also needs to also be adjusted in the viewer",
           "type": "integer",
-          "default": 30,
-          "description": "In frames/second (FPS)"
+          "default": 30
         },
         "iFramePeriod": {
-          "propertyOrder": 40,
+          "propertyOrder": 50,
           "type": "integer",
           "default": 15,
           "description": "Amount of frames between I frames"
         },
         "bitrate": {
-          "propertyOrder": 50,
+          "propertyOrder": 60,
           "type": "integer",
           "default": 1800000,
           "description": "Bits per second"
         },
         "record": {
-          "propertyOrder": 60,
+          "propertyOrder": 70,
           "type": "boolean",
           "format": "checkbox",
           "default": false,
           "description": "Record video stream to the client (make sure to use a high quality SD card)"
         },
         "recordPath": {
-          "propertyOrder": 70,
+          "propertyOrder": 80,
+          "title": "Record Path",
           "type": "string",
           "default": "/data/recordings",
           "description": "Path to store recordings"
         },
         "testSource": {
-          "propertyOrder": 80,
+          "propertyOrder": 90,
+          "title": "Test image",
           "type": "boolean",
           "format": "checkbox",
           "default": true,
-          "description": "Use test source instead of camera - great for debugging"
+          "description": "Use test image instead of camera - great for debugging, disable once you made sure video transmission is working"
         }
       }
     },

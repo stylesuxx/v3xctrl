@@ -5,6 +5,11 @@ set -e
 ENV_PATH="/run/v3xctrl.env"
 source "${ENV_PATH}"
 
+if [ "$video_camera_enableHdr" = "true" ]; then
+  echo "Enable HDR mode..."
+  v4l2-ctl -d /dev/v4l-subdev0 --set-ctrl wide_dynamic_range=1
+fi
+
 if [ "$server_mode" = "rendezvous" ]; then
   echo "Registering with rendezvous server..."
   v3xctrl-rendezvous
