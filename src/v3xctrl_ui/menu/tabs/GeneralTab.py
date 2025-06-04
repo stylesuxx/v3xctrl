@@ -32,12 +32,12 @@ class GeneralTab(Tab):
 
         # Relay server widgets
         self.relay_server_input = TextInput(
-            label="Server", label_width=90, input_width=300,
+            label="Server", label_width=90, input_width=350,
             font=LABEL_FONT, mono_font=MONO_FONT,
             on_change=self._on_relay_server_change
         )
         self.relay_id_input = TextInput(
-            label="ID", label_width=90, input_width=300,
+            label="ID", label_width=90, input_width=350,
             font=LABEL_FONT, mono_font=MONO_FONT,
             on_change=self._on_relay_id_change
         )

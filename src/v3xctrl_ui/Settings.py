@@ -17,7 +17,7 @@ class Settings:
         },
         "relay": {
             "enabled": False,
-            "server": "rendezvous.websium.at",
+            "server": "rendezvous.websium.at:8888",
             "id": "test123"
         },
         "ports": {
@@ -51,12 +51,12 @@ class Settings:
         "settings": {
             "title": "V3XCTRL",
             "throttle": {
-                "step": 0.02,
-                "friction": 0.01,
+                "step": 0.1,
+                "friction": 0.2,
             },
             "steering": {
-                "step": 0.05,
-                "friction": 0.02,
+                "step": 0.1,
+                "friction": 0.2,
             },
         },
     }

@@ -6,7 +6,7 @@
   "server": {
       "mode": "direct",
       "host": "192.168.1.100",
-      "relayServer": "rendezvous.websium.at",
+      "relayServer": "rendezvous.websium.at:8888",
       "relaySessionId": "test123"
   },
   "ports": {

@@ -139,10 +139,19 @@ class AppState:
 
         self.reset_data()
 
-    def setup_relay(self, relay_server: str = None, relay_id: str = None):
+    def setup_relay(self, relay_server: str = None, relay_id: str = None) -> None:
         self.relay_enable = True
-        self.relay_server = relay_server
         self.relay_id = relay_id
+
+        if relay_server and ':' in relay_server:
+            host, port = relay_server.rsplit(':', 1)
+            self.relay_server = host
+            try:
+                self.relay_port = int(port)
+            except ValueError:
+                logging.warning(f"Invalid port in relay_server: '{relay_server}', falling back to default {self.relay_port}")
+        else:
+            self.relay_server = relay_server
 
     def setup_ports(self):
         def task():

@@ -4,13 +4,23 @@ set -e
 ENV_PATH="/run/v3xctrl.env"
 source "${ENV_PATH}"
 
+relay_host="${server_relayServer}"
+extra_args=()
+
+# Split host:port if provided
+if [[ "$server_relayServer" == *:* ]]; then
+  relay_host="${server_relayServer%%:*}"
+  relay_port="${server_relayServer##*:}"
+  extra_args+=(--port "$relay_port")
+fi
+
 json=$(
   v3xctrl-python -m v3xctrl_udp_relay.apps.getRelayInfo \
-    "${server_relayServer}" "${server_relaySessionId}" \
-    --port 8888 \
-    --port-video "${ports_video_bind}" \
-    --port-control "${ports_control_bind}" \
-    --log "${extras_logLevel}"
+    "$relay_host" "$server_relaySessionId" \
+    --port-video "$ports_video_bind" \
+    --port-control "$ports_control_bind" \
+    --log "$extras_logLevel" \
+    "${extra_args[@]}"
 )
 
 server_host=$(echo "$json" | jq -r '.server.host')

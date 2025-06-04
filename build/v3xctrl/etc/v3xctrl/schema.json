@@ -44,7 +44,7 @@
           "propertyOrder": 40,
           "type": "string",
           "title": "UDP Relay Server",
-          "default": "rendezvous.websium.at",
+          "default": "rendezvous.websium.at:8888",
           "description": "Used in relay mode only (only change if you are using your own relay server)"
         }
       }
