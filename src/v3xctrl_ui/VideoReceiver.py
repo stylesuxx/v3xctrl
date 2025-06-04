@@ -47,7 +47,10 @@ a=recvonly
         options = {
             "fflags": "nobuffer",
             "protocol_whitelist": "file,crypto,data,udp,rtp",
+            # The following options do not seem to work when passed as options
+            # "timeout": "3000000",
             # "stimeout": "3000000",
+            # "rw_timeout": "3000000",
             # "analyzeduration": "1000000",
             # "probesize": "2048"
         }
@@ -61,9 +64,11 @@ a=recvonly
                           Even when no stream is running, there will be a
                           container but the demux will fail further downstream.
                     """
-                    self.container = av.open(str(self.sdp_path),
-                                             format="sdp",
-                                             options=options)
+                    self.container = av.open(
+                        f"{self.sdp_path}",
+                        format="sdp",
+                        options=options
+                    )
                     break
                 except av.AVError as e:
                     logging.warning(f"av.open() failed: {e}")
