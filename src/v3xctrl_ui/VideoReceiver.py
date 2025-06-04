@@ -9,9 +9,11 @@ from pathlib import Path
 
 
 class VideoReceiver(threading.Thread):
-    def __init__(self, port: int):
+    def __init__(self, port: int, error_callback: callable):
         super().__init__()
         self.port = port
+        self.error_callback = error_callback
+
         self.running = threading.Event()
         self.frame_lock = threading.Lock()
         self.frame = None
@@ -55,7 +57,7 @@ a=recvonly
                 try:
                     """
                     NOTE: It takes a while for opening the container, av will
-                          not respect any timeouts at this point unfrotunately.
+                          not respect any timeouts at this point unfortunately.
                           Even when no stream is running, there will be a
                           container but the demux will fail further downstream.
                     """
@@ -66,9 +68,6 @@ a=recvonly
                 except av.AVError as e:
                     logging.warning(f"av.open() failed: {e}")
                     time.sleep(0.5)
-
-            if not self.container:
-                return
 
             stream = self.container.streams.video[0]
             stream.codec_context.thread_type = "AUTO"
@@ -87,6 +86,13 @@ a=recvonly
                             self.history.append(time.time())
             except av.AVError as e:
                 logging.warning(f"Stream decode error: {e}")
+                try:
+                    if self.container:
+                        self.container.close()
+                        self.container = None
+                except Exception as e:
+                    logging.warning(f"Container close failed during error recovery: {e}")
+                self.error_callback()
             except Exception as e:
                 logging.exception(f"Unexpected error in receiver thread: {e}")
             finally:
