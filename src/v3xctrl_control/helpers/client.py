@@ -213,9 +213,11 @@ signal.signal(signal.SIGTERM, signal_handler)
 
 try:
     while running:
-        telemetry_data = telemetry.get_telemetry()
-        telemetry_message = Telemetry(telemetry_data)
-        client.send(telemetry_message)
+        # Only send telemetry if connected
+        if client.state == State.CONNECTED:
+            telemetry_data = telemetry.get_telemetry()
+            telemetry_message = Telemetry(telemetry_data)
+            client.send(telemetry_message)
 
         time.sleep(1)
 
