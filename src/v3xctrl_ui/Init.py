@@ -48,8 +48,8 @@ class Init:
         return screen, clock
 
     @classmethod
-    def video_receiver(self, port: int) -> VideoReceiver:
-        video_receiver = VideoReceiver(port)
+    def video_receiver(self, port: int, error_callback: callable) -> VideoReceiver:
+        video_receiver = VideoReceiver(port, error_callback)
         video_receiver.start()
 
         return video_receiver
