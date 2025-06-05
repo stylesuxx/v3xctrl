@@ -112,12 +112,20 @@ class Latency(Message):
 class Command(Message):
     """Message type for command data."""
 
-    def __init__(self, c: str, timestamp: float = None):
+    def __init__(self, c: str, p: dict, timestamp: float = None):
         super().__init__({
-            "c": c
+            "c": c,
+            "p": p
         }, timestamp)
 
-        self.value = c
+        self.command = c
+        self.parameters = p
+
+    def get_command(self) -> str:
+        return self.command
+
+    def get_parameters(self) -> dict:
+        return self.parameters
 
 
 class Heartbeat(Message):
