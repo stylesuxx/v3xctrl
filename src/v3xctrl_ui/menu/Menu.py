@@ -8,7 +8,12 @@ from v3xctrl_ui.GamepadManager import GamepadManager
 from v3xctrl_ui.Settings import Settings
 
 from v3xctrl_ui.menu.input import Button
-from v3xctrl_ui.menu.tabs import GeneralTab, InputTab, FrequenciesTab
+from v3xctrl_ui.menu.tabs import (
+  GeneralTab,
+  InputTab,
+  FrequenciesTab,
+  StreamerTab,
+)
 
 from v3xctrl_ui.colors import WHITE, GREY, MID_GREY, DARK_GREY
 from v3xctrl_ui.fonts import MAIN_FONT
@@ -35,8 +40,8 @@ class Menu:
         self.settings = settings
         self.callback = callback
 
-        tab_width = self.width // 3
-        tab_names = ["General", "Frequencies", "Input"]
+        tab_names = ["General", "Frequencies", "Input", "Streamer"]
+        tab_width = self.width // len(tab_names)
 
         self.tab_height = 60
         self.footer_height = 60
@@ -113,6 +118,13 @@ class Menu:
                 padding=self.padding,
                 y_offset=self.tab_height
             ),
+            "Streamer": StreamerTab(
+                settings=self.settings,
+                width=self.width,
+                height=self.height,
+                padding=self.padding,
+                y_offset=self.tab_height
+            )
         }
 
     def _on_active_toggle(self, active: bool):
