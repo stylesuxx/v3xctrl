@@ -33,6 +33,23 @@ const registerClickHandlers = (editor) => {
     });
   });
 
+  $('a.shutdown').on('click', function(e) {
+    e.preventDefault();
+
+    $(this).prop('disabled', true);
+
+    const html = `
+      <p><strong>Shutting down gracefully :)</strong></p>
+      <p><span class="modal-countdown">30</span> seconds</p>
+    `;
+
+    showModal("Shutting down", html, 30, () => location.reload());
+
+    $.post('/shutdown').fail(() => {
+      console.warn("Shutdown POST failed — likely already rebooting.");
+    });
+  });
+
   $('button.save-steering-calibration').on('click', function(e) {
     const $calibration = $('#calibration-tab');
     const min = parseInt($calibration.find('.steering.min input').val());
