@@ -29,8 +29,14 @@ const registerTabHandler = () => {
 
 const activateTabFromHash = () => {
   const hash = window.location.hash;
-  if (hash && $(hash).length && $(`#custom-tabs a[href="${hash}"]`).length) {
-    $(`#custom-tabs a[href="${hash}"]`).trigger('click');
+  const $tabLink = $(`#custom-tabs a[href="${hash}"]`);
+
+  if ($tabLink.length && $(hash).length) {
+    $('#custom-tabs li').removeClass('active');
+    $('.tab-pane').removeClass('active').hide();
+
+    $tabLink.parent().addClass('active');
+    $(hash).addClass('active').show();
   } else {
     $('#custom-tabs a').first().trigger('click');
   }

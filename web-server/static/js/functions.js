@@ -248,8 +248,46 @@ function getAllowedBands() {
   get('/modem/bands', function(res) {
     console.log(res);
     var bands = JSON.parse(res);
-    console.log(bands);
 
     $("#modem-tab p").text('Allowed bands: ' + bands.join(', '));
   });
 }
+
+function showModal(title, html, countdownSeconds = null, onDone = null) {
+  const $modal = $('#genericModal');
+  const $backdrop = $('#modal-backdrop');
+
+  $('#modal-title').text(title);
+  $('#modal-body').html(html);
+
+  $modal.removeClass('hidden fade').addClass('in').css({
+    display: 'block',
+    opacity: 1
+  });
+  $backdrop.removeClass('hidden fade').addClass('in').css({
+    display: 'block',
+    opacity: 0.5
+  });
+  $('body').addClass('modal-open');
+
+  if (countdownSeconds != null) {
+    let secondsLeft = countdownSeconds;
+    const $count = $('#modal-body').find('.modal-countdown');
+
+    $count.text(secondsLeft);
+    const timer = setInterval(() => {
+      secondsLeft--;
+      $count.text(secondsLeft);
+      if (secondsLeft <= 0) {
+        clearInterval(timer);
+        if (onDone) onDone();
+      }
+    }, 1000);
+  }
+};
+
+function hideModal() {
+  $('#genericModal').addClass('hidden fade').removeClass('in').css({ display: 'none' });
+  $('#modal-backdrop').addClass('hidden fade').removeClass('in').css({ display: 'none' });
+  $('body').removeClass('modal-open');
+};

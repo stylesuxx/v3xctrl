@@ -75,7 +75,6 @@
         <div class="tab-pane active" id="editor-tab">
           <div id="editor_holder"></div>
           <button id="save" class="btn btn-primary">Save</button>
-          <div id="response" class="alert alert-success mt-3" style="display: none; margin-top: 15px;"></div>
         </div>
 
         <div class="tab-pane" id="services-tab">
@@ -255,13 +254,13 @@
       </div>
     </div>
 
-    <div id="reboot-backdrop" class="modal-backdrop fade hidden"></div>
+    <div id="modal-backdrop" class="modal-backdrop fade hidden"></div>
 
-    <div id="rebootModal" class="modal fade hidden" tabindex="-1" role="dialog" aria-hidden="true">
+    <div id="genericModal" class="modal fade hidden" tabindex="-1" role="dialog" aria-hidden="true">
       <div class="modal-dialog modal-sm" role="document">
         <div class="modal-content text-center" style="padding: 20px;">
-          <h2>Rebooting...</h2>
-          <p><span id="reboot-countdown">60</span> seconds</p>
+          <h2 id="modal-title"></h2>
+          <div id="modal-body"></div>
         </div>
       </div>
     </div>

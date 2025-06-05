@@ -1,22 +1,18 @@
 const registerClickHandlers = (editor) => {
-  $('#save').on('click', function() {
-    $('#response').text("");
+  $('#save').on('click', function () {
     const updatedData = editor.getValue();
     const errors = editor.validate();
 
-    if(errors.length == 0) {
+    if (errors.length === 0) {
+      showModal("Saving", "<p>Saving configuration...</p>");
+
       $.ajax({
         url: '/save',
         method: 'POST',
         contentType: 'application/json',
         data: JSON.stringify(updatedData),
-        success: function(res) {
-            $messageContainer = $('#response');
-            $messageContainer.text(res.message);
-            $messageContainer.stop(true, true)
-              .fadeIn(200)
-              .delay(2000)
-              .fadeOut(600);
+        success: function (res) {
+          hideModal();
         }
       });
     }
@@ -25,34 +21,14 @@ const registerClickHandlers = (editor) => {
   $('a.reboot').on('click', function(e) {
     e.preventDefault();
 
-    const $modal = $('#rebootModal');
-    const $backdrop = $('#reboot-backdrop');
-    const $countdown = $('#reboot-countdown');
-    let secondsLeft = 45;
+    const html = `
+      <p><strong>Rebooting...</strong></p>
+      <p><span class="modal-countdown">45</span> seconds</p>
+    `;
 
-    $modal.removeClass('hidden fade').addClass('in').css({
-      display: 'block',
-      opacity: 1
-    });
-    $backdrop.removeClass('hidden fade').addClass('in').css({
-      display: 'block',
-      opacity: 0.5
-    });
-    $('body').addClass('modal-open');
+    showModal("Rebooting", html, 45, () => location.reload());
 
-    $countdown.text(secondsLeft);
-
-    const countdownTimer = setInterval(function() {
-      secondsLeft--;
-      $countdown.text(secondsLeft);
-
-      if (secondsLeft <= 0) {
-        clearInterval(countdownTimer);
-        location.reload();
-      }
-    }, 1000);
-
-    $.post('/reboot').fail(function() {
+    $.post('/reboot').fail(() => {
       console.warn("Reboot POST failed — likely already rebooting.");
     });
   });
