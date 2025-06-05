@@ -8,7 +8,7 @@ The documentation is split into multiple files:
 
 - [Terminology](/master/docs/Terminology.md) - read this to understand the terminology of the project
 - [Recommended Hardware](/master/docs/Hardware.md) - Which hardware you are going to need
-- [Client Setup](/master/docs/Client.md) - How to set up your hardware (the client)
+- [Streamer Setup](/master/docs/Client.md) - How to set up your hardware (the streamer)
 - [Motivation](/master/docs/Motivation.md) - If you want to understand why things are implemented as they are, this document should help you
 - [Troubleshooting](/master/docs/Troubleshooting.md) - read this before opening issues, your problem might have already been solved
 - [Latency Breakdown](/master/docs/Latency.md) - how much latency is there and where does it come from?
@@ -21,7 +21,7 @@ If you need any help feel free to open an [issue here](https://github.com/styles
 
 This section is meant to get you up and running within minutes.
 
-> In this quickstart guide, we assume that the login user is `pi` and the clients host name has been set to `v3xctrl` - substitute those to the values you used during client setup.
+> In this quickstart guide, we assume that the login user is `pi` and the streamers host name has been set to `v3xctrl` - substitute those to the values you used during streamer setup.
 
 > Do not attach the modem yet, first run through the setup and attach the modem in the last step. This will help you in debugging, should some issues arise.
 
@@ -33,7 +33,7 @@ This section is meant to get you up and running within minutes.
 - Electronic speed controller - ESC (with PWM input)
 - Servo (with PWM input)
 
-### Server Configuration
+### Viewer Configuration
 
 Download, extract and run the GUI for your operating system:
 
@@ -41,22 +41,24 @@ Download, extract and run the GUI for your operating system:
 * [Windows](/releases/latest/GUI_Windows.zip)
 * [MacOS](/releases/latest/GUI_MacOS.zip)
 
-On the server, make sure the following ports are open (you might need to forward them through your router) on your Server:
+On the computer running the viewer, make sure the following ports are open (you might need to forward them through your router) on your Server:
 
 - `6666`: UDP for receiving video (UDP & TCP for running self-tests)
 - `6668`: UDP for receiving UDP messages
 
 #### No static IP or mobile network
 
-If your server does not have a static IP or you are on a mobile network, you will have to use the UDP Relay instead of configuring port forwarding:
+If your the computer you are running the viewer on does not have a static IP or you are on a mobile network, you will have to use the UDP Relay instead of configuring port forwarding:
 
 After starting the GUI, enter the Menu and check the "Enable UDP Relay" checkbox. If you are using the default server, a valid ID can be requested in our [Discord](https://discord.gg/uF4hf8UBBW).
 
-### Client
+> **NOTE**: This mode is a bit more difficult for initial configuration, so if at all possible, use the direct connection instead.
 
-Make sure to follow the [client setup guide](/master/docs/Client.md#installation-recommended) in the Client.
+### Streamer
 
-Once the image is flashed an you have verified you can connect to the clients web server under: `http://v3xctrl.local:5000`
+Make sure to follow the [Streamer setup guide](/master/docs/Streamer.md#installation-recommended).
+
+Once the image is flashed an you have verified you can connect to the streamers web interface under: `http://v3xctrl.local:5000`
 
 * Set the host field, to your servers IP address
 * In the "video" section, make sure that the "testSource" is enabled
@@ -65,26 +67,17 @@ Click "Save".
 
 #### Testing video stream
 
-Connect via SSH to the client and start the video service:
+Switch to the Services tab and start the video service, the service status should change to `active`.
 
-```bash
-ssh pi@v3xctrl.local
-sudo systemctl start v3xctrl-video
-```
-
-After a couple of seconds you should see a video feed in the server GUI. Should this not be the case, follow the [Troubleshooting Guide](/master/docs/Troubleshooting.md#video-stream).
+After a couple of seconds you should see a video feed in the viewer. Should this not be the case, follow the [Troubleshooting Guide](/master/docs/Troubleshooting.md#video-stream).
 
 ##### Testing video transmission with camera
 
 Now that we have verified that video streaming is working, we want to make sure that the camera is working too.
 
-In the web-interface, uncheck the "testSource" checkbox in the video section and restart the video stream via command line:
+In the `Config Editor` tab, uncheck the "testSource" checkbox in the video section and restart the video stream from the `Services` tab.
 
-```bash
-sudo systemctl restart v3xctrl-video
-```
-
-After a couple of seconds you should see the live camera feed in the server GUI. Should this not be the case, follow the [Troubleshooting Guide](/master/docs/Troubleshooting.md#video-stream).
+After a couple of seconds you should see the live camera feed in the **viewer**. Should this not be the case, follow the [Troubleshooting Guide](/master/docs/Troubleshooting.md#video-stream).
 
 
 #### Testing control
@@ -96,13 +89,10 @@ By default the following GPIO pins are used for PWM:
 * `18`: Throttle
 * `13`: Steering
 
-Start the control service:
-
-```bash
-sudo systemctl start v3xctrl-control
-```
+Start the control service from the `Services` tab.
 
 #### Calibration
+Calibration is done through the `Calibration` tab.
 
 ##### Steering
 Steering calibration is quite straight forward, adjust min and max value according to your servo.
