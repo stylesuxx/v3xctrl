@@ -73,11 +73,11 @@ class SignalQualityWidget(Widget):
         if rsrq_dbm is None:
             return SignalQuality.POOR
 
-        if rsrq_dbm >= -7:
+        if rsrq_dbm >= -9:
             return SignalQuality.EXCELLENT
-        elif rsrq_dbm >= -12:
+        elif rsrq_dbm >= -14:
             return SignalQuality.GOOD
-        elif rsrq_dbm >= -17:
+        elif rsrq_dbm >= -19:
             return SignalQuality.FAIR
         else:
             return SignalQuality.POOR
