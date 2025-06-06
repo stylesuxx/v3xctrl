@@ -27,7 +27,7 @@ class TestMessages(unittest.TestCase):
         self.assert_message_roundtrip(msg, Telemetry)
 
     def test_command_roundtrip(self):
-        msg = Command("reboot")
+        msg = Command("reboot", {})
         self.assert_message_roundtrip(msg, Command)
 
     def test_control_roundtrip(self):
