@@ -39,14 +39,16 @@ const registerClickHandlers = (editor) => {
     $(this).prop('disabled', true);
 
     const html = `
-      <p><strong>Shutting down gracefully :)</strong></p>
+      <p><strong>Shutting down...</strong></p>
       <p><span class="modal-countdown">30</span> seconds</p>
     `;
 
-    showModal("Shutting down", html, 30, () => location.reload());
+    showModal("Shutting down", html, 30, () => {
+    $('#modal-body').html('<p><strong>Shutdown complete.</strong></p>');
+    });
 
     $.post('/shutdown').fail(() => {
-      console.warn("Shutdown POST failed — likely already rebooting.");
+      console.warn("Shutdown POST failed — likely already shutting down.");
     });
   });
 
