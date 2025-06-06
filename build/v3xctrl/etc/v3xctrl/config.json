@@ -60,5 +60,9 @@
   "extras": {
       "samba": false,
       "logLevel": "DEBUG"
+  },
+  "gpioconfig": {
+      "throttle": 18,
+      "steering": 13
   }
 }
