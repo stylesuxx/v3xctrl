@@ -37,17 +37,35 @@ class TestSignalQualityWidget(unittest.TestCase):
     def test_get_bars(self):
         w = self.widget
         self.assertEqual(w._get_bars(60), 5)
-        self.assertEqual(w._get_bars(55), 4)
-        self.assertEqual(w._get_bars(45), 3)
+
+        self.assertEqual(w._get_bars(59), 4)
+        self.assertEqual(w._get_bars(50), 4)
+
+        self.assertEqual(w._get_bars(49), 3)
+        self.assertEqual(w._get_bars(46), 3)
+
         self.assertEqual(w._get_bars(35), 2)
-        self.assertEqual(w._get_bars(25), 1)
+        self.assertEqual(w._get_bars(30), 2)
+
+        self.assertEqual(w._get_bars(29), 1)
+        self.assertEqual(w._get_bars(20), 1)
+
+        self.assertEqual(w._get_bars(19), 0)
+        self.assertEqual(w._get_bars(0), 0)
 
     def test_get_quality_boundaries(self):
         w = self.widget
-        self.assertEqual(w._get_quality(26), SignalQuality.EXCELLENT)
+        self.assertEqual(w._get_quality(34), SignalQuality.EXCELLENT)
+        self.assertEqual(w._get_quality(21), SignalQuality.GOOD)
+
         self.assertEqual(w._get_quality(20), SignalQuality.GOOD)
-        self.assertEqual(w._get_quality(9), SignalQuality.FAIR)
-        self.assertEqual(w._get_quality(5), SignalQuality.POOR)
+        self.assertEqual(w._get_quality(12), SignalQuality.GOOD)
+
+        self.assertEqual(w._get_quality(11), SignalQuality.FAIR)
+        self.assertEqual(w._get_quality(2), SignalQuality.FAIR)
+
+        self.assertEqual(w._get_quality(1), SignalQuality.POOR)
+        self.assertEqual(w._get_quality(0), SignalQuality.POOR)
 
     def test_draw_runs_without_error(self):
         w = self.widget
