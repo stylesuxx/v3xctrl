@@ -44,8 +44,8 @@ const registerClickHandlers = (editor) => {
     `;
 
     showModal("Shutting down", html, 30, () => {
-    $('#modal-title').text("Shutdown complete");
-    $('#modal-body').html('<p><strong>It is safe to turn off now.</strong></p>');
+      $('#modal-title').text("Shutdown complete");
+      $('#modal-body').html('<p><strong>It is safe to turn off now.</strong></p>');
     });
 
     $.post('/shutdown').fail(() => {
