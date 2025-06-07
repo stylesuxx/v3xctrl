@@ -21,5 +21,7 @@ v3xctrl-python -m v3xctrl_control.helpers.client "${server_host}" "${ports_contr
   --steering-max "${controls_steering_max}" \
   --steering-trim "${controls_steering_trim}" \
   --steering-scale "${controls_steering_scale}" \
+  --gpio-throttle "${controls_gpio_throttle}" \
+  --gpio-steering "${controls_gpio_steering}" \
   --modem-path "${modem_path}" --log "${extras_logLevel}" \
   ${ARGS}

@@ -50,6 +50,10 @@ parser.add_argument("--forward-boost", type=int, default=0,
                     help="Minimum pulse width offset for going forward (default: 0)")
 parser.add_argument("--reverse-boost", type=int, default=0,
                     help="Minimum pulse width offset for going reverse (default: 0)")
+parser.add_argument("--gpio-throttle", type=int, default=18,
+                    help="GPIO pin number for throttle signal (default: 18)")
+parser.add_argument("--gpio-steering", type=int, default=13,
+                    help="GPIO pin number for steering signal (default: 13)")
 parser.add_argument("--modem-path", type=str, default="/dev/ttyACM0",
                     help="Path to modem device (default: /dev/ttyACM0)")
 parser.add_argument("--log", default="ERROR",
@@ -79,6 +83,9 @@ steering_trim = args.steering_trim
 steering_invert = args.steering_invert
 steering_scale = args.steering_scale
 
+throttle_gpio = args.gpio_throttle
+steering_gpio = args.gpio_steering
+
 modem_path = args.modem_path
 
 level_name = args.log.upper()
@@ -106,9 +113,6 @@ if steering_invert:
     trim_multiplier = -1
 
 running = True
-
-throttle_gpio = 18  # PWM0
-steering_gpio = 13  # PWM1
 
 pi = pigpio.pi()
 pi.set_mode(throttle_gpio, pigpio.OUTPUT)

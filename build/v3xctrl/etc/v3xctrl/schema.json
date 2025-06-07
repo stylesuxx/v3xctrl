@@ -354,8 +354,32 @@
           "propertyOrder": 30,
           "type": "integer",
           "default": 3,
-          "description": "After this many seconds without a control packet, failsafe is triggered"
-        }
+          "description": "After this many seconds without a control packet, failsafe is triggered"        
+        },
+        "gpio":{
+          "propertyOrder":40,
+          "type": "object",
+          "title": "Pin Mapping",
+          "options": {
+          "collapsed": false,
+          "disable_edit_json": true,
+          "disable_properties": true
+          },
+          "properties": {
+              "throttle": {
+              "propertyOrder": 10,
+              "type": "integer",
+              "default": 18,
+              "description": "GPIO for ESC"
+            },
+            "steering": {
+              "propertyOrder": 20,
+              "type": "integer",
+              "default": 13,
+              "description": "GPIO for Servo"
+            }
+          }
+        }   
       }
     },
     "modem": {

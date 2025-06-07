@@ -50,6 +50,10 @@
           "trim": 0,
           "scale": 100,
           "invert": false
+      },
+      "gpio": {
+          "throttle": 18,
+          "steering": 13
       }
   },
   "modem": {
