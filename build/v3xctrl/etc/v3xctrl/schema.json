@@ -350,12 +350,18 @@
             }
           }
         },
+        "failsafeTimeout": {
+          "propertyOrder": 30,
+          "type": "integer",
+          "default": 3,
+          "description": "After this many seconds without a control packet, failsafe is triggered"        
+        },
         "gpio":{
-          "propertyOrder":30,
+          "propertyOrder":40,
           "type": "object",
           "title": "Pin Mapping",
           "options": {
-          "collapsed": true,
+          "collapsed": false,
           "disable_edit_json": true,
           "disable_properties": true
           },
@@ -367,20 +373,13 @@
               "description": "GPIO for ESC"
             },
             "steering": {
-            "propertyOrder": 20,
-            "type": "integer",
-            "default": 13,
-            "description": "GPIO for Servo"
+              "propertyOrder": 20,
+              "type": "integer",
+              "default": 13,
+              "description": "GPIO for Servo"
             }
           }
-        },   
-        "failsafeTimeout": {
-          "propertyOrder": 40,
-          "type": "integer",
-          "title": "Failsave",
-          "default": 3,
-          "description": "After this many seconds without a control packet, failsafe is triggered"        
-        }
+        }   
       }
     },
     "modem": {
