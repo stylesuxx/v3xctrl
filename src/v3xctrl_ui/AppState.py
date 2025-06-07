@@ -165,24 +165,25 @@ class AppState:
                 video_address = addresses["video"]
 
             def poke_peer():
-                logging.info(f"Poking peer {video_address}")
-                try:
-                    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                    sock.bind(("0.0.0.0", self.video_port))
+                if self.relay_enable:
+                    logging.info(f"Poking peer {video_address}")
+                    try:
+                        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                        sock.bind(("0.0.0.0", self.video_port))
 
-                    for i in range(5):
-                        try:
-                            sock.sendto(b'SYN', video_address)
-                            sleep(0.1)
-                        except Exception as e:
-                            logging.warning(f"Poke {i+1}/5 failed: {e}")
+                        for i in range(5):
+                            try:
+                                sock.sendto(b'SYN', video_address)
+                                sleep(0.1)
+                            except Exception as e:
+                                logging.warning(f"Poke {i+1}/5 failed: {e}")
 
-                except Exception as e:
-                    logging.error(f"Failed to poke peer: {e}", exc_info=True)
-                finally:
-                    sock.close()
-                    logging.info(f"Poke to {video_address} completed and socket closed.")
+                    except Exception as e:
+                        logging.error(f"Failed to poke peer: {e}", exc_info=True)
+                    finally:
+                        sock.close()
+                        logging.info(f"Poke to {video_address} completed and socket closed.")
 
             self.video_receiver = Init.video_receiver(self.video_port, poke_peer)
             self.server, self.server_error = Init.server(self.control_port,
