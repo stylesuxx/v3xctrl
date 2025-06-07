@@ -72,7 +72,7 @@ class FrequenciesTab(Tab):
         self.latency_input.draw(surface)
 
     def draw(self, surface: Surface):
-        y = self._draw_frequency_section(surface, 0)
+        _ = self._draw_frequency_section(surface, 0)
 
     def get_settings(self) -> dict:
         return {

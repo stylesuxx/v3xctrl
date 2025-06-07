@@ -31,6 +31,7 @@ class Init:
             server.start()
 
             return server, None
+
         except OSError as e:
             msg = "Control port already in use" if e.errno == 98 else f"Server error: {str(e)}"
             logging.error(msg)

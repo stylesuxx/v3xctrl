@@ -1,4 +1,4 @@
-from pygame import Surface, event
+from pygame import Surface
 
 from v3xctrl_ui.menu.calibration.GamepadCalibrationWidget import GamepadCalibrationWidget
 from v3xctrl_ui.menu.input import KeyMappingWidget
