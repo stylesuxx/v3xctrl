@@ -111,7 +111,8 @@ const registerClickHandlers = (editor) => {
     }
 
     // TODO: read pin dynamically
-    gpio = parseInt($('.steering-gpio input').val());
+    values = editor.getValue();
+    gpio = parseInt(values.controls.gpio.steering);
     setPwm(gpio, value);
   });
 
@@ -133,7 +134,8 @@ const registerClickHandlers = (editor) => {
     $input.val(value);
 
     // TODO: read pin dynamically
-    gpio = parseInt($('.throttle-gpio input').val());
+    values = editor.getValue();
+    gpio = parseInt(values.controls.gpio.throttle);
     setPwm(gpio, value);
   });
 
