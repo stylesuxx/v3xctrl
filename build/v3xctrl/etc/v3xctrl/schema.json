@@ -223,8 +223,7 @@
         }
       }
     },
-    "controls": 
-    {
+    "controls": {
       "propertyOrder": 50,
       "type": "object",
       "title": "Controls",
@@ -357,7 +356,7 @@
           "default": 3,
           "description": "After this many seconds without a control packet, failsafe is triggered"
         },
-        "gpioconfig":{
+        "gpio":{
           "propertyOrder":70,
           "type": "object",
           "title": "Pin mapping",

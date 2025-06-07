@@ -50,6 +50,10 @@
           "trim": 0,
           "scale": 100,
           "invert": false
+      },
+      "gpio": {
+          "throttle": 18,
+          "steering": 13
       }
   },
   "modem": {
@@ -60,9 +64,5 @@
   "extras": {
       "samba": false,
       "logLevel": "DEBUG"
-  },
-  "gpioconfig": {
-      "throttle": 18,
-      "steering": 13
   }
 }
