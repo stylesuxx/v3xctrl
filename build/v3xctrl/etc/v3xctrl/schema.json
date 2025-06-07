@@ -377,6 +377,7 @@
         "failsafeTimeout": {
           "propertyOrder": 40,
           "type": "integer",
+          "title": "Failsave",
           "default": 3,
           "description": "After this many seconds without a control packet, failsafe is triggered"        
         }
