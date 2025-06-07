@@ -4,7 +4,7 @@ This document aims in helping you get your development environment set up for bo
 
 > If you are just a regular user, you can skip this section.
 
-## Server (GUI)
+## Viewer
 
 You can develop on any OS - Linux is the prefered method though. Make sure Python Version `>=3.11.4` is installed.
 
@@ -50,13 +50,13 @@ Use [pyenv-win](https://github.com/pyenv-win/pyenv-win) to get your python venv 
 
 Follow the steps from above to fetch the repo, install dependencies and start the GUI.
 
-## Client
+## Streamer
 
 > Even for development, it's recommended to use the provided, custom PiOS image and go from there.
 
 ### Setup
 
-By default th `/root` and `/` partitions are mounted read-only. In order to be able to build on the client itself, you need to switch to read-write mode:
+By default th `/root` and `/` partitions are mounted read-only. In order to be able to build/install on the streamer, you need to switch to read-write mode:
 
 ```bash
 sudo v3xctrl-remount rw
@@ -70,7 +70,42 @@ Do not forget to switch back to read-only mode when done:
 sudo v3xctrl-remount ro
 ```
 
-### Install
+### Building
+To build the deb package you have two options:
+
+1. Build on your dev machine, move the package over and install
+2. Build on RPi itself
+
+The preferred method, faster and less hassle is to build on the dev machine:
+
+#### Building on dev machine
+For this method to work, make sure you are in RW mode on the streamer.
+
+On the dev machine install pre-requisites:
+
+```
+sudo ./build/prepare-host.sh
+```
+
+Build deb package:
+
+```bash
+sudo ./build/build-in-chroot.sh
+```
+
+A convenient one-liner to build and move to streamer:
+
+```bash
+sudo ./build/build-in-chroot.sh && scp ./build/tmp/dependencies/debs/v3xctrl.deb v3xctrl@v3xctrl01.local:/home/v3xctrl
+```
+
+Then on the streamer simply remove old version and install new one:
+
+```
+sudo apt remove -y --purge v3xctrl && sudo apt install ./v3xctrl.deb
+```
+
+#### Building on Rpi
 
 There is an install script in place which will help you to get your dev environment going.
 
@@ -86,7 +121,7 @@ git clone git@github.com:stylesuxx/v3xctrl.git
 You should now be able to access the config web interface at `http://192.168.1.89:5000/` - change the IP to the IP of your client.
 
 
-### Update
+##### Update
 
 To update the client package you again run the install script, but you can omit all the steps apart from building and installing the package.
 
