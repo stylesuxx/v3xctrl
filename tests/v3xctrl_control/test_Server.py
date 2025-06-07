@@ -1,10 +1,17 @@
 import time
+import threading
 import unittest
 from unittest.mock import patch, MagicMock
 
 from src.v3xctrl_control import Server, State
-from src.v3xctrl_control.Message import Syn, Heartbeat, Message
-
+from src.v3xctrl_control.Message import (
+    Syn,
+    Ack,
+    Heartbeat,
+    Message,
+    Command,
+    CommandAck,
+)
 from tests.v3xctrl_control.config import HOST, PORT
 
 
@@ -100,6 +107,48 @@ class TestServer(unittest.TestCase):
         self.mock_transmitter.join.assert_called_once()
         self.mock_handler.join.assert_called_once()
         self.assertFalse(self.server.running.is_set())
+
+    def test_send_command_starts_retry_thread(self):
+        command = Command("ping", {})
+        callback = MagicMock()
+
+        self.server.send_command(command, callback=callback)
+
+        time.sleep(1.5)  # wait for at least one retry
+        self.mock_base_send.assert_called_with(command, (HOST, PORT))
+        callback.assert_not_called()
+
+    def test_command_ack_triggers_callback(self):
+        command = Command("ping", {})
+        called = threading.Event()
+
+        def cb(success):
+            self.assertTrue(success)
+            called.set()
+
+        self.server.send_command(command, callback=cb)
+        time.sleep(0.1)  # ensure it's registered
+
+        ack = CommandAck(command.get_command_id())
+        self.server.command_ack_handler(ack, (HOST, PORT))
+
+        called.wait(1)
+        self.assertTrue(called.is_set())
+
+    def test_command_timeout_triggers_callback_false(self):
+        command = Command("nop", {})
+        called = threading.Event()
+
+        def cb(success):
+            self.assertFalse(success)
+            called.set()
+
+        self.server.COMMAND_DELAY = 0.1
+        self.server.COMMAND_MAX_RETRIES = 3
+
+        self.server.send_command(command, callback=cb)
+        called.wait(1)
+        self.assertTrue(called.is_set())
 
 
 if __name__ == "__main__":

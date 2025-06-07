@@ -17,7 +17,12 @@ import traceback
 
 from v3xctrl_control import Client, State
 from v3xctrl_control.Telemetry import Telemetry as TelemetryHandler
-from v3xctrl_control.Message import Control, Telemetry, Latency
+from v3xctrl_control.Message import (
+  Command,
+  Control,
+  Telemetry,
+  Latency,
+)
 
 from v3xctrl_helper import clamp
 
@@ -113,6 +118,7 @@ if steering_invert:
     trim_multiplier = -1
 
 running = True
+received_command_ids = set()
 
 pi = pigpio.pi()
 pi.set_mode(throttle_gpio, pigpio.OUTPUT)
@@ -183,6 +189,15 @@ def latency_handler(message: Latency) -> None:
     client.send(message)
 
 
+def command_handler(command: Command) -> None:
+    command_id = command.get_command_id()
+    if command_id in received_command_ids:
+        return
+
+    received_command_ids.add(command_id)
+    logging.debug(f"Received command: {command}")
+
+
 def disconnect_handler() -> None:
     """
     When disconnected:
@@ -206,6 +221,7 @@ client = Client(HOST, PORT, BIND_PORT)
 # Subscribe to messages received from the server
 client.subscribe(Control, control_handler)
 client.subscribe(Latency, latency_handler)
+client.subscribe(Command, command_handler)
 
 # Subscribe to life-cycle events
 client.on(State.DISCONNECTED, disconnect_handler)

@@ -16,7 +16,7 @@ import time
 from typing import Tuple
 
 from .Base import Base
-from .Message import Message, Syn, Ack
+from .Message import Message, Syn, Ack, Command, CommandAck
 from .MessageHandler import MessageHandler
 from .State import State
 from .UDPTransmitter import UDPTransmitter
@@ -46,8 +46,14 @@ class Client(Base):
         if self.state == State.WAITING:
             self.handle_state_change(State.CONNECTED)
 
+    def command_handler(self, message: Command, addr: Tuple[str, int]) -> None:
+        """Handles incoming commands by acknowledging them."""
+        command_id = message.get_command_id()
+        ack = CommandAck(command_id)
+        self.send(ack)
+
     def send(self, message: Message) -> None:
-        """ Messages are always sent to the server. """
+        """Messages are always sent to the server."""
         super()._send(message, self.server_address)
 
     def initialize(self):
@@ -68,9 +74,10 @@ class Client(Base):
         self.message_handler.add_handler(Message, self.all_handler)
         self.message_handler.add_handler(Syn, self.syn_handler)
         self.message_handler.add_handler(Ack, self.ack_handler)
+        self.message_handler.add_handler(Command, self.command_handler)
 
     def re_initialize(self):
-        """ Cleanly tear down the current connection and build a new one."""
+        """Cleanly tear down the current connection and build a new one."""
         if self.running.is_set():
             self.message_handler.stop()
             self.transmitter.stop()

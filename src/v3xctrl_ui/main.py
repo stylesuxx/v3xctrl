@@ -293,7 +293,8 @@ def handle_events(state):
                     VIDEO["height"],
                     gamepad_manager,
                     settings,
-                    update_settings)
+                    update_settings,
+                    state.server)
             else:
                 state.menu = None
 

@@ -5,6 +5,7 @@ only part the devs need to interact with, so this should not be too confusing.
 """
 
 import abc
+import itertools
 import time
 import msgpack
 
@@ -111,11 +112,21 @@ class Latency(Message):
 
 class Command(Message):
     """Message type for command data."""
+    _command_counter = itertools.count()
 
-    def __init__(self, c: str, p: dict, timestamp: float = None):
+    @classmethod
+    def _generate_command_id(cls) -> str:
+        ts_ns = time.monotonic_ns()
+        seq = next(cls._command_counter)
+        return f"{ts_ns}-{seq}"
+
+    def __init__(self, c: str, p: dict, i: str = None, timestamp: float = None):
+        self.command_id = i or self._generate_command_id()
+
         super().__init__({
             "c": c,
-            "p": p
+            "p": p,
+            "i": self.command_id
         }, timestamp)
 
         self.command = c
@@ -126,6 +137,23 @@ class Command(Message):
 
     def get_parameters(self) -> dict:
         return self.parameters
+
+    def get_command_id(self) -> str:
+        return self.command_id
+
+
+class CommandAck(Message):
+    """Acknowledgment message for a Command."""
+
+    def __init__(self, i: str, timestamp: float = None):
+        super().__init__({
+            "i": i
+        }, timestamp)
+
+        self.command_id = i
+
+    def get_command_id(self) -> str:
+        return self.command_id
 
 
 class Heartbeat(Message):

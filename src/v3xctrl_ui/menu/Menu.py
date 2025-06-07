@@ -4,9 +4,10 @@ import pygame
 from pygame import Surface
 from typing import Callable
 
+from v3xctrl_control import Server
+
 from v3xctrl_ui.GamepadManager import GamepadManager
 from v3xctrl_ui.Settings import Settings
-
 from v3xctrl_ui.menu.input import Button
 from v3xctrl_ui.menu.tabs import (
   GeneralTab,
@@ -15,7 +16,7 @@ from v3xctrl_ui.menu.tabs import (
   StreamerTab,
 )
 
-from v3xctrl_ui.colors import WHITE, GREY, MID_GREY, DARK_GREY
+from v3xctrl_ui.colors import WHITE, DARK_GREY
 from v3xctrl_ui.fonts import MAIN_FONT
 
 TabEntry = namedtuple("TabEntry", ["name", "rect", "view"])
@@ -33,12 +34,14 @@ class Menu:
                  height: int,
                  gamepad_manager: GamepadManager,
                  settings: Settings,
-                 callback: Callable[[], None]):
+                 callback: Callable[[], None],
+                 server: Server):
         self.width = width
         self.height = height
         self.gamepad_manager = gamepad_manager
         self.settings = settings
         self.callback = callback
+        self.server = server
 
         tab_names = ["General", "Frequencies", "Input", "Streamer"]
         tab_width = self.width // len(tab_names)
@@ -123,7 +126,9 @@ class Menu:
                 width=self.width,
                 height=self.height,
                 padding=self.padding,
-                y_offset=self.tab_height
+                y_offset=self.tab_height,
+                on_active_toggle=self._on_active_toggle,
+                send_command=self.server.send_command,
             )
         }
 
