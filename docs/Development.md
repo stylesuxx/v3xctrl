@@ -1,8 +1,17 @@
 # Development
 
-This document aims in helping you get your development environment set up for both the server and client.
+This document aims in helping you get your development environment set up for both - streamer and viewer.
 
 > If you are just a regular user, you can skip this section.
+
+## Reference Implementations
+
+For a quick entry into the codebase, we have collected a couple of [reference implementations](https://github.com/stylesuxx/v3xctrl/issues?q=label%3A%22reference%22). Following those commits, you should quickly get a feel for how to implement a feature you are looking for:
+
+* [Trigger an action from the WebUi](https://github.com/stylesuxx/v3xctrl/issues/34)
+* [Send a command from Viewer to streamer](https://github.com/stylesuxx/v3xctrl/issues/54)
+* [Add a new setting to the streamer config](https://github.com/stylesuxx/v3xctrl/issues/62)
+* [Add a tab to the Viewer Menu](https://github.com/stylesuxx/v3xctrl/issues/91)
 
 ## Viewer
 
@@ -158,49 +167,6 @@ dmesg -c
 dmesg -c
 ```
 
-#### Routeing traffic
-
-We want to make sure that all internal traffic is routed through the wifi adapter. All external traffic should go through the 4G modem.
-
-> This assumes you use the default dhcpcd and not NetworkManager!
-
-Open `/etc/dhcpcd.conf` and add:
-
-```text
-interface wlan0
-    nogateway
-```
-
-Edit `/etc/dhcpcd.exit-hook`:
-
-```text
-if [ "$interface" = "wlan0" ]; then
-    subnet=$(ip -4 addr show wlan0 | awk '/inet/ {print $2}')
-    ip route add "$subnet" dev wlan0
-fi
-```
-
-and make it executable:
-
-```bash
-sudo chmod +x /etc/dhcpcd.exit-hook
-```
-
-Now reboot and make sure that the rules are applied:
-
-```bash
-ip route show
-```
-
-Use `mtr` to verify the correct device is being used for routing your traffic:
-
-```bash
-mtr 192.168.1.1
-mtr google.com
-```
-
-When running each of them, you should see different IP addresses on top indicating which device is being used for routing.
-
 ### Serial Console (optional but recommended)
 
 > **Note:** This is already enabled when using our custom image.
@@ -214,17 +180,6 @@ sudo raspi-config
 Navigate to `Interface Options` -> `Serial Port` -> `Would you like a login shell to be accessible over serial?` -> `Yes` -> `OK` -> `Finish`.
 
 Now you will be able to access the serial console via USB to serial adapter
-
-### Update
-
-If you are running the dev env and you just want to update your client, you can simply run the installer again passing the update Parameter:
-
-```bash
-./install.sh update
-```
-
-This will re-build the `v3xctrl` package and install it over the already installed one.
-
 
 ## Helper scripts
 
