@@ -11,6 +11,7 @@ import argparse
 import logging
 import pigpio
 import signal
+import subprocess
 import sys
 import time
 import traceback
@@ -196,6 +197,14 @@ def command_handler(command: Command) -> None:
 
     received_command_ids.add(command_id)
     logging.debug(f"Received command: {command}")
+
+    cmd = command.get_command()
+    if cmd == 'service':
+        parameters = command.get_parameters()
+        action = parameters['action']
+        name = parameters['name']
+
+        subprocess.run(["sudo", "systemctl", action, name])
 
 
 def disconnect_handler() -> None:
