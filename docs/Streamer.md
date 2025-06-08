@@ -1,6 +1,6 @@
-# Client
+# Streamer
 
-The client is the heart of the project: Transmitting video, receiving control commands, and managing the actuators.
+The streamer is the heart of the project: Transmitting video, receiving control commands, and managing the actuators.
 
 ## Installation (recommended)
 
@@ -31,7 +31,7 @@ ssh pi@v3xctrl.local
 
 If you can connect, you are ready for the next step of the configuration.
 
-> Be aware that only the first boot will take longer, afterwards you should be able to connect via SSH after about 30 seconds from plugging in the client.
+> Be aware that only the first boot will take longer, afterwards you should be able to connect via SSH after about 30 seconds from plugging in the streamer.
 
 If you can not connect, check the [trouble shooting section](/master/docs/Troubleshooting.md#ssh-connection)
 
@@ -70,13 +70,13 @@ This service is responsible for cleaning up fragments of a previous unclean shut
 
 ### v3xctrl-video
 
-This service is responsible for sending the video feed to the server.
+This service is responsible for sending the video feed to the viewer.
 
 > This service is not meant to be enabled. It is started by the `v3xctrl-service-manager` service if autostart is enabled in the config.
 
 ### v3xctrl-control
 
-This service is responsible for the control connection between client and server and is ultimately what controls the actuators.
+This service is responsible for the control connection between streamer and viewer and is ultimately what controls the actuators.
 
 > This service is not meant to be enabled. It is started by the `v3xctrl-service-manager` service if autostart is enabled in the config.
 

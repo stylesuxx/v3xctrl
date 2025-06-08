@@ -1,5 +1,5 @@
 # Release
-Everything can be build via GitHub workflows, directly on the server/client or via chroot. Preferably we just use Github workflows to build everything, but quotas are in place and during development it might be easier and more efficient to build on the server/client itself.
+Everything can be build via GitHub workflows, directly on the viewer/streamer or via chroot. Preferably we just use Github workflows to build everything, but quotas are in place and during development it might be easier and more efficient to build on the dev machine itself.
 
 ## Chroot
 Probably the most convenient way to bundle everything up on your (Linux) dev machine. Start by installing the dependencies:
@@ -51,15 +51,15 @@ Base image, deb packages for python and v3xctrl need to be in place. Also a dire
 > **NOTE**: the image builder script is meant to be run on the server, it uses chroot and qemu. Technically you can also run it on the client and then simply skip copying qemu static.
 
 ## Github Workflows
-### Server
+### Viewer
 This one is straight forward, new artifact are built on every push and PR.
 
 When creating a new release, just attach the latest builds to the release.
 
 TODO: This can probably also be done automatically when tagging
 
-### Client
-Client is a bit more complicated:
+### Streamer
+Streamer is a bit more complicated:
 
 #### Python
 Build of custom python version can be triggered manually. This should not be necessary too often, unless we need to upgrade to a new specific version for some reason.

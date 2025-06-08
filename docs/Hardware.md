@@ -4,10 +4,26 @@ This is a list of tested and recommended Hardware. Recommended in this case mean
 ## Recommended
 * [Raspberry PI Zero 2 W](https://www.raspberrypi.com/products/raspberry-pi-zero-2-w/)
 * [Cat 1, 4G Modem hat (comes in EU and US versions, with and without GPS)](https://aliexpress.com/item/1005007960858994.html)
+* [PiCam V3 (Wide)](https://www.raspberrypi.com/products/camera-module-3/)
+
+
+## Tested
 
 ## Potential candidates
-* As 4G modem you could basically use anything that provides a RNDIS interface. Best option is something that also provides a serial interface to communicate with the modem to get signal quality information. This is not mandatory, but makes debugging easier.
 
+The following components are potential candidates that should work, but have not explicitly been tested.
+
+### SBC
 * Any multi-core RPi (or alternative) with at least 512MB should be fine here. We rely on a hardware encoder for h264 encoding.
 
+### Modems
+* As 4G modem you could basically use anything that provides a RNDIS interface.
+
+> You should also really go with something that provides a serial interface to query Modem stats via AT commands - otherwise features like reception, signal quality and band limitations will not work.
+
 * [Cat 4, 4G Modem hat with GPS (SIM7600G-H 4G HAT)](https://aliexpress.com/item/1005005628834373.html)
+
+### Cameras
+Technically any camera should work, but we recommend the [PiCam V3 (Wide version)](https://www.raspberrypi.com/products/camera-module-3/) as it is the only camera that supports HDR, which helps with difficult lighting conditions.
+
+If you don't care for that, any PiCam, ArduCam and knockoffs are fine. Go for a decent FOV though.

@@ -1,28 +1,28 @@
 # Latency
 Here is a flow chart showing the latency in the system. We need to consider two chains:
 
-- The client-to-server chain (video)
-- The server-to-client chain (control)
+- The streamer-to-viewer chain (video)
+- The viewer-to-streamer chain (control)
 
 Looking at the chart makes it clear that there is a lot of potential for introducing latency, and only some of the stages are under our control:
 
 ```
------------
-| Client  |
------------
-| Camera  | 15–25 ms (may increase in low light)
-| Encoder | 3 ms
-| UDP     | 0.5–1.5 ms (RTP packaging + kernel/network stack delay)
------------
-| Network | 20–40 ms (4G latency, variable)
------------
-| Server  |
------------
-| UDP     | 0.5–1.5 ms
-| Decoder | 1–3 ms
------------
-| Display | 2–8 ms
------------
+------------
+| Streamer |
+------------
+| Camera   | 15–25 ms (may increase in low light)
+| Encoder  | 3 ms
+| UDP      | 0.5–1.5 ms (RTP packaging + kernel/network stack delay)
+------------
+| Network  | 20–40 ms (4G latency, variable)
+------------
+| Viewer   |
+------------
+| UDP      | 0.5–1.5 ms
+| Decoder  | 1–3 ms
+------------
+| Display  | 2–8 ms
+------------
 ```
 
 So from capturing a frame to displaying it on the screen, it takes **42–82 ms on average**.
@@ -31,14 +31,14 @@ This heavily depends on the network, and latency spikes are possible.
 
 ```
 ------------
-| Server   |
+| Viewer   |
 ------------
 | Control  | 0.1–0.3 ms (command generation & queuing)
 | UDP      | 0.5–1.5 ms (kernel stack, NIC buffer)
 ------------
 | Network  | 20–40 ms (4G latency, variable)
 ------------
-| Client   |
+| Streamer |
 ------------
 | UDP      | 0.5–1.5 ms (receive, buffer copy)
 | Process  | 0.5–2 ms (command parsing & execution)
