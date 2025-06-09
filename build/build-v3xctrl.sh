@@ -7,7 +7,7 @@ ROOT_DIR="${1:-$(pwd)}"
 
 BUILD_DIR="${ROOT_DIR}/build"
 TMP_DIR="${BUILD_DIR}/tmp"
-SRC_DIR="${BUILD_DIR}/${NAME}"
+SRC_DIR="${BUILD_DIR}/packages/${NAME}"
 
 DEB_PATH="${TMP_DIR}/${NAME}.deb"
 DEST_DIR="${TMP_DIR}/$NAME"

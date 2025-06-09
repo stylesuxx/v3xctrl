@@ -7,6 +7,7 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 TMP_DIR="./build/tmp"
+PACKAGES_DIR="build/packages"
 MOUNT_DIR="${TMP_DIR}/mnt-build"
 IMG_WORK="${TMP_DIR}/v3xctrl-build.img"
 IMG="${TMP_DIR}/dependencies/raspios.img.xz"
@@ -64,10 +65,11 @@ echo "[HOST] Copying qemu-aarch64-static for chroot emulation"
 cp /usr/bin/qemu-aarch64-static "$MOUNT_DIR/usr/bin/"
 
 echo "[HOST] Moving build files into place"
-mkdir -p "${MOUNT_DIR}/src"
+mkdir -p "${MOUNT_DIR}/src/${PACKAGES_DIR}"
 
-cp -r "./build/v3xctrl-python" "${MOUNT_DIR}/src/build"
-cp -r "./build/v3xctrl" "${MOUNT_DIR}/src/build"
+cp -r "./${PACKAGES_DIR}/v3xctrl-python" "${MOUNT_DIR}/src/${PACKAGES_DIR}"
+cp -r "./${PACKAGES_DIR}/v3xctrl" "${MOUNT_DIR}/src/${PACKAGES_DIR}"
+
 cp -r "./build/requirements" "${MOUNT_DIR}/src/build"
 cp -r "./build/build-python.sh" "${MOUNT_DIR}/src/build"
 cp -r "./build/build-v3xctrl.sh" "${MOUNT_DIR}/src/build"

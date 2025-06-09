@@ -10,7 +10,7 @@ NAME='v3xctrl-python'
 ROOT_DIR="${1:-$(pwd)}"
 
 TMP_DIR="${ROOT_DIR}/build/tmp"
-SRC_DIR="${ROOT_DIR}/build/${NAME}"
+SRC_DIR="${ROOT_DIR}/build/packages/${NAME}"
 
 DEB_PATH="${TMP_DIR}/${NAME}.deb"
 DEST_DIR="${TMP_DIR}/${NAME}"
