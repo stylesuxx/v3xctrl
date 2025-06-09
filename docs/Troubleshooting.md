@@ -5,18 +5,18 @@ If you encounter any issues, this document will help you troubleshoot and resolv
 ## SSH connection
 If after installation and first boot, you can not connect via SSH, check the following:
 
-- Make sure your client gets assigned an IP address by your router
+- Make sure your streamer gets assigned an IP address by your router
 - Make sure you are using the correct hostname
 - Try connecting to IP directly instead of using the hostname
 
 ### No IP assigned
-If on the router you can not see your client in the list of connected devices, it is very likely that you did not set your WiFi credentials correctly when flashing the image. Double check the settings and flash the image again.
+If on the router you can not see your streamer in the list of connected devices, it is very likely that you did not set your WiFi credentials correctly when flashing the image. Double check the settings and flash the image again.
 
 ## Config Server
 The webserver for configuration is started by default after installing the package.
 
 ### Can not connect
-The webserver is by default running on port `5000` and can be accessed via `http://$CLIENT_IP:5000/`. If the client is in Access Point mode, you will be able to connect via `http://192.168.23.1:5000`.
+The webserver is by default running on port `5000` and can be accessed via `http://$CLIENT_IP:5000/`. If the streamer is in Access Point mode, you will be able to connect via `http://192.168.23.1:5000`.
 
 If you can not connect to the webserver, check the following:
 
@@ -35,7 +35,7 @@ sudo systemctl start v3xctrl-config-server
 
 ### Not receiving video stream
 - Check the config server, have a look at the vide port, by default this is `6666`
-- Make sure the port is forwarded on your router to your server (consult the manual for your router to find out how to do this - usually this will be in a section called "port forwarding" or "NAT")
+- Make sure the port is forwarded on your router to your viewer (consult the manual for your router to find out how to do this - usually this will be in a section called "port forwarding" or "NAT")
 
 If you made sure that the port is forwarded correctly and still not receiving the video stream, try the following:
 
@@ -45,19 +45,19 @@ If you made sure that the port is forwarded correctly and still not receiving th
 If there is still no video stream:
 - Check the logs of the `v3xctrl-video` service: `journalctl -u v3xctrl-video -n 50` - this will give you more information about what is going on with the service.
 
-Often times an issue can be a bad connection with the camera. To rule out the camera as an error source you can enable `testSource` in the `video` config section, this will send a test pattern instead of the camera feed to the client.
+Often times an issue can be a bad connection with the camera. To rule out the camera as an error source you can enable `testSource` in the `video` config section, this will send a test pattern instead of the camera feed to the viewer.
 
 If you can see the test pattern, double check your camera connection.
 
 ### Stream very laggy
-Lag should not be an issue - we are dropping frames if they can not be sent fast enough on the client or if the encoder can not process them fast enough.
+Lag should not be an issue - we are dropping frames if they can not be sent fast enough on the streamer or if the encoder can not process them fast enough.
 
-Monitor the FPS on the server - if the Main `Loop` does not run at the full framerate of 60FPS, it is an indicator that your server is not capable of handling the load.
+Monitor the FPS on the viewer - if the Main `Loop` does not run at the full framerate of 60FPS, it is an indicator that your viewer is not capable of handling the load.
 
 ### Drop in Video frames
 If the `Video` FPS counter does not show the configured FPS (30 per defautlt), there could be multiple reasons for this:
 
-1. If the main `Loop` also is not running at full (60 by default) FPS, then your server machine is the issue.
+1. If the main `Loop` also is not running at full (60 by default) FPS, then your viewer machine is the issue.
 2. If the main `Loop` is running at full FPS, but the `Video` loop is dropping, then this is most likely an issue with the network connection. Run the self check tests. The default video is set to 1.8Mbps, if your connection tests slower than that, then you need to adjust the bitrate accordingly. Tests have shown that a bitrate of 1Mbps is still usable.
 
 > As a reference, with a Cat 1, 4G modem your maximum upload speed will be 5Mbps. Benchmarks have shown that more realistically your upload will be at around 3.5Mbps on average. But this depends a lot on your provider and the coverage in your area.

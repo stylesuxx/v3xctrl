@@ -1,5 +1,5 @@
 # Web Interface
-After installation on the client there will be a web interface available at `http://192.168.1.89:5000/` - change the IP to the IP of your client.
+After installation on the streamer there will be a web interface available at `http://192.168.1.89:5000/` - change the IP to the IP of your streamer.
 
 ## Config Editor
 The `Config Editor` should be pretty self-explanatory. The one setting you will have to change is the host.
