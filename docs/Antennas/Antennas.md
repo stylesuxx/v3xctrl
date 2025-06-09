@@ -43,3 +43,6 @@ Noname_01: https://www.amazon.de/dp/B0DL5LHY9P
 Noname_02: https://botland.de/lte-antennen/17836-antenne-lte-8db-sma-19cm-2st-5907621817305.html
 Flex_01: https://de.aliexpress.com/item/1005004221609925.html
 DollaTek_Lora: https://www.amazon.de/dp/B07QXPN3YR
+Emsea: https://www.amazon.de/dp/B0DCZFRDJG
+EuAcesry: https://www.amazon.de/dp/B0DPMTG5BG
+Bingfu: https://www.amazon.de/dp/B09MYBS23C

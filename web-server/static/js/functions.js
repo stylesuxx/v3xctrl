@@ -280,7 +280,9 @@ function showModal(title, html, countdownSeconds = null, onDone = null) {
       $count.text(secondsLeft);
       if (secondsLeft <= 0) {
         clearInterval(timer);
-        if (onDone) onDone();
+        if (onDone) {
+          onDone();
+        }
       }
     }, 1000);
   }
