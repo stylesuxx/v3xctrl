@@ -3,6 +3,18 @@ set -e
 
 ENV_PATH="/run/v3xctrl.env"
 CONFIG_PATH="/etc/v3xctrl/config.json"
+CONFIG_PATH_RO="/data/config/config.json"
+
+# Ensure symlink if root is read-only and CONFIG_PATH_RO exists
+if findmnt -n -o FSTYPE / | grep -q '^overlay$' && [ -f "$CONFIG_PATH_RO" ]; then
+  if [ ! -L "$CONFIG_PATH" ] || [ "$(readlink -f "$CONFIG_PATH")" != "$CONFIG_PATH_RO" ]; then
+    echo "Creating symlink: $CONFIG_PATH -> $CONFIG_PATH_RO"
+    rm -f "$CONFIG_PATH"
+    ln -s "$CONFIG_PATH_RO" "$CONFIG_PATH"
+    chown v3xctrl:v3xctrl "$CONFIG_PATH"
+    chmod a+r "$CONFIG_PATH"
+  fi
+fi
 
 # Export everything except modem.allowedBands
 jq -r '

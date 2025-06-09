@@ -17,6 +17,7 @@ IMG_WORK="${TMP_DIR}/v3xctrl.img"
 INITRD="${TMP_DIR}/initrd.img"
 SSHD_CONFIG="${MOUNT_DIR}/etc/ssh/sshd_config"
 MOTD_CONFIG="${MOUNT_DIR}/etc/motd"
+JOURNALD_CONF="${MOUNT_DIR}/etc/systemd/journald.conf"
 
 IMG_UNCOMPRESSED="${IMG%.xz}"
 MOUNT_BIND_DIRS="dev proc sys"
@@ -97,6 +98,11 @@ cp "${CONF_DIR}/smb.conf" "$MOUNT_DIR/etc/samba/smb.conf"
 echo "[HOST] Copying files to boot partition..."
 cp "./build/firstboot.sh" "$MOUNT_DIR/boot/firstboot.sh"
 chmod +x "$MOUNT_DIR/boot/firstboot.sh"
+
+echo "[HOST] Updating journald for persistent storage..."
+if grep -Eq '^\s*#?\s*Storage=' "$JOURNALD_CONF"; then
+  sed -i -E 's|^\s*#?\s*Storage=.*|Storage=persistent|' "$JOURNALD_CONF"
+fi
 
 echo "[HOST] Setting boot variables..."
 if grep -q '^#*enable_uart=' "$MOUNT_DIR/boot/config.txt"; then

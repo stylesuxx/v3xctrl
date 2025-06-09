@@ -47,11 +47,11 @@ sed -i \
   /etc/dphys-swapfile
 dphys-swapfile swapon
 
-echo "[v3xctrl-firstboot] Move config files to persistent storage"
+echo "[v3xctrl-firstboot] Copy config files to persistent storage"
 if [ -f "/etc/v3xctrl/config.json" ]; then
-    chmod a+r "/etc/v3xctrl/config.json"
-    mv "/etc/v3xctrl/config.json" "/data/config/config.json"
-    ln -sf "/data/config/config.json" "/etc/v3xctrl/config.json"
+  cp "/etc/v3xctrl/config.json" "/data/config/config.json"
+  chown v3xctrl:v3xctrl "/data/config/config.json"
+  chomd a+r "/data/config/config.json"
 fi
 
 if [ -f "/etc/wpa_supplicant/wpa_supplicant.conf" ]; then

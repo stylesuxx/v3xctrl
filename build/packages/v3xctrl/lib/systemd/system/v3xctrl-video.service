@@ -1,7 +1,8 @@
 [Unit]
 Description=Transmit Video
-After=network.target
+After=network.target v3xctrl-setup-env.service
 PartOf=v3xctrl-service-manager.service
+Requires=v3xctrl-setup-env.service
 StartLimitIntervalSec=30
 StartLimitBurst=3
 

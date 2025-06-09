@@ -2,7 +2,8 @@
 Description=Control channel
 PartOf=v3xctrl-service-manager.service
 OnFailure=v3xctrl-control-failure-handler.service
-Requires=v3xctrl-pigpiod.service
+After=v3xctrl-setup-env.service
+Requires=v3xctrl-pigpiod.service v3xctrl-setup-env.service
 Before=v3xctrl-pigpiod.service
 
 [Service]

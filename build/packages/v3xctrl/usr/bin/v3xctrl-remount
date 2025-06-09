@@ -5,7 +5,6 @@ NAME=$0
 CMDLINE="/boot/cmdline.txt"
 CMDLINE_CONTENT=$(cat "$CMDLINE")
 FSTAB="/etc/fstab"
-JOURNALD_CONF="/etc/systemd/journald.conf"
 
 if [[ "$EUID" -ne 0 ]]; then
   echo "Please run as root"
@@ -45,22 +44,6 @@ if [[ "$TARGET" == "rw" ]]; then
   else
     echo "[${NAME}] Overlay already disabled."
   fi
-fi
-
-echo "[${NAME}] Updating /etc/fstab mount options for /boot..."
-sed -i -E \
-  "s|^(\s*PARTUUID=[^[:space:]]+\s+/boot\s+vfat\s+)[^[:space:]]+|\1${TARGET}|" \
-  "$FSTAB"
-
-echo "[${NAME}] Updating journald.conf for $TARGET mode..."
-if [[ "$TARGET" == "rw" ]]; then
-  if grep -Eq '^\s*#?\s*Storage=' "$JOURNALD_CONF"; then
-    sed -i -E 's|^\s*#?\s*Storage=.*|Storage=persistent|' "$JOURNALD_CONF"
-  else
-    echo 'Storage=persistent' >> "$JOURNALD_CONF"
-  fi
-else
-  sed -i -E 's|^\s*(Storage=.*)|#\1|' "$JOURNALD_CONF"
 fi
 
 echo "[${NAME}] Done! Overlay mode set to $TARGET. Reboot to apply."
