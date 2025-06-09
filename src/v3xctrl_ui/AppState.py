@@ -122,16 +122,12 @@ class AppState:
             "throttle": KeyAxisHandler(
                 positive=self.controls["throttle_up"],
                 negative=self.controls["throttle_down"],
-                step=self.throttle_settings["step"],
-                friction=self.throttle_settings["friction"],
                 min_val=-1.0,
                 max_val=1.0
             ),
             "steering": KeyAxisHandler(
                 positive=self.controls["steering_right"],
                 negative=self.controls["steering_left"],
-                step=self.steering_settings["step"],
-                friction=self.steering_settings["friction"],
                 min_val=-1.0,
                 max_val=1.0
             )
