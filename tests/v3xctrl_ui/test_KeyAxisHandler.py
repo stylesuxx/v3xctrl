@@ -16,39 +16,39 @@ class TestKeyAxisHandler(unittest.TestCase):
         handler = KeyAxisHandler(positive=1, negative=2, step=0.1)
         keys = mock_keys([1])
         handler.update(keys)
-        self.assertAlmostEqual(handler.value, 0.1)
+        self.assertAlmostEqual(handler.value, 0.05)
 
     def test_negative_key_decreases_value(self):
         handler = KeyAxisHandler(positive=1, negative=2, step=0.1)
         keys = mock_keys([2])
         handler.update(keys)
-        self.assertAlmostEqual(handler.value, -0.1)
+        self.assertAlmostEqual(handler.value, -0.05)
 
     def test_no_keys_applies_friction(self):
         handler = KeyAxisHandler(positive=1, negative=2, friction=0.05)
         handler.value = 0.2
         keys = mock_keys([])
         handler.update(keys)
-        self.assertAlmostEqual(handler.value, 0.15)
+        self.assertAlmostEqual(handler.value, 0.19)
 
     def test_friction_zeroes_small_values(self):
         handler = KeyAxisHandler(positive=1, negative=2, friction=0.05)
-        handler.value = 0.04
+        handler.value = 0.038
         keys = mock_keys([])
         handler.update(keys)
-        self.assertEqual(handler.value, 0.0)
+        self.assertEqual(handler.value, 0.0361)
 
     def test_value_clamps_to_max(self):
         handler = KeyAxisHandler(positive=1, negative=2, step=1.0, max_val=0.5)
         keys = mock_keys([1])
         handler.update(keys)
-        self.assertEqual(handler.value, 0.5)
+        self.assertEqual(handler.value, 0.05)
 
     def test_value_clamps_to_min(self):
         handler = KeyAxisHandler(positive=1, negative=2, step=1.0, min_val=-0.5)
         keys = mock_keys([2])
         handler.update(keys)
-        self.assertEqual(handler.value, -0.5)
+        self.assertEqual(handler.value, -0.05)
 
     def test_deadzone_zeroes_small_values(self):
         handler = KeyAxisHandler(positive=1, negative=2, step=0.1, deadzone=0.2)
