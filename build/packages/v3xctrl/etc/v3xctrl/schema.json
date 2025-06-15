@@ -49,36 +49,6 @@
         }
       }
     },
-    "ports": {
-      "propertyOrder": 20,
-      "type": "object",
-      "title": "Ports",
-      "options": {
-        "collapsed": true,
-        "disable_edit_json": true,
-        "disable_properties": true
-      },
-      "properties": {
-        "video": {
-          "propertyOrder": 10,
-          "type": "integer",
-          "default": 6666,
-          "description": "The port to which video will be streamed to"
-        },
-        "control": {
-          "propertyOrder": 20,
-          "type": "integer",
-          "default": 6668,
-          "description": "The port for the bi-directional control channel"
-        },
-        "webinterface": {
-          "propertyOrder": 30,
-          "type": "integer",
-          "default": 5000,
-          "description": "The port on which this interface should be running (requires reboot)"
-        }
-      }
-    },
     "video": {
       "propertyOrder": 30,
       "type": "object",
@@ -166,38 +136,140 @@
         }
       }
     },
-    "wifi": {
-      "propertyOrder": 35,
+    "network": {
+      "propertyOrder": 40,
       "type": "object",
-      "title": "WiFi",
+      "title": "Network",
       "options": {
         "collapsed": true,
         "disable_edit_json": true,
         "disable_properties": true
       },
       "properties": {
-        "mode": {
-          "type": "string",
-          "required": true,
-          "enum": [
-            "client",
-            "ap"
-          ],
-          "description": "In client mode, the device will connect to the configured network. In access-point mode, the device will spawn it's own WiFi network to which you can connect"
+        "ports": {
+          "propertyOrder": 10,
+          "type": "object",
+          "title": "Ports",
+          "options": {
+            "collapsed": false,
+            "disable_edit_json": true,
+            "disable_properties": true
+          },
+          "properties": {
+            "video": {
+              "propertyOrder": 10,
+              "type": "integer",
+              "default": 6666,
+              "description": "The port to which video will be streamed to"
+            },
+            "control": {
+              "propertyOrder": 20,
+              "type": "integer",
+              "default": 6668,
+              "description": "The port for the bi-directional control channel"
+            },
+            "webinterface": {
+              "propertyOrder": 30,
+              "type": "integer",
+              "default": 5000,
+              "description": "The port on which this interface should be running (requires reboot)"
+            }
+          }
         },
-        "routing": {
-          "type": "string",
-          "required": true,
-          "enum": [
-            "wlan",
-            "rndis"
-          ],
-          "description": "Which device should be used to route internet traffic. During setup use wlan and switch to rndis once everything ist setup and tested"
+        "wifi": {
+          "propertyOrder": 20,
+          "type": "object",
+          "title": "WiFi",
+          "options": {
+            "collapsed": false,
+            "disable_edit_json": true,
+            "disable_properties": true
+          },
+          "properties": {
+            "mode": {
+              "type": "string",
+              "required": true,
+              "enum": [
+                "client",
+                "ap"
+              ],
+              "description": "In client mode, the device will connect to the configured network. In access-point mode, the device will spawn it's own WiFi network to which you can connect"
+            },
+            "routing": {
+              "type": "string",
+              "required": true,
+              "enum": [
+                "wlan",
+                "rndis"
+              ],
+              "description": "Which device should be used to route internet traffic. During setup use wlan and switch to rndis once everything ist setup and tested"
+            }
+          }
+        },
+        "modem": {
+          "propertyOrder": 30,
+          "type": "object",
+          "title": "Modem",
+          "options": {
+            "collapsed": false,
+            "disable_edit_json": true,
+            "disable_properties": true
+          },
+          "properties": {
+            "path": {
+              "propertyOrder": 10,
+              "title": "Path",
+              "type": "string",
+              "description": "Path to the modem device",
+              "default": "/dev/ttyACM0"
+            },
+            "limitBands": {
+              "title": "Limit Bands",
+              "propertyOrder": 20,
+              "type": "boolean",
+              "format": "checkbox",
+              "default": false,
+              "description": "Sometimes it might be beneficial to limit 4G bands, only change this if you know what and why you are doing this. By default, this decision is left up to the firmware of your modem. Once set, this setting is persistent! Make sure you know which values are your modems default, so you can return to the correct ones."
+            },
+            "allowedBands": {
+              "type": "array",
+              "title": "Allowed Bands",
+              "propertyOrder": 30,
+              "items": {
+                "type": "number",
+                "enum": [
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6,
+                  7,
+                  8,
+                  9,
+                  10,
+                  11,
+                  12,
+                  13,
+                  14,
+                  15,
+                  16,
+                  17,
+                  18,
+                  19,
+                  20,
+                  28
+                ]
+              },
+              "uniqueItems": true,
+              "default": [1, 3, 4, 7, 8, 17, 20, 28]
+            }
+          }
         }
       }
     },
     "autostart": {
-      "propertyOrder": 40,
+      "propertyOrder": 50,
       "type": "object",
       "title": "Autostart",
       "options": {
@@ -224,7 +296,7 @@
       }
     },
     "controls": {
-      "propertyOrder": 50,
+      "propertyOrder": 60,
       "type": "object",
       "title": "Controls",
       "options": {
@@ -379,66 +451,6 @@
               "description": "GPIO for Servo"
             }
           }
-        }
-      }
-    },
-    "modem": {
-      "propertyOrder": 60,
-      "type": "object",
-      "title": "Modem",
-      "options": {
-        "collapsed": true,
-        "disable_edit_json": true,
-        "disable_properties": true
-      },
-      "properties": {
-        "path": {
-          "propertyOrder": 10,
-          "title": "Path",
-          "type": "string",
-          "description": "Path to the modem device",
-          "default": "/dev/ttyACM0"
-        },
-        "limitBands": {
-          "title": "Limit Bands",
-          "propertyOrder": 20,
-          "type": "boolean",
-          "format": "checkbox",
-          "default": false,
-          "description": "Sometimes it might be beneficial to limit 4G bands, only change this if you know what and why you are doing this. By default, this decision is left up to the firmware of your modem. Once set, this setting is persistent! Make sure you know which values are your modems default, so you can return to the correct ones."
-        },
-        "allowedBands": {
-          "type": "array",
-          "title": "Allowed Bands",
-          "propertyOrder": 30,
-          "items": {
-            "type": "number",
-            "enum": [
-              1,
-              2,
-              3,
-              4,
-              5,
-              6,
-              7,
-              8,
-              9,
-              10,
-              11,
-              12,
-              13,
-              14,
-              15,
-              16,
-              17,
-              18,
-              19,
-              20,
-              28
-            ]
-          },
-          "uniqueItems": true,
-          "default": [1, 3, 4, 7, 8, 17, 20, 28]
         }
       }
     },

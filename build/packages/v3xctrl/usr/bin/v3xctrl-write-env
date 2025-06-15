@@ -28,12 +28,12 @@ jq -r '
 jq -r '
   .modem.allowedBands?
   | select(type == "array")
-  | "modem_allowedBands=" + (join(","))
+  | "network_modem_allowedBands=" + (join(","))
 ' "$CONFIG_PATH" >> "$ENV_PATH"
 
 source "${ENV_PATH}"
 
 # Custom adaptations that are not part of the config JSON
-echo "ports_video_bind=${ports_video}" >> "${ENV_PATH}"
-echo "ports_control_bind=${ports_control}" >> "${ENV_PATH}"
+echo "network_ports_video_bind=${network_ports_video}" >> "${ENV_PATH}"
+echo "network_ports_control_bind=${network_ports_control}" >> "${ENV_PATH}"
 echo "NAME=v3xctrl" >> "${ENV_PATH}"

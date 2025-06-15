@@ -4,4 +4,4 @@ source "${ENV_PATH}"
 
 BANDS="$1"
 
-v3xctrl-python -m v3xctrl_helper.modem.set_allowed_bands $modem_path "$BANDS"
+v3xctrl-python -m v3xctrl_helper.modem.set_allowed_bands $network_modem_path "$BANDS"

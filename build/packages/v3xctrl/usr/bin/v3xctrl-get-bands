@@ -2,4 +2,4 @@
 ENV_PATH="/run/v3xctrl.env"
 source "${ENV_PATH}"
 
-v3xctrl-python -m v3xctrl_helper.modem.get_allowed_bands $modem_path
+v3xctrl-python -m v3xctrl_helper.modem.get_allowed_bands $network_modem_path

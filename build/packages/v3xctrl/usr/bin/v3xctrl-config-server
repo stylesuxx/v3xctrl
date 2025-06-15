@@ -19,4 +19,4 @@ v3xctrl-python "/usr/share/${NAME}/config-server/main.py" \
   --config "$CONFIG_PATH" \
   --schema "$SCHEMA_PATH" \
   --host "$HOST" \
-  --port "$ports_webinterface"
+  --port "$network_ports_webinterface"

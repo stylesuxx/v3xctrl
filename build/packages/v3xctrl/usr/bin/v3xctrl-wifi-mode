@@ -25,7 +25,7 @@ fi
 if [ -n "$1" ]; then
   MODE="$1"
 else
-  MODE="${wifi_mode}"
+  MODE="${network_wifi_mode}"
 fi
 
 # Get device ID from CPU serial (last 8 hex digits)
@@ -120,7 +120,7 @@ else
 fi
 
 # Setup routes after switching
-v3xctrl-route-manager "${wifi_routing}"
+v3xctrl-route-manager "${network_wifi_routing}"
 
 # If the web-interface is already active, restart it to bind to the new IP
 if systemctl is-active --quiet v3xctrl-config-server; then

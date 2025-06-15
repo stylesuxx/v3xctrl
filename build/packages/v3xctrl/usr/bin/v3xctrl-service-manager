@@ -20,9 +20,9 @@ if [ "$server_mode" = "relay" ]; then
   v3xctrl-relay
 fi
 
-if [ "$modem_limitBands" = "true" ]; then
+if [ "$network_modem_limitBands" = "true" ]; then
   echo "Limiting bands..."
-  v3xctrl-set-bands $modem_allowedBands
+  v3xctrl-set-bands $network_modem_allowedBands
 fi
 
 if [ "$autostart_video" = "true" ]; then
