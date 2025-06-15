@@ -1,10 +1,12 @@
-import sys
 from collections import namedtuple
+import logging
+import sys
 import pygame
 from pygame import Surface
 from typing import Callable
 
 from v3xctrl_control import Server
+from v3xctrl_control.Message import Command
 
 from v3xctrl_ui.GamepadManager import GamepadManager
 from v3xctrl_ui.Settings import Settings
@@ -128,9 +130,15 @@ class Menu:
                 padding=self.padding,
                 y_offset=self.tab_height,
                 on_active_toggle=self._on_active_toggle,
-                send_command=self.server.send_command,
+                send_command=self._on_send_command,
             )
         }
+
+    def _on_send_command(self, command: Command, callback: callable = None):
+        if self.server:
+            self.server.send_command(command, callback)
+        else:
+            logging.error(f"Server is not set, cannot send command: {command}")
 
     def _on_active_toggle(self, active: bool):
         if active:
