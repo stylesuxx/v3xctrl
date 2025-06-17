@@ -1,7 +1,7 @@
-import pygame
 from typing import Optional, Callable, List, Dict, Tuple
 
 from v3xctrl_ui.menu.calibration.defs import CalibrationStage, CalibratorState, AxisCalibrationData
+from v3xctrl_ui.menu.DialogBox import DialogBox
 
 
 class GamepadCalibrator:
@@ -9,7 +9,6 @@ class GamepadCalibrator:
     FRAME_CONFIRMATION_COUNT = 15
     STABLE_FRAME_COUNT = 60
     IDLE_SAMPLE_COUNT = 10
-    PAUSE_DURATION_MS = 3000
 
     STEP_LABELS: Dict[CalibrationStage, str] = {
         CalibrationStage.STEERING: "Move the steering axis to its left and right maxima...",
@@ -22,14 +21,17 @@ class GamepadCalibrator:
 
     def __init__(self,
                  on_start: Optional[Callable[[], None]] = None,
-                 on_done: Optional[Callable[[], None]] = None):
+                 on_done: Optional[Callable[[], None]] = None,
+                 dialog: Optional[DialogBox] = None):
         self.on_start = on_start
         self.on_done = on_done
+        self.dialog = dialog
 
         self.stage: Optional[CalibrationStage] = None
         self.state: CalibratorState = CalibratorState.PAUSE
-        self.pause_start_time: int = 0
         self.pending_stage: Optional[CalibrationStage] = None
+        self.waiting_for_user = False
+
         self.axes: Dict[str, AxisCalibrationData] = {
             "steering": AxisCalibrationData(),
             "throttle": AxisCalibrationData(),
@@ -43,10 +45,22 @@ class GamepadCalibrator:
         self.state = CalibratorState.ACTIVE
         self.stage = CalibrationStage.STEERING
 
-    def _pause_and_queue(self, next_stage: CalibrationStage) -> None:
-        self.state = CalibratorState.PAUSE
-        self.pause_start_time = pygame.time.get_ticks()
-        self.pending_stage = next_stage
+    def _queue_next_stage_with_dialog(self, next_stage: CalibrationStage) -> None:
+        if self.dialog:
+            self.dialog.set_text([self.STEP_LABELS[next_stage]])
+            self.dialog.on_confirm = self._resume_calibration
+            self.dialog.show()
+            self.waiting_for_user = True
+            self.pending_stage = next_stage
+            self.state = CalibratorState.PAUSE
+
+    def _resume_calibration(self) -> None:
+        self.stage = self.pending_stage
+        self.pending_stage = None
+        self.state = CalibratorState.ACTIVE
+        self.waiting_for_user = False
+        if self.dialog:
+            self.dialog.hide()
 
     def get_steps(self) -> List[Tuple[str, bool]]:
         steps: List[Tuple[str, bool]] = []
@@ -55,17 +69,11 @@ class GamepadCalibrator:
             label = self.STEP_LABELS.get(key)
             if label:
                 steps.append((label, key == active_stage))
-
         return steps
 
     def update(self, axes: List[float]) -> None:
         if self.state == CalibratorState.PAUSE:
-            if pygame.time.get_ticks() - self.pause_start_time > self.PAUSE_DURATION_MS:
-                self.stage = self.pending_stage
-                self.pending_stage = None
-                self.state = CalibratorState.ACTIVE
-
-            return
+            return  # Wait for dialog confirmation
 
         if self.state != CalibratorState.ACTIVE or self.stage is None:
             return
@@ -124,7 +132,7 @@ class GamepadCalibrator:
                 if on_complete:
                     on_complete()
                 elif next_stage:
-                    self._pause_and_queue(next_stage)
+                    self._queue_next_stage_with_dialog(next_stage)
 
     def _record_center_idle(self, name: str, axes: List[float], next_stage: CalibrationStage) -> None:
         axis_data = self.axes[name]
@@ -140,10 +148,9 @@ class GamepadCalibrator:
                     if len(axis_data.idle_samples) >= self.IDLE_SAMPLE_COUNT:
                         avg = sum(axis_data.idle_samples) / len(axis_data.idle_samples)
                         print(f"{name.capitalize()} axis idle: {avg:.2f}")
-                        self._pause_and_queue(next_stage)
+                        self._queue_next_stage_with_dialog(next_stage)
             else:
                 axis_data.idle_stable = 0
-
             axis_data.idle_last = value
 
     def _complete(self) -> None:

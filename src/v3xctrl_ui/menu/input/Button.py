@@ -3,8 +3,10 @@ from typing import Callable
 from pygame import Rect, Surface
 from pygame.freetype import Font
 
+from v3xctrl_ui.menu.input.BaseWidget import BaseWidget
 
-class Button:
+
+class Button(BaseWidget):
     FONT_COLOR = (255, 255, 255)
     FONT_COLOR_DISABLED = (180, 180, 180)
 

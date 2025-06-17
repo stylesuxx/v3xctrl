@@ -7,7 +7,7 @@ from v3xctrl_ui.colors import WHITE, GREY
 from v3xctrl_ui.GamepadManager import GamepadManager
 
 from v3xctrl_ui.menu.calibration.GamepadCalibrator import GamepadCalibrator, CalibratorState
-
+from v3xctrl_ui.menu.DialogBox import DialogBox
 from v3xctrl_ui.menu.input import Button, Checkbox, Select
 from v3xctrl_ui.menu.input.BaseWidget import BaseWidget
 
@@ -42,10 +42,11 @@ class GamepadCalibrationWidget(BaseWidget):
         self.calibrate_button: Button
         self.invert_checkboxes: Dict[str, Checkbox]
 
+        self.dialog = DialogBox(title="Next Step", lines=[], button_label="OK", on_confirm=lambda: None)
+
         self._create_ui(font)
         self.set_position(self.x, self.y)
 
-        # Initialize with current gamepads, and attach observer
         self.gamepads: Dict[str, pygame.joystick.Joystick] = self.manager.get_gamepads()
         self._on_gamepads_changed(self.gamepads)
         self.manager.add_observer(self._on_gamepads_changed)
@@ -77,9 +78,14 @@ class GamepadCalibrationWidget(BaseWidget):
         }
 
     def handle_event(self, event: pygame.event.Event) -> None:
+        if self.dialog.visible:
+            self.dialog.handle_event(event)
+            return
+
         if self.gamepads:
             if self.controller_select.expanded:
                 self.controller_select.handle_event(event)
+                return
             else:
                 self.calibrate_button.handle_event(event)
                 self.controller_select.handle_event(event)
@@ -124,12 +130,9 @@ class GamepadCalibrationWidget(BaseWidget):
         super().set_position(x, y)
         self.controller_select.set_position(x, y)
 
-        # Vertically center the button relative to the select
         select_width, select_height = self.controller_select.get_size()
         _, button_height = self.calibrate_button.get_size()
-
-        select_y_center = y + select_height // 2
-        button_y = select_y_center - button_height // 2
+        button_y = y + select_height // 2 - button_height // 2
 
         self.calibrate_button.set_position(x + select_width + 20, button_y)
 
@@ -145,11 +148,10 @@ class GamepadCalibrationWidget(BaseWidget):
             if js:
                 guid = js.get_guid()
                 settings = self.calibrator.get_settings()
-                settings_with_inversion = settings.copy()
-                for k in settings_with_inversion:
-                    settings_with_inversion[k]["invert"] = self.invert_axes.get(k, False)
+                for setting in settings:
+                    settings[setting]["invert"] = self.invert_axes.get(setting, False)
 
-                self.manager.set_calibration(guid, settings_with_inversion)
+                self.manager.set_calibration(guid, settings)
                 self.manager.set_active(guid)
                 self.on_calibration_done()
 
@@ -159,7 +161,8 @@ class GamepadCalibrationWidget(BaseWidget):
                 self.controller_select.disable(),
                 self.on_calibration_start()
             ),
-            on_done=on_done
+            on_done=on_done,
+            dialog=self.dialog
         )
         self.calibrator.start()
 
@@ -173,13 +176,11 @@ class GamepadCalibrationWidget(BaseWidget):
         guid = js.get_guid()
         settings = self.manager.get_calibration(guid)
         if settings:
-            self.manager.set_active(guid)  # <-- this line is the fix
-
+            self.manager.set_active(guid)
             self.calibrator = GamepadCalibrator(lambda: None, lambda: None)
             self.calibrator.state = CalibratorState.COMPLETE
             self.calibrator._settings = settings
             self.calibrator.get_settings = lambda: settings
-
             for k in self.invert_axes:
                 self.invert_axes[k] = settings.get(k, {}).get("invert", False)
                 self.invert_checkboxes[k].checked = self.invert_axes[k]
@@ -210,6 +211,8 @@ class GamepadCalibrationWidget(BaseWidget):
             self._draw_calibration_bars(surface)
         elif self.calibrator.stage is not None:
             self._draw_calibration_steps(surface)
+
+        self.dialog.draw(surface)
 
     def _draw_no_gamepad_message(self, surface: Surface):
         text, rect = self.font.render("No gamepad detected. Please connect one...", WHITE)
@@ -278,12 +281,10 @@ class GamepadCalibrationWidget(BaseWidget):
 
         pygame.draw.rect(surface, GREY, (x, y, width, height), 1)
         fill_ratio = (value - min_val) / (max_val - min_val) if max_val != min_val else 0.5
-        fill_ratio = max(0.0, min(1.0, fill_ratio))
-        fill_px = int(fill_ratio * width)
+        fill_px = int(max(0.0, min(1.0, fill_ratio)) * width)
         pygame.draw.rect(surface, WHITE, (x, y, fill_px, height))
 
         if center_val is not None:
             center_ratio = (center_val - min_val) / (max_val - min_val) if max_val != min_val else 0.5
-            center_ratio = max(0.0, min(1.0, center_ratio))
-            center_px = int(center_ratio * width)
+            center_px = int(max(0.0, min(1.0, center_ratio)) * width)
             pygame.draw.line(surface, (200, 200, 0), (x + center_px, y), (x + center_px, y + height), 2)

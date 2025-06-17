@@ -23,3 +23,11 @@ class BaseWidget(ABC):
     def set_position(self, x: int, y: int) -> None:
         self.x = x
         self.y = y
+
+    @property
+    def width(self) -> int:
+        return self.get_size()[0]
+
+    @property
+    def height(self) -> int:
+        return self.get_size()[1]
