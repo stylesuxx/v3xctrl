@@ -6,6 +6,8 @@ import threading
 from time import sleep
 from typing import Tuple
 
+from v3xctrl_helper.exceptions import UnauthorizedError
+
 from v3xctrl_ui.helpers import get_fps, interpolate_steering_color, interpolate_throttle_color
 from v3xctrl_ui.Init import Init
 from v3xctrl_ui.KeyAxisHandler import KeyAxisHandler
@@ -157,8 +159,13 @@ class AppState:
                     "control": self.control_port
                 }
                 peer = Peer(self.relay_server, self.relay_port, self.relay_id)
-                addresses = peer.setup("viewer", local_bind_ports)
-                video_address = addresses["video"]
+
+                try:
+                    addresses = peer.setup("viewer", local_bind_ports)
+                    video_address = addresses["video"]
+                except UnauthorizedError:
+                    logging.error("Sesion ID unauthorized - connection to relay server aborted...")
+                    return
 
             def poke_peer():
                 if self.relay_enable:

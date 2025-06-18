@@ -4,6 +4,7 @@ import time
 import threading
 
 from v3xctrl_control.Message import PeerAnnouncement, Message, PeerInfo, Error
+from v3xctrl_helper.exceptions import UnauthorizedError
 
 
 class Peer:
@@ -31,18 +32,6 @@ class Peer:
                 logging.debug(f"Sent {port_type} announcement to {self.server}:{self.port} from {sock.getsockname()}")
 
                 data, _ = sock.recvfrom(1024)
-                response = Message.from_bytes(data)
-
-                if isinstance(response, PeerInfo):
-                    logging.info(f"[Relay] Received PeerInfo for {port_type}: {response}")
-                    return response
-
-                if isinstance(response, Error):
-                    error = response.get_error()
-                    logging.error(f"Error: {error}")
-                    self._abort_event.set()
-
-                    raise Exception(f"Error: {error}")
 
             except socket.timeout:
                 time.sleep(self.ANNOUNCE_INTERVAL)
@@ -50,17 +39,37 @@ class Peer:
                 logging.debug(f"[Relay] Error during {port_type} registration: {e}")
                 continue
 
+            response = Message.from_bytes(data)
+
+            if isinstance(response, PeerInfo):
+                logging.info(f"[Relay] Received PeerInfo for {port_type}: {response}")
+                return response
+
+            if isinstance(response, Error):
+                error = response.get_error()
+                self._abort_event.set()
+
+                logging.error(f"Response Error: {error}")
+                raise UnauthorizedError()
+
     def _register_all(self, sockets: dict[str, socket.socket], role: str) -> dict[str, PeerInfo]:
         results = {pt: [None] for pt in sockets.keys()}
+        exceptions = []
 
         def reg_worker(pt):
-            results[pt][0] = self._register_with_relay(sockets[pt], pt, role)
+            try:
+                results[pt][0] = self._register_with_relay(sockets[pt], pt, role)
+            except Exception as e:
+                exceptions.append(e)
 
         threads = [threading.Thread(target=reg_worker, args=(pt,)) for pt in sockets]
         for t in threads:
             t.start()
         for t in threads:
             t.join()
+
+        if exceptions:
+            raise exceptions[0]  # Or raise a custom aggregate error if needed
 
         return {pt: results[pt][0] for pt in results}
 
