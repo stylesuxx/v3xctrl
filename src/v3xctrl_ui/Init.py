@@ -51,6 +51,9 @@ class Init:
         pygame.scrap.init()
         pygame.scrap.set_mode(pygame.SCRAP_CLIPBOARD)
 
+        # Repeat keydown events when button is held
+        pygame.key.set_repeat(400, 40)
+
         return screen, clock
 
     @classmethod
