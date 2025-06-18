@@ -40,3 +40,9 @@ class SessionStore:
                     return session_id
 
         raise RuntimeError("Failed to generate unique session ID")
+
+    def exists(self, session_id: str) -> bool:
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT 1 FROM allowed_sessions WHERE id = ?", (session_id,))
+            return cur.fetchone() is not None

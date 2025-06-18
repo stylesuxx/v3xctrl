@@ -17,7 +17,8 @@ import socket
 import threading
 import time
 
-from v3xctrl_control.Message import Message, PeerAnnouncement, PeerInfo
+from v3xctrl_control.Message import Message, PeerAnnouncement, PeerInfo, Error
+from v3xctrl_udp_relay.SessionStore import SessionStore
 
 
 Addr = tuple[str, int]
@@ -68,10 +69,11 @@ class UDPRelayServer(threading.Thread):
     CLEANUP_INTERVAL = 1
     RECEIVE_BUFFER = 2048
 
-    def __init__(self, ip: str, port: int):
+    def __init__(self, ip: str, port: int, db_path: str):
         super().__init__(daemon=True, name="UDPRelayServer")
         self.ip = ip
         self.port = port
+        self.store = SessionStore(db_path)
 
         self.sessions: dict[str, Session] = {}
         self.relay_map: dict[Addr, dict] = {}
@@ -158,6 +160,17 @@ class UDPRelayServer(threading.Thread):
         other_role = Role.VIEWER if role == Role.STREAMER else Role.STREAMER
         now = time.time()
         with self.lock:
+            if not self.store.exists(session_id):
+                logging.info(f"Ignoring announcement for unknown session '{session_id}' from {addr}")
+
+                try:
+                    error_msg = Error(403)
+                    self.sock.sendto(error_msg.to_bytes(), addr)
+                except Exception as e:
+                    logging.error(f"Failed to send error message to {addr}: {e}", exc_info=True)
+
+                return
+
             session = self.sessions.setdefault(session_id, Session())
             is_new_peer = session.register(role, port_type, addr)
             if is_new_peer:

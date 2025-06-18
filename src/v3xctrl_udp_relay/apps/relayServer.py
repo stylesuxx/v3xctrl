@@ -12,6 +12,8 @@ def main():
     parser.add_argument("--port", type=int, default=8888, help="UDP port to bind to (default: 8888)")
     parser.add_argument("--log", default="ERROR",
                         help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). (default: ERROR")
+    parser.add_argument('--db', '--db-path', dest='db_path', default='relay.db',
+                        help='Path to SQLite database (default: relay.db)')
     args = parser.parse_args()
 
     level_name = args.log.upper()
@@ -25,7 +27,7 @@ def main():
         format="%(asctime)s - %(levelname)s - %(message)s"
     )
 
-    server = UDPRelayServer(args.ip, args.port)
+    server = UDPRelayServer(args.ip, args.port, args.db_path)
 
     def shutdown(signum, frame):
         logging.info("Shutting down UDPRelayServer...")

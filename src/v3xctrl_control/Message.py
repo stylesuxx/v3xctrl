@@ -161,6 +161,18 @@ class Heartbeat(Message):
         super().__init__({}, timestamp)
 
 
+class Error(Message):
+    def __init__(self, e: int, timestamp: float = None):
+        super().__init__({
+            "e": e,
+        }, timestamp)
+
+        self.error = e
+
+    def get_error(self) -> str:
+        return self.error
+
+
 """
 Message types used for UDP hole punching
 """

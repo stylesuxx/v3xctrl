@@ -3,7 +3,7 @@ import socket
 import time
 import threading
 
-from v3xctrl_control.Message import PeerAnnouncement, Message, PeerInfo
+from v3xctrl_control.Message import PeerAnnouncement, Message, PeerInfo, Error
 
 
 class Peer:
@@ -22,20 +22,27 @@ class Peer:
         return sock
 
     def _register_with_relay(self, sock: socket.socket, port_type: str, role: str) -> PeerInfo | None:
-        msg = PeerAnnouncement(r=role, i=self.session_id, p=port_type)
+        announcement = PeerAnnouncement(r=role, i=self.session_id, p=port_type)
         sock.settimeout(1)
 
         while not self._abort_event.is_set():
             try:
-                sock.sendto(msg.to_bytes(), (self.server, self.port))
+                sock.sendto(announcement.to_bytes(), (self.server, self.port))
                 logging.debug(f"Sent {port_type} announcement to {self.server}:{self.port} from {sock.getsockname()}")
 
                 data, _ = sock.recvfrom(1024)
-                msg = Message.from_bytes(data)
+                response = Message.from_bytes(data)
 
-                if isinstance(msg, PeerInfo):
-                    logging.info(f"[Relay] Received PeerInfo for {port_type}: {msg}")
-                    return msg
+                if isinstance(response, PeerInfo):
+                    logging.info(f"[Relay] Received PeerInfo for {port_type}: {response}")
+                    return response
+
+                if isinstance(response, Error):
+                    error = response.get_error()
+                    logging.error(f"Error: {error}")
+                    self._abort_event.set()
+
+                    raise Exception(f"Error: {error}")
 
             except socket.timeout:
                 time.sleep(self.ANNOUNCE_INTERVAL)
