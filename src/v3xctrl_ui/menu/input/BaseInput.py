@@ -109,7 +109,34 @@ class BaseInput(BaseWidget):
         elif event.type == pygame.KEYDOWN and self.focused:
             self._handle_keydown(event)
 
+    def _get_clipboard_text(self) -> str | None:
+        for type in pygame.scrap.get_types():
+            if type.startswith("text/plain"):
+                data = pygame.scrap.get(type)
+                if data:
+                    try:
+                        if isinstance(data, bytes):
+                            return data.decode("utf-8", errors="ignore")
+
+                        return data.strip()
+                    except UnicodeDecodeError:
+                        continue
+        return None
+
     def _handle_keydown(self, event):
+        mods = pygame.key.get_mods()
+
+        # Handle paste from clipboard
+        if event.key == pygame.K_v and mods & pygame.KMOD_CTRL:
+            if pygame.scrap.get_init():
+                pasted_text = self._get_clipboard_text()
+                if pasted_text:
+                    self.value = pasted_text
+                    self.cursor_pos = len(self.value)
+                    if self.on_change:
+                        self.on_change(self.value)
+            return
+
         if event.key == pygame.K_BACKSPACE and self.cursor_pos > 0:
             self.value = self.value[:self.cursor_pos - 1] + self.value[self.cursor_pos:]
             self.cursor_pos -= 1

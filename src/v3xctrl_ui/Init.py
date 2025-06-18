@@ -41,10 +41,15 @@ class Init:
     @classmethod
     def ui(self, size: Tuple[int, int], title: str) -> Tuple[pygame.Surface, pygame.time.Clock]:
         pygame.init()
+
         flags = pygame.DOUBLEBUF | pygame.SCALED
         screen = display.set_mode(size, flags)
         display.set_caption(title)
         clock = time.Clock()
+
+        # Init clipboard (Needs to happen after display init)
+        pygame.scrap.init()
+        pygame.scrap.set_mode(pygame.SCRAP_CLIPBOARD)
 
         return screen, clock
 
