@@ -1,7 +1,9 @@
 import argparse
 import json
 import logging
+import sys
 
+from v3xctrl_helper.exceptions import UnauthorizedError
 from v3xctrl_udp_relay.Peer import Peer
 
 
@@ -37,7 +39,11 @@ if __name__ == "__main__":
     }
 
     peer = Peer(args.server, args.port, args.id)
-    peer_addresses = peer.setup("streamer", ports)
+    try:
+        peer_addresses = peer.setup("streamer", ports)
+    except UnauthorizedError:
+        logging.error("Unauthorized access - check 'Relay session ID' setting")
+        sys.exit(2)
 
     video = peer_addresses["video"]
     control = peer_addresses["control"]
@@ -51,3 +57,5 @@ if __name__ == "__main__":
             "control": control[1]
         }
     }, indent=2))
+
+    sys.exit(0)

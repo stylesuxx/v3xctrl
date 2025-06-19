@@ -27,6 +27,7 @@ class Peer:
         sock.settimeout(1)
 
         while not self._abort_event.is_set():
+            data = None
             try:
                 sock.sendto(announcement.to_bytes(), (self.server, self.port))
                 logging.debug(f"Sent {port_type} announcement to {self.server}:{self.port} from {sock.getsockname()}")
@@ -35,22 +36,24 @@ class Peer:
 
             except socket.timeout:
                 time.sleep(self.ANNOUNCE_INTERVAL)
+                continue
             except Exception as e:
                 logging.debug(f"[Relay] Error during {port_type} registration: {e}")
                 continue
 
-            response = Message.from_bytes(data)
+            if data:
+                response = Message.from_bytes(data)
 
-            if isinstance(response, PeerInfo):
-                logging.info(f"[Relay] Received PeerInfo for {port_type}: {response}")
-                return response
+                if isinstance(response, PeerInfo):
+                    logging.info(f"[Relay] Received PeerInfo for {port_type}: {response}")
+                    return response
 
-            if isinstance(response, Error):
-                error = response.get_error()
-                self._abort_event.set()
+                if isinstance(response, Error):
+                    error = response.get_error()
+                    self._abort_event.set()
 
-                logging.error(f"Response Error: {error}")
-                raise UnauthorizedError()
+                    logging.error(f"Response Error: {error}")
+                    raise UnauthorizedError()
 
     def _register_all(self, sockets: dict[str, socket.socket], role: str) -> dict[str, PeerInfo]:
         results = {pt: [None] for pt in sockets.keys()}
