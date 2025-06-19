@@ -206,7 +206,7 @@ def render_all(state):
         state.screen.blit(surface, rect)
 
         if relay["enabled"]:
-            surface, rect = BOLD_32_MONO_FONT.render("Waiting for data...", RED)
+            surface, rect = BOLD_32_MONO_FONT.render(state.relay_status_message, RED)
             rect.center = (VIDEO["width"] // 2, VIDEO["height"] // 2 + 10)
             state.screen.blit(surface, rect)
 

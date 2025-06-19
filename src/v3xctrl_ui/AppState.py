@@ -57,6 +57,7 @@ class AppState:
         self.server_error = None
         self.server = None
 
+        self.relay_status_message = "Waiting for streamer..."
         self.relay_enable = False
         self.relay_server = None
         self.relay_port = 8888
@@ -164,7 +165,7 @@ class AppState:
                     addresses = peer.setup("viewer", local_bind_ports)
                     video_address = addresses["video"]
                 except UnauthorizedError:
-                    logging.error("Sesion ID unauthorized - connection to relay server aborted...")
+                    self.relay_status_message = "ERROR: Relay ID unauthorized!"
                     return
 
             def poke_peer():
