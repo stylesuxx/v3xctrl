@@ -10,6 +10,11 @@ if [ "$video_camera_enableHdr" = "true" ]; then
   v4l2-ctl -d /dev/v4l-subdev0 --set-ctrl wide_dynamic_range=1
 fi
 
+if [ "$network_modem_limitBands" = "true" ]; then
+  echo "Limiting bands..."
+  v3xctrl-set-bands $network_modem_allowedBands
+fi
+
 if [ "$server_mode" = "rendezvous" ]; then
   echo "Registering with rendezvous server..."
   v3xctrl-rendezvous
@@ -18,11 +23,6 @@ fi
 if [ "$server_mode" = "relay" ]; then
   echo "Registering with relay server..."
   v3xctrl-relay
-fi
-
-if [ "$network_modem_limitBands" = "true" ]; then
-  echo "Limiting bands..."
-  v3xctrl-set-bands $network_modem_allowedBands
 fi
 
 if [ "$autostart_video" = "true" ]; then

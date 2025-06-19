@@ -24,9 +24,9 @@ jq -r '
   "\(.[0])=\(.[1])"
 ' "$CONFIG_PATH" > "$ENV_PATH"
 
-# Append modem.allowedBands as comma-separated string
+# Append network.modem.allowedBands as comma-separated string
 jq -r '
-  .modem.allowedBands?
+  .network.modem.allowedBands?
   | select(type == "array")
   | "network_modem_allowedBands=" + (join(","))
 ' "$CONFIG_PATH" >> "$ENV_PATH"

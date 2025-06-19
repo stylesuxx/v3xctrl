@@ -23,7 +23,7 @@ The control flow is as follows:
 All of the above messages are subclassed from `Messasge`, when sending the package, we are extracting data from the Message into a dict and using `msgpack` for packing and unpacking. This allows us to re-build a Message object on the other end. This is *NOT* the most resource effective thing to do, since it comes with a bit of overhead, however it is very convenient to implement, use, extend and debug.
 
 Every package contains (at least) the following information:
-* `type`: The type of message, so we know which class to use to put it back together
+* `type`: The type of message, so  we know which class to use to put it back together
 * `timestamp`: In order to have sequencing, this will allow us to decide if we want to keep the packet, or discard it for being out of order
 * `payload`: the actual payload of the message. Sometime it is enough to just have type and timestamp, then payload will be empty
 
