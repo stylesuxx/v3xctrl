@@ -177,20 +177,18 @@ class UDPRelayServer(threading.Thread):
                 logging.info(f"Registered {role.name}:{port_type.name} for session '{session_id}' from {addr}")
 
             if session.is_ready(role) and session.is_ready(other_role):
+                # Purge current mappings for this session
+                with self.relay_lock:
+                    for addr, entry in list(self.relay_map.items()):
+                        if entry["session"] == session_id:
+                            del self.relay_map[addr]
+
+                # Rebuild fresh mappings
                 for port_type in PortType:
                     client = session.get_peer(Role.STREAMER, port_type)
                     server = session.get_peer(Role.VIEWER, port_type)
 
-                    if not client or not server:
-                        continue
-
                     with self.relay_lock:
-                        # Remove stale entries for this session + port_type
-                        for addr, entry in list(self.relay_map.items()):
-                            if (entry["session"] == session_id and entry["port_type"] == port_type):
-                                del self.relay_map[addr]
-
-                        # Insert updated mapping
                         self.relay_map[client.addr] = {
                             "target": server.addr,
                             "ts": now,
@@ -205,6 +203,8 @@ class UDPRelayServer(threading.Thread):
                             "role": Role.VIEWER,
                             "port_type": port_type
                         }
+
+                logging.info(f"Updated relay mapping for session '{session_id}'")
 
                 try:
                     peer_info = PeerInfo(ip=self.ip, video_port=self.port, control_port=self.port)
