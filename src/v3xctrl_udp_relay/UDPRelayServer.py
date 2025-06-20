@@ -65,7 +65,7 @@ class Session:
 
 
 class UDPRelayServer(threading.Thread):
-    TIMEOUT = 3600
+    TIMEOUT = 3600 // 4  # 15 Minutes
     CLEANUP_INTERVAL = 1
     RECEIVE_BUFFER = 2048
 
