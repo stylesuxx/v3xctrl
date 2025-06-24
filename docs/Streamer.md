@@ -12,6 +12,7 @@ General tab
 * Set hostname to something unique in your network, e.g.: `v3xctrl`
 * Set username and password - if you don't set this, the defaults will be applied, e.g.: `pi` and `raspberry`
 * Configure wireless LAN - set SSID and password of your home network
+* Set regulatory domain to your country (if you simply care for max TX power, set to US)
 
 Services tab
 * Enable SSH
