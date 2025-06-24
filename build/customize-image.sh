@@ -111,6 +111,18 @@ else
   echo "enable_uart=1" | tee -a "$MOUNT_DIR/boot/config.txt" > /dev/null
 fi
 
+if grep -q '^#*hdmi_blanking=' "$MOUNT_DIR/boot/config.txt"; then
+  sed -i 's/^#*hdmi_blanking=.*/hdmi_blanking=2/' "$MOUNT_DIR/boot/config.txt"
+else
+  echo "hdmi_blanking=2" | tee -a "$MOUNT_DIR/boot/config.txt" > /dev/null
+fi
+
+if grep -q '^#*disable_splash=' "$MOUNT_DIR/boot/config.txt"; then
+  sed -i 's/^#*disable_splash=.*/disable_splash=1/' "$MOUNT_DIR/boot/config.txt"
+else
+  echo "disable_splash=1" | tee -a "$MOUNT_DIR/boot/config.txt" > /dev/null
+fi
+
 if ! grep -q 'fsck.repair=yes' "$MOUNT_DIR/boot/cmdline.txt"; then
   sed -i 's/$/ fsck.repair=yes/' "$MOUNT_DIR/boot/cmdline.txt"
 fi
