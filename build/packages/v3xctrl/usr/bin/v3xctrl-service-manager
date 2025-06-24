@@ -5,9 +5,30 @@ set -e
 ENV_PATH="/run/v3xctrl.env"
 source "${ENV_PATH}"
 
-if [ "$video_camera_enableHdr" = "true" ]; then
-  echo "Enable HDR mode..."
-  v4l2-ctl -d /dev/v4l-subdev0 --set-ctrl wide_dynamic_range=1
+SUBDEV_0="/dev/v4l-subdev0"
+
+# Stop video & control service
+if [ "$autostart_video" = "true" ]; then
+  echo "Stopping video service..."
+  systemctl stop v3xctrl-video
+fi
+
+if [ "$autostart_control" = "true" ]; then
+  echo "Stopping control service..."
+  systemctl stop v3xctrl-control
+fi
+
+# RPi-cam v3 related settings
+if [ -e "$SUBDEV_0" ]; then
+  WIDE_DYNAMIC_RANGE=0
+  if [ "$video_camera_enableHdr" = "true" ]; then
+    echo "Enable HDR mode..."
+    WIDE_DYNAMIC_RANGE=1
+  else
+    echo "Disable HDR mode..."
+  fi
+
+  v4l2-ctl -d $SUBDEV_0 --set-ctrl wide_dynamic_range=$WIDE_DYNAMIC_RANGE
 fi
 
 if [ "$network_modem_limitBands" = "true" ]; then
@@ -15,6 +36,12 @@ if [ "$network_modem_limitBands" = "true" ]; then
   v3xctrl-set-bands $network_modem_allowedBands
 fi
 
+if [ "$extras_samba" = "true" ]; then
+  echo "Starting samba service..."
+  systemctl start smbd
+fi
+
+# Setup rendezvous/relay servers if not in direct connection mode
 if [ "$server_mode" = "rendezvous" ]; then
   echo "Registering with rendezvous server..."
   v3xctrl-rendezvous
@@ -25,6 +52,7 @@ if [ "$server_mode" = "relay" ]; then
   v3xctrl-relay
 fi
 
+# Start video & control service
 if [ "$autostart_video" = "true" ]; then
   echo "Starting video service..."
   systemctl start v3xctrl-video
@@ -33,11 +61,6 @@ fi
 if [ "$autostart_control" = "true" ]; then
   echo "Starting control service..."
   systemctl start v3xctrl-control
-fi
-
-if [ "$extras_samba" = "true" ]; then
-  echo "Starting samba service..."
-  systemctl start smbd
 fi
 
 exit 0
