@@ -20,15 +20,20 @@ fi
 
 # RPi-cam v3 related settings
 if [ -e "$SUBDEV_0" ]; then
-  WIDE_DYNAMIC_RANGE=0
-  if [ "$video_camera_enableHdr" = "true" ]; then
-    echo "Enable HDR mode..."
-    WIDE_DYNAMIC_RANGE=1
-  else
-    echo "Disable HDR mode..."
-  fi
 
-  v4l2-ctl -d $SUBDEV_0 --set-ctrl wide_dynamic_range=$WIDE_DYNAMIC_RANGE
+  # Set WDR if control available
+  CONTROL="wide_dynamic_range"
+  if v4l2-ctl -d "$SUBDEV_0" --list-ctrls | grep -q "$CONTROL"; then
+    WIDE_DYNAMIC_RANGE=0
+    if [ "$video_camera_enableHdr" = "true" ]; then
+      echo "Enable HDR mode..."
+      WIDE_DYNAMIC_RANGE=1
+    else
+      echo "Disable HDR mode..."
+    fi
+
+    v4l2-ctl -d "$SUBDEV_0" --set-ctrl "$CONTROL=$WIDE_DYNAMIC_RANGE"
+  fi
 fi
 
 if [ "$network_modem_limitBands" = "true" ]; then
