@@ -22,7 +22,7 @@ TARGET="$1"
 echo "[${NAME}] Ensuring /boot is writable..."
 if mountpoint -q /boot; then
   mount_opts=$(findmnt -n -o OPTIONS /boot)
-  if echo "$mount_opts" | grep -q '\<ro\>'; then
+  if echo ",$mount_opts," | grep -q ',ro,'; then
     echo "[${NAME}] Remounting /boot as rw for modification..."
     mount -o remount,rw /boot
   fi
@@ -40,7 +40,7 @@ fi
 if [[ "$TARGET" == "rw" ]]; then
   if grep -qw 'boot=overlay' "$CMDLINE"; then
     echo "[${NAME}] Disabling overlay (read-write)..."
-    sed -i 's/\bboot=overlay\b//' "$CMDLINE"
+    sed -i 's/\bboot=overlay[[:space:]]*\b//' "$CMDLINE"
   else
     echo "[${NAME}] Overlay already disabled."
   fi

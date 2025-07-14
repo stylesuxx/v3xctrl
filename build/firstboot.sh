@@ -19,28 +19,44 @@ while [ -f "/var/lib/raspberrypi-sys-mods/set-wlan" ]; do
 done
 
 PART="/dev/mmcblk0p3"
+TARGET="/data"
 
 echo "[v3xctrl-firstboot] Resizing $PART to fill disk..."
 parted -s /dev/mmcblk0 resizepart 3 100%
+
+echo "[v3xctrl-firstboot] Probing partitions..."
 partprobe
 sleep 2
 udevadm settle
+
+echo "[v3xctrl-firstboot] Cleaning $PART..."
 e2fsck -fy "$PART"
-mount "$PART" /data && umount /data
+
+echo "[v3xctrl-firstboot] Test mounting/unmounting $PART..."
+mount "$PART" "$TARGET"
+umount "$TARGET"
+
+echo "[v3xctrl-firstboot] Cleaning $PART..."
 e2fsck -fy "$PART"
+
+echo "[v3xctrl-firstboot] Resizing $PART..."
 resize2fs "$PART"
 
-echo "[v3xctrl-firstboot] Updating /etc/fstab with /data and mounting"
-PARTUUID=$(blkid -s PARTUUID -o value "${PART}")
-tee -a "/etc/fstab" > /dev/null <<EOF
-PARTUUID=${PARTUUID} /data ext4 defaults 0 2
+if ! grep -q "${TARGET}[[:space:]]" /etc/fstab; then
+  echo "[v3xctrl-firstboot] Updating /etc/fstab with /data and mounting..."
+  PARTUUID=$(blkid -s PARTUUID -o value "${PART}")
+  tee -a "/etc/fstab" > /dev/null <<EOF
+PARTUUID=${PARTUUID} ${TARGET} ext4 defaults 0 2
 EOF
+fi
 
-mount /data
+echo "[v3xctrl-firstboot] Mounting ${TARGET} and creating folder structure..."
+mount "$TARGET"
+mkdir -p "${TARGET}/config"
 
 dphys-swapfile swapoff
 if [ -f /var/swap ]; then
-  mv "/var/swap" "/data/swap"
+  mv "/var/swap" "${TARGET}/swap"
 fi
 sed -i \
   -e 's|^#\?CONF_SWAPFILE=.*|CONF_SWAPFILE=/data/swap|' \
@@ -49,14 +65,14 @@ dphys-swapfile swapon
 
 echo "[v3xctrl-firstboot] Copy config files to persistent storage"
 if [ -f "/etc/v3xctrl/config.json" ]; then
-  cp "/etc/v3xctrl/config.json" "/data/config/config.json"
-  chown v3xctrl:v3xctrl "/data/config/config.json"
-  chomd a+r "/data/config/config.json"
+  cp "/etc/v3xctrl/config.json" "${TARGET}/config/config.json"
+  chown v3xctrl:v3xctrl "${TARGET}/config/config.json"
+  chmod a+r "${TARGET}/config/config.json"
 fi
 
 if [ -f "/etc/wpa_supplicant/wpa_supplicant.conf" ]; then
-  mv "/etc/wpa_supplicant/wpa_supplicant.conf" "/data/config/wpa_supplicant.conf"
-  ln -sf "/data/config/wpa_supplicant.conf" "/etc/wpa_supplicant/wpa_supplicant.conf"
+  mv "/etc/wpa_supplicant/wpa_supplicant.conf" "${TARGET}/config/wpa_supplicant.conf"
+  ln -sf "${TARGET}/config/wpa_supplicant.conf" "/etc/wpa_supplicant/wpa_supplicant.conf"
 fi
 
 # Enable overlay fs
@@ -68,7 +84,12 @@ fi
 # in place yet.
 echo "[v3xctrl-firstboot] Enabling overlay fs..."
 raspi-config nonint enable_overlayfs
+
+echo "[v3xctrl-firstboot] Switching to read-only mode..."
 v3xctrl-remount ro
+
+echo "[v3xctrl-firstboot] Setting /boot to RO via /etc/fstab"
+sed -i '/\/boot/ s|\(/boot[[:space:]]\+vfat[[:space:]]\+\)[^[:space:]]\+|\1ro|' /etc/fstab
 
 echo "[v3xctrl-firstboot] Cleaning up..."
 systemctl disable v3xctrl-firstboot.service
