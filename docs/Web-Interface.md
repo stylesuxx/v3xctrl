@@ -25,6 +25,8 @@ The most important section here are the Bands. You might need to adjust the band
 
 > We also noted that the modem seems to prefer the higher frequency, higher throughput bands, which might not be the best choice in rural regions. We found out, that pinning the modem to a single band might yield WAY better results. In rural regions with not so great coverage that would be the lower frequency bands (Band 20 in the EU for example).
 
+> **ATTENTION:** When limiting bands, make sure that those bands are actually available, otherwise your modem will not be able to register with the provider. Only limit yourself to a single band if you know what you are doing.
+
 ## Services
 Allows you to manage all relevant services. You can see their current states, start and stop them and see their logs.
 
