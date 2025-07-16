@@ -117,3 +117,62 @@ Switching between SIM cards is easily possible if you ran through the setup step
 ```bash
 AT+CFUN=1,1
 ```
+
+## Quirks
+We have found that some SIM cards will not automatically register when roaming is enabled. This means that you should always disable roaming when setting or locking bands:
+
+```bash
+AT*BAND=5,0,0,482,149,1,1,0
+```
+
+Roaming is the third to last parameter, you can verify it the following way:
+
+```bash
+AT*BAND=5,0,0,482,149
+AT+CFUN=1,1
+```
+
+If your SIM does no longer automatically connect, pass the parameter to disable roaming and see the SIM automagically register:
+
+```bash
+AT*BAND=5,0,0,482,149,1
+AT+CFUN=1,1
+```
+
+## Miscelanious and maybe helpful
+
+Full reset and auto connect setup
+```bash
+AT+CFUN=0
+AT+COPS=0
+AT*BAND=5,0,0,482,149,1
+AT+CGDCONT=1,"IP",""
+AT+CFUN=1,1
+```
+
+Checking things:
+```
+AT+CPIN?
+AT+CGATT?
+AT+COPS?
+AT+CGDCONT?
+AT+CGPADDR
+AT*BANDIND?
+
+# Scan
+AT+COPS=?
+```
+
+### AT*BAND command explained
+```
+AT*BAND=<mode>,<GSMband>,<UMTSband>,<LTEbandH>,<LTEbandL>,<roamingConfig>,<srvDom>,<bandPriorityFlag>
+```
+
+* `mode` 5 only - LTE network
+* `GSMband` 0 only - not relevant
+* `UMTSband` 0 only - not relevant
+* `LTEbandH` depends on region
+* `LTEbandL` depends on region
+* `roamingConfig` 0,1,2 (yes, no, no-change)
+* `srvDom` can only be 1
+* `bandPriorityFlag` 0,1,2 (default, TDD, FDD)

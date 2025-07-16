@@ -13,6 +13,13 @@ This is the modem that is most widely available on Aliexpress, it is sold by dif
 
 To decide which one is the best for you, check  your area and provider on [cellmapper.net](https://www.cellmapper.net/map).
 
+
+Here is a quick reference to enable all factory supported bands:
+
+| Model    | all bands |
+| -------- | --------- |
+| CAT1-GPS | AT*BAND=5,0,0,482,149,1,1,0 |
+
 ### Debugging
 
 > Before attempting any debugging make sure that yourn SIM card is actually working, put it in a phone, disable the PIN check - if enabled. And try to go online with it. Depending on your region you might also need to go through an activation process first.
