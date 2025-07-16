@@ -88,9 +88,55 @@
         },
         "bitrate": {
           "propertyOrder": 50,
+          "title": "Bitrate",
+          "required": true,
           "type": "integer",
+          "enum": [
+            50000000,
+            40000000,
+            30000000,
+            20000000,
+            10000000,
+            5000000,
+            4000000,
+            3000000,
+            2800000,
+            2600000,
+            2400000,
+            2200000,
+            2000000,
+            1800000,
+            1600000,
+            1400000,
+            1200000,
+            1000000,
+            800000
+          ],
+          "options": {
+            "enum_titles": [
+              "50.0 Mbps (theoretical maximum for 4G, CAT-3)",
+              "40.0 Mbps",
+              "30.0 Mbps",
+              "20.0 Mbps (realistic maximum for 4G, CAT-3)",
+              "10.0 Mbps",
+              "5.0 Mbps (theoretical maximum fro 4G, Cat-1)",
+              "4.0 Mbps",
+              "3.0 Mbps (realistic maximum for 4G, CAT-1)",
+              "2.8 Mbps",
+              "2.6 Mbps",
+              "2.4 Mbps",
+              "2.2 Mbps",
+              "2.0 Mbps",
+              "1.8 Mbps (Default for average 4G, CAT-1)",
+              "1.6 Mbps",
+              "1.4 Mbps",
+              "1.2 Mbps",
+              "1.0 Mbps",
+              "800 kbps"
+            ]
+          },
           "default": 1800000,
-          "description": "Bits per second"
+          "description": "Make sure you stay below values your modem supports (based on category) - if latency increases, you know you went to high."
         },
         "record": {
           "propertyOrder": 60,
