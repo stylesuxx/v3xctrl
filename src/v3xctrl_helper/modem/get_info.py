@@ -10,6 +10,7 @@ def main():
 
     info = {
         "version": None,
+        "status": None,
         "allowedBands": [],
         "activeBand": None,
         "contexts": [],
@@ -18,6 +19,7 @@ def main():
 
     gsm = AIR780EU(args.device_path, baudrate=115200)
     info["version"] = gsm.get_version()
+    info["status"] = gsm.get_sim_status()
     info["allowedBands"] = gsm.get_allowed_bands()
     info["activeBand"] = gsm.get_active_band()
     info["contexts"] = [c._asdict() for c in gsm.get_contexts()]

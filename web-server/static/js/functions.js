@@ -261,6 +261,11 @@ function getModemInfo() {
     $tbody.append($row);
 
     $row = $("<tr />");
+    $row.append(`<td>SIM Status</td>`);
+    $row.append(`<td>${info["status"]}</td>`);
+    $tbody.append($row);
+
+    $row = $("<tr />");
     $row.append(`<td>Allowed Bands</td>`);
     $row.append(`<td>${info["allowedBands"].join(", ")}</td>`);
     $tbody.append($row);
