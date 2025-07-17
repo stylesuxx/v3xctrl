@@ -22,7 +22,7 @@ const registerTabHandler = () => {
     }
 
     if ($(this).attr('href') === '#modem-tab') {
-      getAllowedBands();
+      getModemInfo();
     }
   });
 };

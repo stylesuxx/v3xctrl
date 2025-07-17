@@ -17,7 +17,7 @@ curl -L https://kernel.googlesource.com/pub/scm/linux/kernel/git/sforshee/wirele
 
 echo '[CHROOT] Installing dependencies...'
 apt-get update
-apt install -y samba
+apt install -y samba minicom
 apt install -y /tmp/*.deb
 
 rm -f /tmp/*.deb

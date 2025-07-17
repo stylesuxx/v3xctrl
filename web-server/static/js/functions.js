@@ -244,12 +244,47 @@ function getDmesg() {
   });
 }
 
-function getAllowedBands() {
-  get('/modem/bands', function(res) {
-    console.log(res);
-    var bands = JSON.parse(res);
+function getModemInfo() {
+  get('/modem/info', function(res) {
+    var info = JSON.parse(res);
 
-    $("#modem-tab p").text('Allowed bands: ' + bands.join(', '));
+    var $table = $("<table />", {
+      class: "table"
+    });
+
+    var $tbody = $("<tbody />");
+    $table.append($tbody);
+
+    var $row = $("<tr />");
+    $row.append(`<td>Version</td>`);
+    $row.append(`<td>${info["version"]}</td>`);
+    $tbody.append($row);
+
+    $row = $("<tr />");
+    $row.append(`<td>Allowed Bands</td>`);
+    $row.append(`<td>${info["allowedBands"].join(", ")}</td>`);
+    $tbody.append($row);
+
+    $row = $("<tr />");
+    $row.append(`<td>Active Band</td>`);
+    $row.append(`<td>${info["activeBand"]}</td>`);
+    $tbody.append($row);
+
+    $row = $("<tr />");
+    $row.append(`<td>Carrier</td>`);
+    $row.append(`<td>${info["carrier"]}</td>`);
+    $tbody.append($row);
+
+    for(var i = 0; i < info["contexts"].length; i += 1) {
+      var current = info["contexts"][i];
+
+      $row = $("<tr />");
+      $row.append(`<td>Context ${current.id}</td>`);
+      $row.append(`<td>${current.type}: ${current.value} (${current.apn})</td>`);
+      $tbody.append($row);
+    }
+
+    $("#modem-tab p").html($table);
   });
 }
 
