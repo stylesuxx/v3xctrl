@@ -19,6 +19,7 @@ import logging
 from queue import Queue, Empty
 import socket
 import threading
+import time
 from typing import Tuple, Optional
 
 from .UDPPacket import UDPPacket
@@ -26,7 +27,7 @@ from .Message import Message
 
 
 class UDPTransmitter(threading.Thread):
-    def __init__(self, sock: socket.socket):
+    def __init__(self, sock: socket.socket, ttl_ms: int = 1000):
         super().__init__(daemon=True)
 
         self.socket = sock
@@ -38,6 +39,8 @@ class UDPTransmitter(threading.Thread):
 
         self._running = threading.Event()
         self.process_stopped = threading.Event()
+
+        self.ttl = ttl_ms / 1000
 
     def add_message(self, message: Message, addr: Tuple[str, int]):
         """ Convenience function to add a message to the queue."""
@@ -57,6 +60,13 @@ class UDPTransmitter(threading.Thread):
             while self._running.is_set():
                 try:
                     packet = self.queue.get(timeout=0.1)
+
+                    # Drop packet if TTL expired
+                    if time.monotonic() - packet.timestamp > self.ttl:
+                        self.queue.task_done()
+                        logging.info(f"Dropped old packet: {packet}")
+                        continue
+
                     address = (packet.host, packet.port)
                     self.socket.sendto(packet.data, address)
                     self.queue.task_done()

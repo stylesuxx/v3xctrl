@@ -14,7 +14,7 @@ class Server(Base):
     COMMAND_MAX_RETRIES = 10
     COMMAND_DELAY = 1
 
-    def __init__(self, port):
+    def __init__(self, port, ttl_ms: int = 100) -> None:
         super().__init__()
 
         self.port = port
@@ -24,7 +24,7 @@ class Server(Base):
         self.socket.bind(('0.0.0.0', self.port))
         self.socket.settimeout(1)
 
-        self.transmitter = UDPTransmitter(self.socket)
+        self.transmitter = UDPTransmitter(self.socket, ttl_ms)
         self.message_handler = MessageHandler(self.socket)
 
         self.pending_commands = {}

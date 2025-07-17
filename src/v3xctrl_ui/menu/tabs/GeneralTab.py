@@ -15,6 +15,7 @@ class GeneralTab(Tab):
         self.widgets = self.settings.get("widgets", {})
         self.debug = self.settings.get("debug", False)
         self.relay = self.settings.get("relay", {})
+        self.udp_packet_ttl = self.settings.get("udp_packet_ttl", 100)
 
         # Port widgets
         self.video_input = NumberInput(
@@ -65,6 +66,13 @@ class GeneralTab(Tab):
             on_change=self._on_throttle_change
         )
 
+        self.udp_packet_ttl_input = NumberInput(
+            "UDP packet TTL", label_width=180, input_width=75, min_val=1, max_val=5000,
+            font=LABEL_FONT, mono_font=MONO_FONT,
+            on_change=lambda value: self._on_udp_packet_ttl_change(value)
+        )
+        self.udp_packet_ttl_input.value = str(self.udp_packet_ttl)
+
         self.port_widgets = [
             self.video_input,
             self.control_input
@@ -79,28 +87,34 @@ class GeneralTab(Tab):
             self.steering_checkbox,
             self.throttle_checkbox
         ]
+        self.misc_widgets_col2 = [
+            self.udp_packet_ttl_input
+        ]
 
-        self.elements = self.port_widgets + self.relay_widgets + self.misc_widgets
+        self.elements = self.port_widgets + self.relay_widgets + self.misc_widgets + self.misc_widgets_col2
 
-    def _on_port_change(self, name: str, value: str):
+    def _on_port_change(self, name: str, value: str) -> None:
         self.ports[name] = int(value)
 
-    def _on_debug_change(self, value: bool):
+    def _on_debug_change(self, value: bool) -> None:
         self.debug = value
 
-    def _on_steering_change(self, value: bool):
+    def _on_udp_packet_ttl_change(self, value: str) -> None:
+        self.udp_packet_ttl = int(value)
+
+    def _on_steering_change(self, value: bool) -> None:
         self.widgets.setdefault("steering", {})["display"] = value
 
-    def _on_throttle_change(self, value: bool):
+    def _on_throttle_change(self, value: bool) -> None:
         self.widgets.setdefault("throttle", {})["display"] = value
 
-    def _on_relay_enable_change(self, value: bool):
+    def _on_relay_enable_change(self, value: bool) -> None:
         self.relay["enabled"] = value
 
-    def _on_relay_server_change(self, value: str):
+    def _on_relay_server_change(self, value: str) -> None:
         self.relay["server"] = value
 
-    def _on_relay_id_change(self, value: str):
+    def _on_relay_id_change(self, value: str) -> None:
         self.relay["id"] = value
 
     def _draw_port_section(self, surface: Surface, y: int) -> int:
@@ -157,14 +171,29 @@ class GeneralTab(Tab):
 
         return y
 
-    def draw(self, surface: Surface):
+    def _draw_misc_col2_section(self, surface: Surface, y: int) -> int:
+        y += self.y_section_padding
+        y += self.y_offset_headline
+
+        # Align with col 1
+        y -= 4
+
+        self.udp_packet_ttl_input.set_position(self.padding + 300, y)
+        self.udp_packet_ttl_input.draw(surface)
+
+        return y
+
+    def draw(self, surface: Surface) -> None:
         y = self._draw_port_section(surface, 0)
-        y = self._draw_relay_section(surface, y)
-        y = self._draw_debug_section(surface, y)
+        y_col1 = self._draw_relay_section(surface, y)
+
+        y = self._draw_debug_section(surface, y_col1)
+        self._draw_misc_col2_section(surface, y_col1)
 
     def get_settings(self) -> dict:
         return {
             "debug": self.debug,
+            "udp_packet_ttl": self.udp_packet_ttl,
             "ports": self.ports,
             "widgets": self.widgets,
             "relay": self.relay

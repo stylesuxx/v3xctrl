@@ -18,9 +18,9 @@ class Init:
         return settings
 
     @classmethod
-    def server(self, port: int, handlers: dict) -> Tuple[Server, str]:
+    def server(self, port: int, handlers: dict, udp_ttl_ms: int = 100) -> Tuple[Server, str]:
         try:
-            server = Server(port)
+            server = Server(port, udp_ttl_ms)
 
             for type, callback in handlers.get("messages", []):
                 server.subscribe(type, callback)

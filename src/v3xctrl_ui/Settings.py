@@ -28,6 +28,7 @@ class Settings:
             "width": 1280,
             "height": 720,
         },
+        "udp_packet_ttl": 100,
         "debug": True,
         "timing": {
             "main_loop_fps": 60,
