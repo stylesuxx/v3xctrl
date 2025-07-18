@@ -121,6 +121,7 @@ def get_modem_info():
 @app.route('/services', methods=['GET'])
 def get_services():
     services = [
+        "v3xctrl-pigpiod",
         "v3xctrl-setup-env",
         "v3xctrl-config-server",
         "v3xctrl-wifi-mode",

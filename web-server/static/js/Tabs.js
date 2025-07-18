@@ -64,6 +64,18 @@ class Tabs {
                       }
                     }
                   } break;
+
+                  case 'forking': {
+                    stateLabel  = "Failed";
+                    if(
+                      service.result === 'success' &&
+                      service.state === 'active'
+                    ) {
+                      success = true;
+                      stateLabel = "Active";
+                    }
+                  } break;
+
                   case 'simple': {
                     stateLabel  = "Inactive";
                     if(
@@ -74,20 +86,6 @@ class Tabs {
                       stateLabel = "Active";
                     }
                   } break;
-                }
-
-                if(service.type === 'oneshot') {
-                }
-
-                if(service.type === 'simple') {
-                  stateLabel  = "Inactive";
-                  if(
-                    service.result === 'success' &&
-                    service.state === 'active'
-                  ) {
-                    success = true;
-                    stateLabel = "Active";
-                  }
                 }
 
                 const statusClass = success ? 'text-success' : 'text-danger';
@@ -101,7 +99,10 @@ class Tabs {
                 const $button = $('<td />');
                 $row.append($button);
 
-                if(service.type === 'simple') {
+                if(
+                  service.type === 'simple' ||
+                  service.type === 'forking'
+                ) {
                   if(success) {
                     $button.append('<button class="service-stop btn btn-primary">Stop</button>');
                   } else {
