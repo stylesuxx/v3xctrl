@@ -5,9 +5,11 @@
     <script src="{{ url_for('static', filename='libs/jquery.min.js') }}"></script>
     <script src="{{ url_for('static', filename='libs/jsoneditor.min.js') }}"></script>
 
+    <script src="{{ url_for('static', filename='js/API.js') }}"></script>
+
     <script src="{{ url_for('static', filename='js/functions.js') }}"></script>
     <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/tabs.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/Tabs.js') }}"></script>
     <script src="{{ url_for('static', filename='js/handlers.js') }}"></script>
 
     <script>
@@ -16,11 +18,10 @@
         const startval = {{ config|tojson }};
 
         const editor = initEditor(schema, startval);
-        registerTabHandler();
-        activateTabFromHash();
+        const tabs = new Tabs('#custom-tabs');
+
         registerClickHandlers(editor);
         setCalibrationValues(editor);
-        checkServices();
       });
     </script>
 
@@ -66,193 +67,195 @@
         </div>
       </div>
 
-      <ul class="nav nav-tabs" role="tablist" id="custom-tabs">
-        <li class="active"><a href="#editor-tab" role="tab" data-toggle="tab">Config Editor</a></li>
-        <li><a href="#services-tab" role="tab" data-toggle="tab">Services</a></li>
-        <li><a href="#calibration-tab" role="tab" data-toggle="tab">Calibration</a></li>
-        <li><a href="#dmesg-tab" role="tab" data-toggle="tab">DMESG</a></li>
-        <li><a href="#modem-tab" role="tab" data-toggle="tab">Modem</a></li>
-      </ul>
+      <div id="custom-tabs">
+        <ul class="nav nav-tabs" role="tablist">
+          <li class="active"><a href="#editor" role="tab" data-toggle="tab">Config Editor</a></li>
+          <li><a href="#services" role="tab" data-toggle="tab">Services</a></li>
+          <li><a href="#calibration" role="tab" data-toggle="tab">Calibration</a></li>
+          <li><a href="#dmesg" role="tab" data-toggle="tab">DMESG</a></li>
+          <li><a href="#modem" role="tab" data-toggle="tab">Modem</a></li>
+        </ul>
 
-      <div class="tab-content" style="margin-top: 20px;">
-        <div class="tab-pane active" id="editor-tab">
-          <div id="editor_holder"></div>
-          <button id="save" class="btn btn-primary">Save</button>
-        </div>
-
-        <div class="tab-pane" id="services-tab">
-          <div id="service_status_container">
-            <p>Loading service states...</p>
+        <div class="tab-content" style="margin-top: 20px;">
+          <div class="tab-pane active" id="editor">
+            <div id="editor_holder"></div>
+            <button id="save" class="btn btn-primary">Save</button>
           </div>
 
-          <div id="service-log-wrapper">
-            <textarea id="service-log" class="hidden form-control" rows="50" readonly></textarea>
-            <p></p>
-          </div>
-        </div>
+          <div class="tab-pane" id="services">
+            <div class="container">
+              <p>Loading services...</p>
+            </div>
 
-        <div class="tab-pane" id="calibration-tab">
-          <div class="row service-warning">
-            <div class="col-md-12">
-              <div class="alert alert-danger">
-                Calibration can not be run while control service is running. Stop the control service first!
-              </div>
+            <div id="service-log-wrapper">
+              <textarea id="service-log" class="hidden form-control" rows="50" readonly></textarea>
+              <p></p>
             </div>
           </div>
 
-          <div class="calibration-content hidden">
-            <div class="steering-wrapper">
-              <div class="row">
-                <div class="col-md-12">
-                  <div class="alert alert-info">
-                    <strong>NOTE:</strong> Set min value first: Decrease until the servo makes clicking noises (or your preferred maximum is reached) and then increase one ore two steps back. Do the same for the max value, just in the other direction. Once min and max are set, trim until steering is straight.
-                  </div>
-                </div>
-              </div>
-
-              <div class="row mb-15">
-                <form class="form-inline steering min col-md-12">
-                  <div class="form-group">
-                    <label class="label-same control-label">Steering Min</label>
-                    <input
-                      class="form-control steering-min"
-                      type="number"
-                      value="0"
-                      step=10
-                    />
-
-                    <button class="set btn btn-secondary" type="submit">Send</button>
-                    <button class="increase btn btn-secondary" type="submit">+10</button>
-                    <button class="decrease btn btn-secondary" type="submit">-10</button>
-                  </div>
-                </form>
-              </div>
-
-              <div class="row mb-15">
-                <form class="form-inline steering max col-md-12">
-                  <div class="form-group">
-                    <label class="label-same control-label">Steering Max</label>
-                    <input
-                      class="form-control steering-max"
-                      type="number"
-                      value="0"
-                      step=10
-                    />
-
-                    <button class="set btn btn-secondary" type="submit">Send</button>
-                    <button class="increase btn btn-secondary" type="submit">+10</button>
-                    <button class="decrease btn btn-secondary" type="submit">-10</button>
-                  </div>
-                </form>
-              </div>
-
-              <div class="row mb-15">
-                <form class="form-inline steering trim col-md-12">
-                  <div class="form-group">
-                    <label class="label-same control-label">Steering Trim</label>
-                    <input
-                      class="form-control steering-trim"
-                      type="number"
-                      value="0"
-                      step=10
-                    />
-
-                    <button class="set btn btn-secondary" type="submit">Send</button>
-                    <button class="increase btn btn-secondary" type="submit">+10</button>
-                    <button class="decrease btn btn-secondary" type="submit">-10</button>
-                  </div>
-                </form>
-              </div>
-
-              <div class="row mb-15">
-                <div class="col-md-12">
-                  <button class="btn btn-primary save-steering-calibration">Save calibration</button>
+          <div class="tab-pane" id="calibration">
+            <div class="row service-warning">
+              <div class="col-md-12">
+                <div class="alert alert-danger">
+                  Calibration can not be run while control service is running. Stop the control service first!
                 </div>
               </div>
             </div>
 
-            <div class="throttle-wrapper">
-              <div class="row">
-                <div class="col-md-12">
-                  <div class="alert alert-info">
-                    <strong>NOTE:</strong> Check the order of operation for calibrating your ESC. Usually it involves sending, throttle min (Reverse), max (Forward) and idle (neutral). You will most likely not need to adjust min and max, but rather send those 3 throttle values in a specific order (according to your ESCs manual). You might need to send min or max value even before plugging in the ESC.
+            <div class="calibration-content hidden">
+              <div class="steering-wrapper">
+                <div class="row">
+                  <div class="col-md-12">
+                    <div class="alert alert-info">
+                      <strong>NOTE:</strong> Set min value first: Decrease until the servo makes clicking noises (or your preferred maximum is reached) and then increase one ore two steps back. Do the same for the max value, just in the other direction. Once min and max are set, trim until steering is straight.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row mb-15">
+                  <form class="form-inline steering min col-md-12">
+                    <div class="form-group">
+                      <label class="label-same control-label">Steering Min</label>
+                      <input
+                        class="form-control steering-min"
+                        type="number"
+                        value="0"
+                        step=10
+                      />
+
+                      <button class="set btn btn-secondary" type="submit">Send</button>
+                      <button class="increase btn btn-secondary" type="submit">+10</button>
+                      <button class="decrease btn btn-secondary" type="submit">-10</button>
+                    </div>
+                  </form>
+                </div>
+
+                <div class="row mb-15">
+                  <form class="form-inline steering max col-md-12">
+                    <div class="form-group">
+                      <label class="label-same control-label">Steering Max</label>
+                      <input
+                        class="form-control steering-max"
+                        type="number"
+                        value="0"
+                        step=10
+                      />
+
+                      <button class="set btn btn-secondary" type="submit">Send</button>
+                      <button class="increase btn btn-secondary" type="submit">+10</button>
+                      <button class="decrease btn btn-secondary" type="submit">-10</button>
+                    </div>
+                  </form>
+                </div>
+
+                <div class="row mb-15">
+                  <form class="form-inline steering trim col-md-12">
+                    <div class="form-group">
+                      <label class="label-same control-label">Steering Trim</label>
+                      <input
+                        class="form-control steering-trim"
+                        type="number"
+                        value="0"
+                        step=10
+                      />
+
+                      <button class="set btn btn-secondary" type="submit">Send</button>
+                      <button class="increase btn btn-secondary" type="submit">+10</button>
+                      <button class="decrease btn btn-secondary" type="submit">-10</button>
+                    </div>
+                  </form>
+                </div>
+
+                <div class="row mb-15">
+                  <div class="col-md-12">
+                    <button class="btn btn-primary save-steering-calibration">Save calibration</button>
                   </div>
                 </div>
               </div>
 
-              <div class="row mb-15">
-                <form class="form-inline throttle min col-md-12">
-                  <div class="form-group">
-                    <label class="label-same control-label">Throttle Min (Reverse)</label>
-                    <input
-                      class="form-control throttle-min"
-                      type="number"
-                      value="0"
-                      step=10
-                    />
-
-                    <button class="set btn btn-secondary" type="submit">Send</button>
-                    <button class="increase btn btn-secondary" type="submit">+10</button>
-                    <button class="decrease btn btn-secondary" type="submit">-10</button>
+              <div class="throttle-wrapper">
+                <div class="row">
+                  <div class="col-md-12">
+                    <div class="alert alert-info">
+                      <strong>NOTE:</strong> Check the order of operation for calibrating your ESC. Usually it involves sending, throttle min (Reverse), max (Forward) and idle (neutral). You will most likely not need to adjust min and max, but rather send those 3 throttle values in a specific order (according to your ESCs manual). You might need to send min or max value even before plugging in the ESC.
+                    </div>
                   </div>
-                </form>
-              </div>
+                </div>
 
-              <div class="row mb-15">
-                <form class="form-inline throttle max col-md-12">
-                  <div class="form-group">
-                    <label class="label-same control-label">Throttle Max (Forward)</label>
-                    <input
-                      class="form-control throttle-max"
-                      type="number"
-                      value="0"
-                      step=10
-                    />
+                <div class="row mb-15">
+                  <form class="form-inline throttle min col-md-12">
+                    <div class="form-group">
+                      <label class="label-same control-label">Throttle Min (Reverse)</label>
+                      <input
+                        class="form-control throttle-min"
+                        type="number"
+                        value="0"
+                        step=10
+                      />
 
-                    <button class="set btn btn-secondary" type="submit">Send</button>
-                    <button class="increase btn btn-secondary" type="submit">+10</button>
-                    <button class="decrease btn btn-secondary" type="submit">-10</button>
+                      <button class="set btn btn-secondary" type="submit">Send</button>
+                      <button class="increase btn btn-secondary" type="submit">+10</button>
+                      <button class="decrease btn btn-secondary" type="submit">-10</button>
+                    </div>
+                  </form>
+                </div>
+
+                <div class="row mb-15">
+                  <form class="form-inline throttle max col-md-12">
+                    <div class="form-group">
+                      <label class="label-same control-label">Throttle Max (Forward)</label>
+                      <input
+                        class="form-control throttle-max"
+                        type="number"
+                        value="0"
+                        step=10
+                      />
+
+                      <button class="set btn btn-secondary" type="submit">Send</button>
+                      <button class="increase btn btn-secondary" type="submit">+10</button>
+                      <button class="decrease btn btn-secondary" type="submit">-10</button>
+                    </div>
+                  </form>
+                </div>
+
+                <div class="row mb-15">
+                  <form class="form-inline throttle idle col-md-12">
+                    <div class="form-group">
+                      <label class="label-same control-label">Throttle Neutral</label>
+                      <input
+                        class="form-control throttle-idle"
+                        type="number"
+                        value="0"
+                        step=10
+                      />
+
+                      <button class="set btn btn-secondary" type="submit">Send</button>
+                      <button class="increase btn btn-secondary" type="submit">+10</button>
+                      <button class="decrease btn btn-secondary" type="submit">-10</button>
+                    </div>
+                  </form>
+                </div>
+
+                <div class="row mb-15">
+                  <div class="col-md-12">
+                    <button class="btn btn-primary save-throttle-calibration">Save calibration</button>
                   </div>
-                </form>
-              </div>
-
-              <div class="row mb-15">
-                <form class="form-inline throttle idle col-md-12">
-                  <div class="form-group">
-                    <label class="label-same control-label">Throttle Neutral</label>
-                    <input
-                      class="form-control throttle-idle"
-                      type="number"
-                      value="0"
-                      step=10
-                    />
-
-                    <button class="set btn btn-secondary" type="submit">Send</button>
-                    <button class="increase btn btn-secondary" type="submit">+10</button>
-                    <button class="decrease btn btn-secondary" type="submit">-10</button>
-                  </div>
-                </form>
-              </div>
-
-              <div class="row mb-15">
-                <div class="col-md-12">
-                  <button class="btn btn-primary save-throttle-calibration">Save calibration</button>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div class="tab-pane" id="dmesg-tab">
-          <div class="form-group">
-            <button class="btn btn-primary dmesg-refresh">Refresh</button>
+          <div class="tab-pane" id="dmesg">
+            <div class="form-group">
+              <button class="btn btn-primary dmesg-refresh">Refresh</button>
+            </div>
+
+            <textarea class="form-control" rows="100" readonly></textarea>
           </div>
 
-          <textarea id="dmesg" class="form-control" rows="100" readonly></textarea>
-        </div>
-
-        <div class="tab-pane" id="modem-tab">
-          <p>Fetching modem info...</p>
+          <div class="tab-pane" id="modem">
+            <p>Fetching modem info...</p>
+          </div>
         </div>
       </div>
     </div>

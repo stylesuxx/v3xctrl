@@ -112,7 +112,7 @@ const registerClickHandlers = (editor) => {
 
     values = editor.getValue();
     gpio = parseInt(values.controls.gpio.steering);
-    setPwm(gpio, value);
+    API.setPwm(gpio, value);
   });
 
   $('form.throttle button').on('click', function(e) {
@@ -134,7 +134,7 @@ const registerClickHandlers = (editor) => {
 
     values = editor.getValue();
     gpio = parseInt(values.controls.gpio.throttle);
-    setPwm(gpio, value);
+    API.setPwm(gpio, value);
   });
 
   $('button.dmesg-refresh').on('click', function(e) {
