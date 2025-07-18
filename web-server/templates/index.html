@@ -6,10 +6,11 @@
     <script src="{{ url_for('static', filename='libs/jsoneditor.min.js') }}"></script>
 
     <script src="{{ url_for('static', filename='js/API.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/Editor.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/Tabs.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/Modal.js') }}"></script>
 
     <script src="{{ url_for('static', filename='js/functions.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/Tabs.js') }}"></script>
     <script src="{{ url_for('static', filename='js/handlers.js') }}"></script>
 
     <script>
@@ -17,7 +18,7 @@
         const schema = {{ schema|tojson }};
         const startval = {{ config|tojson }};
 
-        const editor = initEditor(schema, startval);
+        const editor = new Editor('#editor', schema, startval);
         const tabs = new Tabs('#custom-tabs');
 
         registerClickHandlers(editor);
@@ -45,7 +46,7 @@
           <nav class="navbar navbar-default">
             <div class="container-fluid">
               <div class="navbar-header">
-                <a class="navbar-brand" href="#">v3xctrl</a>
+                <a class="navbar-brand" href="#editor">v3xctrl</a>
               </div>
 
               <ul class="nav navbar-nav">
@@ -77,10 +78,7 @@
         </ul>
 
         <div class="tab-content" style="margin-top: 20px;">
-          <div class="tab-pane active" id="editor">
-            <div id="editor_holder"></div>
-            <button id="save" class="btn btn-primary">Save</button>
-          </div>
+          <div class="tab-pane active" id="editor"></div>
 
           <div class="tab-pane" id="services">
             <div class="container">

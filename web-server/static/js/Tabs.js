@@ -47,13 +47,6 @@ class Tabs {
                   'data-name': service.name,
                 });
 
-                if(service.name === 'v3xctrl-control') {
-                  if(!service.active_state) {
-                    $('.service-warning').addClass('hidden');
-                    $('.calibration-content').removeClass('hidden');
-                  }
-                }
-
                 let stateLabel = 'Failed';
                 let success = false;
 
@@ -234,6 +227,19 @@ class Tabs {
           });
         } break;
 
+        case '#calibration': {
+          API.getServices().then((services) => {
+            services.forEach((service) => {
+              if(service.name === 'v3xctrl-control') {
+                if(!service.active_state) {
+                  $('.service-warning').addClass('hidden');
+                  $('.calibration-content').removeClass('hidden');
+                }
+              }
+            });
+          });
+        } break;
+
         default: {
           console.warn(`No handler for tab ${target}`);
         }
@@ -243,7 +249,7 @@ class Tabs {
 
   activateTabFromHash() {
     let $tabLink = this.$menu.find(`a[href="${this.hash}"]`);
-    if ($tabLink.length == 0) {
+    if($tabLink.length == 0) {
       $tabLink = this.$menu.find('a').first();
     }
 

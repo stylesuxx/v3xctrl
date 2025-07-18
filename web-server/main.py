@@ -36,10 +36,12 @@ def reboot():
     subprocess.run(["sudo", "reboot", "-f"])
     return jsonify({"message": "Rebooting..."})
 
+
 @app.route('/shutdown', methods=['POST'])
 def shutdown():
     subprocess.run(["sudo", "shutdown", "now"])
     return jsonify({"message": "Shutting down..."})
+
 
 @app.route('/set-pwm', methods=['POST'])
 def set_pwm():

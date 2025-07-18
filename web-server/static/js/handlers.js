@@ -1,60 +1,58 @@
+/**
+ * Click handlers for static UI elements
+ */
+
 const registerClickHandlers = (editor) => {
-  $('#save').on('click', function () {
-    const updatedData = editor.getValue();
-    const errors = editor.validate();
-
-    if (errors.length === 0) {
-      showModal("Saving", "<p>Saving configuration...</p>");
-
-      $.ajax({
-        url: '/save',
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify(updatedData),
-        success: function (res) {
-          hideModal();
-        }
-      });
-    }
-  });
-
   $('a.reboot').on('click', function(e) {
     e.preventDefault();
+    $(this).prop('disabled', true);
+
+    const countdown = 45;
 
     const html = `
       <p><strong>Rebooting...</strong></p>
-      <p><span class="modal-countdown">45</span> seconds</p>
+      <p><span class="modal-countdown">${countdown}</span> seconds</p>
     `;
 
-    showModal("Rebooting", html, 45, () => location.reload());
+    const modal = new Modal(
+      'Rebooting',
+      html,
+      countdown,
+      () => location.reload()
+    );
+    modal.show();
 
-    $.post('/reboot').fail(() => {
-      console.warn("Reboot POST failed — likely already rebooting.");
-    });
+    try {
+      API.reboot();
+    } catch(err) {
+      console.warn(err);
+    }
   });
 
   $('a.shutdown').on('click', function(e) {
     e.preventDefault();
-
     $(this).prop('disabled', true);
+
+    const countdown = 30;
 
     const html = `
       <p><strong>Shutting down...</strong></p>
-      <p><span class="modal-countdown">30</span> seconds</p>
+      <p><span class="modal-countdown">${countdown}</span> seconds</p>
     `;
 
-    showModal("Shutting down", html, 30, () => {
-      $('#modal-title').text("Shutdown complete");
-      $('#modal-body').html('<p><strong>It is safe to turn off now.</strong></p>');
+    const modal = new Modal('Shutting down', html, countdown, () => {
+      modal.update('Shutdown complete', '<p><strong>It is safe to turn off now.</strong></p>');
     });
 
-    $.post('/shutdown').fail(() => {
-      console.warn("Shutdown POST failed — likely already shutting down.");
-    });
+    try {
+      API.shutdown();
+    } catch(err) {
+      console.warn(err);
+    }
   });
 
   $('button.save-steering-calibration').on('click', function(e) {
-    const $calibration = $('#calibration-tab');
+    const $calibration = $('#calibration');
     const min = parseInt($calibration.find('.steering.min input').val());
     const max = parseInt($calibration.find('.steering.max input').val());
     const trim = parseInt($calibration.find('.steering.trim input').val());
@@ -65,12 +63,11 @@ const registerClickHandlers = (editor) => {
     values.controls.steering.trim = trim;
 
     editor.setValue(values);
-
-    $("#save").click();
+    editor.save();
   });
 
   $('button.save-throttle-calibration').on('click', function(e) {
-    const $calibration = $('#calibration-tab');
+    const $calibration = $('#calibration');
     const min = parseInt($calibration.find('.throttle.min input').val());
     const max = parseInt($calibration.find('.throttle.max input').val());
     const idle = parseInt($calibration.find('.throttle.idle input').val());
@@ -81,17 +78,16 @@ const registerClickHandlers = (editor) => {
     values.controls.throttle.idle = idle;
 
     editor.setValue(values);
-
-    $("#save").click();
+    editor.save();
   });
 
   $('form.steering button').on('click', function(e) {
     e.preventDefault();
 
-    $this = $(this);
-    $form = $this.closest('form');
-    $input = $form.find('input');
-    value = parseInt($input.val());
+    const $this = $(this);
+    const $form = $this.closest('form');
+    const $input = $form.find('input');
+    let value = parseInt($input.val());
 
     if($this.hasClass('increase')) {
       value += 10;
@@ -103,25 +99,25 @@ const registerClickHandlers = (editor) => {
     $input.val(value);
 
     if($form.hasClass('trim')) {
-      min = parseInt($('.steering.min input').val());
-      max = parseInt($('.steering.max input').val());
+      const min = parseInt($('.steering.min input').val());
+      const max = parseInt($('.steering.max input').val());
 
-      base = min + ((max - min) / 2);
+      const base = min + ((max - min) / 2);
       value = base + value;
     }
 
-    values = editor.getValue();
-    gpio = parseInt(values.controls.gpio.steering);
+    const values = editor.getValue();
+    const gpio = parseInt(values.controls.gpio.steering);
     API.setPwm(gpio, value);
   });
 
   $('form.throttle button').on('click', function(e) {
     e.preventDefault();
 
-    $this = $(this);
-    $form = $this.closest('form');
-    $input = $form.find('input');
-    value = parseInt($input.val());
+    const $this = $(this);
+    const $form = $this.closest('form');
+    const $input = $form.find('input');
+    let value = parseInt($input.val());
 
     if($this.hasClass('increase')) {
       value += 10;
@@ -132,8 +128,8 @@ const registerClickHandlers = (editor) => {
     }
     $input.val(value);
 
-    values = editor.getValue();
-    gpio = parseInt(values.controls.gpio.throttle);
+    const values = editor.getValue();
+    const gpio = parseInt(values.controls.gpio.throttle);
     API.setPwm(gpio, value);
   });
 

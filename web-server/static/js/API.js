@@ -6,14 +6,14 @@
 class API {
   static async #get(path) {
     const response = await fetch(path);
-    if (!response.ok) {
+    if(!response.ok) {
       throw new Error(`HTTP ${response.status} - ${response.statusText}`);
     }
 
     return await response.json();
   }
 
-  static async #post(path, data) {
+  static async #post(path, data = {}) {
     const response = await fetch(path, {
       method: 'POST',
       headers: {
@@ -73,6 +73,24 @@ class API {
 
   static async setPwm(gpio, value) {
     const json = await this.#post('/set-pwm', { gpio, value});
+
+    return json;
+  }
+
+  static async setConfig(data) {
+    const json = await this.#post('/save', data);
+
+    return json;
+  }
+
+  static async reboot() {
+    const json = await this.#post('/reboot');
+
+    return json;
+  }
+
+  static async shutdown() {
+    const json = await this.#post('/shutdown');
 
     return json;
   }
