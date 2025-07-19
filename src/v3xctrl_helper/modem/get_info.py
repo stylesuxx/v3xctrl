@@ -23,6 +23,7 @@ def main():
     info["allowedBands"] = gsm.get_allowed_bands()
     info["activeBand"] = gsm.get_active_band()
     info["contexts"] = [c._asdict() for c in gsm.get_contexts()]
+    info["addresses"] = [c._asdict() for c in gsm.get_addresses()]
     info["carrier"] = gsm.get_current_operator()
 
     print(json.dumps(info))
