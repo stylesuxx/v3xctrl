@@ -43,6 +43,7 @@ const registerClickHandlers = (editor) => {
     const modal = new Modal('Shutting down', html, countdown, () => {
       modal.update('Shutdown complete', '<p><strong>It is safe to turn off now.</strong></p>');
     });
+    modal.show();
 
     try {
       API.shutdown();
@@ -135,5 +136,17 @@ const registerClickHandlers = (editor) => {
 
   $('button.dmesg-refresh').on('click', function(e) {
     getDmesg();
+  });
+
+  $('#modem button.reset').on('click', (e) => {
+    const modal = new Modal('Resetting modem', '<p>This will take a couple seconds...</p>');
+    modal.show();
+
+    API.resetModem().then((result) => {
+      modal.hide();
+      modal.remove();
+
+      $('#custom-tabs .modem').click();
+    });
   });
 };

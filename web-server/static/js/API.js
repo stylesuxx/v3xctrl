@@ -94,4 +94,10 @@ class API {
 
     return json;
   }
+
+  static async resetModem() {
+    const json = await this.#post('/modem/reset');
+
+    return json;
+  }
 }
