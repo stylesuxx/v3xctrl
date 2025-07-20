@@ -142,11 +142,16 @@ const registerClickHandlers = (editor) => {
     const modal = new Modal('Resetting modem', '<p>This will take a couple seconds...</p>');
     modal.show();
 
-    API.resetModem().then((result) => {
-      modal.hide();
-      modal.remove();
-
-      $('#custom-tabs .modem').click();
-    });
+    API.resetModem()
+      .then(() => {
+        Tabs.renderModemInfo()
+          .catch(() => {
+            console.warn('Failed to fetch modem info.');
+          })
+          .finally(() => {
+            modal.hide();
+            modal.remove();
+          });
+      });
   });
 };

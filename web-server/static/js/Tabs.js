@@ -182,50 +182,7 @@ class Tabs {
         } break;
 
         case '#modem': {
-          API.getModemInfo().then((info) => {
-            const $table = $("<table />", {
-              class: "table"
-            });
-
-            const $tbody = $("<tbody />");
-            $table.append($tbody);
-
-            var $row = $("<tr />");
-            $row.append(`<td>Version</td>`);
-            $row.append(`<td>${info["version"]}</td>`);
-            $tbody.append($row);
-
-            $row = $("<tr />");
-            $row.append(`<td>SIM Status</td>`);
-            $row.append(`<td>${info["status"]}</td>`);
-            $tbody.append($row);
-
-            $row = $("<tr />");
-            $row.append(`<td>Allowed Bands</td>`);
-            $row.append(`<td>${info["allowedBands"].join(", ")}</td>`);
-            $tbody.append($row);
-
-            $row = $("<tr />");
-            $row.append(`<td>Active Band</td>`);
-            $row.append(`<td>${info["activeBand"]}</td>`);
-            $tbody.append($row);
-
-            $row = $("<tr />");
-            $row.append(`<td>Carrier</td>`);
-            $row.append(`<td>${info["carrier"]}</td>`);
-            $tbody.append($row);
-
-            for(var i = 0; i < info["contexts"].length; i += 1) {
-              var current = info["contexts"][i];
-
-              $row = $("<tr />");
-              $row.append(`<td>Context ${current.id}</td>`);
-              $row.append(`<td>${current.type}: ${current.value} (${current.apn})</td>`);
-              $tbody.append($row);
-            }
-
-            $("#modem p").html($table);
-          });
+          Tabs.renderModemInfo();
         } break;
 
         case '#calibration': {
@@ -251,6 +208,53 @@ class Tabs {
       this.hash = window.location.hash;
       this.activateTabFromHash();
     });
+  }
+
+  static async renderModemInfo() {
+    const info = await API.getModemInfo();
+
+    const $table = $("<table />", {
+      class: "table"
+    });
+
+    const $tbody = $("<tbody />");
+    $table.append($tbody);
+
+    var $row = $("<tr />");
+    $row.append(`<td>Version</td>`);
+    $row.append(`<td>${info["version"]}</td>`);
+    $tbody.append($row);
+
+    $row = $("<tr />");
+    $row.append(`<td>SIM Status</td>`);
+    $row.append(`<td>${info["status"]}</td>`);
+    $tbody.append($row);
+
+    $row = $("<tr />");
+    $row.append(`<td>Allowed Bands</td>`);
+    $row.append(`<td>${info["allowedBands"].join(", ")}</td>`);
+    $tbody.append($row);
+
+    $row = $("<tr />");
+    $row.append(`<td>Active Band</td>`);
+    $row.append(`<td>${info["activeBand"]}</td>`);
+    $tbody.append($row);
+
+    $row = $("<tr />");
+    $row.append(`<td>Carrier</td>`);
+    $row.append(`<td>${info["carrier"]}</td>`);
+    $tbody.append($row);
+
+    for(var i = 0; i < info["contexts"].length; i += 1) {
+      var current = info["contexts"][i];
+
+      $row = $("<tr />");
+      $row.append(`<td>Context ${current.id}</td>`);
+      $row.append(`<td>${current.type}: ${current.value} (${current.apn})</td>`);
+      $tbody.append($row);
+    }
+
+    $("#modem p").html($table);
   }
 
   activateTabFromHash() {
