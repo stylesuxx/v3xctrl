@@ -139,6 +139,13 @@ AT*BAND=5,0,0,482,149,1
 AT+CFUN=1,1
 ```
 
+Alternatively you can try forcing registration with a certain carrier:
+
+```bash
+#AT+COPS=1,2,"<MNC+MCC>"
+AT+COPS=1,2,"23201"
+```
+
 ## Miscelanious and maybe helpful
 
 Full reset and auto connect setup
