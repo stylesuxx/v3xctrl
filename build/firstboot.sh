@@ -96,5 +96,8 @@ systemctl disable v3xctrl-firstboot.service
 systemctl mask v3xctrl-firstboot.service
 rm -f /boot/firstboot.sh
 
+echo "[v3xctrl-firstboot] Updating MOTD..."
+cp "$MOUNT_DIR/etc/profile.d/v3xctrl-motd-clean.sh" "$MOUNT_DIR/etc/profile.d/v3xctrl-motd.sh"
+
 echo "[v3xctrl-firstboot] First boot setup complete."
 reboot
