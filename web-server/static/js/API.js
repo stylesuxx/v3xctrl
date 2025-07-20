@@ -30,19 +30,25 @@ class API {
   }
 
   static async getDmesg() {
-    const json = await this.#get('/dmesg');
+    const json = await this.#get('/streamer/dmesg');
 
     return json.log;
   }
 
-  static async getModemInfo() {
-    const json = await this.#get('/modem/info');
+  static async reboot() {
+    const json = await this.#post('/streamer/reboot');
+
+    return json;
+  }
+
+  static async shutdown() {
+    const json = await this.#post('/streamer/shutdown');
 
     return json;
   }
 
   static async getServices() {
-    const json = await this.#get('/services');
+    const json = await this.#get('/service');
 
     return json.services;
   }
@@ -71,32 +77,26 @@ class API {
     return json.log;
   }
 
-  static async setPwm(gpio, value) {
-    const json = await this.#post('/set-pwm', { gpio, value});
-
-    return json;
-  }
-
-  static async setConfig(data) {
-    const json = await this.#post('/save', data);
-
-    return json;
-  }
-
-  static async reboot() {
-    const json = await this.#post('/reboot');
-
-    return json;
-  }
-
-  static async shutdown() {
-    const json = await this.#post('/shutdown');
+  static async getModemInfo() {
+    const json = await this.#get('/modem/info');
 
     return json;
   }
 
   static async resetModem() {
     const json = await this.#post('/modem/reset');
+
+    return json;
+  }
+
+  static async setPwm(gpio, value) {
+    const json = await this.#post('/gpio/set-pwm', { gpio, value});
+
+    return json;
+  }
+
+  static async setConfig(data) {
+    const json = await this.#post('/config/save', data);
 
     return json;
   }

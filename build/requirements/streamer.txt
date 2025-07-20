@@ -1,4 +1,6 @@
 Flask==3.1.0
+flask-smorest==0.46.1
+marshmallow==4.0.0
 msgpack==1.1.0
 atlib==0.4.11
 pigpio==1.78
