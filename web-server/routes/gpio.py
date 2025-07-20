@@ -1,14 +1,14 @@
 from flask_smorest import Blueprint
 from flask.views import MethodView
-from marshmallow import Schema, fields as ma_fields
+from marshmallow import Schema, fields
 import subprocess
 
 blueprint = Blueprint('gpio', 'gpio', url_prefix='/gpio', description='GPIO control endpoints')
 
 
 class SetPwmSchema(Schema):
-    gpio = ma_fields.Int(required=True, description="GPIO pin number")
-    value = ma_fields.Int(required=True, description="PWM value")
+    gpio = fields.Int(required=True)
+    value = fields.Int(required=True)
 
 
 @blueprint.route('/set-pwm')
@@ -21,4 +21,4 @@ class SetPwm(MethodView):
 
         subprocess.run(["pigs", "s", gpio, value])
 
-        return { "gpio": gpio, "value": value }
+        return {"gpio": gpio, "value": value}

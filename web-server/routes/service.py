@@ -1,11 +1,11 @@
 from flask.views import MethodView
 from flask_smorest import Blueprint
-from marshmallow import Schema, fields as ma_fields
+from marshmallow import Schema, fields
 import subprocess
 
 
 class ServiceNameSchema(Schema):
-    name = ma_fields.Str(required=True)
+    name = fields.Str(required=True)
 
 
 blueprint = Blueprint('service', 'service', url_prefix='/service', description='Systemd service control')
