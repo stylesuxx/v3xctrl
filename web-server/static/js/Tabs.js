@@ -246,6 +246,11 @@ class Tabs {
         }
       }
     });
+
+    window.addEventListener("hashchange", () => {
+      this.hash = window.location.hash;
+      this.activateTabFromHash();
+    });
   }
 
   activateTabFromHash() {
