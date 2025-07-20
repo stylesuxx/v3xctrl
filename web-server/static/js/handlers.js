@@ -135,7 +135,7 @@ const registerClickHandlers = (editor) => {
   });
 
   $('button.dmesg-refresh').on('click', function(e) {
-    getDmesg();
+    API.getDmesg();
   });
 
   $('#modem button.reset').on('click', (e) => {
