@@ -123,13 +123,13 @@ else
   echo "disable_splash=1" | tee -a "$MOUNT_DIR/boot/config.txt" > /dev/null
 fi
 
+echo "[HOST] Enable i2c..."
 if grep -q '^#*dtparam=i2c_arm=' "$MOUNT_DIR/boot/config.txt"; then
   sed -i 's/^#*dtparam=i2c_arm=.*/dtparam=i2c_arm=on/' "$MOUNT_DIR/boot/config.txt"
 else
   echo "dtparam=i2c_arm=on" | tee -a "$MOUNT_DIR/boot/config.txt" > /dev/null
 fi
-
-echo "i2c-dev" >> /etc/modules
+echo "i2c-dev" >> "$MOUNT_DIR/etc/modules"
 
 if ! grep -q 'fsck.repair=yes' "$MOUNT_DIR/boot/cmdline.txt"; then
   sed -i 's/$/ fsck.repair=yes/' "$MOUNT_DIR/boot/cmdline.txt"
