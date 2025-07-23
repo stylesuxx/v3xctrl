@@ -94,6 +94,7 @@ sed -i 's|^\(session[[:space:]]\+optional[[:space:]]\+pam_motd\.so[[:space:]]\+n
 
 echo "[HOST] Move config files into place"
 cp "${CONF_DIR}/smb.conf" "$MOUNT_DIR/etc/samba/smb.conf"
+cp "${CONF_DIR}/10_v3xctrl-motd-firstboot.sh" "$MOUNT_DIR/etc/profile.d/"
 
 echo "[HOST] Copying files to boot partition..."
 cp "./build/firstboot.sh" "$MOUNT_DIR/boot/firstboot.sh"
