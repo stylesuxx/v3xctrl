@@ -66,7 +66,6 @@ cp /usr/bin/qemu-aarch64-static "$MOUNT_DIR/usr/bin/"
 
 echo "[HOST] Moving build files into place"
 rm -rf "${MOUNT_DIR}/src"
-
 mkdir -p "${MOUNT_DIR}/src/${PACKAGES_DIR}"
 
 cp -r "./${PACKAGES_DIR}/v3xctrl-python" "${MOUNT_DIR}/src/${PACKAGES_DIR}"

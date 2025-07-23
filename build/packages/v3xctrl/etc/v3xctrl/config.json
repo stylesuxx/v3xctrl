@@ -63,6 +63,14 @@
           "steering": 13
       }
   },
+  "telemetry": {
+    "battery": {
+      "i2cAddress": "0x40",
+      "minVoltage": 3.5,
+      "warnVoltage": 3.7,
+      "maxVoltage": 4.2
+    }
+  },
   "extras": {
       "samba": false,
       "logLevel": "DEBUG"
