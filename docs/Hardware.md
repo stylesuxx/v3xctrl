@@ -5,7 +5,7 @@ This is a list of tested and recommended Hardware. Recommended in this case mean
 * [Raspberry PI Zero 2 W](https://www.raspberrypi.com/products/raspberry-pi-zero-2-w/)
 * [Cat 1, 4G Modem hat (comes in EU and US versions, with and without GPS)](https://aliexpress.com/item/1005007960858994.html) - Explicitly tested firmware versions: `AirM2M_780EU_V1138_LTE_AT`
 * [PiCam V3 (Wide) - only cam so far with HDR](https://www.raspberrypi.com/products/camera-module-3/)
-
+* [INA231]() - smallest breakout board for the INA current/voltage sensor
 
 ## Tested
 
@@ -30,6 +30,7 @@ The following components are potential candidates that should work, but have not
 Technically any camera should work, but we recommend the [PiCam V3 (Wide version)](https://www.raspberrypi.com/products/camera-module-3/) as it is the only camera that supports HDR, which helps with difficult lighting conditions.
 
 If you don't care for that, any PiCam, ArduCam and knockoffs are fine. Go for a decent FOV though.
+
 
 
 ## AT command cheat sheet
