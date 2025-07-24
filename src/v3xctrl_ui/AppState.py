@@ -18,6 +18,7 @@ from v3xctrl_ui.widgets import (
   FpsWidget,
   SignalQualityWidget,
   TextWidget,
+  Alignment
 )
 
 from v3xctrl_udp_relay.Peer import Peer
@@ -73,6 +74,12 @@ class AppState:
         self.signal_quality = None
         self.band = "Band ?"
 
+        # Data for battery
+        self.battery_voltage = None
+        self.battery_average_voltage = None
+        self.battery_percent = None
+        self.battery_warn = False
+
         self.widgets = {
             "steering": HorizontalIndicatorWidget(
                 pos=(self.size[0] // 2 - 200 - 6, self.size[1] - 30 - 6),
@@ -97,6 +104,27 @@ class AppState:
                 70
             )
         }
+
+        battery_voltage_widget = TextWidget(
+            (self.size[0] - 70 - 10, 10 + 50 + 25 + 18 * 0),
+            70
+        )
+        battery_average_voltage_widget = TextWidget(
+            (self.size[0] - 70 - 10, 10 + 50 + 25 + 18 * 1),
+            70
+        )
+        battery_percent_widget = TextWidget(
+            (self.size[0] - 70 - 10, 10 + 50 + 25 + 18 * 2),
+            70
+        )
+
+        battery_voltage_widget.set_alignment(Alignment.RIGHT)
+        battery_average_voltage_widget.set_alignment(Alignment.RIGHT)
+        battery_percent_widget.set_alignment(Alignment.RIGHT)
+
+        self.widgets["battery_voltage"] = battery_voltage_widget
+        self.widgets["battery_average_voltage"] = battery_average_voltage_widget
+        self.widgets["battery_percent"] = battery_percent_widget
 
         self.widgets_debug = {
           "fps_loop": FpsWidget(
@@ -220,6 +248,12 @@ class AppState:
             "rsrq": -1,
             "rsrp": -1,
         }
+
+        # Data for battery
+        self.battery_voltage = "0.00V"
+        self.battery_average_voltage = "0.00V"
+        self.battery_percent = "100%"
+        self.battery_warn = False
 
         self.widgets_debug["latency"].set_value(None)
 

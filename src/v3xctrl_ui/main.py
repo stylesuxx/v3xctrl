@@ -103,6 +103,14 @@ def telemetry_handler(state: AppState, message: Telemetry) -> None:
     band = values["cell"]["band"]
     state.band = f"Band {band}"
 
+    battery_voltage = values["bat"]["vol"] / 1000
+    battery_average_voltage = values["bat"]["avg"] / 1000
+    battery_percentage = values["bat"]["pct"]
+
+    state.battery_voltage = f"{battery_voltage:.2f}V"
+    state.battery_average_voltage = f"{battery_average_voltage:.2f}V"
+    state.battery_percent = f"{battery_percentage}%"
+
     logging.debug(f"Received telemetry message: {values}")
 
 
