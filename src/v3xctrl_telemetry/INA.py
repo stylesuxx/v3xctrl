@@ -87,13 +87,13 @@ class INA:
 
         self._write_register(INARegister.CALIBRATION, calibration)
 
-    def get_bus_Voltage(self) -> int:
+    def get_bus_voltage(self) -> int:
         # Returns bus voltage in mV
         raw = self._read_register(INARegister.BUS_VOLTAGE)
 
         return int(raw * INAUnits.BUS_VOLTAGE.value)
 
-    def get_shunt_Voltage(self) -> int:
+    def get_shunt_voltage(self) -> int:
         # Returns shunt voltage in uV
         raw = self._read_register(INARegister.SHUNT_VOLTAGE)
 

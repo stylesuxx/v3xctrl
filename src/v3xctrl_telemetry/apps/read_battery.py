@@ -10,8 +10,10 @@ battery = Battery(min_voltage, max_voltage, warn_voltage)
 while True:
     battery.update()
     print("Voltage:", battery.get_volts())
+    print("Average:", battery.average_voltage)
     print(battery.voltage, "mV")
     print(battery.percentage, "%")
+    print("Cells:", battery.cell_count)
     print("Warning:", battery.warning)
 
     time.sleep(1)

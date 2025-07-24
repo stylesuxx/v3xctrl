@@ -5,7 +5,7 @@ bus = 1
 
 ina = INA(address, bus)
 
-print("Bus Voltage:", ina.get_bus_Voltage(), "mV")
-print("Shunt Voltage:", ina.get_shunt_Voltage(), "uV")
+print("Bus Voltage:", ina.get_bus_voltage(), "mV")
+print("Shunt Voltage:", ina.get_shunt_voltage(), "uV")
 print("Current:", ina.get_current(), "uA")
 print("Power:", ina.get_power(), "uW")

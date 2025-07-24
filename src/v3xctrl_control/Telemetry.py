@@ -11,9 +11,19 @@ from typing import Dict
 import threading
 import time
 
+from v3xctrl_telemetry import Battery
+
 
 class Telemetry(threading.Thread):
-    def __init__(self, modem: str = None, interval: float = 1.0):
+    def __init__(
+        self,
+        modem: str = None,
+        battery_min_voltage: int = 3500,
+        battery_max_voltage: int = 4200,
+        battery_warn_voltage: int = 3700,
+        battery_i2c_address: int = 0x40,
+        interval: float = 1.0
+    ):
         super().__init__(daemon=True)
 
         self._interval = interval
@@ -30,9 +40,11 @@ class Telemetry(threading.Thread):
                 'lat': 0,
                 'lng': 0,
             },
-            'ina': {
+            'bat': {
                 'vol': 0,
-                'cur': 0
+                'avg': 0,
+                'pct': 0,
+                'wrn': False
             }
         }
 
@@ -45,6 +57,13 @@ class Telemetry(threading.Thread):
                 logging.warning("Modem unavailable; telemetry will contain placeholders.")
         except Exception as e:
             logging.error("Failed to initialize modem: %s", e)
+
+        self._battery = Battery(
+            battery_min_voltage,
+            battery_max_voltage,
+            battery_warn_voltage,
+            battery_i2c_address
+        )
 
     def _set_signal_unknown(self):
         with self._lock:
@@ -76,6 +95,14 @@ class Telemetry(threading.Thread):
 
             logging.error("Failed fetching cell information: %s", e)
 
+    def _update_battery(self) -> None:
+        self._battery.update()
+        with self._lock:
+            self.telemetry['bat']['vol'] = self._battery.voltage
+            self.telemetry['bat']['avg'] = self._battery.average_voltage
+            self.telemetry['bat']['pct'] = self._battery.percentage
+            self.telemetry['bat']['wrn'] = self._battery.warning
+
     def run(self) -> None:
         self._running.set()
         while self._running.is_set():
@@ -85,6 +112,8 @@ class Telemetry(threading.Thread):
                     self._update_cell()
             except Exception as e:
                 logging.error("Telemetry loop error: %s", e)
+
+            self._update_battery()
 
             time.sleep(self._interval)
 
