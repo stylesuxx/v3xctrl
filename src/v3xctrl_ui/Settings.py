@@ -47,7 +47,16 @@ class Settings:
             },
             "throttle": {
                 "display": True
-            }
+            },
+            "battery_voltage": {
+                "display": True
+            },
+            "battery_average_voltage": {
+                "display": True
+            },
+            "battery_percent": {
+                "display": True
+            },
         },
         "settings": {
             "title": "V3XCTRL",
