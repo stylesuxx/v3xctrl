@@ -14,16 +14,12 @@ class TestGeneralTab(unittest.TestCase):
 
         self.settings = {
             "ports": {"video": 5000, "control": 6000},
-            "widgets": {
-                "steering": {"display": True},
-                "throttle": {"display": False}
-            },
-            "debug": True,
             "relay": {
                 "enabled": True,
                 "server": "192.168.1.1",
                 "id": "relay01"
-            }
+            },
+            "udp_packet_ttl": 100
         }
 
         self.tab = GeneralTab(self.settings.copy(), width=640, height=480, padding=10, y_offset=0)
@@ -36,23 +32,11 @@ class TestGeneralTab(unittest.TestCase):
         self.assertEqual(self.tab.control_input.get_value(), 6000)
         self.assertEqual(self.tab.relay_server_input.get_value(), "192.168.1.1")
         self.assertEqual(self.tab.relay_id_input.get_value(), "relay01")
-        self.assertTrue(self.tab.debug_checkbox.checked)
-        self.assertTrue(self.tab.steering_checkbox.checked)
-        self.assertFalse(self.tab.throttle_checkbox.checked)
+        self.assertEqual(self.tab.udp_packet_ttl_input.get_value(), 100)
 
     def test_port_change_reflects_in_settings(self):
         self.tab._on_port_change("video", "12345")
         self.assertEqual(self.tab.ports["video"], 12345)
-
-    def test_checkbox_updates_settings(self):
-        self.tab.debug_checkbox.set_checked(False)
-        self.assertFalse(self.tab.debug)
-
-        self.tab.steering_checkbox.set_checked(False)
-        self.assertFalse(self.tab.widgets["steering"]["display"])
-
-        self.tab.throttle_checkbox.set_checked(True)
-        self.assertTrue(self.tab.widgets["throttle"]["display"])
 
     def test_textinput_updates_settings(self):
         self.tab.relay_server_input.on_change("10.10.10.10")
@@ -61,12 +45,16 @@ class TestGeneralTab(unittest.TestCase):
         self.tab.relay_id_input.on_change("new-id")
         self.assertEqual(self.tab.relay["id"], "new-id")
 
+    def test_udp_packet_ttl_change(self):
+        self.tab.udp_packet_ttl_input.on_change("2500")
+        self.assertEqual(self.tab.udp_packet_ttl, 2500)
+
     def test_get_settings_aggregation(self):
-        self.tab.debug_checkbox.set_checked(False)
         self.tab.video_input.on_change("4242")
+        self.tab.udp_packet_ttl_input.on_change("3333")
         settings = self.tab.get_settings()
-        self.assertEqual(settings["debug"], False)
         self.assertEqual(settings["ports"]["video"], 4242)
+        self.assertEqual(settings["udp_packet_ttl"], 3333)
 
     def test_draw_runs_without_error(self):
         surface = pygame.Surface((640, 480))
