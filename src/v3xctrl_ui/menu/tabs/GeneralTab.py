@@ -1,7 +1,6 @@
 from pygame import Surface
 
 from v3xctrl_ui.fonts import LABEL_FONT, MONO_FONT
-
 from v3xctrl_ui.menu.input import Checkbox, NumberInput, TextInput
 
 from .Tab import Tab
@@ -12,8 +11,6 @@ class GeneralTab(Tab):
         super().__init__(settings, width, height, padding, y_offset)
 
         self.ports = self.settings.get("ports", {})
-        self.widgets = self.settings.get("widgets", {})
-        self.debug = self.settings.get("debug", False)
         self.relay = self.settings.get("relay", {})
         self.udp_packet_ttl = self.settings.get("udp_packet_ttl", 100)
 
@@ -51,21 +48,6 @@ class GeneralTab(Tab):
         self.relay_id_input.value = self.relay.get("id", "")
 
         # Miscellanious widgets
-        self.debug_checkbox = Checkbox(
-            label="Enable Debug Overlay", font=LABEL_FONT, checked=self.debug,
-            on_change=self._on_debug_change
-        )
-        self.steering_checkbox = Checkbox(
-            label="Enable Steering overlay", font=LABEL_FONT,
-            checked=self.widgets.get("steering", {}).get("display", False),
-            on_change=self._on_steering_change
-        )
-        self.throttle_checkbox = Checkbox(
-            label="Enable Throttle overlay", font=LABEL_FONT,
-            checked=self.widgets.get("throttle", {}).get("display", False),
-            on_change=self._on_throttle_change
-        )
-
         self.udp_packet_ttl_input = NumberInput(
             "UDP packet TTL", label_width=180, input_width=75, min_val=1, max_val=5000,
             font=LABEL_FONT, mono_font=MONO_FONT,
@@ -83,30 +65,16 @@ class GeneralTab(Tab):
             self.relay_enabled_checkbox
         ]
         self.misc_widgets = [
-            self.debug_checkbox,
-            self.steering_checkbox,
-            self.throttle_checkbox
-        ]
-        self.misc_widgets_col2 = [
             self.udp_packet_ttl_input
         ]
 
-        self.elements = self.port_widgets + self.relay_widgets + self.misc_widgets + self.misc_widgets_col2
+        self.elements = self.port_widgets + self.relay_widgets + self.misc_widgets
 
     def _on_port_change(self, name: str, value: str) -> None:
         self.ports[name] = int(value)
 
-    def _on_debug_change(self, value: bool) -> None:
-        self.debug = value
-
     def _on_udp_packet_ttl_change(self, value: str) -> None:
         self.udp_packet_ttl = int(value)
-
-    def _on_steering_change(self, value: bool) -> None:
-        self.widgets.setdefault("steering", {})["display"] = value
-
-    def _on_throttle_change(self, value: bool) -> None:
-        self.widgets.setdefault("throttle", {})["display"] = value
 
     def _on_relay_enable_change(self, value: bool) -> None:
         self.relay["enabled"] = value
@@ -159,27 +127,15 @@ class GeneralTab(Tab):
 
         return y
 
-    def _draw_debug_section(self, surface: Surface, y: int) -> int:
+    def _draw_misc_section(self, surface: Surface, y: int) -> int:
         y += self.y_section_padding
         self._draw_headline(surface, "Miscellaneous", y, True)
 
         y += self.y_offset_headline
-        for checkbox in [self.debug_checkbox, self.steering_checkbox, self.throttle_checkbox]:
-            checkbox.set_position(self.padding, y)
-            checkbox.draw(surface)
-            y += checkbox.get_size()[1] + self.y_element_padding
-
-        return y
-
-    def _draw_misc_col2_section(self, surface: Surface, y: int) -> int:
-        y += self.y_section_padding
-        y += self.y_offset_headline
-
-        # Align with col 1
-        y -= 4
-
-        self.udp_packet_ttl_input.set_position(self.padding + 300, y)
+        self.udp_packet_ttl_input.set_position(self.padding, y)
         self.udp_packet_ttl_input.draw(surface)
+
+        y += self.udp_packet_ttl_input.get_size()[1]
 
         return y
 
@@ -187,14 +143,11 @@ class GeneralTab(Tab):
         y = self._draw_port_section(surface, 0)
         y_col1 = self._draw_relay_section(surface, y)
 
-        y = self._draw_debug_section(surface, y_col1)
-        self._draw_misc_col2_section(surface, y_col1)
+        y = self._draw_misc_section(surface, y_col1)
 
     def get_settings(self) -> dict:
         return {
-            "debug": self.debug,
             "udp_packet_ttl": self.udp_packet_ttl,
             "ports": self.ports,
-            "widgets": self.widgets,
             "relay": self.relay
         }

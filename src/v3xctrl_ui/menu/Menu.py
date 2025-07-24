@@ -16,6 +16,7 @@ from v3xctrl_ui.menu.tabs import (
   InputTab,
   FrequenciesTab,
   StreamerTab,
+  OsdTab,
 )
 
 from v3xctrl_ui.colors import WHITE, DARK_GREY
@@ -45,7 +46,13 @@ class Menu:
         self.callback = callback
         self.server = server
 
-        tab_names = ["General", "Frequencies", "Input", "Streamer"]
+        tab_names = [
+            "General",
+            "OSD",
+            "Frequencies",
+            "Input",
+            "Streamer",
+        ]
         tab_width = self.width // len(tab_names)
 
         self.tab_height = 60
@@ -101,6 +108,13 @@ class Menu:
     def _create_tabs(self) -> dict:
         return {
             "General": GeneralTab(
+                settings=self.settings,
+                width=self.width,
+                height=self.height,
+                padding=self.padding,
+                y_offset=self.tab_height
+            ),
+            "OSD": OsdTab(
                 settings=self.settings,
                 width=self.width,
                 height=self.height,
