@@ -352,7 +352,9 @@ class AppState:
         for name, widget in self.widgets_battery.items():
             display = self.widget_settings.get(name, {"display": True}).get("display")
             if display:
+                widget.position = (self.size[0] - 70 - 10, 10 + 50 + 25 + 18 * index)
                 widget.draw(self.screen, getattr(self, name))
+
                 index += 1
 
         if self.debug_settings:
