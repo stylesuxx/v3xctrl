@@ -122,10 +122,14 @@ class TestMessages(unittest.TestCase):
         self.assertIn("Unknown message type", str(ctx.exception))
 
     def test_invalid_msgpack_raises(self):
-        with self.assertRaises(msgpack.ExtraData):
-            Message.from_bytes(msgpack.packb({"t": "Command", "p": {}, "d": time.time()}) + b"junk")
+        # This triggers msgpack.ExtraData internally, but Message.from_bytes re-raises as ValueError
+        broken = msgpack.packb({"t": "Command", "p": {}, "d": time.time()}) + b"junk"
+        with self.assertRaises(ValueError) as ctx:
+            Message.from_bytes(broken)
+        self.assertIn("Malformed", str(ctx.exception))
 
-        with self.assertRaises(Exception):
+        # Also test completely invalid msgpack data
+        with self.assertRaises(ValueError):
             Message.from_bytes(b"not-a-valid-msgpack")
 
     def test_missing_keys_raises(self):
