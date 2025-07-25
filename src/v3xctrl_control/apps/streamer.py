@@ -199,12 +199,16 @@ def command_handler(command: Command) -> None:
     logging.debug(f"Received command: {command}")
 
     cmd = command.get_command()
-    if cmd == 'service':
+    if cmd == "service":
         parameters = command.get_parameters()
-        action = parameters['action']
-        name = parameters['name']
+        action = parameters["action"]
+        name = parameters["name"]
 
         subprocess.run(["sudo", "systemctl", action, name])
+    elif cmd == "shutdown":
+        subprocess.run(["sudo", "shutdown", "now"])
+    else:
+        logging.error(f"Unknown command: {command}")
 
 
 def disconnect_handler() -> None:
