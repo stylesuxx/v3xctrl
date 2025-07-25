@@ -47,6 +47,9 @@ class TextWidget(Widget):
     def set_alignment(self, align: Alignment) -> None:
         self.alignment = align
 
+    def set_text_color(self, color: Tuple[int, int, int]) -> None:
+        self.color = color
+
     def draw(self, screen: Surface, text: str) -> None:
         # Re-render text
         self.text_surface, self.text_rect = self.font.render(text, self.color)

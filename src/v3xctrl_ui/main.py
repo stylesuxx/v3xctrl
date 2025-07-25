@@ -14,7 +14,7 @@ from v3xctrl_ui.AppState import AppState
 from v3xctrl_ui.MemoryTracker import MemoryTracker
 
 from v3xctrl_control import State
-from v3xctrl_control.Message import Telemetry, Control, Latency
+from v3xctrl_control.Message import Message, Telemetry, Control, Latency
 
 
 parser = argparse.ArgumentParser(description="RC Streamer")
@@ -79,9 +79,6 @@ VIDEO_SIZE = (VIDEO["width"], VIDEO["height"])
 
 # no UI for those settings
 WINDOW_TITLE = settings.get("settings")["title"]
-FPS_SETTINGS = settings.get("widgets")["fps"]
-STEERING_SETTINGS = settings.get("settings")["steering"]
-THROTTLE_SETTINGS = settings.get("settings")["throttle"]
 
 ip = get_external_ip()
 
@@ -94,48 +91,16 @@ if not relay["enabled"]:
     print("================================")
 
 
-def telemetry_handler(state: AppState, message: Telemetry) -> None:
-    values = message.get_values()
-    state.signal_quality = {
-        "rsrq": values["sig"]["rsrq"],
-        "rsrp": values["sig"]["rsrp"],
-    }
-    band = values["cell"]["band"]
-    state.band = f"Band {band}"
-
-    battery_voltage = values["bat"]["vol"] / 1000
-    battery_average_voltage = values["bat"]["avg"] / 1000
-    battery_percentage = values["bat"]["pct"]
-
-    state.battery_voltage = f"{battery_voltage:.2f}V"
-    state.battery_average_voltage = f"{battery_average_voltage:.2f}V"
-    state.battery_percent = f"{battery_percentage}%"
-
-    logging.debug(f"Received telemetry message: {values}")
+def message_handler(state: AppState, message: Message) -> None:
+    state.message_handler(message)
 
 
-def latency_handler(state: AppState, message: Latency) -> None:
-    now = time.time()
-    timestamp = message.timestamp
-    diff_ms = round((now - timestamp) * 1000)
-
-    if diff_ms <= 80:
-        state.latency = "green"
-    elif diff_ms <= 150:
-        state.latency = "yellow"
-    else:
-        state.latency = "red"
-
-    state.widgets_debug["latency"].set_value(diff_ms)
-    logging.debug(f"Received latency message: {diff_ms}ms")
+def disconnect_handler(state: AppState) -> None:
+    state.disconnect_handler()
 
 
-def disconnect_handler(state) -> None:
-    state.reset_data()
-
-
-def connect_handler(state) -> None:
-    state.data = "success"
+def connect_handler(state: AppState) -> None:
+    state.connect_handler()
 
 
 gamepad_manager = GamepadManager()
@@ -147,22 +112,21 @@ gamepad_manager.start()
 
 handlers = {
     "messages": [
-        (Telemetry, lambda m: telemetry_handler(state, m)),
-        (Latency, lambda m: latency_handler(state, m)),
+        (Telemetry, lambda message: message_handler(state, message)),
+        (Latency, lambda message: message_handler(state, message)),
       ],
     "states": [(State.CONNECTED, lambda: connect_handler(state)),
                (State.DISCONNECTED, lambda: disconnect_handler(state))]
 }
 
-state = AppState((VIDEO["width"], VIDEO["height"]),
-                 WINDOW_TITLE,
-                 PORTS["video"],
-                 PORTS["control"],
-                 handlers,
-                 FPS_SETTINGS,
-                 controls["keyboard"],
-                 THROTTLE_SETTINGS,
-                 STEERING_SETTINGS)
+state = AppState(
+    (VIDEO["width"], VIDEO["height"]),
+    WINDOW_TITLE,
+    PORTS["video"],
+    PORTS["control"],
+    handlers,
+    settings
+)
 
 
 def update_settings():

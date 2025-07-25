@@ -3,11 +3,12 @@ import logging
 import pygame
 import socket
 import threading
-from time import sleep
+import time
 from typing import Tuple
 
+from v3xctrl_control.Message import Message, Telemetry, Latency
 from v3xctrl_helper.exceptions import UnauthorizedError
-
+from v3xctrl_ui.colors import RED, WHITE
 from v3xctrl_ui.helpers import get_fps, interpolate_steering_color, interpolate_throttle_color
 from v3xctrl_ui.Init import Init
 from v3xctrl_ui.KeyAxisHandler import KeyAxisHandler
@@ -20,6 +21,7 @@ from v3xctrl_ui.widgets import (
   TextWidget,
   Alignment
 )
+from v3xctrl_ui.Settings import Settings
 
 from v3xctrl_udp_relay.Peer import Peer
 
@@ -28,25 +30,25 @@ class AppState:
     """
     Holds the current context of the app.
     """
-    def __init__(self,
-                 size: Tuple[int, int],
-                 title: str,
-                 video_port: int,
-                 control_port: int,
-                 server_handlers: dict,
-                 fps_settings: dict,
-                 controls: dict,
-                 throttle_settings: dict,
-                 steering_settings: dict):
+    def __init__(
+        self,
+        size: Tuple[int, int],
+        title: str,
+        video_port: int,
+        control_port: int,
+        server_handlers: dict,
+        settings: Settings
+    ):
         self.size = size
         self.title = title
         self.video_port = video_port
         self.control_port = control_port
         self.server_handlers = server_handlers
-        self.fps_settings = fps_settings
-        self.controls = controls
-        self.throttle_settings = throttle_settings
-        self.steering_settings = steering_settings
+
+        self.fps_settings = settings.get("widgets")["fps"]
+        self.control_settings = settings.get("controls")["keyboard"]
+        self.throttle_settings = settings.get("settings")["throttle"]
+        self.steering_settings = settings.get("settings")["steering"]
 
         self.loop_history = deque(maxlen=300)
         self.menu = None
@@ -78,7 +80,6 @@ class AppState:
         self.battery_voltage = None
         self.battery_average_voltage = None
         self.battery_percent = None
-        self.battery_warn = False
 
         self.widgets = {
             "steering": HorizontalIndicatorWidget(
@@ -151,14 +152,14 @@ class AppState:
 
         self.key_handlers = {
             "throttle": KeyAxisHandler(
-                positive=self.controls["throttle_up"],
-                negative=self.controls["throttle_down"],
+                positive=self.control_settings["throttle_up"],
+                negative=self.control_settings["throttle_down"],
                 min_val=-1.0,
                 max_val=1.0
             ),
             "steering": KeyAxisHandler(
-                positive=self.controls["steering_right"],
-                negative=self.controls["steering_left"],
+                positive=self.control_settings["steering_right"],
+                negative=self.control_settings["steering_left"],
                 min_val=-1.0,
                 max_val=1.0
             )
@@ -207,7 +208,7 @@ class AppState:
                         for i in range(5):
                             try:
                                 sock.sendto(b'SYN', video_address)
-                                sleep(0.1)
+                                time.sleep(0.1)
                             except Exception as e:
                                 logging.warning(f"Poke {i+1}/5 failed: {e}")
 
@@ -256,6 +257,65 @@ class AppState:
         self.battery_warn = False
 
         self.widgets_debug["latency"].set_value(None)
+
+    def _telemetry_update(self, message: Telemetry) -> None:
+        values = message.get_values()
+        self.signal_quality = {
+            "rsrq": values["sig"]["rsrq"],
+            "rsrp": values["sig"]["rsrp"],
+        }
+        band = values["cell"]["band"]
+        self.band = f"Band {band}"
+
+        battery_voltage = values["bat"]["vol"] / 1000
+        battery_average_voltage = values["bat"]["avg"] / 1000
+        battery_percentage = values["bat"]["pct"]
+
+        self.battery_voltage = f"{battery_voltage:.2f}V"
+        self.battery_average_voltage = f"{battery_average_voltage:.2f}V"
+        self.battery_percent = f"{battery_percentage}%"
+
+        battery_widgets = [
+            "battery_voltage",
+            "battery_average_voltage",
+            "battery_percent"
+        ]
+
+        color = WHITE
+        if values["bat"]["wrn"]:
+            color = RED
+
+        for widget in battery_widgets:
+            self.widgets[widget].set_text_color(color)
+
+        logging.debug(f"Received telemetry message: {values}")
+
+    def _latency_update(self, message: Latency) -> None:
+        now = time.time()
+        timestamp = message.timestamp
+        diff_ms = round((now - timestamp) * 1000)
+
+        if diff_ms <= 80:
+            self.latency = "green"
+        elif diff_ms <= 150:
+            self.latency = "yellow"
+        else:
+            self.latency = "red"
+
+        self.widgets_debug["latency"].set_value(diff_ms)
+        logging.debug(f"Received latency message: {diff_ms}ms")
+
+    def message_handler(self, message: Message) -> None:
+        if isinstance(message, Telemetry):
+            self._telemetry_update(message)
+        elif isinstance(message, Latency):
+            self._latency_update(message)
+
+    def connect_handler(self):
+        self.data = "success"
+
+    def disconnect_handler(self):
+        self.reset_data()
 
     def shutdown(self):
         pygame.quit()
