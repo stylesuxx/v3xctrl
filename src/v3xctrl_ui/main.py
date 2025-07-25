@@ -52,13 +52,12 @@ Load settings from file.
 
 We have different kind of settings:
 1. Settings that require restart to take effect (e.g. ports, video settings)
-2. Settings that can be hot reloaded (e.g. controls, debug)
+2. Settings that can be hot reloaded
 3. Settings for which no UI elements are available (edit via config file only)
 """
 settings = Init.settings("settings.toml")
 
 # Those settings can be hot reloaded
-controls = settings.get("controls")
 debug = settings.get("debug")
 input = settings.get("input", {})
 widgets = settings.get("widgets", {})
@@ -130,13 +129,17 @@ state = AppState(
 
 
 def update_settings():
-    """ Update settings after exiting menu """
-    global debug, controls, settings, state, widgets, main_loop_fps
+    """
+    Update settings after exiting menu
+
+    Only update settings that can be hot reloaded, some settings need a restart
+    of the application, we do not update those.
+    """
+    global debug, state, widgets, main_loop_fps
     global control_interval, latency_interval
 
     settings = Init.settings()
 
-    controls = settings.get("controls")
     debug = settings.get('debug')
     widgets = settings.get('widgets', {})
 
@@ -156,7 +159,7 @@ def update_settings():
     if "guid" in input:
         gamepad_manager.set_active(input["guid"])
 
-    state.menu = None
+    state.update_settings(settings)
 
 
 def render_all(state):
@@ -204,14 +207,7 @@ def render_all(state):
                 val_rect.topleft = (val_x, y)
                 state.screen.blit(val_surf, val_rect)
 
-    for name, widget in state.widgets.items():
-        display = widgets.get(name, {"display": True}).get("display")
-        if display:
-            widget.draw(state.screen, getattr(state, name))
-
-    if debug:
-        for name, widget in state.widgets_debug.items():
-            widget.draw(state.screen, getattr(state, name))
+    state.render_widgets()
 
     # Render errors on top of main UI
     if state.server_error:
@@ -287,6 +283,7 @@ if relay["enabled"]:
 
 state.setup_ports()
 
+# Main loop
 last_control_update = time.monotonic()
 last_latency_check = last_control_update
 while state.running:
