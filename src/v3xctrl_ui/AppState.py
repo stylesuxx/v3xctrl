@@ -6,7 +6,7 @@ import threading
 import time
 from typing import Tuple
 
-from v3xctrl_control.Message import Message, Telemetry, Latency
+from v3xctrl_control.Message import Message, Telemetry, Latency, Control
 from v3xctrl_helper.exceptions import UnauthorizedError
 from v3xctrl_ui.colors import RED, WHITE
 from v3xctrl_ui.helpers import get_fps, interpolate_steering_color, interpolate_throttle_color
@@ -47,7 +47,6 @@ class AppState:
 
         # Initialize settings
         self.settings = settings
-        self.debug_settings = None
         self.fps_settings = None
         self.control_settings = None
         self.throttle_settings = None
@@ -72,8 +71,8 @@ class AppState:
         self.relay_id = None
 
         # Data for widgets_debug
-        self.data = None
-        self.latency = None
+        self.debug_data = None
+        self.debug_latency = None
 
         # Data for widgets
         self.throttle = None
@@ -128,12 +127,6 @@ class AppState:
         battery_average_voltage_widget.set_alignment(Alignment.RIGHT)
         battery_percent_widget.set_alignment(Alignment.RIGHT)
 
-        """
-        self.widgets["battery_voltage"] = battery_voltage_widget
-        self.widgets["battery_average_voltage"] = battery_average_voltage_widget
-        self.widgets["battery_percent"] = battery_percent_widget
-        """
-
         self.widgets_battery = {
             "battery_voltage": battery_voltage_widget,
             "battery_average_voltage": battery_average_voltage_widget,
@@ -141,22 +134,22 @@ class AppState:
         }
 
         self.widgets_debug = {
-          "fps_loop": FpsWidget(
+          "debug_fps_loop": FpsWidget(
               (10, 10),
               (self.fps_settings["width"], self.fps_settings["height"]),
               "Loop"
           ),
-          "fps_video": FpsWidget(
+          "debug_fps_video": FpsWidget(
               (10, 10 + self.fps_settings["height"] + 10),
               (self.fps_settings["width"], self.fps_settings["height"]),
               "Video"
           ),
-          "data": StatusValueWidget(
+          "debug_data": StatusValueWidget(
               position=(10, 180),
               size=26,
               label="Data"
           ),
-          "latency": StatusValueWidget(
+          "debug_latency": StatusValueWidget(
               position=(10, 216),
               size=26,
               label="Latency"
@@ -240,11 +233,11 @@ class AppState:
         threading.Thread(target=task, daemon=True).start()
 
     @property
-    def fps_loop(self) -> float:
+    def debug_fps_loop(self) -> float:
         return get_fps(self.loop_history.copy())
 
     @property
-    def fps_video(self) -> float:
+    def debug_fps_video(self) -> float:
         if self.video_receiver is None:
             return 0.0
 
@@ -252,8 +245,8 @@ class AppState:
 
     def reset_data(self) -> None:
         # Data for widgets_debug
-        self.data = "waiting"
-        self.latency = "default"
+        self.debug_data = "waiting"
+        self.debug_latency = "default"
 
         # Data for widgets
         self.throttle = 0.0
@@ -269,7 +262,7 @@ class AppState:
         self.battery_percent = "100%"
         self.battery_warn = False
 
-        self.widgets_debug["latency"].set_value(None)
+        self.widgets_debug["debug_latency"].set_value(None)
 
     def _telemetry_update(self, message: Telemetry) -> None:
         values = message.get_values()
@@ -309,13 +302,13 @@ class AppState:
         diff_ms = round((now - timestamp) * 1000)
 
         if diff_ms <= 80:
-            self.latency = "green"
+            self.debug_latency = "green"
         elif diff_ms <= 150:
-            self.latency = "yellow"
+            self.debug_latency = "yellow"
         else:
-            self.latency = "red"
+            self.debug_latency = "red"
 
-        self.widgets_debug["latency"].set_value(diff_ms)
+        self.widgets_debug["debug_latency"].set_value(diff_ms)
         logging.debug(f"Received latency message: {diff_ms}ms")
 
     def message_handler(self, message: Message) -> None:
@@ -325,7 +318,7 @@ class AppState:
             self._latency_update(message)
 
     def connect_handler(self):
-        self.data = "success"
+        self.debug_data = "success"
 
     def disconnect_handler(self):
         self.reset_data()
@@ -333,7 +326,6 @@ class AppState:
     def update_settings(self, settings: Settings):
         self.settings = settings
 
-        self.debug_settings = settings.get("debug")
         self.fps_settings = settings.get("widgets")["fps"]
         self.control_settings = settings.get("controls")["keyboard"]
         self.throttle_settings = settings.get("settings")["throttle"]
@@ -341,6 +333,35 @@ class AppState:
         self.widget_settings = settings.get("widgets", {})
 
         self.menu = None
+
+    def _update_data(self) -> None:
+        if (
+            self.server and
+            not self.server_error
+        ):
+            data_left = self.server.transmitter.queue.qsize()
+            self.widgets_debug["debug_data"].set_value(data_left)
+        else:
+            self.debug_data = "fail"
+
+    def handle_control(self, pressed_keys, gamepad_inputs) -> None:
+        self._update_data()
+
+        self.throttle = self.key_handlers["throttle"].update(pressed_keys)
+        self.steering = self.key_handlers["steering"].update(pressed_keys)
+
+        if gamepad_inputs:
+            self.steering = gamepad_inputs["steering"]
+
+            throttle = gamepad_inputs["throttle"]
+            brake = gamepad_inputs["brake"]
+            self.throttle = (throttle - brake)
+
+        if self.server and not self.server_error:
+            self.server.send(Control({
+                "steering": self.steering,
+                "throttle": self.throttle,
+            }))
 
     def render_widgets(self):
         for name, widget in self.widgets.items():
@@ -357,9 +378,12 @@ class AppState:
 
                 index += 1
 
-        if self.debug_settings:
+        debug = self.widget_settings.get("debug", {"display": False}).get("display")
+        if debug:
             for name, widget in self.widgets_debug.items():
-                widget.draw(self.screen, getattr(self, name))
+                display = self.widget_settings.get(name, {"display": True}).get("display")
+                if display:
+                    widget.draw(self.screen, getattr(self, name))
 
     def shutdown(self):
         pygame.quit()

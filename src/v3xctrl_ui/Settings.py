@@ -36,6 +36,21 @@ class Settings:
             "latency_check_hz": 1,
         },
         "widgets": {
+            "debug": {
+                "display": True
+            },
+            "debug_fps_loop": {
+                "display": True
+            },
+            "debug_fps_video": {
+                "display": True
+            },
+            "debug_data": {
+                "display": True
+            },
+            "debug_latency": {
+                "display": True
+            },
             "fps": {
                 "width": 100,
                 "height": 75,

@@ -14,7 +14,7 @@ from v3xctrl_ui.AppState import AppState
 from v3xctrl_ui.MemoryTracker import MemoryTracker
 
 from v3xctrl_control import State
-from v3xctrl_control.Message import Message, Telemetry, Control, Latency
+from v3xctrl_control.Message import Message, Telemetry, Latency
 
 
 parser = argparse.ArgumentParser(description="RC Streamer")
@@ -222,29 +222,11 @@ def render_all(state):
     pygame.display.flip()
 
 
-def handle_control(state):
-    if state.server and not state.server_error and "data" in state.widgets_debug:
-        data_left = state.server.transmitter.queue.qsize()
-        state.widgets_debug["data"].set_value(data_left)
-    else:
-        state.data = "fail"
+def handle_control(state: AppState):
+    pressed_keys = pygame.key.get_pressed()
+    gamepad_inputs = gamepad_manager.read_inputs()
 
-    keys = pygame.key.get_pressed()
-    state.throttle = state.key_handlers["throttle"].update(keys)
-    state.steering = state.key_handlers["steering"].update(keys)
-
-    values = gamepad_manager.read_inputs()
-    if values:
-        state.steering = values["steering"]
-        throttle = values["throttle"]
-        brake = values["brake"]
-        state.throttle = (throttle - brake)
-
-    if state.server and not state.server_error:
-        state.server.send(Control({
-            "steering": state.steering,
-            "throttle": state.throttle,
-        }))
+    state.handle_control(pressed_keys, gamepad_inputs)
 
 
 def handle_events(state):
