@@ -18,8 +18,6 @@ class StatusWidget(Widget):
     }
 
     def __init__(self, position: Tuple[int, int], size: int, label: str, padding: int = 8):
-        super().__init__()
-
         self.position = position
         self.size = size
         self.label = label
@@ -33,16 +31,18 @@ class StatusWidget(Widget):
         label_width = self.label_surface_rect.width
         label_height = self.label_surface_rect.height
 
-        widget_height = max(self.size, label_height)
-        widget_width = self.size + self.padding + label_width + self.padding
+        self.height = max(self.size, label_height)
+        self.width = self.size + self.padding + label_width + self.padding
 
-        square_y = (widget_height - self.size) // 2
+        square_y = (self.height - self.size) // 2
 
         self.label_x = self.size + self.padding
-        self.label_y = (widget_height - label_height) // 2
+        self.label_y = (self.height - label_height) // 2
 
-        self.surface = Surface((widget_width, widget_height), SRCALPHA)
+        self.surface = Surface((self.width, self.height), SRCALPHA)
         self.square_rect = Rect(0, square_y, self.size, self.size)
+
+        super().__init__()
 
     def draw(self, screen: Surface, status: str) -> None:
         self.color = self.STATUS_COLORS.get(status, self.STATUS_COLORS["default"])

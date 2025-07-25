@@ -10,13 +10,13 @@ class OsdTab(Tab):
     def __init__(self, settings: dict, width: int, height: int, padding: int, y_offset: int):
         super().__init__(settings, width, height, padding, y_offset)
 
-        self.debug = self.settings.get("debug", False)
         self.widgets = self.settings.get("widgets", {})
 
         # OSD widgets
         self.debug_checkbox = Checkbox(
-            label="Enable Debug Overlay", font=LABEL_FONT, checked=self.debug,
-            on_change=self._on_debug_change
+            label="Enable Debug Overlay", font=LABEL_FONT,
+            checked=self.widgets.get("debug", {}).get("display", False),
+            on_change=lambda value: self._on_widget_toggle("debug", value)
         )
         self.steering_checkbox = Checkbox(
             label="Show Steering indicator", font=LABEL_FONT,
@@ -43,6 +43,11 @@ class OsdTab(Tab):
             checked=self.widgets.get("battery_percent", {}).get("display", False),
             on_change=lambda value: self._on_widget_toggle("battery_percent", value)
         )
+        self.signal_checkbox = Checkbox(
+            label="Show Signal indicator", font=LABEL_FONT,
+            checked=self.widgets.get("signal", {}).get("display", False),
+            on_change=lambda value: self._on_widget_toggle("signal", value)
+        )
 
         self.osd_widgets = [
             self.debug_checkbox,
@@ -50,13 +55,11 @@ class OsdTab(Tab):
             self.throttle_checkbox,
             self.battery_voltage_checkbox,
             self.battery_average_voltage_checkbox,
-            self.battery_percent_checkbox
+            self.battery_percent_checkbox,
+            self.signal_checkbox
         ]
 
         self.elements = self.osd_widgets
-
-    def _on_debug_change(self, value: bool) -> None:
-        self.debug = value
 
     def _on_widget_toggle(self, key: str, value: bool) -> None:
         self.widgets.setdefault(key, {})["display"] = value
@@ -78,6 +81,5 @@ class OsdTab(Tab):
 
     def get_settings(self) -> dict:
         return {
-            "debug": self.debug,
             "widgets": self.widgets
         }

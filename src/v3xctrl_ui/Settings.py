@@ -36,6 +36,23 @@ class Settings:
             "latency_check_hz": 1,
         },
         "widgets": {
+            "debug": {
+                "display": True,
+                "position": [10, 10],
+                "padding": 10
+            },
+            "debug_fps_loop": {
+                "display": True
+            },
+            "debug_fps_video": {
+                "display": True
+            },
+            "debug_data": {
+                "display": True
+            },
+            "debug_latency": {
+                "display": True
+            },
             "fps": {
                 "width": 100,
                 "height": 75,
@@ -47,6 +64,21 @@ class Settings:
             },
             "throttle": {
                 "display": True
+            },
+            "signal": {
+                "display": True,
+                "position": [1200, 10],
+                "padding": 0
+            },
+            "signal_quality": {
+                "display": True
+            },
+            "signal_band": {
+                "display": True
+            },
+            "battery": {
+                "display": True,
+                "position": [1200, 85]
             },
             "battery_voltage": {
                 "display": True
