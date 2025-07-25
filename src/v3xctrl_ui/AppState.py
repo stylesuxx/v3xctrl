@@ -45,10 +45,15 @@ class AppState:
         self.control_port = control_port
         self.server_handlers = server_handlers
 
-        self.fps_settings = settings.get("widgets")["fps"]
-        self.control_settings = settings.get("controls")["keyboard"]
-        self.throttle_settings = settings.get("settings")["throttle"]
-        self.steering_settings = settings.get("settings")["steering"]
+        # Initialize settings
+        self.settings = settings
+        self.debug_settings = None
+        self.fps_settings = None
+        self.control_settings = None
+        self.throttle_settings = None
+        self.steering_settings = None
+        self.widget_settings = None
+        self.update_settings(self.settings)
 
         self.loop_history = deque(maxlen=300)
         self.menu = None
@@ -123,9 +128,17 @@ class AppState:
         battery_average_voltage_widget.set_alignment(Alignment.RIGHT)
         battery_percent_widget.set_alignment(Alignment.RIGHT)
 
+        """
         self.widgets["battery_voltage"] = battery_voltage_widget
         self.widgets["battery_average_voltage"] = battery_average_voltage_widget
         self.widgets["battery_percent"] = battery_percent_widget
+        """
+
+        self.widgets_battery = {
+            "battery_voltage": battery_voltage_widget,
+            "battery_average_voltage": battery_average_voltage_widget,
+            "battery_percent": battery_percent_widget
+        }
 
         self.widgets_debug = {
           "fps_loop": FpsWidget(
@@ -275,7 +288,7 @@ class AppState:
         self.battery_average_voltage = f"{battery_average_voltage:.2f}V"
         self.battery_percent = f"{battery_percentage}%"
 
-        battery_widgets = [
+        widgets_battery = [
             "battery_voltage",
             "battery_average_voltage",
             "battery_percent"
@@ -285,8 +298,8 @@ class AppState:
         if values["bat"]["wrn"]:
             color = RED
 
-        for widget in battery_widgets:
-            self.widgets[widget].set_text_color(color)
+        for widget in widgets_battery:
+            self.widgets_battery[widget].set_text_color(color)
 
         logging.debug(f"Received telemetry message: {values}")
 
@@ -316,6 +329,35 @@ class AppState:
 
     def disconnect_handler(self):
         self.reset_data()
+
+    def update_settings(self, settings: Settings):
+        self.settings = settings
+
+        self.debug_settings = settings.get("debug")
+        self.fps_settings = settings.get("widgets")["fps"]
+        self.control_settings = settings.get("controls")["keyboard"]
+        self.throttle_settings = settings.get("settings")["throttle"]
+        self.steering_settings = settings.get("settings")["steering"]
+        self.widget_settings = settings.get("widgets", {})
+
+        self.menu = None
+
+    def render_widgets(self):
+        for name, widget in self.widgets.items():
+            display = self.widget_settings.get(name, {"display": True}).get("display")
+            if display:
+                widget.draw(self.screen, getattr(self, name))
+
+        index = 0
+        for name, widget in self.widgets_battery.items():
+            display = self.widget_settings.get(name, {"display": True}).get("display")
+            if display:
+                widget.draw(self.screen, getattr(self, name))
+                index += 1
+
+        if self.debug_settings:
+            for name, widget in self.widgets_debug.items():
+                widget.draw(self.screen, getattr(self, name))
 
     def shutdown(self):
         pygame.quit()
