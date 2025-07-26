@@ -96,5 +96,8 @@ systemctl disable v3xctrl-firstboot.service
 systemctl mask v3xctrl-firstboot.service
 rm -f /boot/firstboot.sh
 
+echo "[v3xctrl-firstboot] Removing firstboot warning..."
+rm "/etc/profile.d/10_v3xctrl-motd-firstboot.sh"
+
 echo "[v3xctrl-firstboot] First boot setup complete."
 reboot
