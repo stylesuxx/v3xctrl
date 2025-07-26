@@ -15,6 +15,7 @@ from src.v3xctrl_control.Message import (
     Control,
     PeerAnnouncement,
     PeerInfo,
+    Error,
 )
 
 
@@ -29,24 +30,34 @@ class TestMessages(unittest.TestCase):
 
     def test_telemetry_roundtrip(self):
         msg = Telemetry({"k1": 1, "k2": 2})
+        self.assertEqual(msg.get_values(), {"k1": 1, "k2": 2})
         self.assert_message_roundtrip(msg, Telemetry)
 
     def test_control_roundtrip(self):
         msg = Control({"roll": 1.0, "pitch": 2.0})
+        self.assertEqual(msg.get_values(), {"roll": 1.0, "pitch": 2.0})
         self.assert_message_roundtrip(msg, Control)
 
     def test_command_roundtrip(self):
         msg = Command("reboot", {"now": True})
+        self.assertEqual(msg.get_command(), "reboot")
+        self.assertEqual(msg.get_parameters(), {"now": True})
+        self.assertTrue(msg.get_command_id())
         self.assert_message_roundtrip(msg, Command)
+
+    def test_command_id_auto_generated_format(self):
+        msg = Command("test")
+        cid = msg.get_command_id()
+        self.assertRegex(cid, r"\d+-\d+")
 
     def test_command_with_custom_id(self):
         msg = Command("shutdown", {}, "abc-123")
-        data = msg.to_bytes()
-        result = Message.from_bytes(data)
-        self.assertEqual(result.get_command_id(), "abc-123")
+        self.assertEqual(msg.get_command_id(), "abc-123")
+        self.assert_message_roundtrip(msg, Command)
 
     def test_command_ack_roundtrip(self):
         msg = CommandAck("cmd-001")
+        self.assertEqual(msg.get_command_id(), "cmd-001")
         self.assert_message_roundtrip(msg, CommandAck)
 
     def test_heartbeat_roundtrip(self):
@@ -69,12 +80,23 @@ class TestMessages(unittest.TestCase):
         msg = Latency()
         self.assert_message_roundtrip(msg, Latency)
 
+    def test_error_roundtrip(self):
+        msg = Error(404)
+        self.assertEqual(msg.get_error(), 404)
+        self.assert_message_roundtrip(msg, Error)
+
     def test_peer_announcement_roundtrip(self):
         msg = PeerAnnouncement("viewer", "id123", "video")
+        self.assertEqual(msg.get_role(), "viewer")
+        self.assertEqual(msg.get_id(), "id123")
+        self.assertEqual(msg.get_port_type(), "video")
         self.assert_message_roundtrip(msg, PeerAnnouncement)
 
     def test_peer_info_roundtrip(self):
         msg = PeerInfo("10.0.0.1", 5004, 5005)
+        self.assertEqual(msg.get_ip(), "10.0.0.1")
+        self.assertEqual(msg.get_video_port(), 5004)
+        self.assertEqual(msg.get_control_port(), 5005)
         self.assert_message_roundtrip(msg, PeerInfo)
 
     def test_timestamp_progression(self):
@@ -99,19 +121,21 @@ class TestMessages(unittest.TestCase):
             Message.from_bytes(packed)
         self.assertIn("Unknown message type", str(ctx.exception))
 
-    def test_invalid_format_raises(self):
-        with self.assertRaises(Exception):
+    def test_invalid_msgpack_raises(self):
+        # This triggers msgpack.ExtraData internally, but Message.from_bytes re-raises as ValueError
+        broken = msgpack.packb({"t": "Command", "p": {}, "d": time.time()}) + b"junk"
+        with self.assertRaises(ValueError) as ctx:
+            Message.from_bytes(broken)
+        self.assertIn("Malformed", str(ctx.exception))
+
+        # Also test completely invalid msgpack data
+        with self.assertRaises(ValueError):
             Message.from_bytes(b"not-a-valid-msgpack")
 
-    def test_missing_fields_raises(self):
-        bad_data = {
-            "t": "Command",
-            "p": {"c": "reboot"},  # missing 'p' in parameters
-            "d": time.time()
-        }
-        packed = msgpack.packb(bad_data)
-        with self.assertRaises(TypeError):
-            Message.from_bytes(packed)
+    def test_missing_keys_raises(self):
+        broken = msgpack.packb({"t": "Command", "p": {}})
+        with self.assertRaises(ValueError):
+            Message.from_bytes(broken)
 
 
 if __name__ == "__main__":

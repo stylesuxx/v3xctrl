@@ -31,9 +31,16 @@ class StreamerTab(Tab):
             font=LABEL_FONT,
             callback=self._on_start_video
         )
+        self.shutdown_button = Button(
+            "Shutdown",
+            150, 40,
+            font=LABEL_FONT,
+            callback=self._on_shutdown
+        )
 
         self.elements.append(self.video_stop_button)
         self.elements.append(self.video_start_button)
+        self.elements.append(self.shutdown_button)
 
     def _on_command_callback(self, status: bool):
         # Wait a bit for the transition to not be "flickering"
@@ -61,11 +68,20 @@ class StreamerTab(Tab):
         )
         self.send_command(command, self._on_command_callback)
 
-    def _on_stop_video(self):
+    def _on_stop_video(self) -> None:
         self._on_video_action("stop")
 
-    def _on_start_video(self):
+    def _on_start_video(self) -> None:
         self._on_video_action("start")
+
+    def _on_shutdown(self) -> None:
+        self.disabled = True
+        self.on_active_toggle(True)
+        for element in self.elements:
+            element.disable()
+
+        command = Command("shutdown")
+        self.send_command(command, self._on_command_callback)
 
     def _draw_actions_section(self, surface: Surface, y: int) -> int:
         y += self.y_offset + self.padding
@@ -74,13 +90,17 @@ class StreamerTab(Tab):
 
         self.video_start_button.set_position(self.padding, y)
         self.video_start_button.draw(surface)
-        self.video_start_button.get_size()[1]
 
         self.video_stop_button.set_position(
             self.padding * 2 + self.video_start_button.get_size()[0],
             y
         )
         self.video_stop_button.draw(surface)
+        y += self.video_stop_button.get_size()[1]
+
+        y += self.padding
+        self.shutdown_button.set_position(self.padding, y)
+        self.shutdown_button.draw(surface)
         y += self.video_stop_button.get_size()[1]
 
         return y

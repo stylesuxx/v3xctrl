@@ -120,7 +120,7 @@ class Command(Message):
         seq = next(cls._command_counter)
         return f"{ts_ns}-{seq}"
 
-    def __init__(self, c: str, p: dict, i: str = None, timestamp: float = None):
+    def __init__(self, c: str, p: dict = {}, i: str = None, timestamp: float = None):
         self.command_id = i or self._generate_command_id()
 
         super().__init__({
