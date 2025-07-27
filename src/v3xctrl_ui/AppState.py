@@ -6,11 +6,10 @@ import threading
 import time
 from typing import Tuple
 
-from v3xctrl_control.Message import Message, Control
+from v3xctrl_control.Message import Control
 from v3xctrl_helper.exceptions import UnauthorizedError
 from v3xctrl_ui.Init import Init
 from v3xctrl_ui.KeyAxisHandler import KeyAxisHandler
-from v3xctrl_ui.OSD import OSD
 from v3xctrl_ui.Settings import Settings
 
 from v3xctrl_udp_relay.Peer import Peer
@@ -55,7 +54,8 @@ class AppState:
         self.relay_port = 8888
         self.relay_id = None
 
-        self.osd = OSD(settings)
+        self.throttle = 0
+        self.steering = 0
 
         self.update_settings(self.settings)
 
@@ -73,8 +73,6 @@ class AppState:
                 max_val=1.0
             )
         }
-
-        self.reset_data()
 
     def setup_relay(self, relay_server: str = None, relay_id: str = None) -> None:
         self.relay_enable = True
@@ -135,40 +133,14 @@ class AppState:
 
         threading.Thread(target=task, daemon=True).start()
 
-    def reset_data(self) -> None:
-        self.osd.reset()
-
-    def message_handler(self, message: Message) -> None:
-        self.osd.message_handler(message)
-
-    def connect_handler(self):
-        self.osd.connect_handler()
-
-    def disconnect_handler(self):
-        self.osd.disconnect_handler()
-
     def update_settings(self, settings: Settings):
         self.settings = settings
 
         self.control_settings = settings.get("controls")["keyboard"]
 
-        self.osd.update_settings(settings)
-
         self.menu = None
 
-    def _update_data(self) -> None:
-        if (
-            self.server and
-            not self.server_error
-        ):
-            data_left = self.server.transmitter.queue.qsize()
-            self.osd.widgets_debug["debug_data"].set_value(data_left)
-        else:
-            self.osd.debug_data = "fail"
-
     def handle_control(self, pressed_keys, gamepad_inputs) -> None:
-        self._update_data()
-
         self.throttle = self.key_handlers["throttle"].update(pressed_keys)
         self.steering = self.key_handlers["steering"].update(pressed_keys)
 
@@ -179,25 +151,11 @@ class AppState:
             brake = gamepad_inputs["brake"]
             self.throttle = (throttle - brake)
 
-        self.osd.steering = self.steering
-        self.osd.throttle = self.throttle
-
         if self.server and not self.server_error:
             self.server.send(Control({
                 "steering": self.steering,
                 "throttle": self.throttle,
             }))
-
-    def render_widgets(self):
-        video_history = None
-        if self.video_receiver is not None:
-            video_history = self.video_receiver.history.copy()
-
-        self.osd.render(
-            self.screen,
-            self.loop_history.copy(),
-            video_history
-        )
 
     def shutdown(self):
         pygame.quit()

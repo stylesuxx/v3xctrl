@@ -2,6 +2,7 @@ from collections import deque
 import logging
 import pygame
 import time
+from typing import Optional
 
 from v3xctrl_control.Message import Message, Latency, Telemetry
 from v3xctrl_ui.colors import RED, WHITE
@@ -30,26 +31,27 @@ class OSD:
         self.update_settings(settings)
 
         self.widgets_debug = {}
-        self.debug_data = None
-        self.debug_latency = None
-        self.loop_history = None
-        self.video_history = None
+        self.debug_data: Optional[str] = None
+        self.debug_latency: Optional[str] = None
+        self.loop_history: Optional[deque[float]] = None
+        self.video_history: Optional[deque[float]] = None
         self._init_widgets_debug()
 
         self.widgets_signal = {}
-        self.signal_quality = None
-        self.signal_band = "Band ?"
+        self.signal_quality: dict[str, int] = {"rsrq": -1, "rsrp": -1}
+        self.signal_band: str = "Band ?"
         self._init_widgets_signal()
 
         self.widgets_battery = {}
-        self.battery_voltage = None
-        self.battery_average_voltage = None
-        self.battery_percent = None
+        self.battery_voltage: str = "0.00V"
+        self.battery_average_voltage: str = "0.00V"
+        self.battery_percent: str = "100%"
         self._init_widgets_battery()
+        self.battery_base_position = self.widgets_battery["battery_voltage"].position
 
         self.widgets_steering = {}
-        self.throttle = None
-        self.steering = None
+        self.throttle: float = 0.0
+        self.steering: float = 0.0
         self._init_widgets_steering()
 
         self.reset()
@@ -66,11 +68,21 @@ class OSD:
         elif isinstance(message, Latency):
             self._latency_update(message)
 
-    def connect_handler(self):
+    def connect_handler(self) -> None:
         self.debug_data = "success"
 
-    def disconnect_handler(self):
+    def disconnect_handler(self) -> None:
         self.reset()
+
+    def set_control(self, throttle: float, steering: float) -> None:
+        self.throttle = throttle
+        self.steering = steering
+
+    def update_data_queue(self, data_left: int) -> None:
+        self.widgets_debug["debug_data"].set_value(data_left)
+
+    def update_debug_status(self, status: str) -> None:
+        self.debug_data = status
 
     @property
     def debug_fps_loop(self) -> float:
@@ -86,8 +98,8 @@ class OSD:
     def render(
             self,
             screen: pygame.Surface,
-            loop_history: deque,
-            video_history: deque
+            loop_history: deque[float],
+            video_history: deque[float] | None
     ) -> None:
         self.loop_history = loop_history
         self.video_history = video_history
@@ -101,7 +113,7 @@ class OSD:
         for name, widget in self.widgets_battery.items():
             display = self.widget_settings.get(name, {"display": True}).get("display")
             if display:
-                widget.position = (widget.position[0], 10 + 50 + 25 + 18 * index)
+                widget.position = (self.battery_base_position[0], self.battery_base_position[1] + 18 * index)
                 widget.draw(screen, getattr(self, name))
 
                 index += 1
