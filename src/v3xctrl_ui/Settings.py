@@ -65,6 +65,10 @@ class Settings:
             "throttle": {
                 "display": True
             },
+            "battery": {
+                "display": True,
+                "position": [1200, 85]
+            },
             "battery_voltage": {
                 "display": True
             },

@@ -110,18 +110,11 @@ class AppState:
             )
         }
 
-        battery_voltage_widget = TextWidget(
-            (self.size[0] - 70 - 10, 10 + 50 + 25 + 18 * 0),
-            70
-        )
-        battery_average_voltage_widget = TextWidget(
-            (self.size[0] - 70 - 10, 10 + 50 + 25 + 18 * 1),
-            70
-        )
-        battery_percent_widget = TextWidget(
-            (self.size[0] - 70 - 10, 10 + 50 + 25 + 18 * 2),
-            70
-        )
+        x, y = self.widget_settings["battery"]["position"]
+
+        battery_voltage_widget = TextWidget((x, y), 70)
+        battery_average_voltage_widget = TextWidget((x, y), 70)
+        battery_percent_widget = TextWidget((x, y), 70)
 
         battery_voltage_widget.set_alignment(Alignment.RIGHT)
         battery_average_voltage_widget.set_alignment(Alignment.RIGHT)
@@ -379,7 +372,7 @@ class AppState:
         for name, widget in self.widgets_battery.items():
             display = self.widget_settings.get(name, {"display": True}).get("display")
             if display:
-                widget.position = (self.size[0] - 70 - 10, 10 + 50 + 25 + 18 * index)
+                widget.position = (widget.position[0], 10 + 50 + 25 + 18 * index)
                 widget.draw(self.screen, getattr(self, name))
 
                 index += 1
