@@ -21,7 +21,6 @@ class SignalQualityWidget(Widget):
     SPACING_RATIO = 0.05  # relative to widget width
 
     def __init__(self, position: Tuple[int, int], size: Tuple[int, int]):
-        super().__init__()
         self.position = position
         self.width, self.height = size
 
@@ -44,6 +43,8 @@ class SignalQualityWidget(Widget):
         # Vertical layout
         self.top_bottom_padding = 2 * self.bar_spacing
         self.bar_max_height = self.height - 2 * self.top_bottom_padding
+
+        super().__init__()
 
     def _rsrp_to_dbm(self, value: int) -> float:
         return -140 if value == 255 else value - 140

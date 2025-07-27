@@ -37,7 +37,9 @@ class Settings:
         },
         "widgets": {
             "debug": {
-                "display": True
+                "display": True,
+                "position": [10, 10],
+                "padding": 10
             },
             "debug_fps_loop": {
                 "display": True

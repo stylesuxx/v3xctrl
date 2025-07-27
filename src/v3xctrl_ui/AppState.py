@@ -133,27 +133,33 @@ class AppState:
             "battery_percent": battery_percent_widget
         }
 
+        x, y = self.widget_settings["debug"]["position"]
+        padding = self.widget_settings["debug"]["padding"]
+
+        debug_fps_loop_widget = FpsWidget(
+            (x, y),
+            (self.fps_settings["width"], self.fps_settings["height"]),
+            "Loop"
+        )
+        y += debug_fps_loop_widget.height + padding
+
+        debug_fps_video_widget = FpsWidget(
+            (x, y),
+            (self.fps_settings["width"], self.fps_settings["height"]),
+            "Video"
+        )
+        y += debug_fps_video_widget.height + padding
+
+        debug_data_widget = StatusValueWidget((x, y), 26, "Data")
+        y += debug_data_widget.height + padding
+
+        debug_latency_widget = StatusValueWidget((x, y), 26, "Latency")
+
         self.widgets_debug = {
-          "debug_fps_loop": FpsWidget(
-              (10, 10),
-              (self.fps_settings["width"], self.fps_settings["height"]),
-              "Loop"
-          ),
-          "debug_fps_video": FpsWidget(
-              (10, 10 + self.fps_settings["height"] + 10),
-              (self.fps_settings["width"], self.fps_settings["height"]),
-              "Video"
-          ),
-          "debug_data": StatusValueWidget(
-              position=(10, 180),
-              size=26,
-              label="Data"
-          ),
-          "debug_latency": StatusValueWidget(
-              position=(10, 216),
-              size=26,
-              label="Latency"
-          )
+          "debug_fps_loop": debug_fps_loop_widget,
+          "debug_fps_video": debug_fps_video_widget,
+          "debug_data": debug_data_widget,
+          "debug_latency": debug_latency_widget
         }
 
         self.key_handlers = {
