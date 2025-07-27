@@ -78,12 +78,20 @@ class AppState:
         self.throttle = None
         self.steering = None
         self.signal_quality = None
-        self.band = "Band ?"
+        self.signal_band = "Band ?"
 
         # Data for battery
         self.battery_voltage = None
         self.battery_average_voltage = None
         self.battery_percent = None
+
+        x, y = self.widget_settings["signal"]["position"]
+        padding = self.widget_settings["signal"]["padding"]
+
+        signal_quality_widget = SignalQualityWidget((x, y), (70, 50))
+        y += signal_quality_widget.height + padding
+
+        signal_band_widget = TextWidget((x, y), 70)
 
         self.widgets = {
             "steering": HorizontalIndicatorWidget(
@@ -100,28 +108,15 @@ class AppState:
                 range_mode="symmetric",
                 color_fn=interpolate_throttle_color
             ),
-            "signal_quality": SignalQualityWidget(
-                (self.size[0] - 70 - 10, 10),
-                (70, 50)
-            ),
-            "band": TextWidget(
-                (self.size[0] - 70 - 10, 10 + 50),
-                70
-            )
+            "signal_quality": signal_quality_widget,
+            "signal_band": signal_band_widget
         }
 
-        battery_voltage_widget = TextWidget(
-            (self.size[0] - 70 - 10, 10 + 50 + 25 + 18 * 0),
-            70
-        )
-        battery_average_voltage_widget = TextWidget(
-            (self.size[0] - 70 - 10, 10 + 50 + 25 + 18 * 1),
-            70
-        )
-        battery_percent_widget = TextWidget(
-            (self.size[0] - 70 - 10, 10 + 50 + 25 + 18 * 2),
-            70
-        )
+        x, y = self.widget_settings["battery"]["position"]
+
+        battery_voltage_widget = TextWidget((x, y), 70)
+        battery_average_voltage_widget = TextWidget((x, y), 70)
+        battery_percent_widget = TextWidget((x, y), 70)
 
         battery_voltage_widget.set_alignment(Alignment.RIGHT)
         battery_average_voltage_widget.set_alignment(Alignment.RIGHT)
@@ -133,27 +128,33 @@ class AppState:
             "battery_percent": battery_percent_widget
         }
 
+        x, y = self.widget_settings["debug"]["position"]
+        padding = self.widget_settings["debug"]["padding"]
+
+        debug_fps_loop_widget = FpsWidget(
+            (x, y),
+            (self.fps_settings["width"], self.fps_settings["height"]),
+            "Loop"
+        )
+        y += debug_fps_loop_widget.height + padding
+
+        debug_fps_video_widget = FpsWidget(
+            (x, y),
+            (self.fps_settings["width"], self.fps_settings["height"]),
+            "Video"
+        )
+        y += debug_fps_video_widget.height + padding
+
+        debug_data_widget = StatusValueWidget((x, y), 26, "Data")
+        y += debug_data_widget.height + padding
+
+        debug_latency_widget = StatusValueWidget((x, y), 26, "Latency")
+
         self.widgets_debug = {
-          "debug_fps_loop": FpsWidget(
-              (10, 10),
-              (self.fps_settings["width"], self.fps_settings["height"]),
-              "Loop"
-          ),
-          "debug_fps_video": FpsWidget(
-              (10, 10 + self.fps_settings["height"] + 10),
-              (self.fps_settings["width"], self.fps_settings["height"]),
-              "Video"
-          ),
-          "debug_data": StatusValueWidget(
-              position=(10, 180),
-              size=26,
-              label="Data"
-          ),
-          "debug_latency": StatusValueWidget(
-              position=(10, 216),
-              size=26,
-              label="Latency"
-          )
+          "debug_fps_loop": debug_fps_loop_widget,
+          "debug_fps_video": debug_fps_video_widget,
+          "debug_data": debug_data_widget,
+          "debug_latency": debug_latency_widget
         }
 
         self.key_handlers = {
@@ -271,7 +272,7 @@ class AppState:
             "rsrp": values["sig"]["rsrp"],
         }
         band = values["cell"]["band"]
-        self.band = f"Band {band}"
+        self.signal_band = f"Band {band}"
 
         battery_voltage = values["bat"]["vol"] / 1000
         battery_average_voltage = values["bat"]["avg"] / 1000
@@ -373,7 +374,7 @@ class AppState:
         for name, widget in self.widgets_battery.items():
             display = self.widget_settings.get(name, {"display": True}).get("display")
             if display:
-                widget.position = (self.size[0] - 70 - 10, 10 + 50 + 25 + 18 * index)
+                widget.position = (widget.position[0], 10 + 50 + 25 + 18 * index)
                 widget.draw(self.screen, getattr(self, name))
 
                 index += 1
