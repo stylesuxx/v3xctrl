@@ -78,12 +78,20 @@ class AppState:
         self.throttle = None
         self.steering = None
         self.signal_quality = None
-        self.band = "Band ?"
+        self.signal_band = "Band ?"
 
         # Data for battery
         self.battery_voltage = None
         self.battery_average_voltage = None
         self.battery_percent = None
+
+        x, y = self.widget_settings["signal"]["position"]
+        padding = self.widget_settings["signal"]["padding"]
+
+        signal_quality_widget = SignalQualityWidget((x, y), (70, 50))
+        y += signal_quality_widget.height + padding
+
+        signal_band_widget = TextWidget((x, y), 70)
 
         self.widgets = {
             "steering": HorizontalIndicatorWidget(
@@ -100,14 +108,8 @@ class AppState:
                 range_mode="symmetric",
                 color_fn=interpolate_throttle_color
             ),
-            "signal_quality": SignalQualityWidget(
-                (self.size[0] - 70 - 10, 10),
-                (70, 50)
-            ),
-            "band": TextWidget(
-                (self.size[0] - 70 - 10, 10 + 50),
-                70
-            )
+            "signal_quality": signal_quality_widget,
+            "signal_band": signal_band_widget
         }
 
         x, y = self.widget_settings["battery"]["position"]
@@ -270,7 +272,7 @@ class AppState:
             "rsrp": values["sig"]["rsrp"],
         }
         band = values["cell"]["band"]
-        self.band = f"Band {band}"
+        self.signal_band = f"Band {band}"
 
         battery_voltage = values["bat"]["vol"] / 1000
         battery_average_voltage = values["bat"]["avg"] / 1000

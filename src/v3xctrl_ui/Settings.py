@@ -65,6 +65,17 @@ class Settings:
             "throttle": {
                 "display": True
             },
+            "signal": {
+                "display": True,
+                "position": [1200, 10],
+                "padding": 0
+            },
+            "signal_quality": {
+                "display": True
+            },
+            "signal_band": {
+                "display": True
+            },
             "battery": {
                 "display": True,
                 "position": [1200, 85]
