@@ -56,7 +56,7 @@ class OSD:
 
         self.reset()
 
-        self.widgets = self.widgets_signal | self.widgets_steering
+        self.widgets = self.widgets_steering
 
     def update_settings(self, settings: Settings) -> None:
         self.settings = settings
@@ -117,6 +117,13 @@ class OSD:
                 widget.draw(screen, getattr(self, name))
 
                 index += 1
+
+        signal = self.widget_settings.get("signal", {"display": False}).get("display")
+        if signal:
+            for name, widget in self.widgets_signal.items():
+                display = self.widget_settings.get(name, {"display": True}).get("display")
+                if display:
+                    widget.draw(screen, getattr(self, name))
 
         debug = self.widget_settings.get("debug", {"display": False}).get("display")
         if debug:

@@ -43,6 +43,11 @@ class OsdTab(Tab):
             checked=self.widgets.get("battery_percent", {}).get("display", False),
             on_change=lambda value: self._on_widget_toggle("battery_percent", value)
         )
+        self.signal_checkbox = Checkbox(
+            label="Show Signal indicator", font=LABEL_FONT,
+            checked=self.widgets.get("signal", {}).get("display", False),
+            on_change=lambda value: self._on_widget_toggle("signal", value)
+        )
 
         self.osd_widgets = [
             self.debug_checkbox,
@@ -50,7 +55,8 @@ class OsdTab(Tab):
             self.throttle_checkbox,
             self.battery_voltage_checkbox,
             self.battery_average_voltage_checkbox,
-            self.battery_percent_checkbox
+            self.battery_percent_checkbox,
+            self.signal_checkbox
         ]
 
         self.elements = self.osd_widgets
