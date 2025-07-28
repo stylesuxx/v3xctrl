@@ -17,6 +17,7 @@ import queue
 import select
 import socket
 import threading
+import time
 from typing import Callable, Tuple, Optional
 
 from .Message import Message
@@ -26,19 +27,24 @@ class UDPReceiver(threading.Thread):
     # Max possible datagram size
     BUFFERSIZE = 65535
 
-    def __init__(self,
-                 sock: socket.socket,
-                 handler: Callable[[Message, Tuple[str, int]], None],
-                 timeout: int = 0.1):
+    def __init__(
+        self,
+        sock: socket.socket,
+        handler: Callable[[Message, Tuple[str, int]], None],
+        timeout_ms: int = 100,
+        window_ms: int = 500
+    ):
         super().__init__(daemon=True)
 
         self.socket = sock
         assert self.socket.type == socket.SOCK_DGRAM, "UDPReceiver expects a UDP socket"
 
         self.handler = handler
-        self.timeout = timeout
+        self.timeout = timeout_ms/1000
+        self.window = window_ms/1000
 
-        self.last_timestamp = 0
+        self.last_valid_timestamp = 0
+        self.last_valid_now = None
 
         self._should_validate_host = False
         self._expected_host: Optional[str] = None
@@ -49,15 +55,31 @@ class UDPReceiver(threading.Thread):
         self._worker_thread = threading.Thread(target=self._worker_loop, daemon=True)
 
     def is_valid_message(self, message: Message, addr: Tuple[str, int]) -> bool:
-        if message.timestamp <= self.last_timestamp:
+        if message.timestamp < self.last_valid_timestamp:
             logging.debug("Skipping out of order message")
             return False
+
+        """
+        When there has been a break up, we might receive messages that have
+        been queued up, but are practically invalid at this point. We drop those
+        messages and assume there will be new, more up to date messages soon.
+        """
+        if self.last_valid_now is not None:
+            delta = time.time() - self.last_valid_now
+            min_timestamp = self.last_valid_timestamp + delta - self.window
+            if message.timestamp < min_timestamp:
+                logging.debug("Skipping message: Timestamp too old")
+                return False
 
         if self._should_validate_host and addr[0] != self._expected_host:
             logging.debug(f"Skipping message from wrong host: {addr[0]}")
             return False
 
         return True
+
+    def reset(self) -> None:
+        self.last_valid_timestamp = 0
+        self.last_valid_now = None
 
     def run(self) -> None:
         self._running.set()
@@ -91,7 +113,8 @@ class UDPReceiver(threading.Thread):
                     continue
 
                 if self.is_valid_message(message, addr):
-                    self.last_timestamp = message.timestamp
+                    self.last_valid_timestamp = message.timestamp
+                    self.last_valid_now = time.time()
                     try:
                         self._queue.put_nowait((message, addr))
                     except queue.Full:
