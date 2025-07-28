@@ -1,0 +1,22 @@
+{
+  "generic": {
+    "validBands": [1, 3, 5, 7, 8, 20, 28, 34, 38, 39, 40, 41],
+    "hasGps": false
+  },
+  "mzuzone-cat1_lte": {
+    "validBands": [1, 3, 8, 34, 38, 39, 40, 41],
+    "hasGps": false
+  },
+  "mzuzone-cat1_gps": {
+    "validBands": [1, 3, 5, 8, 34, 38, 39, 40, 41],
+    "hasGps": true
+  },
+  "mzuzone-cat1_eu": {
+    "validBands": [1, 3, 7, 8, 20, 28],
+    "hasGps": false
+  },
+  "mzuzone-cat1_ea": {
+    "validBands": [1, 3, 5, 7, 8, 28],
+    "hasGps": false
+  }
+}
