@@ -152,6 +152,19 @@ class TestMessages(unittest.TestCase):
         self.assertEqual(deserialized.get_parameters(), {})  # default value
         self.assertTrue(deserialized.get_command_id())  # default value
 
+    def test_peek_type_valid(self):
+        msg = Command("test", {"k": "v"})
+        data = msg.to_bytes()
+        self.assertEqual(Message.peek_type(data), "Command")
+
+    def test_peek_type_invalid_msgpack(self):
+        data = b"not-a-valid-msgpack"
+        self.assertEqual(Message.peek_type(data), "Unknown")
+
+    def test_peek_type_missing_type(self):
+        data = msgpack.packb({"p": {}, "d": time.time()})
+        self.assertEqual(Message.peek_type(data), "Unknown")
+
 
 if __name__ == "__main__":
     unittest.main()

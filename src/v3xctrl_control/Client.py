@@ -23,17 +23,26 @@ from .UDPTransmitter import UDPTransmitter
 
 
 class Client(Base):
-    def __init__(self, host: str, port: int, bind_port: int = None):
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        bind_port: int = None,
+        failsafe_ms: int = 500
+    ):
         super().__init__()
 
         self.host = host
         self.port = port
         self.bind_port = bind_port
         self.server_address = (self.host, self.port)
+        self.failsafe_ms = failsafe_ms
 
-        # Consider client disconnected if it has not seen a packet from the
-        # server for 3 seconds
-        self.no_message_timeout = 3
+        """
+        Consider client disconnected if it has not seen a packet from the
+        server in a certain amount of time.
+        """
+        self.no_message_timeout = self.failsafe_ms / 1000
 
         # Resolve host to IP - this is required for host checks in the UDP
         # receiver
@@ -104,10 +113,10 @@ class Client(Base):
                 self.send(Syn())
 
             elif self.state == State.CONNECTED:
-                self.check_timeout()
                 self.heartbeat()
+                self.check_timeout()
 
-            time.sleep(self.STATE_CHECK_INTERVAL_MS / 1000)
+            time.sleep(0.005)
 
     def stop(self):
         if self.started.is_set():

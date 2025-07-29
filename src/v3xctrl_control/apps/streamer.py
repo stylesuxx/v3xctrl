@@ -64,6 +64,13 @@ parser.add_argument("--modem-path", type=str, default="/dev/ttyACM0",
                     help="Path to modem device (default: /dev/ttyACM0)")
 parser.add_argument("--log", default="ERROR",
                     help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). (default: ERROR")
+parser.add_argument("--failsafe-ms", type=int, default=500,
+                    help="Timeout in milliseconds to trigger failsafe (default: 500)")
+parser.add_argument("--failsafe-throttle", type=int, default=1500,
+                    help="Throttle value when failsafe (default: 1500)")
+parser.add_argument("--failsafe-steering", type=int, default=1500,
+                    help="Steering value when failsafe (default: 1500)")
+
 
 args = parser.parse_args()
 
@@ -96,6 +103,10 @@ modem_path = args.modem_path
 
 level_name = args.log.upper()
 level = getattr(logging, level_name, None)
+
+failsafe_ms = args.failsafe_ms
+failsafe_throttle = args.failsafe_throttle
+failsafe_steering = args.failsafe_steering
 
 if not isinstance(level, int):
     raise ValueError(f"Invalid log level: {args.log}")
@@ -163,25 +174,28 @@ def map_range(
 
 
 def control_handler(message: Control) -> None:
-    values = message.get_values()
-    raw_throttle = values['throttle']
-    raw_steering = values['steering']
+    throttle_value = failsafe_throttle
+    steering_value = failsafe_steering
 
-    # Determine throttle pulse forward or reverse
-    if raw_throttle > 0:
-        scaled_throttle = raw_throttle * forward_multiplier
-        throttle_value = map_range(scaled_throttle, 0, 1, forward_min, throttle_max)
-    else:
-        scaled_throttle = raw_throttle * reverse_multiplier
-        throttle_value = map_range(scaled_throttle, -1, 0, throttle_min, reverse_min)
+    if client.state == State.CONNECTED:
+        values = message.get_values()
+        raw_throttle = values['throttle']
+        raw_steering = values['steering']
 
-    # Map, add trim and clamp
-    scaled_steering = raw_steering * steering_multiplier
-    steering_value = map_range(scaled_steering, steering_left, steering_right, steering_min, steering_max) + (steering_trim * trim_multiplier)
-    steering_value = clamp(steering_value, steering_min, steering_max)
+        # Determine throttle pulse forward or reverse
+        if raw_throttle > 0:
+            scaled_throttle = raw_throttle * forward_multiplier
+            throttle_value = map_range(scaled_throttle, 0, 1, forward_min, throttle_max)
+        else:
+            scaled_throttle = raw_throttle * reverse_multiplier
+            throttle_value = map_range(scaled_throttle, -1, 0, throttle_min, reverse_min)
+
+        # Map, add trim and clamp
+        scaled_steering = raw_steering * steering_multiplier
+        steering_value = map_range(scaled_steering, steering_left, steering_right, steering_min, steering_max) + (steering_trim * trim_multiplier)
+        steering_value = clamp(steering_value, steering_min, steering_max)
 
     logging.debug(f"Throttle: {throttle_value}; Steering: {steering_value}")
-
     pi.set_servo_pulsewidth(throttle_gpio, throttle_value)
     pi.set_servo_pulsewidth(steering_gpio, steering_value)
 
@@ -213,14 +227,11 @@ def command_handler(command: Command) -> None:
 
 def disconnect_handler() -> None:
     """
-    When disconnected:
-
-    - Center servo
-    - Min throttle
+    Disconnect counts as failsafe, set values accordingly
     """
-    logging.debug("Disconnected from server...")
-    pi.set_servo_pulsewidth(throttle_gpio, throttle_idle)
-    pi.set_servo_pulsewidth(steering_gpio, steering_center)
+    logging.debug("Failsafe triggered...")
+    pi.set_servo_pulsewidth(throttle_gpio, failsafe_throttle)
+    pi.set_servo_pulsewidth(steering_gpio, failsafe_steering)
 
 
 def signal_handler(sig, frame):
@@ -229,7 +240,7 @@ def signal_handler(sig, frame):
         running = False
 
 
-client = Client(HOST, PORT, BIND_PORT)
+client = Client(HOST, PORT, BIND_PORT, failsafe_ms)
 
 # Subscribe to messages received from the server
 client.subscribe(Control, control_handler)
