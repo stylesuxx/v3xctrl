@@ -1,38 +1,44 @@
 # Modems
-This is a knowledge base for supported modems. Documentation is sparse at times and we tried to collect everything relevant in one place.
+
+This is a knowledge base for supported modems. Documentation is sparse at times, so we have collected relevant information here in one place.
 
 ## Zero-4G-CAT1-Hub
-This is the modem that is most widely available on Aliexpress, it is sold by different people under different names. The actual OEM seems to be **Mcuzone**. It comes in 4 distinct versions which is usually labeld on top of the MCU:
+
+This is the modem most widely available on AliExpress, sold under different  names by different vendors. The actual OEM appears to be **Mcuzone**.
+It comes in **four distinct versions**, usually labeled on top of the MCU:
 
 | Model    | Bands | GPS | Speed |
-| -------- | ----- | --- | ----- |
+|----------|-------|-----|-------|
 | CAT1/LTE | 1, 3, 5, 8, 34, 38, 39, 40, 41 | No  | 10Mbps down, 5Mbps up. On Band 34 - 41: 6Mbps down, 4 Mbps up. |
 | CAT1-GPS | 1, 3, 5, 8, 34, 38, 39, 40, 41 | No  | 10Mbps down, 5Mbps up. On Band 34 - 41: 6Mbps down, 4 Mbps up. |
 | CAT1-EU  | 1, 3, 7, 8, 20, 28 | No  | 10Mbps down, 5Mbps up |
 | CAT1-EA  | 1, 3, 5, 7, 8, 28 | No  | 10Mbps down, 5Mbps up |
 
-To decide which one is the best for you, check  your area and provider on [cellmapper.net](https://www.cellmapper.net/map).
+> **TIP:** Check which LTE bands are used by your carrier in your area on [cellmapper.net](https://www.cellmapper.net/map) before purchasing a modem..
 
 
-Here is a quick reference to enable all factory supported bands:
+### Enabling All Factory-Supported Bands
 
-| Model    | all bands |
-| -------- | --------- |
+Example for CAT1-GPS:
+
+| Model    | AT command |
+|----------|------------|
 | CAT1-GPS | AT*BAND=5,0,0,482,149,1,1,0 |
 
 ### Debugging
 
-> Before attempting any debugging make sure that yourn SIM card is actually working, put it in a phone, disable the PIN check - if enabled. And try to go online with it. Depending on your region you might also need to go through an activation process first.
+> Before attempting any debugging, make sure your SIM card is active and working. Insert it into a phone first, **disable the PIN code** if necessary, and verify that you can connect to the internet.
+In some regions, you may need to complete an activation process before the SIM can register on the network.
 
-Use `minicom` to connect to the modem:
+Connect to the modem using `minicom`:
 
 ```bash
 minicom -D /dev/ttyACM0 -b 115200
 ```
 
+#### Checking Network Registration
 
-#### Checking registration
-Then invoke the following commands to check the modem status:
+Run these commands to check modem status:
 
 ```bash
 AT
@@ -40,16 +46,16 @@ AT+CPIN?
 AT+COPS?
 ```
 
-The output should look like this:
+Example output:
 
 ```
-# Check that the modem is available
+# Check modem availability
 AT
 AT
 
 OK
 
-# Check the SIM card status - if not READY, then likely PIN is not disabled
+# Check SIM status
 AT+CPIN?
 AT+CPIN?
 
@@ -57,7 +63,7 @@ AT+CPIN?
 
 OK
 
-# Check operator - your output might differ, important is, that you see something here and that the first number is 0 and the last is 7 - the other ones are related to your exact operator
+# Check operator registration
 AT+COPS?
 AT+COPS?
 
@@ -66,16 +72,19 @@ AT+COPS?
 OK
 ```
 
-At this point your modem is successfully registered to the mobile network with access technology LTE (that's what the 7 indicated in the last line).
+* `23201` is the MCC/MNC (operator code).
+* The last value `7` indicates LTE connection (other values may indicate GSM/UMTS).
+
+At this point, the modem is successfully registered on the mobile network with LTE access.
 
 #### Checking IP assignment
-Just because your are registered does not mean you are ready to connect to the internet yet, you need to check for a valid PDP context:
+Registration does not guarantee an active data session. Check your PDP context:
 
 ```bash
 AT+CGDCONT?
 ```
 
-The output should look like this:
+Expected output:
 
 ```bash
 AT+CGDCONT?
@@ -85,9 +94,9 @@ AT+CGDCONT?
 OK
 ```
 
-This denotes that you have a valid PDP context with a valid IPv4 address.
+This indicates you have a valid IPv4 address.
 
-It is possible that you have multiple contexts available here:
+If multiple contexts are active:
 
 ```bash
 AT+CGDCONT?
@@ -98,7 +107,7 @@ AT+CGDCONT?
 OK
 ```
 
-You can check the active contexts by invoking:
+List active contexts:
 
 ```bash
 AT+CGACT?
@@ -109,12 +118,42 @@ AT+CGACT?
 +CGACT: 2,1
 ```
 
-This would indicate that both contexts are active.
-
-If you want to make sure that only the IPv4 context is active, you can disable the IPv6 context:
+Disable IPv6 if needed:
 
 ```bash
 AT+CGACT=0,2
 ```
 
-> **NOTE:** Disabling a context might be reset upon restart of the modem.
+> **NOTE:** Context changes may reset after a modem reboot.
+
+## AT command cheat sheet
+Useful commands when evaluating or debugging new modems.
+
+> For more advanced scripting, try [python ATlib](https://pypi.org/project/atlib).
+
+### Get Firmware version:
+
+```
+AT+VER?
+```
+
+### Check Network Registration
+
+```
+AT+CREG?
+
+# Not connected
++CREG: 0,0
+
+# Connected
++CREG: 0,1
+```
+
+### Show Currently Used Band
+
+```
+AT*BANDIND?
+*BANDIND: 0, 3, 7
+```
+
+Here, the middle number (`3`) is the LTE band currently in use.

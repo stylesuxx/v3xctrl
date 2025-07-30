@@ -1,60 +1,61 @@
 # Latency
-Here is a flow chart showing the latency in the system. We need to consider two chains:
 
-- The streamer-to-viewer chain (video)
-- The viewer-to-streamer chain (control)
+This flow chart illustrates where latency occurs in the system. We consider two chains:
 
-Looking at the chart makes it clear that there is a lot of potential for introducing latency, and only some of the stages are under our control:
+- Streamer -> Viewer (video path)
+- Viewer -> Streamer (control path)
+
+There are multiple stages where latency is introduced, and only some of them are under our control:
 
 ```
 ------------
 | Streamer |
 ------------
-| Camera   | 15–25 ms (may increase in low light)
-| Encoder  | 3 ms
+| Camera   | 15–25 ms (sensor exposure & frame readout, may increase in low light)
+| Encoder  | 3-6 ms (H.264 hardware encoder, resolution and bitrate dependent)
 | UDP      | 0.5–1.5 ms (RTP packaging + kernel/network stack delay)
 ------------
-| Network  | 20–40 ms (4G latency, variable)
+| Network  | 20–40 ms (typical 4G RTT, variable; occasional spikes possible)
 ------------
 | Viewer   |
 ------------
 | UDP      | 0.5–1.5 ms
-| Decoder  | 1–3 ms
+| Decoder  | 1–3 ms (hardware-accelerated H.264 decode)
 ------------
-| Display  | 2–8 ms
+| Display  | 2–8 ms (OS buffering, vsync interval, display refresh delay)
 ------------
 ```
 
-So from capturing a frame to displaying it on the screen, it takes **42–82 ms on average**.
-This heavily depends on the network, and latency spikes are possible.
+From capturing a frame to displaying it on-screen, the average latency is roughly **42–84 ms**, depending on network conditions. Latency spikes beyond this range are possible during poor signal quality or congested networks.
 
 
 ```
 ------------
 | Viewer   |
 ------------
-| Control  | 0.1–0.3 ms (command generation & queuing)
+| Control  | 0.1–0.3 ms (input event handling, message queueing)
 | UDP      | 0.5–1.5 ms (kernel stack, NIC buffer)
 ------------
-| Network  | 20–40 ms (4G latency, variable)
+| Network  | 20–40 ms (typical 4G RTT, variable)
 ------------
 | Streamer |
 ------------
 | UDP      | 0.5–1.5 ms (receive, buffer copy)
 | Process  | 0.5–2 ms (command parsing & execution)
 ------------
-| Actuator | 1–5 ms (GPIO/PWM write, driver delay)
+| Actuator | 1–5 ms (GPIO/PWM write, motor driver response time)
 ------------
 ```
 
-From seeing the image, reacting to it, and sending a control packet back to the client, it takes **22.6–50.3 ms**.
+From reacting to a video frame and sending a control packet back to the streamer, the control latency is typically **22–50 ms**.
 
-This means we have a total, combined latency (end to end) of 64.6ms - 132.3ms.
+## Total End-to-End Latency
 
-> **End to end latency below 150ms is generally considered acceptable for responsive remote control.**
+Combined latency is therefore in the range of 65–135 ms, under normal conditions.
 
-> **NOTE**: You can clearly see, that our **largest contributor to latency is in the network**. Choosing a good, reliable 4G provider is crucial for a smooth user experience.
+> End-to-end latency below ~150 ms is generally considered acceptable for responsive remote control.
+> The **largest contributor** to latency is the **cellular network**. Choosing a strong, low-congestion 4G provider is crucial for good performance.
 
 
 ## UDP Relay
-When using the UDP Relay instead of the direct connection, the latency increases slightly.
+When using a UDP Relay instead of a direct connection, expect **additional latency of 2–8 ms** due to extra packet processing and routing through the relay server. The increase is typically negligible compared to total 4G latency but may add up if the relay server is geographically distant.

@@ -1,16 +1,16 @@
 # Connection Types
-There are multiple connection types that can be used:
+There are several connection types available:
 
 
 ## Direct
-The server has a static IP and reserved ports to which the client can connect.
+The Viewer has a static IP and reserved ports to which the streamer can connect.
 
 > This is the simplest, most reliable and recommended connection type for most use cases.
 
 ## Relay
-If streamer and viewer are both behind a mobile NAT, and do not have a dedicated IP or you have no control over port forwarding, this is a fallback option.
+If both the streamer and viewer are behind mobile NATs, lack a dedicated IP, or you have no control over port forwarding, a relay connection can be used as a fallback option.
 
-In this case, both viewer and streamer will send their control and video data to a relay server, which will relay the data between them. This is more complex and should only be used when a direct connection is not an option.
+In this setup, both the viewer and streamer send their control and video data to a relay server, which then forwards the data between them. This approach is more complex and should only be used when a direct connection is not possible.
 
 ### Caveats
-Using a relay server adds some latency (although it is minimal). You also need to rely on external infrastructure, which can be unreliable. We try to keep our relay server as reliable as possible, but nothing beats a direct connection.
+Using a relay server adds a small amount of latency and depends on external infrastructure, which can sometimes be less reliable. We strive to keep our relay server highly available, but nothing beats a direct connection.

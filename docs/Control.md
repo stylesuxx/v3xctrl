@@ -1,39 +1,52 @@
-# Control channel
-The control channel is bi-directional, but has to be initialized by the streamer in order to punch a hole for UDP in the NAT.
+# Control Channel
 
-Both, streamer and viewer have to establish a UDP Sender and Receiver.
+The control channel is **bi-directional**, but it must be **initialized by the streamer** to punch a UDP hole through NAT.
 
-A communication protocol is in place and implements Messages such as:
+Both the streamer and viewer establish their own **UDP sender and receiver** sockets.
+
+Communication is handled via a lightweight protocol with the following message types:
 
 * Syn
 * Ack
+* SynAck
 * Heartbeat
 * Telemetry
 * Control
 * Command
+* CommandAck
 * Latency
+* Error
+* PeerAnnouncement
+* PeerInfo
 
-The control flow is as follows:
+## Message Flow
 
-1. Streamer sends a Syn message to the viewer
-2. Viewer responds with an Ack message
-3. Streamer sends either Telemetry, Latency or Heartbeat messages
-3. Viewer sends either Telemetry, Command, Latency or Control messages
+1. Streamer sends a `Syn` message to the viewer.
+2. Viewer responds with an `Ack` (or `SynAck`) message.
+3. Streamer periodically sends `Telemetry`, `Latency`, or `Heartbeat` messages.
+4. Viewer responds with `Command`, `Latency`, or `Control` messages as needed.
 
-All of the above messages are subclassed from `Messasge`, when sending the package, we are extracting data from the Message into a dict and using `msgpack` for packing and unpacking. This allows us to re-build a Message object on the other end. This is *NOT* the most resource effective thing to do, since it comes with a bit of overhead, however it is very convenient to implement, use, extend and debug.
+## Message Format
 
-Every package contains (at least) the following information:
-* `type`: The type of message, so  we know which class to use to put it back together
-* `timestamp`: In order to have sequencing, this will allow us to decide if we want to keep the packet, or discard it for being out of order
-* `payload`: the actual payload of the message. Sometime it is enough to just have type and timestamp, then payload will be empty
+All messages subclass a common `Message` base class. Each message is serialized into a `dict` and packed using **msgpack**. On the receiving side, the data is unpacked and reconstructed into the appropriate `Message` object.
 
-## Typical sizes
-A Syn and Ack package have the same size, no payload and their classname is the same length: 21bytes
+This approach is **not the most resource-efficient** due to serialization overhead, but it is simple to implement, extend, and debug.
 
-A Control package containing a value for steering and one for throttle has a length of 35bytes
+Each packet includes:
+* `type` — identifies which message class to reconstruct
+* `timestamp` — allows sequencing and discarding out-of-order packets
+* `payload` — the message data (can be empty for simple messages)
 
-## Considerations
-The size we want to transmit really depends on how much the input values will change. Since the input is queried in a *game loop*, this is our limiting factor. It will be between 30Hz - 100Hz, control packets will need to be sent in that speed (only if the value changes, but at least, 1 time a second to keep the client alive).
+## Typical Packet Sizes
 
-## Savings
-Technically we could save a couple of byte by truncating the timestamp, also when using payload, keep the keys short.
+* `Syn` or `Ack`: ~21 bytes (no payload, fixed class name length)
+* `Control`: ~35 bytes (contains steering and throttle values)
+
+## Frequency Considerations
+
+Control packets are sent based on input changes. Input is sampled in a **game loop (30–100 Hz)**, so packets are transmitted at that rate **only if values change**, with at least one packet per second to keep the connection alive.
+
+## Potential Optimizations
+
+* Truncate timestamps to save a few bytes.
+* Use shorter payload keys to further reduce packet size.
