@@ -38,7 +38,7 @@ source ./venv/bin/activate
 Install dependencies and run the GUI:
 
 ```bash
-pip install -r ./requirements-dev.txt
+pip install -r ./build/requirements/develop.txt
 
 cd src
 python -m v3xctrl_ui.main

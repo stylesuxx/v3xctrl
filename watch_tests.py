@@ -1,5 +1,6 @@
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+import os
 import subprocess
 import time
 import threading
@@ -25,18 +26,21 @@ class TestRunner(FileSystemEventHandler):
 
             self.last_modified[event.src_path] = current_time  # Update modification time
 
-            print(f"🔄 File changed: {event.src_path}, re-running tests...")
-            subprocess.run(["pytest", "./tests"])
+            print(f"File changed: {event.src_path}, re-running tests...")
+            subprocess.run(
+                ["pytest", "tests"],
+                env={**os.environ, "PYTHONPATH": "."}
+            )
+
 
 observer = Observer()
-test_runner = TestRunner()  # ✅ Single instance
+test_runner = TestRunner()
 
-# ✅ Watch `./tests` and `./src`, avoiding duplicate test runs
 observer.schedule(test_runner, path="./tests", recursive=True)
 observer.schedule(test_runner, path="./src", recursive=True)
 observer.start()
 
-print("👀 Watching for file changes... Press Ctrl+C to exit.")
+print("Watching for file changes... Press Ctrl+C to exit.")
 
 try:
     while True:

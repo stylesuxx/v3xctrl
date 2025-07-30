@@ -16,7 +16,7 @@ BASE_PATH="${DEST_DIR}/usr/share/$NAME"
 SERVER_BASE_PATH="${BASE_PATH}/config-server/"
 SERVER_LIB_PATH="${SERVER_BASE_PATH}/static/libs/"
 
-PYTHON_REQUIREMENTS="${BUILD_DIR}/requirements/client.txt"
+PYTHON_REQUIREMENTS="${BUILD_DIR}/requirements/streamer.txt"
 PYTHON_LIB_PATH="${DEST_DIR}/opt/v3xctrl-venv/lib/python3.11/site-packages/"
 
 # Clean up previous build (only relevant when re-building on dev setup)
