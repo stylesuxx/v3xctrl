@@ -7,13 +7,18 @@ This is a list of tested and recommended Hardware. **Recommended** means it has 
 * [Raspberry PI Zero 2 W](https://www.raspberrypi.com/products/raspberry-pi-zero-2-w/)
 * [Cat 1, 4G Modem hat (comes in EU and US versions, with and without GPS)](https://aliexpress.com/item/1005007960858994.html) - Explicitly tested firmware versions: `AirM2M_780EU_V1138_LTE_AT`
 * [PiCam V3 (Wide) - only cam so far with HDR](https://www.raspberrypi.com/products/camera-module-3/)
-* [INA231]() - smallest breakout board for the INA current/voltage sensor
+* [INA231](https://aliexpress.com/item/1005008863593081.html) - smallest breakout board for the INA current/voltage sensor
 
 ## Tested
 
 ### Modems
 
 * [Cat 1, 4G Modem hat with GPS (Variant: Zero-4G-CAT1-GPS)](https://de.aliexpress.com/item/1005007960858994.html) - Default frequency bands are set for the Chinese (Asian) market: `1, 3, 8, 34, 38, 39, 40, 41`
+
+### Voltage Sensor
+
+* [INA266](https://aliexpress.com/item/1005008541198707.html) - slightly bigger than the INA231, but more readily available on places like Amazon
+
 
 ## Potential Candidates
 
