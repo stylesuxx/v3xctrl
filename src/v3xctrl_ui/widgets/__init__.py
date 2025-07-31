@@ -4,4 +4,4 @@ from .VerticalIndicatorWidget import VerticalIndicatorWidget
 from .StatusWidget import StatusWidget
 from .StatusValueWidget import StatusValueWidget
 from .SignalQualityWidget import SignalQualityWidget
-from .TextWidget import TextWidget
+from .TextWidget import TextWidget, Alignment

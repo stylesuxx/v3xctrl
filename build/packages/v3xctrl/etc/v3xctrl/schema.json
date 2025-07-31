@@ -491,8 +491,64 @@
         }
       }
     },
-    "extras": {
+    "telemetry": {
       "propertyOrder": 70,
+      "type": "object",
+      "title": "Telemetry",
+      "options": {
+        "collapsed": true,
+        "disable_edit_json": true,
+        "disable_properties": true
+      },
+      "properties": {
+        "battery": {
+          "title": "Battery",
+          "propertyOrder": 10,
+          "type": "object",
+          "options": {
+            "collapsed": false,
+            "disable_edit_json": true,
+            "disable_properties": true
+          },
+          "properties": {
+            "i2cAddress": {
+              "title": "I2C Address",
+              "propertyOrder": 10,
+              "type": "string",
+              "required": true,
+              "default": "0x40",
+              "description": "I2C address of the INA sensor"
+            },
+            "minVoltage": {
+              "title": "Minimum Voltage",
+              "propertyOrder": 20,
+              "type": "number",
+              "required": true,
+              "default": 3.5,
+              "description": "Minimum voltage per cell (used to calculate battery percentage)"
+            },
+            "maxVoltage": {
+              "title": "Maximum Voltage",
+              "propertyOrder": 30,
+              "type": "number",
+              "required": true,
+              "default": 4.2,
+              "description": "Maximum voltage per cell (used to calculate battery percentage)"
+            },
+            "warnVoltage": {
+              "title": "Warning Voltage",
+              "propertyOrder": 40,
+              "type": "number",
+              "required": true,
+              "default": 3.7,
+              "description": "Level at which low voltage warnings should be triggered"
+            }
+          }
+        }
+      }
+    },
+    "extras": {
+      "propertyOrder": 80,
       "type": "object",
       "title": "Extras",
       "options": {

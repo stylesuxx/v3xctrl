@@ -37,4 +37,8 @@ Allows you to calibrate steering and throttle.
 Shows the kernel logs of the current session, very important for debugging.
 
 ## Modem
-Shows information about the modem.
+Shows information about the modem. This will help you the most to debug conectivity issues:
+
+If **SIM Status** is anything else then "OK", your SIM is either not inserted, not recognized or the PIN is not disabled.
+
+**Allowed Bands** shows the currently configured allowed bands, make sure that you can see some of the bands here that your carrier uses (check with (cellmapper.net)[https://cellmapper.net]).

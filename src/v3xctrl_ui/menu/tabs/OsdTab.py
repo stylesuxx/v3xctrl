@@ -21,18 +21,36 @@ class OsdTab(Tab):
         self.steering_checkbox = Checkbox(
             label="Show Steering indicator", font=LABEL_FONT,
             checked=self.widgets.get("steering", {}).get("display", False),
-            on_change=self._on_steering_change
+            on_change=lambda value: self._on_widget_toggle("steering", value)
         )
         self.throttle_checkbox = Checkbox(
             label="Show Throttle indicator", font=LABEL_FONT,
             checked=self.widgets.get("throttle", {}).get("display", False),
-            on_change=self._on_throttle_change
+            on_change=lambda value: self._on_widget_toggle("throttle", value)
+        )
+        self.battery_voltage_checkbox = Checkbox(
+            label="Show Battery voltage indicator", font=LABEL_FONT,
+            checked=self.widgets.get("battery_voltage", {}).get("display", False),
+            on_change=lambda value: self._on_widget_toggle("battery_voltage", value)
+        )
+        self.battery_average_voltage_checkbox = Checkbox(
+            label="Show Battery voltage indicator", font=LABEL_FONT,
+            checked=self.widgets.get("battery_average_voltage", {}).get("display", False),
+            on_change=lambda value: self._on_widget_toggle("battery_average_voltage", value)
+        )
+        self.battery_percent_checkbox = Checkbox(
+            label="Show Battery percent indicator", font=LABEL_FONT,
+            checked=self.widgets.get("battery_percent", {}).get("display", False),
+            on_change=lambda value: self._on_widget_toggle("battery_percent", value)
         )
 
         self.osd_widgets = [
             self.debug_checkbox,
             self.steering_checkbox,
-            self.throttle_checkbox
+            self.throttle_checkbox,
+            self.battery_voltage_checkbox,
+            self.battery_average_voltage_checkbox,
+            self.battery_percent_checkbox
         ]
 
         self.elements = self.osd_widgets
@@ -40,11 +58,8 @@ class OsdTab(Tab):
     def _on_debug_change(self, value: bool) -> None:
         self.debug = value
 
-    def _on_steering_change(self, value: bool) -> None:
-        self.widgets.setdefault("steering", {})["display"] = value
-
-    def _on_throttle_change(self, value: bool) -> None:
-        self.widgets.setdefault("throttle", {})["display"] = value
+    def _on_widget_toggle(self, key: str, value: bool) -> None:
+        self.widgets.setdefault(key, {})["display"] = value
 
     def _draw_debug_section(self, surface: Surface, y: int) -> int:
         y = self.y_offset + self.padding

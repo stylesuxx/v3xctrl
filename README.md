@@ -23,17 +23,22 @@ This section is meant to get you up and running within minutes.
 
 > In this quickstart guide, we assume that the login user is `pi` and the streamers host name has been set to `v3xctrl` - substitute those to the values you used during streamer setup.
 
-> Do not attach the modem yet, first run through the setup and attach the modem in the last step. This will help you in debugging, should some issues arise.
+> Make sure the modem is attached but do not insert your SIM card yet.
 
 ### Prerequisites
 
-- A Raspberry Pi Zero 2 W
+- A Raspberry Pi Zero 2W
 - A SD card (good quality, at least 8GB - if you want to save videos, bigger is better)
-- A 4G modem
+- A compatible 4G modem
+- A Raspberry Pi Zero 2W compatible camera
 - Electronic speed controller - ESC (with PWM input)
 - Servo (with PWM input)
 
+> Check [Recommended Hardware](/master/docs/Hardware.md) for a list of compatible modems and cameras.
+
 ### Viewer Configuration
+
+Let's first prepare the viewer - this is where the video feed will be displayed and your inputs connect to.
 
 Download, extract and run the GUI for your operating system:
 
@@ -41,16 +46,16 @@ Download, extract and run the GUI for your operating system:
 * [Windows](/releases/latest/GUI_Windows.zip)
 * [MacOS](/releases/latest/GUI_MacOS.zip)
 
-On the computer running the viewer, make sure the following ports are open (you might need to forward them through your router) on your Server:
+On the computer running the viewer, make sure the following ports are open (you might need to forward them through your router):
 
 - `6666`: UDP for receiving video (UDP & TCP for running self-tests)
 - `6668`: UDP for receiving UDP messages
 
 #### No static IP or mobile network
 
-If your the computer you are running the viewer on does not have a static IP or you are on a mobile network, you will have to use the UDP Relay instead of configuring port forwarding:
+If the computer you are running the viewer on does not have a static IP address or you are on a mobile network, you will have to use the UDP Relay instead of configuring port forwarding.
 
-After starting the GUI, enter the Menu and check the "Enable UDP Relay" checkbox. If you are using the default server, a valid ID can be requested in our [Discord](https://discord.gg/uF4hf8UBBW).
+After starting the GUI, enter the Menu and check the *"Enable UDP Relay"* checkbox. If you are using the default server, a valid ID has to be requested in our [Discord](https://discord.gg/uF4hf8UBBW).
 
 > **NOTE**: This mode is a bit more difficult for initial configuration, so if at all possible, use the direct connection instead.
 
@@ -58,41 +63,40 @@ After starting the GUI, enter the Menu and check the "Enable UDP Relay" checkbox
 
 Make sure to follow the [Streamer setup guide](/master/docs/Streamer.md#installation-recommended).
 
-Once the image is flashed an you have verified you can connect to the streamers web interface under: `http://v3xctrl.local:5000`
+Once the image is flashed an you have verified you can connect to the streamers web interface under `http://v3xctrl.local:5000` follow the next steps:
 
-* Set the host field, to your servers IP address
-* In the "video" section, make sure that the "testSource" is enabled
+* Set the host field, to your viewers IP address
+* In the *"Video"* section, make sure that the *"Test Image"* is enabled
+
+> If you enabled the UDP relay in the previous step, make sure that you enter your *"Relay session ID"* and select *"relay"* in the *"Connection Mode"* dropdown.
 
 Click "Save".
 
 #### Testing video stream
 
-Switch to the Services tab and start the video service, the service status should change to `active`.
+Switch to the *"Services"* tab and start the `v3xctrl-video` service, the service status should change from `inactive` to `active`.
 
-After a couple of seconds you should see a video feed in the viewer. Should this not be the case, follow the [Troubleshooting Guide](/master/docs/Troubleshooting.md#video-stream).
+After a couple of seconds you should see a video feed in the viewer.
+
+> Should this not be the case, follow the [Troubleshooting Guide](/master/docs/Troubleshooting.md#video-stream).
 
 ##### Testing video transmission with camera
 
 Now that we have verified that video streaming is working, we want to make sure that the camera is working too.
 
-In the `Config Editor` tab, uncheck the "testSource" checkbox in the video section and restart the video stream from the `Services` tab.
+In the *"Config Editor"* tab, uncheck the *"Test Video"* checkbox in the video section and restart the video stream from the *"Services"* tab (stop and then start again).
 
-After a couple of seconds you should see the live camera feed in the **viewer**. Should this not be the case, follow the [Troubleshooting Guide](/master/docs/Troubleshooting.md#video-stream).
+After a couple of seconds you should see the live camera feed in the **viewer**.
 
+> Should this not be the case, follow the [Troubleshooting Guide](/master/docs/Troubleshooting.md#video-stream).
 
-#### Testing control
+#### Calibration
+Calibration is done through the *"Calibration"* tab, make sure the `control` service is inactive, otherwise calibration will not work.
 
-The easiest way to test the control channel is to attach a servo (since it does not need calibration in contrary to an ESC).
-
-By default the following GPIO pins are used for PWM:
+Make sure servo and speed-controller are attached to your RPi Zero 2W. By default the following GPIO pins are used for PWM:
 
 * `18`: Throttle
 * `13`: Steering
-
-Start the control service from the `Services` tab.
-
-#### Calibration
-Calibration is done through the `Calibration` tab.
 
 ##### Steering
 Steering calibration is quite straight forward, adjust min and max value according to your servo.
@@ -101,39 +105,42 @@ Decrease the min value until your preferred position is reached or until the ser
 
 Do the same for the max value, just increasing instead of decreasing the value.
 
-Make sure to adjust trim such that the servo is centered. You will most likely have to fine tune this value during operation, but you should be able to make raw adjustments at this point.
+Make sure to adjust trim such that the servo is centered. You will most likely have to fine tune this value during operation, but you should be able to make decent raw adjustments at this point.
 
 ##### Throttle
 **IMPORTANT:** Make sure you read the manual for your ESC, calibration for throttle differs from manufacturer to manufacturer. Most likely you will not have to change, min, max and idle values. Instead you will have to send min, idle and max values in a specific order.
 
+#### Testing control
+
+After calibration you can use `w`, `s`, `a`, `d` in the viewer to verify movement. If steering is inverted, you can adjust it on your streamer in the *"Config editor"* tab under *"Controls" -> "Steering" -> "Invert Steering"*.
+
+At this point you can also go ahead and calibrate the input device of your choice.
+
 #### Auto start video stream & control
 
-After you have verified, that the video stream and control channel are working as expected, you can enable auto starting them on bootup:
+After you have verified in the above steps, that the video stream and control channel are working as expected, you can enable auto starting them on boot-up:
 
-In the web-interface, check "video" and "control" in the "Autostart" section and hit "Save".
+In the web-interface, check `video` and `control` in the *"Autostart"* section of the *"Config editor"* and hit "Save".
 
+> Be aware that from this point forward, the video stream will be transmitted after boot-up, so after the next step, you will use mobile data once the streamer has started.
+
+#### Testing SIM card
+
+Follow the steps in the [SIM card documentation](/master/docs/SIM.md). To prepare your SIM card. After you have made sure, that the SIM card is usable, insert it into the streamer, switch to the *"Modem"* tab and make sure that the modem is connecting to the carrier network. Make sure that the following points are true:
+
+* *"SIM Status"* shows `OK`
+* *"Carrier"* is **not** `0`
+* *"Context 1"* is set to `IP xxx.xxx.xxx.xxx (yyy)`
+
+If those above points are true, then you are ready to stream over your mobile network.
 
 #### Force data over modem
 
-After verifying that two way communication works, it is time to attach the modem and force the whole traffic over it.
+In the *"Config Editor"* tab, navigate the *"Network" -> "WiFi"* and set *"routing"* to `rndis`.
 
-Attach the modem and verify that it is picked up by the operating system:
+After this, hit *"Reboot"* on top of the menu and after about a minute, the streamer should be rebooted and re-connected to the viewer.
 
-```bash
-ip a s
-```
-
-You should now see a device named `eth0` or `usb0` - if you only see `lo` and `wlan0`, than your modem is not being picked up - check the [troubleshooting guide](/master/docs/Troubleshooting.md#modem).
-
-In the web-interface, force all traffic to go through this RNDIS device:
-
-* In the WiFi section set routing to `rndis`
-
-Hit "Save" and reboot the device:
-
-```bash
-sudo reboot
-```
+> Congratulations, you are good to go. Have fun!
 
 ## Support
 
@@ -148,4 +155,6 @@ Check the following documentation if you are interested in contributing to the p
 
 ### Contributing
 
-PR's are welcome, please direct them against the develop branch. Feel free to open issues if you have any questions or problems.
+PR's are welcome, please direct them against the develop branch. Before investing a lot of time into a new feature, feel free to discuss with us beforehand, we might have some pointers for you.
+
+Feel free to open issues if you have any questions, problems or suggestions.

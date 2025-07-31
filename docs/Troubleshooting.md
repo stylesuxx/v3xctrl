@@ -34,7 +34,9 @@ sudo systemctl start v3xctrl-config-server
 ## Video stream
 
 ### Not receiving video stream
-- Check the config server, have a look at the vide port, by default this is `6666`
+- Make sure the video stream is successfully started in the streamers *"Services"* tab, status should be `active`. if it is not, check the logs for further details.
+- Make sure the video stream is
+- Check the config server, have a look at the video port, by default this is `6666`
 - Make sure the port is forwarded on your router to your viewer (consult the manual for your router to find out how to do this - usually this will be in a section called "port forwarding" or "NAT")
 
 If you made sure that the port is forwarded correctly and still not receiving the video stream, try the following:

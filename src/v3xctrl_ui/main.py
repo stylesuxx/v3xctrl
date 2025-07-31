@@ -14,7 +14,7 @@ from v3xctrl_ui.AppState import AppState
 from v3xctrl_ui.MemoryTracker import MemoryTracker
 
 from v3xctrl_control import State
-from v3xctrl_control.Message import Telemetry, Control, Latency
+from v3xctrl_control.Message import Message, Telemetry, Control, Latency
 
 
 parser = argparse.ArgumentParser(description="RC Streamer")
@@ -52,13 +52,12 @@ Load settings from file.
 
 We have different kind of settings:
 1. Settings that require restart to take effect (e.g. ports, video settings)
-2. Settings that can be hot reloaded (e.g. controls, debug)
+2. Settings that can be hot reloaded
 3. Settings for which no UI elements are available (edit via config file only)
 """
 settings = Init.settings("settings.toml")
 
 # Those settings can be hot reloaded
-controls = settings.get("controls")
 debug = settings.get("debug")
 input = settings.get("input", {})
 widgets = settings.get("widgets", {})
@@ -79,9 +78,6 @@ VIDEO_SIZE = (VIDEO["width"], VIDEO["height"])
 
 # no UI for those settings
 WINDOW_TITLE = settings.get("settings")["title"]
-FPS_SETTINGS = settings.get("widgets")["fps"]
-STEERING_SETTINGS = settings.get("settings")["steering"]
-THROTTLE_SETTINGS = settings.get("settings")["throttle"]
 
 ip = get_external_ip()
 
@@ -94,40 +90,16 @@ if not relay["enabled"]:
     print("================================")
 
 
-def telemetry_handler(state: AppState, message: Telemetry) -> None:
-    values = message.get_values()
-    state.signal_quality = {
-        "rsrq": values["sig"]["rsrq"],
-        "rsrp": values["sig"]["rsrp"],
-    }
-    band = values["cell"]["band"]
-    state.band = f"Band {band}"
-
-    logging.debug(f"Received telemetry message: {values}")
+def message_handler(state: AppState, message: Message) -> None:
+    state.message_handler(message)
 
 
-def latency_handler(state: AppState, message: Latency) -> None:
-    now = time.time()
-    timestamp = message.timestamp
-    diff_ms = round((now - timestamp) * 1000)
-
-    if diff_ms <= 80:
-        state.latency = "green"
-    elif diff_ms <= 150:
-        state.latency = "yellow"
-    else:
-        state.latency = "red"
-
-    state.widgets_debug["latency"].set_value(diff_ms)
-    logging.debug(f"Received latency message: {diff_ms}ms")
+def disconnect_handler(state: AppState) -> None:
+    state.disconnect_handler()
 
 
-def disconnect_handler(state) -> None:
-    state.reset_data()
-
-
-def connect_handler(state) -> None:
-    state.data = "success"
+def connect_handler(state: AppState) -> None:
+    state.connect_handler()
 
 
 gamepad_manager = GamepadManager()
@@ -139,32 +111,35 @@ gamepad_manager.start()
 
 handlers = {
     "messages": [
-        (Telemetry, lambda m: telemetry_handler(state, m)),
-        (Latency, lambda m: latency_handler(state, m)),
+        (Telemetry, lambda message: message_handler(state, message)),
+        (Latency, lambda message: message_handler(state, message)),
       ],
     "states": [(State.CONNECTED, lambda: connect_handler(state)),
                (State.DISCONNECTED, lambda: disconnect_handler(state))]
 }
 
-state = AppState((VIDEO["width"], VIDEO["height"]),
-                 WINDOW_TITLE,
-                 PORTS["video"],
-                 PORTS["control"],
-                 handlers,
-                 FPS_SETTINGS,
-                 controls["keyboard"],
-                 THROTTLE_SETTINGS,
-                 STEERING_SETTINGS)
+state = AppState(
+    (VIDEO["width"], VIDEO["height"]),
+    WINDOW_TITLE,
+    PORTS["video"],
+    PORTS["control"],
+    handlers,
+    settings
+)
 
 
 def update_settings():
-    """ Update settings after exiting menu """
-    global debug, controls, settings, state, widgets, main_loop_fps
+    """
+    Update settings after exiting menu
+
+    Only update settings that can be hot reloaded, some settings need a restart
+    of the application, we do not update those.
+    """
+    global debug, state, widgets, main_loop_fps
     global control_interval, latency_interval
 
     settings = Init.settings()
 
-    controls = settings.get("controls")
     debug = settings.get('debug')
     widgets = settings.get('widgets', {})
 
@@ -184,7 +159,7 @@ def update_settings():
     if "guid" in input:
         gamepad_manager.set_active(input["guid"])
 
-    state.menu = None
+    state.update_settings(settings)
 
 
 def render_all(state):
@@ -232,14 +207,7 @@ def render_all(state):
                 val_rect.topleft = (val_x, y)
                 state.screen.blit(val_surf, val_rect)
 
-    for name, widget in state.widgets.items():
-        display = widgets.get(name, {"display": True}).get("display")
-        if display:
-            widget.draw(state.screen, getattr(state, name))
-
-    if debug:
-        for name, widget in state.widgets_debug.items():
-            widget.draw(state.screen, getattr(state, name))
+    state.render_widgets()
 
     # Render errors on top of main UI
     if state.server_error:
@@ -315,6 +283,7 @@ if relay["enabled"]:
 
 state.setup_ports()
 
+# Main loop
 last_control_update = time.monotonic()
 last_latency_check = last_control_update
 while state.running:
