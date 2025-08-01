@@ -92,7 +92,13 @@ class Control(Message):
 
 class Syn(Message):
     def __init__(self, timestamp: float = None):
-        super().__init__({}, timestamp)
+        self.version = 1
+        super().__init__({
+            "v": self.version
+        }, timestamp)
+
+    def get_version(self) -> int:
+        return self.version
 
 
 class Ack(Message):
