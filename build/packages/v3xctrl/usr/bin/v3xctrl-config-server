@@ -4,8 +4,8 @@ ENV_PATH="/run/v3xctrl.env"
 source "${ENV_PATH}"
 
 CONFIG_PATH="/etc/${NAME}/config.json"
-SCHEMA_PATH="/etc/${NAME}/schema.json"
-MODEMS_PATH="/etc/${NAME}/modems.json"
+SCHEMA_PATH="/usr/share/${NAME}/schema.json"
+MODEMS_PATH="/usr/share/${NAME}/modems.json"
 
 get_wlan0_ip() {
   ip -4 addr show wlan0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}'
