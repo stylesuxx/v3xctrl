@@ -140,15 +140,17 @@ class TestMessages(unittest.TestCase):
             Message.from_bytes(broken)
 
     def test_partial_payload_handling(self):
-        # Ensure missing optional fields do not break Command
         msg = Command("nop")
         data = msg.to_bytes()
         obj = msgpack.unpackb(data)
         del obj["p"]["p"]  # remove parameters
         repacked = msgpack.packb(obj)
-        # Should raise since constructor won't match kwargs
-        with self.assertRaises(ValueError):
-            Message.from_bytes(repacked)
+
+        deserialized = Message.from_bytes(repacked)
+        self.assertIsInstance(deserialized, Command)
+        self.assertEqual(deserialized.get_command(), "nop")
+        self.assertEqual(deserialized.get_parameters(), {})  # default value
+        self.assertTrue(deserialized.get_command_id())  # default value
 
 
 if __name__ == "__main__":
