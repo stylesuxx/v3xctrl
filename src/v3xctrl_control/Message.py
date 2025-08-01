@@ -91,11 +91,12 @@ class Control(Message):
 
 
 class Syn(Message):
-    def __init__(self, timestamp: float = None):
-        self.version = 1
+    def __init__(self, v: int = 1, timestamp: float = None):
         super().__init__({
-            "v": self.version
+            "v": v
         }, timestamp)
+
+        self.version = v
 
     def get_version(self) -> int:
         return self.version
