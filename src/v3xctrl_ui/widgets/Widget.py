@@ -7,7 +7,9 @@ from pygame import Surface
 
 class Widget(ABC):
     def __init__(self):
-        pass
+        # Subclass must set these before calling super().__init__()
+        assert hasattr(self, 'width'), "Widget subclass must define self.width"
+        assert hasattr(self, 'height'), "Widget subclass must define self.height"
 
     @abstractmethod
     def draw(self, screen: Surface):

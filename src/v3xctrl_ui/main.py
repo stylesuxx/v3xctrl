@@ -12,9 +12,10 @@ from v3xctrl_ui.menu.Menu import Menu
 from v3xctrl_ui.Init import Init
 from v3xctrl_ui.AppState import AppState
 from v3xctrl_ui.MemoryTracker import MemoryTracker
+from v3xctrl_ui.OSD import OSD
 
 from v3xctrl_control import State
-from v3xctrl_control.Message import Message, Telemetry, Control, Latency
+from v3xctrl_control.Message import Message, Telemetry, Latency
 
 
 parser = argparse.ArgumentParser(description="RC Streamer")
@@ -90,16 +91,16 @@ if not relay["enabled"]:
     print("================================")
 
 
-def message_handler(state: AppState, message: Message) -> None:
-    state.message_handler(message)
+def message_handler(osd: OSD, message: Message) -> None:
+    osd.message_handler(message)
 
 
-def disconnect_handler(state: AppState) -> None:
-    state.disconnect_handler()
+def connect_handler(osd: OSD) -> None:
+    osd.connect_handler()
 
 
-def connect_handler(state: AppState) -> None:
-    state.connect_handler()
+def disconnect_handler(osd: OSD) -> None:
+    osd.disconnect_handler()
 
 
 gamepad_manager = GamepadManager()
@@ -111,11 +112,11 @@ gamepad_manager.start()
 
 handlers = {
     "messages": [
-        (Telemetry, lambda message: message_handler(state, message)),
-        (Latency, lambda message: message_handler(state, message)),
+        (Telemetry, lambda message: message_handler(osd, message)),
+        (Latency, lambda message: message_handler(osd, message)),
       ],
-    "states": [(State.CONNECTED, lambda: connect_handler(state)),
-               (State.DISCONNECTED, lambda: disconnect_handler(state))]
+    "states": [(State.CONNECTED, lambda: connect_handler(osd)),
+               (State.DISCONNECTED, lambda: disconnect_handler(osd))]
 }
 
 state = AppState(
@@ -127,6 +128,8 @@ state = AppState(
     settings
 )
 
+osd = OSD(settings)
+
 
 def update_settings():
     """
@@ -135,7 +138,7 @@ def update_settings():
     Only update settings that can be hot reloaded, some settings need a restart
     of the application, we do not update those.
     """
-    global debug, state, widgets, main_loop_fps
+    global debug, state, widgets, main_loop_fps, osd
     global control_interval, latency_interval
 
     settings = Init.settings()
@@ -160,9 +163,10 @@ def update_settings():
         gamepad_manager.set_active(input["guid"])
 
     state.update_settings(settings)
+    osd.update_settings(settings)
 
 
-def render_all(state):
+def render_all(state: AppState):
     frame = None
     if state.video_receiver:
         with state.video_receiver.frame_lock:
@@ -207,7 +211,22 @@ def render_all(state):
                 val_rect.topleft = (val_x, y)
                 state.screen.blit(val_surf, val_rect)
 
-    state.render_widgets()
+    data_left = 0
+    if state.server and not state.server_error:
+        data_left = state.server.transmitter.queue.qsize()
+    else:
+        osd.update_debug_status("fail")
+
+    osd.update_data_queue(data_left)
+    osd.set_control(state.throttle, state.steering)
+
+    loop_history = state.loop_history.copy()
+
+    video_history = None
+    if state.video_receiver is not None:
+        video_history = state.video_receiver.history.copy()
+
+    osd.render(state.screen, loop_history, video_history)
 
     # Render errors on top of main UI
     if state.server_error:
@@ -222,29 +241,11 @@ def render_all(state):
     pygame.display.flip()
 
 
-def handle_control(state):
-    if state.server and not state.server_error and "data" in state.widgets_debug:
-        data_left = state.server.transmitter.queue.qsize()
-        state.widgets_debug["data"].set_value(data_left)
-    else:
-        state.data = "fail"
+def handle_control(state: AppState):
+    pressed_keys = pygame.key.get_pressed()
+    gamepad_inputs = gamepad_manager.read_inputs()
 
-    keys = pygame.key.get_pressed()
-    state.throttle = state.key_handlers["throttle"].update(keys)
-    state.steering = state.key_handlers["steering"].update(keys)
-
-    values = gamepad_manager.read_inputs()
-    if values:
-        state.steering = values["steering"]
-        throttle = values["throttle"]
-        brake = values["brake"]
-        state.throttle = (throttle - brake)
-
-    if state.server and not state.server_error:
-        state.server.send(Control({
-            "steering": state.steering,
-            "throttle": state.throttle,
-        }))
+    state.handle_control(pressed_keys, gamepad_inputs)
 
 
 def handle_events(state):

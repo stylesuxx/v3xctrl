@@ -6,21 +6,10 @@ import threading
 import time
 from typing import Tuple
 
-from v3xctrl_control.Message import Message, Telemetry, Latency
+from v3xctrl_control.Message import Control
 from v3xctrl_helper.exceptions import UnauthorizedError
-from v3xctrl_ui.colors import RED, WHITE
-from v3xctrl_ui.helpers import get_fps, interpolate_steering_color, interpolate_throttle_color
 from v3xctrl_ui.Init import Init
 from v3xctrl_ui.KeyAxisHandler import KeyAxisHandler
-from v3xctrl_ui.widgets import (
-  VerticalIndicatorWidget,
-  HorizontalIndicatorWidget,
-  StatusValueWidget,
-  FpsWidget,
-  SignalQualityWidget,
-  TextWidget,
-  Alignment
-)
 from v3xctrl_ui.Settings import Settings
 
 from v3xctrl_udp_relay.Peer import Peer
@@ -47,13 +36,7 @@ class AppState:
 
         # Initialize settings
         self.settings = settings
-        self.debug_settings = None
-        self.fps_settings = None
         self.control_settings = None
-        self.throttle_settings = None
-        self.steering_settings = None
-        self.widget_settings = None
-        self.update_settings(self.settings)
 
         self.loop_history = deque(maxlen=300)
         self.menu = None
@@ -71,97 +54,10 @@ class AppState:
         self.relay_port = 8888
         self.relay_id = None
 
-        # Data for widgets_debug
-        self.data = None
-        self.latency = None
+        self.throttle = 0
+        self.steering = 0
 
-        # Data for widgets
-        self.throttle = None
-        self.steering = None
-        self.signal_quality = None
-        self.band = "Band ?"
-
-        # Data for battery
-        self.battery_voltage = None
-        self.battery_average_voltage = None
-        self.battery_percent = None
-
-        self.widgets = {
-            "steering": HorizontalIndicatorWidget(
-                pos=(self.size[0] // 2 - 200 - 6, self.size[1] - 30 - 6),
-                size=(412, 22),
-                bar_size=(20, 10),
-                range_mode="symmetric",
-                color_fn=interpolate_steering_color
-            ),
-            "throttle": VerticalIndicatorWidget(
-                pos=(14, self.size[1] - 200 - 20 - 6),
-                size=(32, 212),
-                bar_width=20,
-                range_mode="symmetric",
-                color_fn=interpolate_throttle_color
-            ),
-            "signal_quality": SignalQualityWidget(
-                (self.size[0] - 70 - 10, 10),
-                (70, 50)
-            ),
-            "band": TextWidget(
-                (self.size[0] - 70 - 10, 10 + 50),
-                70
-            )
-        }
-
-        battery_voltage_widget = TextWidget(
-            (self.size[0] - 70 - 10, 10 + 50 + 25 + 18 * 0),
-            70
-        )
-        battery_average_voltage_widget = TextWidget(
-            (self.size[0] - 70 - 10, 10 + 50 + 25 + 18 * 1),
-            70
-        )
-        battery_percent_widget = TextWidget(
-            (self.size[0] - 70 - 10, 10 + 50 + 25 + 18 * 2),
-            70
-        )
-
-        battery_voltage_widget.set_alignment(Alignment.RIGHT)
-        battery_average_voltage_widget.set_alignment(Alignment.RIGHT)
-        battery_percent_widget.set_alignment(Alignment.RIGHT)
-
-        """
-        self.widgets["battery_voltage"] = battery_voltage_widget
-        self.widgets["battery_average_voltage"] = battery_average_voltage_widget
-        self.widgets["battery_percent"] = battery_percent_widget
-        """
-
-        self.widgets_battery = {
-            "battery_voltage": battery_voltage_widget,
-            "battery_average_voltage": battery_average_voltage_widget,
-            "battery_percent": battery_percent_widget
-        }
-
-        self.widgets_debug = {
-          "fps_loop": FpsWidget(
-              (10, 10),
-              (self.fps_settings["width"], self.fps_settings["height"]),
-              "Loop"
-          ),
-          "fps_video": FpsWidget(
-              (10, 10 + self.fps_settings["height"] + 10),
-              (self.fps_settings["width"], self.fps_settings["height"]),
-              "Video"
-          ),
-          "data": StatusValueWidget(
-              position=(10, 180),
-              size=26,
-              label="Data"
-          ),
-          "latency": StatusValueWidget(
-              position=(10, 216),
-              size=26,
-              label="Latency"
-          )
-        }
+        self.update_settings(self.settings)
 
         self.key_handlers = {
             "throttle": KeyAxisHandler(
@@ -177,8 +73,6 @@ class AppState:
                 max_val=1.0
             )
         }
-
-        self.reset_data()
 
     def setup_relay(self, relay_server: str = None, relay_id: str = None) -> None:
         self.relay_enable = True
@@ -239,127 +133,29 @@ class AppState:
 
         threading.Thread(target=task, daemon=True).start()
 
-    @property
-    def fps_loop(self) -> float:
-        return get_fps(self.loop_history.copy())
-
-    @property
-    def fps_video(self) -> float:
-        if self.video_receiver is None:
-            return 0.0
-
-        return get_fps(self.video_receiver.history.copy())
-
-    def reset_data(self) -> None:
-        # Data for widgets_debug
-        self.data = "waiting"
-        self.latency = "default"
-
-        # Data for widgets
-        self.throttle = 0.0
-        self.steering = 0.0
-        self.signal_quality = {
-            "rsrq": -1,
-            "rsrp": -1,
-        }
-
-        # Data for battery
-        self.battery_voltage = "0.00V"
-        self.battery_average_voltage = "0.00V"
-        self.battery_percent = "100%"
-        self.battery_warn = False
-
-        self.widgets_debug["latency"].set_value(None)
-
-    def _telemetry_update(self, message: Telemetry) -> None:
-        values = message.get_values()
-        self.signal_quality = {
-            "rsrq": values["sig"]["rsrq"],
-            "rsrp": values["sig"]["rsrp"],
-        }
-        band = values["cell"]["band"]
-        self.band = f"Band {band}"
-
-        battery_voltage = values["bat"]["vol"] / 1000
-        battery_average_voltage = values["bat"]["avg"] / 1000
-        battery_percentage = values["bat"]["pct"]
-
-        self.battery_voltage = f"{battery_voltage:.2f}V"
-        self.battery_average_voltage = f"{battery_average_voltage:.2f}V"
-        self.battery_percent = f"{battery_percentage}%"
-
-        widgets_battery = [
-            "battery_voltage",
-            "battery_average_voltage",
-            "battery_percent"
-        ]
-
-        color = WHITE
-        if values["bat"]["wrn"]:
-            color = RED
-
-        for widget in widgets_battery:
-            self.widgets_battery[widget].set_text_color(color)
-
-        logging.debug(f"Received telemetry message: {values}")
-
-    def _latency_update(self, message: Latency) -> None:
-        now = time.time()
-        timestamp = message.timestamp
-        diff_ms = round((now - timestamp) * 1000)
-
-        if diff_ms <= 80:
-            self.latency = "green"
-        elif diff_ms <= 150:
-            self.latency = "yellow"
-        else:
-            self.latency = "red"
-
-        self.widgets_debug["latency"].set_value(diff_ms)
-        logging.debug(f"Received latency message: {diff_ms}ms")
-
-    def message_handler(self, message: Message) -> None:
-        if isinstance(message, Telemetry):
-            self._telemetry_update(message)
-        elif isinstance(message, Latency):
-            self._latency_update(message)
-
-    def connect_handler(self):
-        self.data = "success"
-
-    def disconnect_handler(self):
-        self.reset_data()
-
     def update_settings(self, settings: Settings):
         self.settings = settings
 
-        self.debug_settings = settings.get("debug")
-        self.fps_settings = settings.get("widgets")["fps"]
         self.control_settings = settings.get("controls")["keyboard"]
-        self.throttle_settings = settings.get("settings")["throttle"]
-        self.steering_settings = settings.get("settings")["steering"]
-        self.widget_settings = settings.get("widgets", {})
 
         self.menu = None
 
-    def render_widgets(self):
-        for name, widget in self.widgets.items():
-            display = self.widget_settings.get(name, {"display": True}).get("display")
-            if display:
-                widget.draw(self.screen, getattr(self, name))
+    def handle_control(self, pressed_keys, gamepad_inputs) -> None:
+        self.throttle = self.key_handlers["throttle"].update(pressed_keys)
+        self.steering = self.key_handlers["steering"].update(pressed_keys)
 
-        index = 0
-        for name, widget in self.widgets_battery.items():
-            display = self.widget_settings.get(name, {"display": True}).get("display")
-            if display:
-                widget.position = (self.size[0] - 70 - 10, 10 + 50 + 25 + 18 * index)
-                widget.draw(self.screen, getattr(self, name))
+        if gamepad_inputs:
+            self.steering = gamepad_inputs["steering"]
 
-                index += 1
+            throttle = gamepad_inputs["throttle"]
+            brake = gamepad_inputs["brake"]
+            self.throttle = (throttle - brake)
 
-        if self.debug_settings:
-            for name, widget in self.widgets_debug.items():
-                widget.draw(self.screen, getattr(self, name))
+        if self.server and not self.server_error:
+            self.server.send(Control({
+                "steering": self.steering,
+                "throttle": self.throttle,
+            }))
 
     def shutdown(self):
         pygame.quit()
