@@ -3,6 +3,8 @@ import subprocess
 from flask import Flask, render_template, request, jsonify
 import json
 
+from routes import register_routes
+
 app = Flask(__name__, template_folder='templates', static_folder='static')
 
 schema_path = None
@@ -108,16 +110,6 @@ def get_dmesg():
     })
 
 
-@app.route('/modem/info', methods=['GET'])
-def get_modem_info():
-    output = subprocess.check_output(
-        ["v3xctrl-modem-info"],
-        stderr=subprocess.DEVNULL
-    ).decode().strip()
-
-    return output
-
-
 @app.route('/services', methods=['GET'])
 def get_services():
     services = [
@@ -174,6 +166,8 @@ def main():
 
     app.run(debug=True, host=args.host, port=args.port)
 
+
+register_routes(app)
 
 if __name__ == '__main__':
     main()

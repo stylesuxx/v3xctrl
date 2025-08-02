@@ -70,11 +70,11 @@
 
       <div id="custom-tabs">
         <ul class="nav nav-tabs" role="tablist">
-          <li class="active"><a href="#editor" role="tab" data-toggle="tab">Config Editor</a></li>
-          <li><a href="#services" role="tab" data-toggle="tab">Services</a></li>
-          <li><a href="#calibration" role="tab" data-toggle="tab">Calibration</a></li>
-          <li><a href="#dmesg" role="tab" data-toggle="tab">DMESG</a></li>
-          <li><a href="#modem" role="tab" data-toggle="tab">Modem</a></li>
+          <li class="editor active"><a href="#editor" role="tab" data-toggle="tab">Config Editor</a></li>
+          <li><a class="services" href="#services" role="tab" data-toggle="tab">Services</a></li>
+          <li><a class="calibration" href="#calibration" role="tab" data-toggle="tab">Calibration</a></li>
+          <li><a class="dmesg" href="#dmesg" role="tab" data-toggle="tab">DMESG</a></li>
+          <li><a class="modem" href="#modem" role="tab" data-toggle="tab">Modem</a></li>
         </ul>
 
         <div class="tab-content" style="margin-top: 20px;">
@@ -252,13 +252,17 @@
           </div>
 
           <div class="tab-pane" id="modem">
+            <div class="form-group">
+              <button class="btn btn-primary reset">
+                Reset
+              </button>
+            </div>
+
             <p>Fetching modem info...</p>
           </div>
         </div>
       </div>
     </div>
-
-    <div id="modal-backdrop" class="modal-backdrop fade hidden"></div>
 
     <div id="genericModal" class="modal fade hidden" tabindex="-1" role="dialog" aria-hidden="true">
       <div class="modal-dialog modal-sm" role="document">
