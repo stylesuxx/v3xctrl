@@ -1,38 +1,44 @@
-from flask import Blueprint, jsonify
+from flask_smorest import Blueprint
+from flask import jsonify
+from flask.views import MethodView
 import json
 import subprocess
 
-modem_blueprint = Blueprint('modem', __name__, url_prefix='/modem')
+blueprint = Blueprint('modem', 'modem', url_prefix='/modem', description='Modem control endpoints')
 
 
-@modem_blueprint.route('/info', methods=['GET'])
-def info():
-    try:
-        output = subprocess.check_output(
-            ["v3xctrl-modem-info"],
-            stderr=subprocess.STDOUT
-        ).decode().strip()
+@blueprint.route('/info')
+class ModemInfo(MethodView):
+    @blueprint.response(200)
+    def get(self):
+        try:
+            output = subprocess.check_output(
+                ["v3xctrl-modem-info"],
+                stderr=subprocess.STDOUT
+            ).decode().strip()
 
-        return jsonify(json.loads(output))
-    except subprocess.CalledProcessError as e:
-        return (jsonify({
-            "error": "Fetching modem info failed",
-            "details": e.output.decode().strip() if e.output else "No output"
-        }), 500)
+            return jsonify(json.loads(output))
+        except subprocess.CalledProcessError as e:
+            return (jsonify({
+                "error": "Fetching modem info failed",
+                "details": e.output.decode().strip() if e.output else "No output"
+            }), 500)
 
 
-@modem_blueprint.route('/reset', methods=['POST'])
-def reset():
-    try:
-        subprocess.check_output(
-            ["v3xctrl-modem-reset"],
-            stderr=subprocess.STDOUT
-        ).decode().strip()
+@blueprint.route('/reset')
+class ModemReset(MethodView):
+    @blueprint.response(200)
+    def post(self):
+        try:
+            subprocess.check_output(
+                ["v3xctrl-modem-reset"],
+                stderr=subprocess.STDOUT
+            ).decode().strip()
 
-        return jsonify({})
+            return jsonify({})
 
-    except subprocess.CalledProcessError as e:
-        return (jsonify({
-            "error": "Modem reset failed",
-            "details": e.output.decode().strip() if e.output else "No output"
-        }), 500)
+        except subprocess.CalledProcessError as e:
+            return (jsonify({
+                "error": "Modem reset failed",
+                "details": e.output.decode().strip() if e.output else "No output"
+            }), 500)

@@ -22,8 +22,8 @@
         const editor = new Editor('#editor', schema, startval, modems);
         const tabs = new Tabs('#custom-tabs');
 
-        registerClickHandlers(editor);
         setCalibrationValues(editor);
+        registerClickHandlers();
       });
     </script>
 
@@ -246,7 +246,9 @@
 
           <div class="tab-pane" id="dmesg">
             <div class="form-group">
-              <button class="btn btn-primary dmesg-refresh">Refresh</button>
+              <button class="btn btn-primary refresh">
+                Refresh
+              </button>
             </div>
 
             <textarea class="form-control" rows="100" readonly></textarea>
