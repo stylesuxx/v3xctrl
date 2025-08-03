@@ -48,7 +48,7 @@ class Version(MethodView):
         for package in packages:
             try:
                 result = subprocess.run(
-                    ["dpkg-query", "-W", "-f='${Version}'", package],
+                    ["dpkg-query", "-W", "-f=${Version}", package],
                     check=True,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.DEVNULL,
