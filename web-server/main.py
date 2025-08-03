@@ -9,6 +9,7 @@ app = Flask(__name__, template_folder='templates', static_folder='static')
 
 schema_path = None
 config_path = None
+modems_path = None
 
 
 @app.route('/')
@@ -17,8 +18,15 @@ def index():
         schema = json.load(f)
     with open(config_path) as f:
         config = json.load(f)
+    with open(modems_path) as f:
+        modems = json.load(f)
 
-    return render_template('index.html', schema=schema, config=config)
+    return render_template(
+        'index.html',
+        schema=schema,
+        config=config,
+        modems=modems
+    )
 
 
 @app.route('/save', methods=['POST'])
@@ -152,17 +160,19 @@ def get_services():
 
 
 def main():
-    global schema_path, config_path
+    global schema_path, config_path, modems_path
 
     parser = argparse.ArgumentParser(description="Run the Form Editor server.")
     parser.add_argument('--schema', required=True, help='Path to schema.json')
     parser.add_argument('--config', required=True, help='Path to config.json')
+    parser.add_argument('--modems', required=True, help='Path to modems.json')
     parser.add_argument('--host', default='0.0.0.0', help='Host to run the server on')
     parser.add_argument('--port', default=5000, type=int, help='Port to run the server on')
     args = parser.parse_args()
 
     schema_path = args.schema
     config_path = args.config
+    modems_path = args.modems
 
     app.run(debug=True, host=args.host, port=args.port)
 
