@@ -17,9 +17,10 @@
       $(function() {
         const schema = {{ schema|tojson }};
         const startval = {{ config|tojson }};
+        const modems = {{ modems|tojson }};
 
-        const editor = new Editor('#editor', schema, startval);
-        const tabs = new Tabs('#custom-tabs', editor);
+        const editor = new Editor('#editor', schema, startval, modems);
+        const tabs = new Tabs('#custom-tabs');
 
         setCalibrationValues(editor);
         registerClickHandlers();

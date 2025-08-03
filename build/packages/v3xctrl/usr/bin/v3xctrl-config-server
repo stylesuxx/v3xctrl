@@ -5,6 +5,7 @@ source "${ENV_PATH}"
 
 CONFIG_PATH="/etc/${NAME}/config.json"
 SCHEMA_PATH="/etc/${NAME}/schema.json"
+MODEMS_PATH="/etc/${NAME}/modems.json"
 
 get_wlan0_ip() {
   ip -4 addr show wlan0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}'
@@ -18,5 +19,6 @@ fi
 v3xctrl-python "/usr/share/${NAME}/config-server/main.py" \
   --config "$CONFIG_PATH" \
   --schema "$SCHEMA_PATH" \
+  --modems "$MODEMS_PATH" \
   --host "$HOST" \
   --port "$network_ports_webinterface"

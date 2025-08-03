@@ -50,6 +50,7 @@ class Telemetry(threading.Thread):
 
         self._running = threading.Event()
         self._lock = threading.Lock()
+
         self._modem = None
         try:
             self._modem = AIR780EU(modem)
@@ -58,12 +59,16 @@ class Telemetry(threading.Thread):
         except Exception as e:
             logging.error("Failed to initialize modem: %s", e)
 
-        self._battery = Battery(
-            battery_min_voltage,
-            battery_max_voltage,
-            battery_warn_voltage,
-            battery_i2c_address
-        )
+        self._battery = None
+        try:
+            self._battery = Battery(
+                battery_min_voltage,
+                battery_max_voltage,
+                battery_warn_voltage,
+                battery_i2c_address
+            )
+        except Exception as e:
+            logging.error("Failed to initialize battery sensor: %s", e)
 
     def _set_signal_unknown(self):
         with self._lock:
@@ -96,12 +101,13 @@ class Telemetry(threading.Thread):
             logging.error("Failed fetching cell information: %s", e)
 
     def _update_battery(self) -> None:
-        self._battery.update()
-        with self._lock:
-            self.telemetry['bat']['vol'] = self._battery.voltage
-            self.telemetry['bat']['avg'] = self._battery.average_voltage
-            self.telemetry['bat']['pct'] = self._battery.percentage
-            self.telemetry['bat']['wrn'] = self._battery.warning
+        if self._battery:
+            self._battery.update()
+            with self._lock:
+                self.telemetry['bat']['vol'] = self._battery.voltage
+                self.telemetry['bat']['avg'] = self._battery.average_voltage
+                self.telemetry['bat']['pct'] = self._battery.percentage
+                self.telemetry['bat']['wrn'] = self._battery.warning
 
     def run(self) -> None:
         self._running.set()

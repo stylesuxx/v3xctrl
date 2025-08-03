@@ -2,9 +2,7 @@
   "title": "Configuration",
   "type": "object",
   "options": {
-    "disable_collapse": true,
-    "disable_edit_json": true,
-    "disable_properties": true
+    "disable_collapse": true
   },
   "properties": {
     "server": {
@@ -12,9 +10,7 @@
       "title": "Server",
       "type": "object",
       "options": {
-        "collapsed": false,
-        "disable_edit_json": true,
-        "disable_properties": true
+        "collapsed": false
       },
       "properties": {
         "mode": {
@@ -54,9 +50,7 @@
       "type": "object",
       "title": "Video",
       "options": {
-        "collapsed": true,
-        "disable_edit_json": true,
-        "disable_properties": true
+        "collapsed": true
       },
       "properties": {
         "width": {
@@ -165,9 +159,7 @@
           "type": "object",
           "title": "Camera Settings",
           "options": {
-            "collapsed": false,
-            "disable_edit_json": true,
-            "disable_properties": true
+            "collapsed": false
           },
           "properties": {
             "enableHdr": {
@@ -187,9 +179,7 @@
       "type": "object",
       "title": "Network",
       "options": {
-        "collapsed": true,
-        "disable_edit_json": true,
-        "disable_properties": true
+        "collapsed": true
       },
       "properties": {
         "ports": {
@@ -197,9 +187,7 @@
           "type": "object",
           "title": "Ports",
           "options": {
-            "collapsed": false,
-            "disable_edit_json": true,
-            "disable_properties": true
+            "collapsed": false
           },
           "properties": {
             "video": {
@@ -227,9 +215,7 @@
           "type": "object",
           "title": "WiFi",
           "options": {
-            "collapsed": false,
-            "disable_edit_json": true,
-            "disable_properties": true
+            "collapsed": false
           },
           "properties": {
             "mode": {
@@ -257,13 +243,33 @@
           "type": "object",
           "title": "Modem",
           "options": {
-            "collapsed": false,
-            "disable_edit_json": true,
-            "disable_properties": true
+            "collapsed": false
           },
           "properties": {
-            "path": {
+            "model": {
               "propertyOrder": 10,
+              "required": true,
+              "title": "Model",
+              "type": "string",
+              "enum": [
+                "generic",
+                "mzuzone-cat1_lte",
+                "mzuzone-cat1_gps",
+                "mzuzone-cat1_eu",
+                "mzuzone-cat1_ea"
+              ],
+              "options": {
+                "enum_titles": [
+                  "Generic",
+                  "McuZone Cat1 LTE",
+                  "McuZone Cat1 GPS",
+                  "McuZone Cat1 EU",
+                  "McuZone Cat1 EA"
+                ]
+              }
+            },
+            "path": {
+              "propertyOrder": 20,
               "title": "Path",
               "type": "string",
               "description": "Path to the modem device",
@@ -271,7 +277,7 @@
             },
             "limitBands": {
               "title": "Limit Bands",
-              "propertyOrder": 20,
+              "propertyOrder": 30,
               "type": "boolean",
               "format": "checkbox",
               "default": false,
@@ -280,7 +286,7 @@
             "allowedBands": {
               "type": "array",
               "title": "Allowed Bands",
-              "propertyOrder": 30,
+              "propertyOrder": 40,
               "items": {
                 "type": "number",
                 "enum": [
@@ -299,7 +305,7 @@
                 ]
               },
               "uniqueItems": true,
-              "default": [1, 3, 7, 8, 20, 28]
+              "default": []
             }
           }
         }
@@ -310,9 +316,7 @@
       "type": "object",
       "title": "Autostart",
       "options": {
-        "collapsed": true,
-        "disable_edit_json": true,
-        "disable_properties": true
+        "collapsed": true
       },
       "description": "Before enabling autostart, make sure that the services work fine when started manually.",
       "properties": {
@@ -337,9 +341,7 @@
       "type": "object",
       "title": "Controls",
       "options": {
-        "collapsed": true,
-        "disable_edit_json": true,
-        "disable_properties": true
+        "collapsed": true
       },
       "properties": {
         "throttle": {
@@ -347,9 +349,7 @@
           "type": "object",
           "title": "Throttle",
           "options": {
-            "collapsed": false,
-            "disable_edit_json": true,
-            "disable_properties": true
+            "collapsed": false
           },
           "properties": {
             "min": {
@@ -411,9 +411,7 @@
           "type": "object",
           "title": "Steering",
           "options": {
-            "collapsed": false,
-            "disable_edit_json": true,
-            "disable_properties": true
+            "collapsed": false
           },
           "properties": {
             "min": {
@@ -470,9 +468,7 @@
           "type": "object",
           "title": "Pin Mapping",
           "options": {
-          "collapsed": false,
-          "disable_edit_json": true,
-          "disable_properties": true
+          "collapsed": false
           },
           "properties": {
               "throttle": {
@@ -552,9 +548,7 @@
       "type": "object",
       "title": "Extras",
       "options": {
-        "collapsed": true,
-        "disable_edit_json": true,
-        "disable_properties": true
+        "collapsed": true
       },
       "properties": {
         "samba": {
