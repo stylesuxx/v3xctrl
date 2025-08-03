@@ -6,11 +6,11 @@ import json
 from routes import register_routes
 
 
-def create_app(schema_path, config_path, modem_path):
+def create_app(schema_path, config_path, modems_path):
     app = Flask(__name__, template_folder='templates', static_folder='static')
     app.config['SCHEMA_PATH'] = schema_path
     app.config['CONFIG_PATH'] = config_path
-    app.config['MODEM_PATH'] = modem_path
+    app.config['MODEMS_PATH'] = modems_path
 
     # Flask-smorest OpenAPI config
     app.config['API_TITLE'] = 'V3XCTRL API'
