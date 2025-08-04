@@ -4,19 +4,43 @@ This is a list of tested and recommended Hardware. **Recommended** means it has 
 
 ## Recommended
 
-* [Raspberry PI Zero 2 W](https://www.raspberrypi.com/products/raspberry-pi-zero-2-w/)
+| Component | Comment | EU | US | China |
+|-----------|---------|----|----|-------|
+| Raspberry PI Zero 2 W | without soldered pins | [Berrybase](https://www.berrybase.de/raspberry-pi-zero-2-w) | | |
+| PiCam V3 (Wide) | only cam with HDR | [Berrybase](https://www.berrybase.de/raspberry-pi-camera-module-3-wide-12mp) | | |
+| MZUZone Cat1 LTE modem | chose appropriate version for your region | | | [AliExpress](https://aliexpress.com/item/1005007960858994.html) |
+| INA231 | smallest battery sensor option | | | [AliExpress](https://aliexpress.com/item/1005008863593081.html) |
+| INA226 | easily available | [Amazon](https://www.amazon.de/-/en/INA226-Bidirectional-Monitoring-Performance-Function/dp/B0CJY2WMNY) | | |
+| 5V BEC | to power RPi and Modem | [Berrybase](https://www.berrybase.de/pololu-s13v20f5-5v-2a-step-up-step-down-spannungsregler) | | |
+
+> Some of the links are affiliate links and the project devs will get a small commission, this comes with no extra costs but supports the project.
+
+* [Berrybase](https://www.berrybase.de/raspberry-pi-zero-2-w)
 * [Cat 1, 4G Modem hat (comes in EU and US versions, with and without GPS)](https://aliexpress.com/item/1005007960858994.html) - Explicitly tested firmware versions: `AirM2M_780EU_V1138_LTE_AT`
 * [PiCam V3 (Wide) - only cam so far with HDR](https://www.raspberrypi.com/products/camera-module-3/)
 * [INA231](https://aliexpress.com/item/1005008863593081.html) - smallest breakout board for the INA current/voltage sensor
+
+### 5V BEC
+
+The 5V BEC is optional, often times the speed-controller will have a built in BEC, just make sure that it is 5V (some might be configured to output higher voltage to overdrive the servos).
+
+> If you use an external BEC, make sure it is rated for at least 2A, more if you are also planning on running your servos from this BEC.
 
 ## Tested
 
 ### Modems
 
-* [Cat 1, 4G Modem hat with GPS (Variant: Zero-4G-CAT1-GPS)](https://de.aliexpress.com/item/1005007960858994.html) - Default frequency bands are set for the Chinese (Asian) market: `1, 3, 8, 34, 38, 39, 40, 41`
+* [Cat 1, 4G Modem hat with GPS (Variant: Zero-4G-CAT1-GPS)](https://de.aliexpress.com/item/1005007960858994.html)
+* [Cat 1, 4G Modem hat for EU (Variant: Zero-4G-CAT1-EU)](https://de.aliexpress.com/item/1005007960858994.html)
+
+### Cameras
+
+* RPi Cam v3 - wide
+* RPi Cam v3 - wide (No-IR)
 
 ### Voltage Sensor
 
+* [INA231](https://aliexpress.com/item/1005008863593081.html) - smalles compatible INA breakout board
 * [INA266](https://aliexpress.com/item/1005008541198707.html) - slightly bigger than the INA231, but more readily available on places like Amazon
 
 
