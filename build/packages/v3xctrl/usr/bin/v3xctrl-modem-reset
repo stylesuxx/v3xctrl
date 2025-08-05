@@ -1,5 +1,16 @@
 #! /bin/bash
 ENV_PATH="/run/v3xctrl.env"
+MODEMS_JSON="/etc/v3xctrl/modems.json"
 source "${ENV_PATH}"
 
-v3xctrl-python -m v3xctrl_helper.modem.reset $network_modem_path
+MODEL=$network_modem_model
+
+ARGS=""
+if [ -n "$MODEL" ] && [ "$MODEL" != "generic" ]; then
+    BANDS=$(jq -r --arg model "$MODEL" '.[$model].validBands | join(",")' "$MODEMS_JSON")
+    if [ -n "$BANDS" ] && [ "$BANDS" != "null" ]; then
+        ARGS+="--bands $BANDS "
+    fi
+fi
+
+v3xctrl-python -m v3xctrl_helper.modem.reset $network_modem_path $ARGS

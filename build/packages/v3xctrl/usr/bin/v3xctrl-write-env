@@ -19,7 +19,7 @@ fi
 # Export everything except modem.allowedBands
 jq -r '
   paths(scalars) as $p |
-  select($p != ["modem", "allowedBands"] and ($p[0:2] != ["modem", "allowedBands"])) |
+  select($p != ["network", "modem", "allowedBands"] and ($p[0:3] != ["network", "modem", "allowedBands"])) |
   [($p | map(tostring) | join("_")), (getpath($p))] |
   "\(.[0])=\(.[1])"
 ' "$CONFIG_PATH" > "$ENV_PATH"
