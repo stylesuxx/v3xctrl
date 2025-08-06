@@ -8,7 +8,7 @@ The documentation is split into multiple files:
 
 - [Terminology](https://github.com/stylesuxx/v3xctrl/wiki/Terminology) - read this to understand the terminology of the project
 - [Recommended Hardware](https://github.com/stylesuxx/v3xctrl/wiki/Hardware) - Which hardware you are going to need
-- [Streamer Setup](v/stylesuxx/v3xctrl/wiki/Streamer) - How to set up your hardware (the streamer)
+- [Streamer Setup](https://github.com/stylesuxx/v3xctrl/wiki/Streamer) - How to set up your hardware (the streamer)
 - [Motivation](https://github.com/stylesuxx/v3xctrl/wiki/Motivation) - If you want to understand why things are implemented as they are, this document should help you
 - [Troubleshooting](https://github.com/stylesuxx/v3xctrl/wiki/Troubleshooting) - read this before opening issues, your problem might have already been solved
 - [Latency Breakdown](https://github.com/stylesuxx/v3xctrl/wiki/Latency) - how much latency is there and where does it come from?
