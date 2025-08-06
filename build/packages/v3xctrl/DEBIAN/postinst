@@ -8,11 +8,15 @@ USER="v3xctrl"
 if ! getent passwd $USER > /dev/null; then
   useradd --system --no-create-home --shell /usr/sbin/nologin $USER
 fi
-usermod -aG video,dialout,systemd-journal,i2c $USER
+
+usermod -aG video,dialout,systemd-journal,i2c,gpio $USER
 
 chown $USER:$USER "/etc/${NAME}"
 find "/etc/${NAME}" -maxdepth 1 -name '*.json' -exec chown $USER:$USER {} +
 chmod 640 "/etc/${NAME}/config.json"
+
+udevadm control --reload-rules
+udevadm trigger
 
 if command -v systemctl >/dev/null 2>&1; then
   # Disable services that we do not need or are handled by other services
@@ -39,7 +43,6 @@ if command -v systemctl >/dev/null 2>&1; then
     bthelper@hci0.service \
     hciuart.service \
     ModemManager.service \
-    pigpiod.service \
     dhcpcd.service
 
   # Enable our services on start
@@ -48,12 +51,10 @@ if command -v systemctl >/dev/null 2>&1; then
     v3xctrl-service-manager.service \
     v3xctrl-cleanup.service \
     v3xctrl-wifi-mode.service \
-    v3xctrl-setup-env.service \
-    v3xctrl-pigpiod.service
+    v3xctrl-setup-env.service
 
   # Make sure the minimum requirements to start the chain after install are in
   # place.
   systemctl restart \
-    v3xctrl-config-server.service \
-    pigpiod.service
+    v3xctrl-config-server.service
 fi

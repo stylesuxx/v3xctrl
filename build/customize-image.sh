@@ -132,6 +132,13 @@ else
 fi
 echo "i2c-dev" >> "$MOUNT_DIR/etc/modules"
 
+echo "[Host] Enable hardware PWM..."
+if grep -q '^#*dtoverlay=pwm-2chan' "$MOUNT_DIR/boot/config.txt"; then  sed -i 's/^#*dtparam=i2c_arm=.*/dtparam=i2c_arm=on/' "$MOUNT_DIR/boot/config.txt"
+  sed -i 's/^#*dtoverlay=pwm-2chan.*/dtoverlay=pwm-2chan,pin=18,func=2,pin2=13,func2=4/' "$MOUNT_DIR/boot/config.txt"
+else
+  echo "dtoverlay=pwm-2chan,pin=18,func=2,pin2=13,func2=4" | tee -a "$MOUNT_DIR/boot/config.txt" > /dev/null
+fi
+
 if ! grep -q 'fsck.repair=yes' "$MOUNT_DIR/boot/cmdline.txt"; then
   sed -i 's/$/ fsck.repair=yes/' "$MOUNT_DIR/boot/cmdline.txt"
 fi

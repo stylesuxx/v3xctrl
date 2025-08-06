@@ -463,25 +463,49 @@
           "default": 500,
           "description": "After this many ms without a control packet, failsafe is triggered"
         },
-        "gpio":{
+        "pwm":{
           "propertyOrder":40,
           "type": "object",
-          "title": "Pin Mapping",
+          "title": "PWM Channel Mapping",
           "options": {
           "collapsed": false
           },
           "properties": {
-              "throttle": {
+            "throttle": {
+              "title": "Throttle PWM channel",
               "propertyOrder": 10,
               "type": "integer",
-              "default": 18,
-              "description": "GPIO for ESC"
+              "default": 0,
+              "required": true,
+              "description": "PWM channel for ESC",
+              "enum": [
+                0,
+                1
+              ],
+              "options": {
+                "enum_titles": [
+                  "0 (Pin 18)",
+                  "1 (Pin 13)"
+                ]
+              }
             },
             "steering": {
               "propertyOrder": 20,
+              "title": "Steering PWM channel",
               "type": "integer",
-              "default": 13,
-              "description": "GPIO for Servo"
+              "default": 1,
+              "required": true,
+              "description": "PWM channel for Servo",
+              "enum": [
+                0,
+                1
+              ],
+              "options": {
+                "enum_titles": [
+                  "0 (Pin 18)",
+                  "1 (Pin 13)"
+                ]
+              }
             }
           }
         }

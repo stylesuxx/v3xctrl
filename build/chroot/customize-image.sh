@@ -16,6 +16,7 @@ curl -L https://kernel.googlesource.com/pub/scm/linux/kernel/git/sforshee/wirele
 curl -L https://kernel.googlesource.com/pub/scm/linux/kernel/git/sforshee/wireless-regdb/+/refs/heads/master/regulatory.db.p7s\?format=TEXT | base64 -d | tee /lib/firmware/regulatory.db.p7s > /dev/null
 
 echo '[CHROOT] Installing dependencies...'
+apt update
 apt install -y /tmp/*.deb
 
 rm -f /tmp/*.deb

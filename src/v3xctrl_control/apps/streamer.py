@@ -9,12 +9,12 @@ CTRL-C will exit the client cleanly
 """
 import argparse
 import logging
-import pigpio
 import signal
 import subprocess
 import sys
 import time
 import traceback
+from rpi_servo_pwm import HardwarePWM
 
 from v3xctrl_control import Client, State
 from v3xctrl_control.Telemetry import Telemetry as TelemetryHandler
@@ -56,10 +56,10 @@ parser.add_argument("--forward-boost", type=int, default=0,
                     help="Minimum pulse width offset for going forward (default: 0)")
 parser.add_argument("--reverse-boost", type=int, default=0,
                     help="Minimum pulse width offset for going reverse (default: 0)")
-parser.add_argument("--gpio-throttle", type=int, default=18,
-                    help="GPIO pin number for throttle signal (default: 18)")
-parser.add_argument("--gpio-steering", type=int, default=13,
-                    help="GPIO pin number for steering signal (default: 13)")
+parser.add_argument("--pwm-channel-throttle", type=int, default=0,
+                    help="PWM channel for throttle signal (default: 0)")
+parser.add_argument("--pwm-channel-steering", type=int, default=1,
+                    help="PWM channel for steering signal (default: 1)")
 parser.add_argument("--modem-path", type=str, default="/dev/ttyACM0",
                     help="Path to modem device (default: /dev/ttyACM0)")
 parser.add_argument("--log", default="ERROR",
@@ -96,8 +96,8 @@ steering_trim = args.steering_trim
 steering_invert = args.steering_invert
 steering_scale = args.steering_scale
 
-throttle_gpio = args.gpio_throttle
-steering_gpio = args.gpio_steering
+pwm_channel_throttle = args.pwm_channel_throttle
+pwm_channel_steering = args.pwm_channel_steering
 
 modem_path = args.modem_path
 
@@ -132,16 +132,15 @@ if steering_invert:
 running = True
 received_command_ids = set()
 
-pi = pigpio.pi()
-pi.set_mode(throttle_gpio, pigpio.OUTPUT)
-pi.set_mode(steering_gpio, pigpio.OUTPUT)
+pwm_throttle = HardwarePWM(pwm_channel_throttle)
+pwm_steering = HardwarePWM(pwm_channel_steering)
 
 steering_center = (steering_max + steering_min) / 2 + steering_trim
 # Clamp result between defined min/max pulewidth
 steering_center = max(steering_min, min(steering_max, steering_center))
 
-pi.set_servo_pulsewidth(throttle_gpio, throttle_idle)
-pi.set_servo_pulsewidth(steering_gpio, steering_center)
+pwm_throttle.setup(int(throttle_idle))
+pwm_steering.setup(int(steering_center))
 
 telemetry = TelemetryHandler(modem_path)
 telemetry.start()
@@ -196,8 +195,9 @@ def control_handler(message: Control) -> None:
         steering_value = clamp(steering_value, steering_min, steering_max)
 
     logging.debug(f"Throttle: {throttle_value}; Steering: {steering_value}")
-    pi.set_servo_pulsewidth(throttle_gpio, throttle_value)
-    pi.set_servo_pulsewidth(steering_gpio, steering_value)
+
+    pwm_throttle.set_pulse_width(int(throttle_value))
+    pwm_steering.set_pulse_width(int(steering_value))
 
 
 def latency_handler(message: Latency) -> None:
@@ -229,9 +229,10 @@ def disconnect_handler() -> None:
     """
     Disconnect counts as failsafe, set values accordingly
     """
-    logging.debug("Failsafe triggered...")
-    pi.set_servo_pulsewidth(throttle_gpio, failsafe_throttle)
-    pi.set_servo_pulsewidth(steering_gpio, failsafe_steering)
+    logging.debug("Disconnected from server...")
+
+    pwm_throttle.set_pulse_width(int(throttle_idle))
+    pwm_steering.set_pulse_width(int(steering_center))
 
 
 def signal_handler(sig, frame):
@@ -277,8 +278,10 @@ finally:
     client.join()
     telemetry.join()
 
-    pi.set_servo_pulsewidth(throttle_gpio, 0)
-    pi.set_servo_pulsewidth(steering_gpio, 0)
-    pi.stop()
+    pwm_throttle.disable()
+    pwm_steering.disable()
+
+    pwm_throttle.close()
+    pwm_steering.close()
 
     sys.exit(0)
