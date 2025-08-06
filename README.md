@@ -6,12 +6,12 @@ This project provides a platform to stream video and control servos via a 4G mob
 
 The documentation is split into multiple files:
 
-- [Terminology](/master/docs/Terminology.md) - read this to understand the terminology of the project
-- [Recommended Hardware](/master/docs/Hardware.md) - Which hardware you are going to need
-- [Streamer Setup](/master/docs/Client.md) - How to set up your hardware (the streamer)
-- [Motivation](/master/docs/Motivation.md) - If you want to understand why things are implemented as they are, this document should help you
-- [Troubleshooting](/master/docs/Troubleshooting.md) - read this before opening issues, your problem might have already been solved
-- [Latency Breakdown](/master/docs/Latency.md) - how much latency is there and where does it come from?
+- [Terminology](https://github.com/stylesuxx/v3xctrl/wiki/Terminology) - read this to understand the terminology of the project
+- [Recommended Hardware](https://github.com/stylesuxx/v3xctrl/wiki/Hardware) - Which hardware you are going to need
+- [Streamer Setup](https://github.com/stylesuxx/v3xctrl/wiki/Streamer) - How to set up your hardware (the streamer)
+- [Motivation](https://github.com/stylesuxx/v3xctrl/wiki/Motivation) - If you want to understand why things are implemented as they are, this document should help you
+- [Troubleshooting](https://github.com/stylesuxx/v3xctrl/wiki/Troubleshooting) - read this before opening issues, your problem might have already been solved
+- [Latency Breakdown](https://github.com/stylesuxx/v3xctrl/wiki/Latency) - how much latency is there and where does it come from?
 
 ## Support
 
@@ -34,7 +34,7 @@ This section is meant to get you up and running within minutes.
 - Electronic speed controller - ESC (with PWM input)
 - Servo (with PWM input)
 
-> Check [Recommended Hardware](/master/docs/Hardware.md) for a list of compatible modems and cameras.
+> Check [Recommended Hardware](https://github.com/stylesuxx/v3xctrl/wiki/Hardware) for a list of compatible modems and cameras.
 
 ### Viewer Configuration
 
@@ -61,7 +61,7 @@ After starting the GUI, enter the Menu and check the *"Enable UDP Relay"* checkb
 
 ### Streamer
 
-Make sure to follow the [Streamer setup guide](/master/docs/Streamer.md#installation-recommended).
+Make sure to follow the [Streamer setup guide](https://github.com/stylesuxx/v3xctrl/wiki/Streamer#installation-recommended).
 
 Once the image is flashed an you have verified you can connect to the streamers web interface under `http://v3xctrl.local:5000` follow the next steps:
 
@@ -78,7 +78,7 @@ Switch to the *"Services"* tab and start the `v3xctrl-video` service, the servic
 
 After a couple of seconds you should see a video feed in the viewer.
 
-> Should this not be the case, follow the [Troubleshooting Guide](/master/docs/Troubleshooting.md#video-stream).
+> Should this not be the case, follow the [Troubleshooting Guide](https://github.com/stylesuxx/v3xctrl/wiki/Troubleshooting#video-stream).
 
 ##### Testing video transmission with camera
 
@@ -88,7 +88,7 @@ In the *"Config Editor"* tab, uncheck the *"Test Video"* checkbox in the video s
 
 After a couple of seconds you should see the live camera feed in the **viewer**.
 
-> Should this not be the case, follow the [Troubleshooting Guide](/master/docs/Troubleshooting.md#video-stream).
+> Should this not be the case, follow the [Troubleshooting Guide](https://github.com/stylesuxx/v3xctrl/wiki/Troubleshooting#video-stream).
 
 #### Calibration
 Calibration is done through the *"Calibration"* tab, make sure the `control` service is inactive, otherwise calibration will not work.
@@ -126,7 +126,7 @@ In the web-interface, check `video` and `control` in the *"Autostart"* section o
 
 #### Testing SIM card
 
-Follow the steps in the [SIM card documentation](/master/docs/SIM.md). To prepare your SIM card. After you have made sure, that the SIM card is usable, insert it into the streamer, switch to the *"Modem"* tab and make sure that the modem is connecting to the carrier network. Make sure that the following points are true:
+Follow the steps in the [SIM card documentation](https://github.com/stylesuxx/v3xctrl/wiki/SIM). To prepare your SIM card. After you have made sure, that the SIM card is usable, insert it into the streamer, switch to the *"Modem"* tab and make sure that the modem is connecting to the carrier network. Make sure that the following points are true:
 
 * *"SIM Status"* shows `OK`
 * *"Carrier"* is **not** `0`
@@ -144,14 +144,14 @@ After this, hit *"Reboot"* on top of the menu and after about a minute, the stre
 
 ## Support
 
-If you have any questions or problems, feel free to open an issue. Please make sure to check the [Troubleshooting Guide](/master/docs/Troubleshooting.md) first, your problem might have already been solved.
+If you have any questions or problems, feel free to open an issue. Please make sure to check the [Troubleshooting Guide](https://github.com/stylesuxx/v3xctrl/wiki/Troubleshooting) first, your problem might have already been solved.
 
 ## Development
 
 Check the following documentation if you are interested in contributing to the project:
 
-- [Development](/master/docs/Development.md) - how to setup your development environment
-- [Release](/master/docs/Release.md) - how to release a new version of the project
+- [Development](https://github.com/stylesuxx/v3xctrl/wiki/Development) - how to setup your development environment
+- [Release](https://github.com/stylesuxx/v3xctrl/wiki/Release) - how to release a new version of the project
 
 ### Contributing
 
