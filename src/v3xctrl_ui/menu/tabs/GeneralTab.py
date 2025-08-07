@@ -1,13 +1,28 @@
 from pygame import Surface
+from typing import Dict, List, Any
 
 from v3xctrl_ui.fonts import LABEL_FONT, MONO_FONT
-from v3xctrl_ui.menu.input import Checkbox, NumberInput, TextInput
+from v3xctrl_ui.menu.input import (
+  BaseInput,
+  BaseWidget,
+  Checkbox,
+  NumberInput,
+  TextInput
+)
+from v3xctrl_ui.Settings import Settings
 
 from .Tab import Tab
 
 
 class GeneralTab(Tab):
-    def __init__(self, settings: dict, width: int, height: int, padding: int, y_offset: int):
+    def __init__(
+        self,
+        settings: Settings,
+        width: int,
+        height: int,
+        padding: int,
+        y_offset: int
+    ) -> None:
         super().__init__(settings, width, height, padding, y_offset)
 
         self.ports = self.settings.get("ports", {})
@@ -18,12 +33,12 @@ class GeneralTab(Tab):
         self.video_input = NumberInput(
             "Video", label_width=90, input_width=75, min_val=1, max_val=65535,
             font=LABEL_FONT, mono_font=MONO_FONT,
-            on_change=lambda v: self._on_port_change("video", v)
+            on_change=lambda value: self._on_port_change("video", value)
         )
         self.control_input = NumberInput(
             "Control", label_width=90, input_width=75, min_val=1, max_val=65535,
             font=LABEL_FONT, mono_font=MONO_FONT,
-            on_change=lambda v: self._on_port_change("control", v)
+            on_change=lambda value: self._on_port_change("control", value)
         )
         self.video_input.value = str(self.ports.get("video", ""))
         self.control_input.value = str(self.ports.get("control", ""))
@@ -55,16 +70,16 @@ class GeneralTab(Tab):
         )
         self.udp_packet_ttl_input.value = str(self.udp_packet_ttl)
 
-        self.port_widgets = [
+        self.port_widgets: List[BaseInput] = [
             self.video_input,
             self.control_input
         ]
-        self.relay_widgets = [
+        self.relay_widgets: List[BaseInput | BaseWidget] = [
             self.relay_server_input,
             self.relay_id_input,
             self.relay_enabled_checkbox
         ]
-        self.misc_widgets = [
+        self.misc_widgets: List[BaseInput] = [
             self.udp_packet_ttl_input
         ]
 
@@ -145,7 +160,7 @@ class GeneralTab(Tab):
 
         y = self._draw_misc_section(surface, y_col1)
 
-    def get_settings(self) -> dict:
+    def get_settings(self) -> Dict[str, Any]:
         return {
             "udp_packet_ttl": self.udp_packet_ttl,
             "ports": self.ports,

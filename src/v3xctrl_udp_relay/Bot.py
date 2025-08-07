@@ -1,12 +1,18 @@
 import discord
 from discord.ext import commands
 import logging
+from typing import Callable, Any
 
 from v3xctrl_udp_relay.SessionStore import SessionStore
 
 
 class Bot(commands.Bot):
-    def __init__(self, db_path: str, token: str, command_prefix='!'):
+    def __init__(
+        self,
+        db_path: str,
+        token: str,
+        command_prefix: str = '!'
+    ) -> None:
         self.token = token
         self.store = SessionStore(db_path)
 
@@ -17,15 +23,15 @@ class Bot(commands.Bot):
 
         self.add_command(self._requestid_command())
 
-    def run_bot(self):
+    def run_bot(self) -> None:
         super().run(self.token)
 
-    async def on_ready(self):
+    async def on_ready(self) -> None:
         logging.info(f"Bot connected as {self.user}")
 
-    def _requestid_command(self):
+    def _requestid_command(self) -> Any | None:
         @commands.command(name="requestid")
-        async def requestid(ctx):
+        async def requestid(ctx: commands.Context[Any]) -> None:
             bot: Bot = ctx.bot
 
             if ctx.guild is not None:

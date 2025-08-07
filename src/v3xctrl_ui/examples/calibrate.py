@@ -1,5 +1,7 @@
 import pygame
 
+from typing import Dict, Any
+
 from v3xctrl_ui.colors import DARK_GREY
 from v3xctrl_ui.fonts import LABEL_FONT
 from v3xctrl_ui.GamepadManager import GamepadManager
@@ -7,7 +9,7 @@ from v3xctrl_ui.menu.calibration.GamepadCalibrationWidget import GamepadCalibrat
 
 
 # This mocks what will be saved in the config file after a calibration
-calibrations = {
+calibrations: Dict[str, Any] = {
     "030003f05e0400008e02000010010000": {
         "steering": {"axis": 0, "min": -1.0, "max": 1.0, "center": 0.0},
         "throttle": {"axis": 4, "min": -1.0, "max": 0.0, "center": None, "invert": True},
@@ -21,11 +23,11 @@ calibrations = {
 }
 
 
-def on_calibration_start():
+def on_calibration_start() -> None:
     print("Calibration started")
 
 
-def on_calibration_done(guid: str, settings: dict):
+def on_calibration_done(guid: str, settings: Dict[str, Any]) -> None:
     print(f"\n[CALIBRATION DONE] Joystick GUID: {guid}")
     for axis, data in settings.items():
         print(f"  {axis.capitalize()} Axis:")

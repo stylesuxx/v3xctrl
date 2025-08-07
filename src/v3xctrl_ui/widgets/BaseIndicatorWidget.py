@@ -8,13 +8,15 @@ from v3xctrl_ui.widgets.Widget import Widget
 class BaseIndicatorWidget(Widget):
     VALID_RANGE_MODES = {"symmetric", "positive"}
 
-    def __init__(self,
-                 pos: Tuple[int, int],
-                 size: Tuple[int, int],
-                 range_mode: str = "symmetric",
-                 color_fn: Optional[Callable[[float], Tuple[int, int, int]]] = None,
-                 bg_alpha: int = 150,
-                 padding: int = 6):
+    def __init__(
+        self,
+        pos: Tuple[int, int],
+        size: Tuple[int, int],
+        range_mode: str = "symmetric",
+        color_fn: Optional[Callable[[float], Tuple[int, int, int]]] = None,
+        bg_alpha: int = 150,
+        padding: int = 6
+    ) -> None:
         """
         pos: (x, y) position of the indicator background
         size: (width, height) of the total indicator area
@@ -32,10 +34,10 @@ class BaseIndicatorWidget(Widget):
         self.padding = padding
 
     @abstractmethod
-    def draw(self, screen: Surface, value: float):
+    def draw(self, screen: Surface, value: float) -> None:
         pass
 
-    def draw_background(self, screen: Surface):
+    def draw_background(self, screen: Surface) -> None:
         surf = Surface((self.width, self.height), SRCALPHA)
         surf.fill((0, 0, 0, self.bg_alpha))
         screen.blit(surf, self.pos)

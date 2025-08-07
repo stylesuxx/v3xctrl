@@ -5,8 +5,10 @@ than you might think.
 from abc import ABC, abstractmethod
 import threading
 import logging
-from typing import Tuple, Callable
+from typing import Tuple, Callable, List
 import time
+
+from v3xctrl_helper import Address, MessageHandler, StateHandler
 
 from .State import State
 from .Message import Message, Heartbeat
@@ -15,12 +17,12 @@ from .Message import Message, Heartbeat
 class Base(threading.Thread, ABC):
     STATE_CHECK_INTERVAL_MS = 1000
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(daemon=True)
 
-        self.state_handlers = []
-        self.subscriptions = []
-        self.message_history = []
+        self.state_handlers: List[StateHandler] = []
+        self.subscriptions: List[MessageHandler] = []
+        self.message_history: List[Tuple[Message, Address]] = []
         self.message_history_length = 50
 
         self.running = threading.Event()
@@ -44,14 +46,14 @@ class Base(threading.Thread, ABC):
         self.last_sent_timestamp = 0
         self.last_sent_timeout = 1
 
-    def subscribe(self, cls: type, handler: Callable[[Message], None]):
+    def subscribe(self, cls: type, handler: Callable[[Message], None]) -> None:
         """ Subscribe to messages. """
         self.subscriptions.append({
             "type": cls,
             "func": handler
         })
 
-    def on(self, state: State, handler: Callable[[None], None]):
+    def on(self, state: State, handler: Callable[[], None]) -> None:
         """ Subscribe to state changes. """
         self.state_handlers.append({
             "state": state,
@@ -67,10 +69,10 @@ class Base(threading.Thread, ABC):
                 handler['func']()
 
     @abstractmethod
-    def send() -> None:
+    def send(self, message: Message) -> None:
         pass
 
-    def heartbeat(self):
+    def heartbeat(self) -> None:
         """
         If nothing has been sent in a while, send a hearbeat to keep the client
         open.
@@ -84,13 +86,13 @@ class Base(threading.Thread, ABC):
             self.transmitter.add_message(message, addr)
             self.last_sent_timestamp = time.time()
 
-    def get_last_address(self) -> Tuple[str, int]:
+    def get_last_address(self) -> Tuple[str, int] | None:
         if len(self.message_history) > 0:
             return self.message_history[-1][1]
 
         return None
 
-    def check_timeout(self):
+    def check_timeout(self) -> None:
         if self.state != State.DISCONNECTED:
             now = time.time()
             if now > self.last_message_timestamp + self.no_message_timeout:

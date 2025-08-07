@@ -14,12 +14,12 @@ PORT = args.port
 
 
 class SelfTestClient:
-    def __init__(self, host, port):
+    def __init__(self, host: str, port: int) -> None:
         self.host = host
         self.port = port
         self.address = (self.host, self.port)
 
-    def tcp_upload(self):
+    def tcp_upload(self) -> None:
         print("> Starting upload test...")
 
         BUFFER_SIZE = 4096
@@ -35,7 +35,7 @@ class SelfTestClient:
                 sock.sendall(chunk)
                 sent_bytes += len(chunk)
 
-    def tcp_download(self):
+    def tcp_download(self) -> None:
         print("> Starting download test...")
 
         BUFFER_SIZE = 4096
@@ -47,7 +47,7 @@ class SelfTestClient:
                 if not data:
                     break
 
-    def udp_latency(self):
+    def udp_latency(self) -> None:
         print("> Starting UDP latency test...")
         BUFFER_SIZE = 1024
         NUM_PACKETS = 100
@@ -87,7 +87,7 @@ class SelfTestClient:
             else:
                 print("\nAll packets were lost. Check your network!")
 
-    def udp_hole_duration(self):
+    def udp_hole_duration(self) -> None:
         print("> Starting UDP hole duration test...")
 
         BUFFER_SIZE = 1024

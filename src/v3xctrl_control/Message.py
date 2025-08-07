@@ -8,38 +8,50 @@ import abc
 import itertools
 import time
 import msgpack
+from typing import Any, Dict, Optional, TypedDict, cast
+
+
+class MessageDict(TypedDict):
+    t: str
+    p: Dict[str, object]
+    d: float
 
 
 class Message(abc.ABC):
     """Abstract Base Class for all messages with built-in serialization."""
 
-    _registry = {}
+    _registry: Dict[str, Any] = {}
 
-    def __init_subclass__(cls, **kwargs):
+    def __init_subclass__(cls, **kwargs: object) -> None:
         """Automatically register subclasses using their class name."""
         Message._registry[cls.__name__] = cls
 
-    def __init__(self, payload: dict, timestamp: float = None):
+    def __init__(
+        self,
+        payload: Dict[str, Any],
+        timestamp: Optional[float] = None
+    ) -> None:
         """Initialize message with a dictionary payload."""
         self.timestamp = time.time() if timestamp is None else timestamp
         self.payload = payload
 
     def to_bytes(self) -> bytes:
         """Serialize the message to bytes using msgpack."""
-        return msgpack.packb({
+        msg: MessageDict = {
             "t": self.type,
             "p": self.payload,
             "d": self.timestamp,
-        })
+        }
+        return msgpack.packb(msg)  # type: ignore[no-untyped-call]
 
     @classmethod
-    def from_bytes(cls, data: bytes):
+    def from_bytes(cls, data: bytes) -> "Message":
         """Dynamically deserialize bytes into the correct message subclass."""
         try:
-            obj = msgpack.unpackb(data)
-            msg_type = obj["t"]
-            timestamp = obj["d"]
-            payload = obj["p"]
+            msg: MessageDict = cast(MessageDict, msgpack.unpackb(data))  # type: ignore[arg-type]
+            msg_type: str = msg["t"]
+            timestamp = msg["d"]
+            payload = msg["p"]
         except (KeyError, TypeError, msgpack.exceptions.ExtraData) as e:
             raise ValueError("Malformed message payload") from e
 
@@ -52,13 +64,13 @@ class Message(abc.ABC):
     def type(self) -> str:
         return self.__class__.__name__
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.type}(payload={self.payload}, timestamp={self.timestamp})"
 
     @staticmethod
     def peek_type(data: bytes) -> str:
         try:
-            obj = msgpack.unpackb(data, strict_map_key=False)
+            obj = cast(MessageDict, msgpack.unpackb(data, strict_map_key=False))  # type: ignore[arg-type]
             return obj.get("t", "Unknown")
         except Exception:
             return "Unknown"
@@ -67,39 +79,37 @@ class Message(abc.ABC):
 class Telemetry(Message):
     """Message type for telemetry data."""
 
-    def __init__(self, v: dict = None, timestamp: float = None):
-        if v is None:
-            v = {}
-
+    def __init__(
+        self,
+        v: Dict[str, Any] = {},
+        timestamp: Optional[float] = None
+    ) -> None:
         super().__init__({
             "v": v
         }, timestamp)
 
         self.values = v
 
-    def get_values(self) -> dict:
+    def get_values(self) -> Dict[str, Any]:
         return self.values
 
 
 class Control(Message):
     """Message type for telemetry data."""
 
-    def __init__(self, v: dict = None, timestamp: float = None):
-        if v is None:
-            v = {}
-
+    def __init__(self, v: Dict[str, Any] = {}, timestamp: Optional[float] = None) -> None:
         super().__init__({
             "v": v
         }, timestamp)
 
         self.values = v
 
-    def get_values(self) -> dict:
+    def get_values(self) -> Dict[str, Any]:
         return self.values
 
 
 class Syn(Message):
-    def __init__(self, v: int = 1, timestamp: float = None):
+    def __init__(self, v: int = 1, timestamp: Optional[float] = None) -> None:
         super().__init__({
             "v": v
         }, timestamp)
@@ -111,17 +121,17 @@ class Syn(Message):
 
 
 class Ack(Message):
-    def __init__(self, timestamp: float = None):
+    def __init__(self, timestamp: Optional[float] = None) -> None:
         super().__init__({}, timestamp)
 
 
 class SynAck(Message):
-    def __init__(self, timestamp: float = None):
+    def __init__(self, timestamp: Optional[float] = None) -> None:
         super().__init__({}, timestamp)
 
 
 class Latency(Message):
-    def __init__(self, timestamp: float = None):
+    def __init__(self, timestamp: Optional[float] = None) -> None:
         super().__init__({}, timestamp)
 
 
@@ -135,7 +145,13 @@ class Command(Message):
         seq = next(cls._command_counter)
         return f"{ts_ns}-{seq}"
 
-    def __init__(self, c: str, p: dict = {}, i: str = None, timestamp: float = None):
+    def __init__(
+        self,
+        c: str,
+        p: Dict[str, Any] = {},
+        i: Optional[str] = None,
+        timestamp: Optional[float] = None
+    ) -> None:
         self.command_id = i or self._generate_command_id()
 
         super().__init__({
@@ -150,7 +166,7 @@ class Command(Message):
     def get_command(self) -> str:
         return self.command
 
-    def get_parameters(self) -> dict:
+    def get_parameters(self) -> Dict[str, Any]:
         return self.parameters
 
     def get_command_id(self) -> str:
@@ -160,7 +176,7 @@ class Command(Message):
 class CommandAck(Message):
     """Acknowledgment message for a Command."""
 
-    def __init__(self, i: str, timestamp: float = None):
+    def __init__(self, i: str, timestamp: Optional[float] = None) -> None:
         super().__init__({
             "i": i
         }, timestamp)
@@ -172,12 +188,12 @@ class CommandAck(Message):
 
 
 class Heartbeat(Message):
-    def __init__(self, timestamp: float = None):
+    def __init__(self, timestamp: Optional[float] = None) -> None:
         super().__init__({}, timestamp)
 
 
 class Error(Message):
-    def __init__(self, e: int, timestamp: float = None):
+    def __init__(self, e: str, timestamp: Optional[float] = None) -> None:
         super().__init__({
             "e": e,
         }, timestamp)
@@ -194,7 +210,13 @@ Message types used for UDP hole punching
 
 
 class PeerAnnouncement(Message):
-    def __init__(self, r: str, i: str, p: str, timestamp: float = None):
+    def __init__(
+        self,
+        r: str,
+        i: str,
+        p: str,
+        timestamp: Optional[float] = None
+    ) -> None:
         super().__init__({
             "r": r,
             "i": i,
@@ -218,7 +240,13 @@ class PeerAnnouncement(Message):
 class PeerInfo(Message):
     """Message for transmitting peer connection details (IP and ports)."""
 
-    def __init__(self, ip: str, video_port: int, control_port: int, timestamp: float = None):
+    def __init__(
+        self,
+        ip: str,
+        video_port: int,
+        control_port: int,
+        timestamp: Optional[float] = None
+    ) -> None:
         super().__init__({
             "ip": ip,
             "video_port": video_port,

@@ -16,12 +16,11 @@ import logging
 import socket
 import threading
 import time
+from typing import Dict, Tuple, Any
 
+from v3xctrl_helper import Address
 from v3xctrl_control.Message import Message, PeerAnnouncement, PeerInfo, Error
 from v3xctrl_udp_relay.SessionStore import SessionStore
-
-
-Addr = tuple[str, int]
 
 
 class Role(Enum):
@@ -35,32 +34,33 @@ class PortType(Enum):
 
 
 class PeerEntry:
-    def __init__(self, addr):
+    def __init__(self, addr: Address) -> None:
         self.addr = addr
         self.ts = time.time()
 
 
 class Session:
-    def __init__(self):
-        self.roles = {
+    def __init__(self) -> None:
+        self.roles: Dict[Role, Dict[PortType, PeerEntry]] = {
             Role.STREAMER: {},
             Role.VIEWER: {}
         }
 
-    def register(self, role: Role, port_type: PortType, addr):
+    def register(self, role: Role, port_type: PortType, addr: Address) -> bool:
+        """Returns true if it is a new peer."""
         new_peer = port_type not in self.roles[role]
         self.roles[role][port_type] = PeerEntry(addr)
 
         return new_peer
 
-    def is_ready(self, role: Role):
+    def is_ready(self, role: Role) -> bool:
         for port_type in PortType:
             if port_type not in self.roles[role]:
                 return False
 
         return True
 
-    def get_peer(self, role: Role, port_type):
+    def get_peer(self, role: Role, port_type: PortType) -> PeerEntry | None:
         return self.roles[role].get(port_type)
 
 
@@ -69,14 +69,14 @@ class UDPRelayServer(threading.Thread):
     CLEANUP_INTERVAL = 1
     RECEIVE_BUFFER = 2048
 
-    def __init__(self, ip: str, port: int, db_path: str):
+    def __init__(self, ip: str, port: int, db_path: str) -> None:
         super().__init__(daemon=True, name="UDPRelayServer")
         self.ip = ip
         self.port = port
         self.store = SessionStore(db_path)
 
         self.sessions: dict[str, Session] = {}
-        self.relay_map: dict[Addr, dict] = {}
+        self.relay_map: dict[Address, Dict[str, Any]] = {}
 
         self.lock = threading.Lock()
         self.relay_lock = threading.Lock()
@@ -90,13 +90,13 @@ class UDPRelayServer(threading.Thread):
         self.running = threading.Event()
         self.running.set()
 
-    def _is_mapping_expired(self, mapping: dict, now: float) -> bool:
+    def _is_mapping_expired(self, mapping: Dict[str, float], now: float) -> bool:
         return (now - mapping["ts"]) > self.TIMEOUT
 
     def _clean_expired_entries(self) -> None:
         while self.running.is_set():
             now = time.time()
-            expired_roles = {}
+            expired_roles: Dict[Tuple[str, Role], Any] = {}
 
             with self.relay_lock:
                 # Phase 1: Identify expired mappings per (session, role)
@@ -143,7 +143,11 @@ class UDPRelayServer(threading.Thread):
 
             time.sleep(self.CLEANUP_INTERVAL)
 
-    def _handle_peer_announcement(self, msg: PeerAnnouncement, addr: Addr):
+    def _handle_peer_announcement(
+        self,
+        msg: PeerAnnouncement,
+        addr: Address
+    ) -> None:
         """Registers peers and sets up relay mappings if both sides are ready."""
         session_id = msg.get_id()
 
@@ -164,7 +168,7 @@ class UDPRelayServer(threading.Thread):
                 logging.info(f"Ignoring announcement for unknown session '{session_id}' from {addr}")
 
                 try:
-                    error_msg = Error(403)
+                    error_msg = Error(str(403))
                     self.sock.sendto(error_msg.to_bytes(), addr)
                 except Exception as e:
                     logging.error(f"Failed to send error message to {addr}: {e}", exc_info=True)
@@ -188,21 +192,22 @@ class UDPRelayServer(threading.Thread):
                     client = session.get_peer(Role.STREAMER, port_type)
                     server = session.get_peer(Role.VIEWER, port_type)
 
-                    with self.relay_lock:
-                        self.relay_map[client.addr] = {
-                            "target": server.addr,
-                            "ts": now,
-                            "session": session_id,
-                            "role": Role.STREAMER,
-                            "port_type": port_type
-                        }
-                        self.relay_map[server.addr] = {
-                            "target": client.addr,
-                            "ts": now,
-                            "session": session_id,
-                            "role": Role.VIEWER,
-                            "port_type": port_type
-                        }
+                    if client and server:
+                        with self.relay_lock:
+                            self.relay_map[client.addr] = {
+                                "target": server.addr,
+                                "ts": now,
+                                "session": session_id,
+                                "role": Role.STREAMER,
+                                "port_type": port_type
+                            }
+                            self.relay_map[server.addr] = {
+                                "target": client.addr,
+                                "ts": now,
+                                "session": session_id,
+                                "role": Role.VIEWER,
+                                "port_type": port_type
+                            }
 
                 logging.info(f"Updated relay mapping for session '{session_id}'")
 
@@ -210,24 +215,26 @@ class UDPRelayServer(threading.Thread):
                     peer_info = PeerInfo(ip=self.ip, video_port=self.port, control_port=self.port)
                     for port_type in PortType:
                         for role in Role:
-                            self.sock.sendto(
-                                peer_info.to_bytes(),
-                                session.get_peer(role, port_type).addr
-                            )
+                            peer = session.get_peer(role, port_type)
+                            if peer:
+                                self.sock.sendto(
+                                    peer_info.to_bytes(),
+                                    peer.addr
+                                )
 
                     logging.info(f"Peer info exchanged: '{session_id}'")
 
                 except Exception as e:
                     logging.error(f"Error sending PeerInfo: {e}", exc_info=True)
 
-    def _forward_packet(self, data: bytes, addr: Addr):
+    def _forward_packet(self, data: bytes, addr: Address) -> None:
         with self.relay_lock:
             entry = self.relay_map.get(addr)
             if entry:
                 self.sock.sendto(data, entry["target"])
                 entry["ts"] = time.time()
 
-    def _handle_packet(self, data: bytes, addr: Addr) -> None:
+    def _handle_packet(self, data: bytes, addr: Address) -> None:
         try:
             if data.startswith(b'\x83\xa1t\xb0PeerAnnouncement'):
                 try:

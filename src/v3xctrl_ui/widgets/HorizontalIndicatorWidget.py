@@ -1,5 +1,5 @@
 from pygame import draw, Surface, Rect
-from typing import Tuple
+from typing import Tuple, Dict, Any
 
 from v3xctrl_ui.colors import WHITE
 from v3xctrl_ui.widgets.BaseIndicatorWidget import BaseIndicatorWidget
@@ -8,11 +8,13 @@ from v3xctrl_helper import clamp
 
 
 class HorizontalIndicatorWidget(BaseIndicatorWidget):
-    def __init__(self,
-                 pos: Tuple[int, int],
-                 size: Tuple[int, int],
-                 bar_size:  Tuple[int, int] = (20, 10),
-                 **kwargs):
+    def __init__(
+        self,
+        pos: Tuple[int, int],
+        size: Tuple[int, int],
+        bar_size:  Tuple[int, int] = (20, 10),
+        **kwargs: Dict[str, Any]
+      ) -> None:
         super().__init__(pos, size, **kwargs)
 
         self.bar_width, self.bar_height = bar_size
@@ -21,7 +23,7 @@ class HorizontalIndicatorWidget(BaseIndicatorWidget):
 
         assert self.range_mode in ("symmetric", "positive"), f"Invalid range_mode: {self.range_mode}"
 
-    def draw(self, screen: Surface, value: float):
+    def draw(self, screen: Surface, value: float) -> None:
         value = clamp(value, -1.0, 1.0)
         color = self.color_fn(value) if self.color_fn else WHITE
 

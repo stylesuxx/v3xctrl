@@ -1,6 +1,8 @@
 import pygame
 from pygame import Surface
 from pygame.freetype import Font
+from typing import Callable, Tuple, Optional
+
 from .BaseWidget import BaseWidget
 
 
@@ -18,7 +20,16 @@ class BaseInput(BaseWidget):
     CURSOR_INTERVAL = 500
     CURSOR_GAP = 2
 
-    def __init__(self, label, label_width, input_width, font: Font, mono_font: Font, on_change=None, input_padding=10):
+    def __init__(
+        self,
+        label: str,
+        label_width: int,
+        input_width: int,
+        font: Font,
+        mono_font: Font,
+        on_change: Optional[Callable[[str], None]] = None,
+        input_padding: int = 10
+    ) -> None:
         super().__init__()
         self.label = label
         self.label_width = label_width
@@ -46,14 +57,14 @@ class BaseInput(BaseWidget):
 
         self.label_surface, self.label_rect = self.font.render(label, self.LABEL_COLOR)
 
-    def _draw_input_background(self):
+    def _draw_input_background(self) -> None:
         self.input_surface.fill(self.INPUT_BG_COLOR)
         pygame.draw.line(self.input_surface, self.BORDER_LIGHT_COLOR, (0, 0), (self.input_width - 1, 0))
         pygame.draw.line(self.input_surface, self.BORDER_LIGHT_COLOR, (0, 0), (0, self.input_height - 1))
         pygame.draw.line(self.input_surface, self.BORDER_DARK_COLOR, (0, self.input_height - 1), (self.input_width - 1, self.input_height - 1))
         pygame.draw.line(self.input_surface, self.BORDER_DARK_COLOR, (self.input_width - 1, 0), (self.input_width - 1, self.input_height - 1))
 
-    def set_position(self, x: int, y: int):
+    def set_position(self, x: int, y: int) -> None:
         super().set_position(x, y)
         self.input_rect.x = self.x + self.label_width + self.input_padding
         self.input_rect.y = self.y
@@ -64,7 +75,7 @@ class BaseInput(BaseWidget):
     def get_size(self) -> tuple[int, int]:
         return self.label_width + self.input_padding + self.input_width, self.input_rect.height
 
-    def draw(self, surface: Surface):
+    def draw(self, surface: Surface) -> None:
         text_surface, text_rect = self.mono_font.render(self.value, self.TEXT_COLOR)
         text_rect.right = self.input_rect.right - self.input_padding
         text_rect.centery = self.input_rect.centery
@@ -80,7 +91,7 @@ class BaseInput(BaseWidget):
             cursor_x = text_rect.right - text_width - gap
             pygame.draw.line(surface, self.CURSOR_COLOR, (cursor_x, self.cursor_y_start), (cursor_x, self.cursor_y_end), self.CURSOR_WIDTH)
 
-    def _handle_mouse(self, mouse_pos):
+    def _handle_mouse(self, mouse_pos: Tuple[int, int]) -> None:
         self.focused = self.input_rect.collidepoint(mouse_pos)
         if self.focused:
             text_x = self._get_text_x()
@@ -94,7 +105,7 @@ class BaseInput(BaseWidget):
             self.cursor_visible = True
             self.cursor_timer = pygame.time.get_ticks()
 
-    def _update_cursor_blink(self):
+    def _update_cursor_blink(self) -> None:
         current_time = pygame.time.get_ticks()
         if current_time - self.cursor_timer >= self.CURSOR_INTERVAL:
             self.cursor_visible = not self.cursor_visible
@@ -103,7 +114,7 @@ class BaseInput(BaseWidget):
     def _get_text_x(self) -> int:
         return self.input_rect.right - self.input_padding - self.mono_font.get_rect(self.value).width
 
-    def handle_event(self, event):
+    def handle_event(self, event: pygame.event.Event) -> None:
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             self._handle_mouse(event.pos)
         elif event.type == pygame.KEYDOWN and self.focused:
@@ -123,7 +134,7 @@ class BaseInput(BaseWidget):
                         continue
         return None
 
-    def _handle_keydown(self, event):
+    def _handle_keydown(self, event: pygame.event.Event) -> None:
         mods = pygame.key.get_mods()
 
         # Handle paste from clipboard
@@ -145,5 +156,5 @@ class BaseInput(BaseWidget):
         elif event.key == pygame.K_RIGHT:
             self.cursor_pos = min(len(self.value), self.cursor_pos + 1)
 
-    def get_value(self):
+    def get_value(self) -> int | str:
         return self.value

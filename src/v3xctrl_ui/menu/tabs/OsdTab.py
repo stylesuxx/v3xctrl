@@ -1,13 +1,22 @@
 from pygame import Surface
+from typing import Dict, Any
 
 from v3xctrl_ui.fonts import LABEL_FONT
 from v3xctrl_ui.menu.input import Checkbox
+from v3xctrl_ui.Settings import Settings
 
 from .Tab import Tab
 
 
 class OsdTab(Tab):
-    def __init__(self, settings: dict, width: int, height: int, padding: int, y_offset: int):
+    def __init__(
+        self,
+        settings: Settings,
+        width: int,
+        height: int,
+        padding: int,
+        y_offset: int
+    ) -> None:
         super().__init__(settings, width, height, padding, y_offset)
 
         self.widgets = self.settings.get("widgets", {})
@@ -79,7 +88,7 @@ class OsdTab(Tab):
     def draw(self, surface: Surface) -> None:
         _ = self._draw_debug_section(surface, 0)
 
-    def get_settings(self) -> dict:
+    def get_settings(self) -> Dict[str, Any]:
         return {
             "widgets": self.widgets
         }

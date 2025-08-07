@@ -2,7 +2,7 @@ import argparse
 from atlib import AIR780EU
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Set allowed LTE bands on AIR780EU modem.")
     parser.add_argument("device_path", help="Path to the modem (e.g. /dev/ttyACM0)")
     parser.add_argument("bands", help="Comma-separated list of LTE band integers (e.g. 1,3,7,20)")

@@ -1,31 +1,34 @@
 from pygame import Surface
+from typing import Callable, Dict, List, Any
 
+from v3xctrl_ui.fonts import LABEL_FONT
+from v3xctrl_ui.GamepadManager import GamepadManager
 from v3xctrl_ui.menu.calibration.GamepadCalibrationWidget import (
   GamepadCalibrationWidget
 )
 from v3xctrl_ui.menu.input import KeyMappingWidget
-
-from v3xctrl_ui.fonts import LABEL_FONT
+from v3xctrl_ui.Settings import Settings
 
 from .Tab import Tab
 
 
 class InputTab(Tab):
     def __init__(
-            self,
-            settings: dict,
-            width: int,
-            height: int,
-            padding: int,
-            y_offset: int,
-            gamepad_manager, on_active_toggle
-    ):
+        self,
+        settings: Settings,
+        width: int,
+        height: int,
+        padding: int,
+        y_offset: int,
+        gamepad_manager: GamepadManager,
+        on_active_toggle: Callable[[bool], None]
+    ) -> None:
         super().__init__(settings, width, height, padding, y_offset)
 
         self.on_active_toggle = on_active_toggle
         self.gamepad_manager = gamepad_manager
 
-        self.key_widgets = []
+        self.key_widgets: List[KeyMappingWidget] = []
         keyboard_controls = self.settings.get("controls", {}).get("keyboard", {})
 
         for name, key in keyboard_controls.items():
@@ -50,7 +53,7 @@ class InputTab(Tab):
 
         self.elements = self.key_widgets + [self.calibration_widget]
 
-    def _on_active_toggle(self, active: bool):
+    def _on_active_toggle(self, active: bool) -> None:
         self.on_active_toggle(active)
 
         if active:
@@ -58,17 +61,18 @@ class InputTab(Tab):
         else:
             self._on_calibration_done()
 
-    def _on_control_key_change(self, control_name, key_code):
-        controls = self.settings.get("controls")
-        keyboard = controls.setdefault("keyboard", {})
-        keyboard[control_name] = key_code
+    def _on_control_key_change(self, control_name: str, key_code: int) -> None:
+        controls = self.settings.get("controls", None)
+        if controls:
+            keyboard = controls.setdefault("keyboard", {})
+            keyboard[control_name] = key_code
 
-    def _on_calibration_start(self):
+    def _on_calibration_start(self) -> None:
         self.on_active_toggle(True)
         for widget in self.key_widgets:
             widget.disable()
 
-    def _on_calibration_done(self):
+    def _on_calibration_done(self) -> None:
         self.on_active_toggle(False)
         for widget in self.key_widgets:
             widget.enable()
@@ -95,11 +99,11 @@ class InputTab(Tab):
 
         return y
 
-    def draw(self, surface: Surface):
+    def draw(self, surface: Surface) -> None:
         y = self._draw_keyboard_section(surface, 0)
         y = self._draw_input_section(surface, y)
 
-    def get_settings(self) -> dict:
+    def get_settings(self) -> Dict[str, Any]:
         return {
             "input": {
                 "guid": self.calibration_widget.get_selected_guid()

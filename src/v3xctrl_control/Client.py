@@ -13,7 +13,7 @@ sequentially:
 """
 import socket
 import time
-from typing import Tuple
+from typing import Optional, cast
 
 from .Base import Base
 from .Message import Message, Syn, Ack, Command, CommandAck
@@ -21,15 +21,17 @@ from .MessageHandler import MessageHandler
 from .State import State
 from .UDPTransmitter import UDPTransmitter
 
+from v3xctrl_helper import Address
+
 
 class Client(Base):
     def __init__(
         self,
         host: str,
         port: int,
-        bind_port: int = None,
+        bind_port: Optional[int] = None,
         failsafe_ms: int = 500
-    ):
+    ) -> None:
         super().__init__()
 
         self.host = host
@@ -48,15 +50,16 @@ class Client(Base):
         # receiver
         self.host_ip = socket.gethostbyname(self.host)
 
-    def syn_handler(self, message: Syn, addr: Tuple[str, int]) -> None:
+    def syn_handler(self, message: Message, addr: Address) -> None:
         self.send(Ack())
 
-    def ack_handler(self, message: Ack, addr: Tuple[str, int]) -> None:
+    def ack_handler(self, message: Message, addr: Address) -> None:
         if self.state == State.WAITING:
             self.handle_state_change(State.CONNECTED)
 
-    def command_handler(self, message: Command, addr: Tuple[str, int]) -> None:
+    def command_handler(self, message: Message, addr: Address) -> None:
         """Handles incoming commands by acknowledging them."""
+        message = cast(Command, message)
         command_id = message.get_command_id()
         ack = CommandAck(command_id)
         self.send(ack)
@@ -65,7 +68,7 @@ class Client(Base):
         """Messages are always sent to the server."""
         super()._send(message, self.server_address)
 
-    def initialize(self):
+    def initialize(self) -> None:
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.socket.settimeout(1)
 
@@ -85,7 +88,7 @@ class Client(Base):
         self.message_handler.add_handler(Ack, self.ack_handler)
         self.message_handler.add_handler(Command, self.command_handler)
 
-    def re_initialize(self):
+    def re_initialize(self) -> None:
         """Cleanly tear down the current connection and build a new one."""
         if self.running.is_set():
             self.message_handler.stop()
@@ -98,7 +101,7 @@ class Client(Base):
 
         self.initialize()
 
-    def run(self):
+    def run(self) -> None:
         self.started.set()
 
         self.initialize()
@@ -118,7 +121,7 @@ class Client(Base):
 
             time.sleep(0.005)
 
-    def stop(self):
+    def stop(self) -> None:
         if self.started.is_set():
             self.started.clear()
 

@@ -17,7 +17,7 @@ BUFFER_SIZE = 8096
 TIMEOUT = 30
 
 
-def udp_echo():
+def udp_echo() -> None:
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
         sock.bind((HOST, PORT))
         sock.settimeout(TIMEOUT)

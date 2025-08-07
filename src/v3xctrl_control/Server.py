@@ -1,7 +1,9 @@
-from typing import Tuple
 import threading
 import time
+from typing import Dict, Callable, Optional, cast
 import socket
+
+from v3xctrl_helper import Address
 
 from .Base import Base
 from .Message import Message, Syn, Ack, Command, CommandAck
@@ -14,7 +16,7 @@ class Server(Base):
     COMMAND_MAX_RETRIES = 10
     COMMAND_DELAY = 1
 
-    def __init__(self, port, ttl_ms: int = 100) -> None:
+    def __init__(self, port: int, ttl_ms: int = 100) -> None:
         super().__init__()
 
         self.port = port
@@ -27,15 +29,20 @@ class Server(Base):
         self.transmitter = UDPTransmitter(self.socket, ttl_ms)
         self.message_handler = MessageHandler(self.socket)
 
-        self.pending_commands = {}
+        self.pending_commands: Dict[str, Callable[[bool], None] | None] = {}
         self.pending_lock = threading.Lock()
 
-    def syn_handler(self, message: Syn, addr: Tuple[str, int]) -> None:
+    def syn_handler(self, message: Message, addr: Address) -> None:
         super()._send(Ack(), addr)
         if self.state == State.WAITING:
             self.handle_state_change(State.CONNECTED)
 
-    def command_ack_handler(self, message: CommandAck, addr: Tuple[str, int]) -> None:
+    def command_ack_handler(
+        self,
+        message: Message,
+        addr: Address
+    ) -> None:
+        message = cast(CommandAck, message)
         command_id = message.get_command_id()
         with self.pending_lock:
             callback = self.pending_commands.pop(command_id, None)
@@ -47,12 +54,16 @@ class Server(Base):
         if addr:
             super()._send(message, addr)
 
-    def send_command(self, command: Command, callback: callable = None) -> None:
+    def send_command(
+        self,
+        command: Command,
+        callback: Optional[Callable[[bool], None]] = None
+    ) -> None:
         """Attempts to send a command up to 10 times before failing."""
         command_id = command.get_command_id()
 
-        def retry_task():
-            for attempt in range(self.COMMAND_MAX_RETRIES):
+        def retry_task() -> None:
+            for _ in range(self.COMMAND_MAX_RETRIES):
                 with self.pending_lock:
                     if command_id not in self.pending_commands:
                         return
@@ -72,7 +83,7 @@ class Server(Base):
 
         threading.Thread(target=retry_task, daemon=True).start()
 
-    def run(self):
+    def run(self) -> None:
         self.started.set()
 
         self.transmitter.start()
@@ -98,7 +109,7 @@ class Server(Base):
 
             time.sleep(self.STATE_CHECK_INTERVAL_MS / 1000)
 
-    def stop(self):
+    def stop(self) -> None:
         if self.started.is_set():
             self.started.clear()
 

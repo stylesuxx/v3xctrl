@@ -22,8 +22,7 @@ class TextWidget(Widget):
         bottom_padding: int = 4,
         left_padding: int = 4,
         right_padding: int = 4
-    ):
-
+    ) -> None:
         self.position = position
         self.length = length
         self.top_padding = top_padding

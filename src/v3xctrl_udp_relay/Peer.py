@@ -2,15 +2,17 @@ import logging
 import socket
 import time
 import threading
+from typing import Dict, List, Any
 
 from v3xctrl_control.Message import PeerAnnouncement, Message, PeerInfo, Error
 from v3xctrl_helper.exceptions import UnauthorizedError
+from v3xctrl_helper import Address
 
 
 class Peer:
     ANNOUNCE_INTERVAL = 1
 
-    def __init__(self, server: str, port: int, session_id: str):
+    def __init__(self, server: str, port: int, session_id: str) -> None:
         self.server = server
         self.port = port
         self.session_id = session_id
@@ -22,7 +24,12 @@ class Peer:
         logging.info(f"Bound {name} socket to {sock.getsockname()}")
         return sock
 
-    def _register_with_relay(self, sock: socket.socket, port_type: str, role: str) -> PeerInfo | None:
+    def _register_with_relay(
+        self,
+        sock: socket.socket,
+        port_type: str,
+        role: str
+    ) -> PeerInfo | None:
         announcement = PeerAnnouncement(r=role, i=self.session_id, p=port_type)
         sock.settimeout(1)
 
@@ -55,13 +62,17 @@ class Peer:
                     logging.error(f"Response Error: {error}")
                     raise UnauthorizedError()
 
-    def _register_all(self, sockets: dict[str, socket.socket], role: str) -> dict[str, PeerInfo]:
-        results = {pt: [None] for pt in sockets.keys()}
-        exceptions = []
+    def _register_all(
+        self,
+        sockets: Dict[str, socket.socket],
+        role: str
+    ) -> Dict[str, PeerInfo]:
+        results: Dict[str, Any] = {port_type: [None] for port_type in sockets.keys()}
+        exceptions: List[Exception] = []
 
-        def reg_worker(pt):
+        def reg_worker(port_type: str) -> None:
             try:
-                results[pt][0] = self._register_with_relay(sockets[pt], pt, role)
+                results[port_type][0] = self._register_with_relay(sockets[port_type], port_type, role)
             except Exception as e:
                 exceptions.append(e)
 
@@ -76,17 +87,17 @@ class Peer:
 
         return {pt: results[pt][0] for pt in results}
 
-    def _finalize_sockets(self, sockets: dict[str, socket.socket]):
+    def _finalize_sockets(self, sockets: Dict[str, socket.socket]) -> None:
         for sock in sockets.values():
             sock.settimeout(None)
             sock.close()
 
-    def setup(self, role: str, ports: dict[str, int]) -> dict[str, PeerInfo]:
-        sockets = {}
+    def setup(self, role: str, ports: Dict[str, int]) -> Dict[str, Address]:
+        sockets: Dict[str, socket.socket] = {}
         for port_type, port in ports.items():
             upper_pt = port_type.upper()
-            socket = self._bind_socket(upper_pt, port)
-            sockets[port_type] = socket
+            sock = self._bind_socket(upper_pt, port)
+            sockets[port_type] = sock
 
         peer_info_map = self._register_all(sockets, role)
         self._finalize_sockets(sockets)
@@ -98,5 +109,5 @@ class Peer:
 
         return address_map
 
-    def abort(self):
+    def abort(self) -> None:
         self._abort_event.set()

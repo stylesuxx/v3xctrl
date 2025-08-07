@@ -9,7 +9,12 @@ from v3xctrl_ui.widgets.Widget import Widget
 
 
 class FpsWidget(Widget):
-    def __init__(self, position: Tuple[int, int], size: Tuple[int, int], label: str):
+    def __init__(
+        self,
+        position: Tuple[int, int],
+        size: Tuple[int, int],
+        label: str
+    ) -> None:
         self.position = position
 
         self.size = size

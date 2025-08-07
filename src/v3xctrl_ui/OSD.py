@@ -6,7 +6,11 @@ from typing import Optional
 
 from v3xctrl_control.Message import Message, Latency, Telemetry
 from v3xctrl_ui.colors import RED, WHITE
-from v3xctrl_ui.helpers import get_fps, interpolate_steering_color, interpolate_throttle_color
+from v3xctrl_ui.helpers import (
+  get_fps,
+  interpolate_steering_color,
+  interpolate_throttle_color
+)
 from v3xctrl_ui.Settings import Settings
 from v3xctrl_ui.widgets import (
     Alignment,

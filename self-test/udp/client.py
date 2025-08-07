@@ -17,7 +17,7 @@ REPORT_INTERVAL = args.interval * 60
 BUFFER_SIZE = 1024
 
 
-def udp_rtt_test():
+def udp_rtt_test() -> None:
     buffer_window = []
 
     send_time = time.time()
@@ -63,7 +63,7 @@ def udp_rtt_test():
             time.sleep(1)
 
 
-def print_combined_rtt_report(buffer, now):
+def print_combined_rtt_report(buffer: bytes, now: int) -> None:
     timestamp = datetime.datetime.now().replace(microsecond=0).isoformat()
 
     buffer_all = [rtt for t, rtt in buffer if now - t <= REPORT_INTERVAL]

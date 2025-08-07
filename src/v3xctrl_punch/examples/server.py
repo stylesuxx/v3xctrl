@@ -21,7 +21,7 @@ DEFAULT_RENDEZVOUS_PORT = 8888
 
 
 class TestServer(TestPeer):
-    def run(self):
+    def run(self) -> None:
         threading.Thread(
             target=self.video_listener,
             daemon=True,
@@ -40,7 +40,7 @@ class TestServer(TestPeer):
         except KeyboardInterrupt:
             logging.info("Exiting...")
 
-    def video_listener(self):
+    def video_listener(self) -> None:
         logging.info(f"[V] Listening on {self.video_sock.getsockname()}")
         while True:
             _, addr = self.video_sock.recvfrom(2048)
@@ -48,7 +48,7 @@ class TestServer(TestPeer):
             logging.info(f"[V] from {addr_formatted}")
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="UDP Punch Server")
     parser.add_argument("id", help="Session ID (required positional argument)")
     parser.add_argument("--server", default=DEFAULT_RENDEZVOUS_SERVER, help="Rendezvous server address")

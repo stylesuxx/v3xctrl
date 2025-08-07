@@ -14,7 +14,7 @@ def format_speed(bytes_received: int, duration: float) -> str:
     return f"{mbps:.2f} Mbps"
 
 
-def run_tcp_upload_server(port: int):
+def run_tcp_upload_server(port: int) -> None:
     print(f"Starting TCP upload server on port {port}...")
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:

@@ -1,7 +1,7 @@
 import pygame
 from pygame import Rect, Surface
 from pygame.freetype import Font
-from typing import Callable
+from typing import Callable, List
 
 from v3xctrl_ui.colors import WHITE, GREY, LIGHT_GREY, MID_GREY
 
@@ -19,13 +19,15 @@ class Select:
     CARET_PADDING = 10
     LABEL_PADDING = 10
 
-    def __init__(self,
-                 label: str,
-                 label_width: int,
-                 width: int,
-                 font: Font,
-                 callback: Callable[[int], None],
-                 selected_index: int = 0):
+    def __init__(
+        self,
+        label: str,
+        label_width: int,
+        width: int,
+        font: Font,
+        callback: Callable[[int], None],
+        selected_index: int = 0
+    ) -> None:
         super().__init__()
 
         self.label = label
@@ -41,19 +43,19 @@ class Select:
 
         self.rect = Rect(0, 0, width, self.OPTION_HEIGHT)
 
-        self.option_surfaces = []
+        self.option_surfaces: List[Surface] = []
         self.options = []
-        self.option_rects = []
+        self.option_rects: List[Rect] = []
         self.full_expanded_rect = None
 
         self.label_surface, self.label_rect = self.font.render(label, self.FONT_COLOR)
         self.caret_surface, _ = self.font.render("▼", self.FONT_COLOR)
 
-    def disable(self):
+    def disable(self) -> None:
         self.disabled = True
         self._render_label_and_caret()
 
-    def enable(self):
+    def enable(self) -> None:
         self.disabled = False
         self._render_label_and_caret()
 
@@ -63,7 +65,7 @@ class Select:
 
         return width, height
 
-    def _render_label_and_caret(self):
+    def _render_label_and_caret(self) -> None:
         color = self.FONT_COLOR_DISABLED if self.disabled else self.FONT_COLOR
         self.label_surface, self.label_rect = self.font.render(self.label, color)
         self.caret_surface, _ = self.font.render("▼", color)
@@ -77,7 +79,7 @@ class Select:
 
         self._update_option_surfaces()
 
-    def set_position(self, x: int, y: int):
+    def set_position(self, x: int, y: int) -> None:
         self.x = x
         self.y = y
 
@@ -85,13 +87,13 @@ class Select:
         self.label_rect.topleft = (x, y + self.rect.height // 2 - self.label_rect.height // 2)
         self._update_option_rects()
 
-    def set_options(self, options: list[str], selected_index: int = 0):
+    def set_options(self, options: list[str], selected_index: int = 0) -> None:
         self.options = options
         self.selected_index = selected_index if 0 <= selected_index < len(options) else 0
         self._update_option_surfaces()
         self._update_option_rects()
 
-    def _update_option_surfaces(self):
+    def _update_option_surfaces(self) -> None:
         self.option_surfaces = []
         color = self.FONT_COLOR_DISABLED if self.disabled else self.FONT_COLOR
         max_text_width = self.rect.width - self.CARET_PADDING * 2 - 10
@@ -109,14 +111,24 @@ class Select:
             rendered, _ = self.font.render(text, color)
             self.option_surfaces.append(rendered)
 
-    def _update_option_rects(self):
+    def _update_option_rects(self) -> None:
         self.option_rects = []
         for i in range(len(self.options)):
-            r = Rect(self.rect.x, self.rect.y + self.OPTION_HEIGHT + i * self.OPTION_HEIGHT, self.width, self.OPTION_HEIGHT)
-            self.option_rects.append(r)
-        self.full_expanded_rect = Rect(self.rect.x, self.rect.y + self.OPTION_HEIGHT, self.width, self.OPTION_HEIGHT * len(self.options))
+            rect = Rect(
+                self.rect.x,
+                self.rect.y + self.OPTION_HEIGHT + i * self.OPTION_HEIGHT,
+                self.width,
+                self.OPTION_HEIGHT
+            )
+            self.option_rects.append(rect)
+        self.full_expanded_rect = Rect(
+            self.rect.x,
+            self.rect.y + self.OPTION_HEIGHT,
+            self.width,
+            self.OPTION_HEIGHT * len(self.options)
+        )
 
-    def handle_event(self, event):
+    def handle_event(self, event: pygame.event.Event) -> None:
         if self.disabled or not self.options:
             return
 
@@ -140,7 +152,7 @@ class Select:
                     self.hover_index = i
                     break
 
-    def draw(self, surface: Surface):
+    def draw(self, surface: Surface) -> None:
         if not self.options:
             return
 
@@ -158,8 +170,9 @@ class Select:
         surface.blit(self.caret_surface, (caret_x, caret_y))
 
         if self.expanded and not self.disabled:
-            pygame.draw.rect(surface, self.BG_COLOR, self.full_expanded_rect)
-            pygame.draw.rect(surface, self.BORDER_COLOR, self.full_expanded_rect, self.BORDER_WIDTH)
+            if self.full_expanded_rect:
+                pygame.draw.rect(surface, self.BG_COLOR, self.full_expanded_rect)
+                pygame.draw.rect(surface, self.BORDER_COLOR, self.full_expanded_rect, self.BORDER_WIDTH)
 
             for i, opt_rect in enumerate(self.option_rects):
                 bg = self.HOVER_COLOR if i == self.hover_index else self.BG_COLOR

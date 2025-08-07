@@ -6,7 +6,7 @@ import json
 from routes import register_routes
 
 
-def create_app(schema_path, config_path, modems_path):
+def create_app(schema_path: str, config_path: str, modems_path: str) -> Flask:
     app = Flask(__name__, template_folder='templates', static_folder='static')
     app.config['SCHEMA_PATH'] = schema_path
     app.config['CONFIG_PATH'] = config_path
@@ -24,7 +24,7 @@ def create_app(schema_path, config_path, modems_path):
     register_routes(api)
 
     @app.route('/')
-    def index():
+    def index() -> str:
         with open(schema_path) as f:
             schema = json.load(f)
         with open(config_path) as f:
@@ -42,7 +42,7 @@ def create_app(schema_path, config_path, modems_path):
     return app
 
 
-def main():
+def main() -> None:
     global schema_path, config_path, modems_path
 
     parser = argparse.ArgumentParser(description="Run the Form Editor server.")

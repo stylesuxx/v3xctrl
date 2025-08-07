@@ -3,13 +3,22 @@ from abc import ABC, abstractmethod
 
 import pygame
 from pygame import Surface, event
+from typing import Dict, List, Any
 
 from v3xctrl_ui.colors import WHITE
 from v3xctrl_ui.fonts import MAIN_FONT, TEXT_FONT
+from v3xctrl_ui.Settings import Settings
 
 
 class Tab(ABC):
-    def __init__(self, settings: dict, width: int, height: int, padding: int, y_offset: int):
+    def __init__(
+        self,
+        settings: Settings,
+        width: int,
+        height: int,
+        padding: int,
+        y_offset: int
+    ) -> None:
         self.settings = settings
         self.width = width
         self.height = height
@@ -22,7 +31,15 @@ class Tab(ABC):
         self.y_note_padding = 14
         self.y_note_padding_bottom = 5
 
-    def _draw_headline(self, surface: Surface, title: str, y: int, draw_top_line: bool = False):
+        self.elements: List[Any] = []
+
+    def _draw_headline(
+        self,
+        surface: Surface,
+        title: str,
+        y: int,
+        draw_top_line: bool = False
+    ) -> int:
         line_padding = 10
         line_width = 2
 
@@ -55,14 +72,14 @@ class Tab(ABC):
 
         return y + note_rect.height
 
-    def handle_event(self, event: event.Event):
+    def handle_event(self, event: event.Event) -> None:
         for element in self.elements:
             element.handle_event(event)
 
     @abstractmethod
-    def get_settings(self) -> dict:
+    def get_settings(self) -> Dict[str, Any]:
         raise NotImplementedError
 
     @abstractmethod
-    def draw(self, surface: Surface):
+    def draw(self, surface: Surface) -> None:
         raise NotImplementedError

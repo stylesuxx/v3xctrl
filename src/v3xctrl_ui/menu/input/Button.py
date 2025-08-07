@@ -2,6 +2,7 @@ import pygame
 from typing import Callable
 from pygame import Rect, Surface
 from pygame.freetype import Font
+from typing import Tuple
 
 from v3xctrl_ui.menu.input.BaseWidget import BaseWidget
 
@@ -20,12 +21,14 @@ class Button(BaseWidget):
     BORDER_WIDTH = 2
     BORDER_RADIUS = 8
 
-    def __init__(self,
-                 label: str,
-                 width: int,
-                 height: int,
-                 font: Font,
-                 callback: Callable):
+    def __init__(
+        self,
+        label: str,
+        width: int,
+        height: int,
+        font: Font,
+        callback: Callable[[], None]
+    ) -> None:
         self.label = label
         self.rect = Rect(0, 0, width, height)
         self.font = font
@@ -40,26 +43,26 @@ class Button(BaseWidget):
     def get_size(self) -> tuple[int, int]:
         return self.rect.width, self.rect.height
 
-    def set_position(self, x: int, y: int):
+    def set_position(self, x: int, y: int) -> None:
         self.rect.topleft = (x, y)
         self._update_label_position()
 
-    def _update_label_position(self):
+    def _update_label_position(self) -> None:
         self.label_rect.center = self.rect.center
 
-    def _render_label(self, color):
+    def _render_label(self, color: Tuple[int, int, int]) -> None:
         self.label_surface, self.label_rect = self.font.render(self.label, color)
         self._update_label_position()
 
-    def disable(self):
+    def disable(self) -> None:
         self.disabled = True
         self._render_label(self.FONT_COLOR_DISABLED)
 
-    def enable(self):
+    def enable(self) -> None:
         self.disabled = False
         self._render_label(self.FONT_COLOR)
 
-    def handle_event(self, event):
+    def handle_event(self, event: pygame.event.Event) -> None:
         if self.disabled:
             return
 
@@ -75,7 +78,7 @@ class Button(BaseWidget):
                 self.callback()
             self.active = False
 
-    def draw(self, surface: Surface):
+    def draw(self, surface: Surface) -> None:
         if self.disabled:
             color = self.BG_COLOR_DISABLED
         elif self.active:

@@ -2,6 +2,7 @@ import socket
 import threading
 import time
 
+from v3xctrl_helper import Address
 from v3xctrl_control.Message import Message, PeerAnnouncement, PeerInfo
 
 PORT = 8888
@@ -15,7 +16,7 @@ sessions = {}
 lock = threading.Lock()
 
 
-def clean_expired_sessions():
+def clean_expired_sessions() -> None:
     while True:
         time.sleep(CLEANUP_INTERVAL)
         now = time.time()
@@ -33,7 +34,11 @@ def clean_expired_sessions():
                 del sessions[sid]
 
 
-def handle_peer_announcement(msg: PeerAnnouncement, addr, sock):
+def handle_peer_announcement(
+    msg: PeerAnnouncement,
+    addr: Address,
+    sock: socket.socket
+) -> None:
     session_id = msg.get_id()
     role = msg.get_role()
     port_type = msg.get_port_type()
@@ -76,7 +81,7 @@ def handle_peer_announcement(msg: PeerAnnouncement, addr, sock):
             del sessions[session_id]
 
 
-def main():
+def main() -> None:
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(('0.0.0.0', PORT))
     print(f"[+] Rendezvous server listening on UDP port {PORT}")

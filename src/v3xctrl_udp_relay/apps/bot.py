@@ -4,7 +4,7 @@ import logging
 from v3xctrl_udp_relay.Bot import Bot
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Run the Discord relay bot.")
     parser.add_argument('token', help='Discord bot token')
     parser.add_argument('--db', '--db-path', dest='db_path', default='relay.db',

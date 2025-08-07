@@ -3,6 +3,7 @@ import logging
 import pygame
 import signal
 import time
+from typing import Dict, Any
 
 from v3xctrl_ui.colors import BLACK, RED, WHITE
 from v3xctrl_ui.fonts import BOLD_24_MONO_FONT, BOLD_32_MONO_FONT
@@ -110,7 +111,7 @@ if "guid" in input:
     gamepad_manager.set_active(input["guid"])
 gamepad_manager.start()
 
-handlers = {
+handlers: Dict[str, Any] = {
     "messages": [
         (Telemetry, lambda message: message_handler(osd, message)),
         (Latency, lambda message: message_handler(osd, message)),
@@ -131,7 +132,7 @@ state = AppState(
 osd = OSD(settings)
 
 
-def update_settings():
+def update_settings() -> None:
     """
     Update settings after exiting menu
 
@@ -166,7 +167,7 @@ def update_settings():
     osd.update_settings(settings)
 
 
-def render_all(state: AppState):
+def render_all(state: AppState) -> None:
     frame = None
     if state.video_receiver:
         with state.video_receiver.frame_lock:
@@ -241,14 +242,14 @@ def render_all(state: AppState):
     pygame.display.flip()
 
 
-def handle_control(state: AppState):
+def handle_control(state: AppState) -> None:
     pressed_keys = pygame.key.get_pressed()
     gamepad_inputs = gamepad_manager.read_inputs()
 
     state.handle_control(pressed_keys, gamepad_inputs)
 
 
-def handle_events(state):
+def handle_events(state: AppState) -> None:
     events = pygame.event.get()
     for event in events:
         if event.type == pygame.QUIT:
@@ -263,7 +264,8 @@ def handle_events(state):
                     gamepad_manager,
                     settings,
                     update_settings,
-                    state.server)
+                    state.server
+                )
             else:
                 state.menu = None
 
@@ -271,7 +273,7 @@ def handle_events(state):
             state.menu.handle_event(event)
 
 
-def signal_handler(sig, frame, state):
+def signal_handler(sig: Any, frame: Any, state: AppState) -> None:
     if state.running:
         state.running = False
         print("Shutting down...")

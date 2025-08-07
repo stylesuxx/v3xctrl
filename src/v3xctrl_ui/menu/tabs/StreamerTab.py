@@ -1,23 +1,33 @@
 import logging
 from pygame import Surface
 import time
+from typing import Callable, Dict, Any
 
 from v3xctrl_control.Message import Command
 
 from v3xctrl_ui.fonts import LABEL_FONT
 from v3xctrl_ui.menu.input import Button
 from v3xctrl_ui.menu.tabs.Tab import Tab
+from v3xctrl_ui.Settings import Settings
 
 
 class StreamerTab(Tab):
-    def __init__(self, settings: dict, width: int, height: int, padding: int, y_offset: int, on_active_toggle: callable, send_command: callable):
+    def __init__(
+        self,
+        settings: Settings,
+        width: int,
+        height: int,
+        padding: int,
+        y_offset: int,
+        on_active_toggle: Callable[[bool], None],
+        send_command: Callable[[Command, Callable[[bool], None]], None]
+    ) -> None:
         super().__init__(settings, width, height, padding, y_offset)
 
         self.on_active_toggle = on_active_toggle
         self.send_command = send_command
 
         self.disabled = False
-        self.elements = []
 
         self.video_stop_button = Button(
             "Stop Video",
@@ -42,7 +52,7 @@ class StreamerTab(Tab):
         self.elements.append(self.video_start_button)
         self.elements.append(self.shutdown_button)
 
-    def _on_command_callback(self, status: bool):
+    def _on_command_callback(self, status: bool) -> None:
         # Wait a bit for the transition to not be "flickering"
         time.sleep(1)
 
@@ -105,8 +115,8 @@ class StreamerTab(Tab):
 
         return y
 
-    def draw(self, surface: Surface):
+    def draw(self, surface: Surface) -> None:
         _ = self._draw_actions_section(surface, 0)
 
-    def get_settings(self) -> dict:
+    def get_settings(self) -> Dict[str, Any]:
         return {}

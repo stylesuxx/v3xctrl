@@ -1,3 +1,5 @@
+from .BaseInput import BaseInput
+from .BaseWidget import BaseWidget
 from .Button import Button
 from .Checkbox import Checkbox
 from .KeyMappingWidget import KeyMappingWidget

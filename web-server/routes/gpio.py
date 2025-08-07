@@ -2,6 +2,7 @@ from flask_smorest import Blueprint
 from flask.views import MethodView
 from marshmallow import Schema, fields
 from rpi_servo_pwm import HardwarePWM
+from typing import Dict, Any
 
 blueprint = Blueprint('gpio', 'gpio', url_prefix='/gpio', description='GPIO control endpoints')
 
@@ -15,7 +16,7 @@ class SetPwmSchema(Schema):
 class SetPwm(MethodView):
     @blueprint.arguments(SetPwmSchema, location="json")
     @blueprint.response(200, description="Set PWM value on a GPIO pin")
-    def post(self, args):
+    def post(self, args: Dict[str, Any]) -> Dict[str, Any]:
         channel = int(args['channel'])
         value = int(args['value'])
 
