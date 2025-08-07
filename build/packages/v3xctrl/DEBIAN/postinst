@@ -15,9 +15,6 @@ chown $USER:$USER "/etc/${NAME}"
 find "/etc/${NAME}" -maxdepth 1 -name '*.json' -exec chown $USER:$USER {} +
 chmod 640 "/etc/${NAME}/config.json"
 
-udevadm control --reload-rules
-udevadm trigger
-
 if command -v systemctl >/dev/null 2>&1; then
   # Disable services that we do not need or are handled by other services
   systemctl disable \
