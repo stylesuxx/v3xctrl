@@ -83,6 +83,12 @@ class API {
     return json;
   }
 
+  static async getVersionInfo() {
+    const json = await this.#get('/streamer/version');
+
+    return json;
+  }
+
   static async resetModem() {
     const json = await this.#post('/modem/reset');
 

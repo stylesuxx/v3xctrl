@@ -15,6 +15,7 @@ class Tabs {
       "editor": this.$panes.filter('#editor'),
       "modem": this.$panes.filter('#modem'),
       "services": this.$panes.filter('#services'),
+      "version": this.$panes.filter('#version'),
     };
 
     this.registerTabHandler();
@@ -54,6 +55,10 @@ class Tabs {
 
         case '#calibration': {
           that.renderCalibration();
+        } break;
+
+        case '#version': {
+          that.renderVersionInfo();
         } break;
 
         default: {
@@ -409,6 +414,38 @@ class Tabs {
     }
 
     $("#modem p").html($table);
+  }
+
+  async renderVersionInfo() {
+    const info = await API.getVersionInfo();
+    const $content = this.tabs.version.find('p');
+
+    const $table = $("<table />", {
+      class: "table"
+    });
+
+    const $thead = $("<thead />");
+    let $row = $("<tr />");
+    $row.append("<th>Package</th>");
+    $row.append("<th>Version</th>");
+    $thead.append($row);
+    $table.append($thead);
+
+    const $tbody = $("<tbody />");
+    $table.append($tbody);
+
+    const keys = Object.keys(info);
+    for(var i = 0; i < keys.length; i += 1) {
+      const name = keys[i];
+      const version = info[name];
+
+      $row = $("<tr />");
+      $row.append(`<td>${name}</td>`);
+      $row.append(`<td>${version}</td>`);
+      $tbody.append($row);
+    }
+
+    $content.html($table);
   }
 
   activateTabFromHash() {

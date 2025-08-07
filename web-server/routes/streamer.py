@@ -33,3 +33,30 @@ class Dmesg(MethodView):
         ).decode().strip()
 
         return {"log": output}
+
+
+@blueprint.route("/version")
+class Version(MethodView):
+    @blueprint.response(200, description="Return package versions")
+    def get(self):
+        packages = [
+            "v3xctrl",
+            "v3xctrl-python",
+        ]
+        versions = {}
+
+        for package in packages:
+            try:
+                result = subprocess.run(
+                    ["dpkg-query", "-W", "-f=${Version}", package],
+                    check=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.DEVNULL,
+                    text=True
+                )
+                version = result.stdout.strip()
+                versions[package] = version
+            except subprocess.CalledProcessError:
+                versions[package] = None
+
+        return versions
