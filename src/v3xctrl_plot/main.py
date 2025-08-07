@@ -1,16 +1,27 @@
-# swr_lte_plotter.py
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
+from matplotlib.table import Table
+from matplotlib.axes import Axes
+from typing import Dict, List, Tuple, Optional, Any
 
 
-def read_s1p(file_path):
-    freqs, s11 = [], []
+def read_s1p(
+    file_path: str
+) -> Tuple[NDArray[Any], NDArray[Any], float | None]:
+    freqs: list[float] = []
+    s11: List[float] = []
     with open(file_path, 'r') as f:
+        data_format: Optional[str] = None
+        freq_unit: Optional[str] = None
+        z0: Optional[float] = None
+
         for line in f:
             if line.startswith('!') or line.strip() == '':
                 continue
+
             if line.lower().startswith('#'):
                 parts = line.lower().split()
                 freq_unit = parts[1]
@@ -35,24 +46,24 @@ def read_s1p(file_path):
 
             s11.append(mag * np.exp(1j * phase))
 
-    freqs = np.array(freqs)
-    s11 = np.array(s11)
+    freqs_np = np.array(freqs)
+    s11_np = np.array(s11)
     if freq_unit == 'hz':
-        freqs /= 1e6
+        freqs_np /= 1e6
     elif freq_unit == 'khz':
-        freqs /= 1e3
+        freqs_np /= 1e3
     elif freq_unit == 'ghz':
-        freqs *= 1e3
+        freqs_np *= 1e3
 
-    return freqs, s11, z0
+    return freqs_np, s11_np, z0
 
 
-def reflection_to_swr(s11):
+def reflection_to_swr(s11: NDArray[Any]) -> NDArray[Any]:
     gamma = np.abs(s11)
     return (1 + gamma) / (1 - gamma)
 
 
-def get_swr_color(swr):
+def get_swr_color(swr: float) -> str:
     if swr <= 1.25:
         return '#00aa00'  # green
     elif swr <= 1.5:
@@ -63,12 +74,12 @@ def get_swr_color(swr):
         return '#ff6666'  # red
 
 
-def apply_band_colors_unified(table, swr_values):
+def apply_band_colors_unified(table: Table, swr_values: NDArray[Any]) -> None:
     for i, swr in enumerate(swr_values):
         color = get_swr_color(swr)
         cell = table[i + 1, 0]  # +1 for header
         cell.set_facecolor(color)
-        cell.set_text_props(color='black')
+        cell.set_text_props(color='black')  # type: ignore[arg-type]
 
 
 lte_bands_full = {
@@ -99,7 +110,13 @@ lte_bands_full = {
 }
 
 
-def plot_lte_bands_center_based(ax, band_type: str, band_data, freqs, swr):
+def plot_lte_bands_center_based(
+    ax: Axes,
+    band_type: str,
+    band_data: Dict[str, Any],
+    freqs: NDArray[Any],
+    swr: NDArray[Any]
+) -> None:
     for i in range(1, len(freqs)):
         if freqs[i] - freqs[i - 1] > 200:
             continue  # Skip large jumps
@@ -143,8 +160,8 @@ if __name__ == '__main__':
     freqs_filtered = freqs[mask]
     swr_filtered = swr[mask]
 
-    def get_band_data(band_type):
-        data = []
+    def get_band_data(band_type: str) -> List[Dict[str, Any]]:
+        data: List[Dict[str, Any]] = []
         for band, ranges in lte_bands_full.items():
             if band_type not in ranges:
                 continue
@@ -155,6 +172,7 @@ if __name__ == '__main__':
                 'Center (MHz)': round(center, 1),
                 'SWR @ Center': round(swr_filtered[idx], 2),
             })
+
         return sorted(data, key=lambda x: x['SWR @ Center'])
 
     df_dl = pd.DataFrame(get_band_data('dl'))

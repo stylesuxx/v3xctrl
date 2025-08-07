@@ -2,7 +2,7 @@ import sqlite3
 import logging
 
 
-def init_db(path):
+def init_db(path: str) -> None:
     with sqlite3.connect(path) as conn:
         cur = conn.cursor()
         cur.execute('''

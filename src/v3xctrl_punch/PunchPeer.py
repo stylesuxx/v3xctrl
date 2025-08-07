@@ -8,6 +8,8 @@ from v3xctrl_control.Message import (
     Syn, SynAck, Ack
 )
 
+from v3xctrl_helper import Address
+
 
 class AckTimeoutError(Exception):
     pass
@@ -16,20 +18,30 @@ class AckTimeoutError(Exception):
 class PunchPeer:
     ANNOUNCE_INTERVAL = 5
 
-    def __init__(self, server, port, session_id, register_timeout: int = 300):
+    def __init__(
+        self,
+        server: str,
+        port: int,
+        session_id: str,
+        register_timeout: int = 300
+    ) -> None:
         self.server = server
         self.port = port
         self.session_id = session_id
         self.register_timeout = register_timeout
 
-    def bind_socket(self, name, port=0):
+    def bind_socket(self, name: str, port: int = 0) -> socket.socket:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.bind(('0.0.0.0', port))
         logging.info(f"Bound {name} socket to {sock.getsockname()}")
 
         return sock
 
-    def register_with_rendezvous(self, sock, announcement_msg):
+    def register_with_rendezvous(
+        self,
+        sock: socket.socket,
+        announcement_msg: PeerAnnouncement
+    ) -> PeerInfo | None:
         assert isinstance(announcement_msg, PeerAnnouncement)
         sock.settimeout(1)
         start_time = time.time()
@@ -57,12 +69,16 @@ class PunchPeer:
         logging.error(f"Timeout registering: {announcement_msg}")
         return None
 
-    def register_all(self, sockets: dict[str, socket.socket], role: str) -> dict[str, PeerInfo]:
-        results = {pt: [None] for pt in sockets.keys()}
+    def register_all(
+        self,
+        sockets: dict[str, socket.socket],
+        role: str
+    ) -> dict[str, PeerInfo]:
+        results = {peer_type: [None] for peer_type in sockets.keys()}
 
-        def reg_worker(pt):
-            ann = PeerAnnouncement(r=role, i=self.session_id, p=pt)
-            results[pt][0] = self.register_with_rendezvous(sockets[pt], ann)
+        def reg_worker(peer_type: str) -> None:
+            ann = PeerAnnouncement(r=role, i=self.session_id, p=peer_type)
+            results[peer_type][0] = self.register_with_rendezvous(sockets[pt], ann)
 
         threads = [threading.Thread(target=reg_worker, args=(pt,)) for pt in sockets]
         for t in threads:
@@ -70,9 +86,15 @@ class PunchPeer:
         for t in threads:
             t.join()
 
-        return {pt: results[pt][0] for pt in results}
+        return {peer_type: results[peer_type][0] for peer_type in results}
 
-    def _handshake(self, sock: socket.socket, addr: tuple, interval: int = 1, timeout: int = 15):
+    def _handshake(
+        self,
+        sock: socket.socket,
+        addr: Address,
+        interval: int = 1,
+        timeout: int = 15
+    ) -> None:
         logging.info(f"Starting handshake with {addr}")
         sock.settimeout(interval)
 
@@ -117,7 +139,11 @@ class PunchPeer:
 
         raise AckTimeoutError(f"No Ack received from {addr} after {timeout:.1f}s")
 
-    def rendezvous_and_punch(self, role: str, sockets: dict[str, socket.socket]) -> tuple[dict[str, PeerInfo], dict[str, tuple]]:
+    def rendezvous_and_punch(
+        self,
+        role: str,
+        sockets: dict[str, socket.socket]
+    ) -> tuple[dict[str, PeerInfo], dict[str, Address]]:
         peer_info = self.register_all(sockets, role=role)
         if not all(isinstance(p, PeerInfo) for p in peer_info.values()):
             raise RuntimeError("Registration failed or incomplete")
@@ -147,12 +173,16 @@ class PunchPeer:
 
         return peer_addresses
 
-    def finalize_sockets(self, sockets: dict[str, socket.socket]):
+    def finalize_sockets(self, sockets: dict[str, socket.socket]) -> None:
         for sock in sockets.values():
             sock.settimeout(None)
             sock.close()
 
-    def setup(self, role: str, ports: dict[str, int]) -> tuple[dict[str, socket.socket], dict[str, PeerInfo], dict[str, tuple]]:
+    def setup(
+        self,
+        role: str,
+        ports: dict[str, int]
+    ) -> tuple[dict[str, socket.socket], dict[str, PeerInfo], dict[str, Address]]:
         sockets = {
             pt: self.bind_socket(pt.upper(), port)
             for pt, port in ports.items()

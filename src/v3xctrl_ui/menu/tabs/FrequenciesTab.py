@@ -1,13 +1,22 @@
 from pygame import Surface
+from typing import Dict, Any
 
 from v3xctrl_ui.fonts import LABEL_FONT, MONO_FONT
 from v3xctrl_ui.menu.input import NumberInput
+from v3xctrl_ui.Settings import Settings
 
 from .Tab import Tab
 
 
 class FrequenciesTab(Tab):
-    def __init__(self, settings: dict, width: int, height: int, padding: int, y_offset: int):
+    def __init__(
+        self,
+        settings: Settings,
+        width: int,
+        height: int,
+        padding: int,
+        y_offset: int
+    ) -> None:
         super().__init__(settings, width, height, padding, y_offset)
 
         self.timing = self.settings.get("timing", {})
@@ -52,7 +61,7 @@ class FrequenciesTab(Tab):
             self.latency_input,
         ]
 
-    def _on_rate_change(self, name: str, value: str):
+    def _on_rate_change(self, name: str, value: str) -> None:
         self.timing[name] = int(value)
 
     def _draw_frequency_section(self, surface: Surface, y: int) -> int:
@@ -71,10 +80,12 @@ class FrequenciesTab(Tab):
         self.latency_input.set_position(self.padding, y)
         self.latency_input.draw(surface)
 
-    def draw(self, surface: Surface):
+        return y
+
+    def draw(self, surface: Surface) -> None:
         _ = self._draw_frequency_section(surface, 0)
 
-    def get_settings(self) -> dict:
+    def get_settings(self) -> Dict[str, Any]:
         return {
             "timing": self.timing
         }

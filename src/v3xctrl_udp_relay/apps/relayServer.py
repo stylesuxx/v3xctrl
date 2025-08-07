@@ -2,11 +2,12 @@ import argparse
 import logging
 import signal
 import sys
+from types import FrameType
 
 from v3xctrl_udp_relay.UDPRelayServer import UDPRelayServer
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Start a UDP relay server.")
     parser.add_argument("ip", help="IP address to bind to")
     parser.add_argument("--port", type=int, default=8888, help="UDP port to bind to (default: 8888)")
@@ -29,7 +30,7 @@ def main():
 
     server = UDPRelayServer(args.ip, args.port, args.db_path)
 
-    def shutdown(signum, frame):
+    def shutdown(signum: int, frame: FrameType | None) -> None:
         logging.info("Shutting down UDPRelayServer...")
         server.shutdown()
         sys.exit(0)

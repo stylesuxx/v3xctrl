@@ -14,8 +14,9 @@ NOTE: Make sure to add observers before starting the GampadManager, otherwise
 """
 
 import pygame
+from pygame.joystick import JoystickType
 import threading
-from typing import Callable, List, Optional, Dict, Set, Tuple
+from typing import Callable, List, Optional, Dict, Set, Tuple, Any
 
 from v3xctrl_helper import clamp
 
@@ -23,26 +24,26 @@ from v3xctrl_helper import clamp
 class GamepadManager(threading.Thread):
     REFRESH_INTERVAL_MS = 1000
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(daemon=True)
         pygame.joystick.init()
 
         self._lock = threading.Lock()
-        self._gamepads: Dict[str, pygame.joystick.Joystick] = {}
-        self._settings: Dict[str, dict] = {}  # Calibration/settings per GUID
-        self._observers: List[Callable[[Dict[str, pygame.joystick.Joystick]], None]] = []
+        self._gamepads: Dict[str, JoystickType] = {}
+        self._settings: Dict[str, Any] = {}  # Calibration/settings per GUID
+        self._observers: List[Callable[[Dict[str, JoystickType]], None]] = []
 
         self._active_guid: Optional[str] = None
-        self._active_gamepad: Optional[pygame.joystick.Joystick] = None
-        self._active_settings: Optional[dict] = None
+        self._active_gamepad: Optional[JoystickType] = None
+        self._active_settings: Optional[Dict[str, Any]] = None
 
         self._previous_guids: Set[str] = set()
 
         self._stop_event = threading.Event()
 
-    def run(self):
+    def run(self) -> None:
         while not self._stop_event.is_set():
-            gamepads: Dict[str, pygame.joystick.Joystick] = {}
+            gamepads: Dict[str, JoystickType] = {}
             for i in range(pygame.joystick.get_count()):
                 try:
                     js = pygame.joystick.Joystick(i)
@@ -75,31 +76,34 @@ class GamepadManager(threading.Thread):
 
             pygame.time.wait(self.REFRESH_INTERVAL_MS)
 
-    def add_observer(self, callback: Callable[[List[pygame.joystick.Joystick]], None]):
+    def add_observer(
+        self,
+        callback: Callable[[Dict[str, JoystickType]], None]
+    ) -> None:
         with self._lock:
             self._observers.append(callback)
 
-    def get_gamepads(self) -> List[pygame.joystick.Joystick]:
+    def get_gamepads(self) -> Dict[str, JoystickType]:
         return self._gamepads
 
-    def get_gamepad(self, guid: str) -> pygame.joystick.Joystick:
+    def get_gamepad(self, guid: str) -> JoystickType:
         return self._gamepads[guid]
 
-    def set_calibration(self, guid: str, settings: dict):
+    def set_calibration(self, guid: str, settings: Dict[str, Any]) -> None:
         with self._lock:
             self._settings[guid] = settings
 
-    def get_calibrations(self) -> List[dict]:
+    def get_calibrations(self) -> Dict[str, Any]:
         return self._settings
 
-    def get_calibration(self, guid: str) -> Optional[dict]:
+    def get_calibration(self, guid: str) -> Any | None:
         return self._settings.get(guid)
 
-    def set_active(self, guid: str):
+    def set_active(self, guid: str) -> None:
         with self._lock:
             self._set_active_unlocked(guid)
 
-    def _set_active_unlocked(self, guid: str):
+    def _set_active_unlocked(self, guid: str) -> None:
         self._active_guid = guid
 
         js = self._gamepads.get(self._active_guid)
@@ -113,10 +117,12 @@ class GamepadManager(threading.Thread):
             self._active_gamepad = js
             self._active_settings = settings
 
-    def _remap_centered(self,
-                        value,
-                        calibrated: Tuple[float, float, float],
-                        normalized: Tuple[float, float, float]) -> float:
+    def _remap_centered(
+        self,
+        value: float,
+        calibrated: Tuple[float, float, float],
+        normalized: Tuple[float, float, float]
+    ) -> float:
         in_min, in_center, in_max = calibrated
         out_min, out_center, out_max = normalized
         if value < in_center:
@@ -127,6 +133,7 @@ class GamepadManager(threading.Thread):
                 return 0
 
             scale = (value - in_min) / in_span
+
             return out_min + out_span * scale
         else:
             in_span = in_max - in_center
@@ -136,12 +143,15 @@ class GamepadManager(threading.Thread):
                 return 0
 
             scale = (value - in_center) / in_span
+
             return out_center + scale * out_span
 
-    def _remap(self,
-               value,
-               calibrated: Tuple[float, float],
-               normalized: Tuple[float, float]) -> float:
+    def _remap(
+        self,
+        value: float,
+        calibrated: Tuple[float, float],
+        normalized: Tuple[float, float]
+    ) -> float:
         in_min, in_max = calibrated
         out_min, out_max = normalized
         in_span = in_max - in_min
@@ -151,6 +161,7 @@ class GamepadManager(threading.Thread):
             return 0
 
         scale = (value - in_min) / in_span
+
         return out_min + scale * out_span
 
     def read_inputs(self) -> Optional[Dict[str, float]]:
@@ -161,7 +172,7 @@ class GamepadManager(threading.Thread):
         if not js or not js.get_init() or not settings:
             return None
 
-        values = {}
+        values: Dict[str, float] = {}
         for key, cfg in settings.items():
             axis = cfg.get("axis")
             if axis is not None and 0 <= axis < js.get_numaxes():
@@ -195,5 +206,5 @@ class GamepadManager(threading.Thread):
 
         return values
 
-    def stop(self):
+    def stop(self) -> None:
         self._stop_event.set()

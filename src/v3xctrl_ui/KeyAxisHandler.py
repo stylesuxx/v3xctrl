@@ -4,20 +4,22 @@ from v3xctrl_helper import clamp
 
 
 class KeyAxisHandler:
-    def __init__(self,
-                 positive: int,
-                 negative: int,
-                 friction: float = 0.03,
-                 max_step: float = 0.10,
-                 hold_ramp_frames: int = 10,
-                 hold_interval: int = 25,
-                 min_tap_interval: int = 3,
-                 avg_window: int = 8,
-                 centering_multiplier: float = 4.0,
-                 min_val: float = -1.0,
-                 max_val: float = 1.0,
-                 deadzone: float = 0.0,
-                 cooldown_frames: int = 3):
+    def __init__(
+        self,
+        positive: int,
+        negative: int,
+        friction: float = 0.03,
+        max_step: float = 0.10,
+        hold_ramp_frames: int = 10,
+        hold_interval: int = 25,
+        min_tap_interval: int = 3,
+        avg_window: int = 8,
+        centering_multiplier: float = 4.0,
+        min_val: float = -1.0,
+        max_val: float = 1.0,
+        deadzone: float = 0.0,
+        cooldown_frames: int = 3
+    ) -> None:
         self.positive = positive
         self.negative = negative
         self.friction = friction
@@ -49,7 +51,6 @@ class KeyAxisHandler:
         return self.friction + (self.max_step - self.friction) * progress
 
     def update(self, keys: ScancodeWrapper) -> float:
-        key_pressed = False
         direction = 0
 
         if keys[self.positive] and not keys[self.negative]:
@@ -65,8 +66,6 @@ class KeyAxisHandler:
             self.last_direction = direction
 
         if direction != 0:
-            key_pressed = True
-
             if self.frames_since_last_tap >= self.min_tap_interval:
                 # Tap
                 self.last_tap_intervals.append(self.frames_since_last_tap)

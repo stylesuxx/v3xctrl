@@ -17,7 +17,7 @@ DEFAULT_RENDEZVOUS_SERVER = 'rendezvous.websium.at'
 DEFAULT_RENDEZVOUS_PORT = 8888
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="UDP Punch Server")
     parser.add_argument("id", help="Session ID (required positional argument)")
     parser.add_argument("--server", default=DEFAULT_RENDEZVOUS_SERVER, help="Rendezvous server address")

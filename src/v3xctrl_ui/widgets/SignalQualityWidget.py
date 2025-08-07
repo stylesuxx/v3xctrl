@@ -3,7 +3,7 @@ import math
 from pygame import Surface, Rect, SRCALPHA
 import pygame
 import pygame.gfxdraw
-from typing import Tuple
+from typing import Tuple, Dict, Any
 
 from v3xctrl_ui.colors import WHITE, GREEN, RED, YELLOW, ORANGE, GREY, BLACK
 from v3xctrl_ui.widgets.Widget import Widget
@@ -20,7 +20,7 @@ class SignalQualityWidget(Widget):
     BAR_COUNT = 5
     SPACING_RATIO = 0.05  # relative to widget width
 
-    def __init__(self, position: Tuple[int, int], size: Tuple[int, int]):
+    def __init__(self, position: Tuple[int, int], size: Tuple[int, int]) -> None:
         self.position = position
         self.width, self.height = size
 
@@ -49,7 +49,7 @@ class SignalQualityWidget(Widget):
     def _rsrp_to_dbm(self, value: int) -> float:
         return -140 if value == 255 else value - 140
 
-    def _rsrq_to_dbm(self, value: int) -> float:
+    def _rsrq_to_dbm(self, value: int) -> float | None:
         if value == 255:
             return None
         return (value - 40) / 2
@@ -116,7 +116,7 @@ class SignalQualityWidget(Widget):
         bg_surface.blit(symbol_surface, (0, 0))
         screen.blit(bg_surface, self.position)
 
-    def draw(self, screen: Surface, signal: dict) -> None:
+    def draw(self, screen: Surface, signal: Dict[str, Any]) -> None:
         rsrp = signal.get('rsrp')
         rsrq = signal.get('rsrq')
 

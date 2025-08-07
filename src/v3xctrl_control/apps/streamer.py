@@ -9,16 +9,19 @@ CTRL-C will exit the client cleanly
 """
 import argparse
 import logging
+from rpi_servo_pwm import HardwarePWM
 import signal
 import subprocess
 import sys
 import time
 import traceback
-from rpi_servo_pwm import HardwarePWM
+import types
+from typing import cast
 
 from v3xctrl_control import Client, State
 from v3xctrl_control.Telemetry import Telemetry as TelemetryHandler
 from v3xctrl_control.Message import (
+  Message,
   Command,
   Control,
   Telemetry,
@@ -130,7 +133,7 @@ if steering_invert:
     trim_multiplier = -1
 
 running = True
-received_command_ids = set()
+received_command_ids: set[str] = set()
 
 pwm_throttle = HardwarePWM(pwm_channel_throttle)
 pwm_steering = HardwarePWM(pwm_channel_steering)
@@ -172,7 +175,8 @@ def map_range(
     return int(servo_min + normalized * (servo_max - servo_min))
 
 
-def control_handler(message: Control) -> None:
+def control_handler(message: Message) -> None:
+    message = cast(Control, message)
     throttle_value = failsafe_throttle
     steering_value = failsafe_steering
 
@@ -191,7 +195,13 @@ def control_handler(message: Control) -> None:
 
         # Map, add trim and clamp
         scaled_steering = raw_steering * steering_multiplier
-        steering_value = map_range(scaled_steering, steering_left, steering_right, steering_min, steering_max) + (steering_trim * trim_multiplier)
+        steering_value = map_range(
+            scaled_steering,
+            steering_left,
+            steering_right,
+            steering_min,
+            steering_max
+        ) + (steering_trim * trim_multiplier)
         steering_value = clamp(steering_value, steering_min, steering_max)
 
     logging.debug(f"Throttle: {throttle_value}; Steering: {steering_value}")
@@ -200,11 +210,13 @@ def control_handler(message: Control) -> None:
     pwm_steering.set_pulse_width(int(steering_value))
 
 
-def latency_handler(message: Latency) -> None:
+def latency_handler(message: Message) -> None:
+    message = cast(Latency, message)
     client.send(message)
 
 
-def command_handler(command: Command) -> None:
+def command_handler(command: Message) -> None:
+    command = cast(Command, command)
     command_id = command.get_command_id()
     if command_id in received_command_ids:
         return
@@ -215,8 +227,8 @@ def command_handler(command: Command) -> None:
     cmd = command.get_command()
     if cmd == "service":
         parameters = command.get_parameters()
-        action = parameters["action"]
-        name = parameters["name"]
+        action: str = parameters["action"]
+        name: str = parameters["name"]
 
         subprocess.run(["sudo", "systemctl", action, name])
     elif cmd == "shutdown":
@@ -235,7 +247,7 @@ def disconnect_handler() -> None:
     pwm_steering.set_pulse_width(int(steering_center))
 
 
-def signal_handler(sig, frame):
+def signal_handler(sig: int, frame: types.FrameType | None) -> None:
     global running
     if running:
         running = False

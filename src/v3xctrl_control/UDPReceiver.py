@@ -20,6 +20,8 @@ import threading
 import time
 from typing import Callable, Tuple, Optional
 
+from v3xctrl_helper import Address
+
 from .Message import Message
 
 
@@ -53,7 +55,7 @@ class UDPReceiver(threading.Thread):
 
         self._running = threading.Event()
 
-        self._queue = queue.Queue(maxsize=100)
+        self._queue: queue.Queue[Tuple[Message, Address]] = queue.Queue(maxsize=100)
         self._worker_thread = threading.Thread(target=self._worker_loop, daemon=True)
 
     def is_valid_message(self, message: Message, addr: Tuple[str, int]) -> bool:
@@ -135,7 +137,7 @@ class UDPReceiver(threading.Thread):
             except Exception as e:
                 logging.error(f"Error in handler: {e}")
 
-    def validate_host(self, host_ip: str):
+    def validate_host(self, host_ip: str) -> None:
         self._expected_host = host_ip
         self._should_validate_host = True
 

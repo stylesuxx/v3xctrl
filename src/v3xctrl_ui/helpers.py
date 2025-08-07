@@ -45,7 +45,7 @@ def interpolate_throttle_color(throttle: float) -> Tuple[int, int, int]:
     return (r, g, b)
 
 
-def get_fps(history: deque, window_seconds: float = 1) -> float:
+def get_fps(history: deque[float], window_seconds: float = 1) -> float:
     now = time.time()
     cutoff = now - window_seconds
     frames = [t for t in history if t >= cutoff]

@@ -3,10 +3,11 @@ from pathlib import Path
 import pygame
 import tomllib
 import tomli_w
+from typing import Dict, List, Any
 
 
 class Settings:
-    DEFAULTS = {
+    DEFAULTS: Dict[str, Any] = {
         "controls": {
           "keyboard": {
               "throttle_up": pygame.K_w,
@@ -103,12 +104,12 @@ class Settings:
         },
     }
 
-    def __init__(self, path: str):
+    def __init__(self, path: str) -> None:
         self.path = Path(path)
         self.settings = {}
         self.load()
 
-    def load(self):
+    def load(self) -> None:
         if self.path.exists():
             with self.path.open("rb") as file:
                 raw = tomllib.load(file)
@@ -117,22 +118,22 @@ class Settings:
         else:
             self.settings = copy.deepcopy(self.DEFAULTS)
 
-    def save(self):
+    def save(self) -> None:
         serialized = self._serialize(self.settings)
         with self.path.open("wb") as f:
             f.write(tomli_w.dumps(serialized).encode("utf-8"))
 
-    def get(self, key, default=None):
+    def get(self, key: str, default: Any = None) -> Any:
         return self.settings.get(key, default)
 
-    def set(self, key, value):
+    def set(self, key: str, value: Any) -> None:
         self.settings[key] = value
 
-    def delete(self, key):
+    def delete(self, key: str) -> None:
         if key in self.settings:
             del self.settings[key]
 
-    def _merge(self, base, override):
+    def _merge(self, base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
         for key, value in override.items():
             if (
                 key in base
@@ -144,13 +145,13 @@ class Settings:
                 base[key] = value
         return base
 
-    def _serialize(self, data):
+    def _serialize(self, data: Dict[str, Any]) -> Dict[str, Any] | List[Any]:
         if "controls" in data:
             data = data.copy()
             data["controls"] = self._serialize_controls(data["controls"])
         return self._remove_none(data)
 
-    def _remove_none(self, obj):
+    def _remove_none(self, obj: object) -> Dict[str, Any] | List[Any] | object:
         if isinstance(obj, dict):
             return {k: self._remove_none(v) for k, v in obj.items() if v is not None}
         elif isinstance(obj, list):
@@ -158,33 +159,33 @@ class Settings:
         else:
             return obj
 
-    def _deserialize(self, data):
+    def _deserialize(self, data: Dict[str, Any]) -> Dict[str, Any]:
         if "controls" in data:
             data = data.copy()
             data["controls"] = self._deserialize_controls(data["controls"])
 
         return data
 
-    def _serialize_controls(self, controls):
+    def _serialize_controls(self, controls: Dict[str, Any]) -> Dict[str, Any]:
         return {
             device: {k: self._key_to_string(v) for k, v in bindings.items()}
             for device, bindings in controls.items()
         }
 
-    def _deserialize_controls(self, controls):
+    def _deserialize_controls(self, controls: Dict[str, Any]) -> Dict[str, Any]:
         return {
             device: {k: self._string_to_key(v) for k, v in bindings.items()}
             for device, bindings in controls.items()
         }
 
-    def _key_to_string(self, keycode):
+    def _key_to_string(self, keycode: Any) -> str:
         for name in dir(pygame):
             if name.startswith("K_") and getattr(pygame, name) == keycode:
                 return name
 
         raise ValueError(f"Unknown key code: {keycode}")
 
-    def _string_to_key(self, keyname):
+    def _string_to_key(self, keyname: str) -> str:
         try:
             return getattr(pygame, keyname)
         except AttributeError:

@@ -10,7 +10,7 @@ class Battery:
         warn_cell_voltage: int = 3700,
         address: int = 0x40,
         bus: int = 1
-    ):
+    ) -> None:
         self._sensor = INA(address, bus)
         self.min_cell_voltage = min_cell_voltage
         self.max_cell_voltage = max_cell_voltage

@@ -4,9 +4,11 @@ import signal
 import sys
 import time
 import traceback
+import types
+from typing import cast
 
 from v3xctrl_control import Server, State
-from v3xctrl_control.Message import Telemetry, Control
+from v3xctrl_control.Message import Message, Telemetry, Control
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -20,8 +22,9 @@ PORT = args.port
 running = True
 
 
-def telemetry_handler(message: Telemetry) -> None:
+def telemetry_handler(message: Message) -> None:
     """ TODO: Implement control message handling. """
+    message = cast(Telemetry, message)
     values = message.get_values()
     logging.debug(f"Received telemetry message: {values}")
 
@@ -31,7 +34,7 @@ def disconnect_handler() -> None:
     logging.debug("Disconnected from client...")
 
 
-def signal_handler(sig, frame):
+def signal_handler(sig: int, frame: types.FrameType | None) -> None:
     global running
     if running:
         running = False

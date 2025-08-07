@@ -2,6 +2,7 @@ from flask.views import MethodView
 from flask_smorest import Blueprint
 from marshmallow import Schema, fields
 import subprocess
+from typing import Dict, Any
 
 
 class ServiceNameSchema(Schema):
@@ -23,8 +24,8 @@ SERVICES = [
 @blueprint.route('/')
 class ListServices(MethodView):
     @blueprint.response(200, description="List all monitored systemd services with state info")
-    def get(self):
-        data = {"services": []}
+    def get(self) -> Dict[str, Any]:
+        data: Dict[str, Any] = {"services": []}
 
         for service in SERVICES:
             try:
@@ -57,9 +58,10 @@ class ListServices(MethodView):
 class StartService(MethodView):
     @blueprint.arguments(ServiceNameSchema, location="json")
     @blueprint.response(200)
-    def post(self, args):
-        name = args['name']
+    def post(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        name = str(args['name'])
         subprocess.run(["sudo", "systemctl", "start", name])
+
         return {"message": f"Started service: {name}"}
 
 
@@ -67,9 +69,10 @@ class StartService(MethodView):
 class StopService(MethodView):
     @blueprint.arguments(ServiceNameSchema, location="json")
     @blueprint.response(200)
-    def post(self, args):
-        name = args['name']
+    def post(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        name = str(args['name'])
         subprocess.run(["sudo", "systemctl", "stop", name])
+
         return {"message": f"Stopped service: {name}"}
 
 
@@ -77,9 +80,10 @@ class StopService(MethodView):
 class RestartService(MethodView):
     @blueprint.arguments(ServiceNameSchema, location="json")
     @blueprint.response(200)
-    def post(self, args):
-        name = args['name']
+    def post(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        name = str(args['name'])
         subprocess.run(["sudo", "systemctl", "restart", name])
+
         return {"message": f"Restarted service: {name}"}
 
 
@@ -87,8 +91,8 @@ class RestartService(MethodView):
 class LogService(MethodView):
     @blueprint.arguments(ServiceNameSchema, location="json")
     @blueprint.response(200)
-    def post(self, args):
-        name = args['name']
+    def post(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        name = str(args['name'])
         output = subprocess.check_output(
             ["journalctl", "-n", "50", "--no-page", "-u", name],
             stderr=subprocess.DEVNULL

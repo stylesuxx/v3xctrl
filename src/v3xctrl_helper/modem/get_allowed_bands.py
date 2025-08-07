@@ -3,7 +3,7 @@ from atlib import AIR780EU
 import json
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Query allowed LTE bands from AIR780EU modem.")
     parser.add_argument("device_path", help="Path to the modem (e.g. /dev/ttyACM0)")
     args = parser.parse_args()

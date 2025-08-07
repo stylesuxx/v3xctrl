@@ -7,7 +7,7 @@ from v3xctrl_udp_relay.helper import init_db
 
 
 class SessionStore:
-    def __init__(self, db_path: str):
+    def __init__(self, db_path: str) -> None:
         self.db_path = db_path
         init_db(self.db_path)
 

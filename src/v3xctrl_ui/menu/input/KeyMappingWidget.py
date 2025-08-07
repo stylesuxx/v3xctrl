@@ -10,12 +10,14 @@ from .BaseWidget import BaseWidget
 class KeyMappingWidget(BaseWidget):
     FONT_COLOR = (255, 255, 255)
 
-    def __init__(self,
-                 control_name: str,
-                 key_code: int,
-                 font: Font,
-                 on_key_change: Callable[[int], None],
-                 on_remap_toggle: Callable[[bool], None]):
+    def __init__(
+        self,
+        control_name: str,
+        key_code: int,
+        font: Font,
+        on_key_change: Callable[[int], None],
+        on_remap_toggle: Callable[[bool], None]
+    ) -> None:
         super().__init__()
 
         self.control_name = control_name
@@ -36,16 +38,16 @@ class KeyMappingWidget(BaseWidget):
 
         self._render_label()
 
-    def _render_label(self):
+    def _render_label(self) -> None:
         self.label_surface, self.label_rect = self.font.render(self.control_name, self.FONT_COLOR)
         self.label_rect.topleft = (self.x, self.y)
 
-    def _on_remap_click(self):
+    def _on_remap_click(self) -> None:
         self.waiting_for_key = True
         self.key_code = None
         self.on_remap_toggle(True)
 
-    def handle_event(self, event):
+    def handle_event(self, event: pygame.event.Event) -> None:
         self.remap_button.handle_event(event)
 
         if self.waiting_for_key and event.type == pygame.KEYDOWN:
@@ -54,7 +56,7 @@ class KeyMappingWidget(BaseWidget):
             self.on_key_change(event.key)
             self.on_remap_toggle(False)
 
-    def set_position(self, x, y):
+    def set_position(self, x: int, y: int) -> None:
         self.x = x
         self.y = y
 
@@ -79,13 +81,13 @@ class KeyMappingWidget(BaseWidget):
         height = max(self.label_rect.height, button_height)
         return total_width, height
 
-    def enable(self):
+    def enable(self) -> None:
         self.remap_button.enable()
 
-    def disable(self):
+    def disable(self) -> None:
         self.remap_button.disable()
 
-    def draw(self, surface: Surface):
+    def draw(self, surface: Surface) -> None:
         self.remap_button.draw(surface)
 
         surface.blit(self.label_surface, self.label_rect)

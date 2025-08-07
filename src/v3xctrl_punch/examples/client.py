@@ -2,10 +2,11 @@ import argparse
 import logging
 import threading
 import time
+from typing import Dict
 
 from v3xctrl_punch.examples.TestPeer import TestPeer
 from v3xctrl_punch.PunchPeer import PunchPeer
-from v3xctrl_control.Message import Heartbeat
+from v3xctrl_control.Message import Heartbeat, PeerInfo
 
 logging.basicConfig(
     level="DEBUG",
@@ -22,12 +23,12 @@ DEFAULT_RENDEZVOUS_PORT = 8888
 
 
 class TestClient(TestPeer):
-    def __init__(self, ports, addresses):
+    def __init__(self, ports: Dict[str, int], addresses: Dict[str, PeerInfo]) -> None:
         super().__init__(ports, addresses)
 
         self.remote_video_addr_formatted = f"{self.remote_video_addr[0]}:{self.remote_video_addr[1]}"
 
-    def run(self):
+    def run(self) -> None:
         threading.Thread(
             target=self.video_sender,
             daemon=True,
@@ -46,7 +47,7 @@ class TestClient(TestPeer):
         except KeyboardInterrupt:
             logging.info("Exiting...")
 
-    def video_sender(self):
+    def video_sender(self) -> None:
         sock_name = self.video_sock.getsockname()
         sock_formatted = f"{sock_name[0]}:{sock_name[1]}"
         logging.info(f"[V] Sending from {sock_formatted} to {self.remote_video_addr_formatted}")
@@ -56,7 +57,7 @@ class TestClient(TestPeer):
             time.sleep(1)
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="UDP Punch Client")
     parser.add_argument("id", help="Session ID (required positional argument)")
     parser.add_argument("--server", default=DEFAULT_RENDEZVOUS_SERVER, help="Rendezvous server address")

@@ -1,9 +1,8 @@
-from collections import namedtuple
 import logging
 import sys
 import pygame
-from pygame import Surface
-from typing import Callable
+from pygame import Surface, event
+from typing import Callable, NamedTuple, Dict
 
 from v3xctrl_control import Server
 from v3xctrl_control.Message import Command
@@ -17,12 +16,17 @@ from v3xctrl_ui.menu.tabs import (
   FrequenciesTab,
   StreamerTab,
   OsdTab,
+  Tab
 )
 
 from v3xctrl_ui.colors import WHITE, DARK_GREY
 from v3xctrl_ui.fonts import MAIN_FONT
 
-TabEntry = namedtuple("TabEntry", ["name", "rect", "view"])
+
+class TabEntry(NamedTuple):
+    name: str
+    rect: pygame.Rect
+    view: NamedTuple
 
 
 class Menu:
@@ -32,13 +36,15 @@ class Menu:
     TAB_SEPARATOR_COLOR = BG_COLOR
     FONT_COLOR = WHITE
 
-    def __init__(self,
-                 width: int,
-                 height: int,
-                 gamepad_manager: GamepadManager,
-                 settings: Settings,
-                 callback: Callable[[], None],
-                 server: Server):
+    def __init__(
+        self,
+        width: int,
+        height: int,
+        gamepad_manager: GamepadManager,
+        settings: Settings,
+        callback: Callable[[], None],
+        server: Server
+    ) -> None:
         self.width = width
         self.height = height
         self.gamepad_manager = gamepad_manager
@@ -105,7 +111,7 @@ class Menu:
         self.background = pygame.Surface((self.width, self.height))
         self.background.fill(self.BG_COLOR)
 
-    def _create_tabs(self) -> dict:
+    def _create_tabs(self) -> Dict[str, Tab]:
         return {
             "General": GeneralTab(
                 settings=self.settings,
@@ -148,13 +154,13 @@ class Menu:
             )
         }
 
-    def _on_send_command(self, command: Command, callback: callable = None):
+    def _on_send_command(self, command: Command, callback: Callable[[bool], None]) -> None:
         if self.server:
             self.server.send_command(command, callback)
         else:
             logging.error(f"Server is not set, cannot send command: {command}")
 
-    def _on_active_toggle(self, active: bool):
+    def _on_active_toggle(self, active: bool) -> None:
         if active:
             self.disable_tabs = True
             self.save_button.disable()
@@ -169,7 +175,7 @@ class Menu:
     def _get_active_tab(self) -> TabEntry:
         return next((t for t in self.tabs if t.name == self.active_tab), None)
 
-    def _save_button_callback(self):
+    def _save_button_callback(self) -> None:
         tab = self._get_active_tab()
         if tab:
             settings = tab.view.get_settings()
@@ -177,15 +183,15 @@ class Menu:
                 self.settings.set(key, val)
             self.settings.save()
 
-    def _exit_button_callback(self):
+    def _exit_button_callback(self) -> None:
         self.active_tab = self.tabs[0].name
         self.callback()
 
-    def _quit_button_callback(self):
+    def _quit_button_callback(self) -> None:
         pygame.quit()
         sys.exit()
 
-    def _draw_tabs(self, surface: Surface):
+    def _draw_tabs(self, surface: Surface) -> None:
         for i, entry in enumerate(self.tabs):
             is_active = entry.name == self.active_tab
             color = self.TAB_ACTIVE_COLOR if is_active else self.TAB_INACTIVE_COLOR
@@ -197,7 +203,7 @@ class Menu:
             label_rect.center = entry.rect.center
             surface.blit(label_surface, label_rect)
 
-    def handle_event(self, event):
+    def handle_event(self, event: event.Event) -> None:
         self.quit_button.handle_event(event)
         self.save_button.handle_event(event)
         self.exit_button.handle_event(event)
@@ -212,7 +218,7 @@ class Menu:
         if tab:
             tab.view.handle_event(event)
 
-    def draw(self, surface: Surface):
+    def draw(self, surface: Surface) -> None:
         surface.blit(self.background, (0, 0))
         self._draw_tabs(surface)
         self.quit_button.draw(surface)

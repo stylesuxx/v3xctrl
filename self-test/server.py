@@ -15,12 +15,12 @@ TIMEOUT = 60
 
 
 class SelfTestServer:
-    def __init__(self, host, port):
+    def __init__(self, host: str, port: int) -> None:
         self.host = host
         self.port = port
 
     @classmethod
-    def format_speed(slef, bytes_transmitted: int, duration: float) -> str:
+    def format_speed(cls, bytes_transmitted: int, duration: float) -> str:
         bps = (bytes_transmitted * 8) / duration
 
         units = ["bps", "Kbps", "Mbps", "Gbps", "Tbps"]
@@ -32,7 +32,7 @@ class SelfTestServer:
 
         return f"{bps:.2f} {units[unit_index]}"
 
-    def tcp_upload(self):
+    def tcp_upload(self) -> None:
         print("--- Download Test (Client -> Server) ---")
         received_bytes = 0
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -61,7 +61,7 @@ class SelfTestServer:
             print(f"Received {received_bytes / (1024*1024):.2f} MB in {duration:.2f} seconds")
             print(f"Download speed: {speed}")
 
-    def tcp_download(self):
+    def tcp_download(self) -> None:
         print("--- Upload Test (Server -> Client) ---")
         FILE_SIZE = 10 * 1024 * 1024  # 10MB
         data = b"x" * FILE_SIZE       # Generate 10MB of data
@@ -90,7 +90,7 @@ class SelfTestServer:
             print(f"Sent {sent_bytes / (1024*1024):.2f} MB in {duration:.2f} seconds")
             print(f"Download speed: {speed}")
 
-    def udp_latency(self):
+    def udp_latency(self) -> None:
         print("--- UDP latency test ---")
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             sock.bind((self.host, self.port))
@@ -107,7 +107,7 @@ class SelfTestServer:
             except socket.timeout:
                 print(f"Timeout occurred, no packages received after ${TIMEOUT} seconds")
 
-    def udp_hole_duration(self):
+    def udp_hole_duration(self) -> None:
         print("--- UDP hole duration test ---")
         max_timeout = 10  # Stop listening after passing the 10 second request
 

@@ -7,7 +7,7 @@ The only public interface is the get_telemetry() method.
 from atlib import AIR780EU
 import copy
 import logging
-from typing import Dict
+from typing import Dict, Optional, Any
 import threading
 import time
 
@@ -17,17 +17,17 @@ from v3xctrl_telemetry import Battery
 class Telemetry(threading.Thread):
     def __init__(
         self,
-        modem: str = None,
+        modem: str,
         battery_min_voltage: int = 3500,
         battery_max_voltage: int = 4200,
         battery_warn_voltage: int = 3700,
         battery_i2c_address: int = 0x40,
         interval: float = 1.0
-    ):
+    ) -> None:
         super().__init__(daemon=True)
 
         self._interval = interval
-        self.telemetry = {
+        self.telemetry: Dict[str, Any] = {
             'sig': {
                 'rsrq': -1,
                 'rsrp': -1
@@ -51,7 +51,7 @@ class Telemetry(threading.Thread):
         self._running = threading.Event()
         self._lock = threading.Lock()
 
-        self._modem = None
+        self._modem: Optional[AIR780EU] = None
         try:
             self._modem = AIR780EU(modem)
             if not self._modem:
@@ -70,35 +70,37 @@ class Telemetry(threading.Thread):
         except Exception as e:
             logging.error("Failed to initialize battery sensor: %s", e)
 
-    def _set_signal_unknown(self):
+    def _set_signal_unknown(self) -> None:
         with self._lock:
             self.telemetry['sig']['rsrq'] = -1
             self.telemetry['sig']['rsrp'] = -1
 
-    def _set_cell_unknown(self):
+    def _set_cell_unknown(self) -> None:
         with self._lock:
             self.telemetry['cell']['band'] = 0
 
     def _update_signal(self) -> None:
-        try:
-            signal_quality = self._modem.get_signal_quality()
-            with self._lock:
-                self.telemetry['sig']['rsrq'] = signal_quality.rsrq
-                self.telemetry['sig']['rsrp'] = signal_quality.rsrp
-        except Exception as e:
-            self._set_signal_unknown()
+        if self._modem:
+            try:
+                signal_quality = self._modem.get_signal_quality()
+                with self._lock:
+                    self.telemetry['sig']['rsrq'] = signal_quality.rsrq
+                    self.telemetry['sig']['rsrp'] = signal_quality.rsrp
+            except Exception as e:
+                self._set_signal_unknown()
 
-            logging.error("Failed fetching signal information: %s", e)
+                logging.error("Failed fetching signal information: %s", e)
 
     def _update_cell(self) -> None:
-        try:
-            band = self._modem.get_active_band()
-            with self._lock:
-                self.telemetry['cell']['band'] = band
-        except Exception as e:
-            self._set_cell_unknown()
+        if self._modem:
+            try:
+                band = self._modem.get_active_band()
+                with self._lock:
+                    self.telemetry['cell']['band'] = band
+            except Exception as e:
+                self._set_cell_unknown()
 
-            logging.error("Failed fetching cell information: %s", e)
+                logging.error("Failed fetching cell information: %s", e)
 
     def _update_battery(self) -> None:
         if self._battery:
@@ -123,7 +125,7 @@ class Telemetry(threading.Thread):
 
             time.sleep(self._interval)
 
-    def get_telemetry(self) -> Dict:
+    def get_telemetry(self) -> Dict[str, Any]:
         with self._lock:
             return copy.deepcopy(self.telemetry)
 

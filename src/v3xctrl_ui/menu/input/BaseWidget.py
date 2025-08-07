@@ -4,7 +4,7 @@ from pygame import Surface
 
 
 class BaseWidget(ABC):
-    def __init__(self):
+    def __init__(self) -> None:
         self.x = 0
         self.y = 0
 

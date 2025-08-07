@@ -1,5 +1,5 @@
 from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
+from watchdog.events import FileSystemEventHandler, FileSystemEvent
 import os
 import subprocess
 import time
@@ -7,12 +7,12 @@ import threading
 
 
 class TestRunner(FileSystemEventHandler):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.lock = threading.Lock()
         self.last_modified = {}  # Dictionary to track last modification times
 
-    def on_modified(self, event):
+    def on_modified(self, event: FileSystemEvent) -> None:
         if event.is_directory or not event.src_path.endswith(".py"):
             return  # Ignore directories & non-Python files
 

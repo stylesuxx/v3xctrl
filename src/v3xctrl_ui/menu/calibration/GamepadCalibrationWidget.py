@@ -27,7 +27,7 @@ class GamepadCalibrationWidget(BaseWidget):
         manager: GamepadManager,
         on_calibration_start: Callable[[], None] = lambda: None,
         on_calibration_done: Callable[[], None] = lambda: None,
-    ):
+    ) -> None:
         super().__init__()
         self.font = font
         self.manager = manager
@@ -51,7 +51,7 @@ class GamepadCalibrationWidget(BaseWidget):
         self._on_gamepads_changed(self.gamepads)
         self.manager.add_observer(self._on_gamepads_changed)
 
-    def _create_ui(self, font: Font):
+    def _create_ui(self, font: Font) -> None:
         self.controller_select = Select(
             label="Controller",
             label_width=-10,
@@ -92,7 +92,10 @@ class GamepadCalibrationWidget(BaseWidget):
                 for checkbox in self.invert_checkboxes.values():
                     checkbox.handle_event(event)
 
-    def _on_gamepads_changed(self, gamepads: Dict[str, pygame.joystick.Joystick]):
+    def _on_gamepads_changed(
+        self,
+        gamepads: Dict[str, pygame.joystick.Joystick]
+    ) -> None:
         previous_guid = self.selected_guid
         self.gamepads = gamepads
 
@@ -114,7 +117,7 @@ class GamepadCalibrationWidget(BaseWidget):
         self.controller_select.set_options(name_list, selected_index=selected_index)
         self._apply_known_calibration(self.gamepads[self.selected_guid])
 
-    def get_selected_guid(self):
+    def get_selected_guid(self) -> str | None:
         return self.selected_guid
 
     def get_size(self) -> tuple[int, int]:
@@ -140,7 +143,7 @@ class GamepadCalibrationWidget(BaseWidget):
         if self.calibrator and self.calibrator.state == CalibratorState.ACTIVE:
             return
 
-        def on_done():
+        def on_done() -> None:
             self.calibrate_button.enable()
             self.controller_select.enable()
 
@@ -214,22 +217,22 @@ class GamepadCalibrationWidget(BaseWidget):
 
         self.dialog.draw(surface)
 
-    def _draw_no_gamepad_message(self, surface: Surface):
+    def _draw_no_gamepad_message(self, surface: Surface) -> None:
         text, rect = self.font.render("No gamepad detected. Please connect one...", WHITE)
         rect.topleft = (self.x, self.y + 20)
         surface.blit(text, rect)
 
-    def _draw_ui_elements(self, surface: Surface):
+    def _draw_ui_elements(self, surface: Surface) -> None:
         self.controller_select.draw(surface)
         self.calibrate_button.draw(surface)
 
-    def _update_calibrator(self):
+    def _update_calibrator(self) -> None:
         js = self.gamepads.get(self.selected_guid)
         if js and js.get_init():
             axes = [js.get_axis(i) for i in range(js.get_numaxes())]
             self.calibrator.update(axes)
 
-    def _draw_calibration_bars(self, surface: Surface):
+    def _draw_calibration_bars(self, surface: Surface) -> None:
         inputs = self.manager.read_inputs()
         if not inputs:
             return
@@ -262,7 +265,7 @@ class GamepadCalibrationWidget(BaseWidget):
             self.invert_checkboxes[key].set_position(self.x + self.INVERT_X_OFFSET, y_base + i * self.BAR_SPACING)
             self.invert_checkboxes[key].draw(surface)
 
-    def _draw_calibration_steps(self, surface: Surface):
+    def _draw_calibration_steps(self, surface: Surface) -> None:
         y_base = self.y + self.INSTRUCTION_Y_OFFSET
         for i, (label, active) in enumerate(self.calibrator.get_steps()):
             color = WHITE if active else GREY
@@ -270,11 +273,19 @@ class GamepadCalibrationWidget(BaseWidget):
             rect.topleft = (self.x, y_base + i * 40)
             surface.blit(rendered, rect)
 
-    def _draw_bar(self, surface: Surface, label: str, value: float,
-                  min_val: float, max_val: float,
-                  center_val: float = None,
-                  x: int = 0, y: int = 0,
-                  width: int = BAR_WIDTH, height: int = BAR_HEIGHT) -> None:
+    def _draw_bar(
+        self,
+        surface: Surface,
+        label: str,
+        value: float,
+        min_val: float,
+        max_val: float,
+        center_val: Optional[float] = None,
+        x: int = 0,
+        y: int = 0,
+        width: int = BAR_WIDTH,
+        height: int = BAR_HEIGHT
+    ) -> None:
         label_surf, label_rect = self.font.render(label, WHITE)
         label_rect.topleft = (x - 10 - label_rect.width, y + (height - label_rect.height) // 2)
         surface.blit(label_surf, label_rect)

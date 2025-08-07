@@ -19,10 +19,12 @@ class GamepadCalibrator:
 
     STEP_ORDER: List[CalibrationStage] = list(STEP_LABELS.keys())
 
-    def __init__(self,
-                 on_start: Optional[Callable[[], None]] = None,
-                 on_done: Optional[Callable[[], None]] = None,
-                 dialog: Optional[DialogBox] = None):
+    def __init__(
+        self,
+        on_start: Optional[Callable[[], None]] = None,
+        on_done: Optional[Callable[[], None]] = None,
+        dialog: Optional[DialogBox] = None
+    ) -> None:
         self.on_start = on_start
         self.on_done = on_done
         self.dialog = dialog

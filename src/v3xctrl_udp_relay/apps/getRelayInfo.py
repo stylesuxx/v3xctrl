@@ -7,14 +7,15 @@ from v3xctrl_helper.exceptions import UnauthorizedError
 from v3xctrl_udp_relay.Peer import Peer
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="UDP Punch Client")
     parser.add_argument("server", help="Rendezvous server address")
     parser.add_argument("id", help="Session ID (required positional argument)")
     parser.add_argument("--port", default=8888, type=int, help="Rendezvous server port")
     parser.add_argument("--port-video", default=6666, type=int, help="Local video port")
     parser.add_argument("--port-control", default=6668, type=int, help="Local control port")
-    parser.add_argument("--log", default="ERROR", help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). (default: ERROR")
+    parser.add_argument("--log", default="ERROR",
+                        help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). (default: ERROR")
 
     return parser.parse_args()
 
@@ -50,11 +51,11 @@ if __name__ == "__main__":
 
     print(json.dumps({
         "server": {
-            "host": video[0]
+            "host": video.get_ip()
         },
         "ports": {
-            "video": video[1],
-            "control": control[1]
+            "video": video.get_video_port(),
+            "control": control.get_control_port()
         }
     }, indent=2))
 

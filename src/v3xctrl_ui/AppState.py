@@ -1,10 +1,11 @@
 from collections import deque
 import logging
 import pygame
+from pygame.key import ScancodeWrapper
 import socket
 import threading
 import time
-from typing import Tuple
+from typing import Tuple, Optional, Dict, Any
 
 from v3xctrl_control.Message import Control
 from v3xctrl_helper.exceptions import UnauthorizedError
@@ -13,6 +14,8 @@ from v3xctrl_ui.KeyAxisHandler import KeyAxisHandler
 from v3xctrl_ui.Settings import Settings
 
 from v3xctrl_udp_relay.Peer import Peer
+
+from v3xctrl_ui.menu.Menu import Menu
 
 
 class AppState:
@@ -25,9 +28,9 @@ class AppState:
         title: str,
         video_port: int,
         control_port: int,
-        server_handlers: dict,
+        server_handlers: Dict[str, Any],
         settings: Settings
-    ):
+    ) -> None:
         self.size = size
         self.title = title
         self.video_port = video_port
@@ -38,8 +41,8 @@ class AppState:
         self.settings = settings
         self.control_settings = None
 
-        self.loop_history = deque(maxlen=300)
-        self.menu = None
+        self.loop_history: deque[float] = deque(maxlen=300)
+        self.menu: Optional[Menu] = None
         self.running = True
 
         self.screen, self.clock = Init.ui(self.size, self.title)
@@ -54,27 +57,32 @@ class AppState:
         self.relay_port = 8888
         self.relay_id = None
 
-        self.throttle = 0
-        self.steering = 0
+        self.throttle: float = 0
+        self.steering: float = 0
 
         self.update_settings(self.settings)
 
-        self.key_handlers = {
-            "throttle": KeyAxisHandler(
-                positive=self.control_settings["throttle_up"],
-                negative=self.control_settings["throttle_down"],
-                min_val=-1.0,
-                max_val=1.0
-            ),
-            "steering": KeyAxisHandler(
-                positive=self.control_settings["steering_right"],
-                negative=self.control_settings["steering_left"],
-                min_val=-1.0,
-                max_val=1.0
-            )
-        }
+        if self.control_settings:
+            self.key_handlers = {
+                "throttle": KeyAxisHandler(
+                    positive=self.control_settings["throttle_up"],
+                    negative=self.control_settings["throttle_down"],
+                    min_val=-1.0,
+                    max_val=1.0
+                ),
+                "steering": KeyAxisHandler(
+                    positive=self.control_settings["steering_right"],
+                    negative=self.control_settings["steering_left"],
+                    min_val=-1.0,
+                    max_val=1.0
+                )
+            }
 
-    def setup_relay(self, relay_server: str = None, relay_id: str = None) -> None:
+    def setup_relay(
+        self,
+        relay_server: str,
+        relay_id: str
+    ) -> None:
         self.relay_enable = True
         self.relay_id = relay_id
 
@@ -88,9 +96,10 @@ class AppState:
         else:
             self.relay_server = relay_server
 
-    def setup_ports(self):
-        def task():
-            if self.relay_enable:
+    def setup_ports(self) -> None:
+        def task() -> None:
+            video_address = None
+            if self.relay_enable and self.relay_server and self.relay_id:
                 local_bind_ports = {
                     "video": self.video_port,
                     "control": self.control_port
@@ -104,9 +113,10 @@ class AppState:
                     self.relay_status_message = "ERROR: Relay ID unauthorized!"
                     return
 
-            def poke_peer():
-                if self.relay_enable:
+            def poke_peer() -> None:
+                if self.relay_enable and video_address:
                     logging.info(f"Poking peer {video_address}")
+                    sock = None
                     try:
                         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -122,7 +132,8 @@ class AppState:
                     except Exception as e:
                         logging.error(f"Failed to poke peer: {e}", exc_info=True)
                     finally:
-                        sock.close()
+                        if sock:
+                            sock.close()
                         logging.info(f"Poke to {video_address} completed and socket closed.")
 
             self.video_receiver = Init.video_receiver(self.video_port, poke_peer)
@@ -133,14 +144,18 @@ class AppState:
 
         threading.Thread(target=task, daemon=True).start()
 
-    def update_settings(self, settings: Settings):
+    def update_settings(self, settings: Settings) -> None:
         self.settings = settings
 
         self.control_settings = settings.get("controls")["keyboard"]
 
         self.menu = None
 
-    def handle_control(self, pressed_keys, gamepad_inputs) -> None:
+    def handle_control(
+        self,
+        pressed_keys: ScancodeWrapper,
+        gamepad_inputs: ScancodeWrapper
+    ) -> None:
         self.throttle = self.key_handlers["throttle"].update(pressed_keys)
         self.steering = self.key_handlers["steering"].update(pressed_keys)
 
@@ -157,7 +172,7 @@ class AppState:
                 "throttle": self.throttle,
             }))
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         pygame.quit()
 
         if self.server:

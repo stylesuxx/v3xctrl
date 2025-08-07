@@ -1,7 +1,7 @@
 import logging
-from typing import Tuple
 import pygame
 from pygame import display, time
+from typing import Callable, Dict, List, Tuple, Any
 
 from v3xctrl_control import Server
 
@@ -11,14 +11,19 @@ from v3xctrl_ui.VideoReceiver import VideoReceiver
 
 class Init:
     @classmethod
-    def settings(self, path: str = "settings.toml") -> Settings:
+    def settings(cls, path: str = "settings.toml") -> Settings:
         settings = Settings(path)
         settings.save()
 
         return settings
 
     @classmethod
-    def server(self, port: int, handlers: dict, udp_ttl_ms: int = 100) -> Tuple[Server, str]:
+    def server(
+        cls,
+        port: int,
+        handlers: Dict[str, List[Tuple[Any, Any]]],
+        udp_ttl_ms: int = 100
+    ) -> Tuple[Server | None, str | None]:
         try:
             server = Server(port, udp_ttl_ms)
 
@@ -39,7 +44,7 @@ class Init:
             return None, msg
 
     @classmethod
-    def ui(self, size: Tuple[int, int], title: str) -> Tuple[pygame.Surface, pygame.time.Clock]:
+    def ui(cls, size: Tuple[int, int], title: str) -> Tuple[pygame.Surface, pygame.time.Clock]:
         pygame.init()
 
         flags = pygame.DOUBLEBUF | pygame.SCALED
@@ -57,7 +62,11 @@ class Init:
         return screen, clock
 
     @classmethod
-    def video_receiver(self, port: int, error_callback: callable) -> VideoReceiver:
+    def video_receiver(
+        cls,
+        port: int,
+        error_callback: Callable[[], None]
+    ) -> VideoReceiver:
         video_receiver = VideoReceiver(port, error_callback)
         video_receiver.start()
 

@@ -2,12 +2,14 @@ import logging
 import socket
 import threading
 import time
+from typing import Dict
 
-from v3xctrl_control.Message import Heartbeat
+from v3xctrl_control.Message import Heartbeat, PeerInfo
+from v3xctrl_helper import Address
 
 
 class TestPeer:
-    def __init__(self, ports, addresses):
+    def __init__(self, ports: Dict[str, int], addresses: Dict[str, PeerInfo]) -> None:
         # Re-bind the sockets
         self.video_sock = self._bind_udp(ports['video'])
         self.control_sock = self._bind_udp(ports['control'])
@@ -22,18 +24,18 @@ class TestPeer:
 
         return sock
 
-    def control_loop(self, sock: socket, remote_addr):
+    def control_loop(self, sock: socket.socket, remote_addr: Address) -> None:
         sock_name = sock.getsockname()
         sock_formatted = f"{sock_name[0]}:{sock_name[1]}"
         remote_addr_formatted = f"{remote_addr[0]}:{remote_addr[1]}"
 
-        def receiver():
+        def receiver() -> None:
             logging.info(f"[C] Listening on {sock_formatted}")
             while True:
                 _, addr = sock.recvfrom(1024)
                 logging.info(f"[C] from {addr[0]}:{addr[1]}")
 
-        def sender():
+        def sender() -> None:
             logging.info(f"[C] Sending from {sock_formatted} to {remote_addr_formatted}")
             while True:
                 sock.sendto(Heartbeat().to_bytes(), remote_addr)

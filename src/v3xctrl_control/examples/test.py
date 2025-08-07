@@ -2,7 +2,9 @@ import socket
 import time
 
 from v3xctrl_control import MessageHandler, UDPTransmitter
-from v3xctrl_control.Message import Heartbeat
+from v3xctrl_control.Message import Message, Heartbeat
+
+from v3xctrl_helper import Address
 
 HOST = "0.0.0.0"
 PORT = 6666
@@ -15,7 +17,7 @@ sock_rx.bind((HOST, PORT))
 sock_rx.settimeout(1)
 
 
-def hh_handler(message, addr):
+def hh_handler(message: Message, addr: Address) -> None:
     print(f"Received heartbeat from {addr}: {message}")
 
 

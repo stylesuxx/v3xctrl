@@ -1,5 +1,6 @@
 import pygame
 from pygame import Surface
+from pygame.freetype import SysFont, STYLE_STRONG
 from typing import Callable, List
 
 from v3xctrl_ui.menu.input.Button import Button
@@ -12,7 +13,13 @@ class DialogBox:
     TEXT_COLOR = WHITE
     TITLE_COLOR = WHITE
 
-    def __init__(self, title: str, lines: List[str], button_label: str, on_confirm: Callable):
+    def __init__(
+        self,
+        title: str,
+        lines: List[str],
+        button_label: str,
+        on_confirm: Callable[[], None]
+    ) -> None:
         self.title = title
         self.original_lines = lines
         self.wrapped_lines: List[str] = []
@@ -20,7 +27,7 @@ class DialogBox:
         self.on_confirm = on_confirm
         self.visible = False
 
-        self.font = pygame.freetype.SysFont("monospace", 20)
+        self.font = SysFont("monospace", 20)
         self.padding = 20
         self.line_spacing = 30
 
@@ -35,22 +42,21 @@ class DialogBox:
         self.surface_size = None
         self.box_rect = None
 
-    def _confirm(self):
+    def _confirm(self) -> None:
         self.hide()
-        if self.on_confirm:
-            self.on_confirm()
+        self.on_confirm()
 
-    def show(self):
+    def show(self) -> None:
         self.visible = True
 
-    def hide(self):
+    def hide(self) -> None:
         self.visible = False
 
-    def set_text(self, lines: List[str]):
+    def set_text(self, lines: List[str]) -> None:
         self.original_lines = lines
 
     def _wrap_text(self, max_width: int) -> List[str]:
-        wrapped = []
+        wrapped: List[str] = []
         for line in self.original_lines:
             words = line.split()
             current = ""
@@ -66,7 +72,7 @@ class DialogBox:
                 wrapped.append(current)
         return wrapped
 
-    def draw(self, surface: Surface):
+    def draw(self, surface: Surface) -> None:
         if not self.visible:
             return
 
@@ -81,7 +87,7 @@ class DialogBox:
         text_max_width = box_width - 2 * self.padding
         self.wrapped_lines = self._wrap_text(text_max_width)
 
-        title_surface, _ = self.font.render(self.title, self.TITLE_COLOR, style=pygame.freetype.STYLE_STRONG)
+        title_surface, _ = self.font.render(self.title, self.TITLE_COLOR, style=STYLE_STRONG)
         title_height = title_surface.get_height()
 
         box_height = (
@@ -119,7 +125,7 @@ class DialogBox:
         )
         self.button.draw(surface)
 
-    def handle_event(self, event):
+    def handle_event(self, event: pygame.event.Event) -> None:
         if not self.visible:
             return
         self.button.handle_event(event)

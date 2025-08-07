@@ -8,18 +8,29 @@ all of them. Message handlers are triggered in the order they are registered.
 
 import socket
 import threading
-from typing import Callable, Tuple
+from typing import Callable, List, Optional, TypedDict
+
+from v3xctrl_helper import Address
 
 from .UDPReceiver import UDPReceiver
 from .Message import Message
 
 
+class MessageHandlerTyp(TypedDict):
+    type: type
+    handler: Callable[[Message, Address], None]
+
+
 class MessageHandler(threading.Thread):
-    def __init__(self, sock: socket.socket, valid_host_ip: str = None):
+    def __init__(
+        self,
+        sock: socket.socket,
+        valid_host_ip: Optional[str] = None
+    ) -> None:
         super().__init__(daemon=True)
 
         self.socket = sock
-        self.handlers = []
+        self.handlers: List[MessageHandlerTyp] = []
 
         self.rx = UDPReceiver(self.socket, self.handler)
         if valid_host_ip:
@@ -31,12 +42,16 @@ class MessageHandler(threading.Thread):
         self.running = threading.Event()
         self.running.clear()
 
-    def handler(self, message: Message, addr: Tuple[str, int]) -> None:
+    def handler(self, message: Message, addr: Address) -> None:
         for h in self.handlers:
             if isinstance(message, h['type']):
                 h['handler'](message, addr)
 
-    def add_handler(self, cls: type, handler: Callable[[Message, Tuple[str, int]], None]) -> None:
+    def add_handler(
+        self,
+        cls: type,
+        handler: Callable[[Message, Address], None]
+    ) -> None:
         self.handlers.append({
             "type": cls,
             "handler": handler

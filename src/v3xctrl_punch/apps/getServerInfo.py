@@ -5,7 +5,7 @@ import logging
 from v3xctrl_punch.PunchPeer import PunchPeer
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="UDP Punch Client")
     parser.add_argument("server", help="Rendezvous server address")
     parser.add_argument("id", help="Session ID (required positional argument)")

@@ -21,28 +21,29 @@ import socket
 import threading
 import time
 from typing import Tuple, Optional
+import concurrent.futures
 
 from .UDPPacket import UDPPacket
 from .Message import Message
 
 
 class UDPTransmitter(threading.Thread):
-    def __init__(self, sock: socket.socket, ttl_ms: int = 1000):
+    def __init__(self, sock: socket.socket, ttl_ms: int = 1000) -> None:
         super().__init__(daemon=True)
 
         self.socket = sock
 
-        self.queue = Queue()
+        self.queue: Queue[UDPPacket] = Queue()
 
         self.loop = asyncio.new_event_loop()
-        self.task: Optional[asyncio.Future] = None
+        self.task: Optional[concurrent.futures.Future[None]] = None
 
         self._running = threading.Event()
         self.process_stopped = threading.Event()
 
         self.ttl = ttl_ms / 1000
 
-    def add_message(self, message: Message, addr: Tuple[str, int]):
+    def add_message(self, message: Message, addr: Tuple[str, int]) -> None:
         """ Convenience function to add a message to the queue."""
         packet = UDPPacket(message.to_bytes(), addr[0], addr[1])
         self.add(packet)
@@ -55,7 +56,7 @@ class UDPTransmitter(threading.Thread):
         asyncio.set_event_loop(self.loop)
         self.loop.run_forever()
 
-    async def process(self):
+    async def process(self) -> None:
         try:
             while self._running.is_set():
                 try:
@@ -83,7 +84,7 @@ class UDPTransmitter(threading.Thread):
         finally:
             self.process_stopped.set()
 
-    def start_task(self):
+    def start_task(self) -> None:
         if not self.task:
             self.task = asyncio.run_coroutine_threadsafe(self.process(), self.loop)
 

@@ -4,7 +4,12 @@ import threading
 
 
 class MemoryTracker:
-    def __init__(self, interval=10, top=5, enable_log=True):
+    def __init__(
+        self,
+        interval: int = 10,
+        top: int = 5,
+        enable_log: bool = True
+    ) -> None:
         """
         :param interval: Seconds between snapshots
         :param top: Number of top growing lines to report
@@ -17,16 +22,16 @@ class MemoryTracker:
         self._thread = threading.Thread(target=self._run, daemon=True)
         self._baseline = None
 
-    def start(self):
+    def start(self) -> None:
         tracemalloc.start()
         self._baseline = tracemalloc.take_snapshot()
         self._thread.start()
 
-    def stop(self):
+    def stop(self) -> None:
         self._stop_event.set()
         self._thread.join()
 
-    def _run(self):
+    def _run(self) -> None:
         while not self._stop_event.is_set():
             time.sleep(self.interval)
             current = tracemalloc.take_snapshot()

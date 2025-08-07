@@ -63,7 +63,12 @@ def tcp_upload(ip: str, port: int) -> float | None:
         return None
 
 
-def log_to_csv(timestamp: str, mbps: float | None, rsrp_dbm: int, rsrq_dbm: float):
+def log_to_csv(
+    timestamp: str,
+    mbps: float | None,
+    rsrp_dbm: int,
+    rsrq_dbm: float
+) -> None:
     try:
         write_header = not os.path.exists(CSV_FILE)
         with open(CSV_FILE, mode="a", newline="") as file:
@@ -75,7 +80,7 @@ def log_to_csv(timestamp: str, mbps: float | None, rsrp_dbm: int, rsrq_dbm: floa
         print(f"[LOG] Failed to write to CSV: {e}")
 
 
-def monitor_and_test(server_ip: str, port: int, modem: str):
+def monitor_and_test(server_ip: str, port: int, modem: str) -> None:
     print("Monitoring signal quality...")
     gsm = atlib.AIR780EU(modem)
     last_rsrp_dbm = None
@@ -102,7 +107,7 @@ def monitor_and_test(server_ip: str, port: int, modem: str):
         print("\nStopped by user.")
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Monitor signal and send upload data to server on signal change.")
     parser.add_argument("ip", help="IP address of the upload server")
     parser.add_argument("port", type=int, help="TCP port of the upload server")
