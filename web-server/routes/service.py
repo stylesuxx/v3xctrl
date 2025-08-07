@@ -11,7 +11,6 @@ class ServiceNameSchema(Schema):
 blueprint = Blueprint('service', 'service', url_prefix='/service', description='Systemd service control')
 
 SERVICES = [
-    "v3xctrl-pigpiod",
     "v3xctrl-setup-env",
     "v3xctrl-config-server",
     "v3xctrl-wifi-mode",

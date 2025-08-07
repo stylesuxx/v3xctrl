@@ -3,8 +3,7 @@ Description=Control channel
 PartOf=v3xctrl-service-manager.service
 OnFailure=v3xctrl-control-failure-handler.service
 After=v3xctrl-setup-env.service
-Requires=v3xctrl-pigpiod.service v3xctrl-setup-env.service
-Before=v3xctrl-pigpiod.service
+Requires=v3xctrl-setup-env.service
 
 [Service]
 ExecStart=/usr/bin/v3xctrl-control

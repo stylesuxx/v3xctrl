@@ -59,9 +59,9 @@
           "scale": 100,
           "invert": false
       },
-      "gpio": {
-          "throttle": 18,
-          "steering": 13
+      "pwm": {
+          "throttle": 0,
+          "steering": 1
       }
   },
   "telemetry": {

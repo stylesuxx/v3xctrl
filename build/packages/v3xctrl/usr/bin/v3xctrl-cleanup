@@ -1,19 +1,7 @@
 #!/bin/bash
 # This script is used to recover from an unclean shutdown. It handles the
 # following things:
-# 1. Remove lock file for pigpiod, dhcpcd, wpa_supplicant
-
-
-handle_pigpiod_issues() {
-  if ! systemctl is-active --quiet pigpiod; then
-    LOCK_FILES=("/run/pigpio.pid" "/var/run/pigpio.pid")
-    for file in "${LOCK_FILES[@]}"; do
-      if [ -f "$file" ]; then
-        rm -fv "$file"
-      fi
-    done
-  fi
-}
+# 1. Remove lock file for dhcpcd, wpa_supplicant
 
 handle_dhcpcd_issues() {
   if ! systemctl is-active --quiet dhcpcd; then
@@ -43,8 +31,6 @@ handle_hostapd_issues() {
   fi
 }
 
-
-handle_pigpiod_issues
 handle_dhcpcd_issues
 handle_wpa_supplicant_issues
 handle_hostapd_issues
