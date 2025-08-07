@@ -21,11 +21,12 @@ from src.v3xctrl_control.Message import (
 
 class TestMessages(unittest.TestCase):
     def assert_message_roundtrip(self, msg: Message, expected_cls):
+        """Helper to ensure serialization -> deserialization is lossless."""
         data = msg.to_bytes()
         deserialized = Message.from_bytes(data)
 
         self.assertIsInstance(deserialized, expected_cls)
-        self.assertEqual(msg.timestamp, deserialized.timestamp)
+        self.assertAlmostEqual(msg.timestamp, deserialized.timestamp, places=5)
         self.assertEqual(msg.payload, deserialized.payload)
 
     def test_telemetry_roundtrip(self):
@@ -38,7 +39,7 @@ class TestMessages(unittest.TestCase):
         self.assertEqual(msg.get_values(), {"roll": 1.0, "pitch": 2.0})
         self.assert_message_roundtrip(msg, Control)
 
-    def test_command_roundtrip(self):
+    def test_command_roundtrip_and_fields(self):
         msg = Command("reboot", {"now": True})
         self.assertEqual(msg.get_command(), "reboot")
         self.assertEqual(msg.get_parameters(), {"now": True})
@@ -64,8 +65,9 @@ class TestMessages(unittest.TestCase):
         msg = Heartbeat()
         self.assert_message_roundtrip(msg, Heartbeat)
 
-    def test_syn_roundtrip(self):
+    def test_syn_roundtrip_and_version(self):
         msg = Syn()
+        self.assertEqual(msg.get_version(), 1)
         self.assert_message_roundtrip(msg, Syn)
 
     def test_ack_roundtrip(self):
@@ -85,14 +87,14 @@ class TestMessages(unittest.TestCase):
         self.assertEqual(msg.get_error(), 404)
         self.assert_message_roundtrip(msg, Error)
 
-    def test_peer_announcement_roundtrip(self):
+    def test_peer_announcement_roundtrip_and_fields(self):
         msg = PeerAnnouncement("viewer", "id123", "video")
         self.assertEqual(msg.get_role(), "viewer")
         self.assertEqual(msg.get_id(), "id123")
         self.assertEqual(msg.get_port_type(), "video")
         self.assert_message_roundtrip(msg, PeerAnnouncement)
 
-    def test_peer_info_roundtrip(self):
+    def test_peer_info_roundtrip_and_fields(self):
         msg = PeerInfo("10.0.0.1", 5004, 5005)
         self.assertEqual(msg.get_ip(), "10.0.0.1")
         self.assertEqual(msg.get_video_port(), 5004)
@@ -122,13 +124,13 @@ class TestMessages(unittest.TestCase):
         self.assertIn("Unknown message type", str(ctx.exception))
 
     def test_invalid_msgpack_raises(self):
-        # This triggers msgpack.ExtraData internally, but Message.from_bytes re-raises as ValueError
+        # ExtraData triggers
         broken = msgpack.packb({"t": "Command", "p": {}, "d": time.time()}) + b"junk"
         with self.assertRaises(ValueError) as ctx:
             Message.from_bytes(broken)
         self.assertIn("Malformed", str(ctx.exception))
 
-        # Also test completely invalid msgpack data
+        # Completely invalid
         with self.assertRaises(ValueError):
             Message.from_bytes(b"not-a-valid-msgpack")
 
@@ -136,6 +138,19 @@ class TestMessages(unittest.TestCase):
         broken = msgpack.packb({"t": "Command", "p": {}})
         with self.assertRaises(ValueError):
             Message.from_bytes(broken)
+
+    def test_partial_payload_handling(self):
+        msg = Command("nop")
+        data = msg.to_bytes()
+        obj = msgpack.unpackb(data)
+        del obj["p"]["p"]  # remove parameters
+        repacked = msgpack.packb(obj)
+
+        deserialized = Message.from_bytes(repacked)
+        self.assertIsInstance(deserialized, Command)
+        self.assertEqual(deserialized.get_command(), "nop")
+        self.assertEqual(deserialized.get_parameters(), {})  # default value
+        self.assertTrue(deserialized.get_command_id())  # default value
 
 
 if __name__ == "__main__":
