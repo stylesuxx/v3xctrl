@@ -39,15 +39,13 @@ class TestUDPReceiver(unittest.TestCase):
 
         self.port = self.sock.getsockname()[1]
 
-        self.receiver = UDPReceiver(self.sock, self.handler, timeout=0.2)
+        self.receiver = UDPReceiver(self.sock, self.handler, timeout_ms=200, window_ms=500)
         self.receiver.start()
 
     def tearDown(self):
         self.receiver.stop()
         self.receiver.join()
         self.sock.close()
-
-        # Restore original Message.from_bytes
         Message.from_bytes = self.original_from_bytes
 
     def send(self, data: bytes, host=None):
@@ -92,6 +90,32 @@ class TestUDPReceiver(unittest.TestCase):
         time.sleep(0.1)
 
         self.assertEqual(len(self.received), 0)
+
+    def test_reset_clears_timestamp_tracking(self):
+        self.send(b"5")
+        time.sleep(0.05)
+
+        self.receiver.reset()
+
+        self.send(b"1")  # should now be accepted again
+        time.sleep(0.1)
+
+        timestamps = [t for t, _ in self.received]
+        self.assertIn(5, timestamps)
+        self.assertIn(1, timestamps)
+
+    def test_timestamp_outside_window_is_ignored(self):
+        self.send(b"1000")  # first valid message
+        time.sleep(0.05)
+
+        # simulate long pause (streamer would measure this)
+        self.receiver.last_valid_now -= 3.0  # simulate 3 seconds of no traffic
+        self.send(b"1001")  # small timestamp increment, but too old relative to delta
+        time.sleep(0.1)
+
+        timestamps = [t for t, _ in self.received]
+        self.assertIn(1000, timestamps)
+        self.assertNotIn(1001, timestamps)
 
     def test_stop_cleanly(self):
         self.assertTrue(self.receiver.is_running())
