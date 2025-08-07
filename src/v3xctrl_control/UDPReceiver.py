@@ -40,8 +40,8 @@ class UDPReceiver(threading.Thread):
         assert self.socket.type == socket.SOCK_DGRAM, "UDPReceiver expects a UDP socket"
 
         self.handler = handler
-        self.timeout = timeout_ms/1000
-        self.window = window_ms/1000
+        self.timeout = timeout_ms / 1000
+        self.window = window_ms / 1000
 
         self.last_valid_timestamp = 0
         self.last_valid_now = None
