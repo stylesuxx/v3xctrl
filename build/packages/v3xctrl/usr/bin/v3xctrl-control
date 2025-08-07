@@ -23,5 +23,9 @@ v3xctrl-python -m v3xctrl_control.apps.streamer "${server_host}" "${network_port
   --steering-scale "${controls_steering_scale}" \
   --gpio-throttle "${controls_gpio_throttle}" \
   --gpio-steering "${controls_gpio_steering}" \
-  --modem-path "${network_modem_path}" --log "${extras_logLevel}" \
+  --modem-path "${network_modem_path}" \
+  --log "${extras_logLevel}" \
+  --failsafe-ms "${controls_failsafeTimeout}" \
+  --failsafe-throttle "${controls_throttle_failsafe}" \
+  --failsafe-steering "${controls_steering_failsafe}" \
   ${ARGS}

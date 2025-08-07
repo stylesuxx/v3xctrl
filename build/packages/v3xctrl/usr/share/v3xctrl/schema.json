@@ -460,8 +460,8 @@
         "failsafeTimeout": {
           "propertyOrder": 30,
           "type": "integer",
-          "default": 3,
-          "description": "After this many seconds without a control packet, failsafe is triggered"
+          "default": 500,
+          "description": "After this many ms without a control packet, failsafe is triggered"
         },
         "gpio":{
           "propertyOrder":40,

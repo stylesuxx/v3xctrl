@@ -55,6 +55,14 @@ class Message(abc.ABC):
     def __repr__(self):
         return f"{self.type}(payload={self.payload}, timestamp={self.timestamp})"
 
+    @staticmethod
+    def peek_type(data: bytes) -> str:
+        try:
+            obj = msgpack.unpackb(data, strict_map_key=False)
+            return obj.get("t", "Unknown")
+        except Exception:
+            return "Unknown"
+
 
 class Telemetry(Message):
     """Message type for telemetry data."""

@@ -40,7 +40,7 @@
       }
   },
   "controls": {
-      "failsafeTimeout": 3,
+      "failsafeTimeout": 500,
       "throttle": {
           "min": 1000,
           "max": 2000,
