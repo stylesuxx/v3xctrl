@@ -39,7 +39,6 @@ class TestUDPReceiver(unittest.TestCase):
 
         self.port = self.sock.getsockname()[1]
 
-        # Use new millisecond-based API
         self.receiver = UDPReceiver(self.sock, self.handler, timeout_ms=200, window_ms=500)
         self.receiver.start()
 
