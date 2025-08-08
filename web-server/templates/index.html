@@ -20,7 +20,7 @@
         const modems = {{ modems|tojson }};
 
         const editor = new Editor('#editor', schema, startval, modems);
-        const tabs = new Tabs('#custom-tabs');
+        const tabs = new Tabs('#custom-tabs', editor);
 
         setCalibrationValues(editor);
         registerClickHandlers();

@@ -94,14 +94,15 @@ class Tabs {
     });
 
     // dmesg
-    this.tabs.dmesg.find('button.refresh').on('click', function(e) {
-      API.getDmesg();
+    this.tabs.dmesg.find('button.refresh').on('click', (e) => {
+      that.renderDmesg();
     });
 
     // calibration
     this.tabs.calibration.find('button.save-steering-calibration').on('click', (e) => {
-      const $calibration = that.tabs.calibration;
+      e.preventDefault();
 
+      const $calibration = that.tabs.calibration;
       const min = parseInt($calibration.find('.steering.min input').val());
       const max = parseInt($calibration.find('.steering.max input').val());
       const trim = parseInt($calibration.find('.steering.trim input').val());
@@ -116,8 +117,9 @@ class Tabs {
     });
 
     this.tabs.calibration.find('button.save-throttle-calibration').on('click', (e) => {
-      const $calibration = that.tabs.calibration;
+      e.preventDefault();
 
+      const $calibration = that.tabs.calibration;
       const min = parseInt($calibration.find('.throttle.min input').val());
       const max = parseInt($calibration.find('.throttle.max input').val());
       const idle = parseInt($calibration.find('.throttle.idle input').val());
@@ -157,8 +159,8 @@ class Tabs {
       }
 
       const values = that.editor.getValue();
-      const gpio = parseInt(values.controls.gpio.steering);
-      API.setPwm(gpio, value);
+      const channel = parseInt(values.controls.pwm.steering);
+      API.setPwm(channel, value);
     });
 
     this.tabs.calibration.find('form.throttle button').on('click', (e) => {
@@ -179,8 +181,8 @@ class Tabs {
       $input.val(value);
 
       const values = that.editor.getValue();
-      const gpio = parseInt(values.controls.gpio.throttle);
-      API.setPwm(gpio, value);
+      const channel = parseInt(values.controls.pwm.throttle);
+      API.setPwm(channel, value);
     });
   }
 
@@ -335,27 +337,25 @@ class Tabs {
   async renderDmesg() {
     const $content = this.tabs.dmesg;
 
-    API.getDmesg().then((log) => {
-      $content.find('textarea').val(log);
-    });
+    const log = await API.getDmesg();
+    $content.find('textarea').val(log);
   }
 
   async renderCalibration() {
     const $warning = this.tabs.calibration.find('.service-warning');
     const $content = this.tabs.calibration.find('.calibration-content');
 
-    API.getServices().then((services) => {
-      services.forEach((service) => {
-        if(service.name === 'v3xctrl-control') {
-          if(!service.active_state) {
-            $warning.addClass('hidden');
-            $content.removeClass('hidden');
-          } else {
-            $warning.removeClass('hidden');
-            $content.addClass('hidden');
-          }
+    const services = await API.getServices();
+    services.forEach((service) => {
+      if(service.name === 'v3xctrl-control') {
+        if(service.state == 'inactive') {
+          $warning.addClass('hidden');
+          $content.removeClass('hidden');
+        } else {
+          $warning.removeClass('hidden');
+          $content.addClass('hidden');
         }
-      });
+      }
     });
   }
 
