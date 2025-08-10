@@ -8,7 +8,7 @@ def init_db(path: str) -> None:
         cur.execute('''
             CREATE TABLE IF NOT EXISTS allowed_sessions (
                 id TEXT PRIMARY KEY,
-                discord_user_id TEXT NOT NULL,
+                discord_user_id TEXT NOT NULL UNIQUE,
                 discord_username TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
