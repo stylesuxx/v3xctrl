@@ -13,15 +13,15 @@ sequentially:
 """
 import socket
 import time
-from typing import Optional, cast
+from typing import Optional
+
+from v3xctrl_helper import Address
 
 from .Base import Base
 from .Message import Message, Syn, Ack, Command, CommandAck
 from .MessageHandler import MessageHandler
 from .State import State
 from .UDPTransmitter import UDPTransmitter
-
-from v3xctrl_helper import Address
 
 
 class Client(Base):
@@ -50,16 +50,15 @@ class Client(Base):
         # receiver
         self.host_ip = socket.gethostbyname(self.host)
 
-    def syn_handler(self, message: Message, addr: Address) -> None:
+    def syn_handler(self, message: Syn, addr: Address) -> None:
         self.send(Ack())
 
-    def ack_handler(self, message: Message, addr: Address) -> None:
+    def ack_handler(self, message: Ack, addr: Address) -> None:
         if self.state == State.WAITING:
             self.handle_state_change(State.CONNECTED)
 
-    def command_handler(self, message: Message, addr: Address) -> None:
+    def command_handler(self, message: Command, addr: Address) -> None:
         """Handles incoming commands by acknowledging them."""
-        message = cast(Command, message)
         command_id = message.get_command_id()
         ack = CommandAck(command_id)
         self.send(ack)
@@ -83,7 +82,11 @@ class Client(Base):
         self.transmitter.start_task()
 
         self.message_handler.start()
+
+        # External handlers added via subscribe
         self.message_handler.add_handler(Message, self.all_handler)
+
+        # Class specific handlers
         self.message_handler.add_handler(Syn, self.syn_handler)
         self.message_handler.add_handler(Ack, self.ack_handler)
         self.message_handler.add_handler(Command, self.command_handler)
