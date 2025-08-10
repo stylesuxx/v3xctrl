@@ -6,19 +6,29 @@ Every message type can have mutliple handlers and the message is forwarded to
 all of them. Message handlers are triggered in the order they are registered.
 """
 
+from __future__ import annotations
+from collections import defaultdict
 import socket
 import threading
-from typing import Callable, List, Optional, TypedDict
+from typing import (
+  Dict,
+  List,
+  Optional,
+  Protocol,
+  TypeVar,
+  Any,
+)
 
 from v3xctrl_helper import Address
 
 from .UDPReceiver import UDPReceiver
 from .Message import Message
 
+T = TypeVar("T", bound=Message, contravariant=True)
 
-class MessageHandlerTyp(TypedDict):
-    type: type
-    handler: Callable[[Message, Address], None]
+
+class Handler(Protocol[T]):
+    def __call__(self, msg: T, addr: Address, /) -> None: ...
 
 
 class MessageHandler(threading.Thread):
@@ -30,7 +40,7 @@ class MessageHandler(threading.Thread):
         super().__init__(daemon=True)
 
         self.socket = sock
-        self.handlers: List[MessageHandlerTyp] = []
+        self.handlers: Dict[type[Message], List[Handler[Any]]] = defaultdict(list)
 
         self.rx = UDPReceiver(self.socket, self.handler)
         if valid_host_ip:
@@ -43,19 +53,13 @@ class MessageHandler(threading.Thread):
         self.running.clear()
 
     def handler(self, message: Message, addr: Address) -> None:
-        for h in self.handlers:
-            if isinstance(message, h['type']):
-                h['handler'](message, addr)
+        for cls, handlers in self.handlers.items():
+            if isinstance(message, cls):
+                for fn in handlers:
+                    fn(message, addr)
 
-    def add_handler(
-        self,
-        cls: type,
-        handler: Callable[[Message, Address], None]
-    ) -> None:
-        self.handlers.append({
-            "type": cls,
-            "handler": handler
-        })
+    def add_handler(self, cls: type[T], handler: Handler[T]) -> None:
+        self.handlers[cls].append(handler)
 
     def reset(self) -> None:
         self.rx.reset()

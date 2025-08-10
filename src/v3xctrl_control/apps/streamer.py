@@ -175,8 +175,7 @@ def map_range(
     return int(servo_min + normalized * (servo_max - servo_min))
 
 
-def control_handler(message: Message) -> None:
-    message = cast(Control, message)
+def control_handler(message: Control) -> None:
     throttle_value = failsafe_throttle
     steering_value = failsafe_steering
 
@@ -210,13 +209,11 @@ def control_handler(message: Message) -> None:
     pwm_steering.set_pulse_width(int(steering_value))
 
 
-def latency_handler(message: Message) -> None:
-    message = cast(Latency, message)
+def latency_handler(message: Latency) -> None:
     client.send(message)
 
 
-def command_handler(command: Message) -> None:
-    command = cast(Command, command)
+def command_handler(command: Command) -> None:
     command_id = command.get_command_id()
     if command_id in received_command_ids:
         return

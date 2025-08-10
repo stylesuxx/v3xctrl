@@ -32,17 +32,16 @@ class Server(Base):
         self.pending_commands: Dict[str, Callable[[bool], None] | None] = {}
         self.pending_lock = threading.Lock()
 
-    def syn_handler(self, message: Message, addr: Address) -> None:
+    def syn_handler(self, message: Syn, addr: Address) -> None:
         super()._send(Ack(), addr)
         if self.state == State.WAITING:
             self.handle_state_change(State.CONNECTED)
 
     def command_ack_handler(
         self,
-        message: Message,
+        message: CommandAck,
         addr: Address
     ) -> None:
-        message = cast(CommandAck, message)
         command_id = message.get_command_id()
         with self.pending_lock:
             callback = self.pending_commands.pop(command_id, None)
@@ -90,7 +89,11 @@ class Server(Base):
         self.transmitter.start_task()
 
         self.message_handler.start()
+
+        # External handlers added via subscribe
         self.message_handler.add_handler(Message, self.all_handler)
+
+        # Class specific Handlers
         self.message_handler.add_handler(Syn, self.syn_handler)
         self.message_handler.add_handler(CommandAck, self.command_ack_handler)
 
