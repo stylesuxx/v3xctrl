@@ -19,7 +19,7 @@ import time
 from typing import Dict, Tuple, Any
 
 from v3xctrl_helper import Address
-from v3xctrl_control.Message import Message, PeerAnnouncement, PeerInfo, Error
+from v3xctrl_control.message import Message, PeerAnnouncement, PeerInfo, Error
 from v3xctrl_udp_relay.SessionStore import SessionStore
 
 

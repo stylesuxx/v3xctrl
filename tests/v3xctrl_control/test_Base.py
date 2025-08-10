@@ -1,11 +1,11 @@
-# tests/v3xctrl_control/test_Base.py
 import time
 import unittest
 from unittest.mock import Mock
 
 from src.v3xctrl_control.Base import Base
-from src.v3xctrl_control.Message import Heartbeat, Control, Message
+from src.v3xctrl_control.message import Heartbeat, Control, Message
 from src.v3xctrl_control.State import State
+from src.v3xctrl_helper import MessageFromAddress
 
 
 class DummyBase(Base):
@@ -23,7 +23,6 @@ class TestBase(unittest.TestCase):
         self.base = DummyBase()
 
     def test_init_defaults(self) -> None:
-        # Cover __init__ and verify defaults
         self.assertEqual(self.base.state_handlers, {})
         self.assertEqual(self.base.subscriptions, {})
         self.assertEqual(self.base.message_history, [])
@@ -47,12 +46,11 @@ class TestBase(unittest.TestCase):
         addr = ("127.0.0.1", 5000)
         self.base.all_handler(hb, addr)
 
-        handler_mock.assert_called_once_with(hb)
-        self.assertEqual(self.base.message_history[-1], (hb, addr))
+        handler_mock.assert_called_once_with(hb, addr)
+        self.assertEqual(self.base.message_history[-1], MessageFromAddress(hb, addr))
         self.assertIsNotNone(self.base.last_message_timestamp)
 
     def test_subscribe_generic_message_handler_match(self) -> None:
-        """A handler subscribed to the base Message class should fire for subclasses."""
         handler_generic = Mock()
         self.base.subscribe(Message, handler_generic)
 
@@ -60,31 +58,32 @@ class TestBase(unittest.TestCase):
         addr = ("127.0.0.1", 5000)
         self.base.all_handler(hb, addr)
 
-        handler_generic.assert_called_once_with(hb)
-        self.assertEqual(self.base.message_history[-1], (hb, addr))
+        handler_generic.assert_called_once_with(hb, addr)
+        self.assertEqual(self.base.message_history[-1], MessageFromAddress(hb, addr))
 
     def test_both_generic_and_specific_handlers_fire_in_registration_order(self) -> None:
-        """When both generic and specific handlers are present, both fire in registration order."""
         calls = []
 
-        def generic_handler(m: Message) -> None:
+        def generic_handler(m: Message, a):
             calls.append(("generic", type(m).__name__))
 
-        def specific_handler(m: Heartbeat) -> None:
+        def specific_handler(m: Heartbeat, a):
             calls.append(("specific", type(m).__name__))
 
-        # Register generic first, then specific
         self.base.subscribe(Message, generic_handler)
         self.base.subscribe(Heartbeat, specific_handler)
 
         hb = Heartbeat()
         self.base.all_handler(hb, ("127.0.0.1", 5000))
 
-        self.assertEqual(calls, [("generic", "Heartbeat"), ("specific", "Heartbeat")])
+        self.assertEqual(
+            calls,
+            [("generic", "Heartbeat"), ("specific", "Heartbeat")]
+        )
 
     def test_all_handler_no_match(self) -> None:
         handler_mock = Mock()
-        self.base.subscribe(Control, handler_mock)  # Will not match Heartbeat
+        self.base.subscribe(Control, handler_mock)
         self.base.all_handler(Heartbeat(), ("127.0.0.1", 5000))
         handler_mock.assert_not_called()
 
@@ -113,7 +112,6 @@ class TestBase(unittest.TestCase):
         self.assertFalse(self.base.sent_messages)
 
     def test_send_abstract_coverage(self) -> None:
-        # Call Base.send directly via super() just for coverage
         result = super(DummyBase, self.base).send(Heartbeat())
         self.assertIsNone(result)
 
@@ -131,13 +129,13 @@ class TestBase(unittest.TestCase):
     def test__send_without_transmitter(self) -> None:
         hb = Heartbeat()
         ts_before = self.base.last_sent_timestamp
-        self.base._send(hb, ("127.0.0.1", 5000))  # Should do nothing
+        self.base._send(hb, ("127.0.0.1", 5000))
         self.assertEqual(self.base.last_sent_timestamp, ts_before)
 
     def test_get_last_address_empty_and_nonempty(self) -> None:
         self.assertIsNone(self.base.get_last_address())
         addr = ("127.0.0.1", 5000)
-        self.base.message_history.append((Heartbeat(), addr))
+        self.base.message_history.append(MessageFromAddress(Heartbeat(), addr))
         self.assertEqual(self.base.get_last_address(), addr)
 
     def test_check_timeout_triggers_state_change(self) -> None:

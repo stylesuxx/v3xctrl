@@ -24,7 +24,7 @@ from typing import Tuple, Optional
 import concurrent.futures
 
 from .UDPPacket import UDPPacket
-from .Message import Message
+from .message import Message
 
 
 class UDPTransmitter(threading.Thread):

@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 
 from src.v3xctrl_control import Client, UDPTransmitter, State
-from src.v3xctrl_control.Message import Heartbeat, Command, CommandAck, Syn, Ack, Message
+from src.v3xctrl_control.message import Heartbeat, Command, CommandAck, Syn, Ack, Message
 from tests.v3xctrl_control.config import HOST, PORT, SLEEP
 
 

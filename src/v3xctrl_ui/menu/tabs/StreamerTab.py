@@ -3,7 +3,7 @@ from pygame import Surface
 import time
 from typing import Callable, Dict, Any
 
-from v3xctrl_control.Message import Command
+from v3xctrl_control.message import Command
 
 from v3xctrl_ui.fonts import LABEL_FONT
 from v3xctrl_ui.menu.input import Button

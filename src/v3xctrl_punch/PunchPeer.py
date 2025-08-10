@@ -3,9 +3,13 @@ import socket
 import time
 import threading
 
-from v3xctrl_control.Message import (
-    Message, PeerAnnouncement, PeerInfo,
-    Syn, SynAck, Ack
+from v3xctrl_control.message import (
+    Message,
+    PeerAnnouncement,
+    PeerInfo,
+    Syn,
+    SynAck,
+    Ack
 )
 
 from v3xctrl_helper import Address

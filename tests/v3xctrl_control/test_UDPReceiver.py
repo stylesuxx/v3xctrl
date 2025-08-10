@@ -2,10 +2,10 @@ import socket
 import time
 import unittest
 import queue
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from src.v3xctrl_control import UDPReceiver
-from src.v3xctrl_control.Message import Message
+from src.v3xctrl_control.message import Message
 
 
 class FakeMessage:

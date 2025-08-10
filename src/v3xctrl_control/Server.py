@@ -1,12 +1,12 @@
 import threading
 import time
-from typing import Dict, Callable, Optional, cast
+from typing import Dict, Callable, Optional
 import socket
 
 from v3xctrl_helper import Address
 
 from .Base import Base
-from .Message import Message, Syn, Ack, Command, CommandAck
+from .message import Message, Syn, Ack, Command, CommandAck
 from .MessageHandler import MessageHandler
 from .State import State
 from .UDPTransmitter import UDPTransmitter

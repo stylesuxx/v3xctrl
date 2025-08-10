@@ -7,7 +7,7 @@ import threading
 import time
 from typing import Tuple, Optional, Dict, Any
 
-from v3xctrl_control.Message import Control
+from v3xctrl_control.message import Control
 from v3xctrl_helper.exceptions import UnauthorizedError
 from v3xctrl_ui.Init import Init
 from v3xctrl_ui.KeyAxisHandler import KeyAxisHandler

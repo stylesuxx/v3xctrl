@@ -4,7 +4,7 @@ import pygame
 import time
 from typing import Optional
 
-from v3xctrl_control.Message import Message, Latency, Telemetry
+from v3xctrl_control.message import Message, Latency, Telemetry
 from v3xctrl_ui.colors import RED, WHITE
 from v3xctrl_ui.helpers import (
   get_fps,

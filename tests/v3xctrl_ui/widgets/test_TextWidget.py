@@ -1,5 +1,4 @@
 import unittest
-from unittest.mock import patch
 import pygame
 
 from v3xctrl_ui.colors import WHITE, GREY

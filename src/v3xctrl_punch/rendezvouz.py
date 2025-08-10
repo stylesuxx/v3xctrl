@@ -3,7 +3,7 @@ import threading
 import time
 
 from v3xctrl_helper import Address
-from v3xctrl_control.Message import Message, PeerAnnouncement, PeerInfo
+from v3xctrl_control.message import Message, PeerAnnouncement, PeerInfo
 
 PORT = 8888
 TIMEOUT = 10

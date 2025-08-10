@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 
 from src.v3xctrl_control import Server, State
-from src.v3xctrl_control.Message import (
+from src.v3xctrl_control.message import (
     Syn,
     Heartbeat,
     Message,

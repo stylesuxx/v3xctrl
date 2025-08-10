@@ -1,6 +1,6 @@
 import unittest
 import msgpack
-from v3xctrl_control.Message import Message, PeerInfo
+from v3xctrl_control.message import Message, PeerInfo
 
 
 class TestPeerInfo(unittest.TestCase):

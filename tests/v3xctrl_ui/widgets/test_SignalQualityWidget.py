@@ -1,6 +1,5 @@
 import unittest
 import pygame
-from pygame import Surface
 from v3xctrl_ui.widgets.SignalQualityWidget import SignalQualityWidget, SignalQuality
 
 

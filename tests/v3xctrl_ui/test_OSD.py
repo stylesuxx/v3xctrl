@@ -9,7 +9,7 @@ import pygame
 from v3xctrl_ui.colors import RED
 from v3xctrl_ui.Settings import Settings
 from v3xctrl_ui.OSD import OSD
-from v3xctrl_control.Message import Latency, Telemetry
+from v3xctrl_control.message import Latency, Telemetry
 
 
 class TestOSD(unittest.TestCase):

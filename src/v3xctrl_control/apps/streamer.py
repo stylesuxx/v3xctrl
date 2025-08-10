@@ -16,19 +16,17 @@ import sys
 import time
 import traceback
 import types
-from typing import cast
 
 from v3xctrl_control import Client, State
 from v3xctrl_control.Telemetry import Telemetry as TelemetryHandler
-from v3xctrl_control.Message import (
-  Message,
+from v3xctrl_control.message import (
   Command,
   Control,
   Telemetry,
   Latency,
 )
 
-from v3xctrl_helper import clamp
+from v3xctrl_helper import clamp, Address
 
 parser = argparse.ArgumentParser(description="Test connection performance.")
 parser.add_argument("host", help="The target IP address")
@@ -175,7 +173,7 @@ def map_range(
     return int(servo_min + normalized * (servo_max - servo_min))
 
 
-def control_handler(message: Control) -> None:
+def control_handler(message: Control, address: Address) -> None:
     throttle_value = failsafe_throttle
     steering_value = failsafe_steering
 
@@ -209,11 +207,11 @@ def control_handler(message: Control) -> None:
     pwm_steering.set_pulse_width(int(steering_value))
 
 
-def latency_handler(message: Latency) -> None:
+def latency_handler(message: Latency, address: Address) -> None:
     client.send(message)
 
 
-def command_handler(command: Command) -> None:
+def command_handler(command: Command, address: Address) -> None:
     command_id = command.get_command_id()
     if command_id in received_command_ids:
         return
