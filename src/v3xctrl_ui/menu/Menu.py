@@ -5,7 +5,7 @@ from pygame import Surface, event
 from typing import Callable, NamedTuple, Dict
 
 from v3xctrl_control import Server
-from v3xctrl_control.Message import Command
+from v3xctrl_control.message import Command
 
 from v3xctrl_ui.GamepadManager import GamepadManager
 from v3xctrl_ui.Settings import Settings

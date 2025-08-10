@@ -1,7 +1,7 @@
 import unittest
 import msgpack
 from typing import Dict, Any, Set
-from v3xctrl_control.Message import Message, Command
+from v3xctrl_control.message import Message, Command
 
 
 class TestCommand(unittest.TestCase):

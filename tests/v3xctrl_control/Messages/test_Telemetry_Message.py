@@ -1,7 +1,7 @@
 import unittest
 import msgpack
 from typing import Dict, Any
-from v3xctrl_control.Message import Message, Telemetry
+from v3xctrl_control.message import Message, Telemetry
 
 
 class TestTelemetry(unittest.TestCase):

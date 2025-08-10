@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 import threading
 import logging
-from typing import Callable, Dict, List, Protocol, TypeVar, Any
+from typing import Callable, Dict, List, Any
 import time
 
 from v3xctrl_helper import (
@@ -16,13 +16,8 @@ from v3xctrl_helper import (
 )
 
 from .State import State
-from .Message import Message, Heartbeat
-
-T = TypeVar("T", bound=Message, contravariant=True)
-
-
-class MessageHandler(Protocol[T]):
-    def __call__(self, msg: T, /) -> None: ...
+from .message import Message, Heartbeat
+from .handler_types import Handler, T
 
 
 class Base(threading.Thread, ABC):
@@ -32,7 +27,7 @@ class Base(threading.Thread, ABC):
         super().__init__(daemon=True)
 
         self.state_handlers: Dict[State, List[Callable[[], None]]] = defaultdict(list)
-        self.subscriptions: Dict[type[Message], List[MessageHandler[Any]]] = defaultdict(list)
+        self.subscriptions: Dict[type[Message], List[Handler[Any]]] = defaultdict(list)
         self.message_history: List[MessageFromAddress] = []
         self.message_history_length = 50
 
@@ -87,7 +82,11 @@ class Base(threading.Thread, ABC):
             if now > self.last_message_timestamp + self.no_message_timeout:
                 self.handle_state_change(State.DISCONNECTED)
 
-    def subscribe(self, cls: type[T], handler: MessageHandler[T]) -> None:
+    def subscribe(self, cls: type[T], handler: Handler[T]) -> None:
+        """
+        Keep a custom subscription handler, do not rely on the messageHandler
+        since it might be re-initialized.
+        """
         self.subscriptions[cls].append(handler)
 
     def on(self, state: State, handler: Callable[[], None]) -> None:
@@ -114,4 +113,4 @@ class Base(threading.Thread, ABC):
         for cls, handlers in self.subscriptions.items():
             if isinstance(message, cls):
                 for fn in handlers:
-                    fn(message)
+                    fn(message, addr)

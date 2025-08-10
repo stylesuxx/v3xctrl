@@ -1,7 +1,6 @@
 import unittest
 import pygame
 from pygame import Surface
-from unittest.mock import Mock
 
 from v3xctrl_ui.menu.DialogBox import DialogBox
 

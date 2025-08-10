@@ -4,7 +4,7 @@ import threading
 import time
 from typing import Dict
 
-from v3xctrl_control.Message import Heartbeat, PeerInfo
+from v3xctrl_control.message import Heartbeat, PeerInfo
 from v3xctrl_helper import Address
 
 

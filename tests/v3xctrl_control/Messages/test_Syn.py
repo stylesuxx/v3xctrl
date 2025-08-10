@@ -1,6 +1,6 @@
 import unittest
 import msgpack
-from v3xctrl_control.Message import Message, Syn
+from v3xctrl_control.message import Message, Syn
 
 
 class TestSyn(unittest.TestCase):

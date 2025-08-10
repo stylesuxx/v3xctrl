@@ -22,7 +22,7 @@ from typing import Callable, Tuple, Optional
 
 from v3xctrl_helper import Address
 
-from .Message import Message
+from .message import Message
 
 
 class UDPReceiver(threading.Thread):

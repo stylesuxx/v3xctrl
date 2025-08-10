@@ -1,6 +1,6 @@
 import unittest
 import msgpack
-from v3xctrl_control.Message import Message, SynAck
+from v3xctrl_control.message import Message, SynAck
 
 
 class TestSynAck(unittest.TestCase):

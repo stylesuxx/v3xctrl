@@ -2,7 +2,7 @@ import unittest
 import time
 import msgpack
 
-from src.v3xctrl_control.Message import Message
+from src.v3xctrl_control.message import Message
 
 
 class TestMessages(unittest.TestCase):

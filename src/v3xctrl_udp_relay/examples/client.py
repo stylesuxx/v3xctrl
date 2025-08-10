@@ -6,7 +6,7 @@ from typing import Dict
 
 from v3xctrl_punch.examples.TestPeer import TestPeer
 from v3xctrl_udp_relay.Peer import Peer
-from v3xctrl_control.Message import Heartbeat, PeerInfo
+from v3xctrl_control.message import Heartbeat, PeerInfo
 
 logging.basicConfig(
     level="DEBUG",

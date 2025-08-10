@@ -1,6 +1,6 @@
 import unittest
 import msgpack
-from v3xctrl_control.Message import Message, Ack
+from v3xctrl_control.message import Message, Ack
 
 
 class TestAck(unittest.TestCase):

@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from src.v3xctrl_control import MessageHandler, UDPTransmitter
-from src.v3xctrl_control.Message import Heartbeat, Ack, Message
+from src.v3xctrl_control.message import Heartbeat, Ack, Message
 from tests.v3xctrl_control.config import HOST, PORT, SLEEP
 
 

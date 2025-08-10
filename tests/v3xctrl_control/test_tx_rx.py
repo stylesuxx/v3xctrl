@@ -8,7 +8,7 @@ from src.v3xctrl_control import (
   UDPTransmitter,
   UDPPacket
 )
-from src.v3xctrl_control.Message import Heartbeat
+from src.v3xctrl_control.message import Heartbeat
 from tests.v3xctrl_control.config import HOST, PORT, SLEEP
 
 

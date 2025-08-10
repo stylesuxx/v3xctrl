@@ -4,7 +4,7 @@ import time
 import threading
 from typing import Dict, List, Any
 
-from v3xctrl_control.Message import PeerAnnouncement, Message, PeerInfo, Error
+from v3xctrl_control.message import PeerAnnouncement, Message, PeerInfo, Error
 from v3xctrl_helper.exceptions import UnauthorizedError
 from v3xctrl_helper import Address
 

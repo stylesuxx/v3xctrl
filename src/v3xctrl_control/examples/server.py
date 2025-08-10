@@ -8,7 +8,7 @@ import types
 from typing import cast
 
 from v3xctrl_control import Server, State
-from v3xctrl_control.Message import Message, Telemetry, Control
+from v3xctrl_control.message import Message, Telemetry, Control
 
 
 logging.basicConfig(level=logging.DEBUG)

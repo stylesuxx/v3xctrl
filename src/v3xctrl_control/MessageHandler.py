@@ -14,21 +14,14 @@ from typing import (
   Dict,
   List,
   Optional,
-  Protocol,
-  TypeVar,
   Any,
 )
 
 from v3xctrl_helper import Address
 
 from .UDPReceiver import UDPReceiver
-from .Message import Message
-
-T = TypeVar("T", bound=Message, contravariant=True)
-
-
-class Handler(Protocol[T]):
-    def __call__(self, msg: T, addr: Address, /) -> None: ...
+from .message import Message
+from .handler_types import Handler, T
 
 
 class MessageHandler(threading.Thread):

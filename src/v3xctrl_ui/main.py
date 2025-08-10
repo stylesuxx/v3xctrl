@@ -16,7 +16,7 @@ from v3xctrl_ui.MemoryTracker import MemoryTracker
 from v3xctrl_ui.OSD import OSD
 
 from v3xctrl_control import State
-from v3xctrl_control.Message import Message, Telemetry, Latency
+from v3xctrl_control.message import Message, Telemetry, Latency
 
 
 parser = argparse.ArgumentParser(description="RC Streamer")
@@ -113,8 +113,8 @@ gamepad_manager.start()
 
 handlers: Dict[str, Any] = {
     "messages": [
-        (Telemetry, lambda message: message_handler(osd, message)),
-        (Latency, lambda message: message_handler(osd, message)),
+        (Telemetry, lambda message, address: message_handler(osd, message)),
+        (Latency, lambda message, address: message_handler(osd, message)),
       ],
     "states": [(State.CONNECTED, lambda: connect_handler(osd)),
                (State.DISCONNECTED, lambda: disconnect_handler(osd))]

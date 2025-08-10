@@ -2,7 +2,7 @@ import socket
 import time
 
 from v3xctrl_control import MessageHandler, UDPTransmitter
-from v3xctrl_control.Message import Message, Heartbeat
+from v3xctrl_control.message import Message, Heartbeat
 
 from v3xctrl_helper import Address
 
