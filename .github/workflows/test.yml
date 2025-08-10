@@ -26,6 +26,7 @@ jobs:
           pip install -r ./build/requirements/viewer.txt
           pip install -r ./build/requirements/streamer.txt
           pip install -r ./build/requirements/develop.txt
+          pip install -r ./build/requirements/udp_relay.txt
 
       - name: Run tests
         run: python -m pytest tests

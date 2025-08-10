@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 import logging
-from typing import Callable, Any
+from typing import Any
 
 from v3xctrl_udp_relay.SessionStore import SessionStore
 

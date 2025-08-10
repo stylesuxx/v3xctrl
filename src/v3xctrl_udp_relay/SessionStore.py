@@ -1,4 +1,3 @@
-import logging
 import sqlite3
 import string
 import secrets
@@ -23,23 +22,27 @@ class SessionStore:
         alphabet = string.ascii_lowercase + string.digits
         for _ in range(5):
             session_id = ''.join(secrets.choice(alphabet) for _ in range(10))
-            with sqlite3.connect(self.db_path) as conn:
-                cur = conn.cursor()
-                cur.execute("SELECT 1 FROM allowed_sessions WHERE id = ?", (session_id,))
-                if not cur.fetchone():
-                    cur.execute(
-                        '''
-                        INSERT INTO allowed_sessions (id, discord_user_id, discord_username)
-                        VALUES (?, ?, ?)
-                        ''',
-                        (session_id, discord_user_id, username)
-                    )
-                    conn.commit()
-                    logging.info(f"Whitelisted session {session_id} for {username} ({discord_user_id})")
-
-                    return session_id
-
-        raise RuntimeError("Failed to generate unique session ID")
+            try:
+                with sqlite3.connect(self.db_path) as conn:
+                    cur = conn.cursor()
+                    cur.execute("SELECT 1 FROM allowed_sessions WHERE id = ?", (session_id,))
+                    if not cur.fetchone():
+                        cur.execute(
+                            '''
+                            INSERT INTO allowed_sessions (id, discord_user_id, discord_username)
+                            VALUES (?, ?, ?)
+                            ''',
+                            (session_id, discord_user_id, username)
+                        )
+                        conn.commit()
+                        return session_id
+            except sqlite3.IntegrityError as e:
+                # If it's due to duplicate discord_user_id, re-raise as RuntimeError
+                if "discord_user_id" in str(e):
+                    raise RuntimeError(f"Session already exists for user {discord_user_id}")
+                # Otherwise, continue retrying for duplicate id collisions
+                continue
+        raise RuntimeError("Failed to generate a unique session ID after multiple attempts")
 
     def exists(self, session_id: str) -> bool:
         with sqlite3.connect(self.db_path) as conn:
