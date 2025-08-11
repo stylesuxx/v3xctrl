@@ -5,8 +5,8 @@ than you might think.
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections import defaultdict
-import threading
 import logging
+import threading
 from typing import Callable, Dict, List, Any
 import time
 
@@ -18,6 +18,11 @@ from v3xctrl_helper import (
 from .State import State
 from .message import Message, Heartbeat
 from .handler_types import Handler, T
+
+
+class InitializationError(Exception):
+    """Raised when a subclass is not properly initialized"""
+    pass
 
 
 class Base(threading.Thread, ABC):
@@ -39,11 +44,6 @@ class Base(threading.Thread, ABC):
 
         self.state = State.WAITING
 
-        # Initalization needs to be done in the implementing class
-        self.socket = None
-        self.transmitter = None
-        self.message_handler = None
-
         # The server timeout should be longer than on the client. This way
         # it is possible to recover a lost connection
         self.last_message_timestamp = 0
@@ -51,6 +51,24 @@ class Base(threading.Thread, ABC):
 
         self.last_sent_timestamp = 0
         self.last_sent_timeout = 1
+
+        self.socket = None
+        self.transmitter = None
+        self.message_handler = None
+
+    def validate_initialization(self) -> None:
+        """Validate that all required components are properly initialized."""
+        missing: List[str] = []
+
+        if not hasattr(self, 'socket') or self.socket is None:
+            missing.append('socket')
+        if not hasattr(self, 'transmitter') or self.transmitter is None:
+            missing.append('transmitter')
+        if not hasattr(self, 'message_handler') or self.message_handler is None:
+            missing.append('message_handler')
+
+        if missing:
+            raise InitializationError(f"Required components not initialized: {', '.join(missing)}")
 
     @abstractmethod
     def send(self, message: Message) -> None:
@@ -114,3 +132,8 @@ class Base(threading.Thread, ABC):
             if isinstance(message, cls):
                 for fn in handlers:
                     fn(message, addr)
+
+    def start(self) -> None:
+        """Override start to validate initialization before starting thread"""
+        self.validate_initialization()
+        super().start()

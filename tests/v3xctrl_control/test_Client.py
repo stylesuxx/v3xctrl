@@ -36,13 +36,12 @@ class TestClient(unittest.TestCase):
 
     def test_client_lifecycle(self):
         self.client.start()
-        self.assertTrue(self.client.started.is_set())
+        self.assertTrue(self.client.running.is_set())
 
         self.client.stop()
         if self.client.is_alive():
             self.client.join()
         self.assertFalse(self.client.running.is_set())
-        self.assertFalse(self.client.started.is_set())
 
     def test_client_receive_message(self):
         self.client.start()

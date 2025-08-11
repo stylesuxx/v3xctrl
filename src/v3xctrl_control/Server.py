@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 import threading
 import time
 from typing import Dict, Callable, Optional
@@ -14,6 +15,7 @@ from .UDPTransmitter import UDPTransmitter
 
 class Server(Base):
     COMMAND_MAX_RETRIES = 10
+    MAX_WORKERS = 10
     COMMAND_DELAY = 1
 
     def __init__(self, port: int, ttl_ms: int = 100) -> None:
@@ -31,6 +33,11 @@ class Server(Base):
 
         self.pending_commands: Dict[str, Callable[[bool], None] | None] = {}
         self.pending_lock = threading.Lock()
+
+        self.thread_pool = ThreadPoolExecutor(
+            max_workers=self.MAX_WORKERS,
+            thread_name_prefix=f"Server-{port}"
+        )
 
     def syn_handler(self, message: Syn, addr: Address) -> None:
         super()._send(Ack(), addr)
@@ -80,7 +87,7 @@ class Server(Base):
         with self.pending_lock:
             self.pending_commands[command_id] = callback
 
-        threading.Thread(target=retry_task, daemon=True).start()
+        self.thread_pool.submit(retry_task)
 
     def run(self) -> None:
         self.started.set()
@@ -127,4 +134,5 @@ class Server(Base):
 
             self.running.clear()
 
+        self.thread_pool.shutdown(wait=False)
         self.socket.close()
