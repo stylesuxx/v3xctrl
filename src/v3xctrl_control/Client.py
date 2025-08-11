@@ -50,6 +50,8 @@ class Client(Base):
         # receiver
         self.host_ip = socket.gethostbyname(self.host)
 
+        self.initialize()
+
     def syn_handler(self, message: Syn, addr: Address) -> None:
         self.send(Ack())
 
@@ -93,22 +95,17 @@ class Client(Base):
 
     def re_initialize(self) -> None:
         """Cleanly tear down the current connection and build a new one."""
-        if self.running.is_set():
-            self.message_handler.stop()
-            self.transmitter.stop()
+        self.message_handler.stop()
+        self.transmitter.stop()
 
-            self.message_handler.join()
-            self.transmitter.join()
+        self.message_handler.join()
+        self.transmitter.join()
 
-            self.socket.close()
+        self.socket.close()
 
         self.initialize()
 
     def run(self) -> None:
-        self.started.set()
-
-        self.initialize()
-
         self.running.set()
         while self.running.is_set():
             if self.state == State.DISCONNECTED:
@@ -125,17 +122,12 @@ class Client(Base):
             time.sleep(0.005)
 
     def stop(self) -> None:
-        if self.started.is_set():
-            self.started.clear()
+        self.message_handler.stop()
+        self.transmitter.stop()
 
-            self.running.wait()
+        self.message_handler.join()
+        self.transmitter.join()
 
-            self.message_handler.stop()
-            self.transmitter.stop()
+        self.running.clear()
 
-            self.message_handler.join()
-            self.transmitter.join()
-
-            self.running.clear()
-
-            self.socket.close()
+        self.socket.close()
