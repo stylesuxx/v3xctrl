@@ -14,7 +14,7 @@ class TextInput(BaseInput):
         font: Font,
         mono_font: Font,
         max_length: int = 32,
-        on_change: Optional[Callable[[], None]] = None,
+        on_change: Optional[Callable[[str], None]] = None,
         input_padding: int = 10
     ) -> None:
         super().__init__(
@@ -35,6 +35,7 @@ class TextInput(BaseInput):
             if self.on_change:
                 self.on_change(self.value)
         elif (
+            hasattr(event, 'unicode') and
             event.unicode and
             event.unicode.isprintable() and
             len(self.value) < self.max_length
@@ -43,6 +44,3 @@ class TextInput(BaseInput):
             self.cursor_pos += 1
             if self.on_change:
                 self.on_change(self.value)
-
-    def get_value(self) -> str:
-        return self.value

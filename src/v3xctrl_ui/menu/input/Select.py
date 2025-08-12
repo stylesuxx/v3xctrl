@@ -4,9 +4,10 @@ from pygame.freetype import Font
 from typing import Callable, List
 
 from v3xctrl_ui.colors import WHITE, GREY, LIGHT_GREY, MID_GREY
+from .BaseWidget import BaseWidget
 
 
-class Select:
+class Select(BaseWidget):
     FONT_COLOR = WHITE
     FONT_COLOR_DISABLED = (180, 180, 180)
 
@@ -23,7 +24,7 @@ class Select:
         self,
         label: str,
         label_width: int,
-        width: int,
+        length: int,
         font: Font,
         callback: Callable[[int], None],
         selected_index: int = 0
@@ -32,7 +33,7 @@ class Select:
 
         self.label = label
         self.label_width = label_width
-        self.width = width
+        self.length = length
         self.font = font
         self.callback = callback
 
@@ -41,7 +42,7 @@ class Select:
         self.hover_index = -1
         self.disabled = False
 
-        self.rect = Rect(0, 0, width, self.OPTION_HEIGHT)
+        self.rect = Rect(0, 0, length, self.OPTION_HEIGHT)
 
         self.option_surfaces: List[Surface] = []
         self.options = []
@@ -60,7 +61,7 @@ class Select:
         self._render_label_and_caret()
 
     def get_size(self) -> tuple[int, int]:
-        width = self.label_width + self.LABEL_PADDING + self.width
+        width = self.label_width + self.LABEL_PADDING + self.length
         height = self.rect.height
 
         return width, height
@@ -80,10 +81,9 @@ class Select:
         self._update_option_surfaces()
 
     def set_position(self, x: int, y: int) -> None:
-        self.x = x
-        self.y = y
+        super().set_position(x, y)
 
-        self.rect = Rect(x + self.label_width + self.LABEL_PADDING, y, self.width, self.OPTION_HEIGHT)
+        self.rect = Rect(x + self.label_width + self.LABEL_PADDING, y, self.length, self.OPTION_HEIGHT)
         self.label_rect.topleft = (x, y + self.rect.height // 2 - self.label_rect.height // 2)
         self._update_option_rects()
 
@@ -117,33 +117,37 @@ class Select:
             rect = Rect(
                 self.rect.x,
                 self.rect.y + self.OPTION_HEIGHT + i * self.OPTION_HEIGHT,
-                self.width,
+                self.length,
                 self.OPTION_HEIGHT
             )
             self.option_rects.append(rect)
         self.full_expanded_rect = Rect(
             self.rect.x,
             self.rect.y + self.OPTION_HEIGHT,
-            self.width,
+            self.length,
             self.OPTION_HEIGHT * len(self.options)
         )
 
-    def handle_event(self, event: pygame.event.Event) -> None:
+    def handle_event(self, event: pygame.event.Event) -> bool:
         if self.disabled or not self.options:
-            return
+            return False
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if self.rect.collidepoint(event.pos):
                 self.expanded = not self.expanded
+                return True
+
             elif self.expanded:
                 for i, opt_rect in enumerate(self.option_rects):
                     if opt_rect.collidepoint(event.pos):
                         self.selected_index = i
                         self.expanded = False
                         self.callback(i)
-                        break
+
+                        return True
                 else:
                     self.expanded = False
+                    return False
 
         elif event.type == pygame.MOUSEMOTION and self.expanded:
             self.hover_index = -1
@@ -152,7 +156,9 @@ class Select:
                     self.hover_index = i
                     break
 
-    def draw(self, surface: Surface) -> None:
+        return False
+
+    def _draw(self, surface: Surface) -> None:
         if not self.options:
             return
 

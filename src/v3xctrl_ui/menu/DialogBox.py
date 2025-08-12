@@ -6,8 +6,10 @@ from typing import Callable, List
 from v3xctrl_ui.menu.input.Button import Button
 from v3xctrl_ui.colors import TRANSPARENT_BLACK, WHITE, DARK_GREY
 
+from v3xctrl_ui.menu.input import BaseWidget
 
-class DialogBox:
+
+class DialogBox(BaseWidget):
     BG_COLOR = TRANSPARENT_BLACK
     BOX_COLOR = DARK_GREY
     TEXT_COLOR = WHITE
@@ -20,6 +22,8 @@ class DialogBox:
         button_label: str,
         on_confirm: Callable[[], None]
     ) -> None:
+        super().__init__()
+
         self.title = title
         self.original_lines = lines
         self.wrapped_lines: List[str] = []
@@ -41,6 +45,12 @@ class DialogBox:
 
         self.surface_size = None
         self.box_rect = None
+
+    def get_size(self) -> tuple[int, int]:
+        if self.box_rect:
+            return self.box_rect.size
+
+        return (0, 0)
 
     def _confirm(self) -> None:
         self.hide()
@@ -72,7 +82,7 @@ class DialogBox:
                 wrapped.append(current)
         return wrapped
 
-    def draw(self, surface: Surface) -> None:
+    def _draw(self, surface: Surface) -> None:
         if not self.visible:
             return
 
@@ -125,7 +135,8 @@ class DialogBox:
         )
         self.button.draw(surface)
 
-    def handle_event(self, event: pygame.event.Event) -> None:
+    def handle_event(self, event: pygame.event.Event) -> bool:
         if not self.visible:
-            return
-        self.button.handle_event(event)
+            return False
+
+        return self.button.handle_event(event)

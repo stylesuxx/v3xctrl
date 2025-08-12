@@ -29,6 +29,7 @@ class GamepadCalibrationWidget(BaseWidget):
         on_calibration_done: Callable[[], None] = lambda: None,
     ) -> None:
         super().__init__()
+
         self.font = font
         self.manager = manager
         self.on_calibration_start = on_calibration_start
@@ -55,7 +56,7 @@ class GamepadCalibrationWidget(BaseWidget):
         self.controller_select = Select(
             label="Controller",
             label_width=-10,
-            width=400,
+            length=400,
             font=font,
             callback=self.set_selected_gamepad
         )
@@ -77,20 +78,23 @@ class GamepadCalibrationWidget(BaseWidget):
             ) for name in ["steering", "throttle", "brake"]
         }
 
-    def handle_event(self, event: pygame.event.Event) -> None:
+    def handle_event(self, event: pygame.event.Event) -> bool:
         if self.dialog.visible:
-            self.dialog.handle_event(event)
-            return
+            return self.dialog.handle_event(event)
 
         if self.gamepads:
             if self.controller_select.expanded:
-                self.controller_select.handle_event(event)
-                return
+                return self.controller_select.handle_event(event)
             else:
-                self.calibrate_button.handle_event(event)
-                self.controller_select.handle_event(event)
+                handled = False
+                handled |= self.calibrate_button.handle_event(event)
+                handled |= self.controller_select.handle_event(event)
                 for checkbox in self.invert_checkboxes.values():
-                    checkbox.handle_event(event)
+                    handled |= checkbox.handle_event(event)
+
+                return handled
+
+        return False
 
     def _on_gamepads_changed(
         self,
@@ -198,7 +202,7 @@ class GamepadCalibrationWidget(BaseWidget):
                 settings[key]["invert"] = state
                 self.manager.set_calibration(guid, settings)
 
-    def draw(self, surface: Surface) -> None:
+    def _draw(self, surface: Surface) -> None:
         if not self.gamepads:
             self._draw_no_gamepad_message(surface)
             return

@@ -16,6 +16,7 @@ class VideoReceiver(threading.Thread):
         error_callback: Callable[[], None]
     ) -> None:
         super().__init__()
+
         self.port = port
         self.error_callback = error_callback
 
@@ -27,6 +28,8 @@ class VideoReceiver(threading.Thread):
 
         self.sdp_path = Path(tempfile.gettempdir()) / f"rtp_{self.port}.sdp"
         self.container = None
+
+        self.container_lock = threading.Lock()
 
     def _write_sdp(self) -> None:
         sdp_text = f"""\
@@ -69,11 +72,12 @@ a=recvonly
                           Even when no stream is running, there will be a
                           container but the demux will fail further downstream.
                     """
-                    self.container = av.open(
-                        f"{self.sdp_path}",
-                        format="sdp",
-                        options=options
-                    )
+                    with self.container_lock:
+                        self.container = av.open(
+                            f"{self.sdp_path}",
+                            format="sdp",
+                            options=options
+                        )
                     break
                 except av.AVError as e:
                     logging.warning(f"av.open() failed: {e}")
@@ -99,9 +103,10 @@ a=recvonly
                 except av.AVError as e:
                     logging.warning(f"Stream decode error: {e}")
                     try:
-                        if self.container:
-                            self.container.close()
-                            self.container = None
+                        with self.container_lock:
+                            if self.container:
+                                self.container.close()
+                                self.container = None
                     except Exception as e:
                         logging.warning(f"Container close failed during error recovery: {e}")
                     self.error_callback()
@@ -112,11 +117,29 @@ a=recvonly
                         self.frame = None
 
                     try:
-                        if self.container:
-                            self.container.close()
-                            self.container = None
+                        with self.container_lock:
+                            if self.container:
+                                self.container.close()
+                                self.container = None
                     except Exception as e:
                         logging.warning(f"Container close failed: {e}")
 
     def stop(self) -> None:
         self.running.clear()
+        if self.is_alive():
+            self.join(timeout=5.0)
+
+        with self.container_lock:
+            if self.container:
+                try:
+                    self.container.close()
+                except Exception as e:
+                    logging.warning(f"Container close failed during stop: {e}")
+                finally:
+                    self.container = None
+
+        try:
+            if self.sdp_path.exists():
+                self.sdp_path.unlink()
+        except Exception as e:
+            logging.warning(f"SDP file cleanup failed: {e}")

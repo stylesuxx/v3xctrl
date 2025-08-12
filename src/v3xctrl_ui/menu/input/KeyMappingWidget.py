@@ -47,7 +47,7 @@ class KeyMappingWidget(BaseWidget):
         self.key_code = None
         self.on_remap_toggle(True)
 
-    def handle_event(self, event: pygame.event.Event) -> None:
+    def handle_event(self, event: pygame.event.Event) -> bool:
         self.remap_button.handle_event(event)
 
         if self.waiting_for_key and event.type == pygame.KEYDOWN:
@@ -55,6 +55,10 @@ class KeyMappingWidget(BaseWidget):
             self.waiting_for_key = False
             self.on_key_change(event.key)
             self.on_remap_toggle(False)
+
+            return True
+
+        return False
 
     def set_position(self, x: int, y: int) -> None:
         self.x = x
@@ -87,7 +91,7 @@ class KeyMappingWidget(BaseWidget):
     def disable(self) -> None:
         self.remap_button.disable()
 
-    def draw(self, surface: Surface) -> None:
+    def _draw(self, surface: Surface) -> None:
         self.remap_button.draw(surface)
 
         surface.blit(self.label_surface, self.label_rect)

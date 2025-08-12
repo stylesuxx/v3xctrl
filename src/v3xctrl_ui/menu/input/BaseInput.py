@@ -31,6 +31,7 @@ class BaseInput(BaseWidget):
         input_padding: int = 10
     ) -> None:
         super().__init__()
+
         self.label = label
         self.label_width = label_width
         self.input_width = input_width
@@ -39,9 +40,10 @@ class BaseInput(BaseWidget):
         self.on_change = on_change
         self.input_padding = input_padding
 
-        self.value = ""
+        self.value: str = ""
+        self.last_value: str = ""
+
         self.cursor_pos = 0
-        self.focused = False
         self.cursor_visible = True
         self.cursor_timer = 0
 
@@ -52,10 +54,11 @@ class BaseInput(BaseWidget):
         self._draw_input_background()
 
         self.cursor_height = self.font.size
-        self.cursor_y_start = 0
-        self.cursor_y_end = 0
+        self.cursor_y_start: int = 0
+        self.cursor_y_end: int = 0
 
         self.label_surface, self.label_rect = self.font.render(label, self.LABEL_COLOR)
+        self.text_surface, self.text_rect = self.mono_font.render(self.value, self.TEXT_COLOR)
 
     def _draw_input_background(self) -> None:
         self.input_surface.fill(self.INPUT_BG_COLOR)
@@ -66,6 +69,7 @@ class BaseInput(BaseWidget):
 
     def set_position(self, x: int, y: int) -> None:
         super().set_position(x, y)
+
         self.input_rect.x = self.x + self.label_width + self.input_padding
         self.input_rect.y = self.y
         self.label_rect.topleft = (self.x, self.input_rect.centery - self.label_rect.height // 2)
@@ -75,35 +79,45 @@ class BaseInput(BaseWidget):
     def get_size(self) -> tuple[int, int]:
         return self.label_width + self.input_padding + self.input_width, self.input_rect.height
 
-    def draw(self, surface: Surface) -> None:
-        text_surface, text_rect = self.mono_font.render(self.value, self.TEXT_COLOR)
-        text_rect.right = self.input_rect.right - self.input_padding
-        text_rect.centery = self.input_rect.centery
+    def _draw(self, surface: Surface) -> None:
+        if self.value != self.last_value:
+            self.last_value = self.value
+            self.text_surface, self.text_rect = self.mono_font.render(
+                self.value,
+                self.TEXT_COLOR
+            )
+            self.text_rect.right = self.input_rect.right - self.input_padding
+            self.text_rect.centery = self.input_rect.centery
 
         surface.blit(self.label_surface, self.label_rect.topleft)
         surface.blit(self.input_surface, self.input_rect.topleft)
-        surface.blit(text_surface, text_rect)
+        surface.blit(self.text_surface, self.text_rect)
 
         self._update_cursor_blink()
         if self.focused and self.cursor_visible:
             text_width = self.mono_font.get_rect(self.value[self.cursor_pos:]).width
             gap = self.CURSOR_GAP if self.cursor_pos < len(self.value) else 0
-            cursor_x = text_rect.right - text_width - gap
-            pygame.draw.line(surface, self.CURSOR_COLOR, (cursor_x, self.cursor_y_start), (cursor_x, self.cursor_y_end), self.CURSOR_WIDTH)
+            cursor_x = self.text_rect.right - text_width - gap
+            pygame.draw.line(
+                surface,
+                self.CURSOR_COLOR,
+                (cursor_x, self.cursor_y_start),
+                (cursor_x, self.cursor_y_end),
+                self.CURSOR_WIDTH
+            )
 
     def _handle_mouse(self, mouse_pos: Tuple[int, int]) -> None:
-        self.focused = self.input_rect.collidepoint(mouse_pos)
-        if self.focused:
-            text_x = self._get_text_x()
-            rel_x = mouse_pos[0] - text_x - 10
-            self.cursor_pos = len(self.value)
-            for j in range(len(self.value)):
-                width = self.mono_font.get_rect(self.value[:j]).width
-                if width >= rel_x:
-                    self.cursor_pos = j
-                    break
-            self.cursor_visible = True
-            self.cursor_timer = pygame.time.get_ticks()
+        text_x = self._get_text_x()
+        rel_x = mouse_pos[0] - text_x - self.input_padding
+        self.cursor_pos = len(self.value)
+        for j in range(len(self.value)):
+            width = self.mono_font.get_rect(self.value[:j]).width
+            if width >= rel_x:
+                self.cursor_pos = j
+                break
+
+        self.cursor_visible = True
+        self.cursor_timer = pygame.time.get_ticks()
 
     def _update_cursor_blink(self) -> None:
         current_time = pygame.time.get_ticks()
@@ -114,11 +128,22 @@ class BaseInput(BaseWidget):
     def _get_text_x(self) -> int:
         return self.input_rect.right - self.input_padding - self.mono_font.get_rect(self.value).width
 
-    def handle_event(self, event: pygame.event.Event) -> None:
+    def handle_event(self, event: pygame.event.Event) -> bool:
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            self._handle_mouse(event.pos)
+            if self.input_rect.collidepoint(event.pos):
+                self.focused = True
+                self._handle_mouse(event.pos)
+                return True
+
+            else:
+                self.focused = False
+                return False
+
         elif event.type == pygame.KEYDOWN and self.focused:
             self._handle_keydown(event)
+            return True
+
+        return False
 
     def _get_clipboard_text(self) -> str | None:
         for type in pygame.scrap.get_types():
@@ -156,5 +181,5 @@ class BaseInput(BaseWidget):
         elif event.key == pygame.K_RIGHT:
             self.cursor_pos = min(len(self.value), self.cursor_pos + 1)
 
-    def get_value(self) -> int | str:
+    def get_value(self) -> str | int:
         return self.value
