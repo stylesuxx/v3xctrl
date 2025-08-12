@@ -23,7 +23,7 @@ class TestSelect(unittest.TestCase):
         self.select = Select(
             label="Quality",
             label_width=100,
-            width=200,
+            length=200,
             font=self.font,
             callback=callback
         )
@@ -38,7 +38,7 @@ class TestSelect(unittest.TestCase):
 
     def test_get_size(self):
         w, h = self.select.get_size()
-        self.assertEqual(w, self.select.label_width + self.select.LABEL_PADDING + self.select.width)
+        self.assertEqual(w, self.select.label_width + self.select.LABEL_PADDING + self.select.length)
         self.assertEqual(h, self.select.rect.height)
 
     def test_click_to_expand_and_select(self):

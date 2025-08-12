@@ -140,6 +140,71 @@ class TestUDPReceiver(unittest.TestCase):
         msg.timestamp = 10
         self.assertFalse(self.receiver.is_valid_message(msg, (self.host, self.port)))  # wrong host
 
+    def test_long_disconnection_rejects_valid_messages(self):
+        """Test that after a long disconnection, valid messages are incorrectly rejected"""
+        # Send initial message
+        self.send(b"1000")
+        time.sleep(0.05)
+        self.assertEqual(len(self.received), 1)
+
+        # Simulate long disconnection (much longer than window_ms=500)
+        self.receiver.last_valid_now = time.time() - 10.0  # 10 second gap
+
+        # Send new message after "reconnection" - should be rejected due to bug
+        self.send(b"1001")
+        time.sleep(0.05)
+
+        # Verify the bug: only first message received, second was rejected
+        timestamps = [t for t, _ in self.received]
+        self.assertIn(1000, timestamps)
+        self.assertNotIn(1001, timestamps)  # Bug: valid message rejected as "too old"
+        self.assertEqual(len(self.received), 1)
+
+    def test_reject_old_messages_in_continuous_stream(self):
+        """Test rejecting old messages during continuous message flow"""
+        base_time = int(time.time())
+
+        # Send a sequence of recent messages
+        for i in range(3):
+            self.send(str(base_time + i).encode())
+            time.sleep(0.02)
+
+        time.sleep(0.1)
+        self.assertEqual(len(self.received), 3)
+
+        # Now send an old message (older than window_ms=500)
+        old_time = base_time - 1  # 1 second old, outside 500ms window
+        self.send(str(old_time).encode())
+        time.sleep(0.1)
+
+        # Should still only have 3 messages (old one rejected)
+        self.assertEqual(len(self.received), 3)
+        timestamps = [t for t, _ in self.received]
+        self.assertNotIn(old_time, timestamps)
+
+    def test_reset_fixes_disconnection_issue(self):
+        """Test that calling reset() after disconnection allows new messages"""
+        # Send initial message
+        self.send(b"1000")
+        time.sleep(0.05)
+        self.assertEqual(len(self.received), 1)
+
+        # Simulate long disconnection
+        self.receiver.last_valid_now = time.time() - 10.0  # 10 second gap
+
+        # Reset the receiver (this is the fix)
+        self.receiver.reset()
+
+        # Send new message after reset - should now be accepted
+        self.send(b"1001")
+        time.sleep(0.05)
+
+        # Verify the fix: both messages received
+        timestamps = [t for t, _ in self.received]
+        self.assertIn(1000, timestamps)
+        self.assertIn(1001, timestamps)  # Fixed: message accepted after reset
+        self.assertEqual(len(self.received), 2)
+
 
 if __name__ == '__main__':
     unittest.main()
