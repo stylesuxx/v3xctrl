@@ -51,11 +51,11 @@ if __name__ == "__main__":
 
     print(json.dumps({
         "server": {
-            "host": video.get_ip()
+            "host": video[0]
         },
         "ports": {
-            "video": video.get_video_port(),
-            "control": control.get_control_port()
+            "video": video[1],
+            "control": control[1]
         }
     }, indent=2))
 
