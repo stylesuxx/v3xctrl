@@ -86,6 +86,7 @@ class Server(Base):
         self.running.set()
         while self.running.is_set():
             if self.state == State.DISCONNECTED:
+                self.message_handler.reset()
                 self.handle_state_change(State.WAITING)
 
             elif self.state == State.WAITING:
