@@ -32,7 +32,8 @@ class UDPReceiver(threading.Thread):
         sock: socket.socket,
         handler: Callable[[Message, Tuple[str, int]], None],
         timeout_ms: int = 100,
-        window_ms: int = 500
+        window_ms: int = 500,
+        should_validate_timestamp: bool = False,
     ):
         super().__init__(daemon=True)
 
@@ -46,6 +47,7 @@ class UDPReceiver(threading.Thread):
         self.last_valid_timestamp = 0
         self.last_valid_now = None
 
+        self._should_validate_timestamp = should_validate_timestamp
         self._should_validate_host = False
         self._expected_host: Optional[str] = None
 
@@ -64,7 +66,7 @@ class UDPReceiver(threading.Thread):
         been queued up, but are practically invalid at this point. We drop those
         messages and assume there will be new, more up to date messages soon.
         """
-        if self.last_valid_now is not None:
+        if self.last_valid_now is not None and self._should_validate_timestamp:
             delta = time.time() - self.last_valid_now
             min_timestamp = self.last_valid_timestamp + delta - self.window
             if message.timestamp < min_timestamp:
