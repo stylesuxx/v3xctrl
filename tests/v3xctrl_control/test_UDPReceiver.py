@@ -126,6 +126,8 @@ class TestUDPReceiver(unittest.TestCase):
         time.sleep(0.05)
 
     def test_is_valid_message_reasons(self):
+        self.receiver._should_validate_timestamp = True
+
         msg = FakeMessage(1)
         self.receiver.last_valid_timestamp = 5
         self.assertFalse(self.receiver.is_valid_message(msg, (self.host, self.port)))  # out of order
@@ -142,6 +144,8 @@ class TestUDPReceiver(unittest.TestCase):
 
     def test_long_disconnection_rejects_valid_messages(self):
         """Test that after a long disconnection, valid messages are incorrectly rejected"""
+        self.receiver._should_validate_timestamp = True
+
         # Send initial message
         self.send(b"1000")
         time.sleep(0.05)
