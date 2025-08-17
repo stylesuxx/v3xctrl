@@ -5,12 +5,16 @@ from pygame.key import ScancodeWrapper
 import socket
 import threading
 import time
-from typing import Tuple, Optional, Dict, Any
+from typing import Tuple, Optional, Dict, Any, Callable
 
 from v3xctrl_control.message import Control
 from v3xctrl_helper.exceptions import UnauthorizedError
+
+from v3xctrl_ui.GamepadManager import GamepadManager
 from v3xctrl_ui.Init import Init
 from v3xctrl_ui.KeyAxisHandler import KeyAxisHandler
+from v3xctrl_ui.OSD import OSD
+from v3xctrl_ui.Renderer import Renderer
 from v3xctrl_ui.Settings import Settings
 
 from v3xctrl_udp_relay.Peer import Peer
@@ -29,7 +33,9 @@ class AppState:
         video_port: int,
         control_port: int,
         server_handlers: Dict[str, Any],
-        settings: Settings
+        settings: Settings,
+        gamepad_manager: GamepadManager,
+        osd: OSD
     ) -> None:
         self.size = size
         self.title = title
@@ -40,6 +46,11 @@ class AppState:
         # Initialize settings
         self.settings = settings
         self.control_settings = None
+
+        self.gamepad_manager = gamepad_manager
+        self.osd = osd
+
+        # self.settings_update_callback: Optional[Callable[[], None]] = None
 
         self.loop_history: deque[float] = deque(maxlen=300)
         self.menu: Optional[Menu] = None
@@ -144,12 +155,78 @@ class AppState:
 
         threading.Thread(target=task, daemon=True).start()
 
-    def update_settings(self, settings: Settings) -> None:
+    def update_settings(self, settings: Optional[Settings] = None) -> None:
+        """
+        Update settings after exiting menu.
+        Only update settings that can be hot reloaded.
+        """
+        if settings is None:
+            settings = Init.settings("settings.toml")
+
         self.settings = settings
 
+        # Update control settings
         self.control_settings = settings.get("controls")["keyboard"]
 
+        # Update key handlers if they exist
+        if hasattr(self, 'key_handlers'):
+            self.key_handlers = {
+                "throttle": KeyAxisHandler(
+                    positive=self.control_settings["throttle_up"],
+                    negative=self.control_settings["throttle_down"],
+                    min_val=-1.0,
+                    max_val=1.0
+                ),
+                "steering": KeyAxisHandler(
+                    positive=self.control_settings["steering_right"],
+                    negative=self.control_settings["steering_left"],
+                    min_val=-1.0,
+                    max_val=1.0
+                )
+            }
+
+        # Update gamepad calibrations
+        calibrations = settings.get("calibrations", {})
+        for guid, calibration in calibrations.items():
+            self.gamepad_manager.set_calibration(guid, calibration)
+
+        input_settings = settings.get("input", {})
+        if "guid" in input_settings:
+            self.gamepad_manager.set_active(input_settings["guid"])
+
+        # Update OSD settings
+        self.osd.update_settings(settings)
+
+        # Clear menu to force refresh
         self.menu = None
+
+    def handle_events(self) -> bool:
+        """
+        Handle pygame events. Returns False if application should quit.
+        """
+        events = pygame.event.get()
+        for event in events:
+            if event.type == pygame.QUIT:
+                self.running = False
+                return False
+
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                if self.menu is None:
+                    self.menu = Menu(
+                        self.size[0],
+                        self.size[1],
+                        self.gamepad_manager,
+                        self.settings,
+                        self.update_settings,
+                        self.server
+                    )
+                else:
+                    self.menu = None
+
+            elif self.menu is not None:
+                self.menu.handle_event(event)
+
+        return True
 
     def handle_control(
         self,

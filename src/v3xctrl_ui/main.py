@@ -9,7 +9,6 @@ from v3xctrl_ui.colors import BLACK, RED, WHITE
 from v3xctrl_ui.fonts import BOLD_24_MONO_FONT, BOLD_32_MONO_FONT
 from v3xctrl_ui.helpers import get_external_ip
 from v3xctrl_ui.GamepadManager import GamepadManager
-from v3xctrl_ui.menu.Menu import Menu
 from v3xctrl_ui.Init import Init
 from v3xctrl_ui.AppState import AppState
 from v3xctrl_ui.MemoryTracker import MemoryTracker
@@ -120,52 +119,6 @@ handlers: Dict[str, Any] = {
                (State.DISCONNECTED, lambda: disconnect_handler(osd))]
 }
 
-state = AppState(
-    (VIDEO["width"], VIDEO["height"]),
-    WINDOW_TITLE,
-    PORTS["video"],
-    PORTS["control"],
-    handlers,
-    settings
-)
-
-osd = OSD(settings)
-
-
-def update_settings() -> None:
-    """
-    Update settings after exiting menu
-
-    Only update settings that can be hot reloaded, some settings need a restart
-    of the application, we do not update those.
-    """
-    global debug, state, widgets, main_loop_fps, osd
-    global control_interval, latency_interval
-
-    settings = Init.settings()
-
-    debug = settings.get('debug')
-    widgets = settings.get('widgets', {})
-
-    timing = settings.get("timing", {})
-    main_loop_fps = timing.get('main_loop_fps', 60)
-
-    control_rate_frequency = timing.get('control_update_hz', 30)
-    control_interval = 1.0 / control_rate_frequency
-
-    latency_check_frequency = timing.get('latency_check_hz', 30)
-    latency_interval = 1.0 / latency_check_frequency
-
-    input = settings.get("input", {})
-    calibrations = settings.get("calibrations", {})
-    for guid, calibration in calibrations.items():
-        gamepad_manager.set_calibration(guid, calibration)
-    if "guid" in input:
-        gamepad_manager.set_active(input["guid"])
-
-    state.update_settings(settings)
-    osd.update_settings(settings)
-
 
 def render_all(state: AppState) -> None:
     frame = None
@@ -249,34 +202,24 @@ def handle_control(state: AppState) -> None:
     state.handle_control(pressed_keys, gamepad_inputs)
 
 
-def handle_events(state: AppState) -> None:
-    events = pygame.event.get()
-    for event in events:
-        if event.type == pygame.QUIT:
-            state.running = False
-            return
-
-        elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-            if state.menu is None:
-                state.menu = Menu(
-                    VIDEO["width"],
-                    VIDEO["height"],
-                    gamepad_manager,
-                    settings,
-                    update_settings,
-                    state.server
-                )
-            else:
-                state.menu = None
-
-        elif state.menu is not None:
-            state.menu.handle_event(event)
-
-
 def signal_handler(sig: Any, frame: Any, state: AppState) -> None:
     if state.running:
         state.running = False
         print("Shutting down...")
+
+
+osd = OSD(settings)
+
+state = AppState(
+    (VIDEO["width"], VIDEO["height"]),
+    WINDOW_TITLE,
+    PORTS["video"],
+    PORTS["control"],
+    handlers,
+    settings,
+    gamepad_manager,
+    osd
+)
 
 
 signal.signal(signal.SIGINT, lambda s, f: signal_handler(s, f, state))
@@ -293,15 +236,14 @@ while state.running:
     now = time.monotonic()
     state.loop_history.append(time.time())
 
-    handle_events(state)
-    if not state.running:
+    if not state.handle_events():
         break
 
     if now - last_control_update >= control_interval:
         handle_control(state)
         last_control_update = now
 
-    # Send latency message
+    # Send latency message in fixed intervals
     if now - last_latency_check >= latency_interval:
         if state.server and not state.server_error:
             state.server.send(Latency())
