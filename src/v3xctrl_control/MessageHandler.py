@@ -42,6 +42,9 @@ class MessageHandler(threading.Thread):
             "handler": handler
         })
 
+    def reset(self) -> None:
+        self.rx.reset()
+
     def run(self) -> None:
         self.started.set()
 
