@@ -227,6 +227,10 @@ class OSD:
         }
 
     def _latency_update(self, message: Latency) -> None:
+        """
+        NOTE: We rely on the streamer and viewer to have the same timezone set
+              and do not account for any form of drift.
+        """
         now = time.time()
         timestamp = message.timestamp
         diff_ms = round((now - timestamp) * 1000)

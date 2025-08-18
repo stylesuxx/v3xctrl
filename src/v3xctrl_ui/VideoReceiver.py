@@ -99,7 +99,7 @@ a=recvonly
                                     with self.frame_lock:
                                         self.frame = frame.to_ndarray(format="rgb24")
 
-                                    self.history.append(time.time())
+                                    self.history.append(time.monotonic())
                 except av.AVError as e:
                     logging.warning(f"Stream decode error: {e}")
                     try:

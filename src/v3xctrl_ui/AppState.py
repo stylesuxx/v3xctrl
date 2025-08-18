@@ -1,4 +1,5 @@
 from collections import deque
+import logging
 import signal
 from typing import Any, Dict, Optional, Tuple
 
@@ -40,8 +41,6 @@ class AppState:
 
         self.osd = OSD(settings)
         self.renderer = Renderer(self.size, self.settings)
-
-        # self.server_handlers = self._create_handlers()
 
         osd_handlers = self._create_osd_handlers()
         self.network_manager = NetworkManager(
@@ -106,8 +105,11 @@ class AppState:
         """Update application state with timed operations."""
         # Handle control updates
         if now - self.last_control_update >= self.control_interval:
-            self.throttle, self.steering = self.input_manager.read_inputs()
-            self._send_control_message()
+            try:
+                self.throttle, self.steering = self.input_manager.read_inputs()
+                self._send_control_message()
+            except Exception as e:
+                logging.warning(f"Input read error: {e}")
             self.last_control_update = now
 
         # Handle latency checks
