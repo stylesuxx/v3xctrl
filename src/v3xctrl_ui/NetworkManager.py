@@ -37,29 +37,6 @@ class NetworkManager:
         self._setup_relay_if_enabled()
         self._print_connection_info_if_needed()
 
-    def _setup_relay_if_enabled(self) -> None:
-        """Setup relay connection if enabled in settings."""
-        relay = self.settings.get("relay", {})
-        if relay.get("enabled", False):
-            server = relay.get("server")
-            relay_id = relay.get("id")
-            if server and relay_id:
-                self.setup_relay(server, relay_id)
-
-    def _print_connection_info_if_needed(self) -> None:
-        """Print connection info to console if not using relay."""
-        relay = self.settings.get("relay", {})
-        if not relay.get("enabled", False):
-            ip = get_external_ip()
-            ports = self.settings.get("ports")
-
-            print("================================")
-            print(f"IP Address:   {ip}")
-            print(f"Video port:   {ports['video']}")
-            print(f"Control port: {ports['control']}")
-            print("Make sure to forward this ports!")
-            print("================================")
-
     def setup_relay(self, relay_server: str, relay_id: str) -> None:
         """Configure relay connection parameters."""
         self.relay_enable = True
@@ -117,8 +94,16 @@ class NetworkManager:
                         logging.info(f"Poke to {video_address} completed and socket closed.")
 
             self.video_receiver = Init.video_receiver(self.video_port, poke_peer)
-            self.server, self.server_error = Init.server(self.control_port,
-                                                         self.server_handlers)
+
+            try:
+                self.server = Init.server(
+                    self.control_port,
+                    self.server_handlers.get("messages", []),
+                    self.server_handlers.get("states", [])
+                )
+            except RuntimeError as e:
+                self.server_error = str(e)
+                logging.error(f"Server setup failed: {str(e)}")
 
             logging.info("Port setup complete.")
 
@@ -145,3 +130,26 @@ class NetworkManager:
         if self.video_receiver:
             self.video_receiver.stop()
             self.video_receiver.join()
+
+    def _setup_relay_if_enabled(self) -> None:
+        """Setup relay connection if enabled in settings."""
+        relay = self.settings.get("relay", {})
+        if relay.get("enabled", False):
+            server = relay.get("server")
+            relay_id = relay.get("id")
+            if server and relay_id:
+                self.setup_relay(server, relay_id)
+
+    def _print_connection_info_if_needed(self) -> None:
+        """Print connection info to console if not using relay."""
+        relay = self.settings.get("relay", {})
+        if not relay.get("enabled", False):
+            ip = get_external_ip()
+            ports = self.settings.get("ports")
+
+            print("================================")
+            print(f"IP Address:   {ip}")
+            print(f"Video port:   {ports['video']}")
+            print(f"Control port: {ports['control']}")
+            print("Make sure to forward this ports!")
+            print("================================")

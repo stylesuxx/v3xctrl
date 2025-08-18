@@ -1,7 +1,8 @@
 from collections import deque
+from typing import Tuple
+
 import pygame
 from pygame import Surface
-from typing import Tuple
 
 from v3xctrl_ui.colors import WHITE, GREEN
 from v3xctrl_ui.fonts import BOLD_MONO_FONT

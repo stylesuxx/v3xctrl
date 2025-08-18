@@ -1,6 +1,7 @@
-from pygame import Surface, SRCALPHA
-from typing import Callable, Tuple, Optional
 from abc import abstractmethod
+from typing import Callable, Tuple, Optional
+
+from pygame import Surface, SRCALPHA
 
 from v3xctrl_ui.widgets.Widget import Widget
 

@@ -1,6 +1,7 @@
-import pygame
 import unittest
 from unittest.mock import MagicMock
+
+import pygame
 
 from v3xctrl_ui.colors import BLACK
 from v3xctrl_ui.widgets import StatusValueWidget
@@ -49,7 +50,6 @@ class TestStatusValueWidget(unittest.TestCase):
         self.widget.set_value(None)
         mock_surface = MagicMock()
 
-        # Replace font with a mock to ensure render isn't called
         self.widget.font = MagicMock()
         self.widget.draw_extra(mock_surface)
 

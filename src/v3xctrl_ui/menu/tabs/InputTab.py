@@ -1,5 +1,6 @@
-from pygame import Surface
 from typing import Callable, Dict, List, Any
+
+from pygame import Surface
 
 from v3xctrl_ui.fonts import LABEL_FONT
 from v3xctrl_ui.GamepadManager import GamepadManager
@@ -53,6 +54,18 @@ class InputTab(Tab):
 
         self.elements = self.key_widgets + [self.calibration_widget]
 
+    def draw(self, surface: Surface) -> None:
+        y = self._draw_keyboard_section(surface, 0)
+        y = self._draw_input_section(surface, y)
+
+    def get_settings(self) -> Dict[str, Any]:
+        return {
+            "input": {
+                "guid": self.calibration_widget.get_selected_guid()
+            },
+            "calibrations": self.gamepad_manager.get_calibrations()
+        }
+
     def _on_active_toggle(self, active: bool) -> None:
         self.on_active_toggle(active)
 
@@ -98,15 +111,3 @@ class InputTab(Tab):
         self.calibration_widget.draw(surface)
 
         return y
-
-    def draw(self, surface: Surface) -> None:
-        y = self._draw_keyboard_section(surface, 0)
-        y = self._draw_input_section(surface, y)
-
-    def get_settings(self) -> Dict[str, Any]:
-        return {
-            "input": {
-                "guid": self.calibration_widget.get_selected_guid()
-            },
-            "calibrations": self.gamepad_manager.get_calibrations()
-        }

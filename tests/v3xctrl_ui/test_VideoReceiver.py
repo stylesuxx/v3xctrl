@@ -1,8 +1,9 @@
+from collections import deque
+from pathlib import Path
 import tempfile
 import threading
 import time
-from collections import deque
-from pathlib import Path
+
 from unittest.mock import Mock, MagicMock, patch, mock_open
 import pytest
 

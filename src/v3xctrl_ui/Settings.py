@@ -1,9 +1,11 @@
-import copy
+from typing import Dict, List, Any
 from pathlib import Path
-import pygame
+import copy
+
 import tomllib
 import tomli_w
-from typing import Dict, List, Any
+
+import pygame
 
 
 class Settings:

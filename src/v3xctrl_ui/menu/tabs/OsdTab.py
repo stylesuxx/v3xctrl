@@ -1,5 +1,6 @@
-from pygame import Surface
 from typing import Dict, Any
+
+from pygame import Surface
 
 from v3xctrl_ui.fonts import LABEL_FONT
 from v3xctrl_ui.menu.input import Checkbox
@@ -70,6 +71,14 @@ class OsdTab(Tab):
 
         self.elements = self.osd_widgets
 
+    def draw(self, surface: Surface) -> None:
+        _ = self._draw_debug_section(surface, 0)
+
+    def get_settings(self) -> Dict[str, Any]:
+        return {
+            "widgets": self.widgets
+        }
+
     def _on_widget_toggle(self, key: str, value: bool) -> None:
         self.widgets.setdefault(key, {})["display"] = value
 
@@ -84,11 +93,3 @@ class OsdTab(Tab):
             y += checkbox.get_size()[1] + self.y_element_padding
 
         return y
-
-    def draw(self, surface: Surface) -> None:
-        _ = self._draw_debug_section(surface, 0)
-
-    def get_settings(self) -> Dict[str, Any]:
-        return {
-            "widgets": self.widgets
-        }

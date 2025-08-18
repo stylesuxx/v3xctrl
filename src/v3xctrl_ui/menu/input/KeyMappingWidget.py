@@ -1,14 +1,15 @@
+from typing import Callable
+
 import pygame
 from pygame import Surface
 from pygame.freetype import Font
-from typing import Callable
 
-from v3xctrl_ui.menu.input import Button
-from .BaseWidget import BaseWidget
+from v3xctrl_ui.menu.input import Button, BaseWidget
+from v3xctrl_ui.colors import WHITE
 
 
 class KeyMappingWidget(BaseWidget):
-    FONT_COLOR = (255, 255, 255)
+    FONT_COLOR = WHITE
 
     def __init__(
         self,
@@ -24,7 +25,7 @@ class KeyMappingWidget(BaseWidget):
         self.key_code = key_code
         self.font = font
         self.on_key_change = on_key_change
-        self.on_remap_toggle = on_remap_toggle  # now mandatory
+        self.on_remap_toggle = on_remap_toggle
         self.waiting_for_key = False
 
         self.button_x = 300
@@ -37,15 +38,6 @@ class KeyMappingWidget(BaseWidget):
         )
 
         self._render_label()
-
-    def _render_label(self) -> None:
-        self.label_surface, self.label_rect = self.font.render(self.control_name, self.FONT_COLOR)
-        self.label_rect.topleft = (self.x, self.y)
-
-    def _on_remap_click(self) -> None:
-        self.waiting_for_key = True
-        self.key_code = None
-        self.on_remap_toggle(True)
 
     def handle_event(self, event: pygame.event.Event) -> bool:
         self.remap_button.handle_event(event)
@@ -90,6 +82,15 @@ class KeyMappingWidget(BaseWidget):
 
     def disable(self) -> None:
         self.remap_button.disable()
+
+    def _render_label(self) -> None:
+        self.label_surface, self.label_rect = self.font.render(self.control_name, self.FONT_COLOR)
+        self.label_rect.topleft = (self.x, self.y)
+
+    def _on_remap_click(self) -> None:
+        self.waiting_for_key = True
+        self.key_code = None
+        self.on_remap_toggle(True)
 
     def _draw(self, surface: Surface) -> None:
         self.remap_button.draw(surface)

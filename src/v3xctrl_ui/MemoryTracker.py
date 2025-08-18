@@ -1,6 +1,6 @@
-import tracemalloc
-import time
 import threading
+import time
+import tracemalloc
 
 
 class MemoryTracker:

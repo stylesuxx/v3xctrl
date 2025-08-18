@@ -11,6 +11,7 @@ from src.v3xctrl_control.message import Message
 class FakeMessage:
     def __init__(self, timestamp: int):
         self.timestamp = timestamp
+        self.type = "test_message"
 
     @staticmethod
     def from_bytes(data: bytes):

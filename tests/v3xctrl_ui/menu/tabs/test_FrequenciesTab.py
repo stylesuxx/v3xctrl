@@ -1,12 +1,11 @@
 import os
-os.environ["SDL_VIDEODRIVER"] = "dummy"
-
 import unittest
+
 import pygame
-from pygame.event import Event
-from pygame.locals import KEYDOWN, K_5
 
 from v3xctrl_ui.menu.tabs.FrequenciesTab import FrequenciesTab
+
+os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 
 class TestFrequenciesTab(unittest.TestCase):
@@ -40,8 +39,7 @@ class TestFrequenciesTab(unittest.TestCase):
 
     def test_get_settings(self):
         self.tab.latency_input.on_change("15")
-        result = self.tab.get_settings()
-        self.assertEqual(result["timing"]["latency_check_hz"], 15)
+        self.assertEqual(self.tab.get_settings()["timing"]["latency_check_hz"], 15)
 
     def test_draw_does_not_crash(self):
         surface = pygame.Surface((640, 480))

@@ -1,10 +1,11 @@
 import os
-os.environ["SDL_VIDEODRIVER"] = "dummy"
-
 import unittest
+
 import pygame
 
 from v3xctrl_ui.menu.tabs import GeneralTab
+
+os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 
 class TestGeneralTab(unittest.TestCase):
@@ -52,16 +53,15 @@ class TestGeneralTab(unittest.TestCase):
     def test_get_settings_aggregation(self):
         self.tab.video_input.on_change("4242")
         self.tab.udp_packet_ttl_input.on_change("3333")
+
         settings = self.tab.get_settings()
+
         self.assertEqual(settings["ports"]["video"], 4242)
         self.assertEqual(settings["udp_packet_ttl"], 3333)
 
     def test_draw_runs_without_error(self):
         surface = pygame.Surface((640, 480))
-        try:
-            self.tab.draw(surface)
-        except Exception as e:
-            self.fail(f"Draw method raised an exception: {e}")
+        self.tab.draw(surface)
 
     def test_on_relay_enable_change_direct(self):
         self.assertTrue(self.tab.relay["enabled"])

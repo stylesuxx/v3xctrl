@@ -1,5 +1,6 @@
 import logging
 import sys
+
 import pygame
 from pygame import Surface, event
 from typing import Callable, NamedTuple, Dict
@@ -7,6 +8,8 @@ from typing import Callable, NamedTuple, Dict
 from v3xctrl_control import Server
 from v3xctrl_control.message import Command
 
+from v3xctrl_ui.colors import WHITE, DARK_GREY, CHARCOAL
+from v3xctrl_ui.fonts import MAIN_FONT
 from v3xctrl_ui.GamepadManager import GamepadManager
 from v3xctrl_ui.Settings import Settings
 from v3xctrl_ui.menu.input import Button
@@ -19,9 +22,6 @@ from v3xctrl_ui.menu.tabs import (
   Tab
 )
 
-from v3xctrl_ui.colors import WHITE, DARK_GREY
-from v3xctrl_ui.fonts import MAIN_FONT
-
 
 class TabEntry(NamedTuple):
     name: str
@@ -32,7 +32,7 @@ class TabEntry(NamedTuple):
 class Menu:
     BG_COLOR = DARK_GREY
     TAB_ACTIVE_COLOR = DARK_GREY
-    TAB_INACTIVE_COLOR = (50, 50, 50)
+    TAB_INACTIVE_COLOR = CHARCOAL
     TAB_SEPARATOR_COLOR = BG_COLOR
     FONT_COLOR = WHITE
 
@@ -110,6 +110,32 @@ class Menu:
 
         self.background = pygame.Surface((self.width, self.height))
         self.background.fill(self.BG_COLOR)
+
+    def handle_event(self, event: event.Event) -> None:
+        self.quit_button.handle_event(event)
+        self.save_button.handle_event(event)
+        self.exit_button.handle_event(event)
+
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if not self.disable_tabs:
+                for entry in self.tabs:
+                    if entry.rect.collidepoint(event.pos):
+                        self.active_tab = entry.name
+
+        tab = self._get_active_tab()
+        if tab:
+            tab.view.handle_event(event)
+
+    def draw(self, surface: Surface) -> None:
+        surface.blit(self.background, (0, 0))
+        self._draw_tabs(surface)
+        self.quit_button.draw(surface)
+        self.save_button.draw(surface)
+        self.exit_button.draw(surface)
+
+        tab = self._get_active_tab()
+        if tab:
+            tab.view.draw(surface)
 
     def _create_tabs(self) -> Dict[str, Tab]:
         return {
@@ -202,29 +228,3 @@ class Menu:
             label_surface, label_rect = MAIN_FONT.render(entry.name, self.FONT_COLOR)
             label_rect.center = entry.rect.center
             surface.blit(label_surface, label_rect)
-
-    def handle_event(self, event: event.Event) -> None:
-        self.quit_button.handle_event(event)
-        self.save_button.handle_event(event)
-        self.exit_button.handle_event(event)
-
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if not self.disable_tabs:
-                for entry in self.tabs:
-                    if entry.rect.collidepoint(event.pos):
-                        self.active_tab = entry.name
-
-        tab = self._get_active_tab()
-        if tab:
-            tab.view.handle_event(event)
-
-    def draw(self, surface: Surface) -> None:
-        surface.blit(self.background, (0, 0))
-        self._draw_tabs(surface)
-        self.quit_button.draw(surface)
-        self.save_button.draw(surface)
-        self.exit_button.draw(surface)
-
-        tab = self._get_active_tab()
-        if tab:
-            tab.view.draw(surface)

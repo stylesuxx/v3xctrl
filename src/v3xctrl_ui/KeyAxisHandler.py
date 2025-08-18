@@ -1,5 +1,7 @@
 from collections import deque
+
 from pygame.key import ScancodeWrapper
+
 from v3xctrl_helper import clamp
 
 
@@ -42,13 +44,6 @@ class KeyAxisHandler:
 
         self.holding = False
         self.hold_frames = 0
-
-    def _smoothed_interval(self) -> float:
-        return sum(self.last_tap_intervals) / len(self.last_tap_intervals)
-
-    def _hold_step(self) -> float:
-        progress = clamp(self.hold_frames / self.hold_ramp_frames, 0.0, 1.0)
-        return self.friction + (self.max_step - self.friction) * progress
 
     def update(self, keys: ScancodeWrapper) -> float:
         direction = 0
@@ -110,6 +105,13 @@ class KeyAxisHandler:
             self.value = 0.0
 
         return self.value
+
+    def _smoothed_interval(self) -> float:
+        return sum(self.last_tap_intervals) / len(self.last_tap_intervals)
+
+    def _hold_step(self) -> float:
+        progress = clamp(self.hold_frames / self.hold_ramp_frames, 0.0, 1.0)
+        return self.friction + (self.max_step - self.friction) * progress
 
     def __repr__(self) -> str:
         avg = self._smoothed_interval()

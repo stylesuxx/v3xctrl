@@ -20,6 +20,33 @@ class InputManager:
         self._setup_gamepad_manager()
         self._setup_key_handlers()
 
+    def read_inputs(self) -> Tuple[float, float]:
+        """Read current input values. Returns (throttle, steering)."""
+        pressed_keys = pygame.key.get_pressed()
+        gamepad_inputs = self.gamepad_manager.read_inputs()
+
+        # Start with keyboard inputs
+        throttle = self.key_handlers["throttle"].update(pressed_keys)
+        steering = self.key_handlers["steering"].update(pressed_keys)
+
+        # Override with gamepad if available
+        if gamepad_inputs:
+            steering = gamepad_inputs["steering"]
+            throttle_input = gamepad_inputs["throttle"]
+            brake_input = gamepad_inputs["brake"]
+            throttle = throttle_input - brake_input
+
+        return throttle, steering
+
+    def update_settings(self, settings: Settings) -> None:
+        self.settings = settings
+
+        self._configure_gamepad_manager()
+        self._setup_key_handlers()
+
+    def shutdown(self) -> None:
+        self.gamepad_manager.stop()
+
     def _setup_gamepad_manager(self) -> None:
         self._configure_gamepad_manager()
         self.gamepad_manager.start()
@@ -50,30 +77,3 @@ class InputManager:
                     max_val=self.STEERING_RANGE[1]
                 )
             }
-
-    def read_inputs(self) -> Tuple[float, float]:
-        """Read current input values. Returns (throttle, steering)."""
-        pressed_keys = pygame.key.get_pressed()
-        gamepad_inputs = self.gamepad_manager.read_inputs()
-
-        # Start with keyboard inputs
-        throttle = self.key_handlers["throttle"].update(pressed_keys)
-        steering = self.key_handlers["steering"].update(pressed_keys)
-
-        # Override with gamepad if available
-        if gamepad_inputs:
-            steering = gamepad_inputs["steering"]
-            throttle_input = gamepad_inputs["throttle"]
-            brake_input = gamepad_inputs["brake"]
-            throttle = throttle_input - brake_input
-
-        return throttle, steering
-
-    def update_settings(self, settings: Settings) -> None:
-        self.settings = settings
-
-        self._configure_gamepad_manager()
-        self._setup_key_handlers()
-
-    def shutdown(self) -> None:
-        self.gamepad_manager.stop()

@@ -14,11 +14,10 @@ class BaseWidget(ABC):
 
     @abstractmethod
     def handle_event(self, event: pygame.event.Event) -> bool:
-        """Handle an event. Return True if event was consumed."""
-        pass
-
-    @abstractmethod
-    def _draw(self, surface: Surface) -> None:
+        """
+        Handle an event.
+        Return True if event was consumed.
+        """
         pass
 
     @abstractmethod
@@ -53,3 +52,7 @@ class BaseWidget(ABC):
     @property
     def height(self) -> int:
         return self.get_size()[1]
+
+    @abstractmethod
+    def _draw(self, surface: Surface) -> None:
+        pass

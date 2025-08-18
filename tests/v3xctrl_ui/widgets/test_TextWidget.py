@@ -1,4 +1,5 @@
 import unittest
+
 import pygame
 
 from v3xctrl_ui.colors import WHITE, GREY
@@ -34,14 +35,11 @@ class TestTextWidget(unittest.TestCase):
         self.assertGreater(self.widget.surface.get_height(), 0)
         self.assertEqual(self.widget.surface.get_width(), self.widget.length)
         self.assertIsNotNone(self.widget.text_surface)
-        self.assertTrue(self.widget.text_rect.width > 0)
-        self.assertTrue(self.widget.widget_height > 0)
+        self.assertGreater(self.widget.text_rect.width, 0)
+        self.assertGreater(self.widget.widget_height, 0)
 
     def test_draw_executes_without_crash(self):
-        try:
-            self.widget.draw(self.screen, "Draw safely")
-        except Exception as e:
-            self.fail(f"draw() raised an exception unexpectedly: {e}")
+        self.widget.draw(self.screen, "Draw safely")
 
     def test_text_is_centered(self):
         dummy_surface = pygame.Surface((40, 10), pygame.SRCALPHA)
@@ -57,8 +55,86 @@ class TestTextWidget(unittest.TestCase):
         expected_x = (self.widget.length - 40) // 2
         expected_y = self.widget.top_padding
 
-        pixel = self.widget.surface.get_at((expected_x + 1, expected_y + 1))
-        self.assertNotEqual(pixel.a, 0)
+        self.assertNotEqual(self.widget.surface.get_at((expected_x + 1, expected_y + 1)).a, 0)
+
+    def test_set_alignment(self):
+        from v3xctrl_ui.widgets.TextWidget import Alignment
+
+        self.widget.set_alignment(Alignment.LEFT)
+        self.assertEqual(self.widget.alignment, Alignment.LEFT)
+
+        self.widget.set_alignment(Alignment.RIGHT)
+        self.assertEqual(self.widget.alignment, Alignment.RIGHT)
+
+        self.widget.set_alignment(Alignment.CENTER)
+        self.assertEqual(self.widget.alignment, Alignment.CENTER)
+
+    def test_set_text_color(self):
+        new_color = (255, 0, 0)
+        self.widget.set_text_color(new_color)
+        self.assertEqual(self.widget.color, new_color)
+
+    def test_left_alignment(self):
+        from v3xctrl_ui.widgets.TextWidget import Alignment
+
+        self.widget.set_alignment(Alignment.LEFT)
+        self.widget.draw(self.screen, "Left")
+
+        # Verify text is positioned at left_padding
+        dummy_surface = pygame.Surface((40, 10), pygame.SRCALPHA)
+        dummy_rect = pygame.Rect(0, 0, 40, 10)
+
+        class DummyFont:
+            def render(self, text, color):
+                return dummy_surface, dummy_rect
+
+        self.widget.font = DummyFont()
+        self.widget.draw(self.screen, "Left")
+
+        # Text should be at left_padding position
+        expected_x = self.widget.left_padding
+        self.assertNotEqual(self.widget.surface.get_at((expected_x + 1, self.widget.top_padding + 1)).a, 0)
+
+    def test_right_alignment(self):
+        from v3xctrl_ui.widgets.TextWidget import Alignment
+
+        self.widget.set_alignment(Alignment.RIGHT)
+
+        dummy_surface = pygame.Surface((40, 10), pygame.SRCALPHA)
+        dummy_rect = pygame.Rect(0, 0, 40, 10)
+
+        class DummyFont:
+            def render(self, text, color):
+                return dummy_surface, dummy_rect
+
+        self.widget.font = DummyFont()
+        self.widget.draw(self.screen, "Right")
+
+        # Text should be positioned from the right edge minus text width and right padding
+        expected_x = self.widget.length - 40 - self.widget.right_padding
+        self.assertNotEqual(self.widget.surface.get_at((expected_x + 1, self.widget.top_padding + 1)).a, 0)
+
+    def test_custom_padding_initialization(self):
+        widget = TextWidget(
+            position=(0, 0),
+            length=200,
+            top_padding=10,
+            bottom_padding=15,
+            left_padding=8,
+            right_padding=12
+        )
+
+        self.assertEqual(widget.top_padding, 10)
+        self.assertEqual(widget.bottom_padding, 15)
+        self.assertEqual(widget.left_padding, 8)
+        self.assertEqual(widget.right_padding, 12)
+
+    def test_alignment_enum_values(self):
+        from v3xctrl_ui.widgets.TextWidget import Alignment
+
+        self.assertEqual(Alignment.LEFT.value, "left")
+        self.assertEqual(Alignment.RIGHT.value, "right")
+        self.assertEqual(Alignment.CENTER.value, "center")
 
 
 if __name__ == "__main__":

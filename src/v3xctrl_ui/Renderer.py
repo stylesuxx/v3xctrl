@@ -1,5 +1,6 @@
-import pygame
 from typing import Optional, Tuple
+
+import pygame
 
 #from v3xctrl_ui.AppState import AppState
 from v3xctrl_ui.colors import BLACK, RED, WHITE
@@ -7,6 +8,7 @@ from v3xctrl_ui.fonts import BOLD_24_MONO_FONT, BOLD_32_MONO_FONT
 from v3xctrl_ui.helpers import get_external_ip
 from v3xctrl_ui.menu.Menu import Menu
 from v3xctrl_ui.Settings import Settings
+from v3xctrl_ui.NetworkManager import NetworkManager
 
 
 class Renderer:
@@ -17,7 +19,11 @@ class Renderer:
         self.settings = settings
         self.ip = get_external_ip()
 
-    def render_all(self, state: 'AppState', network_manager: 'NetworkManager') -> None:
+    def render_all(
+        self,
+        state: 'AppState',
+        network_manager: NetworkManager
+    ) -> None:
         """Render the complete frame."""
         frame = self._get_video_frame(network_manager)
 
@@ -88,7 +94,11 @@ class Renderer:
             val_rect.topleft = (val_x, y)
             screen.blit(val_surf, val_rect)
 
-    def _render_overlay_data(self, state: 'AppState', network_manager: 'NetworkManager') -> None:
+    def _render_overlay_data(
+        self,
+        state: 'AppState',
+        network_manager: NetworkManager
+    ) -> None:
         """Render OSD and overlay information."""
         data_left = network_manager.get_data_queue_size()
         if network_manager.server_error:

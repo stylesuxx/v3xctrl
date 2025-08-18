@@ -47,23 +47,6 @@ class GamepadCalibrator:
         self.state = CalibratorState.ACTIVE
         self.stage = CalibrationStage.STEERING
 
-    def _queue_next_stage_with_dialog(self, next_stage: CalibrationStage) -> None:
-        if self.dialog:
-            self.dialog.set_text([self.STEP_LABELS[next_stage]])
-            self.dialog.on_confirm = self._resume_calibration
-            self.dialog.show()
-            self.waiting_for_user = True
-            self.pending_stage = next_stage
-            self.state = CalibratorState.PAUSE
-
-    def _resume_calibration(self) -> None:
-        self.stage = self.pending_stage
-        self.pending_stage = None
-        self.state = CalibratorState.ACTIVE
-        self.waiting_for_user = False
-        if self.dialog:
-            self.dialog.hide()
-
     def get_steps(self) -> List[Tuple[str, bool]]:
         steps: List[Tuple[str, bool]] = []
         active_stage = self.pending_stage if self.state == CalibratorState.PAUSE else self.stage
@@ -88,6 +71,36 @@ class GamepadCalibrator:
             self._detect_and_record_axis('throttle', axes, exclude=['steering'], next_stage=CalibrationStage.BRAKE)
         elif self.stage == CalibrationStage.BRAKE:
             self._detect_and_record_axis('brake', axes, exclude=['steering'], on_complete=self._complete)
+
+    def get_settings(self) -> Dict[str, Dict[str, Optional[float | int]]]:
+        return {
+            name: {
+                "axis": axis.axis,
+                "min": min(axis.max_values) if axis.max_values else 0,
+                "max": max(axis.max_values) if axis.max_values else 0,
+                "center": (
+                    sum(axis.idle_samples) / len(axis.idle_samples)
+                    if axis.idle_samples else None
+                ) if name == "steering" else None
+            } for name, axis in self.axes.items()
+        }
+
+    def _queue_next_stage_with_dialog(self, next_stage: CalibrationStage) -> None:
+        if self.dialog:
+            self.dialog.set_text([self.STEP_LABELS[next_stage]])
+            self.dialog.on_confirm = self._resume_calibration
+            self.dialog.show()
+            self.waiting_for_user = True
+            self.pending_stage = next_stage
+            self.state = CalibratorState.PAUSE
+
+    def _resume_calibration(self) -> None:
+        self.stage = self.pending_stage
+        self.pending_stage = None
+        self.state = CalibratorState.ACTIVE
+        self.waiting_for_user = False
+        if self.dialog:
+            self.dialog.hide()
 
     def _detect_and_record_axis(self,
                                 name: str,
@@ -161,16 +174,3 @@ class GamepadCalibrator:
 
         if self.on_done:
             self.on_done()
-
-    def get_settings(self) -> Dict[str, Dict[str, Optional[float | int]]]:
-        return {
-            name: {
-                "axis": axis.axis,
-                "min": min(axis.max_values) if axis.max_values else 0,
-                "max": max(axis.max_values) if axis.max_values else 0,
-                "center": (
-                    sum(axis.idle_samples) / len(axis.idle_samples)
-                    if axis.idle_samples else None
-                ) if name == "steering" else None
-            } for name, axis in self.axes.items()
-        }

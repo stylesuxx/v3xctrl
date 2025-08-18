@@ -1,4 +1,5 @@
 import unittest
+
 import pygame
 
 from v3xctrl_ui.colors import YELLOW, GREEN, RED, GREY
@@ -19,7 +20,6 @@ class TestStatusWidget(unittest.TestCase):
         self.screen = pygame.Surface((200, 100))
 
     def test_initial_color_is_default(self):
-        # Initial value before any draw
         self.assertEqual(self.widget.color, GREY)
 
     def test_draw_sets_status_color_waiting(self):
@@ -39,10 +39,7 @@ class TestStatusWidget(unittest.TestCase):
         self.assertEqual(self.widget.color, GREY)
 
     def test_draw_executes_without_crash(self):
-        try:
-            self.widget.draw(self.screen, "success")
-        except Exception as e:
-            self.fail(f"draw() raised exception unexpectedly: {e}")
+        self.widget.draw(self.screen, "success")
 
     def test_draw_extra_is_called(self):
         class ExtendedStatusWidget(StatusWidget):

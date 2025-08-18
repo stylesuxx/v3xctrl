@@ -1,7 +1,8 @@
+from typing import Callable, List
+
 import pygame
 from pygame import Rect, Surface
 from pygame.freetype import Font
-from typing import Callable, List
 
 from v3xctrl_ui.colors import WHITE, GREY, LIGHT_GREY, MID_GREY
 from .BaseWidget import BaseWidget
@@ -9,7 +10,7 @@ from .BaseWidget import BaseWidget
 
 class Select(BaseWidget):
     FONT_COLOR = WHITE
-    FONT_COLOR_DISABLED = (180, 180, 180)
+    FONT_COLOR_DISABLED = LIGHT_GREY
 
     BG_COLOR = GREY
     HOVER_COLOR = MID_GREY
@@ -66,20 +67,6 @@ class Select(BaseWidget):
 
         return width, height
 
-    def _render_label_and_caret(self) -> None:
-        color = self.FONT_COLOR_DISABLED if self.disabled else self.FONT_COLOR
-        self.label_surface, self.label_rect = self.font.render(self.label, color)
-        self.caret_surface, _ = self.font.render("▼", color)
-
-        # Restore vertical centering
-        if hasattr(self, 'y'):
-            self.label_rect.topleft = (
-                self.x,
-                self.y + self.rect.height // 2 - self.label_rect.height // 2
-            )
-
-        self._update_option_surfaces()
-
     def set_position(self, x: int, y: int) -> None:
         super().set_position(x, y)
 
@@ -92,6 +79,49 @@ class Select(BaseWidget):
         self.selected_index = selected_index if 0 <= selected_index < len(options) else 0
         self._update_option_surfaces()
         self._update_option_rects()
+
+    def handle_event(self, event: pygame.event.Event) -> bool:
+        if self.disabled or not self.options:
+            return False
+
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.rect.collidepoint(event.pos):
+                self.expanded = not self.expanded
+                return True
+
+            elif self.expanded:
+                for i, opt_rect in enumerate(self.option_rects):
+                    if opt_rect.collidepoint(event.pos):
+                        self.selected_index = i
+                        self.expanded = False
+                        self.callback(i)
+
+                        return True
+                else:
+                    self.expanded = False
+                    return False
+
+        elif event.type == pygame.MOUSEMOTION and self.expanded:
+            self.hover_index = -1
+            for i, opt_rect in enumerate(self.option_rects):
+                if opt_rect.collidepoint(event.pos):
+                    self.hover_index = i
+                    break
+
+        return False
+
+    def _render_label_and_caret(self) -> None:
+        color = self.FONT_COLOR_DISABLED if self.disabled else self.FONT_COLOR
+        self.label_surface, self.label_rect = self.font.render(self.label, color)
+        self.caret_surface, _ = self.font.render("▼", color)
+
+        # Restore vertical centering
+        self.label_rect.topleft = (
+            self.x,
+            self.y + self.rect.height // 2 - self.label_rect.height // 2
+        )
+
+        self._update_option_surfaces()
 
     def _update_option_surfaces(self) -> None:
         self.option_surfaces = []
@@ -127,36 +157,6 @@ class Select(BaseWidget):
             self.length,
             self.OPTION_HEIGHT * len(self.options)
         )
-
-    def handle_event(self, event: pygame.event.Event) -> bool:
-        if self.disabled or not self.options:
-            return False
-
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if self.rect.collidepoint(event.pos):
-                self.expanded = not self.expanded
-                return True
-
-            elif self.expanded:
-                for i, opt_rect in enumerate(self.option_rects):
-                    if opt_rect.collidepoint(event.pos):
-                        self.selected_index = i
-                        self.expanded = False
-                        self.callback(i)
-
-                        return True
-                else:
-                    self.expanded = False
-                    return False
-
-        elif event.type == pygame.MOUSEMOTION and self.expanded:
-            self.hover_index = -1
-            for i, opt_rect in enumerate(self.option_rects):
-                if opt_rect.collidepoint(event.pos):
-                    self.hover_index = i
-                    break
-
-        return False
 
     def _draw(self, surface: Surface) -> None:
         if not self.options:

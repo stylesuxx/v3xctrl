@@ -1,19 +1,28 @@
+from typing import Callable, Tuple, Optional
+
 import pygame
 from pygame import Surface
 from pygame.freetype import Font
-from typing import Callable, Tuple, Optional
 
+from v3xctrl_ui.colors import (
+    BLACK,
+    DARK_GREY,
+    GAINSBORO,
+    GREY,
+    LIGHT_GREY,
+    WHITE,
+)
 from .BaseWidget import BaseWidget
 
 
 class BaseInput(BaseWidget):
-    LABEL_COLOR = (220, 220, 220)
-    INPUT_BG_COLOR = (255, 255, 255)
-    TEXT_COLOR = (0, 0, 0)
-    CURSOR_COLOR = (80, 80, 80)
+    LABEL_COLOR = GAINSBORO
+    INPUT_BG_COLOR = WHITE
+    TEXT_COLOR = BLACK
+    CURSOR_COLOR = DARK_GREY
 
-    BORDER_LIGHT_COLOR = (180, 180, 180)
-    BORDER_DARK_COLOR = (100, 100, 100)
+    BORDER_LIGHT_COLOR = LIGHT_GREY
+    BORDER_DARK_COLOR = GREY
 
     CURSOR_PADDING = 8
     CURSOR_WIDTH = 1
@@ -47,7 +56,7 @@ class BaseInput(BaseWidget):
         self.cursor_visible = True
         self.cursor_timer = 0
 
-        self.input_height = self.font.size + self.input_padding
+        self.input_height: int = self.font.size + self.input_padding
         self.input_rect = pygame.Rect(0, 0, self.input_width, self.input_height)
 
         self.input_surface = pygame.Surface((self.input_width, self.input_height))
@@ -60,13 +69,6 @@ class BaseInput(BaseWidget):
         self.label_surface, self.label_rect = self.font.render(label, self.LABEL_COLOR)
         self.text_surface, self.text_rect = self.mono_font.render(self.value, self.TEXT_COLOR)
 
-    def _draw_input_background(self) -> None:
-        self.input_surface.fill(self.INPUT_BG_COLOR)
-        pygame.draw.line(self.input_surface, self.BORDER_LIGHT_COLOR, (0, 0), (self.input_width - 1, 0))
-        pygame.draw.line(self.input_surface, self.BORDER_LIGHT_COLOR, (0, 0), (0, self.input_height - 1))
-        pygame.draw.line(self.input_surface, self.BORDER_DARK_COLOR, (0, self.input_height - 1), (self.input_width - 1, self.input_height - 1))
-        pygame.draw.line(self.input_surface, self.BORDER_DARK_COLOR, (self.input_width - 1, 0), (self.input_width - 1, self.input_height - 1))
-
     def set_position(self, x: int, y: int) -> None:
         super().set_position(x, y)
 
@@ -78,6 +80,26 @@ class BaseInput(BaseWidget):
 
     def get_size(self) -> tuple[int, int]:
         return self.label_width + self.input_padding + self.input_width, self.input_rect.height
+
+    def get_value(self) -> str | int:
+        return self.value
+
+    def handle_event(self, event: pygame.event.Event) -> bool:
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.input_rect.collidepoint(event.pos):
+                self.focused = True
+                self._handle_mouse(event.pos)
+                return True
+
+            else:
+                self.focused = False
+                return False
+
+        elif event.type == pygame.KEYDOWN and self.focused:
+            self._handle_keydown(event)
+            return True
+
+        return False
 
     def _draw(self, surface: Surface) -> None:
         if self.value != self.last_value:
@@ -128,23 +150,6 @@ class BaseInput(BaseWidget):
     def _get_text_x(self) -> int:
         return self.input_rect.right - self.input_padding - self.mono_font.get_rect(self.value).width
 
-    def handle_event(self, event: pygame.event.Event) -> bool:
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if self.input_rect.collidepoint(event.pos):
-                self.focused = True
-                self._handle_mouse(event.pos)
-                return True
-
-            else:
-                self.focused = False
-                return False
-
-        elif event.type == pygame.KEYDOWN and self.focused:
-            self._handle_keydown(event)
-            return True
-
-        return False
-
     def _get_clipboard_text(self) -> str | None:
         for type in pygame.scrap.get_types():
             if type.startswith("text/plain"):
@@ -181,5 +186,29 @@ class BaseInput(BaseWidget):
         elif event.key == pygame.K_RIGHT:
             self.cursor_pos = min(len(self.value), self.cursor_pos + 1)
 
-    def get_value(self) -> str | int:
-        return self.value
+    def _draw_input_background(self) -> None:
+        self.input_surface.fill(self.INPUT_BG_COLOR)
+        pygame.draw.line(
+            self.input_surface,
+            self.BORDER_LIGHT_COLOR,
+            (0, 0),
+            (self.input_width - 1, 0)
+        )
+        pygame.draw.line(
+            self.input_surface,
+            self.BORDER_LIGHT_COLOR,
+            (0, 0),
+            (0, self.input_height - 1)
+        )
+        pygame.draw.line(
+            self.input_surface,
+            self.BORDER_DARK_COLOR,
+            (0, self.input_height - 1),
+            (self.input_width - 1, self.input_height - 1)
+        )
+        pygame.draw.line(
+            self.input_surface,
+            self.BORDER_DARK_COLOR,
+            (self.input_width - 1, 0),
+            (self.input_width - 1, self.input_height - 1)
+        )

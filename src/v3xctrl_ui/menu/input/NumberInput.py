@@ -1,7 +1,9 @@
+from typing import Optional, Callable
+
 import pygame
 from pygame.freetype import Font
-from typing import Optional, Callable
-from .BaseInput import BaseInput
+
+from v3xctrl_ui.menu.input import BaseInput
 
 
 class NumberInput(BaseInput):
@@ -28,6 +30,12 @@ class NumberInput(BaseInput):
         )
         self.min_val = min_val
         self.max_val = max_val
+
+    def get_value(self) -> int:
+        try:
+            return int(self.value)
+        except ValueError:
+            return self.min_val
 
     def _handle_keydown(self, event: pygame.event.Event) -> None:
         super()._handle_keydown(event)
@@ -64,9 +72,3 @@ class NumberInput(BaseInput):
                             self.on_change(self.value)
             except ValueError:
                 pass
-
-    def get_value(self) -> int:
-        try:
-            return int(self.value)
-        except ValueError:
-            return self.min_val
