@@ -17,28 +17,28 @@ class Renderer:
         self.settings = settings
         self.ip = get_external_ip()
 
-    def render_all(self, state: 'AppState') -> None:
+    def render_all(self, state: 'AppState', network_manager: 'NetworkManager') -> None:
         """Render the complete frame."""
-        frame = self._get_video_frame(state)
+        frame = self._get_video_frame(network_manager)
 
         if frame is not None:
             self._render_video_frame(state.screen, frame)
         else:
-            self._render_no_signal(state.screen, state.relay_status_message)
+            self._render_no_signal(state.screen, network_manager.relay_status_message)
 
-        self._render_overlay_data(state)
-        self._render_errors(state.screen, state.server_error)
+        self._render_overlay_data(state, network_manager)
+        self._render_errors(state.screen, network_manager)
         self._render_menu(state.screen, state.menu)
 
         pygame.display.flip()
 
-    def _get_video_frame(self, state: 'AppState') -> Optional[bytes]:
+    def _get_video_frame(self, network_manager: 'NetworkManager') -> Optional[bytes]:
         """Get the current video frame if available."""
-        if not state.video_receiver:
+        if not network_manager.video_receiver:
             return None
 
-        with state.video_receiver.frame_lock:
-            return state.video_receiver.frame
+        with network_manager.video_receiver.frame_lock:
+            return network_manager.video_receiver.frame
 
     def _render_video_frame(self, screen: pygame.Surface, frame: bytes) -> None:
         """Render a video frame to the screen."""
@@ -88,12 +88,10 @@ class Renderer:
             val_rect.topleft = (val_x, y)
             screen.blit(val_surf, val_rect)
 
-    def _render_overlay_data(self, state: 'AppState') -> None:
+    def _render_overlay_data(self, state: 'AppState', network_manager: 'NetworkManager') -> None:
         """Render OSD and overlay information."""
-        data_left = 0
-        if state.server and not state.server_error:
-            data_left = state.server.transmitter.queue.qsize()
-        else:
+        data_left = network_manager.get_data_queue_size()
+        if network_manager.server_error:
             state.osd.update_debug_status("fail")
 
         state.osd.update_data_queue(data_left)
@@ -101,15 +99,15 @@ class Renderer:
 
         loop_history = state.loop_history.copy()
         video_history = None
-        if state.video_receiver is not None:
-            video_history = state.video_receiver.history.copy()
+        if network_manager.video_receiver is not None:
+            video_history = network_manager.video_receiver.history.copy()
 
         state.osd.render(state.screen, loop_history, video_history)
 
-    def _render_errors(self, screen: pygame.Surface, server_error: Optional[str]) -> None:
+    def _render_errors(self, screen: pygame.Surface, network_manager: 'NetworkManager') -> None:
         """Render error messages on top of main UI."""
-        if server_error:
-            surface, rect = BOLD_24_MONO_FONT.render(server_error, RED)
+        if network_manager.server_error:
+            surface, rect = BOLD_24_MONO_FONT.render(network_manager.server_error, RED)
             rect.center = (self.video_width // 2, 50)
             screen.blit(surface, rect)
 
