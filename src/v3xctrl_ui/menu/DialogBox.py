@@ -1,12 +1,15 @@
+from typing import Callable, List
+
 import pygame
 from pygame import Surface
 from pygame.freetype import SysFont, STYLE_STRONG
-from typing import Callable, List
 
-from v3xctrl_ui.menu.input.Button import Button
-from v3xctrl_ui.colors import TRANSPARENT_BLACK, WHITE, DARK_GREY
-
-from v3xctrl_ui.menu.input import BaseWidget
+from v3xctrl_ui.menu.input import Button, BaseWidget
+from v3xctrl_ui.colors import (
+  TRANSPARENT_BLACK,
+  WHITE,
+  DARK_GREY,
+)
 
 
 class DialogBox(BaseWidget):
@@ -52,10 +55,6 @@ class DialogBox(BaseWidget):
 
         return (0, 0)
 
-    def _confirm(self) -> None:
-        self.hide()
-        self.on_confirm()
-
     def show(self) -> None:
         self.visible = True
 
@@ -64,6 +63,16 @@ class DialogBox(BaseWidget):
 
     def set_text(self, lines: List[str]) -> None:
         self.original_lines = lines
+
+    def handle_event(self, event: pygame.event.Event) -> bool:
+        if not self.visible:
+            return False
+
+        return self.button.handle_event(event)
+
+    def _confirm(self) -> None:
+        self.hide()
+        self.on_confirm()
 
     def _wrap_text(self, max_width: int) -> List[str]:
         wrapped: List[str] = []
@@ -134,9 +143,3 @@ class DialogBox(BaseWidget):
             y
         )
         self.button.draw(surface)
-
-    def handle_event(self, event: pygame.event.Event) -> bool:
-        if not self.visible:
-            return False
-
-        return self.button.handle_event(event)

@@ -12,11 +12,11 @@ active gampad, normalized based on the calibration.
 NOTE: Make sure to add observers before starting the GampadManager, otherwise
       you might miss the first update.
 """
+import threading
+from typing import Callable, List, Optional, Dict, Set, Tuple, Any
 
 import pygame
 from pygame.joystick import JoystickType
-import threading
-from typing import Callable, List, Optional, Dict, Set, Tuple, Any
 
 from v3xctrl_helper import clamp
 
@@ -103,6 +103,51 @@ class GamepadManager(threading.Thread):
         with self._lock:
             self._set_active_unlocked(guid)
 
+    def read_inputs(self) -> Optional[Dict[str, float]]:
+        with self._lock:
+            js = self._active_gamepad
+            settings = self._active_settings
+
+        if not js or not js.get_init() or not settings:
+            return None
+
+        values: Dict[str, float] = {}
+        for key, cfg in settings.items():
+            axis = cfg.get("axis")
+            if axis is not None and 0 <= axis < js.get_numaxes():
+                try:
+                    raw = js.get_axis(axis)
+                    normalized = 0
+
+                    invert = cfg.get("invert")
+                    min_cal = cfg.get("min")
+                    max_cal = cfg.get("max")
+                    raw = clamp(raw, min_cal, max_cal)
+
+                    center_cal = cfg.get("center", None)
+                    if center_cal is not None:
+                        cal = (min_cal, center_cal, max_cal)
+                        out = (-1.0, 0.0, 1.0)
+
+                        normalized = self._remap_centered(raw, cal, out)
+                        if invert:
+                            normalized = -normalized
+                    else:
+                        if invert:
+                            min_cal, max_cal = max_cal, min_cal
+                        cal = (min_cal, max_cal)
+                        out = (0.0, 1.0)
+                        normalized = self._remap(raw, cal, out)
+
+                    values[key] = normalized
+                except pygame.error:
+                    continue
+
+        return values
+
+    def stop(self) -> None:
+        self._stop_event.set()
+
     def _set_active_unlocked(self, guid: str) -> None:
         self._active_guid = guid
 
@@ -163,48 +208,3 @@ class GamepadManager(threading.Thread):
         scale = (value - in_min) / in_span
 
         return out_min + scale * out_span
-
-    def read_inputs(self) -> Optional[Dict[str, float]]:
-        with self._lock:
-            js = self._active_gamepad
-            settings = self._active_settings
-
-        if not js or not js.get_init() or not settings:
-            return None
-
-        values: Dict[str, float] = {}
-        for key, cfg in settings.items():
-            axis = cfg.get("axis")
-            if axis is not None and 0 <= axis < js.get_numaxes():
-                try:
-                    raw = js.get_axis(axis)
-                    normalized = 0
-
-                    invert = cfg.get("invert")
-                    min_cal = cfg.get("min")
-                    max_cal = cfg.get("max")
-                    raw = clamp(raw, min_cal, max_cal)
-
-                    center_cal = cfg.get("center", None)
-                    if center_cal is not None:
-                        cal = (min_cal, center_cal, max_cal)
-                        out = (-1.0, 0.0, 1.0)
-
-                        normalized = self._remap_centered(raw, cal, out)
-                        if invert:
-                            normalized = -normalized
-                    else:
-                        if invert:
-                            min_cal, max_cal = max_cal, min_cal
-                        cal = (min_cal, max_cal)
-                        out = (0.0, 1.0)
-                        normalized = self._remap(raw, cal, out)
-
-                    values[key] = normalized
-                except pygame.error:
-                    continue
-
-        return values
-
-    def stop(self) -> None:
-        self._stop_event.set()

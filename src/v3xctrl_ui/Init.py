@@ -1,17 +1,27 @@
-import logging
+from typing import Callable, List, Tuple, Any
+
 import pygame
 from pygame import display, time
-from typing import Callable, Dict, List, Tuple, Any
 
 from v3xctrl_control import Server
+from v3xctrl_control.message import Message
+from v3xctrl_control.State import State
 
 from v3xctrl_ui.Settings import Settings
 from v3xctrl_ui.VideoReceiver import VideoReceiver
 
 
 class Init:
+    """
+    Factory to help with initialization of core components
+    """
+
     @classmethod
     def settings(cls, path: str = "settings.toml") -> Settings:
+        """
+        Initialize settings from a file. Create settings file in case it does
+        not exist.
+        """
         settings = Settings(path)
         settings.save()
 
@@ -21,27 +31,26 @@ class Init:
     def server(
         cls,
         port: int,
-        handlers: Dict[str, List[Tuple[Any, Any]]],
+        message_handlers: List[Tuple[Message, Any]],
+        state_handlers: List[Tuple[State, Any]],
         udp_ttl_ms: int = 100
-    ) -> Tuple[Server | None, str | None]:
+    ) -> Server:
         try:
             server = Server(port, udp_ttl_ms)
 
-            for type, callback in handlers.get("messages", []):
-                server.subscribe(type, callback)
+            for message_type, callback in message_handlers:
+                server.subscribe(message_type, callback)
 
-            for state, callback in handlers.get("states", []):
+            for state, callback in state_handlers:
                 server.on(state, callback)
 
             server.start()
 
-            return server, None
+            return server
 
         except OSError as e:
             msg = "Control port already in use" if e.errno == 98 else f"Server error: {str(e)}"
-            logging.error(msg)
-
-            return None, msg
+            raise RuntimeError(msg) from e
 
     @classmethod
     def ui(cls, size: Tuple[int, int], title: str) -> Tuple[pygame.Surface, pygame.time.Clock]:

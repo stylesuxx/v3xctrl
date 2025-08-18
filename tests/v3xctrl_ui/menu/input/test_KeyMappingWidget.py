@@ -1,12 +1,14 @@
 import os
-os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 import unittest
-import pygame
-import pygame.freetype
 from unittest.mock import MagicMock
 
+import pygame
+import pygame.freetype
+
 from v3xctrl_ui.menu.input import KeyMappingWidget
+
+os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 
 class TestKeyMappingWidget(unittest.TestCase):
@@ -38,15 +40,20 @@ class TestKeyMappingWidget(unittest.TestCase):
     def test_click_remap_starts_remapping(self):
         pos = self.widget.remap_button.rect.center
         self.widget.handle_event(pygame.event.Event(pygame.MOUSEMOTION, {'pos': pos}))
-        self.widget.handle_event(pygame.event.Event(pygame.MOUSEBUTTONDOWN, {'pos': pos, 'button': 1}))
-        self.widget.handle_event(pygame.event.Event(pygame.MOUSEBUTTONUP, {'pos': pos, 'button': 1}))
+        self.widget.handle_event(pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
+            'pos': pos,
+            'button': 1
+        }))
+        self.widget.handle_event(pygame.event.Event(pygame.MOUSEBUTTONUP, {
+            'pos': pos,
+            'button': 1
+        }))
 
         self.assertTrue(self.widget.waiting_for_key)
         self.assertIsNone(self.widget.key_code)
         self.on_remap_toggle.assert_called_once_with(True)
 
     def test_key_assignment_after_remap(self):
-        # Start remapping first
         self.widget._on_remap_click()
 
         event = pygame.event.Event(pygame.KEYDOWN, {'key': pygame.K_a})

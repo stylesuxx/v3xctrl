@@ -2,6 +2,7 @@ from collections import deque
 import logging
 import time
 from typing import Tuple
+
 import urllib.request
 
 from v3xctrl_helper import clamp

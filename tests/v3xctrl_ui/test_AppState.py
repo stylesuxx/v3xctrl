@@ -4,52 +4,39 @@ from unittest.mock import MagicMock, patch
 from src.v3xctrl_ui.AppState import AppState
 
 
+@patch("src.v3xctrl_ui.AppState.Init.ui", return_value=("screen", "clock"))
+@patch("src.v3xctrl_ui.AppState.InputManager")
+@patch("src.v3xctrl_ui.AppState.OSD")
+@patch("src.v3xctrl_ui.AppState.Renderer")
+@patch("src.v3xctrl_ui.AppState.NetworkManager")
+@patch("src.v3xctrl_ui.AppState.signal")
 class TestAppState(unittest.TestCase):
     def setUp(self):
-        # Patch Init.ui so no actual Pygame display is opened
-        self.ui_patcher = patch("src.v3xctrl_ui.AppState.Init.ui", return_value=("screen", "clock"))
-        self.mock_ui = self.ui_patcher.start()
-
-        # Patch InputManager
-        self.input_patcher = patch("src.v3xctrl_ui.AppState.InputManager")
-        self.mock_input_cls = self.input_patcher.start()
-        self.mock_input = MagicMock()
-        self.mock_input.read_inputs.return_value = (0.5, 0.3)  # (throttle, steering)
-        self.mock_input.gamepad_manager = MagicMock()
-        self.mock_input_cls.return_value = self.mock_input
-
-        # Patch OSD
-        self.osd_patcher = patch("src.v3xctrl_ui.AppState.OSD")
-        self.mock_osd_cls = self.osd_patcher.start()
-        self.mock_osd = MagicMock()
-        self.mock_osd_cls.return_value = self.mock_osd
-
-        # Patch Renderer
-        self.renderer_patcher = patch("src.v3xctrl_ui.AppState.Renderer")
-        self.mock_renderer_cls = self.renderer_patcher.start()
-        self.mock_renderer = MagicMock()
-        self.mock_renderer_cls.return_value = self.mock_renderer
-
-        # Patch NetworkManager
-        self.network_patcher = patch("src.v3xctrl_ui.AppState.NetworkManager")
-        self.mock_network_cls = self.network_patcher.start()
-        self.mock_network = MagicMock()
-        self.mock_network.server = None
-        self.mock_network.server_error = None
-        self.mock_network.get_data_queue_size.return_value = 0
-        self.mock_network_cls.return_value = self.mock_network
-
-        # Patch signal handling
-        self.signal_patcher = patch("src.v3xctrl_ui.AppState.signal")
-        self.mock_signal = self.signal_patcher.start()
-
-        # Minimal settings mock
         self.settings = MagicMock()
         self.settings.get.side_effect = lambda key, default=None: {
             "timing": {"control_update_hz": 30, "latency_check_hz": 1}
         }.get(key, default)
 
-        self.app = AppState(
+    def _create_app(self, mock_signal, mock_network_cls, mock_renderer_cls,
+                   mock_osd_cls, mock_input_cls, mock_ui):
+        mock_input = MagicMock()
+        mock_input.read_inputs.return_value = (0.5, 0.3)
+        mock_input.gamepad_manager = MagicMock()
+        mock_input_cls.return_value = mock_input
+
+        mock_osd = MagicMock()
+        mock_osd_cls.return_value = mock_osd
+
+        mock_renderer = MagicMock()
+        mock_renderer_cls.return_value = mock_renderer
+
+        mock_network = MagicMock()
+        mock_network.server = None
+        mock_network.server_error = None
+        mock_network.get_data_queue_size.return_value = 0
+        mock_network_cls.return_value = mock_network
+
+        app = AppState(
             (800, 600),
             "Test",
             video_port=5000,
@@ -57,176 +44,184 @@ class TestAppState(unittest.TestCase):
             settings=self.settings
         )
 
-    def tearDown(self):
-        self.ui_patcher.stop()
-        self.input_patcher.stop()
-        self.osd_patcher.stop()
-        self.renderer_patcher.stop()
-        self.network_patcher.stop()
-        self.signal_patcher.stop()
+        return app, mock_input, mock_osd, mock_renderer, mock_network
 
-    def test_initialization_creates_all_components(self):
-        """Test that AppState properly initializes all components."""
-        self.mock_input_cls.assert_called_once_with(self.settings)
-        self.mock_osd_cls.assert_called_once_with(self.settings)
-        self.mock_renderer_cls.assert_called_once_with((800, 600), self.settings)
-        self.mock_network_cls.assert_called_once()
+    def test_initialization_creates_all_components(self, mock_signal, mock_network_cls,
+                                                  mock_renderer_cls, mock_osd_cls,
+                                                  mock_input_cls, mock_ui):
+        app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
+            mock_signal, mock_network_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_ui)
 
-        # Verify NetworkManager was called with correct parameters
-        args, kwargs = self.mock_network_cls.call_args
-        self.assertEqual(args[0], 5000)  # video_port
-        self.assertEqual(args[1], 6000)  # control_port
-        self.assertEqual(args[2], self.settings)  # settings
-        self.assertIsNotNone(args[3])  # osd_handlers
+        mock_input_cls.assert_called_once_with(self.settings)
+        mock_osd_cls.assert_called_once_with(self.settings)
+        mock_renderer_cls.assert_called_once_with((800, 600), self.settings)
+        mock_network_cls.assert_called_once()
 
-    def test_update_settings_updates_all_components(self):
-        """Test that update_settings properly updates all components."""
+        args, kwargs = mock_network_cls.call_args
+        self.assertEqual(args[0], 5000)
+        self.assertEqual(args[1], 6000)
+        self.assertEqual(args[2], self.settings)
+        self.assertIsNotNone(args[3])
+
+    def test_update_settings_updates_all_components(self, mock_signal, mock_network_cls,
+                                                   mock_renderer_cls, mock_osd_cls,
+                                                   mock_input_cls, mock_ui):
+        app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
+            mock_signal, mock_network_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_ui)
+
         new_settings = MagicMock()
         new_settings.get.side_effect = lambda key, default=None: {
             "timing": {"control_update_hz": 60, "latency_check_hz": 2}
         }.get(key, default)
 
-        self.app.update_settings(new_settings)
+        app.update_settings(new_settings)
 
-        self.assertEqual(self.app.settings, new_settings)
-        self.mock_input.update_settings.assert_called_with(new_settings)
-        self.mock_osd.update_settings.assert_called_with(new_settings)
-        self.assertEqual(self.mock_renderer.settings, new_settings)
+        self.assertEqual(app.settings, new_settings)
+        mock_input.update_settings.assert_called_with(new_settings)
+        mock_osd.update_settings.assert_called_with(new_settings)
+        self.assertEqual(mock_renderer.settings, new_settings)
 
-    def test_update_reads_inputs_and_sends_control(self):
-        """Test that update method reads inputs and sends control messages."""
+    def test_update_reads_inputs_and_sends_control(self, mock_signal, mock_network_cls,
+                                                  mock_renderer_cls, mock_osd_cls,
+                                                  mock_input_cls, mock_ui):
+        app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
+            mock_signal, mock_network_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_ui)
+
         import time
         now = time.monotonic()
 
-        # Set up timing so control update should trigger
-        self.app.last_control_update = now - 1.0  # Force control update
-        self.app.last_latency_check = now - 2.0   # Force latency check
+        app.last_control_update = now - 1.0
+        app.last_latency_check = now - 2.0
 
-        # Mock server available
-        self.mock_network.server = MagicMock()
-        self.mock_network.server_error = None
+        mock_network.server = MagicMock()
+        mock_network.server_error = None
 
-        self.app.update(now)
+        app.update(now)
 
-        # Verify inputs were read
-        self.mock_input.read_inputs.assert_called_once()
+        mock_input.read_inputs.assert_called_once()
+        self.assertEqual(app.throttle, 0.5)
+        self.assertEqual(app.steering, 0.3)
+        mock_network.server.send.assert_called_once()
+        mock_network.send_latency_check.assert_called_once()
 
-        # Verify control values were set from input manager
-        self.assertEqual(self.app.throttle, 0.5)
-        self.assertEqual(self.app.steering, 0.3)
+    def test_update_no_control_when_timing_not_ready(self, mock_signal, mock_network_cls,
+                                                    mock_renderer_cls, mock_osd_cls,
+                                                    mock_input_cls, mock_ui):
+        app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
+            mock_signal, mock_network_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_ui)
 
-        # Verify control message was sent
-        self.mock_network.server.send.assert_called_once()
-
-        # Verify latency check was sent
-        self.mock_network.send_latency_check.assert_called_once()
-
-    def test_update_no_control_when_timing_not_ready(self):
-        """Test that update doesn't read inputs when timing hasn't elapsed."""
         import time
         now = time.monotonic()
 
-        # Set timing so no updates should trigger
-        self.app.last_control_update = now  # Recent update
-        self.app.last_latency_check = now   # Recent check
+        app.last_control_update = now
+        app.last_latency_check = now
 
-        self.app.update(now)
+        app.update(now)
 
-        # Verify inputs were not read
-        self.mock_input.read_inputs.assert_not_called()
+        mock_input.read_inputs.assert_not_called()
+        mock_network.send_latency_check.assert_not_called()
 
-        # Verify no latency check was sent
-        self.mock_network.send_latency_check.assert_not_called()
+    def test_send_control_message_with_server(self, mock_signal, mock_network_cls,
+                                             mock_renderer_cls, mock_osd_cls,
+                                             mock_input_cls, mock_ui):
+        app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
+            mock_signal, mock_network_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_ui)
 
-    def test_send_control_message_with_server(self):
-        """Test that _send_control_message works with available server."""
-        # Mock server available
-        self.mock_network.server = MagicMock()
-        self.mock_network.server_error = None
+        mock_network.server = MagicMock()
+        mock_network.server_error = None
 
-        # Set some control values
-        self.app.throttle = 0.7
-        self.app.steering = -0.4
+        app.throttle = 0.7
+        app.steering = -0.4
 
-        self.app._send_control_message()
+        app._send_control_message()
 
-        # Verify control message was sent with correct values
-        self.mock_network.server.send.assert_called_once()
-        call_args = self.mock_network.server.send.call_args[0][0]
+        mock_network.server.send.assert_called_once()
+        self.assertEqual(mock_network.server.send.call_args[0][0].__class__.__name__, 'Control')
 
-        # Check that it's a Control message with correct data
-        self.assertEqual(call_args.__class__.__name__, 'Control')
+    def test_send_control_message_no_server(self, mock_signal, mock_network_cls,
+                                           mock_renderer_cls, mock_osd_cls,
+                                           mock_input_cls, mock_ui):
+        app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
+            mock_signal, mock_network_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_ui)
 
-    def test_send_control_message_no_server(self):
-        """Test that _send_control_message handles missing server gracefully."""
-        # No server available
-        self.mock_network.server = None
+        mock_network.server = None
+        app._send_control_message()
 
-        self.app._send_control_message()
+    def test_send_control_message_with_server_error(self, mock_signal, mock_network_cls,
+                                                   mock_renderer_cls, mock_osd_cls,
+                                                   mock_input_cls, mock_ui):
+        app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
+            mock_signal, mock_network_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_ui)
 
-        # Should not raise exception, just do nothing
+        mock_network.server = MagicMock()
+        mock_network.server_error = "Connection failed"
 
-    def test_send_control_message_with_server_error(self):
-        """Test that _send_control_message handles server errors."""
-        # Server with error
-        self.mock_network.server = MagicMock()
-        self.mock_network.server_error = "Connection failed"
+        app._send_control_message()
 
-        self.app._send_control_message()
+        mock_network.server.send.assert_not_called()
 
-        # Should not send when there's an error
-        self.mock_network.server.send.assert_not_called()
+    def test_render_updates_osd_and_calls_renderer(self, mock_signal, mock_network_cls,
+                                                  mock_renderer_cls, mock_osd_cls,
+                                                  mock_input_cls, mock_ui):
+        app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
+            mock_signal, mock_network_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_ui)
 
-    def test_render_updates_osd_and_calls_renderer(self):
-        """Test that render method properly updates OSD and calls renderer."""
-        self.mock_network.get_data_queue_size.return_value = 5
-        self.mock_network.server_error = None
+        mock_network.get_data_queue_size.return_value = 5
+        mock_network.server_error = None
 
-        self.app.render()
+        app.render()
 
-        # Verify OSD was updated
-        self.mock_osd.update_data_queue.assert_called_with(5)
-        self.mock_osd.set_control.assert_called_with(self.app.throttle, self.app.steering)
+        mock_osd.update_data_queue.assert_called_with(5)
+        mock_osd.set_control.assert_called_with(app.throttle, app.steering)
+        mock_renderer.render_all.assert_called_with(app, mock_network)
 
-        # Verify renderer was called
-        self.mock_renderer.render_all.assert_called_with(self.app, self.mock_network)
+    def test_render_handles_server_error(self, mock_signal, mock_network_cls,
+                                        mock_renderer_cls, mock_osd_cls,
+                                        mock_input_cls, mock_ui):
+        app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
+            mock_signal, mock_network_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_ui)
 
-    def test_render_handles_server_error(self):
-        """Test that render method handles server errors."""
-        self.mock_network.server_error = "Connection failed"
+        mock_network.server_error = "Connection failed"
+        app.render()
 
-        self.app.render()
+        mock_osd.update_debug_status.assert_called_with("fail")
 
-        # Verify OSD was notified of failure
-        self.mock_osd.update_debug_status.assert_called_with("fail")
+    @patch("src.v3xctrl_ui.AppState.pygame.quit")
+    def test_shutdown_stops_all_components(self, mock_quit, mock_signal, mock_network_cls,
+                                          mock_renderer_cls, mock_osd_cls,
+                                          mock_input_cls, mock_ui):
+        app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
+            mock_signal, mock_network_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_ui)
 
-    def test_shutdown_stops_all_components(self):
-        """Test that shutdown properly stops all components."""
-        with patch("src.v3xctrl_ui.AppState.pygame.quit") as mock_quit:
-            self.app.shutdown()
+        app.shutdown()
 
-            # Verify all components were shut down
-            self.mock_input.shutdown.assert_called_once()
-            self.mock_network.shutdown.assert_called_once()
-            mock_quit.assert_called_once()
+        mock_input.shutdown.assert_called_once()
+        mock_network.shutdown.assert_called_once()
+        mock_quit.assert_called_once()
 
     @patch("src.v3xctrl_ui.AppState.pygame.event.get")
-    def test_handle_events_quit(self, mock_get_events):
-        """Test that handle_events properly handles quit event."""
+    def test_handle_events_quit(self, mock_get_events, mock_signal, mock_network_cls,
+                               mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_ui):
+        app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
+            mock_signal, mock_network_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_ui)
+
         import pygame
 
         quit_event = MagicMock()
         quit_event.type = pygame.QUIT
         mock_get_events.return_value = [quit_event]
 
-        result = self.app.handle_events()
-
-        self.assertFalse(result)
-        self.assertFalse(self.app.running)
+        self.assertFalse(app.handle_events())
+        self.assertFalse(app.running)
 
     @patch("src.v3xctrl_ui.AppState.pygame.event.get")
-    def test_handle_events_escape_toggles_menu(self, mock_get_events):
-        """Test that handle_events properly toggles menu on escape."""
+    @patch("src.v3xctrl_ui.AppState.Menu")
+    def test_handle_events_escape_toggles_menu(self, mock_menu_cls, mock_get_events,
+                                              mock_signal, mock_network_cls, mock_renderer_cls,
+                                              mock_osd_cls, mock_input_cls, mock_ui):
+        app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
+            mock_signal, mock_network_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_ui)
+
         import pygame
 
         escape_event = MagicMock()
@@ -234,95 +229,87 @@ class TestAppState(unittest.TestCase):
         escape_event.key = pygame.K_ESCAPE
         mock_get_events.return_value = [escape_event]
 
-        with patch("src.v3xctrl_ui.AppState.Menu") as mock_menu_cls:
-            mock_menu = MagicMock()
-            mock_menu_cls.return_value = mock_menu
+        mock_menu = MagicMock()
+        mock_menu_cls.return_value = mock_menu
 
-            # Verify initial state - no menu
-            self.assertIsNone(self.app.menu)
+        self.assertIsNone(app.menu)
 
-            # First call should create menu
-            result = self.app.handle_events()
-            self.assertTrue(result)
-            self.assertTrue(self.app.running)
+        self.assertTrue(app.handle_events())
+        self.assertTrue(app.running)
 
-            # Verify menu was created with correct parameters
-            mock_menu_cls.assert_called_once_with(
-                800, 600,  # size
-                self.mock_input.gamepad_manager,  # gamepad manager from input manager
-                self.settings,
-                self.app.update_settings,
-                self.mock_network.server
-            )
-            self.assertEqual(self.app.menu, mock_menu)
+        mock_menu_cls.assert_called_once_with(
+            800, 600,
+            mock_input.gamepad_manager,
+            self.settings,
+            app.update_settings,
+            mock_network.server
+        )
+        self.assertEqual(app.menu, mock_menu)
 
-            # Reset for second test
-            mock_get_events.return_value = [escape_event]
+        mock_get_events.return_value = [escape_event]
 
-            # Second call should remove menu
-            result = self.app.handle_events()
-            self.assertTrue(result)
-            self.assertTrue(self.app.running)
-            self.assertIsNone(self.app.menu)
+        self.assertTrue(app.handle_events())
+        self.assertTrue(app.running)
+        self.assertIsNone(app.menu)
 
     @patch("src.v3xctrl_ui.AppState.pygame.event.get")
-    def test_handle_events_menu_handles_events(self, mock_get_events):
-        """Test that events are passed to menu when menu is active."""
+    def test_handle_events_menu_handles_events(self, mock_get_events, mock_signal,
+                                              mock_network_cls, mock_renderer_cls,
+                                              mock_osd_cls, mock_input_cls, mock_ui):
+        app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
+            mock_signal, mock_network_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_ui)
+
         some_event = MagicMock()
-        some_event.type = 999  # Some other event type
+        some_event.type = 999
         mock_get_events.return_value = [some_event]
 
-        # Create a mock menu
         mock_menu = MagicMock()
-        self.app.menu = mock_menu
+        app.menu = mock_menu
 
-        result = self.app.handle_events()
-
-        # Verify event was passed to menu
+        self.assertTrue(app.handle_events())
         mock_menu.handle_event.assert_called_once_with(some_event)
-        self.assertTrue(result)
 
-    def test_initialize_timing(self):
-        """Test that timing initialization works correctly."""
+    def test_initialize_timing(self, mock_signal, mock_network_cls, mock_renderer_cls,
+                              mock_osd_cls, mock_input_cls, mock_ui):
+        app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
+            mock_signal, mock_network_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_ui)
+
         start_time = 123.456
+        app.initialize_timing(start_time)
 
-        self.app.initialize_timing(start_time)
+        self.assertEqual(app.last_control_update, start_time)
+        self.assertEqual(app.last_latency_check, start_time)
 
-        self.assertEqual(self.app.last_control_update, start_time)
-        self.assertEqual(self.app.last_latency_check, start_time)
+    def test_timing_intervals_calculation(self, mock_signal, mock_network_cls,
+                                         mock_renderer_cls, mock_osd_cls,
+                                         mock_input_cls, mock_ui):
+        app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
+            mock_signal, mock_network_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_ui)
 
-    def test_timing_intervals_calculation(self):
-        """Test that timing intervals are calculated correctly from settings."""
-        # Verify initial timing calculation
-        self.assertEqual(self.app.control_interval, 1.0 / 30)  # 30 Hz
-        self.assertEqual(self.app.latency_interval, 1.0 / 1)   # 1 Hz
+        self.assertEqual(app.control_interval, 1.0 / 30)
+        self.assertEqual(app.latency_interval, 1.0 / 1)
 
-        # Test with different timing settings
         new_settings = MagicMock()
         new_settings.get.side_effect = lambda key, default=None: {
             "timing": {"control_update_hz": 60, "latency_check_hz": 5}
         }.get(key, default)
 
-        self.app.update_settings(new_settings)
+        app.update_settings(new_settings)
 
-        self.assertEqual(self.app.control_interval, 1.0 / 60)  # 60 Hz
-        self.assertEqual(self.app.latency_interval, 1.0 / 5)   # 5 Hz
+        self.assertEqual(app.control_interval, 1.0 / 60)
+        self.assertEqual(app.latency_interval, 1.0 / 5)
 
-    def test_osd_handlers_creation(self):
-        """Test that OSD handlers are created correctly."""
-        handlers = self.app._create_osd_handlers()
+    def test_osd_handlers_creation(self, mock_signal, mock_network_cls, mock_renderer_cls,
+                                  mock_osd_cls, mock_input_cls, mock_ui):
+        app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
+            mock_signal, mock_network_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_ui)
 
-        # Verify structure
+        handlers = app._create_osd_handlers()
+
         self.assertIn("messages", handlers)
         self.assertIn("states", handlers)
-
-        # Verify message handlers
-        message_handlers = handlers["messages"]
-        self.assertEqual(len(message_handlers), 2)
-
-        # Verify state handlers
-        state_handlers = handlers["states"]
-        self.assertEqual(len(state_handlers), 2)
+        self.assertEqual(len(handlers["messages"]), 2)
+        self.assertEqual(len(handlers["states"]), 2)
 
 
 if __name__ == '__main__':

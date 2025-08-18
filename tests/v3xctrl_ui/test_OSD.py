@@ -1,9 +1,11 @@
-import unittest
-import tempfile
-from pathlib import Path
-from unittest.mock import MagicMock
 from collections import deque
+import tempfile
 import time
+from pathlib import Path
+
+import unittest
+from unittest.mock import MagicMock
+
 import pygame
 
 from v3xctrl_ui.colors import RED

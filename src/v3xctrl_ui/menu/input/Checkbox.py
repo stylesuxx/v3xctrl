@@ -1,21 +1,22 @@
+from typing import Callable
+
 import pygame
 from pygame import Surface, Rect
 from pygame.freetype import Font
 import pygame.gfxdraw
-from typing import Callable
 
 from v3xctrl_ui.colors import MID_GREY, WHITE, DARK_GREY, GAINSBORO
-from .BaseWidget import BaseWidget
+from v3xctrl_ui.menu.input import BaseWidget
 
 
 class Checkbox(BaseWidget):
-    BOX_SIZE = 25
-    BOX_MARGIN = 10
-
     LABEL_COLOR = GAINSBORO
     BG_COLOR = WHITE
     CHECK_COLOR = MID_GREY
     BORDER_COLOR = DARK_GREY
+
+    BOX_SIZE = 25
+    BOX_MARGIN = 10
 
     def __init__(
         self,

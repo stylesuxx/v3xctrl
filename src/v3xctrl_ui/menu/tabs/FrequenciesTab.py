@@ -1,5 +1,6 @@
-from pygame import Surface
 from typing import Dict, Any
+
+from pygame import Surface
 
 from v3xctrl_ui.fonts import LABEL_FONT, MONO_FONT
 from v3xctrl_ui.menu.input import NumberInput
@@ -61,6 +62,14 @@ class FrequenciesTab(Tab):
             self.latency_input,
         ]
 
+    def draw(self, surface: Surface) -> None:
+        _ = self._draw_frequency_section(surface, 0)
+
+    def get_settings(self) -> Dict[str, Any]:
+        return {
+            "timing": self.timing
+        }
+
     def _on_rate_change(self, name: str, value: str) -> None:
         self.timing[name] = int(value)
 
@@ -81,11 +90,3 @@ class FrequenciesTab(Tab):
         self.latency_input.draw(surface)
 
         return y
-
-    def draw(self, surface: Surface) -> None:
-        _ = self._draw_frequency_section(surface, 0)
-
-    def get_settings(self) -> Dict[str, Any]:
-        return {
-            "timing": self.timing
-        }

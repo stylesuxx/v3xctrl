@@ -1,5 +1,6 @@
-from pygame import Surface
 from typing import Tuple
+
+from pygame import Surface
 
 from v3xctrl_ui.colors import BLACK
 from v3xctrl_ui.fonts import SMALL_MONO_FONT

@@ -1,7 +1,8 @@
 import logging
-from pygame import Surface
 import time
 from typing import Callable, Dict, Any
+
+from pygame import Surface
 
 from v3xctrl_control.message import Command
 
@@ -51,6 +52,12 @@ class StreamerTab(Tab):
         self.elements.append(self.video_stop_button)
         self.elements.append(self.video_start_button)
         self.elements.append(self.shutdown_button)
+
+    def draw(self, surface: Surface) -> None:
+        _ = self._draw_actions_section(surface, 0)
+
+    def get_settings(self) -> Dict[str, Any]:
+        return {}
 
     def _on_command_callback(self, status: bool) -> None:
         # Wait a bit for the transition to not be "flickering"
@@ -114,9 +121,3 @@ class StreamerTab(Tab):
         y += self.video_stop_button.get_size()[1]
 
         return y
-
-    def draw(self, surface: Surface) -> None:
-        _ = self._draw_actions_section(surface, 0)
-
-    def get_settings(self) -> Dict[str, Any]:
-        return {}

@@ -13,4 +13,4 @@ class Widget(ABC):
 
     @abstractmethod
     def draw(self, screen: Surface) -> None:
-        raise NotImplementedError("Subclasses must implement draw method")
+        pass

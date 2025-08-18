@@ -1,21 +1,30 @@
+from typing import Callable, Tuple
+
 import pygame
 from pygame import Rect, Surface
 from pygame.freetype import Font
-from typing import Callable, Tuple
 
 from v3xctrl_ui.menu.input.BaseWidget import BaseWidget
+from v3xctrl_ui.colors import (
+    CHARCOAL,
+    DARK_GREY,
+    GREY,
+    LIGHT_GREY,
+    MID_GREY,
+    WHITE,
+)
 
 
 class Button(BaseWidget):
-    FONT_COLOR = (255, 255, 255)
-    FONT_COLOR_DISABLED = (180, 180, 180)
+    FONT_COLOR = WHITE
+    FONT_COLOR_DISABLED = LIGHT_GREY
 
-    BG_COLOR = (100, 100, 100)
-    HOVER_COLOR = (120, 120, 120)
-    ACTIVE_COLOR = (70, 70, 70)
-    BG_COLOR_DISABLED = (60, 60, 60)
+    BG_COLOR = GREY
+    HOVER_COLOR = MID_GREY
+    ACTIVE_COLOR = DARK_GREY
+    BG_COLOR_DISABLED = CHARCOAL
 
-    BORDER_COLOR = (180, 180, 180)
+    BORDER_COLOR = LIGHT_GREY
 
     BORDER_WIDTH = 2
     BORDER_RADIUS = 8
@@ -50,13 +59,6 @@ class Button(BaseWidget):
         self.rect.topleft = (x, y)
         self._update_label_position()
 
-    def _update_label_position(self) -> None:
-        self.label_rect.center = self.rect.center
-
-    def _render_label(self, color: Tuple[int, int, int]) -> None:
-        self.label_surface, self.label_rect = self.font.render(self.label, color)
-        self._update_label_position()
-
     def disable(self) -> None:
         self.disabled = True
         self._render_label(self.FONT_COLOR_DISABLED)
@@ -88,6 +90,13 @@ class Button(BaseWidget):
             return was_focused
 
         return False
+
+    def _update_label_position(self) -> None:
+        self.label_rect.center = self.rect.center
+
+    def _render_label(self, color: Tuple[int, int, int]) -> None:
+        self.label_surface, self.label_rect = self.font.render(self.label, color)
+        self._update_label_position()
 
     def _draw(self, surface: Surface) -> None:
         if self.disabled:

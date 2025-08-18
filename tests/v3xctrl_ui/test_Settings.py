@@ -1,6 +1,7 @@
-import unittest
-import tempfile
 from pathlib import Path
+import tempfile
+import unittest
+
 import pygame
 import tomli_w
 

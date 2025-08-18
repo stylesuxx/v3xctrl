@@ -1,8 +1,5 @@
 import unittest
-from unittest.mock import MagicMock, patch, call
-import socket
-import threading
-import time
+from unittest.mock import MagicMock, patch
 
 from src.v3xctrl_ui.NetworkManager import NetworkManager
 from v3xctrl_helper.exceptions import UnauthorizedError
@@ -130,11 +127,11 @@ class TestNetworkManager(unittest.TestCase):
         """Test setup_ports without relay."""
         nm = NetworkManager(5000, 6000, self.settings, self.osd_handlers)
 
-        # Mock Init methods
+        # Mock Init methods - server now returns just the server instance
         mock_video_receiver = MagicMock()
         mock_server = MagicMock()
         self.mock_init.video_receiver.return_value = mock_video_receiver
-        self.mock_init.server.return_value = (mock_server, None)
+        self.mock_init.server.return_value = mock_server
 
         nm.setup_ports()
 
@@ -148,7 +145,10 @@ class TestNetworkManager(unittest.TestCase):
 
         # Verify video receiver and server were initialized
         self.mock_init.video_receiver.assert_called_once()
-        self.mock_init.server.assert_called_once_with(6000, self.osd_handlers)
+        # Server should be called with separate message and state handlers
+        expected_messages = self.osd_handlers["messages"]
+        expected_states = self.osd_handlers["states"]
+        self.mock_init.server.assert_called_once_with(6000, expected_messages, expected_states)
 
     def test_setup_ports_with_relay_success(self):
         """Test setup_ports with successful relay connection."""
@@ -164,7 +164,7 @@ class TestNetworkManager(unittest.TestCase):
         mock_video_receiver = MagicMock()
         mock_server = MagicMock()
         self.mock_init.video_receiver.return_value = mock_video_receiver
-        self.mock_init.server.return_value = (mock_server, None)
+        self.mock_init.server.return_value = mock_server
 
         nm.setup_ports()
 
@@ -194,6 +194,26 @@ class TestNetworkManager(unittest.TestCase):
 
         # Verify error message was set
         self.assertIn("unauthorized", nm.relay_status_message.lower())
+
+    def test_setup_ports_server_error(self):
+        """Test setup_ports when server initialization fails."""
+        nm = NetworkManager(5000, 6000, self.settings, self.osd_handlers)
+
+        # Mock Init methods - server raises RuntimeError
+        mock_video_receiver = MagicMock()
+        self.mock_init.video_receiver.return_value = mock_video_receiver
+        self.mock_init.server.side_effect = RuntimeError("Server failed")
+
+        with patch("src.v3xctrl_ui.NetworkManager.logging.error") as mock_log_error:
+            nm.setup_ports()
+
+            # Execute the task function
+            task_func = self.mock_thread_cls.call_args[1]['target']
+            task_func()
+
+            # Verify error was logged and stored
+            self.assertEqual(nm.server_error, "Server failed")
+            mock_log_error.assert_called_once()
 
     def test_send_latency_check_with_server(self):
         """Test send_latency_check when server is available."""
@@ -339,58 +359,60 @@ class TestNetworkManager(unittest.TestCase):
         # Mock Init methods to capture the poke_peer function
         mock_video_receiver = MagicMock()
         self.mock_init.video_receiver.return_value = mock_video_receiver
-        self.mock_init.server.return_value = (MagicMock(), None)
+        self.mock_init.server.return_value = MagicMock()
 
-        # Instead of using threading, let's execute the task directly
-        with patch.object(nm, 'setup_ports') as mock_setup:
-            # Create a version that executes synchronously
-            def sync_setup_ports():
-                video_address = None
-                if nm.relay_enable and nm.relay_server and nm.relay_id:
-                    local_bind_ports = {
-                        "video": nm.video_port,
-                        "control": nm.control_port
-                    }
-                    peer = self.mock_peer_cls(nm.relay_server, nm.relay_port, nm.relay_id)
+        # Create a version that executes synchronously
+        def sync_setup_ports():
+            video_address = None
+            if nm.relay_enable and nm.relay_server and nm.relay_id:
+                local_bind_ports = {
+                    "video": nm.video_port,
+                    "control": nm.control_port
+                }
+                peer = self.mock_peer_cls(nm.relay_server, nm.relay_port, nm.relay_id)
 
+                try:
+                    addresses = peer.setup("viewer", local_bind_ports)
+                    video_address = addresses["video"]
+                except UnauthorizedError:
+                    nm.relay_status_message = "ERROR: Relay ID unauthorized!"
+                    return
+
+            def poke_peer() -> None:
+                if nm.relay_enable and video_address:
+                    mock_logging.info(f"Poking peer {video_address}")
+                    sock = None
                     try:
-                        addresses = peer.setup("viewer", local_bind_ports)
-                        video_address = addresses["video"]
-                    except UnauthorizedError:
-                        nm.relay_status_message = "ERROR: Relay ID unauthorized!"
-                        return
+                        sock = self.mock_socket.socket(self.mock_socket.AF_INET, self.mock_socket.SOCK_DGRAM)
+                        sock.setsockopt(self.mock_socket.SOL_SOCKET, self.mock_socket.SO_REUSEADDR, 1)
+                        sock.bind(("0.0.0.0", nm.video_port))
 
-                def poke_peer() -> None:
-                    if nm.relay_enable and video_address:
-                        mock_logging.info(f"Poking peer {video_address}")
-                        sock = None
-                        try:
-                            sock = self.mock_socket.socket(self.mock_socket.AF_INET, self.mock_socket.SOCK_DGRAM)
-                            sock.setsockopt(self.mock_socket.SOL_SOCKET, self.mock_socket.SO_REUSEADDR, 1)
-                            sock.bind(("0.0.0.0", nm.video_port))
+                        for i in range(5):
+                            try:
+                                sock.sendto(b'SYN', video_address)
+                                mock_sleep(0.1)
+                            except Exception as e:
+                                mock_logging.warning(f"Poke {i+1}/5 failed: {e}")
 
-                            for i in range(5):
-                                try:
-                                    sock.sendto(b'SYN', video_address)
-                                    mock_sleep(0.1)
-                                except Exception as e:
-                                    mock_logging.warning(f"Poke {i+1}/5 failed: {e}")
+                    except Exception as e:
+                        mock_logging.error(f"Failed to poke peer: {e}", exc_info=True)
+                    finally:
+                        if sock:
+                            sock.close()
+                        mock_logging.info(f"Poke to {video_address} completed and socket closed.")
 
-                        except Exception as e:
-                            mock_logging.error(f"Failed to poke peer: {e}", exc_info=True)
-                        finally:
-                            if sock:
-                                sock.close()
-                            mock_logging.info(f"Poke to {video_address} completed and socket closed.")
+            nm.video_receiver = self.mock_init.video_receiver(nm.video_port, poke_peer)
 
-                nm.video_receiver = self.mock_init.video_receiver(nm.video_port, poke_peer)
-                nm.server, nm.server_error = self.mock_init.server(nm.control_port, nm.server_handlers)
+            # Extract handlers properly
+            message_handlers = nm.server_handlers.get("messages", [])
+            state_handlers = nm.server_handlers.get("states", [])
+            nm.server = self.mock_init.server(nm.control_port, message_handlers, state_handlers)
 
-                # Execute poke_peer to test it
-                poke_peer()
+            # Execute poke_peer to test it
+            poke_peer()
 
-            # Execute the synchronous version
-            sync_setup_ports()
+        # Execute the synchronous version
+        sync_setup_ports()
 
         # Verify socket operations
         self.mock_socket.socket.assert_called_with(self.mock_socket.AF_INET, self.mock_socket.SOCK_DGRAM)
@@ -405,6 +427,49 @@ class TestNetworkManager(unittest.TestCase):
         # Verify logging calls
         mock_logging.info.assert_any_call("Poking peer ('1.2.3.4', 1234)")
         mock_logging.info.assert_any_call("Poke to ('1.2.3.4', 1234) completed and socket closed.")
+
+    def test_initialization_relay_enabled_no_server(self):
+        """Test NetworkManager initialization with relay enabled but no server."""
+        relay_settings = MagicMock()
+        relay_settings.get.side_effect = lambda key, default=None: {
+            "relay": {"enabled": True, "id": "test123"},  # Missing server
+            "ports": {"video": 5000, "control": 6000}
+        }.get(key, default)
+
+        with patch('builtins.print') as mock_print:
+            nm = NetworkManager(5000, 6000, relay_settings, self.osd_handlers)
+
+            # Relay should not be configured due to missing server
+            self.assertFalse(nm.relay_enable)
+            self.assertIsNone(nm.relay_server)
+            self.assertIsNone(nm.relay_id)
+
+    def test_initialization_relay_enabled_no_id(self):
+        """Test NetworkManager initialization with relay enabled but no ID."""
+        relay_settings = MagicMock()
+        relay_settings.get.side_effect = lambda key, default=None: {
+            "relay": {"enabled": True, "server": "relay.example.com:8080"},  # Missing ID
+            "ports": {"video": 5000, "control": 6000}
+        }.get(key, default)
+
+        with patch('builtins.print') as mock_print:
+            nm = NetworkManager(5000, 6000, relay_settings, self.osd_handlers)
+
+            # Relay should not be configured due to missing ID
+            self.assertFalse(nm.relay_enable)
+            self.assertIsNone(nm.relay_server)
+            self.assertIsNone(nm.relay_id)
+
+    def test_setup_relay_empty_server(self):
+        """Test setup_relay with empty server string."""
+        nm = NetworkManager(5000, 6000, self.settings, self.osd_handlers)
+
+        nm.setup_relay("", "testid")
+
+        self.assertTrue(nm.relay_enable)
+        self.assertEqual(nm.relay_server, "")
+        self.assertEqual(nm.relay_port, 8888)  # Default port
+        self.assertEqual(nm.relay_id, "testid")
 
 
 if __name__ == '__main__':

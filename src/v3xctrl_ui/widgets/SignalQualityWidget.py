@@ -1,9 +1,10 @@
 from enum import IntEnum
 import math
+from typing import Tuple, Dict, Any
+
 from pygame import Surface, Rect, SRCALPHA
 import pygame
 import pygame.gfxdraw
-from typing import Tuple, Dict, Any
 
 from v3xctrl_ui.colors import WHITE, GREEN, RED, YELLOW, ORANGE, GREY, BLACK
 from v3xctrl_ui.widgets.Widget import Widget
@@ -18,7 +19,7 @@ class SignalQuality(IntEnum):
 
 class SignalQualityWidget(Widget):
     BAR_COUNT = 5
-    SPACING_RATIO = 0.05  # relative to widget width
+    SPACING_RATIO = 0.05
 
     def __init__(self, position: Tuple[int, int], size: Tuple[int, int]) -> None:
         self.position = position
@@ -45,6 +46,39 @@ class SignalQualityWidget(Widget):
         self.bar_max_height = self.height - 2 * self.top_bottom_padding
 
         super().__init__()
+
+    def draw(self, screen: Surface, signal: Dict[str, Any]) -> None:
+        rsrp = signal.get('rsrp')
+        rsrq = signal.get('rsrq')
+
+        if rsrp in (-1, 255) or rsrq in (-1, 255):
+            self._draw_no_modem(screen)
+            return
+
+        bars = self._get_bars(rsrp)
+        quality = self._get_quality(rsrq)
+
+        bg_color = {
+            SignalQuality.POOR: RED,
+            SignalQuality.FAIR: ORANGE,
+            SignalQuality.GOOD: YELLOW,
+            SignalQuality.EXCELLENT: GREEN
+        }.get(quality, GREY)
+
+        surface = Surface((self.width, self.height), SRCALPHA)
+        surface.fill((*bg_color, 180))
+
+        base_line = self.height - self.top_bottom_padding
+
+        for i in range(self.BAR_COUNT):
+            bar_height = int((i + 1) * self.bar_max_height / self.BAR_COUNT)
+            bar_x = self.side_padding + i * (self.bar_width + self.bar_spacing)
+            bar_y = base_line - bar_height
+
+            color = WHITE if i < bars else GREY
+            surface.fill(color, Rect(bar_x, bar_y, self.bar_width, bar_height))
+
+        screen.blit(surface, self.position)
 
     def _rsrp_to_dbm(self, value: int) -> float:
         return -140 if value == 255 else value - 140
@@ -115,36 +149,3 @@ class SignalQualityWidget(Widget):
 
         bg_surface.blit(symbol_surface, (0, 0))
         screen.blit(bg_surface, self.position)
-
-    def draw(self, screen: Surface, signal: Dict[str, Any]) -> None:
-        rsrp = signal.get('rsrp')
-        rsrq = signal.get('rsrq')
-
-        if rsrp in (-1, 255) or rsrq in (-1, 255):
-            self._draw_no_modem(screen)
-            return
-
-        bars = self._get_bars(rsrp)
-        quality = self._get_quality(rsrq)
-
-        bg_color = {
-            SignalQuality.POOR: RED,
-            SignalQuality.FAIR: ORANGE,
-            SignalQuality.GOOD: YELLOW,
-            SignalQuality.EXCELLENT: GREEN
-        }.get(quality, GREY)
-
-        surface = Surface((self.width, self.height), SRCALPHA)
-        surface.fill((*bg_color, 180))
-
-        base_line = self.height - self.top_bottom_padding
-
-        for i in range(self.BAR_COUNT):
-            bar_height = int((i + 1) * self.bar_max_height / self.BAR_COUNT)
-            bar_x = self.side_padding + i * (self.bar_width + self.bar_spacing)
-            bar_y = base_line - bar_height
-
-            color = WHITE if i < bars else GREY
-            surface.fill(color, Rect(bar_x, bar_y, self.bar_width, bar_height))
-
-        screen.blit(surface, self.position)

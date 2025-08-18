@@ -1,10 +1,11 @@
 import os
-os.environ["SDL_VIDEODRIVER"] = "dummy"
-
 import unittest
+
 import pygame
 
 from v3xctrl_ui.menu.tabs.InputTab import InputTab
+
+os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 
 class DummyGamepad:
@@ -133,10 +134,7 @@ class TestInputTab(unittest.TestCase):
 
     def test_draw_does_not_crash(self):
         surface = pygame.Surface((640, 480))
-        try:
-            self.tab.draw(surface)
-        except Exception as e:
-            self.fail(f"Draw raised an exception: {e}")
+        self.tab.draw(surface)
 
 
 if __name__ == "__main__":

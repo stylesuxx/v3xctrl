@@ -1,6 +1,7 @@
+from typing import Optional, Callable
+
 import pygame
 from pygame.freetype import Font
-from typing import Optional, Callable
 
 from .BaseInput import BaseInput
 

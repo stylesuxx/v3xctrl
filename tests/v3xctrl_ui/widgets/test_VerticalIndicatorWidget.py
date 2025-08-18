@@ -1,10 +1,12 @@
 import unittest
 from unittest.mock import MagicMock, patch
+
 import pygame
 
 from v3xctrl_ui.widgets import VerticalIndicatorWidget
 
 
+@patch("pygame.draw.rect")
 class TestVerticalIndicatorWidget(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -19,24 +21,22 @@ class TestVerticalIndicatorWidget(unittest.TestCase):
         self.widget_size = (50, 200)
         self.widget_pos = (0, 0)
 
-    def test_init_valid_modes(self):
+    def test_init_valid_modes(self, mock_draw_rect):
         VerticalIndicatorWidget(self.widget_pos, self.widget_size, range_mode="symmetric")
         VerticalIndicatorWidget(self.widget_pos, self.widget_size, range_mode="positive")
 
-    def test_init_invalid_mode_raises(self):
+    def test_init_invalid_mode_raises(self, mock_draw_rect):
         with self.assertRaises(ValueError):
             VerticalIndicatorWidget(self.widget_pos, self.widget_size, range_mode="invalid")
 
-    @patch("pygame.draw.rect")
     def test_draw_symmetric_zero(self, mock_draw_rect):
         widget = VerticalIndicatorWidget(self.widget_pos, self.widget_size, range_mode="symmetric")
         screen = MagicMock()
 
         widget.draw(screen, value=0.0)
 
-        mock_draw_rect.assert_not_called()  # zero value results in bar_height 0
+        mock_draw_rect.assert_not_called()
 
-    @patch("pygame.draw.rect")
     def test_draw_symmetric_negative_and_positive(self, mock_draw_rect):
         widget = VerticalIndicatorWidget(self.widget_pos, self.widget_size, range_mode="symmetric")
         screen = MagicMock()
@@ -48,23 +48,18 @@ class TestVerticalIndicatorWidget(unittest.TestCase):
         widget.draw(screen, value=1.0)
         pos_y = mock_draw_rect.call_args_list[0][0][2].y
 
-        self.assertGreater(neg_y, pos_y)  # positive draws higher than negative
+        self.assertGreater(neg_y, pos_y)
 
-    @patch("pygame.draw.rect")
     def test_draw_positive_bottom_and_top(self, mock_draw_rect):
         widget = VerticalIndicatorWidget(self.widget_pos, self.widget_size, range_mode="positive")
         screen = MagicMock()
 
         widget.draw(screen, value=0.0)
-        mock_draw_rect.assert_not_called()  # zero height
+        mock_draw_rect.assert_not_called()
 
         widget.draw(screen, value=1.0)
-        top_y = mock_draw_rect.call_args_list[0][0][2].y
+        self.assertLess(mock_draw_rect.call_args_list[0][0][2].y, self.widget_size[1])
 
-        # Ensure the rect starts from the top (low y) of the widget
-        self.assertLess(top_y, self.widget_size[1])
-
-    @patch("pygame.draw.rect")
     def test_color_function_usage(self, mock_draw_rect):
         color_fn = lambda v: (255, 0, 0) if v < 0 else (0, 255, 0)
         widget = VerticalIndicatorWidget(
@@ -74,13 +69,11 @@ class TestVerticalIndicatorWidget(unittest.TestCase):
         screen = MagicMock()
 
         widget.draw(screen, value=-0.5)
-        fill_color = mock_draw_rect.call_args_list[0][0][1]
-        self.assertEqual(fill_color, (255, 0, 0))
+        self.assertEqual(mock_draw_rect.call_args_list[0][0][1], (255, 0, 0))
 
         mock_draw_rect.reset_mock()
         widget.draw(screen, value=0.5)
-        fill_color = mock_draw_rect.call_args_list[0][0][1]
-        self.assertEqual(fill_color, (0, 255, 0))
+        self.assertEqual(mock_draw_rect.call_args_list[0][0][1], (0, 255, 0))
 
 
 if __name__ == "__main__":

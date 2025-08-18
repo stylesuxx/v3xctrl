@@ -33,6 +33,18 @@ class Tab(ABC):
 
         self.elements: List[Any] = []
 
+    def handle_event(self, event: event.Event) -> None:
+        for element in self.elements:
+            element.handle_event(event)
+
+    @abstractmethod
+    def get_settings(self) -> Dict[str, Any]:
+        pass
+
+    @abstractmethod
+    def draw(self, surface: Surface) -> None:
+        pass
+
     def _draw_headline(
         self,
         surface: Surface,
@@ -71,15 +83,3 @@ class Tab(ABC):
         surface.blit(note_surface, note_rect)
 
         return y + note_rect.height
-
-    def handle_event(self, event: event.Event) -> None:
-        for element in self.elements:
-            element.handle_event(event)
-
-    @abstractmethod
-    def get_settings(self) -> Dict[str, Any]:
-        raise NotImplementedError
-
-    @abstractmethod
-    def draw(self, surface: Surface) -> None:
-        raise NotImplementedError

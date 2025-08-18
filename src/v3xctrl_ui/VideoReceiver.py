@@ -1,12 +1,13 @@
-import av
 from collections import deque
 import logging
+import os
+from pathlib import Path
 import tempfile
 import threading
 import time
-import os
-from pathlib import Path
 from typing import Callable
+
+import av
 
 
 class VideoReceiver(threading.Thread):
@@ -30,22 +31,6 @@ class VideoReceiver(threading.Thread):
         self.container = None
 
         self.container_lock = threading.Lock()
-
-    def _write_sdp(self) -> None:
-        sdp_text = f"""\
-v=0
-o=- 0 0 IN IP4 127.0.0.1
-s=RTP Stream
-c=IN IP4 0.0.0.0
-t=0 0
-m=video {self.port} RTP/AVP 96
-a=rtpmap:96 H264/90000
-a=recvonly
-"""
-        with open(self.sdp_path, "w", newline="\n") as f:
-            f.write(sdp_text)
-            f.flush()
-            os.fsync(f.fileno())
 
     def run(self) -> None:
         self.running.set()
@@ -143,3 +128,19 @@ a=recvonly
                 self.sdp_path.unlink()
         except Exception as e:
             logging.warning(f"SDP file cleanup failed: {e}")
+
+    def _write_sdp(self) -> None:
+        sdp_text = f"""\
+v=0
+o=- 0 0 IN IP4 127.0.0.1
+s=RTP Stream
+c=IN IP4 0.0.0.0
+t=0 0
+m=video {self.port} RTP/AVP 96
+a=rtpmap:96 H264/90000
+a=recvonly
+"""
+        with open(self.sdp_path, "w", newline="\n") as f:
+            f.write(sdp_text)
+            f.flush()
+            os.fsync(f.fileno())

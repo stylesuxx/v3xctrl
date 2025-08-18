@@ -69,62 +69,6 @@ class AppState:
         self._setup_signal_handling()
         self.network_manager.setup_ports()
 
-    def _create_osd_handlers(self) -> Dict[str, Any]:
-        """Create message and state handlers for the network manager."""
-        return {
-            "messages": [
-                (Telemetry, lambda message, address: self.osd.message_handler(message)),
-                (Latency, lambda message, address: self.osd.message_handler(message)),
-            ],
-            "states": [
-                (State.CONNECTED, lambda: self.osd.connect_handler()),
-                (State.DISCONNECTED, lambda: self.osd.disconnect_handler())
-            ]
-        }
-
-    def _setup_signal_handling(self) -> None:
-        """Setup signal handlers for graceful shutdown."""
-        signal.signal(signal.SIGINT, self._signal_handler)
-
-    def _signal_handler(self, sig: int, frame: Any) -> None:
-        """Handle shutdown signals gracefully."""
-        if self.running:
-            self.running = False
-            print("Shutting down...")
-
-    def _update_timing_settings(self) -> None:
-        """Update timing intervals from settings."""
-        timing = self.settings.get("timing", {})
-        control_rate_frequency = timing.get("control_update_hz", 30)
-        latency_check_frequency = timing.get("latency_check_hz", 1)
-
-        self.control_interval = 1.0 / control_rate_frequency
-        self.latency_interval = 1.0 / latency_check_frequency
-
-    def update(self, now: float) -> None:
-        """Update application state with timed operations."""
-        # Handle control updates
-        if now - self.last_control_update >= self.control_interval:
-            try:
-                self.throttle, self.steering = self.input_manager.read_inputs()
-                self._send_control_message()
-            except Exception as e:
-                logging.warning(f"Input read error: {e}")
-            self.last_control_update = now
-
-        # Handle latency checks
-        if now - self.last_latency_check >= self.latency_interval:
-            self.network_manager.send_latency_check()
-            self.last_latency_check = now
-
-    def _send_control_message(self) -> None:
-        """Send control message to streamer."""
-        if self.network_manager.server and not self.network_manager.server_error:
-            self.network_manager.server.send(Control({
-                "steering": self.steering,
-                "throttle": self.throttle,
-            }))
-
     def initialize_timing(self, start_time: float) -> None:
         """Initialize timing counters."""
         self.last_control_update = start_time
@@ -147,6 +91,22 @@ class AppState:
 
         # Clear menu to force refresh
         self.menu = None
+
+    def update(self, now: float) -> None:
+        """Update application state with timed operations."""
+        # Handle control updates
+        if now - self.last_control_update >= self.control_interval:
+            try:
+                self.throttle, self.steering = self.input_manager.read_inputs()
+                self._send_control_message()
+            except Exception as e:
+                logging.warning(f"Input read error: {e}")
+            self.last_control_update = now
+
+        # Handle latency checks
+        if now - self.last_latency_check >= self.latency_interval:
+            self.network_manager.send_latency_check()
+            self.last_latency_check = now
 
     def handle_events(self) -> bool:
         """
@@ -194,3 +154,43 @@ class AppState:
         self.network_manager.shutdown()
 
         pygame.quit()
+
+    def _create_osd_handlers(self) -> Dict[str, Any]:
+        """Create message and state handlers for the network manager."""
+        return {
+            "messages": [
+                (Telemetry, lambda message, address: self.osd.message_handler(message)),
+                (Latency, lambda message, address: self.osd.message_handler(message)),
+            ],
+            "states": [
+                (State.CONNECTED, lambda: self.osd.connect_handler()),
+                (State.DISCONNECTED, lambda: self.osd.disconnect_handler())
+            ]
+        }
+
+    def _setup_signal_handling(self) -> None:
+        """Setup signal handlers for graceful shutdown."""
+        signal.signal(signal.SIGINT, self._signal_handler)
+
+    def _signal_handler(self, sig: int, frame: Any) -> None:
+        """Handle shutdown signals gracefully."""
+        if self.running:
+            self.running = False
+            print("Shutting down...")
+
+    def _update_timing_settings(self) -> None:
+        """Update timing intervals from settings."""
+        timing = self.settings.get("timing", {})
+        control_rate_frequency = timing.get("control_update_hz", 30)
+        latency_check_frequency = timing.get("latency_check_hz", 1)
+
+        self.control_interval = 1.0 / control_rate_frequency
+        self.latency_interval = 1.0 / latency_check_frequency
+
+    def _send_control_message(self) -> None:
+        """Send control message to streamer."""
+        if self.network_manager.server and not self.network_manager.server_error:
+            self.network_manager.server.send(Control({
+                "steering": self.steering,
+                "throttle": self.throttle,
+            }))

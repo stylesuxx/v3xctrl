@@ -1,4 +1,5 @@
 BLACK = (0, 0, 0)
+CHARCOAL = (60, 60, 60)
 DARK_GREY = (70, 70, 70)
 GREEN = (0, 255, 0)
 GREY = (100, 100, 100)

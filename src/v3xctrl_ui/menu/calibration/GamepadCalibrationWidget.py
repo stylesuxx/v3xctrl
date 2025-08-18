@@ -52,6 +52,56 @@ class GamepadCalibrationWidget(BaseWidget):
         self._on_gamepads_changed(self.gamepads)
         self.manager.add_observer(self._on_gamepads_changed)
 
+    def handle_event(self, event: pygame.event.Event) -> bool:
+        if self.dialog.visible:
+            return self.dialog.handle_event(event)
+
+        if self.gamepads:
+            if self.controller_select.expanded:
+                return self.controller_select.handle_event(event)
+            else:
+                handled = False
+                handled |= self.calibrate_button.handle_event(event)
+                handled |= self.controller_select.handle_event(event)
+                for checkbox in self.invert_checkboxes.values():
+                    handled |= checkbox.handle_event(event)
+
+                return handled
+
+        return False
+
+    def get_selected_guid(self) -> str | None:
+        return self.selected_guid
+
+    def get_size(self) -> tuple[int, int]:
+        select_width, select_height = self.controller_select.get_size()
+        button_width, button_height = self.calibrate_button.get_size()
+
+        total_width = select_width + 10 + button_width
+        max_height = max(select_height, button_height)
+
+        return total_width, max_height
+
+    def set_position(self, x: int, y: int) -> None:
+        super().set_position(x, y)
+        self.controller_select.set_position(x, y)
+
+        select_width, select_height = self.controller_select.get_size()
+        _, button_height = self.calibrate_button.get_size()
+        button_y = y + select_height // 2 - button_height // 2
+
+        self.calibrate_button.set_position(x + select_width + 20, button_y)
+
+    def toggle_invert(self, key: str, state: bool) -> None:
+        self.invert_axes[key] = state
+        js = self.gamepads.get(self.selected_guid)
+        if js:
+            guid = js.get_guid()
+            settings = self.manager.get_calibration(guid)
+            if settings:
+                settings[key]["invert"] = state
+                self.manager.set_calibration(guid, settings)
+
     def _create_ui(self, font: Font) -> None:
         self.controller_select = Select(
             label="Controller",
@@ -78,24 +128,6 @@ class GamepadCalibrationWidget(BaseWidget):
             ) for name in ["steering", "throttle", "brake"]
         }
 
-    def handle_event(self, event: pygame.event.Event) -> bool:
-        if self.dialog.visible:
-            return self.dialog.handle_event(event)
-
-        if self.gamepads:
-            if self.controller_select.expanded:
-                return self.controller_select.handle_event(event)
-            else:
-                handled = False
-                handled |= self.calibrate_button.handle_event(event)
-                handled |= self.controller_select.handle_event(event)
-                for checkbox in self.invert_checkboxes.values():
-                    handled |= checkbox.handle_event(event)
-
-                return handled
-
-        return False
-
     def _on_gamepads_changed(
         self,
         gamepads: Dict[str, pygame.joystick.Joystick]
@@ -120,28 +152,6 @@ class GamepadCalibrationWidget(BaseWidget):
 
         self.controller_select.set_options(name_list, selected_index=selected_index)
         self._apply_known_calibration(self.gamepads[self.selected_guid])
-
-    def get_selected_guid(self) -> str | None:
-        return self.selected_guid
-
-    def get_size(self) -> tuple[int, int]:
-        select_width, select_height = self.controller_select.get_size()
-        button_width, button_height = self.calibrate_button.get_size()
-
-        total_width = select_width + 10 + button_width
-        max_height = max(select_height, button_height)
-
-        return total_width, max_height
-
-    def set_position(self, x: int, y: int) -> None:
-        super().set_position(x, y)
-        self.controller_select.set_position(x, y)
-
-        select_width, select_height = self.controller_select.get_size()
-        _, button_height = self.calibrate_button.get_size()
-        button_y = y + select_height // 2 - button_height // 2
-
-        self.calibrate_button.set_position(x + select_width + 20, button_y)
 
     def _start_calibration(self) -> None:
         if self.calibrator and self.calibrator.state == CalibratorState.ACTIVE:
@@ -191,16 +201,6 @@ class GamepadCalibrationWidget(BaseWidget):
             for k in self.invert_axes:
                 self.invert_axes[k] = settings.get(k, {}).get("invert", False)
                 self.invert_checkboxes[k].checked = self.invert_axes[k]
-
-    def toggle_invert(self, key: str, state: bool) -> None:
-        self.invert_axes[key] = state
-        js = self.gamepads.get(self.selected_guid)
-        if js:
-            guid = js.get_guid()
-            settings = self.manager.get_calibration(guid)
-            if settings:
-                settings[key]["invert"] = state
-                self.manager.set_calibration(guid, settings)
 
     def _draw(self, surface: Surface) -> None:
         if not self.gamepads:

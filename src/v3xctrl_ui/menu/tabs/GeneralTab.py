@@ -1,5 +1,6 @@
-from pygame import Surface
 from typing import Dict, List, Any
+
+from pygame import Surface
 
 from v3xctrl_ui.fonts import LABEL_FONT, MONO_FONT
 from v3xctrl_ui.menu.input import (
@@ -85,6 +86,19 @@ class GeneralTab(Tab):
 
         self.elements = self.port_widgets + self.relay_widgets + self.misc_widgets
 
+    def draw(self, surface: Surface) -> None:
+        y = self._draw_port_section(surface, 0)
+        y_col1 = self._draw_relay_section(surface, y)
+
+        y = self._draw_misc_section(surface, y_col1)
+
+    def get_settings(self) -> Dict[str, Any]:
+        return {
+            "udp_packet_ttl": self.udp_packet_ttl,
+            "ports": self.ports,
+            "relay": self.relay
+        }
+
     def _on_port_change(self, name: str, value: str) -> None:
         self.ports[name] = int(value)
 
@@ -153,16 +167,3 @@ class GeneralTab(Tab):
         y += self.udp_packet_ttl_input.get_size()[1]
 
         return y
-
-    def draw(self, surface: Surface) -> None:
-        y = self._draw_port_section(surface, 0)
-        y_col1 = self._draw_relay_section(surface, y)
-
-        y = self._draw_misc_section(surface, y_col1)
-
-    def get_settings(self) -> Dict[str, Any]:
-        return {
-            "udp_packet_ttl": self.udp_packet_ttl,
-            "ports": self.ports,
-            "relay": self.relay
-        }

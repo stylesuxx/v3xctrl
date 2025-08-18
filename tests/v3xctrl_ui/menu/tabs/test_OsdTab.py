@@ -1,10 +1,11 @@
 import os
-os.environ["SDL_VIDEODRIVER"] = "dummy"
-
 import unittest
+
 import pygame
 
 from v3xctrl_ui.menu.tabs import OsdTab
+
+os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 
 class TestOsdTab(unittest.TestCase):
@@ -61,16 +62,14 @@ class TestOsdTab(unittest.TestCase):
         self.tab.battery_percent_checkbox.set_checked(True)
 
         settings = self.tab.get_settings()
+
         self.assertFalse(settings["widgets"]["debug"]["display"])
         self.assertFalse(settings["widgets"]["steering"]["display"])
         self.assertTrue(settings["widgets"]["battery_percent"]["display"])
 
     def test_draw_runs_without_error(self):
         surface = pygame.Surface((640, 480))
-        try:
-            self.tab.draw(surface)
-        except Exception as e:
-            self.fail(f"Draw method raised an exception: {e}")
+        self.tab.draw(surface)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
-from pygame import Surface, Rect, SRCALPHA, draw
 from typing import Tuple, Dict, Any
+
+from pygame import Surface, Rect, SRCALPHA, draw
 
 from v3xctrl_ui.colors import WHITE, GREEN, RED, YELLOW, GREY
 from v3xctrl_ui.fonts import BOLD_MONO_FONT
@@ -63,4 +64,4 @@ class StatusWidget(Widget):
         screen.blit(self.surface, self.position)
 
     def draw_extra(self, surface: Surface) -> None:
-        pass  # Override in subclass to draw on top of self.surface
+        pass
