@@ -59,8 +59,12 @@ class UDPReceiver(threading.Thread):
         self._worker_thread = threading.Thread(target=self._worker_loop, daemon=True)
 
     def is_valid_message(self, message: Message, addr: Tuple[str, int]) -> bool:
+        if self._should_validate_host and addr[0] != self._expected_host:
+            logging.debug(f"Skipping message from wrong host: {addr[0]}")
+            return False
+
         if message.timestamp < self.last_valid_timestamp:
-            logging.debug("Skipping out of order message")
+            logging.debug(f"Skipping out of order message: {message.type}")
             return False
 
         """
@@ -74,10 +78,6 @@ class UDPReceiver(threading.Thread):
             if message.timestamp < min_timestamp:
                 logging.debug("Skipping message: Timestamp too old")
                 return False
-
-        if self._should_validate_host and addr[0] != self._expected_host:
-            logging.debug(f"Skipping message from wrong host: {addr[0]}")
-            return False
 
         return True
 
