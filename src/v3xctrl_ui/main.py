@@ -36,14 +36,15 @@ if args.mem_profile:
     mem_tracker = MemoryTracker(interval=10, top=5)
     mem_tracker.start()
 
-# Settings require restart to take effect
+# Load settings from file, otherwise use default values if file not available
 settings = Init.settings("settings.toml")
+
+# These settings require restart to take effect
 MAIN_LOOP_FPS = settings.get("timing", {}).get("main_loop_fps", 60)
 PORTS = settings.get("ports")
 VIDEO = settings.get("video")
 VIDEO_SIZE = (VIDEO["width"], VIDEO["height"])
 WINDOW_TITLE = settings.get("settings")["title"]
-
 
 state = AppState(
     (VIDEO["width"], VIDEO["height"]),
@@ -53,14 +54,13 @@ state = AppState(
     settings
 )
 
-
 # Main loop
 start_time = time.monotonic()
 state.initialize_timing(start_time)
 
 while state.running:
     now = time.monotonic()
-    state.loop_history.append(time.time())
+    state.loop_history.append(now)
 
     if not state.handle_events():
         break
