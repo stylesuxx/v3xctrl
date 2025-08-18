@@ -49,18 +49,28 @@ class Peer:
                 continue
 
             if data:
-                response = Message.from_bytes(data)
+                try:
+                    """
+                    When re-connecting we need to catch the PeerInfo. The relay
+                    is still forwarding video and control messages though, so we
+                    need to make sure we don't fail when we get one of those
+                    during setup.
+                    """
+                    response = Message.from_bytes(data)
 
-                if isinstance(response, PeerInfo):
-                    logging.info(f"[Relay] Received PeerInfo for {port_type}: {response}")
-                    return response
+                    if isinstance(response, PeerInfo):
+                        logging.info(f"[Relay] Received PeerInfo for {port_type}: {response}")
+                        return response
 
-                if isinstance(response, Error):
-                    error = response.get_error()
-                    self._abort_event.set()
+                    if isinstance(response, Error):
+                        error = response.get_error()
+                        self._abort_event.set()
 
-                    logging.error(f"Response Error: {error}")
-                    raise UnauthorizedError()
+                        logging.error(f"Response Error: {error}")
+                        raise UnauthorizedError()
+
+                except ValueError as e:
+                    logging.debug(f"[Relay] Data could not be parsed: {e}")
 
     def _register_all(
         self,
