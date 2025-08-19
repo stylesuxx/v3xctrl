@@ -31,6 +31,7 @@ class TestMemoryTracker(unittest.TestCase):
         # Thread should start and then be stopped cleanly
         self.mt.start()
         self.assertTrue(self.mt._thread.is_alive())
+
         self.mt.stop()
         self.assertFalse(self.mt._thread.is_alive())
 
