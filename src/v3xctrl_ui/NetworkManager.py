@@ -33,6 +33,7 @@ class NetworkManager:
         self.relay_server = None
         self.relay_port = 8888
         self.relay_id = None
+        self.peer: Peer | None = None
 
         self._setup_relay_if_enabled()
         self._print_connection_info_if_needed()
@@ -61,10 +62,10 @@ class NetworkManager:
                     "video": self.video_port,
                     "control": self.control_port
                 }
-                peer = Peer(self.relay_server, self.relay_port, self.relay_id)
+                self.peer = Peer(self.relay_server, self.relay_port, self.relay_id)
 
                 try:
-                    addresses = peer.setup("viewer", local_bind_ports)
+                    addresses = self.peer.setup("viewer", local_bind_ports)
                     video_address = addresses["video"]
                 except UnauthorizedError:
                     self.relay_status_message = "ERROR: Relay ID unauthorized!"
@@ -128,6 +129,9 @@ class NetworkManager:
         if self.server:
             self.server.stop()
             self.server.join()
+
+        if self.peer:
+            self.peer.abort()
 
         if self.video_receiver:
             self.video_receiver.stop()
