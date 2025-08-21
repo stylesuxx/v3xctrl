@@ -65,7 +65,7 @@ class UDPTransmitter(threading.Thread):
                     packet = self.queue.get(timeout=0.1)
 
                     # Drop packet if TTL expired
-                    if time.monotonic() - packet.timestamp > self.ttl:
+                    if time.time() - packet.timestamp > self.ttl:
                         self.queue.task_done()
                         type = Message.peek_type(packet.data)
                         logging.info(f"Not transmitting old packet of type: {type}")
