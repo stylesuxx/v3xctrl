@@ -1,532 +1,487 @@
-import unittest
-from unittest.mock import MagicMock, patch, call
-import time
-import threading
 import socket
+import unittest
+from unittest.mock import Mock, patch, call
+from concurrent.futures import ThreadPoolExecutor
 
-from src.v3xctrl_udp_relay.UDPRelayServer import UDPRelayServer, Role, PortType, Session, PeerEntry
-from src.v3xctrl_control.message import PeerAnnouncement, PeerInfo, Error
+from v3xctrl_control.message import PeerAnnouncement
+from v3xctrl_udp_relay.UDPRelayServer import UDPRelayServer
+from v3xctrl_udp_relay.custom_types import (
+  Role,
+  PortType,
+  PeerEntry,
+  RegistrationResult,
+  SessionNotFoundError,
+)
 
 
 class TestUDPRelayServer(unittest.TestCase):
     def setUp(self):
-        # Patch SessionStore so no DB is touched
-        self.store_patcher = patch("src.v3xctrl_udp_relay.UDPRelayServer.SessionStore")
-        self.mock_store_cls = self.store_patcher.start()
-        self.mock_store = MagicMock()
-        self.mock_store_cls.return_value = self.mock_store
+        self.ip = "127.0.0.1"
+        self.port = 8080
+        self.db_path = "/tmp/test.db"
 
-        # Patch socket
-        self.socket_patcher = patch("src.v3xctrl_udp_relay.UDPRelayServer.socket.socket")
-        self.mock_socket_cls = self.socket_patcher.start()
-        self.mock_sock = MagicMock()
-        self.mock_socket_cls.return_value = self.mock_sock
+        # Mock socket to avoid actual network operations
+        self.mock_socket = Mock(spec=socket.socket)
+        self.socket_patcher = patch('socket.socket', return_value=self.mock_socket)
+        self.socket_patcher.start()
 
-        # Patch ThreadPoolExecutor
-        self.executor_patcher = patch("src.v3xctrl_udp_relay.UDPRelayServer.ThreadPoolExecutor")
-        self.mock_executor_cls = self.executor_patcher.start()
-        self.mock_executor = MagicMock()
-        self.mock_executor_cls.return_value = self.mock_executor
+        # Mock ThreadPoolExecutor
+        self.mock_executor = Mock(spec=ThreadPoolExecutor)
+        self.executor_patcher = patch('v3xctrl_udp_relay.UDPRelayServer.ThreadPoolExecutor', return_value=self.mock_executor)
+        self.executor_patcher.start()
 
-        self.server = UDPRelayServer("127.0.0.1", 9999, "fake.db")
+        self.server = UDPRelayServer(self.ip, self.port, self.db_path)
 
     def tearDown(self):
-        self.store_patcher.stop()
+        # Ensure server is stopped before cleanup
+        self.server.running.clear()
+        self.server.shutdown()
         self.socket_patcher.stop()
         self.executor_patcher.stop()
 
-    def test_is_mapping_expired(self):
-        now = time.time()
-        self.assertTrue(self.server._is_mapping_expired({"ts": now - 99999}, now))
-        self.assertFalse(self.server._is_mapping_expired({"ts": now}, now))
+    def test_initialization(self):
+        self.assertEqual(self.server.ip, self.ip)
+        self.assertEqual(self.server.port, self.port)
+        self.assertTrue(self.server.running.is_set())
+        self.assertEqual(self.server.TIMEOUT, 450)  # 3600 // 8
+        self.assertEqual(self.server.CLEANUP_INTERVAL, 1)
+        self.assertEqual(self.server.RECEIVE_BUFFER, 2048)
 
-    def test_clean_expired_entries_removes_all(self):
-        # Prepare expired mappings and sessions
-        now = time.time()
-        sid = "sess"
-        self.server.relay_map = {
-            ("1.1.1.1", 1111): {
-                "session": sid,
-                "role": Role.STREAMER,
-                "port_type": PortType.VIDEO,
-                "ts": now - 99999,
+        # Check socket configuration
+        self.mock_socket.setsockopt.assert_called_once_with(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.mock_socket.bind.assert_called_once_with(('0.0.0.0', self.port))
+
+        # Check thread configuration
+        self.assertTrue(self.server.daemon)
+        self.assertEqual(self.server.name, "UDPRelayServer")
+
+    def test_handle_peer_announcement_invalid_role(self):
+        mock_announcement = Mock(spec=PeerAnnouncement)
+        mock_announcement.get_role.return_value = "invalid_role"
+        mock_announcement.get_port_type.return_value = "video"
+        mock_announcement.get_id.return_value = "session123"
+
+        self.server._handle_peer_announcement(mock_announcement, ("1.1.1.1", 1111))
+
+        # Should not register anything
+        self.assertEqual(len(self.server.registry.sessions), 0)
+
+    def test_handle_peer_announcement_invalid_port_type(self):
+        mock_announcement = Mock(spec=PeerAnnouncement)
+        mock_announcement.get_role.return_value = "streamer"
+        mock_announcement.get_port_type.return_value = "invalid_port"
+        mock_announcement.get_id.return_value = "session123"
+
+        self.server._handle_peer_announcement(mock_announcement, ("1.1.1.1", 1111))
+
+        # Should not register anything
+        self.assertEqual(len(self.server.registry.sessions), 0)
+
+    def test_handle_peer_announcement_session_not_found(self):
+        mock_announcement = Mock(spec=PeerAnnouncement)
+        mock_announcement.get_role.return_value = "streamer"
+        mock_announcement.get_port_type.return_value = "video"
+        mock_announcement.get_id.return_value = "nonexistent_session"
+
+        # Mock registry to return session not found
+        with patch.object(self.server.registry, 'register_peer') as mock_register:
+            mock_register.return_value = RegistrationResult(
+                error=SessionNotFoundError("Session not found")
+            )
+
+            with patch('logging.info') as mock_log:
+                self.server._handle_peer_announcement(mock_announcement, ("1.1.1.1", 1111))
+
+            mock_log.assert_called_once_with("Ignoring announcement for unknown session 'nonexistent_session' from ('1.1.1.1', 1111)")
+
+    def test_handle_peer_announcement_session_not_found_sends_error(self):
+        mock_announcement = Mock(spec=PeerAnnouncement)
+        mock_announcement.get_role.return_value = "streamer"
+        mock_announcement.get_port_type.return_value = "video"
+        mock_announcement.get_id.return_value = "nonexistent_session"
+
+        with patch.object(self.server.registry, 'register_peer') as mock_register:
+            mock_register.return_value = RegistrationResult(
+                error=SessionNotFoundError("Session not found")
+            )
+
+            with patch('v3xctrl_udp_relay.UDPRelayServer.Error') as mock_error_class:
+                mock_error = Mock()
+                mock_error.to_bytes.return_value = b"error_data"
+                mock_error_class.return_value = mock_error
+
+                self.server._handle_peer_announcement(mock_announcement, ("1.1.1.1", 1111))
+
+                mock_error_class.assert_called_once_with("403")
+                self.mock_socket.sendto.assert_called_once_with(b"error_data", ("1.1.1.1", 1111))
+
+    def test_handle_peer_announcement_error_sending_error_message(self):
+        mock_announcement = Mock(spec=PeerAnnouncement)
+        mock_announcement.get_role.return_value = "streamer"
+        mock_announcement.get_port_type.return_value = "video"
+        mock_announcement.get_id.return_value = "nonexistent_session"
+
+        with patch.object(self.server.registry, 'register_peer') as mock_register:
+            mock_register.return_value = RegistrationResult(
+                error=SessionNotFoundError("Session not found")
+            )
+
+            # Make socket.sendto raise an exception
+            self.mock_socket.sendto.side_effect = Exception("Network error")
+
+            with patch('logging.error') as mock_log:
+                self.server._handle_peer_announcement(mock_announcement, ("1.1.1.1", 1111))
+
+                mock_log.assert_called_once()
+                args, kwargs = mock_log.call_args
+                self.assertIn("Failed to send error message", args[0])
+                self.assertEqual(kwargs['exc_info'], True)
+
+    def test_handle_peer_announcement_new_peer_not_ready(self):
+        mock_announcement = Mock(spec=PeerAnnouncement)
+        mock_announcement.get_role.return_value = "streamer"
+        mock_announcement.get_port_type.return_value = "video"
+        mock_announcement.get_id.return_value = "session123"
+
+        with patch.object(self.server.registry, 'register_peer') as mock_register:
+            mock_register.return_value = RegistrationResult(
+                is_new_peer=True,
+                session_ready=False
+            )
+
+            with patch('logging.info') as mock_log:
+                self.server._handle_peer_announcement(mock_announcement, ("1.1.1.1", 1111))
+
+                mock_log.assert_called_once_with("session123: Registered STREAMER:VIDEO from ('1.1.1.1', 1111)")
+
+    def test_handle_peer_announcement_existing_peer(self):
+        mock_announcement = Mock(spec=PeerAnnouncement)
+        mock_announcement.get_role.return_value = "viewer"
+        mock_announcement.get_port_type.return_value = "control"
+        mock_announcement.get_id.return_value = "session123"
+
+        with patch.object(self.server.registry, 'register_peer') as mock_register:
+            mock_register.return_value = RegistrationResult(
+                is_new_peer=False,
+                session_ready=False
+            )
+
+            with patch('logging.info') as mock_log:
+                self.server._handle_peer_announcement(mock_announcement, ("1.1.1.1", 1111))
+
+                mock_log.assert_not_called()
+
+    def test_handle_peer_announcement_session_ready(self):
+        mock_announcement = Mock(spec=PeerAnnouncement)
+        mock_announcement.get_role.return_value = "viewer"
+        mock_announcement.get_port_type.return_value = "control"
+        mock_announcement.get_id.return_value = "session123"
+
+        mock_peers = {
+            Role.STREAMER: {
+                PortType.VIDEO: PeerEntry(("1.1.1.1", 1111)),
+                PortType.CONTROL: PeerEntry(("1.1.1.2", 1112))
             },
-            ("2.2.2.2", 2222): {
-                "session": sid,
-                "role": Role.STREAMER,
-                "port_type": PortType.CONTROL,
-                "ts": now - 99999,
-            },
-        }
-        sess = Session()
-        for pt in PortType:
-            sess.roles[Role.STREAMER][pt] = PeerEntry(("1.1.1.1", 1111))
-            sess.roles[Role.STREAMER][pt].ts = now - 99999
-        self.server.sessions[sid] = sess
-
-        self.server.running.clear()  # Run loop once
-        with patch("time.time", return_value=now):
-            # Manually invoke one loop iteration
-            self.server.running.set()
-            with patch("time.sleep", side_effect=lambda _: self.server.running.clear()):
-                self.server._clean_expired_entries()
-
-        self.assertNotIn(sid, self.server.sessions)
-        self.assertFalse(self.server.relay_map)
-
-    def test_clean_expired_entries_partial_expiry(self):
-        """Test partial role expiry - both port types expired for one role"""
-        now = time.time()
-        sid = "sess"
-        # Both port types expired for STREAMER role
-        self.server.relay_map = {
-            ("1.1.1.1", 1111): {
-                "session": sid,
-                "role": Role.STREAMER,
-                "port_type": PortType.VIDEO,
-                "ts": now - 99999,  # Expired
-            },
-            ("1.1.1.1", 1112): {
-                "session": sid,
-                "role": Role.STREAMER,
-                "port_type": PortType.CONTROL,
-                "ts": now - 99999,  # Expired
-            },
-            ("2.2.2.2", 2222): {
-                "session": sid,
-                "role": Role.VIEWER,
-                "port_type": PortType.VIDEO,
-                "ts": now - 1,  # Not expired
-            },
-        }
-        sess = Session()
-        # STREAMER peer entries are expired
-        sess.roles[Role.STREAMER][PortType.VIDEO] = PeerEntry(("1.1.1.1", 1111))
-        sess.roles[Role.STREAMER][PortType.VIDEO].ts = now - 99999
-        sess.roles[Role.STREAMER][PortType.CONTROL] = PeerEntry(("1.1.1.1", 1112))
-        sess.roles[Role.STREAMER][PortType.CONTROL].ts = now - 99999
-        # VIEWER peer entry is not expired
-        sess.roles[Role.VIEWER][PortType.VIDEO] = PeerEntry(("2.2.2.2", 2222))
-        sess.roles[Role.VIEWER][PortType.VIDEO].ts = now - 1
-        self.server.sessions[sid] = sess
-
-        self.server.running.clear()
-        with patch("time.time", return_value=now):
-            self.server.running.set()
-            with patch("time.sleep", side_effect=lambda _: self.server.running.clear()):
-                self.server._clean_expired_entries()
-
-        # Session should still exist because VIEWER has active mapping
-        self.assertIn(sid, self.server.sessions)
-        # STREAMER mappings should be removed
-        self.assertNotIn(("1.1.1.1", 1111), self.server.relay_map)
-        self.assertNotIn(("1.1.1.1", 1112), self.server.relay_map)
-        # VIEWER mapping should remain
-        self.assertIn(("2.2.2.2", 2222), self.server.relay_map)
-        # STREAMER role should be cleared
-        self.assertEqual(self.server.sessions[sid].roles[Role.STREAMER], {})
-        # VIEWER role should remain
-        self.assertIn(PortType.VIDEO, self.server.sessions[sid].roles[Role.VIEWER])
-
-    def test_clean_expired_entries_no_cleanup_partial_expiry(self):
-        """Test that cleanup doesn't happen when only some port types are expired"""
-        now = time.time()
-        sid = "sess"
-        self.server.relay_map = {
-            ("1.1.1.1", 1111): {
-                "session": sid,
-                "role": Role.STREAMER,
-                "port_type": PortType.VIDEO,
-                "ts": now - 99999,  # Expired
-            },
-            ("1.1.1.1", 1112): {
-                "session": sid,
-                "role": Role.STREAMER,
-                "port_type": PortType.CONTROL,
-                "ts": now - 1,  # Not expired
-            },
-        }
-        sess = Session()
-        sess.roles[Role.STREAMER][PortType.VIDEO] = PeerEntry(("1.1.1.1", 1111))
-        sess.roles[Role.STREAMER][PortType.VIDEO].ts = now - 99999
-        sess.roles[Role.STREAMER][PortType.CONTROL] = PeerEntry(("1.1.1.1", 1112))
-        sess.roles[Role.STREAMER][PortType.CONTROL].ts = now - 1
-        self.server.sessions[sid] = sess
-
-        self.server.running.clear()
-        with patch("time.time", return_value=now):
-            self.server.running.set()
-            with patch("time.sleep", side_effect=lambda _: self.server.running.clear()):
-                self.server._clean_expired_entries()
-
-        # Session should still exist and mappings should remain because not all ports expired
-        self.assertIn(sid, self.server.sessions)
-        # Both mappings should still exist (cleanup only happens when ALL port types are expired)
-        self.assertIn(("1.1.1.1", 1111), self.server.relay_map)
-        self.assertIn(("1.1.1.1", 1112), self.server.relay_map)
-
-    def test_clean_expired_entries_session_with_active_mapping(self):
-        """Test session is not expired if it has active relay mappings"""
-        now = time.time()
-        sid = "sess"
-        self.server.relay_map = {
-            ("1.1.1.1", 1111): {
-                "session": sid,
-                "role": Role.STREAMER,
-                "port_type": PortType.VIDEO,
-                "ts": now - 1,  # Active mapping
-            },
-        }
-        sess = Session()
-        # Old peer entries but active mapping should keep session alive
-        sess.roles[Role.STREAMER][PortType.VIDEO] = PeerEntry(("1.1.1.1", 1111))
-        sess.roles[Role.STREAMER][PortType.VIDEO].ts = now - 99999
-        self.server.sessions[sid] = sess
-
-        self.server.running.clear()
-        with patch("time.time", return_value=now):
-            self.server.running.set()
-            with patch("time.sleep", side_effect=lambda _: self.server.running.clear()):
-                self.server._clean_expired_entries()
-
-        # Session should still exist due to active mapping
-        self.assertIn(sid, self.server.sessions)
-
-    def test_handle_peer_announcement_invalid_values(self):
-        msg = MagicMock()
-        msg.get_role.return_value = "bad"
-        msg.get_port_type.return_value = "bad"
-        self.server._handle_peer_announcement(msg, ("1.1.1.1", 1111))  # should just return
-
-    def test_handle_peer_announcement_unknown_session(self):
-        self.mock_store.exists.return_value = False
-        msg = MagicMock()
-        msg.get_id.return_value = "sess"
-        msg.get_role.return_value = Role.STREAMER.value
-        msg.get_port_type.return_value = PortType.VIDEO.value
-        self.server._handle_peer_announcement(msg, ("1.1.1.1", 1111))
-        # Should send error message
-        self.mock_sock.sendto.assert_called()
-        args = self.mock_sock.sendto.call_args[0]
-        self.assertEqual(args[1], ("1.1.1.1", 1111))
-
-    def test_handle_peer_announcement_unknown_session_sendto_fails(self):
-        """Test error handling when sendto fails for unknown session"""
-        self.mock_store.exists.return_value = False
-        self.mock_sock.sendto.side_effect = Exception("Network error")
-
-        msg = MagicMock()
-        msg.get_id.return_value = "sess"
-        msg.get_role.return_value = Role.STREAMER.value
-        msg.get_port_type.return_value = PortType.VIDEO.value
-
-        with patch('logging.error') as mock_log:
-            self.server._handle_peer_announcement(msg, ("1.1.1.1", 1111))
-            mock_log.assert_called()
-
-    def test_handle_peer_announcement_ready_and_mapping(self):
-        self.mock_store.exists.return_value = True
-        sid = "sess"
-        msg = MagicMock(spec=PeerAnnouncement)
-        msg.get_id.return_value = sid
-        msg.get_role.return_value = Role.STREAMER.value
-        msg.get_port_type.return_value = PortType.VIDEO.value
-
-        sess = Session()
-        sess.register(Role.STREAMER, PortType.VIDEO, ("1.1.1.1", 1111))
-        sess.register(Role.STREAMER, PortType.CONTROL, ("1.1.1.1", 1112))
-        sess.register(Role.VIEWER, PortType.VIDEO, ("2.2.2.2", 2222))
-        sess.register(Role.VIEWER, PortType.CONTROL, ("2.2.2.2", 2223))
-
-        self.server.sessions[sid] = sess
-
-        self.server._handle_peer_announcement(msg, ("1.1.1.1", 1111))
-        # Mapping should exist for both peers now
-        self.assertIn(("1.1.1.1", 1111), self.server.relay_map)
-        self.assertIn(("2.2.2.2", 2222), self.server.relay_map)
-        # Should send PeerInfo to all peers
-        self.assertEqual(self.mock_sock.sendto.call_count, 4)  # 2 roles x 2 port types
-
-    def test_handle_peer_announcement_peer_info_send_fails(self):
-        """Test error handling when PeerInfo sendto fails"""
-        self.mock_store.exists.return_value = True
-        sid = "sess"
-        msg = MagicMock(spec=PeerAnnouncement)
-        msg.get_id.return_value = sid
-        msg.get_role.return_value = Role.STREAMER.value
-        msg.get_port_type.return_value = PortType.VIDEO.value
-
-        sess = Session()
-        sess.register(Role.STREAMER, PortType.VIDEO, ("1.1.1.1", 1111))
-        sess.register(Role.STREAMER, PortType.CONTROL, ("1.1.1.1", 1112))
-        sess.register(Role.VIEWER, PortType.VIDEO, ("2.2.2.2", 2222))
-        sess.register(Role.VIEWER, PortType.CONTROL, ("2.2.2.2", 2223))
-        self.server.sessions[sid] = sess
-
-        self.mock_sock.sendto.side_effect = Exception("Send failed")
-
-        with patch('logging.error') as mock_log:
-            self.server._handle_peer_announcement(msg, ("1.1.1.1", 1111))
-            mock_log.assert_called()
-
-    def test_handle_peer_announcement_existing_mapping_purge(self):
-        """Test that existing mappings are purged when new mapping is created"""
-        self.mock_store.exists.return_value = True
-        sid = "sess"
-
-        # Setup existing mappings
-        self.server.relay_map = {
-            ("3.3.3.3", 3333): {
-                "session": sid,
-                "role": Role.STREAMER,
-                "port_type": PortType.VIDEO,
-                "ts": time.time(),
+            Role.VIEWER: {
+                PortType.VIDEO: PeerEntry(("2.2.2.1", 2221)),
+                PortType.CONTROL: PeerEntry(("2.2.2.2", 2222))
             }
         }
 
-        msg = MagicMock(spec=PeerAnnouncement)
-        msg.get_id.return_value = sid
-        msg.get_role.return_value = Role.STREAMER.value
-        msg.get_port_type.return_value = PortType.VIDEO.value
+        with patch.object(self.server.registry, 'register_peer') as mock_register:
+            mock_register.return_value = RegistrationResult(
+                is_new_peer=True,
+                session_ready=True
+            )
 
-        sess = Session()
-        sess.register(Role.STREAMER, PortType.VIDEO, ("1.1.1.1", 1111))
-        sess.register(Role.STREAMER, PortType.CONTROL, ("1.1.1.1", 1112))
-        sess.register(Role.VIEWER, PortType.VIDEO, ("2.2.2.2", 2222))
-        sess.register(Role.VIEWER, PortType.CONTROL, ("2.2.2.2", 2223))
-        self.server.sessions[sid] = sess
+            with patch.object(self.server.registry, 'get_session_peers') as mock_get_peers:
+                mock_get_peers.return_value = mock_peers
 
-        self.server._handle_peer_announcement(msg, ("1.1.1.1", 1111))
+                with patch.object(self.server.relay, 'update_mapping') as mock_update:
+                    with patch.object(self.server, '_send_peer_info') as mock_send:
+                        with patch('logging.info') as mock_log:
+                            self.server._handle_peer_announcement(mock_announcement, ("2.2.2.2", 2222))
 
-        # Old mapping should be purged
-        self.assertNotIn(("3.3.3.3", 3333), self.server.relay_map)
-        # New mappings should exist
-        self.assertIn(("1.1.1.1", 1111), self.server.relay_map)
+                            # Updated to include session ID parameter
+                            mock_update.assert_called_once_with("session123", mock_peers)
+                            mock_send.assert_called_once_with(mock_peers)
 
-    def test_handle_peer_announcement_new_peer_logging(self):
-        """Test logging for new peer registration"""
-        self.mock_store.exists.return_value = True
-        msg = MagicMock()
-        msg.get_id.return_value = "sess"
-        msg.get_role.return_value = Role.STREAMER.value
-        msg.get_port_type.return_value = PortType.VIDEO.value
+                            # Check both log messages
+                            expected_calls = [
+                                call("session123: Registered VIEWER:CONTROL from ('2.2.2.2', 2222)"),
+                                call("session123: Session ready, peer info exchanged")
+                            ]
+                            mock_log.assert_has_calls(expected_calls)
 
-        with patch('logging.info') as mock_log:
-            self.server._handle_peer_announcement(msg, ("1.1.1.1", 1111))
-            # Should log new peer registration
-            mock_log.assert_called()
-
-    def test_forward_packet(self):
-        target_addr = ("9.9.9.9", 9999)
-        self.server.relay_map[("1.1.1.1", 1111)] = {
-            "target": target_addr,
-            "ts": 0,
-            "session": "sess",
-            "role": Role.STREAMER,
-            "port_type": PortType.VIDEO,
+    def test_send_peer_info_success(self):
+        peers = {
+            Role.STREAMER: {
+                PortType.VIDEO: PeerEntry(("1.1.1.1", 1111)),
+                PortType.CONTROL: PeerEntry(("1.1.1.2", 1112))
+            },
+            Role.VIEWER: {
+                PortType.VIDEO: PeerEntry(("2.2.2.1", 2221)),
+                PortType.CONTROL: PeerEntry(("2.2.2.2", 2222))
+            }
         }
-        self.server._forward_packet(b"data", ("1.1.1.1", 1111))
-        self.mock_sock.sendto.assert_called_with(b"data", target_addr)
-        self.assertGreater(self.server.relay_map[("1.1.1.1", 1111)]["ts"], 0)
 
-    def test_forward_packet_no_mapping(self):
-        """Test forward packet when no mapping exists"""
-        self.server._forward_packet(b"data", ("1.1.1.1", 1111))
-        self.mock_sock.sendto.assert_not_called()
+        with patch('v3xctrl_udp_relay.UDPRelayServer.PeerInfo') as mock_peer_info_class:
+            mock_peer_info = Mock()
+            mock_peer_info.to_bytes.return_value = b"peer_info_data"
+            mock_peer_info_class.return_value = mock_peer_info
 
-    def test_handle_packet_with_peer_announcement(self):
-        msg = MagicMock(spec=PeerAnnouncement)
-        with patch("src.v3xctrl_udp_relay.UDPRelayServer.Message.from_bytes", return_value=msg):
-            data = b"\x83\xa1t\xb0PeerAnnouncement"
-            self.server._handle_packet(data, ("1.1.1.1", 1111))
+            self.server._send_peer_info(peers)
 
-    def test_handle_packet_malformed_announcement(self):
-        with patch("src.v3xctrl_udp_relay.UDPRelayServer.Message.from_bytes", side_effect=Exception("bad")):
-            data = b"\x83\xa1t\xb0PeerAnnouncement"
-            with patch('logging.debug') as mock_log:
-                self.server._handle_packet(data, ("1.1.1.1", 1111))
-                mock_log.assert_called_with("Malformed peer announcement")
+            mock_peer_info_class.assert_called_once_with(
+                ip=self.ip,
+                video_port=self.port,
+                control_port=self.port
+            )
 
-    def test_handle_packet_non_announcement_message(self):
-        """Test handling non-PeerAnnouncement message that starts with announcement prefix"""
-        msg = MagicMock()  # Not a PeerAnnouncement
-        with patch("src.v3xctrl_udp_relay.UDPRelayServer.Message.from_bytes", return_value=msg):
-            data = b"\x83\xa1t\xb0PeerAnnouncement"
-            self.server._handle_packet(data, ("1.1.1.1", 1111))
-            # Should return without processing
+            # Should send to all 4 peers
+            expected_calls = [
+                call(b"peer_info_data", ("1.1.1.1", 1111)),
+                call(b"peer_info_data", ("1.1.1.2", 1112)),
+                call(b"peer_info_data", ("2.2.2.1", 2221)),
+                call(b"peer_info_data", ("2.2.2.2", 2222))
+            ]
+            self.mock_socket.sendto.assert_has_calls(expected_calls, any_order=True)
 
-    def test_handle_packet_forward_existing_mapping(self):
-        addr = ("1.1.1.1", 1111)
-        self.server.relay_map[addr] = {
-            "target": ("2.2.2.2", 2222),
-            "ts": 0,
-            "session": "sess",
-            "role": Role.STREAMER,
-            "port_type": PortType.VIDEO,
+    def test_send_peer_info_socket_error(self):
+        peers = {
+            Role.STREAMER: {
+                PortType.VIDEO: PeerEntry(("1.1.1.1", 1111))
+            }
         }
-        self.server._handle_packet(b"payload", addr)
-        self.mock_sock.sendto.assert_called_with(b"payload", ("2.2.2.2", 2222))
 
-    def test_handle_packet_exception_handling(self):
-        """Test exception handling in _handle_packet"""
-        with patch.object(self.server, '_forward_packet', side_effect=Exception("Forward error")):
-            addr = ("1.1.1.1", 1111)
-            self.server.relay_map[addr] = {"target": ("2.2.2.2", 2222)}
+        self.mock_socket.sendto.side_effect = Exception("Network error")
+
+        with patch('logging.error') as mock_log:
+            self.server._send_peer_info(peers)
+
+            mock_log.assert_called_once()
+            args, kwargs = mock_log.call_args
+            self.assertIn("Error sending PeerInfo", args[0])
+            self.assertEqual(kwargs['exc_info'], True)
+
+    def test_cleanup_expired_entries(self):
+        expired_sessions = {"session1", "session2"}
+
+        with patch.object(self.server.relay, 'cleanup_expired_mappings') as mock_cleanup_mappings:
+            mock_cleanup_mappings.return_value = expired_sessions
+
+            with patch.object(self.server.registry, 'remove_expired_sessions') as mock_remove_sessions:
+                with patch('time.sleep') as mock_sleep:
+                    # Stop the server before calling cleanup to prevent infinite loop
+                    self.server.running.clear()
+
+                    # Call the method directly instead of letting it loop
+                    with patch.object(self.server.running, 'is_set', side_effect=[True, False]):
+                        self.server._cleanup_expired_entries()
+
+                    mock_cleanup_mappings.assert_called_once()
+                    mock_remove_sessions.assert_called_once_with(expired_sessions)
+                    mock_sleep.assert_called_once_with(1)
+
+    def test_handle_packet_peer_announcement(self):
+        peer_announcement_data = b'\x83\xa1t\xb0PeerAnnouncement' + b'extra_data'
+
+        mock_announcement = Mock(spec=PeerAnnouncement)
+
+        with patch('v3xctrl_udp_relay.UDPRelayServer.Message') as mock_message_class:
+            mock_message_class.from_bytes.return_value = mock_announcement
+
+            with patch.object(self.server, '_handle_peer_announcement') as mock_handle:
+                self.server._handle_packet(peer_announcement_data, ("1.1.1.1", 1111))
+
+                mock_message_class.from_bytes.assert_called_once_with(peer_announcement_data)
+                mock_handle.assert_called_once_with(mock_announcement, ("1.1.1.1", 1111))
+
+    def test_handle_packet_peer_announcement_not_peer_announcement_type(self):
+        peer_announcement_data = b'\x83\xa1t\xb0PeerAnnouncement' + b'extra_data'
+
+        mock_other_message = Mock()  # Not a PeerAnnouncement
+
+        with patch('v3xctrl_udp_relay.UDPRelayServer.Message') as mock_message_class:
+            mock_message_class.from_bytes.return_value = mock_other_message
+
+            with patch.object(self.server, '_handle_peer_announcement') as mock_handle:
+                with patch.object(self.server.relay, 'forward_packet') as mock_forward:
+                    self.server._handle_packet(peer_announcement_data, ("1.1.1.1", 1111))
+
+                    mock_handle.assert_not_called()
+                    mock_forward.assert_called_once_with(self.mock_socket, peer_announcement_data, ("1.1.1.1", 1111))
+
+    def test_handle_packet_peer_announcement_parse_error(self):
+        peer_announcement_data = b'\x83\xa1t\xb0PeerAnnouncement' + b'invalid_data'
+
+        with patch('v3xctrl_udp_relay.UDPRelayServer.Message') as mock_message_class:
+            mock_message_class.from_bytes.side_effect = Exception("Parse error")
+
+            with patch.object(self.server, '_handle_peer_announcement') as mock_handle:
+                with patch.object(self.server.relay, 'forward_packet') as mock_forward:
+                    self.server._handle_packet(peer_announcement_data, ("1.1.1.1", 1111))
+
+                    mock_handle.assert_not_called()
+                    mock_forward.assert_not_called()
+
+    def test_handle_packet_regular_packet(self):
+        regular_data = b'regular_packet_data'
+
+        with patch.object(self.server.relay, 'forward_packet') as mock_forward:
+            self.server._handle_packet(regular_data, ("1.1.1.1", 1111))
+
+            mock_forward.assert_called_once_with(self.mock_socket, regular_data, ("1.1.1.1", 1111))
+
+    def test_handle_packet_forward_error(self):
+        regular_data = b'regular_packet_data'
+
+        with patch.object(self.server.relay, 'forward_packet') as mock_forward:
+            mock_forward.side_effect = Exception("Forward error")
 
             with patch('logging.error') as mock_log:
-                self.server._handle_packet(b"payload", addr)
-                mock_log.assert_called()
+                self.server._handle_packet(regular_data, ("1.1.1.1", 1111))
 
-    @patch('threading.Thread')
-    @patch('logging.info')
-    def test_run_method_startup(self, mock_log, mock_thread):
-        """Test run method startup and cleanup thread creation"""
-        # Mock recvfrom to raise OSError immediately to exit loop
-        self.mock_sock.recvfrom.side_effect = OSError("Socket closed")
-        self.server.running.clear()  # Stop immediately
+                mock_log.assert_called_once()
+                args, kwargs = mock_log.call_args
+                self.assertIn("Error handling packet", args[0])
+                self.assertEqual(kwargs['exc_info'], True)
 
-        self.server.run()
+    def test_run_starts_cleanup_thread(self):
+        with patch('threading.Thread') as mock_thread_class:
+            mock_thread = Mock()
+            mock_thread_class.return_value = mock_thread
 
-        # Should log startup message
-        mock_log.assert_called_with("UDP Relay server listening on 127.0.0.1:9999")
-        # Should start cleanup thread
-        mock_thread.assert_called()
-
-    @patch('threading.Thread')
-    def test_run_method_packet_handling(self, mock_thread):
-        """Test run method packet handling"""
-        # Mock recvfrom to return data once then raise OSError
-        self.mock_sock.recvfrom.side_effect = [
-            (b"test_data", ("1.1.1.1", 1111)),
-            OSError("Socket closed")
-        ]
-        # Keep running set so loop executes
-        self.server.running.set()
-
-        # After first packet, clear running to exit loop
-        def clear_after_submit(*args):
+            # Clear running flag so OSError will break the loop
             self.server.running.clear()
-            return MagicMock()
+            self.mock_socket.recvfrom.side_effect = OSError("Stopped")
 
-        self.mock_executor.submit.side_effect = clear_after_submit
+            with patch('logging.info'):
+                self.server.run()
 
-        self.server.run()
+                mock_thread_class.assert_called_once_with(
+                    target=self.server._cleanup_expired_entries,
+                    daemon=True
+                )
+                mock_thread.start.assert_called_once()
 
-        # Should submit packet handling to executor
-        self.mock_executor.submit.assert_called_once()
-
-    @patch('threading.Thread')
-    @patch('logging.error')
-    def test_run_method_socket_error_while_running(self, mock_log, mock_thread):
-        """Test run method handling socket error while running"""
-        self.server.running.set()  # Keep running
-
-        # First call raises OSError, second call clears running and raises OSError to exit
-        call_count = 0
-        def side_effect(*args):
-            nonlocal call_count
-            call_count += 1
-            if call_count == 1:
-                # First error while still running
-                raise OSError("Network error")
-            else:
-                # Second call - clear running to exit loop
-                self.server.running.clear()
-                raise OSError("Socket closed")
-
-        self.mock_sock.recvfrom.side_effect = side_effect
-
-        self.server.run()
-
-        # Should log socket error for the first OSError when running is still set
-        mock_log.assert_called_with("Socket error")
-
-    @patch('threading.Thread')
-    @patch('logging.error')
-    def test_run_method_unhandled_exception(self, mock_log, mock_thread):
-        """Test run method handling unhandled exceptions"""
-        def side_effect(*args):
-            self.server.running.clear()
-            raise ValueError("Unexpected error")
-
-        self.mock_sock.recvfrom.side_effect = side_effect
-
-        self.server.run()
-
-        mock_log.assert_called()
-        # Should log the unhandled error with exc_info
-        self.assertIn("Unhandled error", mock_log.call_args[0][0])
-
-    def test_shutdown_closes_socket(self):
+    def test_shutdown(self):
         self.server.shutdown()
-        self.mock_sock.close.assert_called()
+
         self.assertFalse(self.server.running.is_set())
+        self.mock_socket.close.assert_called_once()
 
     def test_shutdown_socket_close_error(self):
-        """Test shutdown handles socket close errors gracefully"""
-        self.mock_sock.close.side_effect = Exception("Close error")
+        self.mock_socket.close.side_effect = Exception("Close error")
 
         with patch('logging.warning') as mock_log:
             self.server.shutdown()
-            mock_log.assert_called_with("Error closing socket: Close error")
 
-    def test_peer_entry_initialization(self):
-        """Test PeerEntry initialization"""
-        addr = ("1.1.1.1", 1111)
-        entry = PeerEntry(addr)
-        self.assertEqual(entry.addr, addr)
-        self.assertIsInstance(entry.ts, float)
+            self.assertFalse(self.server.running.is_set())
+            mock_log.assert_called_once_with("Error closing socket: Close error")
 
-    def test_session_register_new_peer(self):
-        """Test Session.register with new peer"""
-        session = Session()
-        result = session.register(Role.STREAMER, PortType.VIDEO, ("1.1.1.1", 1111))
-        self.assertTrue(result)  # Should be new peer
+    def test_integration_full_peer_announcement_flow(self):
+        """Test the complete flow from receiving peer announcement to session ready"""
+        # Mock the registry.register_peer to simulate the complete flow
+        registration_results = [
+            RegistrationResult(is_new_peer=True, session_ready=False),  # First peer
+            RegistrationResult(is_new_peer=True, session_ready=False),  # Second peer
+            RegistrationResult(is_new_peer=True, session_ready=False),  # Third peer
+            RegistrationResult(is_new_peer=True, session_ready=True)    # Fourth peer - session ready
+        ]
 
-        # Register same port type again
-        result = session.register(Role.STREAMER, PortType.VIDEO, ("1.1.1.2", 1112))
-        self.assertFalse(result)  # Should not be new peer
+        mock_peers = {
+            Role.STREAMER: {
+                PortType.VIDEO: PeerEntry(("1.1.1.1", 1111)),
+                PortType.CONTROL: PeerEntry(("1.1.1.2", 1112))
+            },
+            Role.VIEWER: {
+                PortType.VIDEO: PeerEntry(("2.2.2.1", 2221)),
+                PortType.CONTROL: PeerEntry(("2.2.2.2", 2222))
+            }
+        }
 
-    def test_session_is_ready(self):
-        """Test Session.is_ready"""
-        session = Session()
-        self.assertFalse(session.is_ready(Role.STREAMER))
+        # Create mock announcements
+        streamer_video = Mock(spec=PeerAnnouncement)
+        streamer_video.get_role.return_value = "streamer"
+        streamer_video.get_port_type.return_value = "video"
+        streamer_video.get_id.return_value = "session123"
 
-        session.register(Role.STREAMER, PortType.VIDEO, ("1.1.1.1", 1111))
-        self.assertFalse(session.is_ready(Role.STREAMER))
+        streamer_control = Mock(spec=PeerAnnouncement)
+        streamer_control.get_role.return_value = "streamer"
+        streamer_control.get_port_type.return_value = "control"
+        streamer_control.get_id.return_value = "session123"
 
-        session.register(Role.STREAMER, PortType.CONTROL, ("1.1.1.1", 1112))
-        self.assertTrue(session.is_ready(Role.STREAMER))
+        viewer_video = Mock(spec=PeerAnnouncement)
+        viewer_video.get_role.return_value = "viewer"
+        viewer_video.get_port_type.return_value = "video"
+        viewer_video.get_id.return_value = "session123"
 
-    def test_session_get_peer_exists(self):
-        """Test Session.get_peer when peer exists"""
-        session = Session()
-        session.register(Role.STREAMER, PortType.VIDEO, ("1.1.1.1", 1111))
+        viewer_control = Mock(spec=PeerAnnouncement)
+        viewer_control.get_role.return_value = "viewer"
+        viewer_control.get_port_type.return_value = "control"
+        viewer_control.get_id.return_value = "session123"
 
-        peer = session.get_peer(Role.STREAMER, PortType.VIDEO)
-        self.assertIsNotNone(peer)
-        self.assertEqual(peer.addr, ("1.1.1.1", 1111))
+        with patch.object(self.server.registry, 'register_peer', side_effect=registration_results) as mock_register:
+            with patch.object(self.server.registry, 'get_session_peers', return_value=mock_peers) as mock_get_peers:
+                with patch.object(self.server.relay, 'update_mapping') as mock_update_mapping:
+                    with patch.object(self.server, '_send_peer_info') as mock_send:
+                        with patch('logging.info'):
+                            # Register all peers
+                            self.server._handle_peer_announcement(streamer_video, ("1.1.1.1", 1111))
+                            self.server._handle_peer_announcement(streamer_control, ("1.1.1.2", 1112))
+                            self.server._handle_peer_announcement(viewer_video, ("2.2.2.1", 2221))
 
-    def test_session_get_peer_not_exists(self):
-        """Test Session.get_peer when peer doesn't exist"""
-        session = Session()
-        peer = session.get_peer(Role.STREAMER, PortType.VIDEO)
-        self.assertIsNone(peer)
+                            # This should make the session ready
+                            self.server._handle_peer_announcement(viewer_control, ("2.2.2.2", 2222))
 
-    @patch('socket.socket')
-    def test_server_initialization_socket_setup(self, mock_socket):
-        """Test server initialization sets up socket correctly"""
-        mock_sock = MagicMock()
-        mock_socket.return_value = mock_sock
+                            # Verify all registrations were called
+                            self.assertEqual(mock_register.call_count, 4)
 
-        with patch("src.v3xctrl_udp_relay.UDPRelayServer.SessionStore"), \
-             patch("src.v3xctrl_udp_relay.UDPRelayServer.ThreadPoolExecutor"):
-            server = UDPRelayServer("127.0.0.1", 8888, "test.db")
+                            # Verify session ready actions were triggered only once (on the last registration)
+                            mock_get_peers.assert_called_once_with("session123")
+                            # Updated to include session ID parameter
+                            mock_update_mapping.assert_called_once_with("session123", mock_peers)
+                            mock_send.assert_called_once_with(mock_peers)
 
-        mock_socket.assert_called_with(socket.AF_INET, socket.SOCK_DGRAM)
-        mock_sock.setsockopt.assert_called_with(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        mock_sock.bind.assert_called_with(('0.0.0.0', 8888))
+    def test_byte_prefix_detection_performance(self):
+        """Test that the byte prefix detection is actually faster than full parsing"""
+        non_announcement_data = b'regular_packet_data'
+
+        with patch('v3xctrl_udp_relay.UDPRelayServer.Message') as mock_message_class:
+            with patch.object(self.server.relay, 'forward_packet') as mock_forward:
+                self.server._handle_packet(non_announcement_data, ("1.1.1.1", 1111))
+
+                # Message.from_bytes should never be called for non-announcement data
+                mock_message_class.from_bytes.assert_not_called()
+                mock_forward.assert_called_once()
+
+    def test_thread_pool_executor_configuration(self):
+        """Test that ThreadPoolExecutor is configured correctly"""
+        with patch('v3xctrl_udp_relay.UDPRelayServer.ThreadPoolExecutor') as mock_tpe:
+            server = UDPRelayServer("127.0.0.1", 8080, "/tmp/test.db")
+            mock_tpe.assert_called_once_with(max_workers=10)
+
+    def test_timeout_constant_updated(self):
+        """Test that TIMEOUT constant reflects the new value"""
+        self.assertEqual(UDPRelayServer.TIMEOUT, 450)  # 3600 // 8
+
+    def test_cleanup_uses_new_api(self):
+        """Test that cleanup uses the new PacketRelay -> PeerRegistry API"""
+        expired_sessions = {"expired1", "expired2"}
+
+        with patch.object(self.server.relay, 'cleanup_expired_mappings', return_value=expired_sessions) as mock_relay_cleanup:
+            with patch.object(self.server.registry, 'remove_expired_sessions') as mock_registry_remove:
+                with patch('time.sleep'):
+                    # Run one iteration of cleanup
+                    self.server.running.clear()
+                    with patch.object(self.server.running, 'is_set', side_effect=[True, False]):
+                        self.server._cleanup_expired_entries()
+
+                # Verify the new API is used correctly
+                mock_relay_cleanup.assert_called_once()
+                mock_registry_remove.assert_called_once_with(expired_sessions)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()
