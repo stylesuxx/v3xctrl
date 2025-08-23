@@ -22,7 +22,12 @@ from typing import Callable, Tuple, Optional
 
 from v3xctrl_helper import Address
 
-from .message import Message
+from .message import (
+  Message,
+  PeerAnnouncement,
+  Syn,
+  Ack,
+)
 
 
 class UDPReceiver(threading.Thread):
@@ -59,9 +64,19 @@ class UDPReceiver(threading.Thread):
         self._worker_thread = threading.Thread(target=self._worker_loop, daemon=True)
 
     def is_valid_message(self, message: Message, addr: Tuple[str, int]) -> bool:
+        if isinstance(message, PeerAnnouncement):
+            logging.debug("Skipping PeerAnouncement - already set up")
+            return False
+
         if self._should_validate_host and addr[0] != self._expected_host:
             logging.debug(f"Skipping message from wrong host: {addr[0]}")
             return False
+
+        # Reset timestamps on Syn or Ack
+        if isinstance(message, Syn) or isinstance(message, Ack):
+            logging.debug("Resetting timestamps...")
+            self.reset()
+            return True
 
         if message.timestamp < self.last_valid_timestamp:
             logging.debug(f"Skipping out of order message: {message.type}")
