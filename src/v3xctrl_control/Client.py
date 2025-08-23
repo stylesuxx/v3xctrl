@@ -25,6 +25,8 @@ from .UDPTransmitter import UDPTransmitter
 
 
 class Client(Base):
+    SYN_INTERNAL = 1
+
     def __init__(
         self,
         host: str,
@@ -39,6 +41,7 @@ class Client(Base):
         self.bind_port = bind_port
         self.server_address = (self.host, self.port)
         self.failsafe_ms = failsafe_ms
+        self.last_syn = 0
 
         """
         Consider client disconnected if it has not seen a packet from the
@@ -113,7 +116,7 @@ class Client(Base):
                 self.handle_state_change(State.WAITING)
 
             elif self.state == State.WAITING:
-                self.send(Syn())
+                self._send_syn()
 
             elif self.state == State.CONNECTED:
                 self.heartbeat()
@@ -131,3 +134,10 @@ class Client(Base):
         self.running.clear()
 
         self.socket.close()
+
+    def _send_syn(self) -> None:
+        """Send SYN message at max every SYN_INTERVAL."""
+        now = time.time()
+        if now - self.last_syn > self.SYN_INTERNAL:
+            self.send(Syn())
+            self.last_syn = now

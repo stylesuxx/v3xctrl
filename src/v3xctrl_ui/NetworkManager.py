@@ -95,6 +95,8 @@ class NetworkManager:
 
             self.video_receiver = Init.video_receiver(self.video_port, poke_peer)
 
+            # Set up UDP server - from this point on we can ignore
+            # PeerAnnouncement messages which might be poisoning our timestamps
             try:
                 self.server = Init.server(
                     self.control_port,
