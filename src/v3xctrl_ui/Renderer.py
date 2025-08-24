@@ -1,5 +1,7 @@
 from typing import Optional, Tuple
 
+import numpy as np
+import numpy.typing as npt
 import pygame
 
 #from v3xctrl_ui.AppState import AppState
@@ -17,7 +19,10 @@ class Renderer:
         self.video_height = size[1]
         self.video_size = size
         self.settings = settings
+
         self.ip = get_external_ip()
+        self.video_surface = pygame.Surface(self.video_size)
+        self.last_frame_id = None
 
     def render_all(
         self,
@@ -38,7 +43,7 @@ class Renderer:
 
         pygame.display.flip()
 
-    def _get_video_frame(self, network_manager: 'NetworkManager') -> Optional[bytes]:
+    def _get_video_frame(self, network_manager: NetworkManager) -> Optional[npt.NDArray[np.uint8]]:
         """Get the current video frame if available."""
         if not network_manager.video_receiver:
             return None
@@ -48,8 +53,12 @@ class Renderer:
 
     def _render_video_frame(self, screen: pygame.Surface, frame: bytes) -> None:
         """Render a video frame to the screen."""
-        surface = pygame.image.frombuffer(frame.tobytes(), self.video_size, "RGB")
-        screen.blit(surface, (0, 0))
+        current_frame_id = id(frame)
+        if current_frame_id != self.last_frame_id:
+            pygame.surfarray.blit_array(self.video_surface, frame.swapaxes(0, 1))
+            self.last_frame_id = current_frame_id
+
+        screen.blit(self.video_surface, (0, 0))
 
     def _render_no_signal(self, screen: pygame.Surface, relay_status_message: str) -> None:
         """Render the no signal screen with connection info."""
@@ -107,12 +116,15 @@ class Renderer:
         state.osd.update_data_queue(data_left)
         state.osd.set_control(state.throttle, state.steering)
 
-        loop_history = state.loop_history.copy()
         video_history = None
         if network_manager.video_receiver is not None:
-            video_history = network_manager.video_receiver.history.copy()
+            video_history = network_manager.video_receiver.history
 
-        state.osd.render(state.screen, loop_history, video_history)
+        state.osd.render(
+            state.screen,
+            state.loop_history,
+            video_history
+        )
 
     def _render_errors(self, screen: pygame.Surface, network_manager: 'NetworkManager') -> None:
         """Render error messages on top of main UI."""

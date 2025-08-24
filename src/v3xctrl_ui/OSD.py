@@ -243,7 +243,6 @@ class OSD:
             self.debug_latency = "red"
 
         self.widgets_debug["debug_latency"].set_value(diff_ms)
-        logging.debug(f"Received latency message: {diff_ms}ms")
 
     def _telemetry_update(self, message: Telemetry) -> None:
         values = message.get_values()
