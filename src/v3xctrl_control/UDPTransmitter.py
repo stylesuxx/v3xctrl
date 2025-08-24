@@ -20,8 +20,10 @@ from queue import Queue, Empty
 import socket
 import threading
 import time
-from typing import Tuple, Optional
+from typing import Optional
 import concurrent.futures
+
+from v3xctrl_helper import Address
 
 from .UDPPacket import UDPPacket
 from .message import Message
@@ -43,7 +45,7 @@ class UDPTransmitter(threading.Thread):
 
         self.ttl = ttl_ms / 1000
 
-    def add_message(self, message: Message, addr: Tuple[str, int]) -> None:
+    def add_message(self, message: Message, addr: Address) -> None:
         """ Convenience function to add a message to the queue."""
         packet = UDPPacket(message.to_bytes(), addr[0], addr[1])
         self.add(packet)
@@ -69,13 +71,15 @@ class UDPTransmitter(threading.Thread):
                         logging.info(f"Not transmitting old packet of type: {type}")
                         continue
 
-                    address = (packet.host, packet.port)
-                    self.socket.sendto(packet.data, address)
+                    self.socket.sendto(packet.data, (packet.host, packet.port))
                     self.queue.task_done()
+
                 except Empty:
                     await asyncio.sleep(0.01)
+
                 except OSError as e:
                     logging.warning(f"Socket error while sending: {e}")
+
                 except Exception as e:
                     logging.error(f"Unexpected transmit error: {e}", exc_info=True)
 
