@@ -536,7 +536,7 @@ class TestBaseInput(unittest.TestCase):
         with patch('pygame.key.get_mods', return_value=0):
             self.input_widget._handle_keydown(event)
 
-        self.mock_on_change.assert_not_called()
+        self.mock_on_change.assert_called_once_with("helo")
 
     def test_text_caching_optimization(self):
         surface = pygame.Surface((400, 100))
