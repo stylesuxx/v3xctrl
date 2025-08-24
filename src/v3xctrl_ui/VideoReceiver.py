@@ -33,6 +33,13 @@ class VideoReceiver(threading.Thread):
         self.container_lock = threading.Lock()
         self.thread_count = str(min(os.cpu_count(), 4))
 
+        # Frame monitoring
+        self.packet_count = 0
+        self.decoded_frame_count = 0
+        self.empty_decode_count = 0
+        self.last_log_time = 0.0
+        self.log_interval = 10.0  # Log every 10 seconds
+
     def run(self) -> None:
         self.running.set()
 
@@ -85,12 +92,21 @@ class VideoReceiver(threading.Thread):
                                 if not self.running.is_set():
                                     break
 
-                                for frame in packet.decode():
-                                    rgb_frame = frame.to_ndarray(format="rgb24")
-                                    with self.frame_lock:
-                                        self.frame = rgb_frame
+                                self.packet_count += 1
+                                decoded_frames = list(packet.decode())
 
-                                    self.history.append(time.monotonic())
+                                if decoded_frames:
+                                    for frame in decoded_frames:
+                                        rgb_frame = frame.to_ndarray(format="rgb24")
+                                        with self.frame_lock:
+                                            self.frame = rgb_frame
+
+                                        self.decoded_frame_count += 1
+                                        self.history.append(time.monotonic())
+                                else:
+                                    self.empty_decode_count += 1
+
+                                self._log_stats_if_needed()
 
                 except av.AVError as e:
                     logging.warning(f"Stream decode error: {e}")
@@ -117,6 +133,28 @@ class VideoReceiver(threading.Thread):
                                 self.container = None
                     except Exception as e:
                         logging.warning(f"Container close failed: {e}")
+
+    def _log_stats_if_needed(self) -> None:
+        current_time = time.monotonic()
+        if current_time - self.last_log_time >= self.log_interval:
+            if self.packet_count > 0:
+                drop_rate = (self.empty_decode_count / self.packet_count) * 100
+
+                time_elapsed = current_time - self.last_log_time if self.last_log_time > 0 else self.log_interval
+                avg_fps = round(self.decoded_frame_count / time_elapsed) if time_elapsed > 0 else 0
+
+                logging.info(
+                    f"frames={self.decoded_frame_count}, "
+                    f"empty_decodes={self.empty_decode_count}, "
+                    f"drop_rate={drop_rate:.1f}%, avg_fps={avg_fps}"
+                )
+
+            # Reset for next interval
+            self.packet_count = 0
+            self.empty_decode_count = 0
+            self.decoded_frame_count = 0
+
+            self.last_log_time = current_time
 
     def stop(self) -> None:
         self.running.clear()
