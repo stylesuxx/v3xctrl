@@ -118,11 +118,11 @@ class Renderer:
 
         video_history = None
         if network_manager.video_receiver is not None:
-            video_history = network_manager.video_receiver.history
+            video_history = network_manager.video_receiver.history.copy()
 
         state.osd.render(
             state.screen,
-            state.loop_history,
+            state.loop_history.copy(),
             video_history
         )
 

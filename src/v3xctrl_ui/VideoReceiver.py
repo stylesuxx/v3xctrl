@@ -89,20 +89,16 @@ class VideoReceiver(threading.Thread):
                     while self.running.is_set():
                         if self.container:
                             for packet in self.container.demux(stream):
-                                if not self.running.is_set():
-                                    break
-
                                 self.packet_count += 1
                                 decoded_frames = list(packet.decode())
-
                                 if decoded_frames:
                                     for frame in decoded_frames:
                                         rgb_frame = frame.to_ndarray(format="rgb24")
                                         with self.frame_lock:
                                             self.frame = rgb_frame
 
-                                        self.decoded_frame_count += 1
                                         self.history.append(time.monotonic())
+                                        self.decoded_frame_count += 1
                                 else:
                                     self.empty_decode_count += 1
 
