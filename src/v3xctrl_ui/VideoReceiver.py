@@ -31,6 +31,7 @@ class VideoReceiver(threading.Thread):
         self.container = None
 
         self.container_lock = threading.Lock()
+        self.thread_count = str(min(os.cpu_count(), 4))
 
     def run(self) -> None:
         self.running.set()
@@ -71,7 +72,11 @@ class VideoReceiver(threading.Thread):
             if self.container:
                 stream = self.container.streams.video[0]
                 stream.codec_context.thread_type = "AUTO"
-                stream.codec_context.options = {"threads": "2"}
+                stream.codec_context.options = {
+                    "threads": self.thread_count,
+                    "flags": "low_delay",
+                    "flags2": "fast"
+                }
 
                 try:
                     while self.running.is_set():
@@ -81,10 +86,12 @@ class VideoReceiver(threading.Thread):
                                     break
 
                                 for frame in packet.decode():
+                                    rgb_frame = frame.to_ndarray(format="rgb24")
                                     with self.frame_lock:
-                                        self.frame = frame.to_ndarray(format="rgb24")
+                                        self.frame = rgb_frame
 
                                     self.history.append(time.monotonic())
+
                 except av.AVError as e:
                     logging.warning(f"Stream decode error: {e}")
                     try:
@@ -95,8 +102,10 @@ class VideoReceiver(threading.Thread):
                     except Exception as e:
                         logging.warning(f"Container close failed during error recovery: {e}")
                     self.error_callback()
+
                 except Exception as e:
                     logging.exception(f"Unexpected error in receiver thread: {e}")
+
                 finally:
                     with self.frame_lock:
                         self.frame = None
