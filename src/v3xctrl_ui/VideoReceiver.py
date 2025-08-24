@@ -89,6 +89,9 @@ class VideoReceiver(threading.Thread):
                     while self.running.is_set():
                         if self.container:
                             for packet in self.container.demux(stream):
+                                if not self.running.is_set():
+                                    break
+
                                 self.packet_count += 1
                                 decoded_frames = list(packet.decode())
                                 if decoded_frames:
