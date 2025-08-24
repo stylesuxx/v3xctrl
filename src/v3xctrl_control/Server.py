@@ -121,10 +121,17 @@ class Server(Base):
 
     def stop(self) -> None:
         if self.started.is_set():
-            self.started.clear()
-
             # Wait for the setup to be done before tearing everything down
             self.running.wait()
+
+            # Notify all pending commands about shutdown
+            with self.pending_lock:
+                for callback in self.pending_commands.values():
+                    if callback:
+                        callback(False)
+                self.pending_commands.clear()
+
+            self.started.clear()
 
             self.message_handler.stop()
             self.transmitter.stop()
