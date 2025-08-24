@@ -172,7 +172,7 @@ class TestTextInput(unittest.TestCase):
         self.assertEqual(self.text_input.value, "helo")
         self.assertEqual(self.text_input.cursor_pos, 2)
 
-        self.mock_on_change.assert_not_called()
+        self.mock_on_change.assert_called()
 
     def test_backspace_at_beginning(self):
         self.text_input.focused = True
