@@ -28,6 +28,7 @@ class Session:
             Role.STREAMER: {},
             Role.VIEWER: {}
         }
+        self.created_at: float = time.time()
 
     def register(self, role: Role, port_type: PortType, addr: Address) -> bool:
         """Returns true if it is a new peer."""

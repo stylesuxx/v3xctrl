@@ -1,1 +1,2 @@
 discord==2.3.2
+dbus-python==1.4.0
