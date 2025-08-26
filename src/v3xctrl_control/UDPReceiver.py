@@ -24,7 +24,7 @@ from v3xctrl_helper import Address
 
 from .message import (
   Message,
-  PeerAnnouncement,
+  PeerInfo,
   Syn,
   Ack,
 )
@@ -64,8 +64,8 @@ class UDPReceiver(threading.Thread):
         self._worker_thread = threading.Thread(target=self._worker_loop, daemon=True)
 
     def is_valid_message(self, message: Message, addr: Tuple[str, int]) -> bool:
-        if isinstance(message, PeerAnnouncement):
-            logging.debug("Skipping PeerAnouncement - already set up")
+        if isinstance(message, PeerInfo):
+            logging.debug("Skipping PeerInfo - already set up")
             return False
 
         if self._should_validate_host and addr[0] != self._expected_host:
