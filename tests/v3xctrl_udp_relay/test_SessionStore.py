@@ -1,7 +1,6 @@
 import os
-import tempfile
 import sqlite3
-
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -40,7 +39,6 @@ class TestSessionStore(unittest.TestCase):
             self.store.create(user_id, username)
 
     def test_create_max_attempts_exceeded(self):
-        # Manually insert a session to guarantee collision
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.cursor()
             cur.execute(
@@ -49,7 +47,6 @@ class TestSessionStore(unittest.TestCase):
             )
             conn.commit()
 
-        # Mock to always return 'a' so generated ID is always "aaaaaaaaaa"
         with patch('v3xctrl_udp_relay.SessionStore.secrets.choice') as mock_choice:
             mock_choice.return_value = 'a'
 
@@ -59,7 +56,6 @@ class TestSessionStore(unittest.TestCase):
             self.assertIn("Failed to generate a unique session ID", str(context.exception))
 
     def test_create_id_collision_continues_retry(self):
-        # Manually insert a session
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.cursor()
             cur.execute(
@@ -73,15 +69,78 @@ class TestSessionStore(unittest.TestCase):
             def side_effect(seq):
                 nonlocal call_count
                 call_count += 1
-                if call_count <= 10:  # First attempt: all 'a' (collision)
+                if call_count <= 10:
                     return 'a'
-                else:  # Second attempt: all 'b' (success)
+                else:
                     return 'b'
 
             mock_choice.side_effect = side_effect
 
             new_session = self.store.create("new_user", "new_username")
             self.assertEqual(new_session, "bbbbbbbbbb")
+
+    def test_update_existing_user(self):
+        user_id = "42"
+        username = "tester"
+
+        original_session = self.store.create(user_id, username)
+        updated_session = self.store.update(user_id, "updated_username")
+
+        self.assertNotEqual(original_session, updated_session)
+        self.assertEqual(self.store.get(user_id), updated_session)
+
+    def test_update_nonexistent_user_returns_id_but_no_db_entry(self):
+        user_id = "nonexistent"
+        session_id = self.store.update(user_id, "username")
+
+        self.assertTrue(session_id)
+        self.assertIsNone(self.store.get(user_id))
+
+    def test_update_max_attempts_exceeded(self):
+        self.store.create("42", "tester")
+
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "INSERT INTO allowed_sessions (id, discord_user_id, discord_username) VALUES (?, ?, ?)",
+                ("aaaaaaaaaa", "other_user", "other")
+            )
+            conn.commit()
+
+        with patch('v3xctrl_udp_relay.SessionStore.secrets.choice') as mock_choice:
+            mock_choice.return_value = 'a'
+
+            with self.assertRaises(RuntimeError) as context:
+                self.store.update("42", "updated_username")
+
+            self.assertIn("Failed to generate a unique session ID", str(context.exception))
+
+    def test_update_id_collision_continues_retry(self):
+        self.store.create("42", "tester")
+
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "INSERT INTO allowed_sessions (id, discord_user_id, discord_username) VALUES (?, ?, ?)",
+                ("aaaaaaaaaa", "other_user", "other")
+            )
+            conn.commit()
+
+        with patch('v3xctrl_udp_relay.SessionStore.secrets.choice') as mock_choice:
+            call_count = 0
+            def side_effect(seq):
+                nonlocal call_count
+                call_count += 1
+                if call_count <= 10:
+                    return 'a'
+                else:
+                    return 'b'
+
+            mock_choice.side_effect = side_effect
+
+            updated_session = self.store.update("42", "updated_username")
+            self.assertEqual(updated_session, "bbbbbbbbbb")
+            self.assertEqual(self.store.get("42"), "bbbbbbbbbb")
 
     def test_exists_true_for_existing_session(self):
         session_id = self.store.create("user", "username")

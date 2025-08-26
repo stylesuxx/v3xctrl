@@ -29,6 +29,7 @@ class Bot(commands.Bot):
 
         self.add_command(self._requestid_command())
         self.add_command(self._stats_command())
+        self.add_command(self._renewid_command())
 
     def run_bot(self) -> None:
         super().run(self.token)
@@ -90,14 +91,13 @@ class Bot(commands.Bot):
 
         return "\n".join(message_parts)
 
-    async def handle_stats_command(self, ctx: commands.Context) -> None:
+    async def handle_stats_command(self, ctx: commands.Context[Any]) -> None:
         """Extracted stats logic - easily testable"""
         if ctx.guild is None:
             await ctx.reply("This command can only be used in a server.")
             return
 
         if not isinstance(ctx.author, discord.Member):
-            await ctx.reply("Unable to verify your permissions.")
             try:
                 await ctx.message.add_reaction("❌")
 
@@ -106,8 +106,8 @@ class Bot(commands.Bot):
 
             return
 
+        # Must have stats role
         if not self._has_role(ctx.author, ['stats']):
-            await ctx.reply("You need moderator permissions to use this command.")
             try:
                 await ctx.message.add_reaction("❌")
 
@@ -142,6 +142,7 @@ class Bot(commands.Bot):
 
             except discord.HTTPException:
                 pass
+
         except Exception as e:
             logging.error(f"Stats command failed: {e}")
             await ctx.reply("Failed to retrieve relay statistics. Check if the relay server is running.")
@@ -152,7 +153,7 @@ class Bot(commands.Bot):
             except discord.HTTPException:
                 pass
 
-    async def handle_requestid_command(self, ctx: commands.Context) -> None:
+    async def handle_requestid_command(self, ctx: commands.Context[Any]) -> None:
         """Extracted requestid logic - easily testable"""
         if ctx.guild is not None:
             try:
@@ -185,16 +186,54 @@ class Bot(commands.Bot):
         except discord.Forbidden:
             await ctx.reply("I couldn't DM you. Please enable DMs from server members and try again.")
 
+    async def handle_renewid_command(self, ctx: commands.Context[Any]) -> None:
+        """Extracted renewid logic - easily testable"""
+        if ctx.guild is not None:
+            try:
+                await ctx.message.add_reaction("✅")
+            except discord.HTTPException:
+                pass
+
+            logging.info(f"!renewid called by {ctx.author} in server, responding via DM.")
+
+        user_id = str(ctx.author.id)
+        username = str(ctx.author)
+
+        existing_session = self.store.get(user_id)
+
+        try:
+            if existing_session:
+                session_id = self.store.update(user_id, username)
+                logging.info(f"Renewed session ID for {username}")
+            else:
+                session_id = self.store.create(user_id, username)
+                logging.info(f"Created new session ID for {username}")
+
+            await ctx.author.send(f"Your session ID is: `{session_id}`")
+
+        except RuntimeError as e:
+            logging.error(f"ID generation failed for {username}: {e}")
+            await ctx.author.send("Failed to generate a unique session ID. Try again later.")
+        except discord.Forbidden:
+            await ctx.reply("I couldn't DM you. Please enable DMs from server members and try again.")
+
     def _stats_command(self) -> commands.Command[Any, Any, Any]:
         @commands.command(name="stats")
-        async def stats(ctx: commands.Context) -> None:
+        async def stats(ctx: commands.Context[Any]) -> None:
             await self.handle_stats_command(ctx)
 
         return stats
 
     def _requestid_command(self) -> commands.Command[Any, Any, Any]:
         @commands.command(name="requestid")
-        async def requestid(ctx: commands.Context) -> None:
+        async def requestid(ctx: commands.Context[Any]) -> None:
             await self.handle_requestid_command(ctx)
 
         return requestid
+
+    def _renewid_command(self) -> commands.Command[Any, Any, Any]:
+        @commands.command(name="renewid")
+        async def renewid(ctx: commands.Context[Any]) -> None:
+            await self.handle_renewid_command(ctx)
+
+        return renewid

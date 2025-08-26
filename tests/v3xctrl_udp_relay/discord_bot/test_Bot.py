@@ -175,7 +175,6 @@ class TestBot(unittest.TestCase):
 
             await self.bot.handle_stats_command(mock_ctx)
 
-            mock_ctx.reply.assert_called_once_with("Unable to verify your permissions.")
             mock_ctx.message.add_reaction.assert_called_once_with("❌")
 
         asyncio.run(async_test())
@@ -190,7 +189,6 @@ class TestBot(unittest.TestCase):
             with patch.object(self.bot, '_has_role', return_value=False):
                 await self.bot.handle_stats_command(mock_ctx)
 
-            mock_ctx.reply.assert_called_once_with("You need moderator permissions to use this command.")
             mock_ctx.message.add_reaction.assert_called_once_with("❌")
 
         asyncio.run(async_test())
