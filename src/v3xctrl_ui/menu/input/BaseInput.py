@@ -176,15 +176,24 @@ class BaseInput(BaseWidget):
                     self.cursor_pos = len(self.value)
                     if self.on_change:
                         self.on_change(self.value)
+
             return
 
         if event.key == pygame.K_BACKSPACE and self.cursor_pos > 0:
             self.value = self.value[:self.cursor_pos - 1] + self.value[self.cursor_pos:]
             self.cursor_pos -= 1
-        elif event.key == pygame.K_LEFT:
+            if self.on_change:
+                self.on_change(self.value)
+
+            return
+
+        if event.key == pygame.K_LEFT:
             self.cursor_pos = max(0, self.cursor_pos - 1)
-        elif event.key == pygame.K_RIGHT:
+            return
+
+        if event.key == pygame.K_RIGHT:
             self.cursor_pos = min(len(self.value), self.cursor_pos + 1)
+            return
 
     def _draw_input_background(self) -> None:
         self.input_surface.fill(self.INPUT_BG_COLOR)
