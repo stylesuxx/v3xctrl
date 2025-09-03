@@ -1,4 +1,3 @@
-from concurrent.futures import TimeoutError
 import socket
 
 import unittest
@@ -21,8 +20,10 @@ class TestPeer(unittest.TestCase):
     def test_register_with_relay_returns_peerinfo(self):
         mock_sock = MagicMock()
         pi = MagicMock(spec=PeerInfo)
-        with patch.object(PeerAnnouncement, "to_bytes", return_value=b"ann"), \
-             patch.object(Message, "from_bytes", return_value=pi):
+        with (
+            patch.object(PeerAnnouncement, "to_bytes", return_value=b"ann"), \
+            patch.object(Message, "from_bytes", return_value=pi)
+        ):
             mock_sock.recvfrom.return_value = (b"data", ("server", 1234))
             self.assertEqual(self.peer._register_with_relay(mock_sock, "video", "client"), pi)
 
@@ -31,8 +32,10 @@ class TestPeer(unittest.TestCase):
         err = MagicMock(spec=Error)
         err.get_error.return_value = "bad auth"
 
-        with patch.object(PeerAnnouncement, "to_bytes", return_value=b"ann"), \
-            patch.object(Message, "from_bytes", return_value=err):
+        with (
+            patch.object(PeerAnnouncement, "to_bytes", return_value=b"ann"), \
+            patch.object(Message, "from_bytes", return_value=err)
+        ):
             mock_sock.recvfrom.return_value = (b"data", ("server", 1234))
 
             with self.assertRaises(UnauthorizedError):
@@ -46,8 +49,10 @@ class TestPeer(unittest.TestCase):
             socket.timeout()  # Then timeout to trigger sleep
         ]
 
-        with patch.object(PeerAnnouncement, "to_bytes", return_value=b"ann"), \
-             patch("time.sleep", return_value=None):
+        with (
+            patch.object(PeerAnnouncement, "to_bytes", return_value=b"ann"), \
+            patch("time.sleep", return_value=None)
+        ):
             # Set abort event to prevent infinite loop
             self.peer._abort_event.set()
 

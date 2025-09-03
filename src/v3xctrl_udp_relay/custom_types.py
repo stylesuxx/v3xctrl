@@ -1,7 +1,6 @@
-from dataclasses import dataclass
 from enum import Enum
 import time
-from typing import Dict, Optional
+from typing import Dict, Set
 
 from v3xctrl_helper import Address
 
@@ -23,17 +22,22 @@ class PeerEntry:
 
 
 class Session:
-    def __init__(self) -> None:
+    def __init__(self, id: str) -> None:
+        self.id = id
         self.roles: Dict[Role, Dict[PortType, PeerEntry]] = {
             Role.STREAMER: {},
             Role.VIEWER: {}
         }
+        self.addresses: Set[Address] = set()
         self.created_at: float = time.time()
+        self.last_announcement_at: float = time.time()
 
     def register(self, role: Role, port_type: PortType, addr: Address) -> bool:
         """Returns true if it is a new peer."""
         new_peer = port_type not in self.roles[role]
         self.roles[role][port_type] = PeerEntry(addr)
+        self.addresses.add(addr)
+        self.last_announcement_at = time.time()
 
         return new_peer
 
@@ -49,16 +53,6 @@ class Session:
             self.is_role_ready(Role.STREAMER) and
             self.is_role_ready(Role.VIEWER)
         )
-
-    def get_peer(self, role: Role, port_type: PortType) -> Optional[PeerEntry]:
-        return self.roles[role].get(port_type)
-
-
-@dataclass
-class RegistrationResult:
-    error: Optional[Exception] = None
-    is_new_peer: bool = False
-    session_ready: bool = False
 
 
 class SessionNotFoundError(Exception):

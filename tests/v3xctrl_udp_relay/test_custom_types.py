@@ -5,7 +5,6 @@ from unittest.mock import patch
 from v3xctrl_udp_relay.custom_types import (
     PeerEntry,
     PortType,
-    RegistrationResult,
     Role,
     Session,
     SessionNotFoundError,
@@ -68,7 +67,8 @@ class TestPeerEntry(unittest.TestCase):
 
 class TestSession(unittest.TestCase):
     def setUp(self):
-        self.session = Session()
+        sid = "session_id"
+        self.session = Session(sid)
 
     def test_initialization(self):
         self.assertIsInstance(self.session.roles, dict)
@@ -192,81 +192,6 @@ class TestSession(unittest.TestCase):
         self.session.register(Role.VIEWER, PortType.CONTROL, ("2.2.2.2", 2222))
 
         self.assertTrue(self.session.is_ready())
-
-    def test_get_peer_existing(self):
-        addr = ("192.168.1.1", 8080)
-
-        self.session.register(Role.STREAMER, PortType.VIDEO, addr)
-        peer_entry = self.session.get_peer(Role.STREAMER, PortType.VIDEO)
-
-        self.assertIsNotNone(peer_entry)
-        self.assertEqual(peer_entry.addr, addr)
-
-    def test_get_peer_non_existing(self):
-        peer_entry = self.session.get_peer(Role.STREAMER, PortType.VIDEO)
-
-        self.assertIsNone(peer_entry)
-
-    def test_get_peer_different_combinations(self):
-        addresses = {
-            (Role.STREAMER, PortType.VIDEO): ("1.1.1.1", 1111),
-            (Role.STREAMER, PortType.CONTROL): ("1.1.1.2", 1112),
-            (Role.VIEWER, PortType.VIDEO): ("2.2.2.1", 2221),
-        }
-
-        for (role, port_type), addr in addresses.items():
-            self.session.register(role, port_type, addr)
-
-        for (role, port_type), expected_addr in addresses.items():
-            peer_entry = self.session.get_peer(role, port_type)
-            self.assertIsNotNone(peer_entry)
-            self.assertEqual(peer_entry.addr, expected_addr)
-
-        missing_peer = self.session.get_peer(Role.VIEWER, PortType.CONTROL)
-        self.assertIsNone(missing_peer)
-
-
-class TestRegistrationResult(unittest.TestCase):
-    def test_default_initialization(self):
-        result = RegistrationResult()
-
-        self.assertIsNone(result.error)
-        self.assertFalse(result.is_new_peer)
-        self.assertFalse(result.session_ready)
-
-    def test_initialization_with_error(self):
-        error = ValueError("test error")
-        result = RegistrationResult(error=error)
-
-        self.assertEqual(result.error, error)
-        self.assertFalse(result.is_new_peer)
-        self.assertFalse(result.session_ready)
-
-    def test_initialization_with_new_peer(self):
-        result = RegistrationResult(is_new_peer=True)
-
-        self.assertIsNone(result.error)
-        self.assertTrue(result.is_new_peer)
-        self.assertFalse(result.session_ready)
-
-    def test_initialization_with_session_ready(self):
-        result = RegistrationResult(session_ready=True)
-
-        self.assertIsNone(result.error)
-        self.assertFalse(result.is_new_peer)
-        self.assertTrue(result.session_ready)
-
-    def test_initialization_with_all_parameters(self):
-        error = RuntimeError("test error")
-        result = RegistrationResult(
-            error=error,
-            is_new_peer=True,
-            session_ready=True
-        )
-
-        self.assertEqual(result.error, error)
-        self.assertTrue(result.is_new_peer)
-        self.assertTrue(result.session_ready)
 
 
 class TestSessionNotFoundError(unittest.TestCase):
