@@ -1,21 +1,23 @@
+from abc import ABC, abstractmethod
 from collections import deque
 import logging
-import os
-from pathlib import Path
-import tempfile
 import threading
 import time
-from typing import Callable
+from typing import Callable, Optional
 
-import av
+import numpy as np
+import numpy.typing as npt
 
 
-class VideoReceiver(threading.Thread):
-    def __init__(
-        self,
-        port: int,
-        error_callback: Callable[[], None]
-    ) -> None:
+class VideoReceiver(ABC, threading.Thread):
+    """
+    Abstract base class for video receivers.
+
+    Provides an interface to quickly implement different video receiver
+    backends.
+    """
+
+    def __init__(self, port: int, error_callback: Callable[[], None]) -> None:
         super().__init__()
 
         self.port = port
@@ -23,128 +25,90 @@ class VideoReceiver(threading.Thread):
 
         self.running = threading.Event()
         self.frame_lock = threading.Lock()
-        self.frame = None
-
-        self.history: deque[float] = deque(maxlen=100)
-
-        self.sdp_path = Path(tempfile.gettempdir()) / f"rtp_{self.port}.sdp"
-        self.container = None
-
-        self.container_lock = threading.Lock()
-        self.thread_count = str(min(os.cpu_count(), 4))
+        self.frame: Optional[npt.NDArray[np.uint8]] = None
 
         # Frame monitoring
+        self.history: deque[float] = deque(maxlen=100)
         self.packet_count = 0
         self.decoded_frame_count = 0
+        self.dropped_old_frames = 0
         self.empty_decode_count = 0
         self.last_log_time = 0.0
-        self.log_interval = 10.0  # Log every 10 seconds
+        self.log_interval = 10.0
+
+    @abstractmethod
+    def _setup(self) -> None:
+        """Setup resources (SDP files, containers, etc.)."""
+        pass
+
+    @abstractmethod
+    def _main_loop(self) -> None:
+        """Main receive/decode loop. Should respect self.running.is_set()."""
+        pass
+
+    @abstractmethod
+    def _cleanup(self) -> None:
+        """Cleanup resources."""
+        pass
+
+    def stop(self) -> None:
+        """Stop the receiver thread."""
+        self.running.clear()
+        if self.is_alive():
+            self.join(timeout=5.0)
+
+        try:
+            self._cleanup()
+        except Exception as e:
+            logging.exception(f"Error during stop cleanup: {e}")
 
     def run(self) -> None:
+        """Template method that calls abstract methods."""
         self.running.set()
 
-        self._write_sdp()
+        try:
+            self._setup()
+            self._main_loop()
 
-        options = {
-            "fflags": "nobuffer",
-            "protocol_whitelist": "file,crypto,data,udp,rtp",
-            # The following options do not seem to work when passed as options
-            # "timeout": "3000000",
-            # "stimeout": "3000000",
-            # "rw_timeout": "3000000",
-            # "analyzeduration": "1000000",
-            # "probesize": "2048"
-        }
+        except Exception as e:
+            # Catch and log all exceptions to prevent them from becoming
+            # unhandled thread exceptions
+            logging.exception(f"Error in {self.__class__.__name__}: {e}")
 
-        while self.running.is_set():
-            while self.running.is_set():
-                try:
-                    """
-                    NOTE: It takes a while for opening the container, av will
-                          not respect any timeouts at this point unfortunately.
-                          Even when no stream is running, there will be a
-                          container but the demux will fail further downstream.
-                    """
-                    with self.container_lock:
-                        self.container = av.open(
-                            f"{self.sdp_path}",
-                            format="sdp",
-                            options=options
-                        )
-                    break
-                except av.AVError as e:
-                    logging.warning(f"av.open() failed: {e}")
-                    time.sleep(0.5)
+        finally:
+            try:
+                self._cleanup()
 
-            if self.container:
-                stream = self.container.streams.video[0]
-                stream.codec_context.thread_type = "AUTO"
-                stream.codec_context.options = {
-                    "threads": self.thread_count,
-                    "flags": "low_delay",
-                    "flags2": "fast"
-                }
+            except Exception as e:
+                # Log cleanup errors but don't let them crash the receiver
+                logging.exception(f"Error during cleanup: {e}")
 
-                try:
-                    while self.running.is_set():
-                        if self.container:
-                            for packet in self.container.demux(stream):
-                                if not self.running.is_set():
-                                    break
+    def _update_frame(self, new_frame: npt.NDArray[np.uint8]) -> None:
+        """Update current frame and history in thread-safe manner."""
+        with self.frame_lock:
+            self.frame = new_frame
 
-                                self.packet_count += 1
-                                decoded_frames = list(packet.decode())
-                                if decoded_frames:
-                                    for frame in decoded_frames:
-                                        rgb_frame = frame.to_ndarray(format="rgb24")
-                                        with self.frame_lock:
-                                            self.frame = rgb_frame
-
-                                        self.history.append(time.monotonic())
-                                        self.decoded_frame_count += 1
-                                else:
-                                    self.empty_decode_count += 1
-
-                                self._log_stats_if_needed()
-
-                except av.AVError as e:
-                    logging.warning(f"Stream decode error: {e}")
-                    try:
-                        with self.container_lock:
-                            if self.container:
-                                self.container.close()
-                                self.container = None
-                    except Exception as e:
-                        logging.warning(f"Container close failed during error recovery: {e}")
-                    self.error_callback()
-
-                except Exception as e:
-                    logging.exception(f"Unexpected error in receiver thread: {e}")
-
-                finally:
-                    with self.frame_lock:
-                        self.frame = None
-
-                    try:
-                        with self.container_lock:
-                            if self.container:
-                                self.container.close()
-                                self.container = None
-                    except Exception as e:
-                        logging.warning(f"Container close failed: {e}")
+        self.history.append(time.monotonic())
+        self.decoded_frame_count += 1
 
     def _log_stats_if_needed(self) -> None:
+        """Log statistics if interval has passed."""
         current_time = time.monotonic()
         if current_time - self.last_log_time >= self.log_interval:
             if self.packet_count > 0:
-                drop_rate = (self.empty_decode_count / self.packet_count) * 100
+                dropped_total = self.empty_decode_count + self.dropped_old_frames
+                drop_rate = (dropped_total / self.packet_count) * 100
 
-                time_elapsed = current_time - self.last_log_time if self.last_log_time > 0 else self.log_interval
+                time_elapsed = self.log_interval
+                if self.last_log_time > 0:
+                    time_elapsed = current_time - self.last_log_time
                 avg_fps = round(self.decoded_frame_count / time_elapsed) if time_elapsed > 0 else 0
 
                 logging.info(
+                    f"{self.__class__.__name__}: "
                     f"frames={self.decoded_frame_count}, "
                     f"empty_decodes={self.empty_decode_count}, "
+                    f"dropped_old={self.dropped_old_frames}, "
                     f"drop_rate={drop_rate:.1f}%, avg_fps={avg_fps}"
                 )
 
@@ -152,41 +116,5 @@ class VideoReceiver(threading.Thread):
             self.packet_count = 0
             self.empty_decode_count = 0
             self.decoded_frame_count = 0
-
+            self.dropped_old_frames = 0
             self.last_log_time = current_time
-
-    def stop(self) -> None:
-        self.running.clear()
-        if self.is_alive():
-            self.join(timeout=5.0)
-
-        with self.container_lock:
-            if self.container:
-                try:
-                    self.container.close()
-                except Exception as e:
-                    logging.warning(f"Container close failed during stop: {e}")
-                finally:
-                    self.container = None
-
-        try:
-            if self.sdp_path.exists():
-                self.sdp_path.unlink()
-        except Exception as e:
-            logging.warning(f"SDP file cleanup failed: {e}")
-
-    def _write_sdp(self) -> None:
-        sdp_text = f"""\
-v=0
-o=- 0 0 IN IP4 127.0.0.1
-s=RTP Stream
-c=IN IP4 0.0.0.0
-t=0 0
-m=video {self.port} RTP/AVP 96
-a=rtpmap:96 H264/90000
-a=recvonly
-"""
-        with open(self.sdp_path, "w", newline="\n") as f:
-            f.write(sdp_text)
-            f.flush()
-            os.fsync(f.fileno())

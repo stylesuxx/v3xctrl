@@ -8,7 +8,7 @@ from v3xctrl_control.message import Message
 from v3xctrl_control.State import State
 
 from v3xctrl_ui.Settings import Settings
-from v3xctrl_ui.VideoReceiver import VideoReceiver
+from v3xctrl_ui.VideoReceiverPyAV import VideoReceiverPyAV as VideoReceiver
 
 
 class Init:

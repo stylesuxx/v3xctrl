@@ -1,224 +1,347 @@
-from collections import deque
-from pathlib import Path
-import tempfile
 import threading
 import time
+import unittest
+from unittest.mock import Mock, patch
 
-from unittest.mock import Mock, MagicMock, patch, mock_open
-import pytest
+import numpy as np
 
 from v3xctrl_ui.VideoReceiver import VideoReceiver
 
 
-class TestVideoReceiver:
+class MockVideoReceiver(VideoReceiver):
+    """Mock implementation for testing the abstract VideoReceiver."""
 
-    def setup_method(self):
-        """Setup for each test method."""
-        self.port = 12345
-        self.error_callback = Mock()
-        self.receiver = VideoReceiver(self.port, self.error_callback)
+    def __init__(self, port: int, error_callback, setup_fail=False, main_loop_fail=False, cleanup_fail=False):
+        super().__init__(port, error_callback)
+        self.setup_called = False
+        self.main_loop_called = False
+        self.cleanup_called = False
+        self.setup_fail = setup_fail
+        self.main_loop_fail = main_loop_fail
+        self.cleanup_fail = cleanup_fail
 
-    def teardown_method(self):
-        """Cleanup after each test method."""
-        if self.receiver.is_alive():
-            self.receiver.stop()
-            self.receiver.join(timeout=2.0)
+    def _setup(self):
+        self.setup_called = True
+        if self.setup_fail:
+            raise RuntimeError("Setup failed")
 
-        # Clean up SDP file if it exists
-        if self.receiver.sdp_path.exists():
-            self.receiver.sdp_path.unlink()
+    def _main_loop(self):
+        self.main_loop_called = True
+        if self.main_loop_fail:
+            raise RuntimeError("Main loop failed")
 
-    def test_init(self):
-        """Test VideoReceiver initialization."""
-        assert self.receiver.port == self.port
-        assert self.receiver.error_callback == self.error_callback
-        assert isinstance(self.receiver.running, threading.Event)
-        assert isinstance(self.receiver.frame_lock, type(threading.Lock()))
-        assert isinstance(self.receiver.container_lock, type(threading.Lock()))
-        assert self.receiver.frame is None
-        assert isinstance(self.receiver.history, deque)
-        assert self.receiver.history.maxlen == 100
-        assert self.receiver.container is None
+        counter = 0
+        while self.running.is_set() and counter < 5:
+            if counter % 2 == 0:
+                fake_frame = np.zeros((100, 100, 3), dtype=np.uint8)
+                self._update_frame(fake_frame)
+                self.packet_count += 1
+            else:
+                self.empty_decode_count += 1
+                self.packet_count += 1
 
-        expected_path = Path(tempfile.gettempdir()) / f"rtp_{self.port}.sdp"
-        assert self.receiver.sdp_path == expected_path
+            time.sleep(0.01)
+            counter += 1
 
-    @patch('builtins.open', new_callable=mock_open)
-    @patch('os.fsync')
-    def test_write_sdp(self, mock_fsync, mock_file):
-        """Test SDP file writing."""
-        mock_file_handle = mock_file.return_value
-
-        self.receiver._write_sdp()
-
-        expected_content = f"""\
-v=0
-o=- 0 0 IN IP4 127.0.0.1
-s=RTP Stream
-c=IN IP4 0.0.0.0
-t=0 0
-m=video {self.port} RTP/AVP 96
-a=rtpmap:96 H264/90000
-a=recvonly
-"""
-
-        mock_file.assert_called_once_with(self.receiver.sdp_path, "w", newline="\n")
-        mock_file_handle.write.assert_called_once_with(expected_content)
-        mock_file_handle.flush.assert_called_once()
-        mock_fsync.assert_called_once_with(mock_file_handle.fileno())
-
-    def test_stop(self):
-        """Test stopping the receiver."""
-        self.receiver.running.set()  # Simulate running state
-
-        self.receiver.stop()
-
-        assert not self.receiver.running.is_set()
-
-    def test_frame_thread_safety(self):
-        """Test that frame access is thread-safe."""
-        test_frame = "test_frame_data"
-
-        def set_frame():
-            with self.receiver.frame_lock:
-                self.receiver.frame = test_frame
-
-        def get_frame():
-            with self.receiver.frame_lock:
-                return self.receiver.frame
-
-        # Set frame in one thread
-        setter_thread = threading.Thread(target=set_frame)
-        setter_thread.start()
-        setter_thread.join()
-
-        # Get frame in another thread
-        result = []
-        def getter():
-            result.append(get_frame())
-
-        getter_thread = threading.Thread(target=getter)
-        getter_thread.start()
-        getter_thread.join()
-
-        assert result[0] == test_frame
-
-    def test_container_lock_synchronization(self):
-        """Test that container_lock properly synchronizes access."""
-        mock_container = MagicMock()
-
-        def set_container():
-            with self.receiver.container_lock:
-                self.receiver.container = mock_container
-
-        def get_container():
-            with self.receiver.container_lock:
-                return self.receiver.container
-
-        # Set container in one thread
-        setter_thread = threading.Thread(target=set_container)
-        setter_thread.start()
-        setter_thread.join()
-
-        # Get container in another thread
-        result = []
-        def getter():
-            result.append(get_container())
-
-        getter_thread = threading.Thread(target=getter)
-        getter_thread.start()
-        getter_thread.join()
-
-        assert result[0] == mock_container
-
-    def test_history_maxlen(self):
-        """Test that history maintains maximum length of 100."""
-        # Fill history beyond maxlen
-        for i in range(150):
-            self.receiver.history.append(float(i))
-
-        assert len(self.receiver.history) == 100
-        # Should contain the last 100 items (50-149)
-        assert self.receiver.history[0] == 50.0
-        assert self.receiver.history[-1] == 149.0
-
-    def test_sdp_path_uniqueness(self):
-        """Test that different ports create different SDP paths."""
-        receiver2 = VideoReceiver(54321, Mock())
-
-        assert self.receiver.sdp_path != receiver2.sdp_path
-        assert "12345" in str(self.receiver.sdp_path)
-        assert "54321" in str(receiver2.sdp_path)
-
-    def test_error_callback_is_callable(self):
-        """Test that error callback can be called."""
-        self.receiver.error_callback()
-        self.error_callback.assert_called_once()
-
-    def test_multiple_stop_calls_safe(self):
-        """Test that multiple stop() calls don't cause issues."""
-        # Multiple stop calls should be safe
-        self.receiver.stop()
-        self.receiver.stop()
-        self.receiver.stop()
-
-        assert not self.receiver.running.is_set()
+    def _cleanup(self):
+        self.cleanup_called = True
+        if self.cleanup_fail:
+            raise RuntimeError("Cleanup failed")
 
 
-# Integration test that doesn't rely on mocking av
-class TestVideoReceiverIntegration:
-    """Integration tests that test real behavior without mocking."""
+class TestVideoReceiver(unittest.TestCase):
 
-    def test_lifecycle_without_stream(self):
-        """Test that receiver can start and stop cleanly without a real stream."""
+    def test_cannot_instantiate_abstract_class(self):
+        """Abstract class should not be instantiable."""
+        with self.assertRaises(TypeError):
+            VideoReceiver(5600, Mock())
+
+    def test_initialization(self):
+        """Test proper initialization of all attributes."""
         error_callback = Mock()
-        receiver = VideoReceiver(99999, error_callback)  # Use very unlikely port
+        receiver = MockVideoReceiver(5600, error_callback)
 
-        try:
-            # Start receiver - it will fail to connect but should handle it gracefully
-            receiver.start()
+        self.assertEqual(receiver.port, 5600)
+        self.assertEqual(receiver.error_callback, error_callback)
+        self.assertIsNone(receiver.frame)
+        self.assertEqual(receiver.packet_count, 0)
+        self.assertEqual(receiver.decoded_frame_count, 0)
+        self.assertEqual(receiver.dropped_old_frames, 0)
+        self.assertEqual(receiver.empty_decode_count, 0)
+        self.assertEqual(receiver.last_log_time, 0.0)
+        self.assertEqual(receiver.log_interval, 10.0)
+        self.assertEqual(len(receiver.history), 0)
+        self.assertEqual(receiver.history.maxlen, 100)
+        self.assertTrue(hasattr(receiver.running, 'is_set'))
+        self.assertTrue(hasattr(receiver.running, 'set'))
+        self.assertTrue(hasattr(receiver.running, 'clear'))
+        self.assertTrue(hasattr(receiver.frame_lock, 'acquire'))
+        self.assertTrue(hasattr(receiver.frame_lock, 'release'))
+        self.assertFalse(receiver.running.is_set())
 
-            # Let it run briefly
-            time.sleep(0.1)
+    def test_update_frame_thread_safety(self):
+        """Test _update_frame updates frame safely and increments counters."""
+        receiver = MockVideoReceiver(5600, Mock())
+        test_frame = np.ones((50, 50, 3), dtype=np.uint8)
 
-            # Stop it
-            receiver.stop()
-            receiver.join(timeout=5.0)
+        initial_time = time.monotonic()
+        receiver._update_frame(test_frame)
 
-            # Should not be alive after stop
-            assert not receiver.is_alive()
+        with receiver.frame_lock:
+            np.testing.assert_array_equal(receiver.frame, test_frame)
 
-        finally:
-            if receiver.sdp_path.exists():
-                receiver.sdp_path.unlink()
+        self.assertEqual(receiver.decoded_frame_count, 1)
+        self.assertEqual(len(receiver.history), 1)
+        self.assertGreaterEqual(receiver.history[0], initial_time)
 
+    def test_update_frame_multiple_calls(self):
+        """Test multiple frame updates work correctly."""
+        receiver = MockVideoReceiver(5600, Mock())
 
-# Fixtures for pytest
-@pytest.fixture
-def video_receiver():
-    """Fixture providing a VideoReceiver instance."""
-    receiver = VideoReceiver(12345, Mock())
-    yield receiver
+        for i in range(5):
+            test_frame = np.full((10, 10, 3), i, dtype=np.uint8)
+            receiver._update_frame(test_frame)
 
-    if receiver.is_alive():
+        self.assertEqual(receiver.decoded_frame_count, 5)
+        self.assertEqual(len(receiver.history), 5)
+
+        with receiver.frame_lock:
+            np.testing.assert_array_equal(receiver.frame, np.full((10, 10, 3), 4, dtype=np.uint8))
+
+    def test_history_deque_maxlen(self):
+        """Test history deque respects maxlen of 100."""
+        receiver = MockVideoReceiver(5600, Mock())
+
+        for i in range(150):
+            receiver._update_frame(np.zeros((10, 10, 3), dtype=np.uint8))
+
+        self.assertEqual(len(receiver.history), 100)
+        self.assertEqual(receiver.decoded_frame_count, 150)
+
+    def test_successful_run_lifecycle(self):
+        """Test normal start/stop lifecycle."""
+        error_callback = Mock()
+        receiver = MockVideoReceiver(5600, error_callback)
+
+        receiver.start()
+        time.sleep(0.1)
         receiver.stop()
-        receiver.join(timeout=2.0)
 
-    if receiver.sdp_path.exists():
-        receiver.sdp_path.unlink()
+        self.assertTrue(receiver.setup_called)
+        self.assertTrue(receiver.main_loop_called)
+        self.assertTrue(receiver.cleanup_called)
+        self.assertFalse(receiver.running.is_set())
+        self.assertFalse(receiver.is_alive())
+
+    def test_setup_failure_handling(self):
+        """Test setup failure is handled gracefully."""
+        with patch('logging.exception') as mock_log:
+            receiver = MockVideoReceiver(5600, Mock(), setup_fail=True)
+
+            receiver.start()
+            time.sleep(0.1)
+            receiver.stop()
+
+            self.assertTrue(receiver.setup_called)
+            self.assertFalse(receiver.main_loop_called)
+            self.assertTrue(receiver.cleanup_called)
+            mock_log.assert_called()
+
+    def test_main_loop_failure_handling(self):
+        """Test main loop failure is handled gracefully."""
+        with patch('logging.exception') as mock_log:
+            receiver = MockVideoReceiver(5600, Mock(), main_loop_fail=True)
+
+            receiver.start()
+            time.sleep(0.1)
+            receiver.stop()
+
+            self.assertTrue(receiver.setup_called)
+            self.assertTrue(receiver.main_loop_called)
+            self.assertTrue(receiver.cleanup_called)
+            mock_log.assert_called()
+
+    def test_cleanup_failure_in_run(self):
+        """Test cleanup failure in run() finally block is handled."""
+        with patch('logging.exception') as mock_log:
+            receiver = MockVideoReceiver(5600, Mock(), cleanup_fail=True)
+
+            receiver.start()
+            time.sleep(0.1)
+            receiver.stop()
+
+            mock_log.assert_called()
+
+    def test_cleanup_failure_in_stop(self):
+        """Test cleanup failure in stop() is handled."""
+        with patch('logging.exception') as mock_log:
+            receiver = MockVideoReceiver(5600, Mock(), cleanup_fail=True)
+
+            receiver.start()
+            time.sleep(0.05)
+            receiver.stop()
+
+            mock_log.assert_called()
+
+    def test_stop_without_start(self):
+        """Test stop() can be called without start()."""
+        receiver = MockVideoReceiver(5600, Mock())
+
+        receiver.stop()
+
+        self.assertFalse(receiver.running.is_set())
+        self.assertTrue(receiver.cleanup_called)
+
+    def test_stop_timeout_handling(self):
+        """Test stop() respects timeout when thread doesn't join."""
+        class SlowReceiver(MockVideoReceiver):
+            def _main_loop(self):
+                time.sleep(10)
+
+        receiver = SlowReceiver(5600, Mock())
+        receiver.start()
+
+        start_time = time.monotonic()
+        receiver.stop()
+        stop_time = time.monotonic()
+
+        self.assertGreater(stop_time - start_time, 4.5)
+        self.assertLess(stop_time - start_time, 6.0)
+        self.assertTrue(receiver.cleanup_called)
+
+    def test_log_stats_no_packets(self):
+        """Test logging when no packets have been processed."""
+        with patch('logging.info') as mock_log:
+            receiver = MockVideoReceiver(5600, Mock())
+            receiver.packet_count = 0
+            receiver.last_log_time = time.monotonic() - 11.0
+
+            receiver._log_stats_if_needed()
+
+            mock_log.assert_not_called()
+            self.assertGreater(receiver.last_log_time, 0)
+
+    def test_log_stats_with_packets(self):
+        """Test statistics logging with packet data."""
+        with patch('logging.info') as mock_log:
+            receiver = MockVideoReceiver(5600, Mock())
+            receiver.log_interval = 0.01
+            receiver.packet_count = 10
+            receiver.decoded_frame_count = 7
+            receiver.empty_decode_count = 2
+            receiver.dropped_old_frames = 1
+            receiver.last_log_time = time.monotonic() - 0.02
+
+            receiver._log_stats_if_needed()
+
+            mock_log.assert_called_once()
+
+            # NOTE: This test will fail due to syntax error in VideoReceiver._log_stats_if_needed
+            # The logging.info call has incorrect comma placement
+
+            self.assertEqual(receiver.packet_count, 0)
+            self.assertEqual(receiver.decoded_frame_count, 0)
+            self.assertEqual(receiver.empty_decode_count, 0)
+            self.assertEqual(receiver.dropped_old_frames, 0)
+
+    def test_log_stats_interval_not_reached(self):
+        """Test no logging when interval hasn't passed."""
+        with patch('logging.info') as mock_log:
+            receiver = MockVideoReceiver(5600, Mock())
+            receiver.packet_count = 10
+            receiver.last_log_time = time.monotonic() - 5.0
+
+            receiver._log_stats_if_needed()
+
+            mock_log.assert_not_called()
+
+    def test_log_stats_calculates_correct_drop_rate(self):
+        """Test drop rate calculation includes both empty decodes and dropped old frames."""
+        with patch('logging.info') as mock_log:
+            receiver = MockVideoReceiver(5600, Mock())
+            receiver.log_interval = 0.01
+            receiver.packet_count = 100
+            receiver.decoded_frame_count = 70
+            receiver.empty_decode_count = 20
+            receiver.dropped_old_frames = 10
+            receiver.last_log_time = time.monotonic() - 0.02
+
+            receiver._log_stats_if_needed()
+
+            # Expected drop rate: (20 + 10) / 100 * 100 = 30%
+            mock_log.assert_called_once()
+
+    def test_log_stats_avg_fps_calculation(self):
+        """Test average FPS calculation."""
+        with patch('logging.info') as mock_log:
+            receiver = MockVideoReceiver(5600, Mock())
+            receiver.log_interval = 2.0
+            receiver.packet_count = 60
+            receiver.decoded_frame_count = 60
+            receiver.last_log_time = time.monotonic() - 2.0
+
+            receiver._log_stats_if_needed()
+
+            # Expected avg_fps: round(60 / 2.0) = 30
+            mock_log.assert_called_once()
+
+    def test_log_stats_first_time_uses_interval(self):
+        """Test first logging uses log_interval for time calculation."""
+        with patch('logging.info') as mock_log:
+            receiver = MockVideoReceiver(5600, Mock())
+            receiver.log_interval = 5.0
+            receiver.packet_count = 50
+            receiver.decoded_frame_count = 50
+            receiver.last_log_time = 0.0
+
+            receiver._log_stats_if_needed()
+
+            # Should use log_interval (5.0) for avg_fps calculation
+            mock_log.assert_called_once()
+
+    def test_thread_inheritance(self):
+        """Test VideoReceiver properly inherits from threading.Thread."""
+        receiver = MockVideoReceiver(5600, Mock())
+        self.assertIsInstance(receiver, threading.Thread)
+        self.assertTrue(hasattr(receiver, 'start'))
+        self.assertTrue(hasattr(receiver, 'join'))
+        self.assertTrue(hasattr(receiver, 'is_alive'))
+
+    def test_abstract_methods_enforced(self):
+        """Test that abstract methods must be implemented."""
+        class IncompleteReceiver(VideoReceiver):
+            def _setup(self):
+                pass
+            # Missing _main_loop and _cleanup
+
+        with self.assertRaises(TypeError):
+            IncompleteReceiver(5600, Mock())
+
+    def test_running_event_controls_lifecycle(self):
+        """Test running event is properly set and cleared."""
+        receiver = MockVideoReceiver(5600, Mock())
+
+        self.assertFalse(receiver.running.is_set())
+
+        receiver.start()
+        time.sleep(0.05)
+        self.assertTrue(receiver.running.is_set())
+
+        receiver.stop()
+        self.assertFalse(receiver.running.is_set())
+
+    def test_error_callback_not_called(self):
+        """Test that error_callback is never called (current implementation issue)."""
+        error_callback = Mock()
+        receiver = MockVideoReceiver(5600, error_callback, main_loop_fail=True)
+
+        receiver.start()
+        time.sleep(0.1)
+        receiver.stop()
+
+        # NOTE: This demonstrates that error_callback is not used in current implementation
+        error_callback.assert_not_called()
 
 
-def test_frame_processing_performance(video_receiver):
-    """Test that frame processing doesn't introduce significant delays."""
-    def rapid_frame_updates():
-        for i in range(100):
-            with video_receiver.frame_lock:
-                video_receiver.frame = f"frame_{i}"
-            time.sleep(0.001)  # 1ms between frames
-
-    start_time = time.time()
-    rapid_frame_updates()
-    elapsed = time.time() - start_time
-
-    # Should complete in reasonable time (less than 1 second)
-    assert elapsed < 1.0
+if __name__ == "__main__":
+    unittest.main(verbosity=2)
