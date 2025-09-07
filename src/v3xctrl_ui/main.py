@@ -1,4 +1,5 @@
 import argparse
+from datetime import datetime
 import logging
 import time
 
@@ -17,6 +18,11 @@ parser.add_argument(
     action="store_true",
     help="Enable periodic memory tracking using tracemalloc."
 )
+parser.add_argument(
+    "--log-to-file",
+    action="store_true",
+    help="Save logs to txt file."
+)
 
 args, unknown = parser.parse_known_args()
 
@@ -26,9 +32,18 @@ level = getattr(logging, level_name, None)
 if not isinstance(level, int):
     raise ValueError(f"Invalid log level: {args.log}")
 
+log_format = "%(asctime)s - %(levelname)s - %(message)s"
+handlers = [logging.StreamHandler()]
+
+if args.log_to_file:
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+    log_filename = f"{timestamp}.txt"
+    handlers.append(logging.FileHandler(log_filename))
+
 logging.basicConfig(
     level=level,
-    format="%(asctime)s - %(levelname)s - %(message)s"
+    format=log_format,
+    handlers=handlers
 )
 
 mem_tracker = None
