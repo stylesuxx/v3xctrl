@@ -83,6 +83,10 @@ class VideoReceiver(ABC, threading.Thread):
                 # Log cleanup errors but don't let them crash the receiver
                 logging.exception(f"Error during cleanup: {e}")
 
+    def get_frame(self) -> Optional[npt.NDArray[np.uint8]]:
+        with self.frame_lock:
+            return self.frame
+
     def _update_frame(self, new_frame: npt.NDArray[np.uint8]) -> None:
         """Update current frame and history in thread-safe manner."""
         with self.frame_lock:

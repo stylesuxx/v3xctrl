@@ -28,12 +28,12 @@ class FpsWidget(Widget):
 
         self.average_window = 1
         self.graph_frames = 300
-        self.history = deque(maxlen=self.graph_frames)
+        self.history: deque[float] = deque(maxlen=self.graph_frames)
 
         self.font = BOLD_MONO_FONT
 
         top_padding = 2
-        label_offset = self.font.size / 2 + top_padding
+        label_offset: int = self.font.size // 2 + top_padding
         self.label, self.label_rect = self.font.render(label, WHITE)
         self.label_rect.center = (self.width // 2, label_offset)
 
@@ -60,7 +60,7 @@ class FpsWidget(Widget):
         # Draw label in top half
         self.surface.blit(self.label, self.label_rect)
 
-        fps_value, value_rect = self.font.render(f"{average_fps:.1f} FPS", WHITE)
+        fps_value, value_rect = self.font.render(f"{average_fps} FPS", WHITE)
         value_rect.center = (self.width // 2, self.value_offset)
         self.surface.blit(fps_value, value_rect)
 
