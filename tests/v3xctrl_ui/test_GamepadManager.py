@@ -233,8 +233,8 @@ class TestGamepadManager(unittest.TestCase):
         self.mgr._gamepads["guid1"] = mock_js
         self.assertEqual(self.mgr.get_gamepad("guid1"), mock_js)
 
-    def test_get_calibration_returns_none_for_missing_guid(self, mock_js_init):
-        self.assertIsNone(self.mgr.get_calibration("nonexistent"))
+    def test_get_calibration_returns_empty_for_missing_guid(self, mock_js_init):
+        self.assertEqual(self.mgr.get_calibration("nonexistent"), {})
 
     def test_set_active_unlocked_no_gamepad(self, mock_js_init):
         self.mgr._set_active_unlocked("nonexistent")
