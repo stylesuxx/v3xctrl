@@ -46,6 +46,11 @@ if [ "$extras_samba" = "true" ]; then
   systemctl start smbd
 fi
 
+if [ "$extras_logLevel" = "DEBUG" ]; then
+  echo "Starting debug log service..."
+  systemctl start v3xctrl-debug-log
+fi
+
 # Setup rendezvous/relay servers if not in direct connection mode
 if [ "$server_mode" = "rendezvous" ]; then
   echo "Registering with rendezvous server..."

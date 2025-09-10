@@ -1,0 +1,30 @@
+#!/bin/bash
+
+while true; do
+  TEMP=$(vcgencmd measure_temp | cut -d"=" -f2 | cut -d"'" -f1)
+
+  THROTTLED_HEX=$(vcgencmd get_throttled | cut -d"=" -f2)
+  THROTTLED=$((THROTTLED_HEX))
+
+  # decode flags
+  UV_NOW=$((THROTTLED & 0x1))
+  FREQCAP_NOW=$(( (THROTTLED>>1) & 0x1 ))
+  THROTTLED_NOW=$(( (THROTTLED>>2) & 0x1 ))
+  SOFTLIMIT_NOW=$(( (THROTTLED>>3) & 0x1 ))
+
+  VOLTAGE_CORE=$(vcgencmd measure_volts core | cut -d "=" -f2)
+
+  CLOCK_CPU=$(vcgencmd measure_clock arm | cut -d "=" -f2)
+  CLOCK_GPU_CORE=$(vcgencmd measure_clock core | cut -d "=" -f2)
+  CLOCK_GPU_H264=$(vcgencmd measure_clock h264 | cut -d "=" -f2)
+
+  LOAD_1MIN=$(awk '{print $1}' /proc/loadavg)
+  CPU_USAGE=$(top -bn1 | grep "Cpu(s)" | awk '{print 100 - $8 "%"}')
+
+  RAM_USED=$(free -m | awk '/Mem:/ {print $3}')
+  SWAP_USED=$(free -m | awk '/Swap:/ {print $3}')
+
+  echo "TEMP=${TEMP} VOLTAGE_CORE=${VOLTAGE_CORE} CLOCK_CPU=${CLOCK_CPU} CLOCK_GPU_CORE=${CLOCK_GPU_CORE} CLOCK_GPU_H264=${CLOCK_GPU_H264} LOAD_1MIN=${LOAD_1MIN} RAM_USED_MB=${RAM_USED} SWAP_USED_MB=${SWAP_USED} CPU_USAGE=${CPU_USAGE} THROTTLED_HEX=${THROTTLED_HEX} UV_NOW=${UV_NOW} FREQCAP_NOW=${FREQCAP_NOW} THROTTLED_NOW=${THROTTLED_NOW} SOFTLIMIT_NOW=${SOFTLIMIT_NOW}"
+
+  sleep 5
+done
