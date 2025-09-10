@@ -214,7 +214,7 @@ class OSD:
         debug_fps_video_widget = FpsWidget((x, y), (width, height), "Video")
         y += debug_fps_video_widget.height + padding
 
-        debug_data_widget = StatusValueWidget((x, y), 26, "Data")
+        debug_data_widget = StatusValueWidget((x, y), 26, "Data", average=True)
         y += debug_data_widget.height + padding
 
         debug_latency_widget = StatusValueWidget((x, y), 26, "Latency")
