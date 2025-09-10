@@ -124,6 +124,8 @@ In the web-interface, check `video` and `control` in the *"Autostart"* section o
 
 > Be aware that from this point forward, the video stream will be transmitted after boot-up, so after the next step, you will use mobile data once the streamer has started.
 
+> **NOTE**: If you want to save bandwidth, only enable control to autostart. Once the initial connection is established, you can start the video stream from the viewers "Streamer" menu.
+
 #### Testing SIM card
 
 Follow the steps in the [SIM card documentation](https://github.com/stylesuxx/v3xctrl/wiki/SIM). To prepare your SIM card. After you have made sure, that the SIM card is usable, insert it into the streamer, switch to the *"Modem"* tab and make sure that the modem is connecting to the carrier network. Make sure that the following points are true:
