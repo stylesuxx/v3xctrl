@@ -49,11 +49,11 @@ def interpolate_throttle_color(throttle: float) -> Tuple[int, int, int]:
     return (r, g, b)
 
 
-def get_fps(history: deque[float], window_seconds: float = 1) -> float:
+def get_fps(history: deque[float], window_seconds: float = 1) -> int:
     now = time.monotonic()
     cutoff = now - window_seconds
     frames = [t for t in history if t >= cutoff]
-    return len(frames) / window_seconds if frames else 0.0
+    return int(len(frames) / window_seconds) if frames else 0
 
 
 def get_external_ip(timeout: int = 5) -> str:

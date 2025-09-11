@@ -1,4 +1,5 @@
 from collections import deque
+import math
 from typing import Tuple
 
 import pygame
@@ -15,7 +16,8 @@ class FpsWidget(Widget):
         self,
         position: Tuple[int, int],
         size: Tuple[int, int],
-        label: str
+        label: str,
+        smoothing_window: int = 15
     ) -> None:
         super().__init__()
 
@@ -29,6 +31,7 @@ class FpsWidget(Widget):
         self.average_window = 1
         self.graph_frames = 300
         self.history: deque[float] = deque(maxlen=self.graph_frames)
+        self.smoothed_fps: deque[int] = deque(maxlen=smoothing_window)
 
         self.font = BOLD_MONO_FONT
 
@@ -49,7 +52,9 @@ class FpsWidget(Widget):
             return
 
         recent_fps = list(self.history)[-self.average_window:]
-        average_fps = round(sum(recent_fps) / len(recent_fps), 1) if recent_fps else 0.0
+        average_fps = int(sum(recent_fps) // len(recent_fps)) if recent_fps else 0
+        self.smoothed_fps.append(average_fps)
+        smoothed_fps = int(sum(self.smoothed_fps) // len(self.smoothed_fps))
 
         min_fps = 0
         max_fps = max(self.history)
@@ -57,10 +62,9 @@ class FpsWidget(Widget):
 
         self.surface.fill((0, 0, 0, self.graph_alpha))
 
-        # Draw label in top half
+        # Draw label and value in top half
         self.surface.blit(self.label, self.label_rect)
-
-        fps_value, value_rect = self.font.render(f"{average_fps} FPS", WHITE)
+        fps_value, value_rect = self.font.render(f"{smoothed_fps:2d} FPS", WHITE)
         value_rect.center = (self.width // 2, self.value_offset)
         self.surface.blit(fps_value, value_rect)
 

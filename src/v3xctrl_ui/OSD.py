@@ -103,9 +103,9 @@ class OSD:
         return get_fps(self.loop_history)
 
     @property
-    def debug_fps_video(self) -> float:
+    def debug_fps_video(self) -> int:
         if self.video_history is None:
-            return 0.0
+            return 0
 
         return get_fps(self.video_history)
 
