@@ -37,7 +37,7 @@ class MockVideoReceiver(VideoReceiver):
                 self._update_frame(fake_frame)
                 self.packet_count += 1
             else:
-                self.empty_decode_count += 1
+                self.dropped_empty_frames += 1
                 self.packet_count += 1
 
             time.sleep(0.01)
@@ -67,11 +67,11 @@ class TestVideoReceiver(unittest.TestCase):
         self.assertEqual(receiver.packet_count, 0)
         self.assertEqual(receiver.decoded_frame_count, 0)
         self.assertEqual(receiver.dropped_old_frames, 0)
-        self.assertEqual(receiver.empty_decode_count, 0)
+        self.assertEqual(receiver.dropped_empty_frames, 0)
         self.assertEqual(receiver.last_log_time, 0.0)
         self.assertEqual(receiver.log_interval, 10.0)
-        self.assertEqual(len(receiver.history), 0)
-        self.assertEqual(receiver.history.maxlen, 100)
+        self.assertEqual(len(receiver.render_history), 0)
+        self.assertEqual(receiver.render_history.maxlen, 100)
         self.assertTrue(hasattr(receiver.running, 'is_set'))
         self.assertTrue(hasattr(receiver.running, 'set'))
         self.assertTrue(hasattr(receiver.running, 'clear'))
@@ -86,13 +86,14 @@ class TestVideoReceiver(unittest.TestCase):
 
         initial_time = time.monotonic()
         receiver._update_frame(test_frame)
+        receiver.get_frame()
 
         with receiver.frame_lock:
             np.testing.assert_array_equal(receiver.frame, test_frame)
 
         self.assertEqual(receiver.decoded_frame_count, 1)
-        self.assertEqual(len(receiver.history), 1)
-        self.assertGreaterEqual(receiver.history[0], initial_time)
+        self.assertEqual(len(receiver.render_history), 1)
+        self.assertGreaterEqual(receiver.render_history[0], initial_time)
 
     def test_update_frame_multiple_calls(self):
         """Test multiple frame updates work correctly."""
@@ -101,9 +102,10 @@ class TestVideoReceiver(unittest.TestCase):
         for i in range(5):
             test_frame = np.full((10, 10, 3), i, dtype=np.uint8)
             receiver._update_frame(test_frame)
+            receiver.get_frame()
 
         self.assertEqual(receiver.decoded_frame_count, 5)
-        self.assertEqual(len(receiver.history), 5)
+        self.assertEqual(len(receiver.render_history), 5)
 
         with receiver.frame_lock:
             np.testing.assert_array_equal(receiver.frame, np.full((10, 10, 3), 4, dtype=np.uint8))
@@ -114,8 +116,9 @@ class TestVideoReceiver(unittest.TestCase):
 
         for i in range(150):
             receiver._update_frame(np.zeros((10, 10, 3), dtype=np.uint8))
+            receiver.get_frame()
 
-        self.assertEqual(len(receiver.history), 100)
+        self.assertEqual(len(receiver.render_history), 100)
         self.assertEqual(receiver.decoded_frame_count, 150)
 
     def test_successful_run_lifecycle(self):
@@ -228,7 +231,7 @@ class TestVideoReceiver(unittest.TestCase):
             receiver.log_interval = 0.01
             receiver.packet_count = 10
             receiver.decoded_frame_count = 7
-            receiver.empty_decode_count = 2
+            receiver.dropped_empty_frames = 2
             receiver.dropped_old_frames = 1
             receiver.last_log_time = time.monotonic() - 0.02
 
@@ -241,7 +244,7 @@ class TestVideoReceiver(unittest.TestCase):
 
             self.assertEqual(receiver.packet_count, 0)
             self.assertEqual(receiver.decoded_frame_count, 0)
-            self.assertEqual(receiver.empty_decode_count, 0)
+            self.assertEqual(receiver.dropped_empty_frames, 0)
             self.assertEqual(receiver.dropped_old_frames, 0)
 
     def test_log_stats_interval_not_reached(self):
@@ -262,7 +265,7 @@ class TestVideoReceiver(unittest.TestCase):
             receiver.log_interval = 0.01
             receiver.packet_count = 100
             receiver.decoded_frame_count = 70
-            receiver.empty_decode_count = 20
+            receiver.dropped_empty_frames = 20
             receiver.dropped_old_frames = 10
             receiver.last_log_time = time.monotonic() - 0.02
 

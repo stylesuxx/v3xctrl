@@ -88,7 +88,7 @@ class VideoReceiverPyAV(VideoReceiver):
                                 self.packet_count += 1
 
                                 if self._should_drop_packet_by_age(packet, stream):
-                                    self.empty_decode_count += 1
+                                    self.dropped_old_frames += 1
                                     continue
 
                                 decoded_frames = list(packet.decode())
@@ -97,7 +97,7 @@ class VideoReceiverPyAV(VideoReceiver):
                                         rgb_frame = frame.to_ndarray(format="rgb24")
                                         self._update_frame(rgb_frame)
                                 else:
-                                    self.empty_decode_count += 1
+                                    self.dropped_empty_frames += 1
 
                                 self._log_stats_if_needed()
 
@@ -175,7 +175,6 @@ a=recvonly
         time_base = stream.time_base
         time_diff = (self.latest_packet_pts - packet.pts) * time_base
         if time_diff >= self.max_age_seconds:
-            self.dropped_old_frames += 1
             return True
 
         if packet.pts > self.latest_packet_pts:

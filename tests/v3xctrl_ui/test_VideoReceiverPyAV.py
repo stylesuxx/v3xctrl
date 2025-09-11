@@ -187,10 +187,7 @@ class TestVideoReceiverPyAVPacketDropping(unittest.TestCase):
         packet.pts = 45000  # 0.5 seconds - exactly at threshold (might be dropped)
 
         result = self.receiver._should_drop_packet_by_age(packet, self.mock_stream)
-
-        # This should be dropped as pts_diff = (90000 - 45000) * (1/90000) = 0.5 seconds
         self.assertTrue(result)
-        self.assertEqual(self.receiver.dropped_old_frames, 1)
 
     def test_should_drop_packet_very_old_packet(self):
         self.receiver.latest_packet_pts = 90000  # 1 second
@@ -199,9 +196,7 @@ class TestVideoReceiverPyAVPacketDropping(unittest.TestCase):
         packet.pts = 0  # Very old packet
 
         result = self.receiver._should_drop_packet_by_age(packet, self.mock_stream)
-
         self.assertTrue(result)
-        self.assertEqual(self.receiver.dropped_old_frames, 1)
 
 
 class TestVideoReceiverPyAVMainLoop(unittest.TestCase):
@@ -324,7 +319,7 @@ class TestVideoReceiverPyAVMainLoop(unittest.TestCase):
             with patch.object(self.receiver, '_log_stats_if_needed'):
                 self.receiver._main_loop()
 
-                self.assertEqual(self.receiver.empty_decode_count, 1)
+                self.assertEqual(self.receiver.dropped_empty_frames, 1)
 
     def test_main_loop_unexpected_error_handling(self):
         mock_container = Mock()
