@@ -74,6 +74,6 @@
   },
   "extras": {
       "samba": false,
-      "logLevel": "DEBUG"
+      "logLevel": "ERROR"
   }
 }
