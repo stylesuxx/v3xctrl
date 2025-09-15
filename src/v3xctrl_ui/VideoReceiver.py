@@ -3,7 +3,7 @@ from collections import deque
 import logging
 import threading
 import time
-from typing import Callable, Optional
+from typing import Callable, Deque, Optional
 
 import numpy as np
 import numpy.typing as npt
@@ -64,18 +64,27 @@ class VideoReceiver(ABC, threading.Thread):
     3. It arrived in a burst
     """
 
-    def __init__(self, port: int, error_callback: Callable[[], None]) -> None:
+    def __init__(
+        self,
+        port: int,
+        error_callback: Callable[[], None],
+        log_interval: int = 10,
+        history_size: int = 100,
+        max_frame_age_ms: int = 500
+    ) -> None:
         super().__init__()
 
         self.port = port
         self.error_callback = error_callback
+        self.log_interval = log_interval
+        self.max_age_seconds = max_frame_age_ms / 1000
 
         self.running = threading.Event()
         self.frame_lock = threading.Lock()
         self.frame: Optional[npt.NDArray[np.uint8]] = None
 
         # Frame monitoring
-        self.render_history: deque[float] = deque(maxlen=100)
+        self.render_history: Deque[float] = deque(maxlen=history_size)
 
         self.packet_count = 0
         self.decoded_frame_count = 0
@@ -86,7 +95,6 @@ class VideoReceiver(ABC, threading.Thread):
         self.dropped_burst_frames = 0
 
         self.last_log_time = 0.0
-        self.log_interval = 10.0
         self.frame_fetched = False
 
     @abstractmethod
@@ -106,6 +114,9 @@ class VideoReceiver(ABC, threading.Thread):
 
     def stop(self) -> None:
         """Stop the receiver thread."""
+        if not self.running.is_set():
+            return
+
         self.running.clear()
         if self.is_alive():
             self.join(timeout=5.0)

@@ -25,15 +25,27 @@ class VideoReceiverPyAV(VideoReceiver):
           drop them if they are older than a given threshold.
     """
 
-    def __init__(self, port: int, error_callback: Callable[[], None]) -> None:
-        super().__init__(port, error_callback)
+    def __init__(
+        self,
+        port: int,
+        error_callback: Callable[[], None],
+        log_interval: int = 10,
+        history_size: int = 100,
+        max_frame_age_ms: int = 500
+    ) -> None:
+        super().__init__(
+            port,
+            error_callback,
+            log_interval,
+            history_size,
+            max_frame_age_ms
+        )
 
-        self.sdp_path = Path(tempfile.gettempdir()) / f"rtp_{self.port}.sdp"
         self.container = None
+        self.sdp_path = Path(tempfile.gettempdir()) / f"rtp_{self.port}.sdp"
         self.container_lock = threading.Lock()
         self.thread_count = str(min(os.cpu_count() or 1, 4))
 
-        self.max_age_seconds = 0.5
         self.latest_packet_pts = None
 
         self.container_options = {

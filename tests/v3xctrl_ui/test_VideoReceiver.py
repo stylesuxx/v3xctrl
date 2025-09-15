@@ -193,7 +193,7 @@ class TestVideoReceiver(unittest.TestCase):
         receiver.stop()
 
         self.assertFalse(receiver.running.is_set())
-        self.assertTrue(receiver.cleanup_called)
+        self.assertFalse(receiver.cleanup_called)
 
     def test_stop_timeout_handling(self):
         """Test stop() respects timeout when thread doesn't join."""
