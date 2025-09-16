@@ -20,7 +20,7 @@ class TestTelemetry(unittest.TestCase):
         tel._lock = threading.Lock()
         tel.telemetry = {"cell": {"band": 1}}
         tel._set_cell_unknown()
-        self.assertEqual(tel.telemetry["cell"]["band"], 0)
+        self.assertEqual(tel.telemetry["cell"]["band"], "?")
 
     def test_update_signal_success(self):
         tel = Telemetry.__new__(Telemetry)
