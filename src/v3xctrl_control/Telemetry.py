@@ -17,7 +17,7 @@ from v3xctrl_telemetry import Battery
 class Telemetry(threading.Thread):
     def __init__(
         self,
-        modem: str,
+        modem_path: str,
         battery_min_voltage: int = 3500,
         battery_max_voltage: int = 4200,
         battery_warn_voltage: int = 3700,
@@ -26,6 +26,7 @@ class Telemetry(threading.Thread):
     ) -> None:
         super().__init__(daemon=True)
 
+        self._modem_path = modem_path
         self._interval = interval
         self.telemetry: Dict[str, Any] = {
             'sig': {
@@ -52,12 +53,7 @@ class Telemetry(threading.Thread):
         self._lock = threading.Lock()
 
         self._modem: Optional[AIR780EU] = None
-        try:
-            self._modem = AIR780EU(modem)
-            if not self._modem:
-                logging.warning("Modem unavailable; telemetry will contain placeholders.")
-        except Exception as e:
-            logging.error("Failed to initialize modem: %s", e)
+        self._init_modem()
 
         self._battery = None
         try:
@@ -68,7 +64,22 @@ class Telemetry(threading.Thread):
                 battery_i2c_address
             )
         except Exception as e:
-            logging.error("Failed to initialize battery sensor: %s", e)
+            logging.warning("Failed to initialize battery sensor: %s", e)
+
+    def _init_modem(self) -> bool:
+        try:
+            self._modem = AIR780EU(self._modem_path)
+            if not self._modem:
+                logging.warning("Modem unavailable...")
+                self._modem = None
+                return False
+
+            return True
+
+        except Exception as e:
+            logging.warning("Failed to initialize modem: %s", e)
+            self._modem = None
+            return False
 
     def _set_signal_unknown(self) -> None:
         with self._lock:
@@ -77,9 +88,12 @@ class Telemetry(threading.Thread):
 
     def _set_cell_unknown(self) -> None:
         with self._lock:
-            self.telemetry['cell']['band'] = 0
+            self.telemetry['cell']['band'] = "?"
 
     def _update_signal(self) -> None:
+        if not self._modem:
+            self._init_modem()
+
         if self._modem:
             try:
                 signal_quality = self._modem.get_signal_quality()
@@ -89,9 +103,13 @@ class Telemetry(threading.Thread):
             except Exception as e:
                 self._set_signal_unknown()
 
-                logging.error("Failed fetching signal information: %s", e)
+                logging.warning("Failed fetching signal information: %s", e)
+                self._modem = None
 
     def _update_cell(self) -> None:
+        if not self._modem:
+            self._init_modem()
+
         if self._modem:
             try:
                 band = self._modem.get_active_band()
@@ -100,7 +118,8 @@ class Telemetry(threading.Thread):
             except Exception as e:
                 self._set_cell_unknown()
 
-                logging.error("Failed fetching cell information: %s", e)
+                logging.warning("Failed fetching cell information: %s", e)
+                self._modem = None
 
     def _update_battery(self) -> None:
         if self._battery:
@@ -114,13 +133,8 @@ class Telemetry(threading.Thread):
     def run(self) -> None:
         self._running.set()
         while self._running.is_set():
-            try:
-                if self._modem:
-                    self._update_signal()
-                    self._update_cell()
-            except Exception as e:
-                logging.error("Telemetry loop error: %s", e)
-
+            self._update_signal()
+            self._update_cell()
             self._update_battery()
 
             time.sleep(self._interval)

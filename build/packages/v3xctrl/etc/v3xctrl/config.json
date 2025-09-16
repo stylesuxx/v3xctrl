@@ -21,7 +21,7 @@
     },
     "modem": {
       "model": "generic",
-      "path": "/dev/ttyACM0",
+      "path": "/dev/eigencomm-at",
       "limitBands": false,
       "allowedBands": [1, 3, 5, 7, 8, 20, 28, 34, 38, 39, 40, 41]
     }

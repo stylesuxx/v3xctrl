@@ -1,0 +1,1 @@
+SUBSYSTEM=="tty", ATTRS{idVendor}=="19d1", ATTRS{idProduct}=="0001", ENV{ID_USB_INTERFACE_NUM}=="02", SYMLINK+="eigencomm-at"
