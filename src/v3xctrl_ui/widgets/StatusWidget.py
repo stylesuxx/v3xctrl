@@ -25,6 +25,8 @@ class StatusWidget(Widget):
         label: str,
         padding: int = 8
     ) -> None:
+        super().__init__()
+
         self.position = position
         self.size = size
         self.label = label
@@ -48,8 +50,6 @@ class StatusWidget(Widget):
 
         self.surface = Surface((self.width, self.height), SRCALPHA)
         self.square_rect = Rect(0, square_y, self.size, self.size)
-
-        super().__init__()
 
     def draw(self, screen: Surface, status: str) -> None:
         self.color = self.STATUS_COLORS.get(status, self.STATUS_COLORS["default"])

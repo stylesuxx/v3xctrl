@@ -2,7 +2,7 @@ from collections import deque
 import logging
 import pygame
 import time
-from typing import Optional
+from typing import Optional, Tuple
 
 from v3xctrl_control.message import Message, Latency, Telemetry
 from v3xctrl_ui.colors import RED, WHITE
@@ -13,6 +13,7 @@ from v3xctrl_ui.helpers import (
 )
 from v3xctrl_ui.Settings import Settings
 from v3xctrl_ui.widgets import (
+    Widget,
     Alignment,
     FpsWidget,
     HorizontalIndicatorWidget,
@@ -51,7 +52,6 @@ class OSD:
         self.battery_average_voltage: str = "0.00V"
         self.battery_percent: str = "100%"
         self._init_widgets_battery()
-        self.battery_base_position = self.widgets_battery["battery_voltage"].position
 
         self.widgets_steering = {}
         self.throttle: float = 0.0
@@ -109,32 +109,122 @@ class OSD:
         self.video_history = video_history
 
         for name, widget in self.widgets.items():
-            display = self.widget_settings.get(name, {"display": True}).get("display")
-            if display:
+            settings = self.widget_settings.get(name, {
+                "align": None,
+                "offset": (0, 0),
+                "display": False
+            })
+            if settings.get("display"):
+                align = settings.get("align")
+                offset = settings.get("offset", (0, 0))
+                position = self._get_position(align, widget, offset)
+
+                widget.position = position
                 widget.draw(screen, getattr(self, name))
 
+        # Battery information widget
         index = 0
+        align = self.widget_settings.get('battery', {"align": None}).get("align")
+        offset = self.widget_settings.get('battery', {"offset": (0, 0)}).get("offset")
         for name, widget in self.widgets_battery.items():
             display = self.widget_settings.get(name, {"display": True}).get("display")
+
             if display:
-                widget.position = (self.battery_base_position[0], self.battery_base_position[1] + 18 * index)
+                position = self._get_position(align, widget, offset)
+                widget.position = (
+                    position[0],
+                    position[1] + 18 * index
+                )
                 widget.draw(screen, getattr(self, name))
 
                 index += 1
 
-        signal = self.widget_settings.get("signal", {"display": False}).get("display")
-        if signal:
+        # Signal information widget
+        settings = self.widget_settings.get('signal', {
+            "align": None,
+            "offset": (0, 0),
+            "padding": 5,
+            "display": False
+        })
+        if settings.get("display"):
+            align = settings.get("align")
+            offset = settings.get("offset", (0, 0))
+            padding = settings.get("padding", 0)
+            height = 0
             for name, widget in self.widgets_signal.items():
                 display = self.widget_settings.get(name, {"display": True}).get("display")
                 if display:
+                    position = self._get_position(align, widget, offset)
+                    widget.position = (
+                        position[0],
+                        position[1] + height
+                    )
                     widget.draw(screen, getattr(self, name))
+                    height += widget.height + padding
 
-        debug = self.widget_settings.get("debug", {"display": False}).get("display")
-        if debug:
+        # Debug widgets
+        settings = self.widget_settings.get('debug', {
+            "align": None,
+            "offset": (0, 0),
+            "padding": 5,
+            "display": False
+        })
+        if settings.get("display"):
+            align = settings.get("align")
+            offset = settings.get("offset", (0, 0))
+            padding = settings.get("padding", 0)
+            height = 0
             for name, widget in self.widgets_debug.items():
                 display = self.widget_settings.get(name, {"display": True}).get("display")
                 if display:
+                    position = self._get_position(align, widget, offset)
+                    widget.position = (
+                        position[0],
+                        position[1] + height
+                    )
                     widget.draw(screen, getattr(self, name))
+                    height += widget.height + padding
+
+    def _get_position(
+        self,
+        alignment: str,
+        widget: Widget,
+        offset: Tuple[int, int] = (0, 0)
+    ) -> Tuple[int, int]:
+        """
+        Offset is always relative to the alignment, so if the alignment is
+        top-left the offset is from (top, left), bottom-right is (bottom, right)
+        """
+        width, height = pygame.display.get_window_size()
+
+        if alignment == "top-left":
+            return offset
+
+        elif alignment == "top-right":
+            position = (width, 0)
+            position = (position[0] - offset[1] - widget.width, position[1] + offset[0])
+
+            return position
+
+        elif alignment == "bottom-left":
+            position = (0, height)
+            position = (position[0] + offset[1], position[1] - offset[0] - widget.height)
+
+            return position
+
+        elif alignment == "bottom-right":
+            position = (width, height)
+            position = (position[0] - offset[1] - widget.width, position[1] - offset[0] - widget.height)
+
+            return position
+
+        elif alignment == "bottom-center":
+            position = (width // 2, height)
+            position = (position[0] - offset[1] - (widget.width // 2), position[1] - offset[0] - widget.height)
+
+            return position
+
+        return (0, 0)
 
     def reset(self) -> None:
         self.debug_data = "waiting"
@@ -151,9 +241,10 @@ class OSD:
         self.steering = 0.0
 
     def _init_widgets_steering(self) -> None:
+        # Positions will be set during render
 
         steering_widget = HorizontalIndicatorWidget(
-            pos=(self.width // 2 - 200 - 6, self.height - 30 - 6),
+            position=(0, 0),
             size=(412, 22),
             bar_size=(20, 10),
             range_mode="symmetric",
@@ -161,7 +252,7 @@ class OSD:
         )
 
         throttle_widget = VerticalIndicatorWidget(
-            pos=(14, self.height - 200 - 20 - 6),
+            position=(0, 0),
             size=(32, 212),
             bar_width=20,
             range_mode="symmetric",
@@ -172,11 +263,12 @@ class OSD:
         self.widgets_steering["throttle"] = throttle_widget
 
     def _init_widgets_battery(self) -> None:
-        x, y = self.widget_settings["battery"]["position"]
+        # Position will be updated during rendering
+        position = (0, 0)
 
-        battery_voltage_widget = TextWidget((x, y), 70)
-        battery_average_voltage_widget = TextWidget((x, y), 70)
-        battery_percent_widget = TextWidget((x, y), 70)
+        battery_voltage_widget = TextWidget(position, 70)
+        battery_average_voltage_widget = TextWidget(position, 70)
+        battery_percent_widget = TextWidget(position, 70)
 
         battery_voltage_widget.set_alignment(Alignment.RIGHT)
         battery_average_voltage_widget.set_alignment(Alignment.RIGHT)
@@ -189,13 +281,11 @@ class OSD:
         }
 
     def _init_widgets_signal(self) -> None:
-        x, y = self.widget_settings["signal"]["position"]
-        padding = self.widget_settings["signal"]["padding"]
+        # Position will be updated during rendering
+        position = (0, 0)
 
-        signal_quality_widget = SignalQualityWidget((x, y), (70, 50))
-        y += signal_quality_widget.height + padding
-
-        signal_band_widget = TextWidget((x, y), 70)
+        signal_quality_widget = SignalQualityWidget(position, (70, 50))
+        signal_band_widget = TextWidget(position, 70)
 
         self.widgets_signal = {
             "signal_quality": signal_quality_widget,
@@ -203,21 +293,16 @@ class OSD:
         }
 
     def _init_widgets_debug(self) -> None:
+        # Position will be updated during rendering
+        position = (0, 0)
+
         width = self.widget_settings["fps"].get("width")
         height = self.widget_settings["fps"].get("height")
-        x, y = self.widget_settings["debug"]["position"]
-        padding = self.widget_settings["debug"]["padding"]
 
-        debug_fps_loop_widget = FpsWidget((x, y), (width, height), "Loop")
-        y += debug_fps_loop_widget.height + padding
-
-        debug_fps_video_widget = FpsWidget((x, y), (width, height), "Video")
-        y += debug_fps_video_widget.height + padding
-
-        debug_data_widget = StatusValueWidget((x, y), 26, "Data")
-        y += debug_data_widget.height + padding
-
-        debug_latency_widget = StatusValueWidget((x, y), 26, "Latency")
+        debug_fps_loop_widget = FpsWidget(position, (width, height), "Loop")
+        debug_fps_video_widget = FpsWidget(position, (width, height), "Video")
+        debug_data_widget = StatusValueWidget(position, 26, "Data")
+        debug_latency_widget = StatusValueWidget(position, 26, "Latency")
 
         self.widgets_debug = {
           "debug_fps_loop": debug_fps_loop_widget,

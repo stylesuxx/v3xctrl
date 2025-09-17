@@ -34,8 +34,13 @@ class AppState:
         self.video_port = video_port
         self.control_port = control_port
 
-        # Initialize settings
         self.settings = settings
+
+        self.scale = 1
+        self.fullscreen = self.settings.get(
+            "video",
+            {"fullscreen": False}
+        ).get("fullscreen", False)
 
         self.input_manager = InputManager(settings)
 
@@ -62,6 +67,8 @@ class AppState:
         self.running = True
 
         self.screen, self.clock = Init.ui(self.size, self.title)
+        if self.fullscreen:
+            self._update_screen_size()
 
         self.throttle: float = 0
         self.steering: float = 0
@@ -84,8 +91,12 @@ class AppState:
 
         self.settings = settings
 
-        self.input_manager.update_settings(settings)
         self._update_timing_settings()
+
+        self.fullscreen = self.settings.get("video", {"fullscreen": False}).get("fullscreen")
+        self._update_screen_size()
+
+        self.input_manager.update_settings(settings)
         self.osd.update_settings(settings)
         self.renderer.settings = settings
 
@@ -118,18 +129,26 @@ class AppState:
                 self.running = False
                 return False
 
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                if self.menu is None:
-                    self.menu = Menu(
-                        self.size[0],
-                        self.size[1],
-                        self.input_manager.gamepad_manager,
-                        self.settings,
-                        self.update_settings,
-                        self.network_manager.server
-                    )
-                else:
-                    self.menu = None
+            elif event.type == pygame.KEYDOWN:
+
+                # [ESC] - Toggle Menu
+                if event.key == pygame.K_ESCAPE:
+                    if self.menu is None:
+                        self.menu = Menu(
+                            self.screen.get_size()[0],
+                            self.screen.get_size()[1],
+                            self.input_manager.gamepad_manager,
+                            self.settings,
+                            self.update_settings,
+                            self.network_manager.server
+                        )
+                    else:
+                        self.menu = None
+
+                # [F11] - Toggle Fullscreen
+                elif event.key == pygame.K_F11:
+                    self.fullscreen = not self.fullscreen
+                    self._update_screen_size()
 
             elif self.menu is not None:
                 self.menu.handle_event(event)
@@ -146,14 +165,42 @@ class AppState:
         self.osd.update_data_queue(data_left)
         self.osd.set_control(self.throttle, self.steering)
 
-        # Pass network state to renderer
-        self.renderer.render_all(self, self.network_manager)
+        self.renderer.render_all(
+            self,
+            self.network_manager,
+            self.fullscreen,
+            self.scale
+        )
 
     def shutdown(self) -> None:
         self.input_manager.shutdown()
         self.network_manager.shutdown()
 
         pygame.quit()
+
+    def _update_screen_size(self) -> None:
+        if self.fullscreen:
+            # SCALED is important here, this makes it a resizable, borderless
+            # window instead of "just" the legacy FULLSCREEN mode which causes
+            # a bunch of complications.
+            flags = pygame.DOUBLEBUF | pygame.FULLSCREEN | pygame.SCALED
+
+            # Get biggest resolution for the active display
+            modes = pygame.display.list_modes()
+            size = modes[0]
+            width, height = size
+
+            self.screen = pygame.display.set_mode(size, flags)
+
+            # Calculate scale factor
+            scale_x = width / self.size[0]
+            scale_y = height / self.size[1]
+            self.scale = min(scale_x, scale_y)
+        else:
+            flags = pygame.DOUBLEBUF | pygame.SCALED
+            self.screen = pygame.display.set_mode(self.size, flags)
+
+            self.scale = 1
 
     def _create_osd_handlers(self) -> Dict[str, Any]:
         """Create message and state handlers for the network manager."""

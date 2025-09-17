@@ -1,5 +1,10 @@
+import os
+os.environ["SDL_VIDEODRIVER"] = "dummy"
+
 import unittest
 from unittest.mock import MagicMock, patch
+
+import pygame
 
 from src.v3xctrl_ui.AppState import AppState
 
@@ -36,6 +41,10 @@ class TestAppState(unittest.TestCase):
         mock_network.get_data_queue_size.return_value = 0
         mock_network_cls.return_value = mock_network
 
+        fake_screen = MagicMock()
+        fake_screen.get_size.return_value = (800, 600)
+        mock_ui.return_value = (fake_screen, MagicMock())
+
         app = AppState(
             (800, 600),
             "Test",
@@ -63,11 +72,14 @@ class TestAppState(unittest.TestCase):
         self.assertEqual(args[2], self.settings)
         self.assertIsNotNone(args[3])
 
-    def test_update_settings_updates_all_components(self, mock_signal, mock_network_cls,
-                                                   mock_renderer_cls, mock_osd_cls,
-                                                   mock_input_cls, mock_ui):
+    @patch("src.v3xctrl_ui.AppState.pygame.display.set_mode", return_value=pygame.Surface((800,600)))
+    def test_update_settings_updates_all_components(
+        self, mock_set_mode, mock_signal, mock_network_cls,
+        mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_ui
+    ):
         app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
-            mock_signal, mock_network_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_ui)
+            mock_signal, mock_network_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_ui
+        )
 
         new_settings = MagicMock()
         new_settings.get.side_effect = lambda key, default=None: {
@@ -173,7 +185,7 @@ class TestAppState(unittest.TestCase):
 
         mock_osd.update_data_queue.assert_called_with(5)
         mock_osd.set_control.assert_called_with(app.throttle, app.steering)
-        mock_renderer.render_all.assert_called_with(app, mock_network)
+        mock_renderer.render_all.assert_called_with(app, mock_network, False, 1)
 
     def test_render_handles_server_error(self, mock_signal, mock_network_cls,
                                         mock_renderer_cls, mock_osd_cls,

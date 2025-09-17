@@ -4,7 +4,7 @@ import time
 from pathlib import Path
 
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pygame
 
@@ -70,14 +70,16 @@ class TestOSD(unittest.TestCase):
         self.assertEqual(self.osd.signal_band, "Band 3")
         self.assertEqual(self.osd.battery_percent, "75%")
 
-    def test_render_executes(self):
+    @patch("v3xctrl_ui.OSD.pygame.display.get_window_size", return_value=(800, 600))
+    def test_render_executes(self, mock_get_size):
         self.osd.render(
             self.screen,
             loop_history=deque([time.time() - 0.1 for _ in range(5)]),
             video_history=deque([time.time() - 0.1 for _ in range(5)])
         )
 
-    def test_render_draws_widgets(self):
+    @patch("v3xctrl_ui.OSD.pygame.display.get_window_size", return_value=(800, 600))
+    def test_render_draws_widgets(self, mock_get_size):
         self.osd.widget_settings["steering"] = {"display": True}
         self.osd.widget_settings["throttle"] = {"display": True}
         self.osd.widgets["steering"].draw = MagicMock()
@@ -92,7 +94,8 @@ class TestOSD(unittest.TestCase):
         self.osd.widgets["steering"].draw.assert_called()
         self.osd.widgets["throttle"].draw.assert_called()
 
-    def test_render_draws_debug(self):
+    @patch("v3xctrl_ui.OSD.pygame.display.get_window_size", return_value=(800, 600))
+    def test_render_draws_debug(self, mock_get_size):
         self.osd.widget_settings["debug"] = {"display": True}
         for key in self.osd.widgets_debug:
             self.osd.widget_settings[key] = {"display": True}

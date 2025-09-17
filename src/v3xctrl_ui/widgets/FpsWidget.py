@@ -16,6 +16,8 @@ class FpsWidget(Widget):
         size: Tuple[int, int],
         label: str
     ) -> None:
+        super().__init__()
+
         self.position = position
 
         self.size = size
@@ -39,8 +41,6 @@ class FpsWidget(Widget):
 
         self.graph_top = int(self.height * 0.5)
         self.graph_height = self.height - self.graph_top
-
-        super().__init__()
 
     def draw(self, screen: Surface, fps: float) -> None:
         self.history.append(fps)
