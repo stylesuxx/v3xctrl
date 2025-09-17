@@ -24,14 +24,25 @@ class Renderer:
         self.video_surface = pygame.Surface(self.video_size)
         self.last_frame_id = None
 
+        self.fullscreen = False
+        self.scale = 1.0
+        self.center_x = 0
+        self.center_y = 0
+
     def render_all(
         self,
         state: 'AppState',
-        network_manager: NetworkManager
+        network_manager: NetworkManager,
+        fullscreen: bool = False,
+        scale: float = 1.0,
     ) -> None:
-        """Render the complete frame."""
-        frame = self._get_video_frame(network_manager)
+        self.fullscreen = fullscreen
+        self.scale = scale
 
+        self.center_x = pygame.display.get_window_size()[0] // 2
+        self.center_y = pygame.display.get_window_size()[1] // 2
+
+        frame = self._get_video_frame(network_manager)
         if frame is not None:
             self._render_video_frame(state.screen, frame)
         else:
@@ -58,7 +69,22 @@ class Renderer:
             pygame.surfarray.blit_array(self.video_surface, frame.swapaxes(0, 1))
             self.last_frame_id = current_frame_id
 
-        screen.blit(self.video_surface, (0, 0))
+        x, y = (0, 0)
+        surface = self.video_surface
+
+        if self.fullscreen:
+            screen.fill((0, 0, 0))
+            original_size = self.video_surface.get_size()
+            width = int(original_size[0] * self.scale)
+            height = int(original_size[1] * self.scale)
+
+            surface = pygame.transform.scale(surface, (width, height))
+
+            # Calculate position to center the scaled video
+            x = self.center_x - width // 2
+            y = self.center_y - height // 2
+
+        screen.blit(surface, (x, y))
 
     def _render_no_signal(self, screen: pygame.Surface, relay_status_message: str) -> None:
         """Render the no signal screen with connection info."""
@@ -66,14 +92,14 @@ class Renderer:
 
         # Main "No Signal" text
         surface, rect = BOLD_32_MONO_FONT.render("No Signal", RED)
-        rect.center = (self.video_width // 2, self.video_height // 2 - 40)
+        rect.center = (self.center_x, self.center_y - 40)
         screen.blit(surface, rect)
 
         relay = self.settings.get("relay", {})
         if relay.get("enabled", False):
             # Show relay status
             surface, rect = BOLD_32_MONO_FONT.render(relay_status_message, RED)
-            rect.center = (self.video_width // 2, self.video_height // 2 + 10)
+            rect.center = (self.center_x, self.center_y + 10)
             screen.blit(surface, rect)
         else:
             # Show connection info
@@ -88,9 +114,9 @@ class Renderer:
             ("Control", str(ports['control'])),
         ]
 
-        key_x = self.video_width // 2 - 140
-        val_x = self.video_width // 2 - 10
-        base_y = self.video_height // 2 + 10
+        key_x = self.center_x - 140
+        val_x = self.center_x - 10
+        base_y = self.center_y + 10
         line_height = 36
 
         for i, (key, val) in enumerate(info_data):

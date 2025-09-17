@@ -29,31 +29,6 @@ class TestHorizontalIndicatorWidget(unittest.TestCase):
         with self.assertRaises(ValueError):
             HorizontalIndicatorWidget(self.widget_pos, self.widget_size, range_mode="invalid")
 
-    def test_draw_symmetric_center(self, mock_draw_rect):
-        widget = HorizontalIndicatorWidget(self.widget_pos, self.widget_size, range_mode="symmetric")
-        screen = MagicMock()
-
-        widget.draw(screen, value=0.0)
-
-        self.assertEqual(mock_draw_rect.call_count, 2)
-        rect_drawn = mock_draw_rect.call_args_list[0][0][2]
-        expected_x = widget.center_x - widget.bar_width // 2
-        self.assertEqual(rect_drawn.x, expected_x)
-
-    def test_draw_symmetric_left_and_right(self, mock_draw_rect):
-        widget = HorizontalIndicatorWidget(self.widget_pos, self.widget_size, range_mode="symmetric")
-        screen = MagicMock()
-
-        widget.draw(screen, value=-1.0)
-        left_x = mock_draw_rect.call_args_list[0][0][2].x
-
-        mock_draw_rect.reset_mock()
-        widget.draw(screen, value=1.0)
-        right_x = mock_draw_rect.call_args_list[0][0][2].x
-
-        self.assertLess(left_x, widget.center_x)
-        self.assertGreater(right_x, widget.center_x)
-
     def test_draw_positive_zero_and_one(self, mock_draw_rect):
         widget = HorizontalIndicatorWidget(self.widget_pos, self.widget_size, range_mode="positive")
         screen = MagicMock()

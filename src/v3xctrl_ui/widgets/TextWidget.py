@@ -24,6 +24,8 @@ class TextWidget(Widget):
         left_padding: int = 4,
         right_padding: int = 4
     ) -> None:
+        super().__init__()
+
         self.position = position
         self.length = length
         self.top_padding = top_padding
@@ -45,8 +47,6 @@ class TextWidget(Widget):
 
         self.width = length
         self.height = self.top_padding + self.bottom_padding + self.font.height
-
-        super().__init__()
 
     def set_alignment(self, align: Alignment) -> None:
         self.alignment = align

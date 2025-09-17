@@ -28,6 +28,7 @@ class GeneralTab(Tab):
 
         self.ports = self.settings.get("ports", {})
         self.relay = self.settings.get("relay", {})
+        self.video = self.settings.get("video", {})
         self.udp_packet_ttl = self.settings.get("udp_packet_ttl", 100)
 
         # Port widgets
@@ -71,6 +72,12 @@ class GeneralTab(Tab):
         )
         self.udp_packet_ttl_input.value = str(self.udp_packet_ttl)
 
+        self.fullscreen_enabled_checkbox = Checkbox(
+            label="Fullscreen", font=LABEL_FONT,
+            checked=self.video.get("fullscreen", False),
+            on_change=self._on_fullscreen_enable_change
+        )
+
         self.port_widgets: List[BaseInput] = [
             self.video_input,
             self.control_input
@@ -80,8 +87,9 @@ class GeneralTab(Tab):
             self.relay_id_input,
             self.relay_enabled_checkbox
         ]
-        self.misc_widgets: List[BaseInput] = [
-            self.udp_packet_ttl_input
+        self.misc_widgets: List[BaseInput | BaseWidget] = [
+            self.udp_packet_ttl_input,
+            self.fullscreen_enabled_checkbox,
         ]
 
         self.elements = self.port_widgets + self.relay_widgets + self.misc_widgets
@@ -96,7 +104,8 @@ class GeneralTab(Tab):
         return {
             "udp_packet_ttl": self.udp_packet_ttl,
             "ports": self.ports,
-            "relay": self.relay
+            "relay": self.relay,
+            "video": self.video,
         }
 
     def _on_port_change(self, name: str, value: str) -> None:
@@ -107,6 +116,9 @@ class GeneralTab(Tab):
 
     def _on_relay_enable_change(self, value: bool) -> None:
         self.relay["enabled"] = value
+
+    def _on_fullscreen_enable_change(self, value: bool) -> None:
+        self.video["fullscreen"] = value
 
     def _on_relay_server_change(self, value: str) -> None:
         self.relay["server"] = value
@@ -163,7 +175,10 @@ class GeneralTab(Tab):
         y += self.y_offset_headline
         self.udp_packet_ttl_input.set_position(self.padding, y)
         self.udp_packet_ttl_input.draw(surface)
-
         y += self.udp_packet_ttl_input.get_size()[1]
+
+        self.fullscreen_enabled_checkbox.set_position(self.padding, y)
+        self.fullscreen_enabled_checkbox.draw(surface)
+        y += self.fullscreen_enabled_checkbox.get_size()[1]
 
         return y
