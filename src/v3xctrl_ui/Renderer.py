@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 
 import numpy as np
 import numpy.typing as npt
@@ -87,47 +87,99 @@ class Renderer:
         screen.blit(surface, (x, y))
 
     def _render_no_signal(self, screen: pygame.Surface, relay_status_message: str) -> None:
-        """Render the no signal screen with connection info."""
+        """
+        Render connection information depending on connection and signal states
+
+        Technically we can be in one of 2 connection states:
+        * direct
+        * relay
+
+        Ans in one of four signal states:
+        * Control and Video missing
+        * Control missing
+        * Video missing
+        * Fully connected
+        """
         screen.fill(BLACK)
 
         # Main "No Signal" text
-        surface, rect = BOLD_32_MONO_FONT.render("No Signal", RED)
+        surface, rect = BOLD_32_MONO_FONT.render("No Video Signal", RED)
         rect.center = (self.center_x, self.center_y - 40)
         screen.blit(surface, rect)
 
-        relay = self.settings.get("relay", {})
-        if relay.get("enabled", False):
-            # Show relay status
-            surface, rect = BOLD_32_MONO_FONT.render(relay_status_message, RED)
-            rect.center = (self.center_x, self.center_y + 10)
-            screen.blit(surface, rect)
-        else:
-            # Show connection info
-            self._render_connection_info(screen)
+        show_connection_info = self.settings.get("show_connection_info", False)
+        if show_connection_info:
+            relay = self.settings.get("relay", {})
+            if relay.get("enabled", False):
+                self._render_relay_connection_info(screen)
+            else:
+                self._render_direct_connection_info(screen)
 
-    def _render_connection_info(self, screen: pygame.Surface) -> None:
+    def _render_relay_connection_info(self, screen: pygame.Surface) -> None:
+        """Video and control ports are fixed with the relay."""
+        relay_settings = self.settings.get("relay")
+        data: List[Tuple[str, Optional[str]]] = [
+            ("STREAMER SETUP", None),
+            ("Mode", "relay"),
+            ("Relay Server", relay_settings.get("server")),
+            ("Session ID", relay_settings.get("id")),
+
+            ("", None),
+            ("Network Ports", None),
+            ("Video", "6666"),
+            ("Control", "6668"),
+        ]
+        self._render_lines(screen, data, 50, self.center_y + 10)
+
+    def _render_direct_connection_info(self, screen: pygame.Surface) -> None:
         """Render IP and port information."""
         ports = self.settings.get("ports")
-        info_data = [
+        data: List[Tuple[str, Optional[str]]] = [
+            ("STREAMER SETUP", None),
+            ("Mode", "direct"),
             ("Host", self.ip),
+
+            ("", None),
+            ("Network Ports", None),
             ("Video", str(ports['video'])),
             ("Control", str(ports['control'])),
         ]
 
-        key_x = self.center_x - 140
-        val_x = self.center_x - 10
-        base_y = self.center_y + 10
+        self._render_lines(screen, data, 50, self.center_y + 10)
+
+    def _render_lines(
+        self,
+        screen: pygame.Surface,
+        data: List[Tuple[str, Optional[str]]],
+        x: int,
+        y: int,
+    ):
+        key_x = x
+        base_y = y
         line_height = 36
 
-        for i, (key, val) in enumerate(info_data):
+        max_label_width = 0
+        for i, (key, val) in enumerate(data):
             y = base_y + i * line_height
-            key_surf, key_rect = BOLD_24_MONO_FONT.render(f"{key}:", WHITE)
+
+            label = f"{key}"
+            if val:
+                label += ":"
+
+            key_surf, key_rect = BOLD_24_MONO_FONT.render(label, WHITE)
             key_rect.topleft = (key_x, y)
             screen.blit(key_surf, key_rect)
 
-            val_surf, val_rect = BOLD_24_MONO_FONT.render(val, WHITE)
-            val_rect.topleft = (val_x, y)
-            screen.blit(val_surf, val_rect)
+            if val and key_rect.width > max_label_width:
+                max_label_width = key_rect.width
+
+        val_x = x + max_label_width + 15
+        for i, (key, val) in enumerate(data):
+            if val:
+                y = base_y + i * line_height
+                val_surf, val_rect = BOLD_24_MONO_FONT.render(val, WHITE)
+                val_rect.topleft = (val_x, y)
+                screen.blit(val_surf, val_rect)
 
     def _render_overlay_data(
         self,

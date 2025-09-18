@@ -34,6 +34,7 @@ class Settings:
         },
         "udp_packet_ttl": 100,
         "debug": True,
+        "show_connection_info": True,
         "timing": {
             "main_loop_fps": 60,
             "control_update_hz": 30,
