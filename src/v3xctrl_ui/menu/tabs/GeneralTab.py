@@ -30,6 +30,7 @@ class GeneralTab(Tab):
         self.relay = self.settings.get("relay", {})
         self.video = self.settings.get("video", {})
         self.udp_packet_ttl = self.settings.get("udp_packet_ttl", 100)
+        self.show_connection_info = self.settings.get("show_connection_info", False)
 
         # Port widgets
         self.video_input = NumberInput(
@@ -78,6 +79,12 @@ class GeneralTab(Tab):
             on_change=self._on_fullscreen_enable_change
         )
 
+        self.show_connection_info_checkbox = Checkbox(
+            label="Show connection info", font=LABEL_FONT,
+            checked=self.show_connection_info,
+            on_change=self._on_show_connection_info_change
+        )
+
         self.port_widgets: List[BaseInput] = [
             self.video_input,
             self.control_input
@@ -90,6 +97,7 @@ class GeneralTab(Tab):
         self.misc_widgets: List[BaseInput | BaseWidget] = [
             self.udp_packet_ttl_input,
             self.fullscreen_enabled_checkbox,
+            self.show_connection_info_checkbox
         ]
 
         self.elements = self.port_widgets + self.relay_widgets + self.misc_widgets
@@ -102,6 +110,7 @@ class GeneralTab(Tab):
 
     def get_settings(self) -> Dict[str, Any]:
         return {
+            "show_connection_info": self.show_connection_info,
             "udp_packet_ttl": self.udp_packet_ttl,
             "ports": self.ports,
             "relay": self.relay,
@@ -116,6 +125,9 @@ class GeneralTab(Tab):
 
     def _on_relay_enable_change(self, value: bool) -> None:
         self.relay["enabled"] = value
+
+    def _on_show_connection_info_change(self, value: bool) -> None:
+        self.show_connection_info = value
 
     def _on_fullscreen_enable_change(self, value: bool) -> None:
         self.video["fullscreen"] = value
@@ -175,10 +187,14 @@ class GeneralTab(Tab):
         y += self.y_offset_headline
         self.udp_packet_ttl_input.set_position(self.padding, y)
         self.udp_packet_ttl_input.draw(surface)
-        y += self.udp_packet_ttl_input.get_size()[1]
+        y += self.udp_packet_ttl_input.get_size()[1] + self.y_element_padding
 
         self.fullscreen_enabled_checkbox.set_position(self.padding, y)
         self.fullscreen_enabled_checkbox.draw(surface)
-        y += self.fullscreen_enabled_checkbox.get_size()[1]
+        y += self.fullscreen_enabled_checkbox.get_size()[1] + self.y_element_padding
+
+        self.show_connection_info_checkbox.set_position(self.padding, y)
+        self.show_connection_info_checkbox.draw(surface)
+        y += self.show_connection_info_checkbox.get_size()[1] + self.y_element_padding
 
         return y
