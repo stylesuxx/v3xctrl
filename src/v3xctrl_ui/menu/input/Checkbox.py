@@ -1,15 +1,12 @@
-import io
-from typing import Callable, Tuple
+from typing import Callable
 
 import pygame
 from pygame import Surface, Rect
 from pygame.freetype import Font
 
-from material_icons import MaterialIcons
-
-from v3xctrl_helper import color_to_hex
 from v3xctrl_ui.colors import MID_GREY, WHITE, DARK_GREY, GAINSBORO
 from v3xctrl_ui.menu.input import BaseWidget
+from v3xctrl_ui.helpers import get_icon
 
 
 class Checkbox(BaseWidget):
@@ -38,13 +35,8 @@ class Checkbox(BaseWidget):
         self.box_rect = Rect(self.x, self.y, self.BOX_SIZE, self.BOX_SIZE)
         self.label_surface, self.label_rect = self.font.render(self.label, self.LABEL_COLOR)
 
-        self.icons = MaterialIcons()
-        icon_color = color_to_hex(self.LABEL_COLOR)
-        checkbox = self.icons.get("circle", color=icon_color)
-        self.checkbox_surface = pygame.image.load(io.BytesIO(checkbox))
-
-        checkbox_checked = self.icons.get("check_circle", color=icon_color)
-        self.checkbox_checked_surface = pygame.image.load(io.BytesIO(checkbox_checked))
+        self.checkbox = get_icon("circle", color=self.LABEL_COLOR)
+        self.checkbox_checked = get_icon("check_circle", color=self.LABEL_COLOR)
 
     def handle_event(self, event: pygame.event.Event) -> bool:
         if self.disabled:
@@ -78,8 +70,8 @@ class Checkbox(BaseWidget):
 
     def _draw(self, surface: Surface) -> None:
         if self.checked:
-            surface.blit(self.checkbox_checked_surface, self.box_rect)
+            surface.blit(self.checkbox_checked, self.box_rect)
         else:
-            surface.blit(self.checkbox_surface, self.box_rect)
+            surface.blit(self.checkbox, self.box_rect)
 
         surface.blit(self.label_surface, self.label_rect)
