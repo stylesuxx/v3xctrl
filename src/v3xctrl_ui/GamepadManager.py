@@ -96,8 +96,8 @@ class GamepadManager(threading.Thread):
     def get_calibrations(self) -> Dict[str, Any]:
         return self._settings
 
-    def get_calibration(self, guid: str) -> Any | None:
-        return self._settings.get(guid)
+    def get_calibration(self, guid: str) -> Dict[str, Any]:
+        return self._settings.get(guid, {})
 
     def set_active(self, guid: str) -> None:
         with self._lock:

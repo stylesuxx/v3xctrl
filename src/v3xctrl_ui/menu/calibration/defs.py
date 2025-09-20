@@ -21,9 +21,15 @@ class AxisCalibrationData:
     axis: Optional[int] = None
     baseline: Optional[List[float]] = None
     detection_frames: int = 0
-    max_values: List[float] = field(default_factory=list)
+
+    max_values: List[float] = field(default_factory=list[float])
+
     max_last: Optional[float] = None
     max_stable: int = 0
+
+    min_last: Optional[float] = None
+    min_stable: int = 0
+
     idle_last: Optional[float] = None
     idle_stable: int = 0
-    idle_samples: List[float] = field(default_factory=list)
+    idle_samples: List[float] = field(default_factory=list[float])

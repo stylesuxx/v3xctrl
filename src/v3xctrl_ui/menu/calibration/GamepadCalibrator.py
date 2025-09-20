@@ -1,7 +1,11 @@
+import logging
+
 from typing import Optional, Callable, List, Dict, Tuple
 
-from v3xctrl_ui.menu.calibration.defs import CalibrationStage, CalibratorState, AxisCalibrationData
 from v3xctrl_ui.menu.DialogBox import DialogBox
+
+from v3xctrl_ui.menu.calibration.defs import CalibrationStage, CalibratorState, AxisCalibrationData
+from v3xctrl_ui.menu.calibration.CalibrationSteps import CalibrationSteps
 
 
 class GamepadCalibrator:
@@ -16,8 +20,6 @@ class GamepadCalibrator:
         CalibrationStage.THROTTLE: "Move the throttle axis to its minimum and maximum positions...",
         CalibrationStage.BRAKE: "Move the brake axis to its minimum and maximum positions..."
     }
-
-    STEP_ORDER: List[CalibrationStage] = list(STEP_LABELS.keys())
 
     def __init__(
         self,
@@ -50,10 +52,11 @@ class GamepadCalibrator:
     def get_steps(self) -> List[Tuple[str, bool]]:
         steps: List[Tuple[str, bool]] = []
         active_stage = self.pending_stage if self.state == CalibratorState.PAUSE else self.stage
-        for key in self.STEP_ORDER:
-            label = self.STEP_LABELS.get(key)
+        for key in CalibrationSteps.STEP_ORDER:
+            label = CalibrationSteps.get_label(key)
             if label:
                 steps.append((label, key == active_stage))
+
         return steps
 
     def update(self, axes: List[float]) -> None:
@@ -87,9 +90,14 @@ class GamepadCalibrator:
 
     def _queue_next_stage_with_dialog(self, next_stage: CalibrationStage) -> None:
         if self.dialog:
-            self.dialog.set_text([self.STEP_LABELS[next_stage]])
+            step_label = CalibrationSteps.get_label(next_stage)
+
+            self.dialog.set_text([
+                step_label
+            ])
             self.dialog.on_confirm = self._resume_calibration
             self.dialog.show()
+
             self.waiting_for_user = True
             self.pending_stage = next_stage
             self.state = CalibratorState.PAUSE
@@ -124,13 +132,16 @@ class GamepadCalibrator:
                     axis_data.detection_frames += 1
                     if axis_data.detection_frames >= self.FRAME_CONFIRMATION_COUNT:
                         axis_data.axis = axis
-                        print(f"{name.capitalize()} axis identified: {axis}")
+                        logging.info(f"{name.capitalize()} axis identified: {axis}")
                 else:
                     axis_data.detection_frames = 0
         else:
             i = axis_data.axis
             axis_data.max_values.append(axes[i])
             current_max = max(axis_data.max_values)
+            current_min = min(axis_data.max_values)
+
+            # Track max stability
             if axis_data.max_last is None:
                 axis_data.max_last = current_max
                 axis_data.max_stable = 0
@@ -140,12 +151,27 @@ class GamepadCalibrator:
             else:
                 axis_data.max_stable += 1
 
-            if axis_data.max_stable >= self.STABLE_FRAME_COUNT:
+            # Track min stability
+            if axis_data.min_last is None:
+                axis_data.min_last = current_min
+                axis_data.min_stable = 0
+            if current_min < axis_data.min_last - 0.01:
+                axis_data.min_last = current_min
+                axis_data.min_stable = 0
+            else:
+                axis_data.min_stable += 1
+
+            if (
+                axis_data.min_stable >= self.STABLE_FRAME_COUNT and
+                axis_data.max_stable >= self.STABLE_FRAME_COUNT
+            ):
                 min_val = min(axis_data.max_values)
                 max_val = max(axis_data.max_values)
-                print(f"{name.capitalize()} axis min/max: {min_val:.2f}/{max_val:.2f}")
+                logging.info(f"{name.capitalize()} axis min/max: {min_val:.2f}/{max_val:.2f}")
+
                 if on_complete:
                     on_complete()
+
                 elif next_stage:
                     self._queue_next_stage_with_dialog(next_stage)
 
@@ -162,7 +188,7 @@ class GamepadCalibrator:
                     axis_data.idle_samples.append(value)
                     if len(axis_data.idle_samples) >= self.IDLE_SAMPLE_COUNT:
                         avg = sum(axis_data.idle_samples) / len(axis_data.idle_samples)
-                        print(f"{name.capitalize()} axis idle: {avg:.2f}")
+                        logging.info(f"{name.capitalize()} axis idle: {avg:.2f}")
                         self._queue_next_stage_with_dialog(next_stage)
             else:
                 axis_data.idle_stable = 0

@@ -6,10 +6,17 @@ from typing import Callable, Dict, Optional
 from v3xctrl_ui.colors import WHITE, GREY
 from v3xctrl_ui.GamepadManager import GamepadManager
 
-from v3xctrl_ui.menu.calibration.GamepadCalibrator import GamepadCalibrator, CalibratorState
+from v3xctrl_ui.menu.calibration.GamepadCalibrator import (
+  GamepadCalibrator,
+  CalibratorState,
+)
 from v3xctrl_ui.menu.DialogBox import DialogBox
-from v3xctrl_ui.menu.input import Button, Checkbox, Select
-from v3xctrl_ui.menu.input.BaseWidget import BaseWidget
+from v3xctrl_ui.menu.input import (
+  BaseWidget,
+  Button,
+  Checkbox,
+  Select,
+)
 
 
 class GamepadCalibrationWidget(BaseWidget):
@@ -96,11 +103,16 @@ class GamepadCalibrationWidget(BaseWidget):
         self.invert_axes[key] = state
         js = self.gamepads.get(self.selected_guid)
         if js:
-            guid = js.get_guid()
+            guid = str(js.get_guid())
             settings = self.manager.get_calibration(guid)
-            if settings:
-                settings[key]["invert"] = state
-                self.manager.set_calibration(guid, settings)
+            settings[key]["invert"] = state
+            self.manager.set_calibration(guid, settings)
+
+    def set_selected_gamepad(self, index: int) -> None:
+        guids = list(self.gamepads.keys())
+        if 0 <= index < len(guids):
+            self.selected_guid = guids[index]
+            self._apply_known_calibration(self.gamepads[self.selected_guid])
 
     def _create_ui(self, font: Font) -> None:
         self.controller_select = Select(
@@ -182,12 +194,6 @@ class GamepadCalibrationWidget(BaseWidget):
             dialog=self.dialog
         )
         self.calibrator.start()
-
-    def set_selected_gamepad(self, index: int) -> None:
-        guids = list(self.gamepads.keys())
-        if 0 <= index < len(guids):
-            self.selected_guid = guids[index]
-            self._apply_known_calibration(self.gamepads[self.selected_guid])
 
     def _apply_known_calibration(self, js: pygame.joystick.Joystick) -> None:
         guid = js.get_guid()
