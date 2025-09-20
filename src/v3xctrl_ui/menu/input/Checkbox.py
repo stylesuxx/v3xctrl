@@ -1,10 +1,13 @@
-from typing import Callable
+import io
+from typing import Callable, Tuple
 
 import pygame
 from pygame import Surface, Rect
 from pygame.freetype import Font
-import pygame.gfxdraw
 
+from material_icons import MaterialIcons
+
+from v3xctrl_helper import color_to_hex
 from v3xctrl_ui.colors import MID_GREY, WHITE, DARK_GREY, GAINSBORO
 from v3xctrl_ui.menu.input import BaseWidget
 
@@ -15,8 +18,8 @@ class Checkbox(BaseWidget):
     CHECK_COLOR = MID_GREY
     BORDER_COLOR = DARK_GREY
 
-    BOX_SIZE = 25
-    BOX_MARGIN = 10
+    BOX_SIZE = 24
+    BOX_MARGIN = 5
 
     def __init__(
         self,
@@ -34,6 +37,14 @@ class Checkbox(BaseWidget):
 
         self.box_rect = Rect(self.x, self.y, self.BOX_SIZE, self.BOX_SIZE)
         self.label_surface, self.label_rect = self.font.render(self.label, self.LABEL_COLOR)
+
+        self.icons = MaterialIcons()
+        icon_color = color_to_hex(self.LABEL_COLOR)
+        checkbox = self.icons.get("circle", color=icon_color)
+        self.checkbox_surface = pygame.image.load(io.BytesIO(checkbox))
+
+        checkbox_checked = self.icons.get("check_circle", color=icon_color)
+        self.checkbox_checked_surface = pygame.image.load(io.BytesIO(checkbox_checked))
 
     def handle_event(self, event: pygame.event.Event) -> bool:
         if self.disabled:
@@ -66,16 +77,9 @@ class Checkbox(BaseWidget):
             self.on_change(self.checked)
 
     def _draw(self, surface: Surface) -> None:
-        # Draw outer rounded rectangle (always shown)
-        pygame.draw.rect(surface, self.BG_COLOR, self.box_rect, border_radius=4)
-        pygame.draw.rect(surface, self.BORDER_COLOR, self.box_rect, width=1, border_radius=4)
-
-        # Draw inner circle if checked
         if self.checked:
-            center = self.box_rect.center
-            radius = self.BOX_SIZE // 2 - 4
-            pygame.gfxdraw.filled_circle(surface, center[0], center[1], radius, self.CHECK_COLOR)
-            pygame.gfxdraw.aacircle(surface, center[0], center[1], radius, self.CHECK_COLOR)
+            surface.blit(self.checkbox_checked_surface, self.box_rect)
+        else:
+            surface.blit(self.checkbox_surface, self.box_rect)
 
-        # Draw label
         surface.blit(self.label_surface, self.label_rect)

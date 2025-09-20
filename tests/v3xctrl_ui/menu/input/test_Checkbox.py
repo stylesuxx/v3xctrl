@@ -178,32 +178,6 @@ class TestCheckbox(unittest.TestCase):
         except Exception as e:
             self.fail(f"draw() raised exception when checked: {e}")
 
-    @patch('pygame.draw.rect')
-    @patch('pygame.gfxdraw.filled_circle')
-    @patch('pygame.gfxdraw.aacircle')
-    def test_draw_calls_correct_methods(self, mock_aacircle, mock_filled_circle, mock_draw_rect):
-        checkbox = Checkbox("DrawMethods", font=self.font, checked=True, on_change=self.on_change)
-        surface = pygame.Surface((200, 100))
-
-        checkbox._draw(surface)
-
-        self.assertEqual(mock_draw_rect.call_count, 2)
-
-        mock_filled_circle.assert_called_once()
-        mock_aacircle.assert_called_once()
-
-    @patch('pygame.draw.rect')
-    @patch('pygame.gfxdraw.filled_circle')
-    def test_draw_unchecked_no_circle(self, mock_filled_circle, mock_draw_rect):
-        checkbox = Checkbox("Unchecked", font=self.font, checked=False, on_change=self.on_change)
-        surface = pygame.Surface((200, 100))
-
-        checkbox._draw(surface)
-
-        mock_draw_rect.assert_called()
-
-        mock_filled_circle.assert_not_called()
-
     def test_basewidget_inheritance(self):
         checkbox = Checkbox("BaseWidget", font=self.font, checked=False, on_change=self.on_change)
         surface = pygame.Surface((200, 100))

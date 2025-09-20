@@ -19,6 +19,7 @@ from v3xctrl_ui.menu.tabs import (
   FrequenciesTab,
   StreamerTab,
   OsdTab,
+  NetworkTab,
   Tab
 )
 
@@ -54,10 +55,11 @@ class Menu:
 
         tab_names = [
             "General",
-            "OSD",
-            "Frequencies",
             "Input",
+            "OSD",
+            "Network",
             "Streamer",
+            "Frequencies",
         ]
         tab_width = self.width // len(tab_names)
 
@@ -177,7 +179,14 @@ class Menu:
                 y_offset=self.tab_height,
                 on_active_toggle=self._on_active_toggle,
                 send_command=self._on_send_command,
-            )
+            ),
+            "Network": NetworkTab(
+                settings=self.settings,
+                width=self.width,
+                height=self.height,
+                padding=self.padding,
+                y_offset=self.tab_height
+            ),
         }
 
     def _on_send_command(self, command: Command, callback: Callable[[bool], None]) -> None:
