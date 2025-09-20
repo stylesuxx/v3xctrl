@@ -1,3 +1,7 @@
+# Required before importing pygame, otherwise screen might flicker during tests
+import os
+os.environ["SDL_VIDEODRIVER"] = "dummy"
+
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -38,10 +42,6 @@ class TestBaseInput(unittest.TestCase):
             on_change=self.mock_on_change,
             input_padding=10
         )
-
-    def tearDown(self):
-        pygame.freetype.quit()
-        pygame.quit()
 
     def test_initialization(self):
         self.assertEqual(self.input_widget.label, "Test Label")

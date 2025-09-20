@@ -1,3 +1,7 @@
+# Required before importing pygame, otherwise screen might flicker during tests
+import os
+os.environ["SDL_VIDEODRIVER"] = "dummy"
+
 import unittest
 
 import pygame
@@ -23,9 +27,6 @@ class TestDialogBox(unittest.TestCase):
             button_label="OK",
             on_confirm=on_confirm
         )
-
-    def tearDown(self):
-        pygame.quit()
 
     def test_initial_state(self):
         self.assertFalse(self.dialog.visible)
@@ -338,9 +339,6 @@ class TestDialogBox(unittest.TestCase):
 class TestDialogBoxCreation(unittest.TestCase):
     def setUp(self):
         pygame.init()
-
-    def tearDown(self):
-        pygame.quit()
 
     def test_create_minimal_dialog(self):
         dialog = DialogBox(

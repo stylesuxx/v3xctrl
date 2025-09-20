@@ -62,7 +62,7 @@ class TestMenu(unittest.TestCase):
         self.assertEqual(menu.height, 600)
         self.assertEqual(menu.active_tab, "General")
         self.assertFalse(menu.disable_tabs)
-        self.assertEqual(len(menu.tabs), 5)
+        self.assertEqual(len(menu.tabs), 6)
 
     def test_tab_creation(self, mock_sys, mock_font, mock_button_class, mock_streamer_tab,
                          mock_frequencies_tab, mock_input_tab, mock_osd_tab, mock_general_tab, mock_pygame):
@@ -79,7 +79,14 @@ class TestMenu(unittest.TestCase):
         )
 
         tab_names = [tab.name for tab in menu.tabs]
-        expected_names = ["General", "OSD", "Frequencies", "Input", "Streamer"]
+        expected_names = [
+            "General",
+            "Input",
+            "OSD",
+            "Network",
+            "Streamer",
+            "Frequencies",
+        ]
         self.assertEqual(tab_names, expected_names)
 
     def test_get_active_tab(self, mock_sys, mock_font, mock_button_class, mock_streamer_tab,

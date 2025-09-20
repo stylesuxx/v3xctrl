@@ -1,3 +1,7 @@
+# Required before importing pygame, otherwise screen might flicker during tests
+import os
+os.environ["SDL_VIDEODRIVER"] = "dummy"
+
 import unittest
 
 import pygame
@@ -10,10 +14,6 @@ class TestStatusWidget(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         pygame.init()
-
-    @classmethod
-    def tearDownClass(cls):
-        pygame.quit()
 
     def setUp(self):
         self.widget = StatusWidget(position=(0, 0), size=20, label="TEST")

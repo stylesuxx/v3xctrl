@@ -1,3 +1,7 @@
+# Required before importing pygame, otherwise screen might flicker during tests
+import os
+os.environ["SDL_VIDEODRIVER"] = "dummy"
+
 import unittest
 
 import pygame
@@ -10,9 +14,6 @@ class TestSignalQualityWidget(unittest.TestCase):
         pygame.init()
         self.widget = SignalQualityWidget(position=(5, 10), size=(100, 50))
         self.screen = pygame.Surface((200, 100))
-
-    def tearDown(self):
-        pygame.quit()
 
     def test_initial_geometry(self):
         self.assertEqual(self.widget.BAR_COUNT, 5)
