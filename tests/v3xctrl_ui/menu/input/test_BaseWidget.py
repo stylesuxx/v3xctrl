@@ -1,3 +1,7 @@
+# Required before importing pygame, otherwise screen might flicker during tests
+import os
+os.environ["SDL_VIDEODRIVER"] = "dummy"
+
 import unittest
 from unittest.mock import Mock
 
@@ -37,9 +41,6 @@ class TestBaseWidget(unittest.TestCase):
     def setUp(self):
         pygame.init()
         self.surface = pygame.Surface((800, 600))
-
-    def tearDown(self):
-        pygame.quit()
 
     def test_cannot_instantiate_abstract_base_class(self):
         with self.assertRaises(TypeError):

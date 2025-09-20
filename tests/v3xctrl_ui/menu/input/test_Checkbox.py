@@ -1,4 +1,6 @@
+# Required before importing pygame, otherwise screen might flicker during tests
 import os
+os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 import unittest
 from unittest.mock import MagicMock, patch
@@ -8,8 +10,6 @@ from pygame.freetype import SysFont
 
 from v3xctrl_ui.menu.input import Checkbox
 
-os.environ["SDL_VIDEODRIVER"] = "dummy"
-
 
 class TestCheckbox(unittest.TestCase):
     def setUp(self):
@@ -18,10 +18,6 @@ class TestCheckbox(unittest.TestCase):
         self.screen = pygame.display.set_mode((300, 200))
         self.font = SysFont("freesansbold", 20)
         self.change_called_with = []
-
-    def tearDown(self):
-        pygame.freetype.quit()
-        pygame.quit()
 
     def on_change(self, value):
         self.change_called_with.append(value)

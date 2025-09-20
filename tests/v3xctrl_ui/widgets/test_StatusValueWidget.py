@@ -1,3 +1,7 @@
+# Required before importing pygame, otherwise screen might flicker during tests
+import os
+os.environ["SDL_VIDEODRIVER"] = "dummy"
+
 import unittest
 from unittest.mock import MagicMock
 
@@ -12,10 +16,6 @@ class TestStatusValueWidget(unittest.TestCase):
     def setUpClass(cls):
         pygame.init()
         cls.mock_screen = pygame.Surface((200, 100))
-
-    @classmethod
-    def tearDownClass(cls):
-        pygame.quit()
 
     def setUp(self):
         self.widget = StatusValueWidget(position=(0, 0), size=20, label="L")

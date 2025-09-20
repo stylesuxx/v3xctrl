@@ -1,4 +1,6 @@
+# Required before importing pygame, otherwise screen might flicker during tests
 import os
+os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 import unittest
 from unittest.mock import MagicMock
@@ -7,8 +9,6 @@ import pygame
 import pygame.freetype
 
 from v3xctrl_ui.menu.input import KeyMappingWidget
-
-os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 
 class TestKeyMappingWidget(unittest.TestCase):
@@ -27,9 +27,6 @@ class TestKeyMappingWidget(unittest.TestCase):
             on_remap_toggle=self.on_remap_toggle
         )
         self.widget.set_position(10, 20)
-
-    def tearDown(self):
-        pygame.quit()
 
     def test_initialization(self):
         self.assertEqual(self.widget.control_name, "throttle_up")

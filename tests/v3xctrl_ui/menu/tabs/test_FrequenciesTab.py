@@ -1,11 +1,11 @@
+# Required before importing pygame, otherwise screen might flicker during tests
 import os
-import unittest
+os.environ["SDL_VIDEODRIVER"] = "dummy"
 
+import unittest
 import pygame
 
 from v3xctrl_ui.menu.tabs.FrequenciesTab import FrequenciesTab
-
-os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 
 class TestFrequenciesTab(unittest.TestCase):
@@ -20,9 +20,6 @@ class TestFrequenciesTab(unittest.TestCase):
             }
         }
         self.tab = FrequenciesTab(self.settings.copy(), width=640, height=480, padding=10, y_offset=0)
-
-    def tearDown(self):
-        pygame.quit()
 
     def test_initial_values_from_settings(self):
         self.assertEqual(self.tab.video_input.get_value(), 60)

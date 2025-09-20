@@ -1,3 +1,7 @@
+# Required before importing pygame, otherwise screen might flicker during tests
+import os
+os.environ["SDL_VIDEODRIVER"] = "dummy"
+
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -15,9 +19,6 @@ class ConcreteIndicatorWidget(BaseIndicatorWidget):
 class TestBaseIndicatorWidget(unittest.TestCase):
     def setUp(self):
         pygame.init()
-
-    def tearDown(self):
-        pygame.quit()
 
     def test_initialization_default_parameters(self):
         widget = ConcreteIndicatorWidget(

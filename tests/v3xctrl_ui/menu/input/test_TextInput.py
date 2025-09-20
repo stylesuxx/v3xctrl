@@ -1,4 +1,6 @@
+# Required before importing pygame, otherwise screen might flicker during tests
 import os
+os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 import unittest
 from unittest.mock import Mock, patch
@@ -20,9 +22,6 @@ from pygame.locals import (
 from v3xctrl_ui.menu.input import TextInput, BaseInput
 
 
-os.environ["SDL_VIDEODRIVER"] = "dummy"
-
-
 class TestTextInput(unittest.TestCase):
     def setUp(self):
         pygame.init()
@@ -40,9 +39,6 @@ class TestTextInput(unittest.TestCase):
             on_change=self.mock_on_change
         )
         self.text_input.set_position(0, 0)
-
-    def tearDown(self):
-        pygame.quit()
 
     def test_initialization(self):
         self.assertEqual(self.text_input.label, "Test")

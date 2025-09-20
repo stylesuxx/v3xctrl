@@ -1,4 +1,6 @@
+# Required before importing pygame, otherwise screen might flicker during tests
 import os
+os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 import unittest
 from unittest.mock import MagicMock, patch
@@ -7,8 +9,6 @@ import pygame
 import pygame.freetype
 
 from v3xctrl_ui.menu.input import Button
-
-os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 
 class TestButton(unittest.TestCase):
@@ -21,11 +21,6 @@ class TestButton(unittest.TestCase):
         self.callback = MagicMock()
         self.button = Button("Test", 100, 40, self.font, self.callback)
         self.button.set_position(50, 50)
-
-    def tearDown(self):
-        pygame.freetype.quit()
-        pygame.font.quit()
-        pygame.quit()
 
     def test_initialization(self):
         self.assertEqual(self.button.label, "Test")
