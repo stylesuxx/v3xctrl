@@ -17,7 +17,8 @@ SERVICES = [
     "v3xctrl-wifi-mode",
     "v3xctrl-service-manager",
     "v3xctrl-video",
-    "v3xctrl-control"
+    "v3xctrl-control",
+    "v3xctrl-debug-log",
 ]
 
 

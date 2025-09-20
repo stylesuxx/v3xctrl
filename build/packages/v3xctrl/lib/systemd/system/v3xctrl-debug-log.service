@@ -1,0 +1,12 @@
+[Unit]
+Description=Debug log
+PartOf=v3xctrl-service-manager.service
+After=v3xctrl-setup-env.service
+Requires=v3xctrl-setup-env.service
+
+[Service]
+ExecStart=/usr/bin/v3xctrl-debug-log
+Restart=no
+Type=simple
+User=v3xctrl
+Group=v3xctrl
