@@ -1,11 +1,14 @@
 from collections import deque
+import io
 import logging
 import time
 from typing import Tuple
+import pygame
 
 import urllib.request
+from material_icons import MaterialIcons
 
-from v3xctrl_helper import clamp
+from v3xctrl_helper import clamp, color_to_hex
 
 
 def interpolate_steering_color(steering: float) -> Tuple[int, int, int]:
@@ -60,3 +63,15 @@ def get_external_ip(timeout: int = 5) -> str:
     except Exception:
         logging.warning("Could not get external IP address")
         return "0.0.0.0"
+
+
+def get_icon(
+    name: str,
+    size: int = 24,
+    color: Tuple[int, int, int] = (0, 0, 0)
+) -> pygame.Surface:
+    icons = MaterialIcons()
+    hex_color = color_to_hex(color)
+    icon = icons.get(name, size=size, color=hex_color)
+
+    return pygame.image.load(io.BytesIO(icon))
