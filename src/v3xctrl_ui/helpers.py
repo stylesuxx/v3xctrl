@@ -69,10 +69,15 @@ def get_icon(
     name: str,
     size: int = 24,
     color: Tuple[int, int, int] = (0, 0, 0),
-    style: IconStyle = IconStyle.ROUND
+    style: IconStyle = IconStyle.ROUND,
+    rotation: int = 0
 ) -> pygame.Surface:
     icons = MaterialIcons()
     hex_color = color_to_hex(color)
     icon = icons.get(name, size=size, color=hex_color, style=style)
+    surface = pygame.image.load(io.BytesIO(icon))
 
-    return pygame.image.load(io.BytesIO(icon))
+    if rotation != 0:
+        surface = pygame.transform.rotate(surface, rotation)
+
+    return surface

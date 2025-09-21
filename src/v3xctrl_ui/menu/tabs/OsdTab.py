@@ -44,7 +44,7 @@ class OsdTab(Tab):
             on_change=lambda value: self._on_widget_toggle("battery_voltage", value)
         )
         self.battery_average_voltage_checkbox = Checkbox(
-            label="Show Battery voltage indicator", font=LABEL_FONT,
+            label="Show average cell voltage indicator", font=LABEL_FONT,
             checked=self.widgets.get("battery_average_voltage", {}).get("display", False),
             on_change=lambda value: self._on_widget_toggle("battery_average_voltage", value)
         )

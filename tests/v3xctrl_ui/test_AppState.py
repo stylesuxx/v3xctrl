@@ -292,9 +292,11 @@ class TestAppState(unittest.TestCase):
         self.assertEqual(app.last_control_update, start_time)
         self.assertEqual(app.last_latency_check, start_time)
 
-    def test_timing_intervals_calculation(self, mock_signal, mock_network_cls,
-                                         mock_renderer_cls, mock_osd_cls,
-                                         mock_input_cls, mock_ui):
+    @patch("src.v3xctrl_ui.AppState.pygame.display.set_mode", return_value=pygame.Surface((800,600)))
+    def test_timing_intervals_calculation(
+        self, mock_set_mode, mock_signal, mock_network_cls,
+        mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_ui
+    ):
         app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
             mock_signal, mock_network_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_ui)
 

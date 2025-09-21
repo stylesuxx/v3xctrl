@@ -46,7 +46,6 @@ class TextWidget(Widget):
         self.surface = None
 
         self.width = length
-        self.height = self.top_padding + self.bottom_padding + self.font.height
 
     def set_alignment(self, align: Alignment) -> None:
         self.alignment = align
@@ -57,8 +56,8 @@ class TextWidget(Widget):
     def draw(self, screen: Surface, text: str) -> None:
         # Re-render text
         self.text_surface, self.text_rect = self.font.render(text, self.color)
-        self.widget_height = self.text_rect.height + self.top_padding + self.bottom_padding
-        self.surface = Surface((self.length, self.widget_height), SRCALPHA)
+        self.height = self.text_rect.height + self.top_padding + self.bottom_padding
+        self.surface = Surface((self.length, self.height), SRCALPHA)
         self.surface.fill((*self.bg_color[:3], self.background_alpha))
 
         text_x = self.left_padding

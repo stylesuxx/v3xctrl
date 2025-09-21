@@ -36,7 +36,7 @@ class TestTextWidget(unittest.TestCase):
         self.assertEqual(self.widget.surface.get_width(), self.widget.length)
         self.assertIsNotNone(self.widget.text_surface)
         self.assertGreater(self.widget.text_rect.width, 0)
-        self.assertGreater(self.widget.widget_height, 0)
+        self.assertGreater(self.widget.height, 0)
 
     def test_draw_executes_without_crash(self):
         self.widget.draw(self.screen, "Draw safely")
