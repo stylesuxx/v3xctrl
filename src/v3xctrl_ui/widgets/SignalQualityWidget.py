@@ -1,13 +1,12 @@
 from enum import IntEnum
-import math
 from typing import Tuple, Dict, Any
 
-from pygame import Surface, Rect, SRCALPHA
-import pygame
-import pygame.gfxdraw
+from pygame import Surface, SRCALPHA
+from material_icons import IconStyle
 
-from v3xctrl_ui.colors import WHITE, GREEN, RED, YELLOW, ORANGE, GREY, BLACK
+from v3xctrl_ui.colors import WHITE, GREEN, RED, YELLOW, ORANGE, GREY
 from v3xctrl_ui.widgets.Widget import Widget
+from v3xctrl_ui.helpers import get_icon
 
 
 class SignalQuality(IntEnum):
@@ -18,41 +17,41 @@ class SignalQuality(IntEnum):
 
 
 class SignalQualityWidget(Widget):
-    BAR_COUNT = 5
-    SPACING_RATIO = 0.05
-
     def __init__(self, position: Tuple[int, int], size: Tuple[int, int]) -> None:
         super().__init__()
 
         self.position = position
         self.width, self.height = size
 
-        # First calculate spacing from ratio
-        self.bar_spacing = int(self.width * self.SPACING_RATIO)
-        self.side_padding = 2 * self.bar_spacing
+        self.icon_size = 50
+        self.x_offset = (self.width - self.icon_size) // 2
+        self.y_offset = (self.height - self.icon_size) // 2
 
-        # Compute available width for bars
-        available_width = self.width - 2 * self.side_padding - (self.BAR_COUNT - 1) * self.bar_spacing
-        self.bar_width = available_width // self.BAR_COUNT
+        # Prepare bars surfaces
+        self.bars = [
+            get_icon("signal_cellular_0_bar", size=self.icon_size, color=WHITE, style=IconStyle.TWOTONE),
+            get_icon("signal_cellular_1_bar", size=self.icon_size, color=WHITE, style=IconStyle.TWOTONE),
+            get_icon("signal_cellular_2_bar", size=self.icon_size, color=WHITE, style=IconStyle.TWOTONE),
+            get_icon("signal_cellular_3_bar", size=self.icon_size, color=WHITE, style=IconStyle.TWOTONE),
+            get_icon("signal_cellular_4_bar", size=self.icon_size, color=WHITE, style=IconStyle.TWOTONE),
+        ]
 
-        # Adjust right padding to perfectly fill the widget
-        used_width = (
-            self.BAR_COUNT * self.bar_width
-            + (self.BAR_COUNT - 1) * self.bar_spacing
-            + 2 * self.side_padding
+        self.no_data = get_icon(
+            "signal_cellular_nodata",
+            size=self.icon_size,
+            color=RED
         )
-        self.extra_right_padding = self.width - used_width  # could be 0 or 1 due to rounding
-
-        # Vertical layout
-        self.top_bottom_padding = 2 * self.bar_spacing
-        self.bar_max_height = self.height - 2 * self.top_bottom_padding
 
     def draw(self, screen: Surface, signal: Dict[str, Any]) -> None:
         rsrp = signal.get('rsrp')
         rsrq = signal.get('rsrq')
 
         if rsrp in (-1, 255) or rsrq in (-1, 255):
-            self._draw_no_modem(screen)
+            position = (
+                self.position[0] + self.x_offset,
+                self.position[1] + self.y_offset
+            )
+            screen.blit(self.no_data, position)
             return
 
         bars = self._get_bars(rsrp)
@@ -68,16 +67,7 @@ class SignalQualityWidget(Widget):
         surface = Surface((self.width, self.height), SRCALPHA)
         surface.fill((*bg_color, 180))
 
-        base_line = self.height - self.top_bottom_padding
-
-        for i in range(self.BAR_COUNT):
-            bar_height = int((i + 1) * self.bar_max_height / self.BAR_COUNT)
-            bar_x = self.side_padding + i * (self.bar_width + self.bar_spacing)
-            bar_y = base_line - bar_height
-
-            color = WHITE if i < bars else GREY
-            surface.fill(color, Rect(bar_x, bar_y, self.bar_width, bar_height))
-
+        surface.blit(self.bars[bars], (self.x_offset, self.y_offset))
         screen.blit(surface, self.position)
 
     def _rsrp_to_dbm(self, value: int) -> float:
@@ -90,15 +80,13 @@ class SignalQualityWidget(Widget):
 
     def _get_bars(self, value: int) -> int:
         rsrp_dbm = self._rsrp_to_dbm(value)
-        if rsrp_dbm >= -80:
-            return 5
-        elif rsrp_dbm >= -90:
+        if rsrp_dbm >= -85:
             return 4
-        elif rsrp_dbm >= -100:
+        elif rsrp_dbm >= -95:
             return 3
-        elif rsrp_dbm >= -110:
+        elif rsrp_dbm >= -105:
             return 2
-        elif rsrp_dbm >= -120:
+        elif rsrp_dbm >= -115:
             return 1
         else:
             return 0
@@ -116,36 +104,3 @@ class SignalQualityWidget(Widget):
             return SignalQuality.FAIR
         else:
             return SignalQuality.POOR
-
-    def _draw_no_modem(self, screen: Surface) -> None:
-        bg_surface = pygame.Surface((self.width, self.height), SRCALPHA)
-        bg_surface.fill((*BLACK, 180))
-
-        symbol_surface = pygame.Surface((self.width, self.height), SRCALPHA)
-
-        # Geometry with same padding as bar display
-        drawable_width = self.width - 2 * self.side_padding
-        drawable_height = self.height - 2 * self.top_bottom_padding
-        cx = self.side_padding + drawable_width // 2
-        cy = self.top_bottom_padding + drawable_height // 2
-        outer_radius = min(drawable_width, drawable_height) // 2 - 2
-        stroke = max(2, outer_radius // 4)
-
-        # Draw solid red ring on symbol surface
-        pygame.gfxdraw.filled_circle(symbol_surface, cx, cy, outer_radius, RED)
-        pygame.gfxdraw.filled_circle(symbol_surface, cx, cy, outer_radius - stroke, (0, 0, 0, 0))
-
-        # Draw slash
-        angle1 = math.radians(135)
-        angle2 = math.radians(315)
-        r = outer_radius - stroke // 2
-
-        x1 = int(cx + r * math.cos(angle1))
-        y1 = int(cy + r * math.sin(angle1))
-        x2 = int(cx + r * math.cos(angle2))
-        y2 = int(cy + r * math.sin(angle2))
-
-        pygame.draw.line(symbol_surface, RED, (x1, y1), (x2, y2), width=stroke + 2)
-
-        bg_surface.blit(symbol_surface, (0, 0))
-        screen.blit(bg_surface, self.position)
