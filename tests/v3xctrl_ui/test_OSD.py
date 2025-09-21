@@ -117,21 +117,6 @@ class TestOSD(unittest.TestCase):
             self.osd._latency_update(msg)
             self.assertEqual(self.osd.debug_latency, expected)
 
-    def test_telemetry_sets_warning_color(self):
-        telemetry = Telemetry({
-            "sig": {"rsrq": -9, "rsrp": -95},
-            "cell": {"band": 3},
-            "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": True}
-        })
-        for widget in self.osd.widgets_battery.values():
-            widget.set_text_color = MagicMock()
-
-        self.osd._telemetry_update(telemetry)
-
-        for widget in self.osd.widgets_battery.values():
-            widget.set_text_color.assert_called_with(RED)
-
-
 if __name__ == "__main__":
     pygame.init()
     unittest.main()

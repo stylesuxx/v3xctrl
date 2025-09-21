@@ -14,6 +14,7 @@ from v3xctrl_ui.helpers import (
 from v3xctrl_ui.Settings import Settings
 from v3xctrl_ui.widgets import (
     Widget,
+    BatteryIconWidget,
     Alignment,
     FpsWidget,
     HorizontalIndicatorWidget,
@@ -48,6 +49,7 @@ class OSD:
         self._init_widgets_signal()
 
         self.widgets_battery = {}
+        self.battery_icon: int = 100
         self.battery_voltage: str = "0.00V"
         self.battery_average_voltage: str = "0.00V"
         self.battery_percent: str = "100%"
@@ -123,9 +125,9 @@ class OSD:
                 widget.draw(screen, getattr(self, name))
 
         # Battery information widget
-        index = 0
         align = self.widget_settings.get('battery', {"align": None}).get("align")
         offset = self.widget_settings.get('battery', {"offset": (0, 0)}).get("offset")
+        height = 0
         for name, widget in self.widgets_battery.items():
             display = self.widget_settings.get(name, {"display": True}).get("display")
 
@@ -133,11 +135,10 @@ class OSD:
                 position = self._get_position(align, widget, offset)
                 widget.position = (
                     position[0],
-                    position[1] + 18 * index
+                    position[1] + height
                 )
                 widget.draw(screen, getattr(self, name))
-
-                index += 1
+                height += widget.height
 
         # Signal information widget
         settings = self.widget_settings.get('signal', {
@@ -274,7 +275,10 @@ class OSD:
         battery_average_voltage_widget.set_alignment(Alignment.RIGHT)
         battery_percent_widget.set_alignment(Alignment.RIGHT)
 
+        battery_icon_widget = BatteryIconWidget(position, 70)
+
         self.widgets_battery = {
+            "battery_icon": battery_icon_widget,
             "battery_voltage": battery_voltage_widget,
             "battery_average_voltage": battery_average_voltage_widget,
             "battery_percent": battery_percent_widget
@@ -345,6 +349,7 @@ class OSD:
         battery_average_voltage = values["bat"]["avg"] / 1000
         battery_percentage = values["bat"]["pct"]
 
+        self.battery_icon = battery_percentage
         self.battery_voltage = f"{battery_voltage:.2f}V"
         self.battery_average_voltage = f"{battery_average_voltage:.2f}V"
         self.battery_percent = f"{battery_percentage}%"
