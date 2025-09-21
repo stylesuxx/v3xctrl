@@ -27,13 +27,13 @@ jobs:
 
       - name: Build executable with PyInstaller
         run: |
-          cd src
-          pyinstaller --noconfirm --onefile --windowed -n V3XCTRL v3xctrl_ui/main.py
+          cd src/v3xctrl_ui
+          pyinstaller --noconfirm --onefile --windowed -n V3XCTRL main.py
 
       - name: Rename output
         shell: bash
         run: |
-          cd src/dist
+          cd src/v3xctrl_ui/dist
           SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           mv V3XCTRL V3XCTRL-$SHA
 
@@ -41,7 +41,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: V3XCTRL-macOS
-          path: src/dist/V3XCTRL-*
+          path: src/v3xctrl_ui/distV3XCTRL-*
 
   call-cleanup:
     name: Cleanup old workflow runs

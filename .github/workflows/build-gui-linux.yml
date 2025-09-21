@@ -31,8 +31,8 @@ jobs:
       - name: Build executable with PyInstaller
         run: |
           source venv/bin/activate
-          cd src
-          pyinstaller --noconfirm --onefile --windowed -n V3XCTRL v3xctrl_ui/main.py
+          cd src/v3xctrl_ui
+          pyinstaller --noconfirm --onefile --windowed -n V3XCTRL main.py
 
       - name: Make static binary with staticx
         run: |
@@ -42,7 +42,7 @@ jobs:
       - name: Rename output
         shell: bash
         run: |
-          cd src/dist
+          cd src/v3xctrl_ui/dist
           SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           mv V3XCTRL-static V3XCTRL-$SHA
 
@@ -50,7 +50,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: V3XCTRL-Linux
-          path: src/dist/V3XCTRL-*
+          path: src/v3xctrl_ui/dist/V3XCTRL-*
 
   call-cleanup:
     name: Cleanup old workflow runs

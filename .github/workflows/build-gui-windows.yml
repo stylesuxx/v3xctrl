@@ -13,27 +13,62 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+        id: setup-python
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Export Python executable path
+        run: echo "PY=${{ steps.setup-python.outputs.python-path }}" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Install third party dependencies via MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-cairo
+            mingw-w64-x86_64-pkg-config
+          cache: true
+
+      - name: Add MSYS2 to PATH
         run: |
-          python -m pip install --upgrade pip
-          pip install -r ./build/requirements/viewer.txt pyinstaller
+          echo "${{ runner.temp }}\msys64\mingw64\bin" >> $env:GITHUB_PATH
+
+      - name: Install Python dependencies
+        shell: bash
+        run: |
+          "$PY" -m pip install --upgrade pip
+          "$PY" -m pip install -r ./build/requirements/viewer.txt pyinstaller
+
+      - name: Verify installations
+        shell: bash
+        run: |
+          "$PY" -c "import cairocffi; print('cairocffi version:', cairocffi.version)"
+          "$PY" -c "import PyInstaller; print('PyInstaller imported successfully')"
+          "$PY" -c "import material_icons; print(material_icons.__path__)"
 
       - name: Build executable with PyInstaller
+        shell: bash
         run: |
-          cd src
-          pyinstaller --noconfirm --onefile -n V3XCTRL v3xctrl_ui/main.py
+          cd src/v3xctrl_ui
+
+          iconsPath=$("$PY" -c "import material_icons, os; print(os.path.join(material_icons.__path__[0], 'icons'))")
+          echo "Material icons path: $iconsPath"
+
+          "$PY" -m PyInstaller --noconfirm --onefile \
+            --add-data "$iconsPath:material_icons/icons" \
+            --add-binary "${{ runner.temp }}/msys64/mingw64/bin/*.dll:." \
+            -n V3XCTRL main.py
 
       - name: Rename output
         shell: bash
         run: |
-          cd src/dist
+          cd src/v3xctrl_ui/dist
           SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           mv V3XCTRL.exe V3XCTRL-$SHA.exe
 
@@ -41,7 +76,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: V3XCTRL-Windows
-          path: src/dist/V3XCTRL-*.exe
+          path: src/v3xctrl_ui/dist/V3XCTRL-*.exe
 
   call-cleanup:
     name: Cleanup old workflow runs
