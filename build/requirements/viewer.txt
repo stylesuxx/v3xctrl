@@ -3,4 +3,4 @@ msgpack==1.1.0
 numpy==2.2.4
 pygame==2.6.1
 tomli_w==1.2.0
-python-material-icons==0.3.1
+python-material-icons==0.3.2

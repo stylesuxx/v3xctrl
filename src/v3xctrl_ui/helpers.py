@@ -6,7 +6,7 @@ from typing import Tuple
 import pygame
 
 import urllib.request
-from material_icons import MaterialIcons
+from material_icons import MaterialIcons, IconStyle
 
 from v3xctrl_helper import clamp, color_to_hex
 
@@ -68,10 +68,11 @@ def get_external_ip(timeout: int = 5) -> str:
 def get_icon(
     name: str,
     size: int = 24,
-    color: Tuple[int, int, int] = (0, 0, 0)
+    color: Tuple[int, int, int] = (0, 0, 0),
+    style: IconStyle = IconStyle.ROUND
 ) -> pygame.Surface:
     icons = MaterialIcons()
     hex_color = color_to_hex(color)
-    icon = icons.get(name, size=size, color=hex_color)
+    icon = icons.get(name, size=size, color=hex_color, style=style)
 
     return pygame.image.load(io.BytesIO(icon))
