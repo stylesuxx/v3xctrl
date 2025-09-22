@@ -47,12 +47,14 @@ class AppState:
         self.osd = OSD(settings)
         self.renderer = Renderer(self.size, self.settings)
 
-        osd_handlers = self._create_osd_handlers()
+        self.control_connected = False
+
+        handlers = self._create_handlers()
         self.network_manager = NetworkManager(
             video_port,
             control_port,
             self.settings,
-            osd_handlers
+            handlers
         )
 
         # Timing
@@ -202,7 +204,10 @@ class AppState:
 
             self.scale = 1
 
-    def _create_osd_handlers(self) -> Dict[str, Any]:
+    def _update_connected(self, state: bool) -> None:
+        self.control_connected = state
+
+    def _create_handlers(self) -> Dict[str, Any]:
         """Create message and state handlers for the network manager."""
         return {
             "messages": [
@@ -211,7 +216,9 @@ class AppState:
             ],
             "states": [
                 (State.CONNECTED, lambda: self.osd.connect_handler()),
-                (State.DISCONNECTED, lambda: self.osd.disconnect_handler())
+                (State.DISCONNECTED, lambda: self.osd.disconnect_handler()),
+                (State.CONNECTED, lambda: self._update_connected(True)),
+                (State.DISCONNECTED, lambda: self._update_connected(False))
             ]
         }
 

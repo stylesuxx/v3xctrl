@@ -49,10 +49,10 @@ class OSD:
         self._init_widgets_signal()
 
         self.widgets_battery = {}
-        self.battery_icon: int = 100
+        self.battery_icon: int = 0
         self.battery_voltage: str = "0.00V"
         self.battery_average_voltage: str = "0.00V"
-        self.battery_percent: str = "100%"
+        self.battery_percent: str = "0%"
         self._init_widgets_battery()
 
         self.widgets_steering = {}
@@ -228,14 +228,18 @@ class OSD:
         return (0, 0)
 
     def reset(self) -> None:
-        self.debug_data = "waiting"
+        #self.debug_data = "waiting"
+        self.debug_data = None
+        self.debug_latency = None
+
         self.widgets_debug["debug_latency"].set_value(None)
 
         self.signal_quality = {"rsrq": -1, "rsrp": -1}
 
+        self.battery_icon = 0
         self.battery_voltage = "0.00V"
         self.battery_average_voltage = "0.00V"
-        self.battery_percent = "100%"
+        self.battery_percent = "0%"
         self.battery_warn = False
 
         self.throttle = 0.0
