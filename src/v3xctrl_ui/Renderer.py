@@ -46,7 +46,10 @@ class Renderer:
         if frame is not None:
             self._render_video_frame(state.screen, frame)
         else:
-            self._render_no_signal(state.screen, network_manager.relay_status_message)
+            self._render_no_video_signal(state.screen, network_manager.relay_status_message)
+
+            if not state.control_connected:
+                self._render_no_control_signal(state.screen)
 
         self._render_overlay_data(state, network_manager)
         self._render_errors(state.screen, network_manager)
@@ -86,7 +89,12 @@ class Renderer:
 
         screen.blit(surface, (x, y))
 
-    def _render_no_signal(self, screen: pygame.Surface, relay_status_message: str) -> None:
+    def _render_no_control_signal(self, screen: pygame.Surface) -> None:
+        surface, rect = BOLD_32_MONO_FONT.render("No Control Signal", RED)
+        rect.center = (self.center_x - 6, self.center_y - 70)
+        screen.blit(surface, rect)
+
+    def _render_no_video_signal(self, screen: pygame.Surface, relay_status_message: str) -> None:
         """
         Render connection information depending on connection and signal states
 

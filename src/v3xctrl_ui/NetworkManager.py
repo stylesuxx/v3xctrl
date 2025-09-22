@@ -16,11 +16,11 @@ from v3xctrl_ui.Settings import Settings
 class NetworkManager:
     """Manages network connections, relay setup, and server communications."""
 
-    def __init__(self, video_port: int, control_port: int, settings: Settings, osd_handlers: Dict[str, Any]) -> None:
+    def __init__(self, video_port: int, control_port: int, settings: Settings, handlers: Dict[str, Any]) -> None:
         self.video_port = video_port
         self.control_port = control_port
         self.settings = settings
-        self.server_handlers = osd_handlers
+        self.server_handlers = handlers
 
         # Network state
         self.video_receiver = None
