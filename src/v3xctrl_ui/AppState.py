@@ -150,7 +150,7 @@ class AppState:
                     self.fullscreen = not self.fullscreen
                     self._update_screen_size()
 
-            elif self.menu is not None:
+            if self.menu is not None:
                 self.menu.handle_event(event)
 
         return True
