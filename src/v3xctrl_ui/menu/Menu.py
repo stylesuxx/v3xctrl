@@ -43,15 +43,18 @@ class Menu:
         height: int,
         gamepad_manager: GamepadManager,
         settings: Settings,
+        server: Server,
         callback: Callable[[], None],
-        server: Server
+        callback_quit: Callable[[], None],
     ) -> None:
         self.width = width
         self.height = height
         self.gamepad_manager = gamepad_manager
         self.settings = settings
-        self.callback = callback
         self.server = server
+
+        self.callback = callback
+        self.callback_quit = callback_quit
 
         tab_names = [
             "General",
@@ -223,8 +226,7 @@ class Menu:
         self.callback()
 
     def _quit_button_callback(self) -> None:
-        pygame.quit()
-        sys.exit()
+        self.callback_quit()
 
     def _draw_tabs(self, surface: Surface) -> None:
         for i, entry in enumerate(self.tabs):

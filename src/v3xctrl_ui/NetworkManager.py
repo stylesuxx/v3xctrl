@@ -71,9 +71,8 @@ class NetworkManager:
                     self.relay_status_message = "ERROR: Relay ID unauthorized!"
                     return
 
-            def poke_peer() -> None:
+            def keep_alive() -> None:
                 if self.relay_enable and video_address:
-                    logging.info(f"Poking peer {video_address}")
                     sock = None
                     try:
                         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -92,9 +91,9 @@ class NetworkManager:
                     finally:
                         if sock:
                             sock.close()
-                        logging.info(f"Poke to {video_address} completed and socket closed.")
+                        logging.info(f"Sent 'keep alive' to {video_address}")
 
-            self.video_receiver = Init.video_receiver(self.video_port, poke_peer)
+            self.video_receiver = Init.video_receiver(self.video_port, keep_alive)
 
             # Set up UDP server - from this point on we can ignore
             # PeerAnnouncement messages which might be poisoning our timestamps
@@ -127,15 +126,21 @@ class NetworkManager:
     def shutdown(self) -> None:
         """Shutdown network connections."""
         if self.server:
+            start = time.monotonic()
             self.server.stop()
             self.server.join()
+            delta = round(time.monotonic() - start)
+            logging.debug(f"Server shut down after {delta}s")
 
         if self.peer:
             self.peer.abort()
 
         if self.video_receiver:
+            start = time.monotonic()
             self.video_receiver.stop()
             self.video_receiver.join()
+            delta = round(time.monotonic() - start)
+            logging.debug(f"Video Receiver shut down after {delta}s")
 
     def _setup_relay_if_enabled(self) -> None:
         """Setup relay connection if enabled in settings."""
