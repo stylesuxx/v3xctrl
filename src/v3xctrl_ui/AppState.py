@@ -1,6 +1,7 @@
 from collections import deque
 import logging
 import signal
+import time
 from typing import Any, Dict, Optional, Tuple
 
 import pygame
@@ -141,8 +142,9 @@ class AppState:
                             self.screen.get_size()[1],
                             self.input_manager.gamepad_manager,
                             self.settings,
+                            self.network_manager.server,
                             self.update_settings,
-                            self.network_manager.server
+                            self._signal_handler
                         )
                     else:
                         self.menu = None
@@ -175,10 +177,18 @@ class AppState:
         )
 
     def shutdown(self) -> None:
-        self.input_manager.shutdown()
-        self.network_manager.shutdown()
-
+        logging.info("Shutting down...")
         pygame.quit()
+
+        start = time.monotonic()
+        self.input_manager.shutdown()
+        delta = round(time.monotonic() - start)
+        logging.debug(f"Input manager shut down after {delta}s")
+
+        start = time.monotonic()
+        self.network_manager.shutdown()
+        delta = round(time.monotonic() - start)
+        logging.debug(f"Network manager shut down after {delta}s")
 
     def _update_screen_size(self) -> None:
         if self.fullscreen:
@@ -226,11 +236,15 @@ class AppState:
         """Setup signal handlers for graceful shutdown."""
         signal.signal(signal.SIGINT, self._signal_handler)
 
-    def _signal_handler(self, sig: int, frame: Any) -> None:
+    def _signal_handler(
+        self,
+        sig: Optional[int] = None,
+        frame: Optional[Any] = None
+    ) -> None:
         """Handle shutdown signals gracefully."""
+        self.menu = None
         if self.running:
             self.running = False
-            print("Shutting down...")
 
     def _update_timing_settings(self) -> None:
         """Update timing intervals from settings."""

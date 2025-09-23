@@ -126,12 +126,18 @@ class NetworkManager:
     def shutdown(self) -> None:
         """Shutdown network connections."""
         if self.server:
+            start = time.monotonic()
             self.server.stop()
             self.server.join()
+            delta = round(time.monotonic() - start)
+            logging.debug(f"Server shut down after {delta}s")
 
         if self.video_receiver:
+            start = time.monotonic()
             self.video_receiver.stop()
             self.video_receiver.join()
+            delta = round(time.monotonic() - start)
+            logging.debug(f"Video Receiver shut down after {delta}s")
 
     def _setup_relay_if_enabled(self) -> None:
         """Setup relay connection if enabled in settings."""
