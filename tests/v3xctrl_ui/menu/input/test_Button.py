@@ -19,7 +19,7 @@ class TestButton(unittest.TestCase):
         self.screen = pygame.Surface((300, 200))
         self.font = pygame.freetype.SysFont("freesansbold", 30)
         self.callback = MagicMock()
-        self.button = Button("Test", 100, 40, self.font, self.callback)
+        self.button = Button("Test", self.font, self.callback, 100, 40)
         self.button.set_position(50, 50)
 
     def test_initialization(self):
@@ -263,9 +263,9 @@ class TestButton(unittest.TestCase):
         self.assertEqual(self.button.width, 100)
         self.assertEqual(self.button.height, 40)
 
-        button2 = Button("Test2", 150, 60, self.font, self.callback)
+        button2 = Button("Test2", self.font, self.callback, 150)
         self.assertEqual(button2.width, 150)
-        self.assertEqual(button2.height, 60)
+        self.assertEqual(button2.height, 54)
 
     def test_mouse_drag_behavior(self):
         down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {

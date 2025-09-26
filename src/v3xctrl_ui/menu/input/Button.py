@@ -1,4 +1,4 @@
-from typing import Callable, Tuple
+from typing import Callable, Tuple, Optional
 
 import pygame
 from pygame import Rect, Surface
@@ -26,23 +26,39 @@ class Button(BaseWidget):
 
     BORDER_COLOR = LIGHT_GREY
 
-    BORDER_WIDTH = 2
+    BORDER_WIDTH = 3
     BORDER_RADIUS = 8
+    ANTI_ALIAS_SCALE = 16
 
     def __init__(
         self,
         label: str,
-        width: int,
-        height: int,
         font: Font,
-        callback: Callable[[], None]
+        callback: Callable[[], None],
+        width: Optional[int] = None,
+        height: Optional[int] = None
     ) -> None:
         super().__init__()
 
         self.label = label
-        self.rect = Rect(0, 0, width, height)
         self.font = font
         self.callback = callback
+
+        _, temp_rect = self.font.render(self.label)
+
+        vertical_padding = int(font.size / 100 * 40)
+        horizontal_padding = font.size
+
+        calculated_height = font.size + vertical_padding * 2
+        calculated_width = temp_rect.width + horizontal_padding * 2
+
+        if width:
+            calculated_width = width
+
+        if height:
+            calculated_height = height
+
+        self.rect = Rect(0, 0, calculated_width, calculated_height)
 
         self.hovered = False
         self.focused = False
@@ -99,6 +115,11 @@ class Button(BaseWidget):
         self._update_label_position()
 
     def _draw(self, surface: Surface) -> None:
+        temp_surface = Surface((
+            self.width * self.ANTI_ALIAS_SCALE,
+            self.height * self.ANTI_ALIAS_SCALE,
+        ), pygame.SRCALPHA)
+
         if self.disabled:
             color = self.BG_COLOR_DISABLED
         elif self.focused:
@@ -108,14 +129,26 @@ class Button(BaseWidget):
         else:
             color = self.BG_COLOR
 
-        pygame.draw.rect(surface,
+        pygame.draw.rect(temp_surface,
                          color,
-                         self.rect,
-                         border_radius=self.BORDER_RADIUS)
-        pygame.draw.rect(surface,
+                         temp_surface.get_rect(),
+                         border_radius=self.BORDER_RADIUS * self.ANTI_ALIAS_SCALE)
+        pygame.draw.rect(temp_surface,
                          self.BORDER_COLOR,
-                         self.rect,
-                         width=self.BORDER_WIDTH,
-                         border_radius=self.BORDER_RADIUS)
+                         temp_surface.get_rect(),
+                         width=self.BORDER_WIDTH * self.ANTI_ALIAS_SCALE,
+                         border_radius=self.BORDER_RADIUS * self.ANTI_ALIAS_SCALE)
+        target_size = (
+            self.rect.width,
+            self.rect.height,
+        )
+        smooth = pygame.transform.smoothscale(temp_surface, target_size)
+        smooth_rect = smooth.get_rect()
 
+        smooth_rect.topleft = (
+            self.rect.x,
+            self.rect.y
+        )
+
+        surface.blit(smooth, smooth_rect)
         surface.blit(self.label_surface, self.label_rect)

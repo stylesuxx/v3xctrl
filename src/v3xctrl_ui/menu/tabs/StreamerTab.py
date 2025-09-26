@@ -32,21 +32,21 @@ class StreamerTab(Tab):
 
         self.video_stop_button = Button(
             "Stop Video",
-            150, 40,
             font=LABEL_FONT,
-            callback=self._on_stop_video
+            callback=self._on_stop_video,
+            width=150
         )
         self.video_start_button = Button(
             "Start Video",
-            150, 40,
             font=LABEL_FONT,
-            callback=self._on_start_video
+            callback=self._on_start_video,
+            width=150
         )
         self.shutdown_button = Button(
             "Shutdown",
-            150, 40,
             font=LABEL_FONT,
-            callback=self._on_shutdown
+            callback=self._on_shutdown,
+            width=150
         )
 
         self.elements.append(self.video_stop_button)

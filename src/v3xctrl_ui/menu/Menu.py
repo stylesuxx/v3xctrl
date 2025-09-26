@@ -1,5 +1,4 @@
 import logging
-import sys
 
 import pygame
 from pygame import Surface, event
@@ -70,9 +69,6 @@ class Menu:
         self.footer_height = 60
         self.padding = 20
 
-        button_width = 100
-        button_height = 40
-
         tab_views = self._create_tabs()
 
         self.tabs = []
@@ -84,30 +80,17 @@ class Menu:
         self.active_tab = self.tabs[0].name
         self.disable_tabs = False
 
-        # Button positions
-        button_y = self.height - self.footer_height
-        quit_button_x = self.padding
-        save_button_x = self.width - (button_width + self.padding) * 2
-        exit_button_x = self.width - button_width - self.padding
-
         # Buttons
-        self.quit_button = Button(
-            "Quit",
-            button_width, button_height,
-            MAIN_FONT,
-            self._quit_button_callback)
+        self.quit_button = Button("Quit", MAIN_FONT, self._quit_button_callback)
+        self.save_button = Button("Save", MAIN_FONT, self._save_button_callback)
+        self.exit_button = Button("Back", MAIN_FONT, self._exit_button_callback)
 
-        self.save_button = Button(
-            "Save",
-            button_width, button_height,
-            MAIN_FONT,
-            self._save_button_callback)
+        # Button positions
+        button_y = self.height - self.quit_button.height - self.padding
 
-        self.exit_button = Button(
-            "Back",
-            button_width, button_height,
-            MAIN_FONT,
-            self._exit_button_callback)
+        quit_button_x = self.padding
+        exit_button_x = self.width - self.exit_button.width - self.padding
+        save_button_x = exit_button_x - self.save_button.width - self.padding
 
         self.quit_button.set_position(quit_button_x, button_y)
         self.save_button.set_position(save_button_x, button_y)

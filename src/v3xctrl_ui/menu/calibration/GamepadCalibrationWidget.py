@@ -124,11 +124,9 @@ class GamepadCalibrationWidget(BaseWidget):
         )
 
         self.calibrate_button = Button(
-            label="Start Calibration",
-            width=190,
-            height=35,
-            font=font,
-            callback=self._start_calibration
+            "Start Calibration",
+            font,
+            self._start_calibration
         )
 
         self.invert_checkboxes = {
