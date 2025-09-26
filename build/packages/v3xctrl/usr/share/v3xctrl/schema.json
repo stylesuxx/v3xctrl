@@ -273,7 +273,7 @@
               "title": "Path",
               "type": "string",
               "description": "Path to the modem device",
-              "default": "/dev/ttyACM0"
+              "default": "/dev/eigencomm-at"
             },
             "limitBands": {
               "title": "Limit Bands",
