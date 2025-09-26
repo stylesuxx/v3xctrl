@@ -1,7 +1,7 @@
 import argparse
 import logging
 
-from v3xctrl_udp_relay.Bot import Bot
+from v3xctrl_udp_relay.discord_bot import Bot
 
 
 def main() -> None:

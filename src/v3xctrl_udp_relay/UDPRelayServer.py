@@ -1,265 +1,70 @@
-"""
-Simple UDP relay
-
-Sessions are matched based on their ID, each session needs a server and a
-client.
-
-Session mapping is kept alive as long as a peer keeps re-announcing or active
-communication is happening over either of the ports.
-
-Relay mappings are removed after a certain time of inactivity and allow to be
-re-established if the peer shows up again.
-"""
 from concurrent.futures import ThreadPoolExecutor
-from enum import Enum
+import json
 import logging
+import os
 import socket
 import threading
 import time
-from typing import Dict, Tuple, Any
+from typing import Dict, Optional, Tuple, Any, List
 
 from v3xctrl_helper import Address
-from v3xctrl_control.message import Message, PeerAnnouncement, PeerInfo, Error
+from v3xctrl_control.message import (
+    Message,
+    PeerAnnouncement,
+)
+
 from v3xctrl_udp_relay.SessionStore import SessionStore
-
-
-class Role(Enum):
-    STREAMER = "streamer"
-    VIEWER = "viewer"
-
-
-class PortType(Enum):
-    VIDEO = "video"
-    CONTROL = "control"
-
-
-class PeerEntry:
-    def __init__(self, addr: Address) -> None:
-        self.addr = addr
-        self.ts = time.time()
-
-
-class Session:
-    def __init__(self) -> None:
-        self.roles: Dict[Role, Dict[PortType, PeerEntry]] = {
-            Role.STREAMER: {},
-            Role.VIEWER: {}
-        }
-
-    def register(self, role: Role, port_type: PortType, addr: Address) -> bool:
-        """Returns true if it is a new peer."""
-        new_peer = port_type not in self.roles[role]
-        self.roles[role][port_type] = PeerEntry(addr)
-
-        return new_peer
-
-    def is_ready(self, role: Role) -> bool:
-        for port_type in PortType:
-            if port_type not in self.roles[role]:
-                return False
-
-        return True
-
-    def get_peer(self, role: Role, port_type: PortType) -> PeerEntry | None:
-        return self.roles[role].get(port_type)
+from v3xctrl_udp_relay.PacketRelay import PacketRelay
+from v3xctrl_udp_relay.custom_types import Role, PortType, Session
 
 
 class UDPRelayServer(threading.Thread):
-    TIMEOUT = 3600 // 4  # 15 Minutes
-    CLEANUP_INTERVAL = 1
+    TIMEOUT = 3600 // 8
+    CLEANUP_INTERVAL = 10
     RECEIVE_BUFFER = 2048
 
-    def __init__(self, ip: str, port: int, db_path: str) -> None:
+    def __init__(
+            self,
+            ip: str,
+            port: int,
+            db_path: str,
+            command_socket_path: str = "/tmp/udp_relay_command.sock"
+    ) -> None:
         super().__init__(daemon=True, name="UDPRelayServer")
+
         self.ip = ip
         self.port = port
-        self.store = SessionStore(db_path)
-
-        self.sessions: dict[str, Session] = {}
-        self.relay_map: dict[Address, Dict[str, Any]] = {}
-
-        self.lock = threading.Lock()
-        self.relay_lock = threading.Lock()
+        self.command_socket_path = command_socket_path
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind(('0.0.0.0', self.port))
 
+        self.relay = PacketRelay(
+            SessionStore(db_path),
+            self.sock,
+            (self.ip, self.port),
+            self.TIMEOUT
+        )
+
         self.executor = ThreadPoolExecutor(max_workers=10)
-
         self.running = threading.Event()
+
+        self._setup_command_socket()
+
+    def start(self) -> None:
         self.running.set()
-
-    def _is_mapping_expired(self, mapping: Dict[str, float], now: float) -> bool:
-        return (now - mapping["ts"]) > self.TIMEOUT
-
-    def _clean_expired_entries(self) -> None:
-        while self.running.is_set():
-            now = time.time()
-            expired_roles: Dict[Tuple[str, Role], Any] = {}
-
-            with self.relay_lock:
-                # Phase 1: Identify expired mappings per (session, role)
-                for addr, entry in list(self.relay_map.items()):
-                    if self._is_mapping_expired(entry, now):
-                        key = (entry["session"], entry["role"])
-                        expired_roles.setdefault(key, set()).add(entry["port_type"])
-
-                # Phase 2: Expire relay mappings and roles
-                for (session_id, role), expired_types in expired_roles.items():
-                    if all(pt in expired_types for pt in PortType):
-                        for addr, entry in list(self.relay_map.items()):
-                            if entry["session"] == session_id and entry["role"] == role:
-                                del self.relay_map[addr]
-                                logging.info(f"Expired mapping for {session_id}:{role}:{entry['port_type']} at {addr}")
-
-                        if session_id in self.sessions:
-                            self.sessions[session_id].roles[role] = {}
-                            logging.info(f"Removed expired role {role} from session {session_id}")
-
-                # Phase 3: Expire whole session if:
-                # - it has no relay mappings AND
-                # - no recent PeerEntry timestamps
-                for sid, session in list(self.sessions.items()):
-                    has_mapping = any(
-                        entry["session"] == sid for entry in self.relay_map.values()
-                    )
-
-                    if has_mapping:
-                        continue
-
-                    all_expired = True
-                    for role_dict in session.roles.values():
-                        for peer in role_dict.values():
-                            if (now - peer.ts) <= self.TIMEOUT:
-                                all_expired = False
-                                break
-                        if not all_expired:
-                            break
-
-                    if all_expired:
-                        del self.sessions[sid]
-                        logging.info(f"Removed expired session: {sid}")
-
-            time.sleep(self.CLEANUP_INTERVAL)
-
-    def _handle_peer_announcement(
-        self,
-        msg: PeerAnnouncement,
-        addr: Address
-    ) -> None:
-        """Registers peers and sets up relay mappings if both sides are ready."""
-        session_id = msg.get_id()
-
-        role = None
-        port_type = None
-
-        try:
-            role = Role(msg.get_role())
-            port_type = PortType(msg.get_port_type())
-        except ValueError:
-            logging.debug(f"Invalid announcement from {addr} — role={msg.get_role()}, port_type={msg.get_port_type()}")
-            return
-
-        other_role = Role.VIEWER if role == Role.STREAMER else Role.STREAMER
-        now = time.time()
-        with self.lock:
-            if not self.store.exists(session_id):
-                logging.info(f"Ignoring announcement for unknown session '{session_id}' from {addr}")
-
-                try:
-                    error_msg = Error(str(403))
-                    self.sock.sendto(error_msg.to_bytes(), addr)
-                except Exception as e:
-                    logging.error(f"Failed to send error message to {addr}: {e}", exc_info=True)
-
-                return
-
-            session = self.sessions.setdefault(session_id, Session())
-            is_new_peer = session.register(role, port_type, addr)
-            if is_new_peer:
-                logging.info(f"Registered {role.name}:{port_type.name} for session '{session_id}' from {addr}")
-
-            if session.is_ready(role) and session.is_ready(other_role):
-                # Purge current mappings for this session
-                with self.relay_lock:
-                    for addr, entry in list(self.relay_map.items()):
-                        if entry["session"] == session_id:
-                            del self.relay_map[addr]
-
-                # Rebuild fresh mappings
-                for port_type in PortType:
-                    client = session.get_peer(Role.STREAMER, port_type)
-                    server = session.get_peer(Role.VIEWER, port_type)
-
-                    if client and server:
-                        with self.relay_lock:
-                            self.relay_map[client.addr] = {
-                                "target": server.addr,
-                                "ts": now,
-                                "session": session_id,
-                                "role": Role.STREAMER,
-                                "port_type": port_type
-                            }
-                            self.relay_map[server.addr] = {
-                                "target": client.addr,
-                                "ts": now,
-                                "session": session_id,
-                                "role": Role.VIEWER,
-                                "port_type": port_type
-                            }
-
-                logging.info(f"Updated relay mapping for session '{session_id}'")
-
-                try:
-                    peer_info = PeerInfo(ip=self.ip, video_port=self.port, control_port=self.port)
-                    for port_type in PortType:
-                        for role in Role:
-                            peer = session.get_peer(role, port_type)
-                            if peer:
-                                self.sock.sendto(
-                                    peer_info.to_bytes(),
-                                    peer.addr
-                                )
-
-                    logging.info(f"Peer info exchanged: '{session_id}'")
-
-                except Exception as e:
-                    logging.error(f"Error sending PeerInfo: {e}", exc_info=True)
-
-    def _forward_packet(self, data: bytes, addr: Address) -> None:
-        with self.relay_lock:
-            entry = self.relay_map.get(addr)
-            if entry:
-                self.sock.sendto(data, entry["target"])
-                entry["ts"] = time.time()
-
-    def _handle_packet(self, data: bytes, addr: Address) -> None:
-        try:
-            if data.startswith(b'\x83\xa1t\xb0PeerAnnouncement'):
-                try:
-                    msg = Message.from_bytes(data)
-                    if isinstance(msg, PeerAnnouncement):
-                        self._handle_peer_announcement(msg, addr)
-                        return
-                except Exception:
-                    logging.debug("Malformed peer announcement")
-                    return
-
-            if addr in self.relay_map:
-                self._forward_packet(data, addr)
-        except Exception as e:
-            logging.error(f"Error handling packet from {addr}: {e}", exc_info=True)
+        threading.Thread(target=self._cleanup_expired_entries, daemon=True).start()
+        threading.Thread(target=self._handle_commands, daemon=True).start()
+        super().start()
 
     def run(self) -> None:
         logging.info(f"UDP Relay server listening on {self.ip}:{self.port}")
-        threading.Thread(target=self._clean_expired_entries, daemon=True).start()
 
         while self.running.is_set():
             try:
                 data, addr = self.sock.recvfrom(self.RECEIVE_BUFFER)
                 self.executor.submit(self._handle_packet, data, addr)
-
             except OSError:
                 if not self.running.is_set():
                     break
@@ -268,9 +73,130 @@ class UDPRelayServer(threading.Thread):
                 logging.error(f"Unhandled error: {e}", exc_info=True)
 
     def shutdown(self) -> None:
-        """Stops the relay server and closes the socket."""
         self.running.clear()
+        self.executor.shutdown(wait=True)
+
         try:
             self.sock.close()
         except Exception as e:
             logging.warning(f"Error closing socket: {e}")
+
+        try:
+            if hasattr(self, 'command_sock'):
+                self.command_sock.close()
+            if os.path.exists(self.command_socket_path):
+                os.unlink(self.command_socket_path)
+        except Exception as e:
+            logging.warning(f"Error cleaning up command socket: {e}")
+
+        if self.is_alive():
+            self.join(timeout=5.0)
+
+    def _setup_command_socket(self) -> None:
+        """Setup Unix socket for command interface"""
+        if os.path.exists(self.command_socket_path):
+            os.unlink(self.command_socket_path)
+
+        self.command_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.command_sock.bind(self.command_socket_path)
+        self.command_sock.listen(5)
+
+    def _handle_commands(self) -> None:
+        """Handle incoming command socket connections"""
+        while self.running.is_set():
+            try:
+                client_sock, _ = self.command_sock.accept()
+                threading.Thread(
+                    target=self._process_command,
+                    args=(client_sock,),
+                    daemon=True
+                ).start()
+            except OSError:
+                if not self.running.is_set():
+                    break
+            except Exception as e:
+                logging.error(f"Command socket error: {e}")
+
+    def _process_command(self, client_sock: socket.socket) -> None:
+        """Process individual command connection"""
+        try:
+            data = client_sock.recv(1024).decode('utf-8').strip()
+
+            if data == "stats":
+                stats = self._get_session_stats()
+                response = json.dumps(stats, indent=2)
+                client_sock.send(response.encode('utf-8'))
+            else:
+                client_sock.send(b"Unknown command")
+
+        except Exception as e:
+            logging.error(f"Error processing command: {e}")
+        finally:
+            client_sock.close()
+
+    def _get_session_stats(self) -> Dict[str, Dict[str, Any]]:
+        """Return current session statistics"""
+        result: Dict[str, Dict[str, Any]] = {}
+
+        with self.relay.lock:
+            for sid, session in self.relay.sessions.items():
+                mappings: List[Dict[str, Any]] = []
+
+                if session:
+                    for addr in session.addresses:
+                        if addr in self.relay.mappings:
+                            role_info = self._find_role_for_address(session, addr)
+                            if role_info:
+                                role, port_type = role_info
+                                mappings.append({
+                                    'address': f"{addr[0]}:{addr[1]}",
+                                    'role': role.name,
+                                    'port_type': port_type.name
+                                })
+
+                    result[sid] = {
+                        'created_at': session.created_at,
+                        'mappings': mappings
+                    }
+
+        return result
+
+    def _find_role_for_address(self, session: Session, addr: Address) -> Optional[Tuple[Role, PortType]]:
+        """Find role and port_type for given address in session"""
+        for role, port_dict in session.roles.items():
+            for port_type, peer_entry in port_dict.items():
+                if peer_entry.addr == addr:
+                    return role, port_type
+        return None
+
+    def _handle_peer_announcement(
+        self,
+        msg: PeerAnnouncement,
+        addr: Address
+    ) -> None:
+        self.relay.register_peer(msg, addr)
+
+    def _cleanup_expired_entries(self) -> None:
+        while self.running.is_set():
+            self.relay.cleanup_expired_mappings()
+            time.sleep(self.CLEANUP_INTERVAL)
+
+    def _handle_packet(self, data: bytes, addr: Address) -> None:
+        """
+        Main priority is to forward packets as quickly as possible and handle
+        peer announcements.
+        """
+        try:
+            if data.startswith(b'\x83\xa1t\xb0PeerAnnouncement'):
+                try:
+                    msg = Message.from_bytes(data)
+                    if isinstance(msg, PeerAnnouncement):
+                        self._handle_peer_announcement(msg, addr)
+                        return
+                except Exception:
+                    return
+
+            self.relay.forward_packet(data, addr)
+
+        except Exception as e:
+            logging.error(f"Error handling packet from {addr}: {e}", exc_info=True)
