@@ -1,6 +1,6 @@
-from typing import Tuple
-
+from collections import deque
 from pygame import Surface
+from typing import Tuple
 
 from v3xctrl_ui.colors import BLACK
 from v3xctrl_ui.fonts import SMALL_MONO_FONT
@@ -13,13 +13,22 @@ class StatusValueWidget(StatusWidget):
         position: Tuple[int, int],
         size: int,
         label: str,
-        padding: int = 8
+        padding: int = 8,
+        average: bool = False,
+        average_window: int = 10,
     ) -> None:
         super().__init__(position, size, label, padding)
+
         self.value = None
         self.value_font = SMALL_MONO_FONT
+        self.average = average
+        self.history: deque[int] = deque(maxlen=average_window)
 
     def set_value(self, value: int) -> None:
+        if self.average:
+            self.history.append(value)
+            value = sum(self.history) // len(self.history)
+
         self.value = value
 
     def draw_extra(self, surface: Surface) -> None:
