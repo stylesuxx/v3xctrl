@@ -4,7 +4,7 @@ from typing import Tuple, Dict, Any
 from pygame import Surface, SRCALPHA
 from material_icons import IconStyle
 
-from v3xctrl_ui.colors import WHITE, GREEN, RED, YELLOW, ORANGE, GREY
+from v3xctrl_ui.colors import WHITE, GREEN, RED, YELLOW, ORANGE, GREY, DARK_GREY
 from v3xctrl_ui.widgets.Widget import Widget
 from v3xctrl_ui.helpers import get_icon
 
@@ -29,11 +29,11 @@ class SignalQualityWidget(Widget):
 
         # Prepare bars surfaces
         self.bars = [
-            get_icon("signal_cellular_0_bar", size=self.icon_size, color=WHITE, style=IconStyle.TWOTONE),
-            get_icon("signal_cellular_1_bar", size=self.icon_size, color=WHITE, style=IconStyle.TWOTONE),
-            get_icon("signal_cellular_2_bar", size=self.icon_size, color=WHITE, style=IconStyle.TWOTONE),
-            get_icon("signal_cellular_3_bar", size=self.icon_size, color=WHITE, style=IconStyle.TWOTONE),
-            get_icon("signal_cellular_4_bar", size=self.icon_size, color=WHITE, style=IconStyle.TWOTONE),
+            get_icon("signal_cellular_0_bar", size=self.icon_size, color=DARK_GREY, style=IconStyle.TWOTONE),
+            get_icon("signal_cellular_1_bar", size=self.icon_size, color=DARK_GREY, style=IconStyle.TWOTONE),
+            get_icon("signal_cellular_2_bar", size=self.icon_size, color=DARK_GREY, style=IconStyle.TWOTONE),
+            get_icon("signal_cellular_3_bar", size=self.icon_size, color=DARK_GREY, style=IconStyle.TWOTONE),
+            get_icon("signal_cellular_4_bar", size=self.icon_size, color=DARK_GREY, style=IconStyle.TWOTONE),
         ]
 
         self.no_data = get_icon(

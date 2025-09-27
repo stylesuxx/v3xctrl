@@ -2,14 +2,23 @@ from collections import deque
 import logging
 import pygame
 import time
-from typing import Optional, Tuple
+from typing import (
+  Optional,
+  Tuple,
+  List,
+  ItemsView,
+  Dict,
+  cast,
+  Any,
+)
 
 from v3xctrl_control.message import Message, Latency, Telemetry
 from v3xctrl_ui.colors import RED, WHITE
 from v3xctrl_ui.helpers import (
   get_fps,
   interpolate_steering_color,
-  interpolate_throttle_color
+  interpolate_throttle_color,
+  round_corners,
 )
 from v3xctrl_ui.Settings import Settings
 from v3xctrl_ui.widgets import (
@@ -32,8 +41,7 @@ class OSD:
         self.width = self.settings.get("video").get("width")
         self.height = self.settings.get("video").get("height")
 
-        self.widget_settings = None
-        self.fps_settings = None
+        self.widget_settings = {}
         self.update_settings(settings)
 
         self.widgets_debug = {}
@@ -43,12 +51,12 @@ class OSD:
         self.video_history: Optional[deque[float]] = None
         self._init_widgets_debug()
 
-        self.widgets_signal = {}
+        self.widgets_signal: Dict[str, Widget] = {}
         self.signal_quality: dict[str, int] = {"rsrq": -1, "rsrp": -1}
-        self.signal_band: str = "Band ?"
+        self.signal_band: str = "BAND ?"
         self._init_widgets_signal()
 
-        self.widgets_battery = {}
+        self.widgets_battery: Dict[str, Widget] = {}
         self.battery_icon: int = 0
         self.battery_voltage: str = "0.00V"
         self.battery_average_voltage: str = "0.00V"
@@ -125,43 +133,14 @@ class OSD:
                 widget.draw(screen, getattr(self, name))
 
         # Battery information widget
-        align = self.widget_settings.get('battery', {"align": None}).get("align")
-        offset = self.widget_settings.get('battery', {"offset": (0, 0)}).get("offset")
-        height = 0
-        for name, widget in self.widgets_battery.items():
-            display = self.widget_settings.get(name, {"display": True}).get("display")
-
-            if display:
-                position = self._get_position(align, widget, offset)
-                widget.position = (
-                    position[0],
-                    position[1] + height
-                )
-                widget.draw(screen, getattr(self, name))
-                height += widget.height
+        settings = cast(Dict[str, Any], self.widget_settings.get('battery', {}))
+        widgets: ItemsView[str, Widget] = self.widgets_battery.items()
+        self._render_widget_group(screen, settings, widgets)
 
         # Signal information widget
-        settings = self.widget_settings.get('signal', {
-            "align": None,
-            "offset": (0, 0),
-            "padding": 5,
-            "display": False
-        })
-        if settings.get("display"):
-            align = settings.get("align")
-            offset = settings.get("offset", (0, 0))
-            padding = settings.get("padding", 0)
-            height = 0
-            for name, widget in self.widgets_signal.items():
-                display = self.widget_settings.get(name, {"display": True}).get("display")
-                if display:
-                    position = self._get_position(align, widget, offset)
-                    widget.position = (
-                        position[0],
-                        position[1] + height
-                    )
-                    widget.draw(screen, getattr(self, name))
-                    height += widget.height + padding
+        settings = cast(Dict[str, Any], self.widget_settings.get('signal', {}))
+        widgets: ItemsView[str, Widget] = self.widgets_signal.items()
+        self._render_widget_group(screen, settings, widgets)
 
         # Debug widgets
         settings = self.widget_settings.get('debug', {
@@ -186,10 +165,51 @@ class OSD:
                     widget.draw(screen, getattr(self, name))
                     height += widget.height + padding
 
+    def _render_widget_group(
+        self,
+        screen: pygame.Surface,
+        settings: Dict[str, Any],
+        widgets: ItemsView[str, Widget]
+    ) -> None:
+        if settings.get("display", False):
+            align = settings.get("align", "top-left")
+            offset = settings.get("offset", (0, 0))
+            padding = settings.get("padding", 0)
+
+            width: int = 0
+            height: int = 0
+            visible_widgets: List[Tuple[str, Widget]] = []
+
+            # Calculate width and height for the composed widget
+            for name, widget in widgets:
+                widget_settings = self.widget_settings.get(name, {})
+                display = widget_settings.get("display", True)
+                if display:
+                    width = max(width, widget.width)
+                    height += widget.height + padding
+                    visible_widgets.append((name, widget))
+
+            if height > 0:
+                height -= padding
+
+            # Prepare surface to blit visible widgets to
+            composed = pygame.Surface((width, height), pygame.SRCALPHA)
+
+            height = 0
+            for name, widget in visible_widgets:
+                position = (0, height)
+                widget.position = position
+                widget.draw(composed, getattr(self, name))
+                height += widget.height + padding
+
+            position = self._get_position(align, composed, offset)
+            rounded = round_corners(composed, 4)
+            screen.blit(rounded, position)
+
     def _get_position(
         self,
         alignment: str,
-        widget: Widget,
+        widget: Widget | pygame.Surface,
         offset: Tuple[int, int] = (0, 0)
     ) -> Tuple[int, int]:
         """
@@ -346,7 +366,7 @@ class OSD:
             "rsrp": values["sig"]["rsrp"],
         }
         band = values["cell"]["band"]
-        self.signal_band = f"Band {band}"
+        self.signal_band = f"BAND {band}"
 
         # Battery
         battery_voltage = values["bat"]["vol"] / 1000

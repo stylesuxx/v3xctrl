@@ -81,3 +81,27 @@ def get_icon(
         surface = pygame.transform.rotate(surface, rotation)
 
     return surface
+
+
+def round_corners(
+    surface: pygame.Surface,
+    radius: int,
+    scale: int = 2
+) -> pygame.Surface:
+    width, height = surface.get_size()
+
+    # Scale and transform mask for anti-alias
+    mask_large = pygame.Surface((width * scale, height * scale), pygame.SRCALPHA)
+    pygame.draw.rect(
+        mask_large,
+        (255, 255, 255, 255),
+        (0, 0, width * scale, height * scale),
+        border_radius=radius * scale
+    )
+    mask = pygame.transform.smoothscale(mask_large, (width, height))
+
+    rounded = pygame.Surface((width, height), pygame.SRCALPHA)
+    rounded.blit(surface, (0, 0))
+    rounded.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+
+    return rounded
