@@ -4,7 +4,6 @@ msgpack==1.1.0
 numpy==2.2.4
 packaging==25.0
 pluggy==1.6.0
-pygame==2.6.1
 pytest==8.3.5
 pytest-cov==6.1.1
 tomli_w==1.2.0

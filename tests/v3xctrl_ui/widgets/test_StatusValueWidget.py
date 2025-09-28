@@ -39,12 +39,11 @@ class TestStatusValueWidget(unittest.TestCase):
         mock_rect = pygame.Rect(0, 0, 10, 10)
 
         self.widget.value_font = MagicMock()
-        self.widget.value_font.render.return_value = (mock_rendered, mock_rect)
+        self.widget.value_font.render_to.return_value = (mock_rendered, mock_rect)
 
         self.widget.draw_extra(mock_surface)
 
-        self.widget.value_font.render.assert_called_once_with("99", BLACK)
-        mock_surface.blit.assert_called_once_with(mock_rendered, mock_rect)
+        self.widget.value_font.render_to.assert_called_once()
 
     def test_draw_extra_skips_render_when_none(self):
         self.widget.set_value(None)

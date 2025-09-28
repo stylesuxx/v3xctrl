@@ -9,9 +9,11 @@ from v3xctrl_ui.menu.tabs.FrequenciesTab import FrequenciesTab
 
 
 class TestFrequenciesTab(unittest.TestCase):
-    def setUp(self):
-        pygame.init()
+    @classmethod
+    def setUpClass(cls):
         pygame.display.set_mode((1, 1))
+
+    def setUp(self):
         self.settings = {
             "timing": {
                 "main_loop_fps": 60,

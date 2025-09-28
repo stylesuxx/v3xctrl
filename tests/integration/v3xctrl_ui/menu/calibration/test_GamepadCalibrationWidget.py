@@ -257,9 +257,6 @@ class TestGamepadCalibrationWidgetIntegration(unittest.TestCase):
         self.widget.handle_event(mouse_down_event)
         self.widget.handle_event(mouse_up_event)
 
-    def tearDown(self):
-        pygame.quit()
-
 
 if __name__ == '__main__':
     unittest.main()

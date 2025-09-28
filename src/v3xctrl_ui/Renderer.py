@@ -6,7 +6,7 @@ import pygame
 
 #from v3xctrl_ui.AppState import AppState
 from v3xctrl_ui.colors import BLACK, RED, WHITE
-from v3xctrl_ui.fonts import BOLD_24_MONO_FONT, BOLD_32_MONO_FONT
+from v3xctrl_ui.fonts import BOLD_MONO_FONT_24, BOLD_MONO_FONT_32
 from v3xctrl_ui.helpers import get_external_ip
 from v3xctrl_ui.menu.Menu import Menu
 from v3xctrl_ui.Settings import Settings
@@ -90,8 +90,8 @@ class Renderer:
         screen.blit(surface, (x, y))
 
     def _render_no_control_signal(self, screen: pygame.Surface) -> None:
-        surface, rect = BOLD_32_MONO_FONT.render("No Control Signal", RED)
-        rect.center = (self.center_x - 6, self.center_y - 70)
+        surface, rect = BOLD_MONO_FONT_32.render("NO CONTROL SIGNAL", RED)
+        rect.center = (self.center_x - 6, self.center_y - 75)
         screen.blit(surface, rect)
 
     def _render_no_video_signal(self, screen: pygame.Surface, relay_status_message: str) -> None:
@@ -111,7 +111,7 @@ class Renderer:
         screen.fill(BLACK)
 
         # Main "No Signal" text
-        surface, rect = BOLD_32_MONO_FONT.render("No Video Signal", RED)
+        surface, rect = BOLD_MONO_FONT_32.render("NO VIDEO SIGNAL", RED)
         rect.center = (self.center_x, self.center_y - 40)
         screen.blit(surface, rect)
 
@@ -174,7 +174,7 @@ class Renderer:
             if val:
                 label += ":"
 
-            key_surf, key_rect = BOLD_24_MONO_FONT.render(label, WHITE)
+            key_surf, key_rect = BOLD_MONO_FONT_24.render(label, WHITE)
             key_rect.topleft = (key_x, y)
             screen.blit(key_surf, key_rect)
 
@@ -185,7 +185,7 @@ class Renderer:
         for i, (key, val) in enumerate(data):
             if val:
                 y = base_y + i * line_height
-                val_surf, val_rect = BOLD_24_MONO_FONT.render(val, WHITE)
+                val_surf, val_rect = BOLD_MONO_FONT_24.render(val, WHITE)
                 val_rect.topleft = (val_x, y)
                 screen.blit(val_surf, val_rect)
 
@@ -215,7 +215,7 @@ class Renderer:
     def _render_errors(self, screen: pygame.Surface, network_manager: 'NetworkManager') -> None:
         """Render error messages on top of main UI."""
         if network_manager.server_error:
-            surface, rect = BOLD_24_MONO_FONT.render(network_manager.server_error, RED)
+            surface, rect = BOLD_MONO_FONT_24.render(network_manager.server_error, RED)
             rect.center = (self.video_width // 2, 50)
             screen.blit(surface, rect)
 

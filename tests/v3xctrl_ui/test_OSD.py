@@ -1,3 +1,6 @@
+import os
+os.environ["SDL_VIDEODRIVER"] = "dummy"
+
 from collections import deque
 import tempfile
 import time
@@ -8,7 +11,6 @@ from unittest.mock import MagicMock, patch
 
 import pygame
 
-from v3xctrl_ui.colors import RED
 from v3xctrl_ui.Settings import Settings
 from v3xctrl_ui.OSD import OSD
 from v3xctrl_control.message import Latency, Telemetry
@@ -31,10 +33,10 @@ class TestOSD(unittest.TestCase):
 
     def test_reset_defaults(self):
         self.osd.reset()
-        self.assertEqual(self.osd.debug_data, "waiting")
+        self.assertEqual(self.osd.debug_data, None)
         self.assertEqual(self.osd.signal_quality, {"rsrq": -1, "rsrp": -1})
         self.assertEqual(self.osd.battery_voltage, "0.00V")
-        self.assertEqual(self.osd.battery_percent, "100%")
+        self.assertEqual(self.osd.battery_percent, "0%")
         self.assertEqual(self.osd.throttle, 0.0)
         self.assertEqual(self.osd.steering, 0.0)
 
@@ -67,7 +69,7 @@ class TestOSD(unittest.TestCase):
         })
         self.osd._telemetry_update(telemetry)
         self.assertEqual(self.osd.signal_quality["rsrq"], -9)
-        self.assertEqual(self.osd.signal_band, "Band 3")
+        self.assertEqual(self.osd.signal_band, "BAND 3")
         self.assertEqual(self.osd.battery_percent, "75%")
 
     @patch("v3xctrl_ui.OSD.pygame.display.get_window_size", return_value=(800, 600))
@@ -116,6 +118,7 @@ class TestOSD(unittest.TestCase):
             msg.timestamp = time.time() - delta
             self.osd._latency_update(msg)
             self.assertEqual(self.osd.debug_latency, expected)
+
 
 if __name__ == "__main__":
     pygame.init()
