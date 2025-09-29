@@ -88,7 +88,8 @@ class GamepadManager(threading.Thread):
                                     logging.info("Found gamepad with calibration")
                                     break
 
-                    if not self._active_gamepad or not self._active_settings:
+                    # No known gamepad found (gamepad disconnected)
+                    if self._active_guid not in guids:
                         self._active_gamepad = None
                         self._active_settings = None
 
