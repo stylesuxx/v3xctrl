@@ -12,6 +12,7 @@ active gampad, normalized based on the calibration.
 NOTE: Make sure to add observers before starting the GampadManager, otherwise
       you might miss the first update.
 """
+import logging
 import threading
 from typing import Callable, List, Optional, Dict, Set, Tuple, Any
 
@@ -47,27 +48,49 @@ class GamepadManager(threading.Thread):
             for i in range(pygame.joystick.get_count()):
                 try:
                     js = pygame.joystick.Joystick(i)
-                    if not js.get_init():
-                        js.init()
-                    gamepads[js.get_guid()] = js
+                    guid = js.get_guid()
+
+                    if guid not in gamepads:
+                        gamepads[guid] = js
+
                 except pygame.error:
                     continue
 
             guids = set(gamepads.keys())
             if guids != self._previous_guids:
+                logging.info("New gamepad detected")
+
                 with self._lock:
                     self._gamepads = gamepads
                     self._previous_guids = guids
 
-                    # If active GUID still matches one of the new gamepads, rebind it
-                    if self._active_guid:
-                        matching = gamepads.get(self._active_guid)
-                        if matching:
-                            if not self._active_gamepad or not self._active_settings:
-                                self._set_active_unlocked(self._active_guid)
-                        else:
-                            self._active_gamepad = None
-                            self._active_settings = None
+                    """
+                    If the default gamepad (according to setting) is available,
+                    use it.
+                    """
+                    if self._active_guid and gamepads.get(self._active_guid):
+                        if not self._active_gamepad or not self._active_settings:
+                            self._set_active_unlocked(self._active_guid)
+                            logging.info("Found default gamepad")
+                    else:
+                        """
+                        Check if another gamepad for which we have a
+                        configuration is available, if so, use the first
+                        matching one.
+                        """
+                        for id in guids:
+                            if id in self._settings:
+                                if (
+                                    not self._active_gamepad or
+                                    not self._active_settings
+                                ):
+                                    self._set_active_unlocked(id)
+                                    logging.info("Found gamepad with calibration")
+                                    break
+
+                    if not self._active_gamepad or not self._active_settings:
+                        self._active_gamepad = None
+                        self._active_settings = None
 
                     observers = list(self._observers)
 
@@ -157,8 +180,6 @@ class GamepadManager(threading.Thread):
         self._active_gamepad = None
         self._active_settings = None
         if js and settings:
-            if not js.get_init():
-                js.init()
             self._active_gamepad = js
             self._active_settings = settings
 
