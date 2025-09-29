@@ -5,6 +5,7 @@ from pygame import Rect, Surface
 from pygame.freetype import Font
 
 from v3xctrl_ui.colors import WHITE, GREY, LIGHT_GREY, MID_GREY
+from v3xctrl_ui.helpers import get_icon
 from .BaseWidget import BaseWidget
 
 
@@ -43,7 +44,7 @@ class Select(BaseWidget):
         self.hover_index = -1
         self.disabled = False
 
-        self.rect = Rect(0, 0, length, self.OPTION_HEIGHT)
+        self.rect = None
 
         self.option_surfaces: List[Surface] = []
         self.options = []
@@ -51,7 +52,7 @@ class Select(BaseWidget):
         self.full_expanded_rect = None
 
         self.label_surface, self.label_rect = self.font.render(label, self.FONT_COLOR)
-        self.caret_surface, _ = self.font.render("▼", self.FONT_COLOR)
+        self.caret_surface = get_icon("arrow_drop_down", size=60, color=self.FONT_COLOR)
 
     def disable(self) -> None:
         self.disabled = True
@@ -113,7 +114,6 @@ class Select(BaseWidget):
     def _render_label_and_caret(self) -> None:
         color = self.FONT_COLOR_DISABLED if self.disabled else self.FONT_COLOR
         self.label_surface, self.label_rect = self.font.render(self.label, color)
-        self.caret_surface, _ = self.font.render("▼", color)
 
         # Restore vertical centering
         self.label_rect.topleft = (
@@ -171,7 +171,7 @@ class Select(BaseWidget):
         text_y = self.rect.centery - selected_surface.get_height() // 2
         surface.blit(selected_surface, (self.rect.x + 8, text_y))
 
-        caret_x = self.rect.right - self.CARET_PADDING - self.caret_surface.get_width()
+        caret_x = self.rect.right - self.CARET_PADDING - self.caret_surface.get_width() + 20
         caret_y = self.rect.centery - self.caret_surface.get_height() // 2
         surface.blit(self.caret_surface, (caret_x, caret_y))
 
