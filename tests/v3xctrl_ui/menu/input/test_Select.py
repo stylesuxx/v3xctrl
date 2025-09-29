@@ -220,6 +220,7 @@ class TestSelect(unittest.TestCase):
 
         new_select._render_label_and_caret()
         self.assertIsNotNone(new_select.label_surface)
+        self.assertIsNone(new_select.rect)
 
     def test_text_truncation_edge_cases(self):
         short_select = Select(

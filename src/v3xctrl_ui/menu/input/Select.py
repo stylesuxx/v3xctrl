@@ -112,16 +112,17 @@ class Select(BaseWidget):
         return False
 
     def _render_label_and_caret(self) -> None:
-        color = self.FONT_COLOR_DISABLED if self.disabled else self.FONT_COLOR
-        self.label_surface, self.label_rect = self.font.render(self.label, color)
+        if self.rect:
+            color = self.FONT_COLOR_DISABLED if self.disabled else self.FONT_COLOR
+            self.label_surface, self.label_rect = self.font.render(self.label, color)
 
-        # Restore vertical centering
-        self.label_rect.topleft = (
-            self.x,
-            self.y + self.rect.height // 2 - self.label_rect.height // 2
-        )
+            # Restore vertical centering
+            self.label_rect.topleft = (
+                self.x,
+                self.y + self.rect.height // 2 - self.label_rect.height // 2
+            )
 
-        self._update_option_surfaces()
+            self._update_option_surfaces()
 
     def _update_option_surfaces(self) -> None:
         self.option_surfaces = []
