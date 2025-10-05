@@ -8,12 +8,6 @@ class Command(Message):
     """Message type for command data."""
     _command_counter = itertools.count()
 
-    @classmethod
-    def _generate_command_id(cls) -> str:
-        ts_ns = time.monotonic_ns()
-        seq = next(cls._command_counter)
-        return f"{ts_ns}-{seq}"
-
     def __init__(
         self,
         c: str,
@@ -40,3 +34,10 @@ class Command(Message):
 
     def get_command_id(self) -> str:
         return self.command_id
+
+    @classmethod
+    def _generate_command_id(cls) -> str:
+        ts_ns = time.monotonic_ns()
+        seq = next(cls._command_counter)
+
+        return f"{ts_ns}-{seq}"

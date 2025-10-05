@@ -188,9 +188,8 @@ class TestServer(unittest.TestCase):
         callback = MagicMock()
 
         self.server.COMMAND_DELAY = 0.01  # Fast for testing
-        self.server.COMMAND_MAX_RETRIES = 1
 
-        self.server.send_command(command, callback=callback)
+        self.server.send_command(command, callback=callback, max_retries=1)
 
         # Wait for retries to complete
         time.sleep(0.05)

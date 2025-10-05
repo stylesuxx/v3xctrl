@@ -27,6 +27,8 @@ from .message import (
   PeerInfo,
   Syn,
   Ack,
+  Command,
+  CommandAck,
 )
 
 
@@ -69,8 +71,15 @@ class UDPReceiver(threading.Thread):
             return False
 
         if self._should_validate_host and addr[0] != self._expected_host:
-            logging.debug(f"Skipping message from wrong host: {addr[0]}")
+            logging.warning(f"Skipping message from wrong host: {addr[0]}")
             return False
+
+        # Commands are not order critical, we just want them handled
+        if (
+            isinstance(message, Command) or
+            isinstance(message, CommandAck)
+        ):
+            return True
 
         # Reset timestamps on Syn or Ack
         if isinstance(message, Syn) or isinstance(message, Ack):
@@ -78,6 +87,12 @@ class UDPReceiver(threading.Thread):
             self.reset()
             return True
 
+        """
+        Check timestamps for every packet where we are only interested in the
+        newest version. This is a catchall, but will effectively catch:
+        - Telemetry
+        - Control
+        """
         if message.timestamp < self.last_valid_timestamp:
             logging.debug(f"Skipping out of order message: {message.type}")
             return False

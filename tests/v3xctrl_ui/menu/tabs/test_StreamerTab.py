@@ -201,15 +201,15 @@ class TestStreamerTab(unittest.TestCase):
             element.enable.assert_called_once()
 
     @patch('time.sleep')
-    @patch('logging.debug')
-    def test_command_callback_logs_status(self, mock_log_debug, mock_sleep):
+    @patch('logging.info')
+    def test_command_callback_logs_status(self, mock_log_info, mock_sleep):
         """Test that command callback logs the status"""
         self.tab._on_command_callback(True)
-        mock_log_debug.assert_called_once_with("Received command status: True")
+        mock_log_info.assert_called_once_with("Received command ack: True")
 
-        mock_log_debug.reset_mock()
+        mock_log_info.reset_mock()
         self.tab._on_command_callback(False)
-        mock_log_debug.assert_called_once_with("Received command status: False")
+        mock_log_info.assert_called_once_with("Received command ack: False")
 
     def test_draw_method(self):
         """Test that draw method can be called without errors"""
