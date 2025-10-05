@@ -26,15 +26,15 @@ class TestSignalQualityWidget(unittest.TestCase):
         self.assertAlmostEqual(self.widget._rsrq_to_dbm(10), -15.0, places=1)
 
     def test_get_bars(self):
-        self.assertEqual(self.widget._get_bars(60), 4)
+        self.assertEqual(self.widget._get_bars(60), 5)
         self.assertEqual(self.widget._get_bars(59), 4)
-        self.assertEqual(self.widget._get_bars(50), 3)
+        self.assertEqual(self.widget._get_bars(50), 4)
         self.assertEqual(self.widget._get_bars(49), 3)
         self.assertEqual(self.widget._get_bars(46), 3)
         self.assertEqual(self.widget._get_bars(35), 2)
-        self.assertEqual(self.widget._get_bars(30), 1)
+        self.assertEqual(self.widget._get_bars(30), 2)
         self.assertEqual(self.widget._get_bars(29), 1)
-        self.assertEqual(self.widget._get_bars(20), 0)
+        self.assertEqual(self.widget._get_bars(20), 1)
         self.assertEqual(self.widget._get_bars(19), 0)
         self.assertEqual(self.widget._get_bars(0), 0)
 

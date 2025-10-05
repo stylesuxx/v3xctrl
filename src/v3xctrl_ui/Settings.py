@@ -90,7 +90,7 @@ class Settings:
             "battery": {
                 "display": True,
                 "align": "top-right",
-                "offset": [78, 10]
+                "offset": [82, 10]
             },
             "battery_icon": {
                 "display": True
