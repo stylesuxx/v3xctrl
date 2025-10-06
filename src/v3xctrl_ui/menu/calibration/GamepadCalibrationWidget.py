@@ -211,19 +211,18 @@ class GamepadCalibrationWidget(BaseWidget):
             self._draw_no_gamepad_message(surface)
             return
 
+        if self.calibrator:
+            self._update_calibrator()
+
+            if self.calibrator.state == CalibratorState.COMPLETE:
+                self._draw_calibration_bars(surface)
+            elif self.calibrator.stage is not None:
+                self._draw_calibration_steps(surface)
+
+            self.dialog.draw(surface)
+
+        # Draw as last element, so Select options can overlap everything else
         self._draw_ui_elements(surface)
-
-        if not self.calibrator:
-            return
-
-        self._update_calibrator()
-
-        if self.calibrator.state == CalibratorState.COMPLETE:
-            self._draw_calibration_bars(surface)
-        elif self.calibrator.stage is not None:
-            self._draw_calibration_steps(surface)
-
-        self.dialog.draw(surface)
 
     def _draw_no_gamepad_message(self, surface: Surface) -> None:
         text, rect = self.font.render("No gamepad detected. Please connect one...", WHITE)
