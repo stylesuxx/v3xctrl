@@ -38,13 +38,7 @@ class DialogBox(BaseWidget):
         self.padding = 20
         self.line_spacing = 30
 
-        self.button: Button = Button(
-            label=button_label,
-            width=200,
-            height=40,
-            font=self.font,
-            callback=self._confirm
-        )
+        self.button: Button = Button(button_label, self.font, self._confirm)
 
         self.surface_size = None
         self.box_rect = None

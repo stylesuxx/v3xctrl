@@ -1,11 +1,14 @@
 from collections import deque
+import io
 import logging
 import time
 from typing import Tuple
+import pygame
 
 import urllib.request
+from material_icons import MaterialIcons, IconStyle
 
-from v3xctrl_helper import clamp
+from v3xctrl_helper import clamp, color_to_hex
 
 
 def interpolate_steering_color(steering: float) -> Tuple[int, int, int]:
@@ -60,3 +63,45 @@ def get_external_ip(timeout: int = 5) -> str:
     except Exception:
         logging.warning("Could not get external IP address")
         return "0.0.0.0"
+
+
+def get_icon(
+    name: str,
+    size: int = 24,
+    color: Tuple[int, int, int] = (0, 0, 0),
+    style: IconStyle = IconStyle.ROUND,
+    rotation: int = 0
+) -> pygame.Surface:
+    icons = MaterialIcons()
+    hex_color = color_to_hex(color)
+    icon = icons.get(name, size=size, color=hex_color, style=style)
+    surface = pygame.image.load(io.BytesIO(icon))
+
+    if rotation != 0:
+        surface = pygame.transform.rotate(surface, rotation)
+
+    return surface
+
+
+def round_corners(
+    surface: pygame.Surface,
+    radius: int,
+    scale: int = 2
+) -> pygame.Surface:
+    width, height = surface.get_size()
+
+    # Scale and transform mask for anti-alias
+    mask_large = pygame.Surface((width * scale, height * scale), pygame.SRCALPHA)
+    pygame.draw.rect(
+        mask_large,
+        (255, 255, 255, 255),
+        (0, 0, width * scale, height * scale),
+        border_radius=radius * scale
+    )
+    mask = pygame.transform.smoothscale(mask_large, (width, height))
+
+    rounded = pygame.Surface((width, height), pygame.SRCALPHA)
+    rounded.blit(surface, (0, 0))
+    rounded.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+
+    return rounded

@@ -1,3 +1,4 @@
+# Required before importing pygame, otherwise screen might flicker during tests
 import os
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
@@ -5,7 +6,6 @@ import unittest
 from unittest.mock import MagicMock, patch
 import pygame
 
-from v3xctrl_control.message import Command
 from v3xctrl_ui.menu.tabs.StreamerTab import StreamerTab
 from v3xctrl_ui.Settings import Settings
 
@@ -37,9 +37,6 @@ class TestStreamerTab(unittest.TestCase):
             on_active_toggle=self.mock_on_active_toggle,
             send_command=self.mock_send_command
         )
-
-    def tearDown(self):
-        pygame.quit()
 
     def test_initialization(self):
         """Test that StreamerTab initializes correctly"""

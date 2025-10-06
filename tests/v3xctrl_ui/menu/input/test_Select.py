@@ -1,4 +1,7 @@
+# Required before importing pygame, otherwise screen might flicker during tests
 import os
+os.environ["SDL_VIDEODRIVER"] = "dummy"
+
 import unittest
 
 import pygame
@@ -7,8 +10,6 @@ from pygame.event import Event
 from pygame.locals import MOUSEBUTTONDOWN, MOUSEMOTION
 
 from v3xctrl_ui.menu.input import Select
-
-os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 
 class TestSelect(unittest.TestCase):
@@ -30,9 +31,6 @@ class TestSelect(unittest.TestCase):
         )
         self.select.set_position(10, 10)
         self.select.set_options(["Low", "Medium", "High"], selected_index=1)
-
-    def tearDown(self):
-        pygame.quit()
 
     def test_initial_selection(self):
         self.assertEqual(self.select.selected_index, 1)
@@ -222,6 +220,7 @@ class TestSelect(unittest.TestCase):
 
         new_select._render_label_and_caret()
         self.assertIsNotNone(new_select.label_surface)
+        self.assertIsNone(new_select.rect)
 
     def test_text_truncation_edge_cases(self):
         short_select = Select(

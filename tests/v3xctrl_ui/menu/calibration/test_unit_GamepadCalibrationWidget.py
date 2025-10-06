@@ -1,3 +1,7 @@
+# Required before importing pygame, otherwise screen might flicker during tests
+import os
+os.environ["SDL_VIDEODRIVER"] = "dummy"
+
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -40,9 +44,6 @@ class TestGamepadCalibrationWidget(unittest.TestCase):
                 on_calibration_start=self.mock_on_calibration_start,
                 on_calibration_done=self.mock_on_calibration_done
             )
-
-    def tearDown(self):
-        pygame.quit()
 
     def test_initialization(self):
         self.assertEqual(self.widget.font, self.mock_font)

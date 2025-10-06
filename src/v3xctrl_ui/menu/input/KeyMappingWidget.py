@@ -30,12 +30,7 @@ class KeyMappingWidget(BaseWidget):
 
         self.button_x = 300
 
-        self.remap_button = Button(
-            "Remap",
-            100, 30,
-            font,
-            self._on_remap_click
-        )
+        self.remap_button = Button("Remap", font, self._on_remap_click)
 
         self._render_label()
 

@@ -1,4 +1,7 @@
+# Required before importing pygame, otherwise screen might flicker during tests
 import os
+os.environ["SDL_VIDEODRIVER"] = "dummy"
+
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -8,8 +11,6 @@ from typing import Dict, Any
 
 from v3xctrl_ui.menu.tabs.Tab import Tab
 from v3xctrl_ui.Settings import Settings
-
-os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 
 class ConcreteTab(Tab):
@@ -39,9 +40,6 @@ class TestTab(unittest.TestCase):
             padding=self.padding,
             y_offset=self.y_offset
         )
-
-    def tearDown(self):
-        pygame.quit()
 
     def test_initialization(self):
         self.assertEqual(self.tab.settings, self.mock_settings)
@@ -244,9 +242,6 @@ class TestTabAbstractMethods(unittest.TestCase):
         pygame.init()
         pygame.display.set_mode((1, 1))
         self.mock_settings = MagicMock(spec=Settings)
-
-    def tearDown(self):
-        pygame.quit()
 
     def test_cannot_instantiate_incomplete_tab(self):
         with self.assertRaises(TypeError) as context:

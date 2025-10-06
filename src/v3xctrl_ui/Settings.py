@@ -30,9 +30,11 @@ class Settings:
         "video": {
             "width": 1280,
             "height": 720,
+            "fullscreen": False,
         },
         "udp_packet_ttl": 100,
         "debug": True,
+        "show_connection_info": True,
         "timing": {
             "main_loop_fps": 60,
             "control_update_hz": 30,
@@ -41,8 +43,9 @@ class Settings:
         "widgets": {
             "debug": {
                 "display": True,
-                "position": [10, 10],
-                "padding": 10
+                "align": "top-left",
+                "offset": [10, 10],
+                "padding": 5
             },
             "debug_fps_loop": {
                 "display": True
@@ -63,15 +66,20 @@ class Settings:
                 "graph_frames": 300,
             },
             "steering": {
-                "display": True
+                "display": True,
+                "align": "bottom-center",
+                "offset": [10, 0]
             },
             "throttle": {
-                "display": True
+                "display": True,
+                "align": "bottom-left",
+                "offset": [10, 10]
             },
             "signal": {
                 "display": True,
-                "position": [1200, 10],
-                "padding": 0
+                "align": "top-right",
+                "offset": [10, 10],
+                "padding": 0,
             },
             "signal_quality": {
                 "display": True
@@ -81,7 +89,11 @@ class Settings:
             },
             "battery": {
                 "display": True,
-                "position": [1200, 85]
+                "align": "top-right",
+                "offset": [82, 10]
+            },
+            "battery_icon": {
+                "display": True
             },
             "battery_voltage": {
                 "display": True

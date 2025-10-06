@@ -1,14 +1,14 @@
+# Required before importing pygame, otherwise screen might flicker during tests
 import os
-import unittest
-
-import pygame
-
-from v3xctrl_ui.menu.tabs import GeneralTab
-
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
+import unittest
+import pygame
 
-class TestGeneralTab(unittest.TestCase):
+from v3xctrl_ui.menu.tabs import NetworkTab
+
+
+class TestNetworkTab(unittest.TestCase):
     def setUp(self):
         pygame.init()
         pygame.display.set_mode((1, 1))
@@ -23,10 +23,7 @@ class TestGeneralTab(unittest.TestCase):
             "udp_packet_ttl": 100
         }
 
-        self.tab = GeneralTab(self.settings.copy(), width=640, height=480, padding=10, y_offset=0)
-
-    def tearDown(self):
-        pygame.quit()
+        self.tab = NetworkTab(self.settings.copy(), width=640, height=480, padding=10, y_offset=0)
 
     def test_initial_values_from_settings(self):
         self.assertEqual(self.tab.video_input.get_value(), 5000)

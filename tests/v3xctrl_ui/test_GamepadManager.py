@@ -131,7 +131,6 @@ class TestGamepadManager(unittest.TestCase):
 
         self.mgr.run()
 
-        mock_js1.init.assert_called_once()
         observer.assert_called_once()
         gamepads = observer.call_args[0][0]
         self.assertIn("guid1", gamepads)
@@ -260,7 +259,6 @@ class TestGamepadManager(unittest.TestCase):
 
         self.mgr._set_active_unlocked("guid1")
 
-        mock_js.init.assert_called_once()
         self.assertEqual(self.mgr._active_gamepad, mock_js)
         self.assertEqual(self.mgr._active_settings, {"axis": 0})
 

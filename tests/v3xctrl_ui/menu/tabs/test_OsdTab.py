@@ -1,11 +1,11 @@
+# Required before importing pygame, otherwise screen might flicker during tests
 import os
-import unittest
+os.environ["SDL_VIDEODRIVER"] = "dummy"
 
+import unittest
 import pygame
 
 from v3xctrl_ui.menu.tabs import OsdTab
-
-os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 
 class TestOsdTab(unittest.TestCase):
@@ -25,9 +25,6 @@ class TestOsdTab(unittest.TestCase):
         }
 
         self.tab = OsdTab(self.settings.copy(), width=640, height=480, padding=10, y_offset=0)
-
-    def tearDown(self):
-        pygame.quit()
 
     def test_initial_checkbox_states(self):
         self.assertTrue(self.tab.debug_checkbox.checked)

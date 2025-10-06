@@ -1,11 +1,11 @@
+# Required before importing pygame, otherwise screen might flicker during tests
 import os
-import unittest
+os.environ["SDL_VIDEODRIVER"] = "dummy"
 
+import unittest
 import pygame
 
 from v3xctrl_ui.menu.tabs.InputTab import InputTab
-
-os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 
 class DummyGamepad:
@@ -60,6 +60,9 @@ class DummyGamepadManager:
     def set_active(self, guid):
         self._active_guid = guid
 
+    def get_active(self):
+        return self._active_guid
+
     def get_gamepads(self):
         return {
             "guid-123": DummyGamepad(guid="guid-123", name="Dummy Gamepad", id_=0)
@@ -104,9 +107,6 @@ class TestInputTab(unittest.TestCase):
             gamepad_manager=self.manager,
             on_active_toggle=on_active_toggle
         )
-
-    def tearDown(self):
-        pygame.quit()
 
     def test_initial_keyboard_controls_loaded(self):
         key_names = [w.control_name for w in self.tab.key_widgets]

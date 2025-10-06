@@ -4,6 +4,7 @@ from pygame import Surface, Rect, SRCALPHA, draw
 
 from v3xctrl_ui.colors import WHITE, GREEN, RED, YELLOW, GREY
 from v3xctrl_ui.fonts import BOLD_MONO_FONT
+from v3xctrl_ui.helpers import round_corners
 from v3xctrl_ui.widgets.Widget import Widget
 
 
@@ -25,6 +26,8 @@ class StatusWidget(Widget):
         label: str,
         padding: int = 8
     ) -> None:
+        super().__init__()
+
         self.position = position
         self.size = size
         self.label = label
@@ -49,8 +52,6 @@ class StatusWidget(Widget):
         self.surface = Surface((self.width, self.height), SRCALPHA)
         self.square_rect = Rect(0, square_y, self.size, self.size)
 
-        super().__init__()
-
     def draw(self, screen: Surface, status: str) -> None:
         self.color = self.STATUS_COLORS.get(status, self.STATUS_COLORS["default"])
 
@@ -61,7 +62,8 @@ class StatusWidget(Widget):
         self.surface.blit(self.label_surface, (self.label_x, self.label_y))
         self.draw_extra(self.surface)
 
-        screen.blit(self.surface, self.position)
+        rounded = round_corners(self.surface, 6)
+        screen.blit(rounded, self.position)
 
     def draw_extra(self, surface: Surface) -> None:
         pass

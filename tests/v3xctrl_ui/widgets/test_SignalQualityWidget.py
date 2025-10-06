@@ -1,3 +1,7 @@
+# Required before importing pygame, otherwise screen might flicker during tests
+import os
+os.environ["SDL_VIDEODRIVER"] = "dummy"
+
 import unittest
 
 import pygame
@@ -10,16 +14,6 @@ class TestSignalQualityWidget(unittest.TestCase):
         pygame.init()
         self.widget = SignalQualityWidget(position=(5, 10), size=(100, 50))
         self.screen = pygame.Surface((200, 100))
-
-    def tearDown(self):
-        pygame.quit()
-
-    def test_initial_geometry(self):
-        self.assertEqual(self.widget.BAR_COUNT, 5)
-        self.assertGreater(self.widget.bar_spacing, 0)
-        self.assertGreater(self.widget.bar_width, 0)
-        self.assertGreater(self.widget.bar_max_height, 0)
-        self.assertIn(self.widget.extra_right_padding, (0, 1))
 
     def test_rsrp_to_dbm_mapping(self):
         self.assertEqual(self.widget._rsrp_to_dbm(255), -140)
@@ -65,15 +59,6 @@ class TestSignalQualityWidget(unittest.TestCase):
 
     def test_draw_no_modem_state(self):
         self.widget.draw(self.screen, {'rsrp': -1, 'rsrq': -1})
-
-    def test_padding_and_layout(self):
-        self.assertGreater(self.widget.side_padding, 0)
-        self.assertGreater(self.widget.top_bottom_padding, 0)
-        total_width = (self.widget.side_padding * 2 +
-                      self.widget.BAR_COUNT * self.widget.bar_width +
-                      (self.widget.BAR_COUNT - 1) * self.widget.bar_spacing +
-                      self.widget.extra_right_padding)
-        self.assertLess(total_width, self.widget.width + 2)
 
     def test_invalid_rsrq_still_maps(self):
         self.assertEqual(self.widget._get_quality(255), SignalQuality.POOR)

@@ -13,11 +13,14 @@ class StatusValueWidget(StatusWidget):
         position: Tuple[int, int],
         size: int,
         label: str,
-        padding: int = 8,
+        padding_label: int = 8,
+        padding_value: int = 8,
         average: bool = False,
         average_window: int = 10,
     ) -> None:
-        super().__init__(position, size, label, padding)
+        super().__init__(position, size, label, padding_label)
+
+        self.padding_value = padding_value
 
         self.value = None
         self.value_font = SMALL_MONO_FONT
@@ -32,7 +35,20 @@ class StatusValueWidget(StatusWidget):
         self.value = value
 
     def draw_extra(self, surface: Surface) -> None:
-        if self.value is not None:
-            value_surface, value_surface_rect = self.value_font.render(str(self.value), BLACK)
-            value_surface_rect.center = self.square_rect.center
-            surface.blit(value_surface, value_surface_rect)
+        if self.value is None:
+            return
+
+        text = str(self.value)
+
+        """
+        We can center horizontally, but we can't center vertically because fonts
+        are complicated and two values might not have the same height.
+
+        This means we need absolute positioning from the top, otherwise the
+        font might seem like it jumps.
+        """
+        text_rect = self.value_font.get_rect(text)
+        text_rect.centerx = self.square_rect.centerx
+        text_rect.top = self.padding_value
+
+        self.value_font.render_to(surface, text_rect.topleft, text, BLACK)

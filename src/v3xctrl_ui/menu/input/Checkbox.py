@@ -3,10 +3,10 @@ from typing import Callable
 import pygame
 from pygame import Surface, Rect
 from pygame.freetype import Font
-import pygame.gfxdraw
 
 from v3xctrl_ui.colors import MID_GREY, WHITE, DARK_GREY, GAINSBORO
 from v3xctrl_ui.menu.input import BaseWidget
+from v3xctrl_ui.helpers import get_icon
 
 
 class Checkbox(BaseWidget):
@@ -15,8 +15,8 @@ class Checkbox(BaseWidget):
     CHECK_COLOR = MID_GREY
     BORDER_COLOR = DARK_GREY
 
-    BOX_SIZE = 25
-    BOX_MARGIN = 10
+    BOX_SIZE = 24
+    BOX_MARGIN = 5
 
     def __init__(
         self,
@@ -34,6 +34,9 @@ class Checkbox(BaseWidget):
 
         self.box_rect = Rect(self.x, self.y, self.BOX_SIZE, self.BOX_SIZE)
         self.label_surface, self.label_rect = self.font.render(self.label, self.LABEL_COLOR)
+
+        self.checkbox = get_icon("circle", color=self.LABEL_COLOR)
+        self.checkbox_checked = get_icon("check_circle", color=self.LABEL_COLOR)
 
     def handle_event(self, event: pygame.event.Event) -> bool:
         if self.disabled:
@@ -66,16 +69,9 @@ class Checkbox(BaseWidget):
             self.on_change(self.checked)
 
     def _draw(self, surface: Surface) -> None:
-        # Draw outer rounded rectangle (always shown)
-        pygame.draw.rect(surface, self.BG_COLOR, self.box_rect, border_radius=4)
-        pygame.draw.rect(surface, self.BORDER_COLOR, self.box_rect, width=1, border_radius=4)
-
-        # Draw inner circle if checked
         if self.checked:
-            center = self.box_rect.center
-            radius = self.BOX_SIZE // 2 - 4
-            pygame.gfxdraw.filled_circle(surface, center[0], center[1], radius, self.CHECK_COLOR)
-            pygame.gfxdraw.aacircle(surface, center[0], center[1], radius, self.CHECK_COLOR)
+            surface.blit(self.checkbox_checked, self.box_rect)
+        else:
+            surface.blit(self.checkbox, self.box_rect)
 
-        # Draw label
         surface.blit(self.label_surface, self.label_rect)

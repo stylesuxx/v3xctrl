@@ -1,6 +1,7 @@
 from collections import deque
 import logging
 import signal
+import time
 from typing import Any, Dict, Optional, Tuple
 
 import pygame
@@ -34,20 +35,27 @@ class AppState:
         self.video_port = video_port
         self.control_port = control_port
 
-        # Initialize settings
         self.settings = settings
+
+        self.scale = 1
+        self.fullscreen = self.settings.get(
+            "video",
+            {"fullscreen": False}
+        ).get("fullscreen", False)
 
         self.input_manager = InputManager(settings)
 
         self.osd = OSD(settings)
         self.renderer = Renderer(self.size, self.settings)
 
-        osd_handlers = self._create_osd_handlers()
+        self.control_connected = False
+
+        handlers = self._create_handlers()
         self.network_manager = NetworkManager(
             video_port,
             control_port,
             self.settings,
-            osd_handlers
+            handlers
         )
 
         # Timing
@@ -62,6 +70,8 @@ class AppState:
         self.running = True
 
         self.screen, self.clock = Init.ui(self.size, self.title)
+        if self.fullscreen:
+            self._update_screen_size()
 
         self.throttle: float = 0
         self.steering: float = 0
@@ -84,8 +94,12 @@ class AppState:
 
         self.settings = settings
 
-        self.input_manager.update_settings(settings)
         self._update_timing_settings()
+
+        self.fullscreen = self.settings.get("video", {"fullscreen": False}).get("fullscreen")
+        self._update_screen_size()
+
+        self.input_manager.update_settings(settings)
         self.osd.update_settings(settings)
         self.renderer.settings = settings
 
@@ -118,20 +132,29 @@ class AppState:
                 self.running = False
                 return False
 
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                if self.menu is None:
-                    self.menu = Menu(
-                        self.size[0],
-                        self.size[1],
-                        self.input_manager.gamepad_manager,
-                        self.settings,
-                        self.update_settings,
-                        self.network_manager.server
-                    )
-                else:
-                    self.menu = None
+            elif event.type == pygame.KEYDOWN:
 
-            elif self.menu is not None:
+                # [ESC] - Toggle Menu
+                if event.key == pygame.K_ESCAPE:
+                    if self.menu is None:
+                        self.menu = Menu(
+                            self.screen.get_size()[0],
+                            self.screen.get_size()[1],
+                            self.input_manager.gamepad_manager,
+                            self.settings,
+                            self.network_manager.server,
+                            self.update_settings,
+                            self._signal_handler
+                        )
+                    else:
+                        self.menu = None
+
+                # [F11] - Toggle Fullscreen
+                elif event.key == pygame.K_F11:
+                    self.fullscreen = not self.fullscreen
+                    self._update_screen_size()
+
+            if self.menu is not None:
                 self.menu.handle_event(event)
 
         return True
@@ -146,16 +169,55 @@ class AppState:
         self.osd.update_data_queue(data_left)
         self.osd.set_control(self.throttle, self.steering)
 
-        # Pass network state to renderer
-        self.renderer.render_all(self, self.network_manager)
+        self.renderer.render_all(
+            self,
+            self.network_manager,
+            self.fullscreen,
+            self.scale
+        )
 
     def shutdown(self) -> None:
-        self.input_manager.shutdown()
-        self.network_manager.shutdown()
-
+        logging.info("Shutting down...")
         pygame.quit()
 
-    def _create_osd_handlers(self) -> Dict[str, Any]:
+        start = time.monotonic()
+        self.input_manager.shutdown()
+        delta = round(time.monotonic() - start)
+        logging.debug(f"Input manager shut down after {delta}s")
+
+        start = time.monotonic()
+        self.network_manager.shutdown()
+        delta = round(time.monotonic() - start)
+        logging.debug(f"Network manager shut down after {delta}s")
+
+    def _update_screen_size(self) -> None:
+        if self.fullscreen:
+            # SCALED is important here, this makes it a resizable, borderless
+            # window instead of "just" the legacy FULLSCREEN mode which causes
+            # a bunch of complications.
+            flags = pygame.DOUBLEBUF | pygame.FULLSCREEN | pygame.SCALED
+
+            # Get biggest resolution for the active display
+            modes = pygame.display.list_modes()
+            size = modes[0]
+            width, height = size
+
+            self.screen = pygame.display.set_mode(size, flags)
+
+            # Calculate scale factor
+            scale_x = width / self.size[0]
+            scale_y = height / self.size[1]
+            self.scale = min(scale_x, scale_y)
+        else:
+            flags = pygame.DOUBLEBUF | pygame.SCALED
+            self.screen = pygame.display.set_mode(self.size, flags)
+
+            self.scale = 1
+
+    def _update_connected(self, state: bool) -> None:
+        self.control_connected = state
+
+    def _create_handlers(self) -> Dict[str, Any]:
         """Create message and state handlers for the network manager."""
         return {
             "messages": [
@@ -164,7 +226,9 @@ class AppState:
             ],
             "states": [
                 (State.CONNECTED, lambda: self.osd.connect_handler()),
-                (State.DISCONNECTED, lambda: self.osd.disconnect_handler())
+                (State.DISCONNECTED, lambda: self.osd.disconnect_handler()),
+                (State.CONNECTED, lambda: self._update_connected(True)),
+                (State.DISCONNECTED, lambda: self._update_connected(False))
             ]
         }
 
@@ -172,11 +236,15 @@ class AppState:
         """Setup signal handlers for graceful shutdown."""
         signal.signal(signal.SIGINT, self._signal_handler)
 
-    def _signal_handler(self, sig: int, frame: Any) -> None:
+    def _signal_handler(
+        self,
+        sig: Optional[int] = None,
+        frame: Optional[Any] = None
+    ) -> None:
         """Handle shutdown signals gracefully."""
+        self.menu = None
         if self.running:
             self.running = False
-            print("Shutting down...")
 
     def _update_timing_settings(self) -> None:
         """Update timing intervals from settings."""

@@ -6,6 +6,7 @@ from pygame import Surface
 
 from v3xctrl_ui.colors import WHITE, GREEN
 from v3xctrl_ui.fonts import BOLD_MONO_FONT
+from v3xctrl_ui.helpers import round_corners
 from v3xctrl_ui.widgets.Widget import Widget
 
 
@@ -16,6 +17,8 @@ class FpsWidget(Widget):
         size: Tuple[int, int],
         label: str
     ) -> None:
+        super().__init__()
+
         self.position = position
 
         self.size = size
@@ -39,8 +42,6 @@ class FpsWidget(Widget):
 
         self.graph_top = int(self.height * 0.5)
         self.graph_height = self.height - self.graph_top
-
-        super().__init__()
 
     def draw(self, screen: Surface, fps: float) -> None:
         self.history.append(fps)
@@ -73,4 +74,5 @@ class FpsWidget(Widget):
         if len(graph_points) >= 2:
             pygame.draw.lines(self.surface, GREEN, False, graph_points, 2)
 
-        screen.blit(self.surface, self.position)
+        rounded = round_corners(self.surface, 4, 16)
+        screen.blit(rounded, self.position)

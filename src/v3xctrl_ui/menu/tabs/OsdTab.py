@@ -38,13 +38,18 @@ class OsdTab(Tab):
             checked=self.widgets.get("throttle", {}).get("display", False),
             on_change=lambda value: self._on_widget_toggle("throttle", value)
         )
+        self.battery_icon_checkbox = Checkbox(
+            label="Show Battery Icon", font=LABEL_FONT,
+            checked=self.widgets.get("battery_icon", {}).get("display", False),
+            on_change=lambda value: self._on_widget_toggle("battery_icon", value)
+        )
         self.battery_voltage_checkbox = Checkbox(
             label="Show Battery voltage indicator", font=LABEL_FONT,
             checked=self.widgets.get("battery_voltage", {}).get("display", False),
             on_change=lambda value: self._on_widget_toggle("battery_voltage", value)
         )
         self.battery_average_voltage_checkbox = Checkbox(
-            label="Show Battery voltage indicator", font=LABEL_FONT,
+            label="Show average cell voltage indicator", font=LABEL_FONT,
             checked=self.widgets.get("battery_average_voltage", {}).get("display", False),
             on_change=lambda value: self._on_widget_toggle("battery_average_voltage", value)
         )
@@ -63,6 +68,7 @@ class OsdTab(Tab):
             self.debug_checkbox,
             self.steering_checkbox,
             self.throttle_checkbox,
+            self.battery_icon_checkbox,
             self.battery_voltage_checkbox,
             self.battery_average_voltage_checkbox,
             self.battery_percent_checkbox,

@@ -1,4 +1,6 @@
+# Required before importing pygame, otherwise screen might flicker during tests
 import os
+os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 import unittest
 from unittest.mock import MagicMock, patch
@@ -7,8 +9,6 @@ import pygame
 import pygame.freetype
 
 from v3xctrl_ui.menu.input import Button
-
-os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 
 class TestButton(unittest.TestCase):
@@ -19,13 +19,8 @@ class TestButton(unittest.TestCase):
         self.screen = pygame.Surface((300, 200))
         self.font = pygame.freetype.SysFont("freesansbold", 30)
         self.callback = MagicMock()
-        self.button = Button("Test", 100, 40, self.font, self.callback)
+        self.button = Button("Test", self.font, self.callback, 100, 40)
         self.button.set_position(50, 50)
-
-    def tearDown(self):
-        pygame.freetype.quit()
-        pygame.font.quit()
-        pygame.quit()
 
     def test_initialization(self):
         self.assertEqual(self.button.label, "Test")
@@ -268,9 +263,9 @@ class TestButton(unittest.TestCase):
         self.assertEqual(self.button.width, 100)
         self.assertEqual(self.button.height, 40)
 
-        button2 = Button("Test2", 150, 60, self.font, self.callback)
+        button2 = Button("Test2", self.font, self.callback, 150)
         self.assertEqual(button2.width, 150)
-        self.assertEqual(button2.height, 60)
+        self.assertEqual(button2.height, 54)
 
     def test_mouse_drag_behavior(self):
         down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {

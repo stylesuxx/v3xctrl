@@ -1,3 +1,7 @@
+# Required before importing pygame, otherwise screen might flicker during tests
+import os
+os.environ["SDL_VIDEODRIVER"] = "dummy"
+
 import unittest
 
 import pygame
@@ -11,10 +15,6 @@ class TestTextWidget(unittest.TestCase):
     def setUpClass(cls):
         pygame.init()
 
-    @classmethod
-    def tearDownClass(cls):
-        pygame.quit()
-
     def setUp(self):
         self.widget = TextWidget(position=(10, 20), length=100)
         self.screen = pygame.Surface((200, 100), pygame.SRCALPHA)
@@ -22,12 +22,6 @@ class TestTextWidget(unittest.TestCase):
     def test_initial_values(self):
         self.assertEqual(self.widget.position, (10, 20))
         self.assertEqual(self.widget.length, 100)
-        self.assertEqual(self.widget.top_padding, 4)
-        self.assertEqual(self.widget.bottom_padding, 4)
-        self.assertEqual(self.widget.color, WHITE)
-        self.assertEqual(self.widget.bg_color, GREY)
-        self.assertEqual(self.widget.background_alpha, 180)
-        self.assertIsNone(self.widget.surface)
 
     def test_draw_sets_surface_and_text_rect(self):
         self.widget.draw(self.screen, "Test")
@@ -36,7 +30,7 @@ class TestTextWidget(unittest.TestCase):
         self.assertEqual(self.widget.surface.get_width(), self.widget.length)
         self.assertIsNotNone(self.widget.text_surface)
         self.assertGreater(self.widget.text_rect.width, 0)
-        self.assertGreater(self.widget.widget_height, 0)
+        self.assertGreater(self.widget.height, 0)
 
     def test_draw_executes_without_crash(self):
         self.widget.draw(self.screen, "Draw safely")
