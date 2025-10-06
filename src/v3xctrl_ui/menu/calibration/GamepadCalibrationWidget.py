@@ -57,6 +57,8 @@ class GamepadCalibrationWidget(BaseWidget):
 
         self.gamepads: Dict[str, pygame.joystick.Joystick] = self.manager.get_gamepads()
         self._on_gamepads_changed(self.gamepads)
+
+        # When gamepads change, trigger handler
         self.manager.add_observer(self._on_gamepads_changed)
 
     def handle_event(self, event: pygame.event.Event) -> bool:
@@ -142,15 +144,19 @@ class GamepadCalibrationWidget(BaseWidget):
         self,
         gamepads: Dict[str, pygame.joystick.Joystick]
     ) -> None:
-        previous_guid = self.selected_guid
         self.gamepads = gamepads
 
-        if previous_guid not in self.gamepads:
+        if not self.selected_guid:
+            # set to active one, if any
+            self.selected_guid = self.manager.get_active()
+
+        if self.selected_guid not in self.gamepads:
+            # If gamepad no longer available, set the next one in the list as
+            # selected
             self.selected_guid = next(iter(gamepads), None)
-        else:
-            self.selected_guid = previous_guid
 
         if not self.selected_guid:
+            # No gamepads available
             self.controller_select.set_options([], selected_index=0)
             self.calibrator = None
             return

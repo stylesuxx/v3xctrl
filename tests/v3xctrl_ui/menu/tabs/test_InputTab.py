@@ -60,6 +60,9 @@ class DummyGamepadManager:
     def set_active(self, guid):
         self._active_guid = guid
 
+    def get_active(self):
+        return self._active_guid
+
     def get_gamepads(self):
         return {
             "guid-123": DummyGamepad(guid="guid-123", name="Dummy Gamepad", id_=0)
