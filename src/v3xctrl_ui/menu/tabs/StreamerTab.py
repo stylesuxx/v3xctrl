@@ -60,7 +60,8 @@ class StreamerTab(Tab):
         return {}
 
     def _on_command_callback(self, status: bool) -> None:
-        # Wait a bit for the transition to not be "flickering"
+        # Wait a bit for the transition to not be "flickering" in case we have
+        # an immediate answer
         time.sleep(1)
 
         self.disabled = False
@@ -69,7 +70,7 @@ class StreamerTab(Tab):
 
         self.on_active_toggle(False)
 
-        logging.debug(f"Received command status: {status}")
+        logging.info(f"Received command ack: {status}")
 
     def _on_video_action(self, action: str) -> None:
         self.disabled = True

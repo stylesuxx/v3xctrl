@@ -14,9 +14,8 @@ from .UDPTransmitter import UDPTransmitter
 
 
 class Server(Base):
-    COMMAND_MAX_RETRIES = 10
     MAX_WORKERS = 10
-    COMMAND_DELAY = 1
+    COMMAND_DELAY = 0.2
 
     def __init__(self, port: int, ttl_ms: int = 100) -> None:
         super().__init__()
@@ -44,6 +43,11 @@ class Server(Base):
         if self.state == State.WAITING:
             self.handle_state_change(State.CONNECTED)
 
+    def send(self, message: Message) -> None:
+        addr = self.get_last_address()
+        if addr:
+            super()._send(message, addr)
+
     def command_ack_handler(
         self,
         message: CommandAck,
@@ -55,29 +59,28 @@ class Server(Base):
             if callback:
                 callback(True)
 
-    def send(self, message: Message) -> None:
-        addr = self.get_last_address()
-        if addr:
-            super()._send(message, addr)
-
     def send_command(
         self,
         command: Command,
-        callback: Optional[Callable[[bool], None]] = None
+        callback: Optional[Callable[[bool], None]] = None,
+        max_retries: int = 10
     ) -> None:
-        """Attempts to send a command up to 10 times before failing."""
+        """Sends a command up to max_retries or until answer is received."""
         command_id = command.get_command_id()
 
         def retry_task() -> None:
-            for _ in range(self.COMMAND_MAX_RETRIES):
+            for attempt in range(max_retries):
                 with self.pending_lock:
                     if command_id not in self.pending_commands:
                         return
 
                 self.send(command)
-                time.sleep(self.COMMAND_DELAY)
 
-            # If no Ack received yet, we fail
+                # Do not sleep after last attempt
+                if attempt < max_retries - 1:
+                    time.sleep(self.COMMAND_DELAY)
+
+            # Timeout - no ACK received
             with self.pending_lock:
                 if command_id in self.pending_commands:
                     del self.pending_commands[command_id]
