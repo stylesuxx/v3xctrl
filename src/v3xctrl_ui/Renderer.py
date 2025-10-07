@@ -1,4 +1,6 @@
 from typing import Optional, Tuple, List
+import time
+import math
 
 import numpy as np
 import numpy.typing as npt
@@ -51,6 +53,13 @@ class Renderer:
             if not state.control_connected:
                 self._render_no_control_signal(state.screen)
 
+            if network_manager.relay_enable:
+                self._render_status(
+                    network_manager.relay_status_message.upper(),
+                    (self.center_x - 6, self.center_y - 110),
+                    state.screen
+                )
+
         self._render_overlay_data(state, network_manager)
         self._render_errors(state.screen, network_manager)
         self._render_menu(state.screen, state.menu)
@@ -88,6 +97,21 @@ class Renderer:
             y = self.center_y - height // 2
 
         screen.blit(surface, (x, y))
+
+    def _render_status(
+        self,
+        msg: str,
+        offset: Tuple[int, int],
+        screen: pygame.Surface
+    ) -> None:
+        now = time.monotonic()
+        breath = math.sin(now * 3) * 0.5 + 0.5
+        alpha = int(50 + breath * 205)
+
+        surface, rect = BOLD_MONO_FONT_32.render(msg, RED)
+        surface.set_alpha(alpha)
+        rect.center = offset
+        screen.blit(surface, rect)
 
     def _render_no_control_signal(self, screen: pygame.Surface) -> None:
         surface, rect = BOLD_MONO_FONT_32.render("NO CONTROL SIGNAL", RED)

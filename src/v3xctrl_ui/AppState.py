@@ -77,6 +77,7 @@ class AppState:
         self.steering: float = 0
 
         self._setup_signal_handling()
+
         self.network_manager.setup_ports()
 
     def initialize_timing(self, start_time: float) -> None:

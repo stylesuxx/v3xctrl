@@ -5,7 +5,7 @@ import time
 from typing import Any, Dict
 
 from v3xctrl_control.message import Latency
-from v3xctrl_helper.exceptions import UnauthorizedError
+from v3xctrl_helper.exceptions import PeerRegistrationError
 from v3xctrl_udp_relay.Peer import Peer
 
 from v3xctrl_ui.helpers import get_external_ip
@@ -67,8 +67,9 @@ class NetworkManager:
                 try:
                     addresses = self.peer.setup("viewer", local_bind_ports)
                     video_address = addresses["video"]
-                except UnauthorizedError:
-                    self.relay_status_message = "ERROR: Relay ID unauthorized!"
+                except PeerRegistrationError as e:
+                    self.relay_status_message = "Peer registration failed - check server and ID!"
+                    logging.error(f"Peer registration failed: {e}")
                     return
 
             def keep_alive() -> None:
