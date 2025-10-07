@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from collections import deque
 import logging
+import math
 import threading
 import time
 from typing import Callable, Deque, Optional
@@ -70,7 +71,8 @@ class VideoReceiver(ABC, threading.Thread):
         error_callback: Callable[[], None],
         log_interval: int = 10,
         history_size: int = 100,
-        max_frame_age_ms: int = 500
+        max_frame_age_ms: int = 500,
+        frame_ratio: int = 100
     ) -> None:
         super().__init__()
 
@@ -79,12 +81,21 @@ class VideoReceiver(ABC, threading.Thread):
         self.log_interval = log_interval
         self.max_age_seconds = max_frame_age_ms / 1000
 
+        # How much of the frame_buffer should be rendered 0..100
+        # 100 Render only latest frame
+        # 50  Render 50% of the available frame by always removing 50% of the
+        #     frame_buffer before rendering
+        # 0   Render everything in frame buffer
+        self.frame_ratio = frame_ratio
+
         self.running = threading.Event()
         self.frame_lock = threading.Lock()
         self.frame: Optional[npt.NDArray[np.uint8]] = None
 
         # Frame monitoring
         self.render_history: Deque[float] = deque(maxlen=history_size)
+
+        self.frame_buffer: Deque[npt.NDArray[np.uint8]] = deque(maxlen=300)
 
         self.packet_count = 0
         self.decoded_frame_count = 0
@@ -148,22 +159,41 @@ class VideoReceiver(ABC, threading.Thread):
                 logging.exception(f"Error during cleanup: {e}")
 
     def get_frame(self) -> Optional[npt.NDArray[np.uint8]]:
-        if not self.frame_fetched:
-            self.frame_fetched = True
-            self.render_history.append(time.monotonic())
-            self.rendered_frame_count += 1
-
         with self.frame_lock:
+            if len(self.frame_buffer) > 0:
+                # Get latest frame (when available) and count rest as dropped
+                self.render_history.append(time.monotonic())
+
+                if self.frame_ratio == 100:
+                    # Render oldest (maximum smoothness)
+                    self.frame = self.frame_buffer.popleft()
+
+                elif self.frame_ratio == 0:
+                    # Render newest (minimum latency)
+                    self.frame = self.frame_buffer.pop()
+
+                    self.dropped_burst_frames += len(self.frame_buffer)
+                    self.frame_buffer.clear()
+
+                else:
+                    # Adaptive: render frame at ratio position
+                    length = len(self.frame_buffer)
+                    index = math.ceil(length / 100 * self.frame_ratio) - 1
+
+                    self.dropped_burst_frames += index
+                    for _ in range(index):
+                        self.frame_buffer.popleft()
+
+                    self.frame = self.frame_buffer.popleft()
+
+                self.rendered_frame_count += 1
+
             return self.frame
 
     def _update_frame(self, new_frame: npt.NDArray[np.uint8]) -> None:
-        """Update current frame and history in thread-safe manner."""
+        """Append new frame to frame buffer"""
         with self.frame_lock:
-            if self.frame is not None and not self.frame_fetched:
-                self.dropped_burst_frames += 1
-
-            self.frame = new_frame
-            self.frame_fetched = False
+            self.frame_buffer.append(new_frame)
 
         self.decoded_frame_count += 1
 
