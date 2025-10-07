@@ -29,6 +29,7 @@ from .message import (
   Ack,
   Command,
   CommandAck,
+  Latency,
 )
 
 
@@ -74,10 +75,12 @@ class UDPReceiver(threading.Thread):
             logging.warning(f"Skipping message from wrong host: {addr[0]}")
             return False
 
-        # Commands are not order critical, we just want them handled
+        # By default all Messages are order critical, we exempt this ones since
+        # order does not matter, we need them processed in any case
         if (
             isinstance(message, Command) or
-            isinstance(message, CommandAck)
+            isinstance(message, CommandAck) or
+            isinstance(message, Latency)
         ):
             return True
 
