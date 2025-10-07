@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from src.v3xctrl_ui.NetworkManager import NetworkManager
-from v3xctrl_helper.exceptions import UnauthorizedError
+from v3xctrl_helper.exceptions import UnauthorizedError, PeerRegistrationError
 
 
 class TestNetworkManager(unittest.TestCase):
@@ -183,7 +183,7 @@ class TestNetworkManager(unittest.TestCase):
 
         # Mock Peer to raise UnauthorizedError
         mock_peer = MagicMock()
-        mock_peer.setup.side_effect = UnauthorizedError()
+        mock_peer.setup.side_effect = PeerRegistrationError({}, {})
         self.mock_peer_cls.return_value = mock_peer
 
         nm.setup_ports()
@@ -193,7 +193,7 @@ class TestNetworkManager(unittest.TestCase):
         task_func()
 
         # Verify error message was set
-        self.assertIn("unauthorized", nm.relay_status_message.lower())
+        self.assertIn("registration failed", nm.relay_status_message.lower())
 
     def test_setup_ports_server_error(self):
         """Test setup_ports when server initialization fails."""
