@@ -157,9 +157,15 @@ class BaseInput(BaseWidget):
                 if data:
                     try:
                         if isinstance(data, bytes):
-                            return data.decode("utf-8", errors="ignore")
+                            text = data.decode("utf-8", errors="ignore")
+                        else:
+                            text = data
 
-                        return data.strip()
+                        # Only keep printable characters
+                        cleaned_text = ''.join(char for char in text if char.isprintable()).strip()
+
+                        return cleaned_text
+
                     except UnicodeDecodeError:
                         continue
         return None
