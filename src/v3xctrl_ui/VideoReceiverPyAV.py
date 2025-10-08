@@ -31,14 +31,16 @@ class VideoReceiverPyAV(VideoReceiver):
         error_callback: Callable[[], None],
         log_interval: int = 10,
         history_size: int = 100,
-        max_frame_age_ms: int = 500
+        max_frame_age_ms: int = 500,
+        render_ratio: int = 0,
     ) -> None:
         super().__init__(
             port,
             error_callback,
             log_interval,
             history_size,
-            max_frame_age_ms
+            max_frame_age_ms,
+            render_ratio
         )
 
         self.container = None
