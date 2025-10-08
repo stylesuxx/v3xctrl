@@ -294,9 +294,9 @@ class TestInit(unittest.TestCase):
         mock_video_receiver_class.return_value = mock_video_receiver
         mock_error_callback = Mock()
 
-        result = Init.video_receiver(9090, mock_error_callback)
+        result = Init.video_receiver(9090, mock_error_callback, 0)
 
-        mock_video_receiver_class.assert_called_once_with(9090, mock_error_callback)
+        mock_video_receiver_class.assert_called_once_with(9090, mock_error_callback, render_ratio=0)
         mock_video_receiver.start.assert_called_once()
         self.assertEqual(result, mock_video_receiver)
 
@@ -306,7 +306,7 @@ class TestInit(unittest.TestCase):
         mock_error_callback = Mock()
 
         with self.assertRaises(RuntimeError):
-            Init.video_receiver(9090, mock_error_callback)
+            Init.video_receiver(9090, mock_error_callback, 0)
 
     @patch('src.v3xctrl_ui.Init.VideoReceiver')
     def test_video_receiver_start_failure(self, mock_video_receiver_class):
@@ -316,7 +316,7 @@ class TestInit(unittest.TestCase):
         mock_error_callback = Mock()
 
         with self.assertRaises(RuntimeError):
-            Init.video_receiver(9090, mock_error_callback)
+            Init.video_receiver(9090, mock_error_callback, 0)
 
     @patch('src.v3xctrl_ui.Init.VideoReceiver')
     def test_video_receiver_with_different_ports(self, mock_video_receiver_class):
@@ -324,21 +324,21 @@ class TestInit(unittest.TestCase):
         mock_video_receiver_class.return_value = mock_video_receiver
         mock_error_callback = Mock()
 
-        Init.video_receiver(0, mock_error_callback)
-        mock_video_receiver_class.assert_called_with(0, mock_error_callback)
+        Init.video_receiver(0, mock_error_callback, 0)
+        mock_video_receiver_class.assert_called_with(0, mock_error_callback, render_ratio=0)
 
         mock_video_receiver_class.reset_mock()
-        Init.video_receiver(65535, mock_error_callback)
-        mock_video_receiver_class.assert_called_with(65535, mock_error_callback)
+        Init.video_receiver(65535, mock_error_callback, 0)
+        mock_video_receiver_class.assert_called_with(65535, mock_error_callback, render_ratio=0)
 
     @patch('src.v3xctrl_ui.Init.VideoReceiver')
     def test_video_receiver_with_none_callback(self, mock_video_receiver_class):
         mock_video_receiver = Mock()
         mock_video_receiver_class.return_value = mock_video_receiver
 
-        result = Init.video_receiver(9090, None)
+        result = Init.video_receiver(9090, None, 0)
 
-        mock_video_receiver_class.assert_called_once_with(9090, None)
+        mock_video_receiver_class.assert_called_once_with(9090, None, render_ratio=0)
         mock_video_receiver.start.assert_called_once()
         self.assertEqual(result, mock_video_receiver)
 

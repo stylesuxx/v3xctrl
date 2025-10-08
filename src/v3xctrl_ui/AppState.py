@@ -172,6 +172,10 @@ class AppState:
         if self.network_manager.server_error:
             self.osd.update_debug_status("fail")
 
+        if self.network_manager.video_receiver:
+            buffer_size = len(self.network_manager.video_receiver.frame_buffer)
+            self.osd.update_buffer_queue(buffer_size)
+
         self.osd.update_data_queue(data_left)
         self.osd.set_control(self.throttle, self.steering)
 

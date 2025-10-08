@@ -95,7 +95,8 @@ class VideoReceiver(ABC, threading.Thread):
         # Frame monitoring
         self.render_history: Deque[float] = deque(maxlen=history_size)
 
-        self.frame_buffer: Deque[npt.NDArray[np.uint8]] = deque(maxlen=300)
+        self.max_frame_buffer_size = 300
+        self.frame_buffer: Deque[npt.NDArray[np.uint8]] = deque(maxlen=self.max_frame_buffer_size)
 
         self.packet_count = 0
         self.decoded_frame_count = 0
@@ -178,10 +179,14 @@ class VideoReceiver(ABC, threading.Thread):
                 else:
                     # Adaptive: render frame at ratio position
                     length = len(self.frame_buffer)
-                    index = math.ceil(length / 100 * self.frame_ratio) - 1
+                    target_buffer_size = round(self.max_frame_buffer_size * self.frame_ratio / 100)
 
-                    self.dropped_burst_frames += index
-                    for _ in range(index):
+                    frames_to_drop = max(0, length - target_buffer_size - 1)
+
+                    logging.info(f"Buffer: {length}, Target: {target_buffer_size}, Dropping: {frames_to_drop}")
+
+                    self.dropped_burst_frames += frames_to_drop
+                    for _ in range(frames_to_drop):
                         self.frame_buffer.popleft()
 
                     self.frame = self.frame_buffer.popleft()
