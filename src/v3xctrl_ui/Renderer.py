@@ -62,8 +62,7 @@ class Renderer:
         if not network_manager.video_receiver:
             return None
 
-        with network_manager.video_receiver.frame_lock:
-            return network_manager.video_receiver.frame
+        return network_manager.video_receiver.get_frame()
 
     def _render_video_frame(self, screen: pygame.Surface, frame: bytes) -> None:
         """Render a video frame to the screen."""
@@ -204,7 +203,7 @@ class Renderer:
 
         video_history = None
         if network_manager.video_receiver is not None:
-            video_history = network_manager.video_receiver.history.copy()
+            video_history = network_manager.video_receiver.render_history.copy()
 
         state.osd.render(
             state.screen,

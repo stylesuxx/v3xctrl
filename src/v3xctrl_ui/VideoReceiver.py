@@ -1,192 +1,202 @@
+from abc import ABC, abstractmethod
 from collections import deque
 import logging
-import os
-from pathlib import Path
-import tempfile
 import threading
 import time
-from typing import Callable
+from typing import Callable, Deque, Optional
 
-import av
+import numpy as np
+import numpy.typing as npt
 
 
-class VideoReceiver(threading.Thread):
+class VideoReceiver(ABC, threading.Thread):
+    """
+    Abstract base class for video receivers.
+
+    Provides an interface to quickly implement different video receiver
+    backends.
+
+    Top priority with any video receiver is to show the user the most recent
+    frame as quickly is possible.
+
+    NOTES:
+    The transmitter is sending out encoded frames via UDP as fast as possible,
+    with a set frame-rate (30fps).
+
+    Those frames are then decoded by the receiver, there is a couple of things
+    to consider:
+    * Frames arrive to late: UDP does not guarantee order, so due to routing it
+      might be, that frames simply arrive out of order. Obviously we are not
+      interested in late frames - we want the most current image.
+
+    * Frames arrive in bursts: There might be 30 frames arriving per second in
+      total, but when they arrive in bursts, we can not render them fast enough
+      with a fixed framerate and thus some of them might need to be dropped.
+
+      Example: Consider that 15 frames arrive in the first 10ms of a second time
+               interval and 15 frames arrive in the last 10ms of a second time
+               interval. So we have actually received 30FPS. But effectively
+               rendered we only did 2 (considering a render loop of 60FPS).
+
+               Timeline:
+               0ms   : No frame to render
+               *10ms : 15 frames arrive in a burst and are decoded
+               16ms  : We render the last available frame (14 frames dropped)
+               32ms  : We render the previous frame (frame 15)
+               ...
+               320ms : Still no new frame (we render frame 15 again)
+               ...
+               500ms : Still no new frame (we render frame 15 again)
+               ...
+               983ms : Still no new frame (we render frame 15 again)
+               *990ms: 15 frames arrive in a burst and are decoded
+               1000ms: We render the last available frame (14 frames dropped)
+
+               So although 30 frames have been received and decoded in this
+               second, we could effectively only display 2!
+
+    * Frames can not be decoded: Data arrives but can for one reason or another
+      not be decoded.
+
+    So a frame might not be displayed for one of three reasons:
+    1. It was broken
+    2. It arrived too late (previous frames have already been shown)
+    3. It arrived in a burst
+    """
+
     def __init__(
         self,
         port: int,
-        error_callback: Callable[[], None]
+        error_callback: Callable[[], None],
+        log_interval: int = 10,
+        history_size: int = 100,
+        max_frame_age_ms: int = 500
     ) -> None:
         super().__init__()
 
         self.port = port
         self.error_callback = error_callback
+        self.log_interval = log_interval
+        self.max_age_seconds = max_frame_age_ms / 1000
 
         self.running = threading.Event()
         self.frame_lock = threading.Lock()
-        self.frame = None
-
-        self.history: deque[float] = deque(maxlen=100)
-
-        self.sdp_path = Path(tempfile.gettempdir()) / f"rtp_{self.port}.sdp"
-        self.container = None
-
-        self.container_lock = threading.Lock()
-        self.thread_count = str(min(os.cpu_count(), 4))
+        self.frame: Optional[npt.NDArray[np.uint8]] = None
 
         # Frame monitoring
+        self.render_history: Deque[float] = deque(maxlen=history_size)
+
         self.packet_count = 0
         self.decoded_frame_count = 0
-        self.empty_decode_count = 0
+        self.rendered_frame_count = 0
+
+        self.dropped_empty_frames = 0
+        self.dropped_old_frames = 0
+        self.dropped_burst_frames = 0
+
         self.last_log_time = 0.0
-        self.log_interval = 10.0  # Log every 10 seconds
+        self.frame_fetched = False
 
-    def run(self) -> None:
-        self.running.set()
+    @abstractmethod
+    def _setup(self) -> None:
+        """Setup resources (SDP files, containers, etc.)."""
+        pass
 
-        self._write_sdp()
+    @abstractmethod
+    def _main_loop(self) -> None:
+        """Main receive/decode loop. Should respect self.running.is_set()."""
+        pass
 
-        options = {
-            "fflags": "nobuffer",
-            "protocol_whitelist": "file,crypto,data,udp,rtp",
-            # The following options do not seem to work when passed as options
-            # "timeout": "3000000",
-            # "stimeout": "3000000",
-            # "rw_timeout": "3000000",
-            # "analyzeduration": "1000000",
-            # "probesize": "2048"
-        }
-
-        while self.running.is_set():
-            while self.running.is_set():
-                try:
-                    """
-                    NOTE: It takes a while for opening the container, av will
-                          not respect any timeouts at this point unfortunately.
-                          Even when no stream is running, there will be a
-                          container but the demux will fail further downstream.
-                    """
-                    with self.container_lock:
-                        self.container = av.open(
-                            f"{self.sdp_path}",
-                            format="sdp",
-                            options=options
-                        )
-                    break
-                except av.AVError as e:
-                    logging.warning(f"av.open() failed: {e}")
-                    time.sleep(0.5)
-
-            if self.container:
-                stream = self.container.streams.video[0]
-                stream.codec_context.thread_type = "AUTO"
-                stream.codec_context.options = {
-                    "threads": self.thread_count,
-                    "flags": "low_delay",
-                    "flags2": "fast"
-                }
-
-                try:
-                    while self.running.is_set():
-                        if self.container:
-                            for packet in self.container.demux(stream):
-                                if not self.running.is_set():
-                                    break
-
-                                self.packet_count += 1
-                                decoded_frames = list(packet.decode())
-                                if decoded_frames:
-                                    for frame in decoded_frames:
-                                        rgb_frame = frame.to_ndarray(format="rgb24")
-                                        with self.frame_lock:
-                                            self.frame = rgb_frame
-
-                                        self.history.append(time.monotonic())
-                                        self.decoded_frame_count += 1
-                                else:
-                                    self.empty_decode_count += 1
-
-                                self._log_stats_if_needed()
-
-                except av.AVError as e:
-                    logging.warning(f"Stream decode error: {e}")
-                    try:
-                        with self.container_lock:
-                            if self.container:
-                                self.container.close()
-                                self.container = None
-                    except Exception as e:
-                        logging.warning(f"Container close failed during error recovery: {e}")
-                    self.error_callback()
-
-                except Exception as e:
-                    logging.exception(f"Unexpected error in receiver thread: {e}")
-
-                finally:
-                    with self.frame_lock:
-                        self.frame = None
-
-                    try:
-                        with self.container_lock:
-                            if self.container:
-                                self.container.close()
-                                self.container = None
-                    except Exception as e:
-                        logging.warning(f"Container close failed: {e}")
-
-    def _log_stats_if_needed(self) -> None:
-        current_time = time.monotonic()
-        if current_time - self.last_log_time >= self.log_interval:
-            if self.packet_count > 0:
-                drop_rate = (self.empty_decode_count / self.packet_count) * 100
-
-                time_elapsed = current_time - self.last_log_time if self.last_log_time > 0 else self.log_interval
-                avg_fps = round(self.decoded_frame_count / time_elapsed) if time_elapsed > 0 else 0
-
-                logging.info(
-                    f"frames={self.decoded_frame_count}, "
-                    f"empty_decodes={self.empty_decode_count}, "
-                    f"drop_rate={drop_rate:.1f}%, avg_fps={avg_fps}"
-                )
-
-            # Reset for next interval
-            self.packet_count = 0
-            self.empty_decode_count = 0
-            self.decoded_frame_count = 0
-
-            self.last_log_time = current_time
+    @abstractmethod
+    def _cleanup(self) -> None:
+        """Cleanup resources."""
+        pass
 
     def stop(self) -> None:
+        """Stop the receiver thread."""
+        if not self.running.is_set():
+            return
+
         self.running.clear()
         if self.is_alive():
             self.join(timeout=5.0)
 
-        with self.container_lock:
-            if self.container:
-                try:
-                    self.container.close()
-                except Exception as e:
-                    logging.warning(f"Container close failed during stop: {e}")
-                finally:
-                    self.container = None
+        try:
+            self._cleanup()
+        except Exception as e:
+            logging.exception(f"Error during stop cleanup: {e}")
+
+    def run(self) -> None:
+        """Template method that calls abstract methods."""
+        self.running.set()
 
         try:
-            if self.sdp_path.exists():
-                self.sdp_path.unlink()
-        except Exception as e:
-            logging.warning(f"SDP file cleanup failed: {e}")
+            self._setup()
+            self._main_loop()
 
-    def _write_sdp(self) -> None:
-        sdp_text = f"""\
-v=0
-o=- 0 0 IN IP4 127.0.0.1
-s=RTP Stream
-c=IN IP4 0.0.0.0
-t=0 0
-m=video {self.port} RTP/AVP 96
-a=rtpmap:96 H264/90000
-a=recvonly
-"""
-        with open(self.sdp_path, "w", newline="\n") as f:
-            f.write(sdp_text)
-            f.flush()
-            os.fsync(f.fileno())
+        except Exception as e:
+            # Catch and log all exceptions to prevent them from becoming
+            # unhandled thread exceptions
+            logging.exception(f"Error in {self.__class__.__name__}: {e}")
+
+        finally:
+            try:
+                self._cleanup()
+
+            except Exception as e:
+                # Log cleanup errors but don't let them crash the receiver
+                logging.exception(f"Error during cleanup: {e}")
+
+    def get_frame(self) -> Optional[npt.NDArray[np.uint8]]:
+        if not self.frame_fetched:
+            self.frame_fetched = True
+            self.render_history.append(time.monotonic())
+            self.rendered_frame_count += 1
+
+        with self.frame_lock:
+            return self.frame
+
+    def _update_frame(self, new_frame: npt.NDArray[np.uint8]) -> None:
+        """Update current frame and history in thread-safe manner."""
+        with self.frame_lock:
+            if self.frame is not None and not self.frame_fetched:
+                self.dropped_burst_frames += 1
+
+            self.frame = new_frame
+            self.frame_fetched = False
+
+        self.decoded_frame_count += 1
+
+    def _log_stats_if_needed(self) -> None:
+        """Log statistics if interval has passed."""
+        current_time = time.monotonic()
+        if current_time - self.last_log_time >= self.log_interval:
+            if self.packet_count > 0:
+                dropped_total = self.dropped_empty_frames + self.dropped_old_frames + self.dropped_burst_frames
+                drop_rate = (dropped_total / self.packet_count) * 100
+
+                time_elapsed = self.log_interval
+                if self.last_log_time > 0:
+                    time_elapsed = current_time - self.last_log_time
+                avg_decoded_fps = round(self.decoded_frame_count / time_elapsed) if time_elapsed > 0 else 0
+                avg_rendered_fps = round(self.rendered_frame_count / time_elapsed) if time_elapsed > 0 else 0
+
+                logging.info(
+                    f"{self.__class__.__name__}: "
+                    f"frames={self.decoded_frame_count}, "
+                    f"dropped_empty={self.dropped_empty_frames}, "
+                    f"dropped_old={self.dropped_old_frames}, "
+                    f"dropped_burst={self.dropped_burst_frames}, "
+                    f"drop_rate={drop_rate:.1f}%, "
+                    f"avg_decoded_fps={avg_decoded_fps}, "
+                    f"avg_rendered_fps={avg_rendered_fps}"
+                )
+
+            # Reset for next interval
+            self.packet_count = 0
+            self.dropped_empty_frames = 0
+            self.decoded_frame_count = 0
+            self.rendered_frame_count = 0
+            self.dropped_old_frames = 0
+            self.dropped_burst_frames = 0
+            self.last_log_time = current_time
