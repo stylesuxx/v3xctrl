@@ -6,16 +6,8 @@ from typing import Dict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from v3xctrl_control.message import PeerAnnouncement, Message, PeerInfo, Error
-from v3xctrl_helper.exceptions import UnauthorizedError
+from v3xctrl_helper.exceptions import UnauthorizedError, PeerRegistrationError
 from v3xctrl_helper import Address
-
-
-class PeerRegistrationError(Exception):
-    def __init__(self, failures: Dict[str, Exception], successes: Dict[str, PeerInfo]):
-        self.failures = failures
-        self.successes = successes
-        failed_ports = list(failures.keys())
-        super().__init__(f"Registration failed for ports: {failed_ports}")
 
 
 class Peer:
