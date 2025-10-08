@@ -96,8 +96,11 @@ class AppState:
 
         self._update_timing_settings()
 
+        # Attempt fullscreen/window switch only if the setting actually changed
+        fullscreen_previous = self.fullscreen
         self.fullscreen = self.settings.get("video", {"fullscreen": False}).get("fullscreen")
-        self._update_screen_size()
+        if fullscreen_previous is not self.fullscreen:
+            self._update_screen_size()
 
         self.input_manager.update_settings(settings)
         self.osd.update_settings(settings)
@@ -147,7 +150,9 @@ class AppState:
                             self._signal_handler
                         )
                     else:
-                        self.menu = None
+                        # When exiting vie [ESC], do the same thing we would do
+                        # when using the "Back" button from the menu
+                        self.update_settings()
 
                 # [F11] - Toggle Fullscreen
                 elif event.key == pygame.K_F11:
