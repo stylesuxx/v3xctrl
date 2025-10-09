@@ -329,7 +329,7 @@ class OSD:
 
         debug_fps_loop_widget = FpsWidget(position, (width, height), "LOOP")
         debug_fps_video_widget = FpsWidget(position, (width, height), "VIDEO")
-        debug_data_widget = StatusValueWidget(position, 26, "DATA")
+        debug_data_widget = StatusValueWidget(position, 26, "DATA", average=True)
         debug_latency_widget = StatusValueWidget(position, 26, "LATENCY")
 
         self.widgets_debug = {
