@@ -1,6 +1,7 @@
 from v3xctrl_helper.helper import (
   clamp,
   color_to_hex,
+  is_int,
 )
 from v3xctrl_helper.custom_types import (
   Address,
@@ -12,4 +13,5 @@ __all__ = [
   "color_to_hex",
   "Address",
   "MessageFromAddress",
+  "is_int",
 ]

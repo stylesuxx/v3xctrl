@@ -5,6 +5,7 @@ from pygame import Surface
 from v3xctrl_ui.fonts import LABEL_FONT, MONO_FONT
 from v3xctrl_ui.menu.input import NumberInput
 from v3xctrl_ui.Settings import Settings
+from v3xctrl_helper import is_int
 
 from .Tab import Tab
 
@@ -71,7 +72,8 @@ class FrequenciesTab(Tab):
         }
 
     def _on_rate_change(self, name: str, value: str) -> None:
-        self.timing[name] = int(value)
+        if is_int(value):
+            self.timing[name] = int(value)
 
     def _draw_frequency_section(self, surface: Surface, y: int) -> int:
         y = self.y_offset + self.padding
