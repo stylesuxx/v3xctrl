@@ -15,3 +15,12 @@ def color_to_hex(color: Tuple[int, int, int]) -> str:
         hex_color += hex(item)[2:].upper().zfill(2)
 
     return hex_color
+
+
+def is_int(number: str) -> bool:
+    try:
+        int(number)
+        return True
+
+    except Exception:
+        return False

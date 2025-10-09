@@ -11,6 +11,7 @@ from v3xctrl_ui.menu.input import (
   TextInput
 )
 from v3xctrl_ui.Settings import Settings
+from v3xctrl_helper import is_int
 
 from .Tab import Tab
 
@@ -100,10 +101,12 @@ class NetworkTab(Tab):
         }
 
     def _on_port_change(self, name: str, value: str) -> None:
-        self.ports[name] = int(value)
+        if is_int(value):
+            self.ports[name] = int(value)
 
     def _on_udp_packet_ttl_change(self, value: str) -> None:
-        self.udp_packet_ttl = int(value)
+        if is_int(value):
+            self.udp_packet_ttl = int(value)
 
     def _on_relay_enable_change(self, value: bool) -> None:
         self.relay["enabled"] = value
