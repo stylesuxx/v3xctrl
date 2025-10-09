@@ -148,6 +148,7 @@ class Renderer:
 
     def _render_relay_connection_info(self, screen: pygame.Surface) -> None:
         """Video and control ports are fixed with the relay."""
+        ports = self.settings.get("ports")
         relay_settings = self.settings.get("relay")
         data: List[Tuple[str, Optional[str]]] = [
             ("STREAMER SETUP", None),
@@ -157,8 +158,8 @@ class Renderer:
 
             ("", None),
             ("Network Ports", None),
-            ("Video", "6666"),
-            ("Control", "6668"),
+            ("Video", str(ports['video'])),
+            ("Control", str(ports['control'])),
         ]
         self._render_lines(screen, data, 50, self.center_y + 10)
 
