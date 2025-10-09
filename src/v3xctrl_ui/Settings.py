@@ -7,6 +7,8 @@ import tomli_w
 
 import pygame
 
+from v3xctrl_ui import __version__
+
 
 class Settings:
     DEFAULTS: Dict[str, Any] = {
@@ -106,7 +108,7 @@ class Settings:
             },
         },
         "settings": {
-            "title": "V3XCTRL",
+            "title": f"V3XCTRL {__version__}",
             "throttle": {
                 "step": 0.1,
                 "friction": 0.2,
