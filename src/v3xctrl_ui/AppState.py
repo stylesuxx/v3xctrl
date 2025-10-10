@@ -22,20 +22,17 @@ class AppState:
     """
     Holds the current context of the app.
     """
-    def __init__(
-        self,
-        size: Tuple[int, int],
-        title: str,
-        video_port: int,
-        control_port: int,
-        settings: Settings
-    ) -> None:
-        self.size = size
-        self.title = title
-        self.video_port = video_port
-        self.control_port = control_port
-
+    def __init__(self, settings: Settings) -> None:
         self.settings = settings
+
+        video = settings.get("video")
+        self.size = (video.get("width"), video.get("height"))
+
+        ports = settings.get("ports")
+        self.video_port = ports.get("video", 6666)
+        self.control_port = ports.get("control", 6668)
+
+        self.title = settings.get("settings").get("title")
 
         self.scale = 1
         self.fullscreen = self.settings.get(
@@ -52,8 +49,8 @@ class AppState:
 
         handlers = self._create_handlers()
         self.network_manager = NetworkManager(
-            video_port,
-            control_port,
+            self.video_port,
+            self.control_port,
             self.settings,
             handlers
         )
@@ -63,6 +60,7 @@ class AppState:
         self.latency_interval = 0.0
         self.last_control_update = 0.0
         self.last_latency_check = 0.0
+        self.main_loop_fps = 60
         self._update_timing_settings()
 
         self.loop_history: deque[float] = deque(maxlen=300)
@@ -110,8 +108,11 @@ class AppState:
         # Clear menu to force refresh
         self.menu = None
 
-    def update(self, now: float) -> None:
+    def update(self) -> None:
         """Update application state with timed operations."""
+        now = time.monotonic()
+        self.loop_history.append(now)
+
         # Handle control updates
         if now - self.last_control_update >= self.control_interval:
             try:
@@ -125,6 +126,9 @@ class AppState:
         if now - self.last_latency_check >= self.latency_interval:
             self.network_manager.send_latency_check()
             self.last_latency_check = now
+
+    def tick(self) -> None:
+        self.clock.tick(self.main_loop_fps)
 
     def handle_events(self) -> bool:
         """
@@ -264,6 +268,7 @@ class AppState:
 
         self.control_interval = 1.0 / control_rate_frequency
         self.latency_interval = 1.0 / latency_check_frequency
+        self.main_loop_fps = timing.get("main_loop_fps", 60)
 
     def _send_control_message(self) -> None:
         """Send control message to streamer."""
