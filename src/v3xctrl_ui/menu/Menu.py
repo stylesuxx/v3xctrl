@@ -99,6 +99,9 @@ class Menu:
         self.background = pygame.Surface((self.width, self.height))
         self.background.fill(self.BG_COLOR)
 
+        self.tab_bar_dirty = True
+        self.tab_bar_surface = pygame.Surface((self.width, self.tab_height))
+
     def handle_event(self, event: event.Event) -> None:
         self.quit_button.handle_event(event)
         self.save_button.handle_event(event)
@@ -109,6 +112,7 @@ class Menu:
                 for entry in self.tabs:
                     if entry.rect.collidepoint(event.pos):
                         self.active_tab = entry.name
+                        self.tab_bar_dirty = True
 
         tab = self._get_active_tab()
         if tab:
@@ -116,10 +120,13 @@ class Menu:
 
     def draw(self, surface: Surface) -> None:
         surface.blit(self.background, (0, 0))
-        self._draw_tabs(surface)
-        self.quit_button.draw(surface)
-        self.save_button.draw(surface)
-        self.exit_button.draw(surface)
+
+        if self.tab_bar_dirty:
+            self._render_tabs()
+            self.tab_bar_dirty = False
+
+        surface.blit(self.tab_bar_surface, (0, 0))
+        self._draw_buttons(surface)
 
         tab = self._get_active_tab()
         if tab:
@@ -211,14 +218,30 @@ class Menu:
     def _quit_button_callback(self) -> None:
         self.callback_quit()
 
-    def _draw_tabs(self, surface: Surface) -> None:
+    def _render_tabs(self) -> None:
+        """Render the tab bar to the cached surface"""
         for i, entry in enumerate(self.tabs):
             is_active = entry.name == self.active_tab
             color = self.TAB_ACTIVE_COLOR if is_active else self.TAB_INACTIVE_COLOR
-            draw_rect = entry.rect.copy()
-            pygame.draw.rect(surface, color, draw_rect)
+
+            # Draw directly to the cached tab_bar_surface
+            pygame.draw.rect(self.tab_bar_surface, color, entry.rect)
+
             if i > 0:
-                pygame.draw.line(surface, self.TAB_SEPARATOR_COLOR, entry.rect.topleft, entry.rect.bottomleft, 2)
+                pygame.draw.line(
+                    self.tab_bar_surface,
+                    self.TAB_SEPARATOR_COLOR,
+                    entry.rect.topleft,
+                    entry.rect.bottomleft,
+                    2
+                )
+
+            # Render text
             label_surface, label_rect = MAIN_FONT.render(entry.name, self.FONT_COLOR)
             label_rect.center = entry.rect.center
-            surface.blit(label_surface, label_rect)
+            self.tab_bar_surface.blit(label_surface, label_rect)
+
+    def _draw_buttons(self, surface: Surface) -> None:
+        self.quit_button.draw(surface)
+        self.save_button.draw(surface)
+        self.exit_button.draw(surface)

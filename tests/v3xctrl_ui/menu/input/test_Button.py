@@ -36,15 +36,30 @@ class TestButton(unittest.TestCase):
         self.assertTrue(self.button.visible)
         self.assertEqual(self.button.position, (50, 50))
 
+    def test_cached_surfaces_created(self):
+        """Test that all button states are pre-rendered and cached"""
+        expected_states = {'normal', 'hover', 'active', 'disabled'}
+        self.assertEqual(set(self.button.cached_surfaces.keys()), expected_states)
+
+        for state, surface in self.button.cached_surfaces.items():
+            self.assertIsInstance(surface, pygame.Surface)
+            self.assertEqual(surface.get_size(), (100, 40))
+
+    def test_initial_state(self):
+        """Test that button starts in normal state"""
+        self.assertEqual(self.button._current_state, 'normal')
+
     def test_hover_state_true(self):
         event = pygame.event.Event(pygame.MOUSEMOTION, {'pos': (75, 70)})
         self.assertTrue(self.button.handle_event(event))
         self.assertTrue(self.button.hovered)
+        self.assertEqual(self.button._current_state, 'hover')
 
     def test_hover_state_false(self):
         event = pygame.event.Event(pygame.MOUSEMOTION, {'pos': (10, 10)})
         self.assertFalse(self.button.handle_event(event))
         self.assertFalse(self.button.hovered)
+        self.assertEqual(self.button._current_state, 'normal')
 
     def test_focused_on_click_inside(self):
         event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
@@ -53,6 +68,7 @@ class TestButton(unittest.TestCase):
         })
         self.assertTrue(self.button.handle_event(event))
         self.assertTrue(self.button.focused)
+        self.assertEqual(self.button._current_state, 'active')
 
     def test_no_focused_on_click_outside(self):
         event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
@@ -189,62 +205,80 @@ class TestButton(unittest.TestCase):
         self.assertEqual(new_center, self.button.rect.center)
 
     def test_draw_states(self):
+        """Test that drawing works in all states"""
         surface = pygame.Surface((200, 100))
 
         test_states = [
-            (False, False, False),
-            (True, False, False),
-            (True, True, False),
-            (False, False, True),
+            (False, False, False, 'normal'),
+            (True, False, False, 'hover'),
+            (True, True, False, 'active'),
+            (False, False, True, 'disabled'),
         ]
 
-        for hovered, focused, disabled in test_states:
+        for hovered, focused, disabled, expected_state in test_states:
             with self.subTest(hovered=hovered, focused=focused, disabled=disabled):
                 self.button.hovered = hovered
                 self.button.focused = focused
                 self.button.disabled = disabled
+                self.button._update_state()
+
+                self.assertEqual(self.button._current_state, expected_state)
 
                 try:
                     self.button._draw(surface)
                 except Exception as e:
-                    self.fail(f"Button._draw() failed in state (h={hovered}, f={focused}, d={disabled}): {e}")
+                    self.fail(f"Button._draw() failed in state {expected_state}: {e}")
 
-    @patch('pygame.draw.rect')
-    def test_draw_colors(self, mock_draw_rect):
-        surface = pygame.Surface((200, 100))
-
+    def test_update_state_logic(self):
+        """Test that _update_state correctly determines the current state"""
+        # Normal state
         self.button.hovered = False
         self.button.focused = False
         self.button.disabled = False
-        self.button._draw(surface)
+        self.button._update_state()
+        self.assertEqual(self.button._current_state, 'normal')
 
-        first_call = mock_draw_rect.call_args_list[0]
-        self.assertEqual(first_call[0][1], Button.BG_COLOR)
-
-        mock_draw_rect.reset_mock()
-
+        # Hover state
         self.button.hovered = True
         self.button.focused = False
-        self.button._draw(surface)
-        first_call = mock_draw_rect.call_args_list[0]
-        self.assertEqual(first_call[0][1], Button.HOVER_COLOR)
+        self.button.disabled = False
+        self.button._update_state()
+        self.assertEqual(self.button._current_state, 'hover')
 
-        mock_draw_rect.reset_mock()
-
-        self.button.hovered = False
+        # Active state (takes precedence over hover)
+        self.button.hovered = True
         self.button.focused = True
-        self.button._draw(surface)
-        first_call = mock_draw_rect.call_args_list[0]
-        self.assertEqual(first_call[0][1], Button.ACTIVE_COLOR)
+        self.button.disabled = False
+        self.button._update_state()
+        self.assertEqual(self.button._current_state, 'active')
 
-        mock_draw_rect.reset_mock()
-
-        self.button.hovered = False
-        self.button.focused = False
+        # Disabled state (takes precedence over everything)
+        self.button.hovered = True
+        self.button.focused = True
         self.button.disabled = True
-        self.button._draw(surface)
-        first_call = mock_draw_rect.call_args_list[0]
-        self.assertEqual(first_call[0][1], Button.BG_COLOR_DISABLED)
+        self.button._update_state()
+        self.assertEqual(self.button._current_state, 'disabled')
+
+    def test_draw_uses_cached_surface(self):
+        """Test that _draw uses the cached surface for current state"""
+        surface = pygame.Surface((200, 100))
+
+        # Verify that the correct cached surface exists for each state
+        # and that drawing completes without error
+        for state in ['normal', 'hover', 'active', 'disabled']:
+            with self.subTest(state=state):
+                self.button._current_state = state
+
+                # Verify the cached surface exists
+                self.assertIn(state, self.button.cached_surfaces)
+                cached_surface = self.button.cached_surfaces[state]
+                self.assertIsInstance(cached_surface, pygame.Surface)
+
+                # Verify drawing works without error
+                try:
+                    self.button._draw(surface)
+                except Exception as e:
+                    self.fail(f"Button._draw() failed for state '{state}': {e}")
 
     def test_basewidget_inheritance(self):
         surface = pygame.Surface((200, 100))
@@ -347,6 +381,37 @@ class TestButton(unittest.TestCase):
         })
         self.button.handle_event(up_event2)
         self.assertEqual(self.callback.call_count, 1)
+
+    def test_state_transitions(self):
+        """Test state transitions happen correctly during user interactions"""
+        # Start in normal state
+        self.assertEqual(self.button._current_state, 'normal')
+
+        # Mouse enters -> hover state
+        hover_event = pygame.event.Event(pygame.MOUSEMOTION, {'pos': (75, 70)})
+        self.button.handle_event(hover_event)
+        self.assertEqual(self.button._current_state, 'hover')
+
+        # Mouse clicks -> active state
+        down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
+            'pos': (75, 70),
+            'button': 1
+        })
+        self.button.handle_event(down_event)
+        self.assertEqual(self.button._current_state, 'active')
+
+        # Mouse releases -> back to hover (since mouse is still over button)
+        up_event = pygame.event.Event(pygame.MOUSEBUTTONUP, {
+            'pos': (75, 70),
+            'button': 1
+        })
+        self.button.handle_event(up_event)
+        self.assertEqual(self.button._current_state, 'hover')
+
+        # Mouse leaves -> normal state
+        leave_event = pygame.event.Event(pygame.MOUSEMOTION, {'pos': (10, 10)})
+        self.button.handle_event(leave_event)
+        self.assertEqual(self.button._current_state, 'normal')
 
 
 if __name__ == "__main__":

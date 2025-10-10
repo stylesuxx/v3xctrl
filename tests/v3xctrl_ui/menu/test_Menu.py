@@ -56,6 +56,11 @@ class TestMenu(unittest.TestCase):
         self.assertFalse(menu.disable_tabs)
         self.assertEqual(len(menu.tabs), 6)
 
+        # New: Check tab bar caching is initialized
+        self.assertTrue(menu.tab_bar_dirty)
+        self.assertIsNotNone(menu.tab_bar_surface)
+        self.assertIsNotNone(menu.background)
+
     def test_tab_creation(self, mock_button_class, mock_pygame):
         self._setup_mocks(mock_button_class, mock_pygame)
 
@@ -251,6 +256,43 @@ class TestMenu(unittest.TestCase):
 
         self.assertEqual(self.mock_button.handle_event.call_count, 3)
 
+    def test_handle_event_tab_click_changes_active_tab(self, mock_button_class, mock_pygame):
+        """Test that clicking a tab changes the active tab and marks tab bar as dirty"""
+        self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            callback=self.mock_callback,
+            server=self.mock_server,
+            callback_quit=self.mock_callback_quit
+        )
+
+        # Clear the initial dirty flag
+        menu.tab_bar_dirty = False
+        original_active = menu.active_tab
+
+        mock_event = MagicMock()
+        mock_event.type = mock_pygame.MOUSEBUTTONDOWN  # Use mocked pygame constant
+        mock_event.button = 1
+        mock_event.pos = (100, 30)
+
+        # Make only the third tab respond to click
+        for tab in menu.tabs:
+            tab.rect.collidepoint.return_value = False
+        menu.tabs[2].rect.collidepoint.return_value = True
+
+        menu.handle_event(mock_event)
+
+        # Active tab should change
+        self.assertNotEqual(menu.active_tab, original_active)
+        self.assertEqual(menu.active_tab, menu.tabs[2].name)
+
+        # Tab bar should be marked dirty
+        self.assertTrue(menu.tab_bar_dirty)
+
     def test_handle_event_tab_click_disabled(self, mock_button_class, mock_pygame):
         self._setup_mocks(mock_button_class, mock_pygame)
 
@@ -268,7 +310,7 @@ class TestMenu(unittest.TestCase):
         original_active = menu.active_tab
 
         mock_event = MagicMock()
-        mock_event.type = pygame.MOUSEBUTTONDOWN
+        mock_event.type = mock_pygame.MOUSEBUTTONDOWN  # Use mocked pygame constant
         mock_event.button = 1
         mock_event.pos = (100, 30)
 
@@ -280,7 +322,31 @@ class TestMenu(unittest.TestCase):
 
         self.assertEqual(menu.active_tab, original_active)
 
-    def test_draw_tabs(self, mock_button_class, mock_pygame):
+    def test_render_tabs(self, mock_button_class, mock_pygame):
+        """Test that _render_tabs renders to the cached tab_bar_surface"""
+        self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            callback=self.mock_callback,
+            server=self.mock_server,
+            callback_quit=self.mock_callback_quit
+        )
+
+        menu._render_tabs()
+
+        # Should draw rectangles and lines to tab_bar_surface
+        mock_pygame.draw.rect.assert_called()
+        mock_pygame.draw.line.assert_called()
+
+        # Should blit text to tab_bar_surface
+        menu.tab_bar_surface.blit.assert_called()
+
+    def test_draw_with_dirty_tab_bar(self, mock_button_class, mock_pygame):
+        """Test that draw() re-renders tab bar when dirty"""
         self._setup_mocks(mock_button_class, mock_pygame)
 
         menu = Menu(
@@ -294,11 +360,104 @@ class TestMenu(unittest.TestCase):
         )
 
         mock_surface = MagicMock()
-        menu._draw_tabs(mock_surface)
 
-        mock_pygame.draw.rect.assert_called()
-        mock_pygame.draw.line.assert_called()
-        mock_surface.blit.assert_called()
+        # Tab bar starts dirty
+        self.assertTrue(menu.tab_bar_dirty)
+
+        # Mock _render_tabs to track if it's called
+        with patch.object(menu, '_render_tabs') as mock_render:
+            menu.draw(mock_surface)
+            mock_render.assert_called_once()
+
+        # After drawing, tab bar should no longer be dirty
+        self.assertFalse(menu.tab_bar_dirty)
+
+    def test_draw_with_clean_tab_bar(self, mock_button_class, mock_pygame):
+        """Test that draw() doesn't re-render tab bar when clean"""
+        self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            callback=self.mock_callback,
+            server=self.mock_server,
+            callback_quit=self.mock_callback_quit
+        )
+
+        mock_surface = MagicMock()
+
+        # Mark tab bar as clean
+        menu.tab_bar_dirty = False
+
+        # Mock _render_tabs to track if it's called
+        with patch.object(menu, '_render_tabs') as mock_render:
+            menu.draw(mock_surface)
+            mock_render.assert_not_called()
+
+    def test_draw_blits_surfaces(self, mock_button_class, mock_pygame):
+        """Test that draw() blits background and tab bar"""
+        self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            callback=self.mock_callback,
+            server=self.mock_server,
+            callback_quit=self.mock_callback_quit
+        )
+
+        mock_surface = MagicMock()
+        menu.tab_bar_dirty = False  # Don't trigger re-render
+
+        menu.draw(mock_surface)
+
+        # Should blit background and tab_bar_surface
+        self.assertGreaterEqual(mock_surface.blit.call_count, 2)
+
+    def test_draw_buttons_called(self, mock_button_class, mock_pygame):
+        """Test that _draw_buttons is called during draw()"""
+        self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            callback=self.mock_callback,
+            server=self.mock_server,
+            callback_quit=self.mock_callback_quit
+        )
+
+        mock_surface = MagicMock()
+        menu.tab_bar_dirty = False
+
+        with patch.object(menu, '_draw_buttons') as mock_draw_buttons:
+            menu.draw(mock_surface)
+            mock_draw_buttons.assert_called_once_with(mock_surface)
+
+    def test_draw_buttons(self, mock_button_class, mock_pygame):
+        """Test that _draw_buttons draws all three buttons"""
+        self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            callback=self.mock_callback,
+            server=self.mock_server,
+            callback_quit=self.mock_callback_quit
+        )
+
+        mock_surface = MagicMock()
+        menu._draw_buttons(mock_surface)
+
+        # All three buttons should be drawn
+        self.assertEqual(self.mock_button.draw.call_count, 3)
 
     def test_get_active_tab_not_found(self, mock_button_class, mock_pygame):
         self._setup_mocks(mock_button_class,mock_pygame)
@@ -371,6 +530,38 @@ class TestMenu(unittest.TestCase):
 
         mock_surface.blit.assert_called()
         self.assertEqual(self.mock_button.draw.call_count, 3)
+
+    def test_tab_bar_dirty_flag_lifecycle(self, mock_button_class, mock_pygame):
+        """Test the lifecycle of the tab_bar_dirty flag"""
+        self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            callback=self.mock_callback,
+            server=self.mock_server,
+            callback_quit=self.mock_callback_quit
+        )
+
+        # Starts dirty
+        self.assertTrue(menu.tab_bar_dirty)
+
+        # Draw clears it
+        mock_surface = MagicMock()
+        menu.draw(mock_surface)
+        self.assertFalse(menu.tab_bar_dirty)
+
+        # Clicking a tab makes it dirty again
+        mock_event = MagicMock()
+        mock_event.type = mock_pygame.MOUSEBUTTONDOWN  # Use mocked pygame constant
+        mock_event.button = 1
+        mock_event.pos = (100, 30)
+
+        menu.tabs[1].rect.collidepoint.return_value = True
+        menu.handle_event(mock_event)
+        self.assertTrue(menu.tab_bar_dirty)
 
 
 if __name__ == "__main__":
