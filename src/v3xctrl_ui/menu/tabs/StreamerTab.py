@@ -53,6 +53,10 @@ class StreamerTab(Tab):
         self.elements.append(self.video_start_button)
         self.elements.append(self.shutdown_button)
 
+        self.headline_surfaces = {
+            "actions": self._create_headline("Actions")
+        }
+
     def draw(self, surface: Surface) -> None:
         _ = self._draw_actions_section(surface, 0)
 
@@ -103,8 +107,7 @@ class StreamerTab(Tab):
 
     def _draw_actions_section(self, surface: Surface, y: int) -> int:
         y += self.y_offset + self.padding
-        self._draw_headline(surface, "Actions", y)
-        y += self.y_offset_headline
+        y += self._draw_headline(surface, "actions", y)
 
         self.video_start_button.set_position(self.padding, y)
         self.video_start_button.draw(surface)

@@ -54,6 +54,11 @@ class InputTab(Tab):
 
         self.elements = self.key_widgets + [self.calibration_widget]
 
+        self.headline_surfaces = {
+            "keyboard": self._create_headline("Keyboard"),
+            "input": self._create_headline("Input device", True)
+        }
+
     def draw(self, surface: Surface) -> None:
         y = self._draw_keyboard_section(surface, 0)
         y = self._draw_input_section(surface, y)
@@ -92,9 +97,8 @@ class InputTab(Tab):
 
     def _draw_keyboard_section(self, surface: Surface, y: int) -> int:
         y += self.y_offset + self.padding
-        self._draw_headline(surface, "Keyboard", y)
+        y += self._draw_headline(surface, "keyboard", y)
 
-        y += self.y_offset_headline
         for widget in self.key_widgets:
             widget.set_position(self.padding, y)
             widget.draw(surface)
@@ -104,9 +108,8 @@ class InputTab(Tab):
 
     def _draw_input_section(self, surface: Surface, y: int) -> int:
         y += self.y_section_padding
-        self._draw_headline(surface, "Input device", y, True)
+        y += self._draw_headline(surface, "input", y)
 
-        y += self.y_offset_headline
         self.calibration_widget.set_position(self.padding, y)
         self.calibration_widget.draw(surface)
 

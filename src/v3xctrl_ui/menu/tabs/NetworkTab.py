@@ -87,6 +87,12 @@ class NetworkTab(Tab):
 
         self.elements = self.port_widgets + self.relay_widgets + self.misc_widgets
 
+        self.headline_surfaces = {
+            "ports": self._create_headline("Ports"),
+            "udp_relay": self._create_headline("UDP Relay", True),
+            "misc": self._create_headline("Miscellaneous", True),
+        }
+
     def draw(self, surface: Surface) -> None:
         y = self._draw_port_section(surface, 0)
         y_col1 = self._draw_relay_section(surface, y)
@@ -119,9 +125,8 @@ class NetworkTab(Tab):
 
     def _draw_port_section(self, surface: Surface, y: int) -> int:
         y += self.y_offset + self.padding
-        self._draw_headline(surface, "Ports", y)
+        y += self._draw_headline(surface, "ports", y)
 
-        y += self.y_offset_headline
         self.video_input.set_position(self.padding, y)
         self.video_input.draw(surface)
 
@@ -138,9 +143,8 @@ class NetworkTab(Tab):
 
     def _draw_relay_section(self, surface: Surface, y: int) -> int:
         y += self.y_section_padding
-        self._draw_headline(surface, "UDP Relay", y, True)
+        y += self._draw_headline(surface, "udp_relay", y)
 
-        y += self.y_offset_headline
         self.relay_server_input.set_position(self.padding, y)
         self.relay_server_input.draw(surface)
 
@@ -161,9 +165,8 @@ class NetworkTab(Tab):
 
     def _draw_misc_section(self, surface: Surface, y: int) -> int:
         y += self.y_section_padding
-        self._draw_headline(surface, "Miscellaneous", y, True)
+        y += self._draw_headline(surface, "misc", y)
 
-        y += self.y_offset_headline
         self.udp_packet_ttl_input.set_position(self.padding, y)
         self.udp_packet_ttl_input.draw(surface)
         y += self.udp_packet_ttl_input.get_size()[1] + self.y_element_padding

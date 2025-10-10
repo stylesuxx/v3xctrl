@@ -63,6 +63,10 @@ class FrequenciesTab(Tab):
             self.latency_input,
         ]
 
+        self.headline_surfaces = {
+            "frequencies": self._create_headline("Update Frequencies")
+        }
+
     def draw(self, surface: Surface) -> None:
         _ = self._draw_frequency_section(surface, 0)
 
@@ -77,9 +81,8 @@ class FrequenciesTab(Tab):
 
     def _draw_frequency_section(self, surface: Surface, y: int) -> int:
         y = self.y_offset + self.padding
-        self._draw_headline(surface, "Update Frequencies", y)
+        y += self._draw_headline(surface, "frequencies", y)
 
-        y = self.y_offset + self.padding + self.y_offset_headline
         self.video_input.set_position(self.padding, y)
         self.video_input.draw(surface)
 

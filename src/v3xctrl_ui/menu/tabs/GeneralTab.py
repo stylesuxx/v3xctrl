@@ -49,6 +49,10 @@ class GeneralTab(Tab):
 
         self.elements = self.general_widgets
 
+        self.headline_surfaces = {
+            "settings": self._create_headline("Settings")
+        }
+
     def draw(self, surface: Surface) -> None:
         _ = self._draw_general_section(surface, 0)
 
@@ -66,8 +70,7 @@ class GeneralTab(Tab):
 
     def _draw_general_section(self, surface: Surface, y: int) -> int:
         y += self.y_offset + self.padding
-        self._draw_headline(surface, "Settings", y)
-        y += self.y_offset_headline
+        y += self._draw_headline(surface, "settings", y)
 
         self.fullscreen_enabled_checkbox.set_position(self.padding, y)
         self.fullscreen_enabled_checkbox.draw(surface)

@@ -77,6 +77,10 @@ class OsdTab(Tab):
 
         self.elements = self.osd_widgets
 
+        self.headline_surfaces = {
+            "osd": self._create_headline("OSD")
+        }
+
     def draw(self, surface: Surface) -> None:
         _ = self._draw_debug_section(surface, 0)
 
@@ -89,10 +93,9 @@ class OsdTab(Tab):
         self.widgets.setdefault(key, {})["display"] = value
 
     def _draw_debug_section(self, surface: Surface, y: int) -> int:
-        y = self.y_offset + self.padding
-        self._draw_headline(surface, "OSD", y)
+        y += self.y_offset + self.padding
+        y += self._draw_headline(surface, "osd", y)
 
-        y += self.y_offset_headline
         for checkbox in self.osd_widgets:
             checkbox.set_position(self.padding, y)
             checkbox.draw(surface)

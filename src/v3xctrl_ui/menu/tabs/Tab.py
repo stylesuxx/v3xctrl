@@ -32,6 +32,7 @@ class Tab(ABC):
         self.y_note_padding_bottom = 5
 
         self.elements: List[Any] = []
+        self.headline_surfaces: Dict[str, Surface] = {}
 
     def handle_event(self, event: event.Event) -> None:
         for element in self.elements:
@@ -45,37 +46,68 @@ class Tab(ABC):
     def draw(self, surface: Surface) -> None:
         pass
 
-    def _draw_headline(
+    def _create_headline(
         self,
-        surface: Surface,
         title: str,
-        y: int,
         draw_top_line: bool = False
-    ) -> int:
+      ) -> Surface:
+        """
+        Pre-render a headline surface (EXPENSIVE - only call once in __init__).
+        Returns a surface with the headline text and lines already drawn.
+        """
         line_padding = 10
         line_width = 2
 
         text_surface, _ = MAIN_FONT.render(title, WHITE)
-        surface.blit(text_surface, (self.padding, y))
         height = text_surface.get_height()
 
-        line_padding_top = y - line_padding - line_width
-        line_padding_bottom = y + height + line_padding
+        # Calculate total height needed
+        line_padding_top = line_padding + line_width if draw_top_line else 0
+        line_padding_bottom = height + line_padding
+        total_height = line_padding_top + height + line_padding_bottom
 
+        # Create surface for the entire headline (text + lines)
+        headline_width = self.width - (2 * self.padding)
+        surface = Surface((headline_width, total_height), pygame.SRCALPHA)
+        surface.fill((0, 0, 0, 0))
+
+        # Draw top line if needed
+        y_offset = 0
         if draw_top_line:
             pygame.draw.line(
                 surface, WHITE,
-                (self.padding, line_padding_top),
-                (self.width - self.padding, line_padding_top), line_width
+                (0, line_width // 2),
+                (headline_width, line_width // 2),
+                line_width
             )
+            y_offset = line_padding_top
 
+        surface.blit(text_surface, (0, y_offset))
+
+        # Draw bottom line
+        bottom_line_y = y_offset + height + line_padding
         pygame.draw.line(
             surface, WHITE,
-            (self.padding, line_padding_bottom),
-            (self.width - self.padding, line_padding_bottom), line_width
+            (0, bottom_line_y),
+            (headline_width, bottom_line_y),
+            line_width
         )
 
-        return y + 40
+        return surface
+
+    def _draw_headline(
+        self,
+        surface: Surface,
+        headline_key: str,
+        y: int
+    ) -> int:
+        if headline_key not in self.headline_surfaces:
+            raise KeyError(f"Headline '{headline_key}' not found. Did you forget to pre-render it in __init__?")
+
+        headline = self.headline_surfaces[headline_key]
+        surface.blit(headline, (self.padding, y))
+
+        return headline.height
 
     def _draw_note(self, surface: Surface, text: str, y: int) -> int:
         note_surface, note_rect = TEXT_FONT.render(text, WHITE)
