@@ -1,8 +1,9 @@
 from collections import deque
+import copy
 import logging
 import signal
 import time
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional
 
 import pygame
 
@@ -28,7 +29,7 @@ class AppState:
         video = settings.get("video")
         self.size = (video.get("width"), video.get("height"))
 
-        ports = settings.get("ports")
+        ports = settings.get("ports", {})
         self.video_port = ports.get("video", 6666)
         self.control_port = ports.get("control", 6668)
 
@@ -47,12 +48,10 @@ class AppState:
 
         self.control_connected = False
 
-        handlers = self._create_handlers()
+        self.handlers = self._create_handlers()
         self.network_manager = NetworkManager(
-            self.video_port,
-            self.control_port,
             self.settings,
-            handlers
+            self.handlers
         )
 
         # Timing
@@ -78,32 +77,52 @@ class AppState:
 
         self.network_manager.setup_ports()
 
-    def initialize_timing(self, start_time: float) -> None:
-        """Initialize timing counters."""
+        start_time = time.monotonic()
         self.last_control_update = start_time
         self.last_latency_check = start_time
 
-    def update_settings(self, settings: Optional[Settings] = None) -> None:
+        # Deep copy of current settings so we can later easily check if settings
+        # need updating.
+        self.old_settings = copy.deepcopy(self.settings)
+
+    def update_settings(self, new_settings: Optional[Settings] = None) -> None:
         """
         Update settings after exiting menu.
         Only update settings that can be hot reloaded.
         """
-        if settings is None:
-            settings = Init.settings("settings.toml")
-
-        self.settings = settings
-
-        self._update_timing_settings()
+        if new_settings is None:
+            new_settings = Init.settings("settings.toml")
 
         # Attempt fullscreen/window switch only if the setting actually changed
         fullscreen_previous = self.fullscreen
-        self.fullscreen = self.settings.get("video", {"fullscreen": False}).get("fullscreen")
+        self.fullscreen = new_settings.get("video", {}).get("fullscreen", False)
         if fullscreen_previous is not self.fullscreen:
             self._update_screen_size()
 
-        self.input_manager.update_settings(settings)
-        self.osd.update_settings(settings)
-        self.renderer.settings = settings
+        # Check if network manager needs to be restarted
+        if (
+            not self._settings_equal(new_settings, "ports") or
+            not self._settings_equal(new_settings, "relay")
+        ):
+            logging.info("Restarting newtwork manager")
+            self.network_manager.shutdown()
+            self.network_manager = NetworkManager(
+                new_settings,
+                self.handlers
+            )
+            self.network_manager.setup_ports()
+
+        # Update new settings to settings and trigger updates on elements who
+        # need to handle new settings
+        self.settings = new_settings
+        self.old_settings = copy.deepcopy(self.settings)
+
+        self._update_timing_settings()
+        self._update_network_settings()
+
+        self.input_manager.update_settings(self.settings)
+        self.osd.update_settings(self.settings)
+        self.renderer.settings = self.settings
 
         # Clear menu to force refresh
         self.menu = None
@@ -228,6 +247,20 @@ class AppState:
 
             self.scale = 1
 
+    def _update_timing_settings(self) -> None:
+        """Update timing intervals from settings."""
+        timing = self.settings.get("timing", {})
+        control_rate_frequency = timing.get("control_update_hz", 30)
+        latency_check_frequency = timing.get("latency_check_hz", 1)
+
+        self.control_interval = 1.0 / control_rate_frequency
+        self.latency_interval = 1.0 / latency_check_frequency
+        self.main_loop_fps = timing.get("main_loop_fps", 60)
+
+    def _update_network_settings(self) -> None:
+        udp_ttl_ms = self.settings.get("udp_packet_ttl", 100)
+        self.network_manager.update_ttl(udp_ttl_ms)
+
     def _update_connected(self, state: bool) -> None:
         self.control_connected = state
 
@@ -260,16 +293,6 @@ class AppState:
         if self.running:
             self.running = False
 
-    def _update_timing_settings(self) -> None:
-        """Update timing intervals from settings."""
-        timing = self.settings.get("timing", {})
-        control_rate_frequency = timing.get("control_update_hz", 30)
-        latency_check_frequency = timing.get("latency_check_hz", 1)
-
-        self.control_interval = 1.0 / control_rate_frequency
-        self.latency_interval = 1.0 / latency_check_frequency
-        self.main_loop_fps = timing.get("main_loop_fps", 60)
-
     def _send_control_message(self) -> None:
         """Send control message to streamer."""
         if self.network_manager.server and not self.network_manager.server_error:
@@ -277,3 +300,16 @@ class AppState:
                 "steering": self.steering,
                 "throttle": self.throttle,
             }))
+
+    def _settings_equal(self, settings: Settings, key: str) -> bool:
+        old_settings = self.old_settings.get(key)
+        new_settings = settings.get(key)
+
+        if new_settings.keys() != old_settings.keys():
+            return False
+
+        for key in old_settings:
+            if new_settings.get(key) != old_settings.get(key):
+                return False
+
+        return True

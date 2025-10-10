@@ -1,7 +1,6 @@
 import argparse
 from datetime import datetime
 import logging
-import time
 
 from v3xctrl_ui.Init import Init
 from v3xctrl_ui.AppState import AppState
@@ -54,10 +53,6 @@ if args.mem_profile:
 # Load settings from file, otherwise use default values if file not available
 settings = Init.settings("settings.toml")
 state = AppState(settings)
-
-# Main loop
-start_time = time.monotonic()
-state.initialize_timing(start_time)
 
 while state.running:
     if not state.handle_events():

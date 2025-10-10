@@ -58,6 +58,9 @@ class UDPTransmitter(threading.Thread):
         asyncio.set_event_loop(self.loop)
         self.loop.run_forever()
 
+    def update_ttl(self, ttl_ms: int) -> None:
+        self.ttl = ttl_ms / 1000
+
     async def process(self) -> None:
         try:
             while self._running.is_set():

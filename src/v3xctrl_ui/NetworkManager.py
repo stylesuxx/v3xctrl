@@ -2,8 +2,9 @@ import logging
 import socket
 import threading
 import time
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
+from v3xctrl_control import Server
 from v3xctrl_control.message import Latency
 from v3xctrl_helper.exceptions import PeerRegistrationError
 from v3xctrl_udp_relay.Peer import Peer
@@ -16,15 +17,17 @@ from v3xctrl_ui.Settings import Settings
 class NetworkManager:
     """Manages network connections, relay setup, and server communications."""
 
-    def __init__(self, video_port: int, control_port: int, settings: Settings, handlers: Dict[str, Any]) -> None:
-        self.video_port = video_port
-        self.control_port = control_port
+    def __init__(self, settings: Settings, handlers: Dict[str, Any]) -> None:
         self.settings = settings
         self.server_handlers = handlers
 
+        ports = self.settings.get("ports", {})
+        self.video_port = ports.get("video")
+        self.control_port = ports.get("control")
+
         # Network state
         self.video_receiver = None
-        self.server = None
+        self.server: Optional[Server] = None
         self.server_error = None
 
         # Relay state
@@ -107,7 +110,8 @@ class NetworkManager:
                 self.server = Init.server(
                     self.control_port,
                     self.server_handlers.get("messages", []),
-                    self.server_handlers.get("states", [])
+                    self.server_handlers.get("states", []),
+                    self.settings.get("udp_packet_ttl", 100)
                 )
             except RuntimeError as e:
                 self.server_error = str(e)
@@ -147,6 +151,10 @@ class NetworkManager:
             self.video_receiver.join()
             delta = round(time.monotonic() - start)
             logging.debug(f"Video Receiver shut down after {delta}s")
+
+    def update_ttl(self, ttl_ms: int) -> None:
+        if self.server:
+            self.server.update_ttl(ttl_ms)
 
     def _setup_relay_if_enabled(self) -> None:
         """Setup relay connection if enabled in settings."""

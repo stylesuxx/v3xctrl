@@ -146,3 +146,6 @@ class Server(Base):
 
         self.thread_pool.shutdown(wait=False)
         self.socket.close()
+
+    def update_ttl(self, ttl_ms: int) -> None:
+        self.transmitter.update_ttl(ttl_ms)
