@@ -9,12 +9,12 @@ IP=$(ip -4 addr show wlan0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
 echo -e "\
 
                 ${RED}.oooo.${NC}                             .            oooo
-             ${RED}.dP\"\"Y88b${NC}                          .o8            \`888
- oooo    ooo       ${RED}]8P'${NC} oooo    ooo  .ooooo.  .o888oo oooo d8b  888
-  \`88.  .8'      ${RED}<38b.${NC}   \`88b..8P'  d88' \`\"Y8   888   \`888\"\"8P  888
-   \`88..8'        ${RED}\`88b.${NC}    Y888'    888         888    888      888
-    \`888'    ${RED}o.   .88P${NC}   .o8\"'88b   888   .o8   888 .  888      888
-     \`8'     ${RED}\`8bd88P'${NC}   o88'   888o \`Y8bod8P'   \"888\" d888b    o888o
+             ${RED}.BP\"\"YBBb${NC}                          .oB            \`BBB
+ oooo    ooo       ${RED}]BP'${NC} oooo    ooo  .ooooo.  .oBBBoo oooo BBb  BBB
+  \`BB.  .B'      ${RED}<3Bb.${NC}   \`BBb..BP'  BBB' \`\"YB   BBB   \`BBB\"\"BP  BBB
+   \`BB..B'        ${RED}\`BBb.${NC}    YBBB'    BBB         BBB    BBB      BBB
+    \`BBB'    ${RED}o.   .BBP${NC}   .oB\"'BBb   BBB   .oB   BBB .  BBB      BBB
+     \`B'     ${RED}\`BbBBBP'${NC}   oBB'   BBBo \`YBboBBP'   \"BBB\" BBBBb    oBBBo
 
  Video eXchange and ConTRoL                         /vɛks kənˈtɹoʊl/
 
