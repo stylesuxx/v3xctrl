@@ -48,12 +48,14 @@ class TestStreamerTab(unittest.TestCase):
         self.assertIsNotNone(self.tab.video_stop_button)
         self.assertIsNotNone(self.tab.video_start_button)
         self.assertIsNotNone(self.tab.shutdown_button)
+        self.assertIsNotNone(self.tab.restart_button)
 
         # Check that buttons are added to elements
-        self.assertEqual(len(self.tab.elements), 3)
+        self.assertEqual(len(self.tab.elements), 4)
         self.assertIn(self.tab.video_stop_button, self.tab.elements)
         self.assertIn(self.tab.video_start_button, self.tab.elements)
         self.assertIn(self.tab.shutdown_button, self.tab.elements)
+        self.assertIn(self.tab.restart_button, self.tab.elements)
 
     def test_button_labels(self):
         """Test that buttons have correct labels"""
@@ -63,6 +65,7 @@ class TestStreamerTab(unittest.TestCase):
         self.assertEqual(self.tab.video_stop_button.callback, self.tab._on_stop_video)
         self.assertEqual(self.tab.video_start_button.callback, self.tab._on_start_video)
         self.assertEqual(self.tab.shutdown_button.callback, self.tab._on_shutdown)
+        self.assertEqual(self.tab.restart_button.callback, self.tab._on_restart)
 
     def test_stop_video_action(self):
         """Test stop video button functionality"""
@@ -114,19 +117,29 @@ class TestStreamerTab(unittest.TestCase):
         """Test shutdown button functionality"""
         self.tab._on_shutdown()
 
-        # Check that UI is disabled
         self.assertTrue(self.tab.disabled)
         self.mock_on_active_toggle.assert_called_once_with(True)
 
-        # Check that command is sent
         self.mock_send_command.assert_called_once()
 
-        # Get the actual command that was sent
         call_args = self.mock_send_command.call_args
         sent_command = call_args[0][0]
 
-        # Compare command directly (shutdown command likely has no parameters)
         self.assertEqual(sent_command.command, "shutdown")
+
+    def test_restart_action(self):
+        """Test shutdown button functionality"""
+        self.tab._on_restart()
+
+        self.assertTrue(self.tab.disabled)
+        self.mock_on_active_toggle.assert_called_once_with(True)
+
+        self.mock_send_command.assert_called_once()
+
+        call_args = self.mock_send_command.call_args
+        sent_command = call_args[0][0]
+
+        self.assertEqual(sent_command.command, "restart")
 
     def test_video_action_disables_elements(self):
         """Test that video actions disable all UI elements"""
