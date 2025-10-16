@@ -74,9 +74,14 @@ class Init:
     def video_receiver(
         cls,
         port: int,
-        error_callback: Callable[[], None]
+        error_callback: Callable[[], None],
+        render_ratio: int
     ) -> VideoReceiver:
-        video_receiver = VideoReceiver(port, error_callback)
+        video_receiver = VideoReceiver(
+            port,
+            error_callback,
+            render_ratio=render_ratio
+        )
         video_receiver.start()
 
         return video_receiver

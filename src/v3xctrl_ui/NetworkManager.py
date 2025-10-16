@@ -94,7 +94,12 @@ class NetworkManager:
                             sock.close()
                         logging.info(f"Sent 'keep alive' to {video_address}")
 
-            self.video_receiver = Init.video_receiver(self.video_port, keep_alive)
+            render_ratio = self.settings.get("video", {}).get("render_ratio", 0)
+            self.video_receiver = Init.video_receiver(
+                self.video_port,
+                keep_alive,
+                render_ratio
+              )
 
             # Set up UDP server - from this point on we can ignore
             # PeerAnnouncement messages which might be poisoning our timestamps

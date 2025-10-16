@@ -33,6 +33,7 @@ class Settings:
             "width": 1280,
             "height": 720,
             "fullscreen": False,
+            "render_ratio": 0,
         },
         "udp_packet_ttl": 100,
         "debug": True,

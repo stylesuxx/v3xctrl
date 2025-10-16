@@ -47,6 +47,7 @@ class OSD:
         self.widgets_debug = {}
         self.debug_data: Optional[str] = None
         self.debug_latency: Optional[str] = None
+        self.debug_buffer: Optional[str] = None
         self.loop_history: Optional[deque[float]] = None
         self.video_history: Optional[deque[float]] = None
         self._init_widgets_debug()
@@ -94,6 +95,9 @@ class OSD:
 
     def update_data_queue(self, data_left: int) -> None:
         self.widgets_debug["debug_data"].set_value(data_left)
+
+    def update_buffer_queue(self, size: int) -> None:
+        self.widgets_debug["debug_buffer"].set_value(size)
 
     def update_debug_status(self, status: str) -> None:
         self.debug_data = status
@@ -251,6 +255,7 @@ class OSD:
         #self.debug_data = "waiting"
         self.debug_data = None
         self.debug_latency = None
+        self.debug_buffer = None
 
         self.widgets_debug["debug_latency"].set_value(None)
 
@@ -331,12 +336,14 @@ class OSD:
         debug_fps_video_widget = FpsWidget(position, (width, height), "VIDEO")
         debug_data_widget = StatusValueWidget(position, 26, "DATA", average=True)
         debug_latency_widget = StatusValueWidget(position, 26, "LATENCY")
+        debug_buffer_widget = StatusValueWidget(position, 26, "BUFFER", average=True, average_window=2)
 
         self.widgets_debug = {
           "debug_fps_loop": debug_fps_loop_widget,
           "debug_fps_video": debug_fps_video_widget,
           "debug_data": debug_data_widget,
-          "debug_latency": debug_latency_widget
+          "debug_latency": debug_latency_widget,
+          "debug_buffer": debug_buffer_widget
         }
 
     def _latency_update(self, message: Latency) -> None:
