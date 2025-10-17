@@ -48,10 +48,17 @@ class StreamerTab(Tab):
             callback=self._on_shutdown,
             width=150
         )
+        self.restart_button = Button(
+            "Restart",
+            font=LABEL_FONT,
+            callback=self._on_restart,
+            width=150
+        )
 
         self.elements.append(self.video_stop_button)
         self.elements.append(self.video_start_button)
         self.elements.append(self.shutdown_button)
+        self.elements.append(self.restart_button)
 
     def draw(self, surface: Surface) -> None:
         _ = self._draw_actions_section(surface, 0)
@@ -101,6 +108,15 @@ class StreamerTab(Tab):
         command = Command("shutdown")
         self.send_command(command, self._on_command_callback)
 
+    def _on_restart(self) -> None:
+        self.disabled = True
+        self.on_active_toggle(True)
+        for element in self.elements:
+            element.disable()
+
+        command = Command("restart")
+        self.send_command(command, self._on_command_callback)
+
     def _draw_actions_section(self, surface: Surface, y: int) -> int:
         y += self.y_offset + self.padding
         self._draw_headline(surface, "Actions", y)
@@ -110,7 +126,7 @@ class StreamerTab(Tab):
         self.video_start_button.draw(surface)
 
         self.video_stop_button.set_position(
-            self.padding * 2 + self.video_start_button.get_size()[0],
+            self.padding * 2 + self.video_start_button.width,
             y
         )
         self.video_stop_button.draw(surface)
@@ -119,6 +135,12 @@ class StreamerTab(Tab):
         y += self.padding
         self.shutdown_button.set_position(self.padding, y)
         self.shutdown_button.draw(surface)
+
+        self.restart_button.set_position(
+            self.padding * 2 + self.shutdown_button.width,
+            y
+        )
+        self.restart_button.draw(surface)
         y += self.video_stop_button.get_size()[1]
 
         return y

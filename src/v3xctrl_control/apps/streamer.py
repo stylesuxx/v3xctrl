@@ -228,6 +228,8 @@ def command_handler(command: Command, address: Address) -> None:
         subprocess.run(["sudo", "systemctl", action, name])
     elif cmd == "shutdown":
         subprocess.run(["sudo", "shutdown", "now"])
+    elif cmd == "restart":
+        subprocess.run(["sudo", "reboot", "-f"])
     else:
         logging.error(f"Unknown command: {command}")
 
