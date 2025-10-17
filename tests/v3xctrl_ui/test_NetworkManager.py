@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from src.v3xctrl_ui.NetworkManager import NetworkManager
-from v3xctrl_helper.exceptions import UnauthorizedError, PeerRegistrationError
+from v3xctrl_helper.exceptions import PeerRegistrationError
 
 
 class TestNetworkManager(unittest.TestCase):
@@ -12,11 +12,12 @@ class TestNetworkManager(unittest.TestCase):
         self.settings = MagicMock()
         self.settings.get.side_effect = lambda key, default=None: {
             "relay": {"enabled": False},
-            "ports": {"video": 5000, "control": 6000}
+            "ports": {"video": 5000, "control": 6000},
+            "udp_packet_ttl": 100
         }.get(key, default)
 
-        # Mock OSD handlers
-        self.osd_handlers = {
+        # Mock handlers
+        self.handlers = {
             "messages": [("TestMessage", lambda msg, addr: None)],
             "states": [("CONNECTED", lambda: None)]
         }
@@ -51,12 +52,12 @@ class TestNetworkManager(unittest.TestCase):
     def test_initialization_relay_disabled(self):
         """Test NetworkManager initialization with relay disabled."""
         with patch('builtins.print') as mock_print:
-            nm = NetworkManager(5000, 6000, self.settings, self.osd_handlers)
+            nm = NetworkManager(self.settings, self.handlers)
 
             self.assertEqual(nm.video_port, 5000)
             self.assertEqual(nm.control_port, 6000)
             self.assertEqual(nm.settings, self.settings)
-            self.assertEqual(nm.server_handlers, self.osd_handlers)
+            self.assertEqual(nm.server_handlers, self.handlers)
 
             # Initial state
             self.assertIsNone(nm.video_receiver)
@@ -73,11 +74,12 @@ class TestNetworkManager(unittest.TestCase):
         relay_settings = MagicMock()
         relay_settings.get.side_effect = lambda key, default=None: {
             "relay": {"enabled": True, "server": "relay.example.com:8080", "id": "test123"},
-            "ports": {"video": 5000, "control": 6000}
+            "ports": {"video": 5000, "control": 6000},
+            "udp_packet_ttl": 100
         }.get(key, default)
 
         with patch('builtins.print') as mock_print:
-            nm = NetworkManager(5000, 6000, relay_settings, self.osd_handlers)
+            nm = NetworkManager(relay_settings, self.handlers)
 
             # Relay should be configured
             self.assertTrue(nm.relay_enable)
@@ -90,7 +92,7 @@ class TestNetworkManager(unittest.TestCase):
 
     def test_setup_relay_valid_port(self):
         """Test setup_relay with valid port in server string."""
-        nm = NetworkManager(5000, 6000, self.settings, self.osd_handlers)
+        nm = NetworkManager(self.settings, self.handlers)
 
         nm.setup_relay("example.com:9999", "testid")
 
@@ -101,7 +103,7 @@ class TestNetworkManager(unittest.TestCase):
 
     def test_setup_relay_invalid_port(self):
         """Test setup_relay with invalid port in server string."""
-        nm = NetworkManager(5000, 6000, self.settings, self.osd_handlers)
+        nm = NetworkManager(self.settings, self.handlers)
 
         with patch("src.v3xctrl_ui.NetworkManager.logging.warning") as mock_warning:
             nm.setup_relay("example.com:notaport", "testid")
@@ -114,7 +116,7 @@ class TestNetworkManager(unittest.TestCase):
 
     def test_setup_relay_no_port(self):
         """Test setup_relay with no port in server string."""
-        nm = NetworkManager(5000, 6000, self.settings, self.osd_handlers)
+        nm = NetworkManager(self.settings, self.handlers)
 
         nm.setup_relay("example.com", "testid")
 
@@ -125,9 +127,9 @@ class TestNetworkManager(unittest.TestCase):
 
     def test_setup_ports_no_relay(self):
         """Test setup_ports without relay."""
-        nm = NetworkManager(5000, 6000, self.settings, self.osd_handlers)
+        nm = NetworkManager(self.settings, self.handlers)
 
-        # Mock Init methods - server now returns just the server instance
+        # Mock Init methods
         mock_video_receiver = MagicMock()
         mock_server = MagicMock()
         self.mock_init.video_receiver.return_value = mock_video_receiver
@@ -145,14 +147,20 @@ class TestNetworkManager(unittest.TestCase):
 
         # Verify video receiver and server were initialized
         self.mock_init.video_receiver.assert_called_once()
-        # Server should be called with separate message and state handlers
-        expected_messages = self.osd_handlers["messages"]
-        expected_states = self.osd_handlers["states"]
-        self.mock_init.server.assert_called_once_with(6000, expected_messages, expected_states)
+
+        # Server should be called with messages, states, and ttl
+        expected_messages = self.handlers["messages"]
+        expected_states = self.handlers["states"]
+        self.mock_init.server.assert_called_once_with(
+            6000,
+            expected_messages,
+            expected_states,
+            100  # udp_packet_ttl
+        )
 
     def test_setup_ports_with_relay_success(self):
         """Test setup_ports with successful relay connection."""
-        nm = NetworkManager(5000, 6000, self.settings, self.osd_handlers)
+        nm = NetworkManager(self.settings, self.handlers)
         nm.setup_relay("relay.example.com:8080", "testid")
 
         # Mock Peer setup
@@ -176,12 +184,12 @@ class TestNetworkManager(unittest.TestCase):
         self.mock_peer_cls.assert_called_with("relay.example.com", 8080, "testid")
         mock_peer.setup.assert_called_with("viewer", {"video": 5000, "control": 6000})
 
-    def test_setup_ports_with_relay_unauthorized(self):
-        """Test setup_ports with unauthorized relay."""
-        nm = NetworkManager(5000, 6000, self.settings, self.osd_handlers)
+    def test_setup_ports_with_relay_registration_error(self):
+        """Test setup_ports with peer registration error."""
+        nm = NetworkManager(self.settings, self.handlers)
         nm.setup_relay("relay.example.com:8080", "badid")
 
-        # Mock Peer to raise UnauthorizedError
+        # Mock Peer to raise PeerRegistrationError
         mock_peer = MagicMock()
         mock_peer.setup.side_effect = PeerRegistrationError({}, {})
         self.mock_peer_cls.return_value = mock_peer
@@ -197,7 +205,7 @@ class TestNetworkManager(unittest.TestCase):
 
     def test_setup_ports_server_error(self):
         """Test setup_ports when server initialization fails."""
-        nm = NetworkManager(5000, 6000, self.settings, self.osd_handlers)
+        nm = NetworkManager(self.settings, self.handlers)
 
         # Mock Init methods - server raises RuntimeError
         mock_video_receiver = MagicMock()
@@ -217,7 +225,7 @@ class TestNetworkManager(unittest.TestCase):
 
     def test_send_latency_check_with_server(self):
         """Test send_latency_check when server is available."""
-        nm = NetworkManager(5000, 6000, self.settings, self.osd_handlers)
+        nm = NetworkManager(self.settings, self.handlers)
 
         # Mock server
         mock_server = MagicMock()
@@ -234,7 +242,7 @@ class TestNetworkManager(unittest.TestCase):
 
     def test_send_latency_check_no_server(self):
         """Test send_latency_check when no server is available."""
-        nm = NetworkManager(5000, 6000, self.settings, self.osd_handlers)
+        nm = NetworkManager(self.settings, self.handlers)
 
         # No server
         nm.server = None
@@ -246,7 +254,7 @@ class TestNetworkManager(unittest.TestCase):
 
     def test_send_latency_check_with_server_error(self):
         """Test send_latency_check when server has an error."""
-        nm = NetworkManager(5000, 6000, self.settings, self.osd_handlers)
+        nm = NetworkManager(self.settings, self.handlers)
 
         # Server with error
         mock_server = MagicMock()
@@ -260,7 +268,7 @@ class TestNetworkManager(unittest.TestCase):
 
     def test_get_data_queue_size_with_server(self):
         """Test get_data_queue_size when server is available."""
-        nm = NetworkManager(5000, 6000, self.settings, self.osd_handlers)
+        nm = NetworkManager(self.settings, self.handlers)
 
         # Mock server with queue
         mock_server = MagicMock()
@@ -274,7 +282,7 @@ class TestNetworkManager(unittest.TestCase):
 
     def test_get_data_queue_size_no_server(self):
         """Test get_data_queue_size when no server is available."""
-        nm = NetworkManager(5000, 6000, self.settings, self.osd_handlers)
+        nm = NetworkManager(self.settings, self.handlers)
 
         # No server
         nm.server = None
@@ -285,7 +293,7 @@ class TestNetworkManager(unittest.TestCase):
 
     def test_get_data_queue_size_with_server_error(self):
         """Test get_data_queue_size when server has an error."""
-        nm = NetworkManager(5000, 6000, self.settings, self.osd_handlers)
+        nm = NetworkManager(self.settings, self.handlers)
 
         # Server with error
         mock_server = MagicMock()
@@ -296,43 +304,70 @@ class TestNetworkManager(unittest.TestCase):
 
         self.assertEqual(result, 0)
 
-    def test_shutdown_with_components(self):
-        """Test shutdown when both server and video_receiver exist."""
-        nm = NetworkManager(5000, 6000, self.settings, self.osd_handlers)
+    def test_update_ttl(self):
+        """Test update_ttl method."""
+        nm = NetworkManager(self.settings, self.handlers)
+
+        # Mock server
+        mock_server = MagicMock()
+        nm.server = mock_server
+
+        nm.update_ttl(200)
+
+        mock_server.update_ttl.assert_called_once_with(200)
+
+    def test_update_ttl_no_server(self):
+        """Test update_ttl when no server exists."""
+        nm = NetworkManager(self.settings, self.handlers)
+
+        # No server
+        nm.server = None
+
+        # Should not raise exception
+        nm.update_ttl(200)
+
+    def test_shutdown_with_all_components(self):
+        """Test shutdown when all components exist."""
+        nm = NetworkManager(self.settings, self.handlers)
 
         # Mock components
         mock_server = MagicMock()
         mock_video_receiver = MagicMock()
+        mock_peer = MagicMock()
         nm.server = mock_server
         nm.video_receiver = mock_video_receiver
+        nm.peer = mock_peer
 
         nm.shutdown()
 
         # Verify shutdown sequence
         mock_server.stop.assert_called_once()
         mock_server.join.assert_called_once()
+        mock_peer.abort.assert_called_once()
         mock_video_receiver.stop.assert_called_once()
         mock_video_receiver.join.assert_called_once()
 
     def test_shutdown_with_no_components(self):
         """Test shutdown when no components exist."""
-        nm = NetworkManager(5000, 6000, self.settings, self.osd_handlers)
+        nm = NetworkManager(self.settings, self.handlers)
 
         # No components
         nm.server = None
         nm.video_receiver = None
+        nm.peer = None
 
         # Should not raise exception
         nm.shutdown()
 
     def test_shutdown_partial_components(self):
         """Test shutdown when only some components exist."""
-        nm = NetworkManager(5000, 6000, self.settings, self.osd_handlers)
+        nm = NetworkManager(self.settings, self.handlers)
 
-        # Only server, no video receiver
+        # Only server, no video receiver or peer
         mock_server = MagicMock()
         nm.server = mock_server
         nm.video_receiver = None
+        nm.peer = None
 
         nm.shutdown()
 
@@ -340,104 +375,17 @@ class TestNetworkManager(unittest.TestCase):
         mock_server.stop.assert_called_once()
         mock_server.join.assert_called_once()
 
-    @patch("src.v3xctrl_ui.NetworkManager.logging")
-    @patch("src.v3xctrl_ui.NetworkManager.time.sleep")
-    def test_poke_peer_functionality(self, mock_sleep, mock_logging):
-        """Test the poke_peer functionality within setup_ports."""
-        nm = NetworkManager(5000, 6000, self.settings, self.osd_handlers)
-        nm.setup_relay("relay.example.com:8080", "testid")
-
-        # Mock successful peer setup
-        mock_peer = MagicMock()
-        mock_peer.setup.return_value = {"video": ("1.2.3.4", 1234)}
-        self.mock_peer_cls.return_value = mock_peer
-
-        # Mock socket operations
-        mock_sock = MagicMock()
-        self.mock_socket.socket.return_value = mock_sock
-
-        # Mock Init methods to capture the poke_peer function
-        mock_video_receiver = MagicMock()
-        self.mock_init.video_receiver.return_value = mock_video_receiver
-        self.mock_init.server.return_value = MagicMock()
-
-        # Create a version that executes synchronously
-        def sync_setup_ports():
-            video_address = None
-            if nm.relay_enable and nm.relay_server and nm.relay_id:
-                local_bind_ports = {
-                    "video": nm.video_port,
-                    "control": nm.control_port
-                }
-                peer = self.mock_peer_cls(nm.relay_server, nm.relay_port, nm.relay_id)
-
-                try:
-                    addresses = peer.setup("viewer", local_bind_ports)
-                    video_address = addresses["video"]
-                except UnauthorizedError:
-                    nm.relay_status_message = "ERROR: Relay ID unauthorized!"
-                    return
-
-            def poke_peer() -> None:
-                if nm.relay_enable and video_address:
-                    mock_logging.info(f"Poking peer {video_address}")
-                    sock = None
-                    try:
-                        sock = self.mock_socket.socket(self.mock_socket.AF_INET, self.mock_socket.SOCK_DGRAM)
-                        sock.setsockopt(self.mock_socket.SOL_SOCKET, self.mock_socket.SO_REUSEADDR, 1)
-                        sock.bind(("0.0.0.0", nm.video_port))
-
-                        for i in range(5):
-                            try:
-                                sock.sendto(b'SYN', video_address)
-                                mock_sleep(0.1)
-                            except Exception as e:
-                                mock_logging.warning(f"Poke {i+1}/5 failed: {e}")
-
-                    except Exception as e:
-                        mock_logging.error(f"Failed to poke peer: {e}", exc_info=True)
-                    finally:
-                        if sock:
-                            sock.close()
-                        mock_logging.info(f"Poke to {video_address} completed and socket closed.")
-
-            nm.video_receiver = self.mock_init.video_receiver(nm.video_port, poke_peer)
-
-            # Extract handlers properly
-            message_handlers = nm.server_handlers.get("messages", [])
-            state_handlers = nm.server_handlers.get("states", [])
-            nm.server = self.mock_init.server(nm.control_port, message_handlers, state_handlers)
-
-            # Execute poke_peer to test it
-            poke_peer()
-
-        # Execute the synchronous version
-        sync_setup_ports()
-
-        # Verify socket operations
-        self.mock_socket.socket.assert_called_with(self.mock_socket.AF_INET, self.mock_socket.SOCK_DGRAM)
-        mock_sock.bind.assert_called_with(("0.0.0.0", 5000))
-
-        # Should send 5 SYN packets
-        self.assertEqual(mock_sock.sendto.call_count, 5)
-        for call in mock_sock.sendto.call_args_list:
-            self.assertEqual(call[0][0], b'SYN')
-            self.assertEqual(call[0][1], ("1.2.3.4", 1234))
-
-        # Verify logging calls
-        mock_logging.info.assert_any_call("Poking peer ('1.2.3.4', 1234)")
-        mock_logging.info.assert_any_call("Poke to ('1.2.3.4', 1234) completed and socket closed.")
-
     def test_initialization_relay_enabled_no_server(self):
         """Test NetworkManager initialization with relay enabled but no server."""
         relay_settings = MagicMock()
         relay_settings.get.side_effect = lambda key, default=None: {
             "relay": {"enabled": True, "id": "test123"},  # Missing server
-            "ports": {"video": 5000, "control": 6000}
+            "ports": {"video": 5000, "control": 6000},
+            "udp_packet_ttl": 100
         }.get(key, default)
 
         with patch('builtins.print') as mock_print:
-            nm = NetworkManager(5000, 6000, relay_settings, self.osd_handlers)
+            nm = NetworkManager(relay_settings, self.handlers)
 
             # Relay should not be configured due to missing server
             self.assertFalse(nm.relay_enable)
@@ -449,11 +397,12 @@ class TestNetworkManager(unittest.TestCase):
         relay_settings = MagicMock()
         relay_settings.get.side_effect = lambda key, default=None: {
             "relay": {"enabled": True, "server": "relay.example.com:8080"},  # Missing ID
-            "ports": {"video": 5000, "control": 6000}
+            "ports": {"video": 5000, "control": 6000},
+            "udp_packet_ttl": 100
         }.get(key, default)
 
         with patch('builtins.print') as mock_print:
-            nm = NetworkManager(5000, 6000, relay_settings, self.osd_handlers)
+            nm = NetworkManager(relay_settings, self.handlers)
 
             # Relay should not be configured due to missing ID
             self.assertFalse(nm.relay_enable)
@@ -462,7 +411,7 @@ class TestNetworkManager(unittest.TestCase):
 
     def test_setup_relay_empty_server(self):
         """Test setup_relay with empty server string."""
-        nm = NetworkManager(5000, 6000, self.settings, self.osd_handlers)
+        nm = NetworkManager(self.settings, self.handlers)
 
         nm.setup_relay("", "testid")
 
