@@ -33,7 +33,7 @@ class Init:
         port: int,
         message_handlers: List[Tuple[Message, Any]],
         state_handlers: List[Tuple[State, Any]],
-        udp_ttl_ms: int = 100
+        udp_ttl_ms: int,
     ) -> Server:
         try:
             server = Server(port, udp_ttl_ms)

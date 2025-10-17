@@ -53,21 +53,11 @@ class TestInit(unittest.TestCase):
         self.assertEqual(result, mock_server_instance)
 
     @patch('src.v3xctrl_ui.Init.Server')
-    def test_server_with_default_udp_ttl(self, mock_server_class):
-        mock_server_instance = Mock()
-        mock_server_class.return_value = mock_server_instance
-
-        result = Init.server(8080, [], [])
-
-        mock_server_class.assert_called_once_with(8080, 100)
-        self.assertEqual(result, mock_server_instance)
-
-    @patch('src.v3xctrl_ui.Init.Server')
     def test_server_empty_handlers(self, mock_server_class):
         mock_server_instance = Mock()
         mock_server_class.return_value = mock_server_instance
 
-        result = Init.server(8080, [], [])
+        result = Init.server(8080, [], [], 1)
 
         mock_server_instance.subscribe.assert_not_called()
         mock_server_instance.on.assert_not_called()
@@ -86,7 +76,7 @@ class TestInit(unittest.TestCase):
         message_handlers = [(msg1, cb1), (msg2, cb2)]
         state_handlers = [(state1, cb3), (state2, cb4)]
 
-        result = Init.server(8080, message_handlers, state_handlers)
+        result = Init.server(8080, message_handlers, state_handlers, 1)
 
         self.assertEqual(mock_server_instance.subscribe.call_count, 2)
         self.assertEqual(mock_server_instance.on.call_count, 2)
@@ -102,7 +92,7 @@ class TestInit(unittest.TestCase):
         mock_server_class.side_effect = os_error
 
         with self.assertRaises(RuntimeError) as cm:
-            Init.server(8080, [], [])
+            Init.server(8080, [], [], 1)
 
         self.assertEqual(str(cm.exception), "Control port already in use")
 
@@ -113,7 +103,7 @@ class TestInit(unittest.TestCase):
         mock_server_class.side_effect = os_error
 
         with self.assertRaises(RuntimeError) as cm:
-            Init.server(8080, [], [])
+            Init.server(8080, [], [], 1)
 
         self.assertEqual(str(cm.exception), "Server error: Generic error")
 
@@ -123,7 +113,7 @@ class TestInit(unittest.TestCase):
         mock_server_class.side_effect = os_error
 
         with self.assertRaises(RuntimeError) as cm:
-            Init.server(8080, [], [])
+            Init.server(8080, [], [], 1)
 
         self.assertEqual(str(cm.exception), "Server error: Error without errno")
 
@@ -134,7 +124,7 @@ class TestInit(unittest.TestCase):
         mock_server_class.return_value = mock_server_instance
 
         with self.assertRaises(RuntimeError):
-            Init.server(8080, [], [])
+            Init.server(8080, [], [], 1)
 
     @patch('src.v3xctrl_ui.Init.Server')
     def test_server_subscribe_failure(self, mock_server_class):
@@ -147,7 +137,7 @@ class TestInit(unittest.TestCase):
         message_handlers = [(mock_message, message_callback)]
 
         with self.assertRaises(RuntimeError):
-            Init.server(8080, message_handlers, [])
+            Init.server(8080, message_handlers, [], 1)
 
     @patch('src.v3xctrl_ui.Init.Server')
     def test_server_state_handler_failure(self, mock_server_class):
@@ -160,7 +150,7 @@ class TestInit(unittest.TestCase):
         state_handlers = [(mock_state, state_callback)]
 
         with self.assertRaises(RuntimeError):
-            Init.server(8080, [], state_handlers)
+            Init.server(8080, [], state_handlers, 1)
 
     @patch('src.v3xctrl_ui.Init.pygame.key.set_repeat')
     @patch('src.v3xctrl_ui.Init.pygame.scrap.set_mode')
