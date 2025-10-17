@@ -53,8 +53,10 @@ class BaseInput(BaseWidget):
         self.last_value: str = ""
 
         self.cursor_pos = 0
+        self.last_cursor_pos = 0
         self.cursor_visible = True
         self.cursor_timer = 0
+        self.cursor_x = 0
 
         self.input_height: int = self.font.size + self.input_padding
         self.input_rect = pygame.Rect(0, 0, self.input_width, self.input_height)
@@ -102,7 +104,10 @@ class BaseInput(BaseWidget):
         return False
 
     def _draw(self, surface: Surface) -> None:
-        if self.value != self.last_value:
+        cursor_pos_changed = self.cursor_pos != self.last_cursor_pos
+        value_changed = self.value != self.last_value
+
+        if value_changed:
             self.last_value = self.value
             self.text_surface, self.text_rect = self.mono_font.render(
                 self.value,
@@ -111,20 +116,23 @@ class BaseInput(BaseWidget):
             self.text_rect.right = self.input_rect.right - self.input_padding
             self.text_rect.centery = self.input_rect.centery
 
+        if value_changed or cursor_pos_changed:
+            self.last_cursor_pos = self.cursor_pos
+            text_width = self.mono_font.get_rect(self.value[self.cursor_pos:]).width
+            gap = self.CURSOR_GAP if self.cursor_pos < len(self.value) else 0
+            self.cursor_x = self.text_rect.right - text_width - gap
+
         surface.blit(self.label_surface, self.label_rect.topleft)
         surface.blit(self.input_surface, self.input_rect.topleft)
         surface.blit(self.text_surface, self.text_rect)
 
         self._update_cursor_blink()
         if self.focused and self.cursor_visible:
-            text_width = self.mono_font.get_rect(self.value[self.cursor_pos:]).width
-            gap = self.CURSOR_GAP if self.cursor_pos < len(self.value) else 0
-            cursor_x = self.text_rect.right - text_width - gap
             pygame.draw.line(
                 surface,
                 self.CURSOR_COLOR,
-                (cursor_x, self.cursor_y_start),
-                (cursor_x, self.cursor_y_end),
+                (self.cursor_x, self.cursor_y_start),
+                (self.cursor_x, self.cursor_y_end),
                 self.CURSOR_WIDTH
             )
 

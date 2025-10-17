@@ -1,4 +1,4 @@
-from typing import Callable, Tuple, Optional
+from typing import Callable, Tuple, Optional, Dict
 
 import pygame
 from pygame import Rect, Surface
@@ -66,6 +66,10 @@ class Button(BaseWidget):
 
         self._render_label(self.FONT_COLOR)
 
+        self.cached_surfaces: Dict[str, Surface] = {}
+        self._render_all_button_states()
+        self._current_state = 'normal'
+
     def get_size(self) -> tuple[int, int]:
         return self.rect.width, self.rect.height
 
@@ -88,12 +92,19 @@ class Button(BaseWidget):
             return False
 
         if event.type == pygame.MOUSEMOTION:
+            was_hovered = self.hovered
             self.hovered = self.rect.collidepoint(event.pos)
+
+            if was_hovered != self.hovered:
+                self._update_state()
+
             return self.hovered
 
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if self.rect.collidepoint(event.pos):
                 self.focused = True
+                self._update_state()
+
                 return True
 
             return False
@@ -103,9 +114,22 @@ class Button(BaseWidget):
             if self.focused and self.rect.collidepoint(event.pos):
                 self.callback()
             self.focused = False
+            self._update_state()
+
             return was_focused
 
         return False
+
+    def _update_state(self) -> None:
+        """Determine the current visual state"""
+        if self.disabled:
+            self._current_state = 'disabled'
+        elif self.focused:
+            self._current_state = 'active'
+        elif self.hovered:
+            self._current_state = 'hover'
+        else:
+            self._current_state = 'normal'
 
     def _update_label_position(self) -> None:
         self.label_rect.center = self.rect.center
@@ -115,40 +139,49 @@ class Button(BaseWidget):
         self._update_label_position()
 
     def _draw(self, surface: Surface) -> None:
-        temp_surface = Surface((
-            self.width * self.ANTI_ALIAS_SCALE,
-            self.height * self.ANTI_ALIAS_SCALE,
-        ), pygame.SRCALPHA)
+        button_surface = self.cached_surfaces[self._current_state]
+        surface.blit(button_surface, self.rect.topleft)
 
-        if self.disabled:
-            color = self.BG_COLOR_DISABLED
-        elif self.focused:
-            color = self.ACTIVE_COLOR
-        elif self.hovered:
-            color = self.HOVER_COLOR
-        else:
-            color = self.BG_COLOR
+    def _render_all_button_states(self) -> None:
+        """Pre-render all button states WITH labels (EXPENSIVE - only called once)"""
+        states = {
+            'normal': (self.BG_COLOR, self.FONT_COLOR),
+            'hover': (self.HOVER_COLOR, self.FONT_COLOR),
+            'active': (self.ACTIVE_COLOR, self.FONT_COLOR),
+            'disabled': (self.BG_COLOR_DISABLED, self.FONT_COLOR_DISABLED),
+        }
 
-        pygame.draw.rect(temp_surface,
-                         color,
-                         temp_surface.get_rect(),
-                         border_radius=self.BORDER_RADIUS * self.ANTI_ALIAS_SCALE)
-        pygame.draw.rect(temp_surface,
-                         self.BORDER_COLOR,
-                         temp_surface.get_rect(),
-                         width=self.BORDER_WIDTH * self.ANTI_ALIAS_SCALE,
-                         border_radius=self.BORDER_RADIUS * self.ANTI_ALIAS_SCALE)
-        target_size = (
-            self.rect.width,
-            self.rect.height,
-        )
-        smooth = pygame.transform.smoothscale(temp_surface, target_size)
-        smooth_rect = smooth.get_rect()
+        for state_name, (bg_color, font_color) in states.items():
+            temp_surface = Surface((
+                self.width * self.ANTI_ALIAS_SCALE,
+                self.height * self.ANTI_ALIAS_SCALE,
+            ), pygame.SRCALPHA)
 
-        smooth_rect.topleft = (
-            self.rect.x,
-            self.rect.y
-        )
+            # Background
+            pygame.draw.rect(
+                temp_surface,
+                bg_color,
+                temp_surface.get_rect(),
+                border_radius=self.BORDER_RADIUS * self.ANTI_ALIAS_SCALE
+            )
 
-        surface.blit(smooth, smooth_rect)
-        surface.blit(self.label_surface, self.label_rect)
+            # Border
+            pygame.draw.rect(
+                temp_surface,
+                self.BORDER_COLOR,
+                temp_surface.get_rect(),
+                width=self.BORDER_WIDTH * self.ANTI_ALIAS_SCALE,
+                border_radius=self.BORDER_RADIUS * self.ANTI_ALIAS_SCALE
+            )
+
+            # Smoothscale down (expensive operation)
+            target_size = (self.rect.width, self.rect.height)
+            button_surface = pygame.transform.smoothscale(temp_surface, target_size)
+
+            # Add label
+            label_surface, label_rect = self.font.render(self.label, font_color)
+            label_rect.center = (self.rect.width // 2, self.rect.height // 2)
+            button_surface.blit(label_surface, label_rect)
+
+            # Store the complete button (background + border + label)
+            self.cached_surfaces[state_name] = button_surface

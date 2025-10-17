@@ -2,13 +2,16 @@ from collections import deque
 import io
 import logging
 import time
-from typing import Tuple
+from typing import Tuple, Dict
 import pygame
 
 import urllib.request
 from material_icons import MaterialIcons, IconStyle
 
 from v3xctrl_helper import clamp, color_to_hex
+
+
+_icon_cache: Dict[Tuple, pygame.Surface] = {}
 
 
 def interpolate_steering_color(steering: float) -> Tuple[int, int, int]:
@@ -72,6 +75,14 @@ def get_icon(
     style: IconStyle = IconStyle.ROUND,
     rotation: int = 0
 ) -> pygame.Surface:
+    """
+    Get a Material Design icon as a pygame surface.
+    Results are cached to avoid repeated loading of the same icons.
+    """
+    cache_key = (name, size, color, style, rotation)
+    if cache_key in _icon_cache:
+        return _icon_cache[cache_key]
+
     icons = MaterialIcons()
     hex_color = color_to_hex(color)
     icon = icons.get(name, size=size, color=hex_color, style=style)
@@ -79,6 +90,8 @@ def get_icon(
 
     if rotation != 0:
         surface = pygame.transform.rotate(surface, rotation)
+
+    _icon_cache[cache_key] = surface
 
     return surface
 
