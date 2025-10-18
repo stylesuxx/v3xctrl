@@ -109,6 +109,8 @@ class VideoReceiver(ABC, threading.Thread):
         self.last_log_time = 0.0
         self.frame_fetched = False
 
+        self.last_time = time.monotonic()
+
     @abstractmethod
     def _setup(self) -> None:
         """Setup resources (SDP files, containers, etc.)."""
@@ -160,8 +162,12 @@ class VideoReceiver(ABC, threading.Thread):
                 logging.exception(f"Error during cleanup: {e}")
 
     def get_frame(self) -> Optional[npt.NDArray[np.uint8]]:
+        now = time.monotonic()
+        log_data = None
+
         with self.frame_lock:
-            if len(self.frame_buffer) > 0:
+            length = len(self.frame_buffer)
+            if length > 0:
                 # Get latest frame (when available) and count rest as dropped
                 self.render_history.append(time.monotonic())
 
@@ -178,12 +184,12 @@ class VideoReceiver(ABC, threading.Thread):
 
                 else:
                     # Adaptive: render frame at ratio position
-                    length = len(self.frame_buffer)
                     target_buffer_size = round(self.max_frame_buffer_size * self.frame_ratio / 100)
 
                     frames_to_drop = max(0, length - target_buffer_size - 1)
 
-                    logging.info(f"Buffer: {length}, Target: {target_buffer_size}, Dropping: {frames_to_drop}")
+                    delta = round((now - self.last_time) * 1000)
+                    log_data = (delta, length, target_buffer_size, frames_to_drop)
 
                     self.dropped_burst_frames += frames_to_drop
                     for _ in range(frames_to_drop):
@@ -193,7 +199,14 @@ class VideoReceiver(ABC, threading.Thread):
 
                 self.rendered_frame_count += 1
 
-            return self.frame
+            result = self.frame
+
+        if log_data is not None:
+            delta, length, target_buffer_size, frames_to_drop = log_data
+            self.last_time = now
+            logging.debug(f"Delta: {delta}ms Buffer: {length}, Target: {target_buffer_size}, Dropping: {frames_to_drop}")
+
+        return result
 
     def _update_frame(self, new_frame: npt.NDArray[np.uint8]) -> None:
         """Append new frame to frame buffer"""
