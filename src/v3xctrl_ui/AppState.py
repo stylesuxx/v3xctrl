@@ -173,6 +173,8 @@ class AppState:
                             self.update_settings,
                             self._signal_handler
                         )
+
+                        self.menu.set_tab_enabled("Streamer", self.control_connected)
                     else:
                         # When exiting vie [ESC], do the same thing we would do
                         # when using the "Back" button from the menu
@@ -263,6 +265,8 @@ class AppState:
 
     def _update_connected(self, state: bool) -> None:
         self.control_connected = state
+        if self.menu:
+            self.menu.set_tab_enabled("Streamer", self.control_connected)
 
     def _create_handlers(self) -> Dict[str, Any]:
         """Create message and state handlers for the network manager."""

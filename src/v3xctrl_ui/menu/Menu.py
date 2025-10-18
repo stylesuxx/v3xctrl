@@ -7,7 +7,7 @@ from typing import Callable, NamedTuple, Dict
 from v3xctrl_control import Server
 from v3xctrl_control.message import Command
 
-from v3xctrl_ui.colors import WHITE, DARK_GREY, CHARCOAL
+from v3xctrl_ui.colors import WHITE, DARK_GREY, CHARCOAL, GREY
 from v3xctrl_ui.fonts import MAIN_FONT
 from v3xctrl_ui.GamepadManager import GamepadManager
 from v3xctrl_ui.Settings import Settings
@@ -27,6 +27,7 @@ class TabEntry(NamedTuple):
     name: str
     rect: pygame.Rect
     view: NamedTuple
+    enabled: bool = True
 
 
 class Menu:
@@ -35,6 +36,7 @@ class Menu:
     TAB_INACTIVE_COLOR = CHARCOAL
     TAB_SEPARATOR_COLOR = BG_COLOR
     FONT_COLOR = WHITE
+    FONT_COLOR_INACTIVE = GREY
 
     def __init__(
         self,
@@ -110,7 +112,7 @@ class Menu:
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if not self.disable_tabs:
                 for entry in self.tabs:
-                    if entry.rect.collidepoint(event.pos):
+                    if entry.rect.collidepoint(event.pos) and entry.enabled:
                         self.active_tab = entry.name
                         self.tab_bar_dirty = True
 
@@ -131,6 +133,17 @@ class Menu:
         tab = self._get_active_tab()
         if tab:
             tab.view.draw(surface)
+
+    def set_tab_enabled(self, tab_name: str, enabled: bool) -> None:
+        for i, entry in enumerate(self.tabs):
+            if entry.name == tab_name:
+                self.tabs[i] = entry._replace(enabled=enabled)
+
+                if self.active_tab == tab_name:
+                    self.active_tab = self.tabs[0].name
+
+                self.tab_bar_dirty = True
+                break
 
     def _create_tabs(self) -> Dict[str, Tab]:
         return {
@@ -222,7 +235,12 @@ class Menu:
         """Render the tab bar to the cached surface"""
         for i, entry in enumerate(self.tabs):
             is_active = entry.name == self.active_tab
+
             color = self.TAB_ACTIVE_COLOR if is_active else self.TAB_INACTIVE_COLOR
+            font_color = self.FONT_COLOR
+            if not entry.enabled:
+                color = self.TAB_INACTIVE_COLOR
+                font_color = self.FONT_COLOR_INACTIVE
 
             # Draw directly to the cached tab_bar_surface
             pygame.draw.rect(self.tab_bar_surface, color, entry.rect)
@@ -237,7 +255,7 @@ class Menu:
                 )
 
             # Render text
-            label_surface, label_rect = MAIN_FONT.render(entry.name, self.FONT_COLOR)
+            label_surface, label_rect = MAIN_FONT.render(entry.name, font_color)
             label_rect.center = entry.rect.center
             self.tab_bar_surface.blit(label_surface, label_rect)
 
