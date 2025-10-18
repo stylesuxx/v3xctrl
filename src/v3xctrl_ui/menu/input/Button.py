@@ -4,6 +4,7 @@ import pygame
 from pygame import Rect, Surface
 from pygame.freetype import Font
 
+from v3xctrl_ui.helpers import render_text_full_height
 from v3xctrl_ui.menu.input.BaseWidget import BaseWidget
 from v3xctrl_ui.colors import (
     CHARCOAL,
@@ -111,8 +112,8 @@ class Button(BaseWidget):
         self.label_rect.center = self.rect.center
 
     def _render_label(self, color: Tuple[int, int, int]) -> None:
-        self.label_surface, self.label_rect = self.font.render(self.label, color)
-        self._update_label_position()
+        self.label_surface = render_text_full_height(self.font, self.label, color)
+        self.label_rect = self.label_surface.get_rect(center=self.rect.center)
 
     def _draw(self, surface: Surface) -> None:
         temp_surface = Surface((

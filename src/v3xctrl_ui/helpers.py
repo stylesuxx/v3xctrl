@@ -4,6 +4,7 @@ import logging
 import time
 from typing import Tuple
 import pygame
+from pygame.freetype import Font
 
 import urllib.request
 from material_icons import MaterialIcons, IconStyle
@@ -105,3 +106,24 @@ def round_corners(
     rounded.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
 
     return rounded
+
+
+def render_text_full_height(
+    font: Font,
+    text: str,
+    color: Tuple[int, int, int]
+) -> pygame.Surface:
+    text_surface, rect = font.render(text, color)
+
+    ascent = font.get_sized_ascender()
+    descent = font.get_sized_descender()
+    full_height = ascent - descent
+
+    full_surface = pygame.Surface((text_surface.get_width(), full_height), pygame.SRCALPHA)
+
+    # Position so baseline is at 'ascent' pixels from top
+    y_offset = ascent - rect.y
+
+    full_surface.blit(text_surface, (0, y_offset))
+
+    return full_surface
