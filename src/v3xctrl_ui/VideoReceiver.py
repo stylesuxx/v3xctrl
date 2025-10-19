@@ -203,8 +203,9 @@ class VideoReceiver(ABC, threading.Thread):
 
         if log_data is not None:
             delta, length, target_buffer_size, frames_to_drop = log_data
-            self.last_time = now
             logging.debug(f"Delta: {delta}ms Buffer: {length}, Target: {target_buffer_size}, Dropping: {frames_to_drop}")
+
+        self.last_time = now
 
         return result
 
