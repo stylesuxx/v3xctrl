@@ -14,6 +14,11 @@ HEIGHT=720
 FRAMERATE=30
 
 BITRATE=1800000
+# Bitrate Mode
+# 1 is CBR - constant bitrate
+# 0 is VBR - variable bitrate
+# constrained VBR might generally be the better option than CBR since it will
+# result in smaller packages.
 BITRATE_MODE=1
 
 BUFFERTIME=150000000
@@ -30,6 +35,11 @@ RECORDING_DIR=""
 USE_TEST_PATTERN=0
 
 SIZEBUFFERS_WRITE=30
+
+# Defult is 1400 - you might want to decrease this depending on your mobile
+# carrier. Use ping or iperf3 to find out what the limit of your carrier might
+# be
+MTU=1400
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -102,6 +112,6 @@ gst-launch-1.0 -v $SOURCE_BRANCH ! \
       max-size-buffers=$SIZEBUFFERS_UDP \
       max-size-time=$BUFFERTIME_UDP \
       leaky=downstream ! \
-    rtph264pay config-interval=1 pt=96 ! \
+    rtph264pay config-interval=1 pt=96 mtu=$MTU ! \
     udpsink host=$HOST port=$PORT bind-port=$BIND_PORT sync=false async=false \
     $TEE_BRANCH
