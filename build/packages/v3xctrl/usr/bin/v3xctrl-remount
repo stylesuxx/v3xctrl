@@ -1,49 +1,234 @@
 #!/bin/bash
 set -euo pipefail
 
-NAME=$0
-CMDLINE="/boot/cmdline.txt"
-CMDLINE_CONTENT=$(cat "$CMDLINE")
-FSTAB="/etc/fstab"
+NAME=$(basename "$0")
+BOOT_MOUNT="/boot/firmware"
+CONFIG_TXT="${BOOT_MOUNT}/config.txt"
+OVERLAYROOT_CONF="/etc/overlayroot.conf"
+INITRAMFS_CONF="/etc/initramfs-tools/conf.d/raspi-overlay"
 
 if [[ "$EUID" -ne 0 ]]; then
-  echo "Please run as root"
+  echo "[${NAME}] Please run as root (use sudo)" >&2
   exit 1
 fi
 
 if [[ $# -ne 1 || ( "$1" != "ro" && "$1" != "rw" ) ]]; then
-  echo "Usage: $0 [ro|rw]"
+  echo "Usage: sudo $0 [ro|rw]"
+  echo "  ro - Enable overlay filesystem (read-only root)"
+  echo "  rw - Disable overlay filesystem (read-write root)"
   exit 1
 fi
 
 TARGET="$1"
 
-# Ensure /boot is writable before editing cmdline.txt
-echo "[${NAME}] Ensuring /boot is writable..."
-if mountpoint -q /boot; then
-  mount_opts=$(findmnt -n -o OPTIONS /boot)
+ensure_boot_writable() {
+  echo "[${NAME}] Ensuring ${BOOT_MOUNT} is writable..."
+  mount_opts=$(findmnt -n -o OPTIONS "$BOOT_MOUNT")
   if echo ",$mount_opts," | grep -q ',ro,'; then
-    echo "[${NAME}] Remounting /boot as rw for modification..."
-    mount -o remount,rw /boot
+    echo "[${NAME}] Remounting ${BOOT_MOUNT} as rw..."
+    mount -o remount,rw "$BOOT_MOUNT"
   fi
-fi
+}
 
-if [[ "$TARGET" == "ro" ]]; then
-  if ! grep -qw 'boot=overlay' "$CMDLINE"; then
-    echo "[${NAME}] Enabling overlay (read-only)..."
-    echo "boot=overlay $CMDLINE_CONTENT" > "$CMDLINE"
+configure_overlayroot() {
+  local mode="$1"
+
+  if [[ "$mode" == "ro" ]]; then
+    echo "[${NAME}] Configuring overlayroot for read-only mode..."
+
+    cat > "$OVERLAYROOT_CONF" <<'EOF'
+# Overlayroot configuration
+# This makes the root filesystem read-only with a writable overlay
+overlayroot="tmpfs:swap=1,recurse=0"
+EOF
+
+    echo "[${NAME}] Overlayroot configured for read-only root filesystem"
+
   else
-    echo "[${NAME}] Overlay already enabled."
-  fi
-fi
+    echo "[${NAME}] Disabling overlayroot..."
 
-if [[ "$TARGET" == "rw" ]]; then
-  if grep -qw 'boot=overlay' "$CMDLINE"; then
-    echo "[${NAME}] Disabling overlay (read-write)..."
-    sed -i 's/\bboot=overlay[[:space:]]*\b//' "$CMDLINE"
+    # Check if we're currently running with overlay active
+    if mountpoint -q /media/root-ro 2>/dev/null; then
+      echo "[${NAME}] Overlay is active, writing to underlying filesystem..."
+      overlayroot-chroot bash -c "cat > '$OVERLAYROOT_CONF' <<'EOF'
+# Overlayroot disabled
+overlayroot=\"\"
+EOF"
+    else
+      cat > "$OVERLAYROOT_CONF" <<'EOF'
+# Overlayroot disabled
+overlayroot=""
+EOF
+    fi
+
+    echo "[${NAME}] Overlayroot disabled"
+  fi
+}
+
+configure_initramfs() {
+  echo "[${NAME}] Configuring initramfs..."
+
+  mkdir -p /etc/initramfs-tools/conf.d
+
+  # Check if we're currently running with overlay active
+  if mountpoint -q /media/root-ro 2>/dev/null; then
+    echo "[${NAME}] Overlay is active, writing to underlying filesystem..."
+    overlayroot-chroot bash -c "mkdir -p /etc/initramfs-tools/conf.d && cat > '$INITRAMFS_CONF' <<'EOF'
+# Include overlayroot in initramfs
+MODULES=most
+EOF"
   else
-    echo "[${NAME}] Overlay already disabled."
+    cat > "$INITRAMFS_CONF" <<'EOF'
+# Include overlayroot in initramfs
+MODULES=most
+EOF
   fi
-fi
 
-echo "[${NAME}] Done! Overlay mode set to $TARGET. Reboot to apply."
+  if [[ ! -f /etc/initramfs-tools/hooks/overlayroot ]] && [[ -f /usr/share/initramfs-tools/hooks/overlayroot ]]; then
+    echo "[${NAME}] Linking overlayroot hook..."
+    if mountpoint -q /media/root-ro 2>/dev/null; then
+      overlayroot-chroot ln -sf /usr/share/initramfs-tools/hooks/overlayroot /etc/initramfs-tools/hooks/
+    else
+      ln -sf /usr/share/initramfs-tools/hooks/overlayroot /etc/initramfs-tools/hooks/
+    fi
+  fi
+}
+
+build_initramfs() {
+  echo "[${NAME}] Building initramfs (this may take a few minutes)..."
+
+  KERNEL_VERSION=$(uname -r)
+  echo "[${NAME}] Building initramfs for kernel ${KERNEL_VERSION}..."
+
+  if mountpoint -q /media/root-ro 2>/dev/null; then
+    echo "[${NAME}] Overlay is active, building initramfs in underlying filesystem..."
+    overlayroot-chroot update-initramfs -u -k "$KERNEL_VERSION"
+  else
+    update-initramfs -u -k "$KERNEL_VERSION"
+  fi
+
+  if [[ -f "/boot/firmware/initramfs.img" ]] || [[ -f "/boot/initramfs.img" ]]; then
+    echo "[${NAME}] Initramfs built successfully"
+  else
+    if [[ -f "/boot/initrd.img-${KERNEL_VERSION}" ]]; then
+      echo "[${NAME}] Copying initramfs to boot partition..."
+      cp "/boot/initrd.img-${KERNEL_VERSION}" "${BOOT_MOUNT}/initramfs.img"
+    else
+      echo "[${NAME}] Failed to build initramfs" >&2
+      exit 1
+    fi
+  fi
+}
+
+update_config_txt() {
+  echo "[${NAME}] Updating ${CONFIG_TXT}..."
+  ensure_boot_writable
+
+  if ! grep -q "^initramfs " "$CONFIG_TXT"; then
+    echo "[${NAME}] Adding initramfs line to config.txt..."
+    if grep -q "^\[all\]" "$CONFIG_TXT"; then
+      sed -i '/^\[all\]/a initramfs initramfs.img followkernel' "$CONFIG_TXT"
+    else
+      echo "" >> "$CONFIG_TXT"
+      echo "# Load initramfs for overlayroot support" >> "$CONFIG_TXT"
+      echo "initramfs initramfs.img followkernel" >> "$CONFIG_TXT"
+    fi
+  else
+    echo "[${NAME}] initramfs line already present in config.txt"
+  fi
+}
+
+update_fstab_boot_mount() {
+  local mode="$1"
+  echo "[${NAME}] Updating /etc/fstab for boot partition..."
+
+  if [[ "$mode" == "ro" ]]; then
+    if grep -q "^[^#]*[[:space:]]${BOOT_MOUNT}[[:space:]]" /etc/fstab; then
+      echo "[${NAME}] Setting ${BOOT_MOUNT} to read-only in fstab..."
+      if mountpoint -q /media/root-ro 2>/dev/null; then
+        overlayroot-chroot bash -c "sed -i 's|\([^#]*[[:space:]]${BOOT_MOUNT}[[:space:]][^[:space:]]*[[:space:]][^[:space:]]*\),*rw|\1,ro|' /etc/fstab && sed -i 's|\([^#]*[[:space:]]${BOOT_MOUNT}[[:space:]][^[:space:]]*[[:space:]][^[:space:]]*[^,]*\)|\1,ro|' /etc/fstab"
+      else
+        sed -i "s|\([^#]*[[:space:]]${BOOT_MOUNT}[[:space:]][^[:space:]]*[[:space:]][^[:space:]]*\),*rw|\1,ro|" /etc/fstab
+        sed -i "s|\([^#]*[[:space:]]${BOOT_MOUNT}[[:space:]][^[:space:]]*[[:space:]][^[:space:]]*[^,]*\)|\1,ro|" /etc/fstab
+      fi
+    else
+      echo "[${NAME}] Warning: ${BOOT_MOUNT} not found in fstab"
+    fi
+  else
+    if grep -q "^[^#]*[[:space:]]${BOOT_MOUNT}[[:space:]]" /etc/fstab; then
+      echo "[${NAME}] Setting ${BOOT_MOUNT} to read-write in fstab..."
+      if mountpoint -q /media/root-ro 2>/dev/null; then
+        overlayroot-chroot bash -c "sed -i 's|\([^#]*[[:space:]]${BOOT_MOUNT}[[:space:]][^[:space:]]*[[:space:]][^[:space:]]*\),*ro|\1,rw|' /etc/fstab"
+      else
+        sed -i "s|\([^#]*[[:space:]]${BOOT_MOUNT}[[:space:]][^[:space:]]*[[:space:]][^[:space:]]*\),*ro|\1,rw|" /etc/fstab
+      fi
+    else
+      echo "[${NAME}] Warning: ${BOOT_MOUNT} not found in fstab"
+    fi
+  fi
+}
+
+check_current_status() {
+  echo "[${NAME}] Checking current overlay status..."
+  if [[ -f "$OVERLAYROOT_CONF" ]]; then
+    local current_config=$(grep "^overlayroot=" "$OVERLAYROOT_CONF" | cut -d= -f2 | tr -d '"')
+    if [[ -n "$current_config" && "$current_config" != '""' ]]; then
+      echo "[${NAME}] Current status: OVERLAY ENABLED (read-only)"
+      return 0
+    fi
+  fi
+
+  echo "[${NAME}] Current status: OVERLAY DISABLED (read-write)"
+  return 1
+}
+
+main() {
+  echo "[${NAME}] === Raspberry Pi Overlay Filesystem Toggle ==="
+  check_current_status || true
+
+  if [[ "$TARGET" == "ro" ]]; then
+    echo "[${NAME}] Enabling overlay filesystem (read-only mode)..."
+
+    configure_overlayroot "ro"
+    configure_initramfs
+    update_config_txt
+    update_fstab_boot_mount "ro"
+    build_initramfs
+
+    echo ""
+    echo "[${NAME}] =========================================="
+    echo "[${NAME}] Overlay filesystem ENABLED"
+    echo "[${NAME}] Root filesystem will be READ-ONLY after reboot"
+    echo "[${NAME}] Boot partition will be READ-ONLY after reboot"
+    echo "[${NAME}] Changes will be stored in RAM (tmpfs)"
+    echo "[${NAME}] =========================================="
+    echo ""
+    echo "[${NAME}] IMPORTANT: All changes after reboot will be LOST on power cycle!"
+    echo "[${NAME}] To make permanent changes, boot with 'rw' mode first"
+    echo ""
+
+  else
+    echo "[${NAME}] Disabling overlay filesystem (read-write mode)..."
+
+    configure_overlayroot "rw"
+    configure_initramfs
+    update_config_txt
+    update_fstab_boot_mount "rw"
+    build_initramfs
+
+    echo ""
+    echo "[${NAME}] =========================================="
+    echo "[${NAME}] Overlay filesystem DISABLED"
+    echo "[${NAME}] Root filesystem will be READ-WRITE after reboot"
+    echo "[${NAME}] Boot partition will be READ-WRITE after reboot"
+    echo "[${NAME}] Changes will be persistent"
+    echo "[${NAME}] =========================================="
+    echo ""
+  fi
+
+  echo "[${NAME}] Configuration complete, reboot required!"
+  echo ""
+}
+
+main
+exit 0

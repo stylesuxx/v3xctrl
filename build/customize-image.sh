@@ -32,7 +32,7 @@ xz -dk "${IMG}"
 mv "${IMG_UNCOMPRESSED}" "${IMG_WORK}"
 
 echo "[HOST] Expanding root file system"
-truncate -s +1G "$IMG_WORK"
+truncate -s +2G "$IMG_WORK"
 parted -s "$IMG_WORK" resizepart 2 100%
 LOOP_DEV=$(losetup -fP --show "$IMG_WORK")
 e2fsck -fy "${LOOP_DEV}p2"
@@ -95,6 +95,7 @@ sed -i 's|^\(session[[:space:]]\+optional[[:space:]]\+pam_motd\.so[[:space:]]\+n
 echo "[HOST] Move config files into place"
 cp "${CONF_DIR}/smb.conf" "$MOUNT_DIR/etc/samba/smb.conf"
 cp "${CONF_DIR}/10_v3xctrl-motd-firstboot.sh" "$MOUNT_DIR/etc/profile.d/"
+cp "${CONF_DIR}/97-overlayroot" "$MOUNT_DIR/etc/update-motd.d/97-overlayroot"
 
 echo "[HOST] Copying files to boot partition..."
 cp "./build/firstboot.sh" "$MOUNT_DIR/boot/firstboot.sh"
@@ -138,6 +139,9 @@ if grep -q '^#*dtoverlay=pwm-2chan' "$MOUNT_DIR/boot/config.txt"; then  sed -i '
 else
   echo "dtoverlay=pwm-2chan,pin=18,func=2,pin2=13,func2=4" | tee -a "$MOUNT_DIR/boot/config.txt" > /dev/null
 fi
+
+echo "[Host] Enable dwc2 USB driver..."
+echo "dtoverlay=dwc2,dr_mode=host" | tee -a "$MOUNT_DIR/boot/config.txt" > /dev/null
 
 if ! grep -q 'fsck.repair=yes' "$MOUNT_DIR/boot/cmdline.txt"; then
   sed -i 's/$/ fsck.repair=yes/' "$MOUNT_DIR/boot/cmdline.txt"
