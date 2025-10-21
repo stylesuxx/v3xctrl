@@ -1,0 +1,11 @@
+#!/bin/sh
+if grep -q "overlayroot" /proc/mounts 2>/dev/null; then
+  echo "=========================================="
+  echo "SYSTEM IN READ-ONLY MODE"
+  echo "=========================================="
+  echo "Root filesystem is protected with overlay"
+  echo "All changes are stored in RAM (tmpfs)"
+  echo "Changes will be LOST on reboot/power cycle"
+  echo "=========================================="
+  echo
+fi

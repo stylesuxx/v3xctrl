@@ -14,8 +14,8 @@ fi
 
 if [[ $# -ne 1 || ( "$1" != "ro" && "$1" != "rw" ) ]]; then
   echo "Usage: sudo $0 [ro|rw]"
-  echo "  ro - Enable overlay filesystem (read-only root)"
-  echo "  rw - Disable overlay filesystem (read-write root)"
+  echo "  ro - Enable overlay filesystem"
+  echo "  rw - Disable overlay filesystem"
   exit 1
 fi
 
@@ -142,28 +142,62 @@ update_fstab_boot_mount() {
   local mode="$1"
   echo "[${NAME}] Updating /etc/fstab for boot partition..."
 
+  if ! grep -q "^[^#]*[[:space:]]${BOOT_MOUNT}[[:space:]]" /etc/fstab; then
+    echo "[${NAME}] Warning: ${BOOT_MOUNT} not found in fstab"
+    return
+  fi
+
   if [[ "$mode" == "ro" ]]; then
-    if grep -q "^[^#]*[[:space:]]${BOOT_MOUNT}[[:space:]]" /etc/fstab; then
-      echo "[${NAME}] Setting ${BOOT_MOUNT} to read-only in fstab..."
-      if mountpoint -q /media/root-ro 2>/dev/null; then
-        overlayroot-chroot bash -c "sed -i 's|\([^#]*[[:space:]]${BOOT_MOUNT}[[:space:]][^[:space:]]*[[:space:]][^[:space:]]*\),*rw|\1,ro|' /etc/fstab && sed -i 's|\([^#]*[[:space:]]${BOOT_MOUNT}[[:space:]][^[:space:]]*[[:space:]][^[:space:]]*[^,]*\)|\1,ro|' /etc/fstab"
-      else
-        sed -i "s|\([^#]*[[:space:]]${BOOT_MOUNT}[[:space:]][^[:space:]]*[[:space:]][^[:space:]]*\),*rw|\1,ro|" /etc/fstab
-        sed -i "s|\([^#]*[[:space:]]${BOOT_MOUNT}[[:space:]][^[:space:]]*[[:space:]][^[:space:]]*[^,]*\)|\1,ro|" /etc/fstab
-      fi
+    echo "[${NAME}] Setting ${BOOT_MOUNT} to read-only in fstab..."
+
+    # Use awk to properly modify the 4th field (mount options)
+    local awk_script='
+      /^[^#]/ && $2 == "'"${BOOT_MOUNT}"'" {
+        # Remove any existing ro/rw from options
+        gsub(/,ro\>|,rw\>|\<ro,|\<rw,|\<ro\>|\<rw\>/, "", $4)
+        # Add ro to options
+        if ($4 ~ /,$/) {
+          $4 = $4 "ro"
+        } else if ($4 == "") {
+          $4 = "ro"
+        } else {
+          $4 = $4 ",ro"
+        }
+      }
+      { print }
+    '
+
+    if mountpoint -q /media/root-ro 2>/dev/null; then
+      overlayroot-chroot bash -c "awk '${awk_script}' /etc/fstab > /etc/fstab.tmp && mv /etc/fstab.tmp /etc/fstab"
     else
-      echo "[${NAME}] Warning: ${BOOT_MOUNT} not found in fstab"
+      awk "${awk_script}" /etc/fstab > /etc/fstab.tmp && mv /etc/fstab.tmp /etc/fstab
     fi
+
   else
-    if grep -q "^[^#]*[[:space:]]${BOOT_MOUNT}[[:space:]]" /etc/fstab; then
-      echo "[${NAME}] Setting ${BOOT_MOUNT} to read-write in fstab..."
-      if mountpoint -q /media/root-ro 2>/dev/null; then
-        overlayroot-chroot bash -c "sed -i 's|\([^#]*[[:space:]]${BOOT_MOUNT}[[:space:]][^[:space:]]*[[:space:]][^[:space:]]*\),*ro|\1,rw|' /etc/fstab"
-      else
-        sed -i "s|\([^#]*[[:space:]]${BOOT_MOUNT}[[:space:]][^[:space:]]*[[:space:]][^[:space:]]*\),*ro|\1,rw|" /etc/fstab
-      fi
+    echo "[${NAME}] Setting ${BOOT_MOUNT} to read-write in fstab..."
+
+    # Use awk to properly modify the 4th field (mount options)
+    local awk_script='
+      /^[^#]/ && $2 == "'"${BOOT_MOUNT}"'" {
+        # Remove ro and replace with rw, or just remove ro
+        gsub(/,ro\>|,rw\>|\<ro,|\<rw,|\<ro\>|\<rw\>/, "", $4)
+        if ($4 == "") {
+          $4 = "defaults"
+        } else if ($4 !~ /rw/) {
+          if ($4 ~ /,$/) {
+            $4 = $4 "rw"
+          } else {
+            $4 = $4 ",rw"
+          }
+        }
+      }
+      { print }
+    '
+
+    if mountpoint -q /media/root-ro 2>/dev/null; then
+      overlayroot-chroot bash -c "awk '${awk_script}' /etc/fstab > /etc/fstab.tmp && mv /etc/fstab.tmp /etc/fstab"
     else
-      echo "[${NAME}] Warning: ${BOOT_MOUNT} not found in fstab"
+      awk "${awk_script}" /etc/fstab > /etc/fstab.tmp && mv /etc/fstab.tmp /etc/fstab
     fi
   fi
 }

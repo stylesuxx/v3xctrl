@@ -75,18 +75,26 @@ switch_to_ap() {
 switch_to_client() {
   echo "Switching to client mode"
 
-  # Bring down AP if active
-  nmcli connection down "$AP_CONNECTION" 2>/dev/null || true
+  # Bring down and DELETE AP connection
+  if nmcli connection show "$AP_CONNECTION" &>/dev/null; then
+    nmcli connection down "$AP_CONNECTION" 2>/dev/null || true
+    nmcli connection delete "$AP_CONNECTION"
+    echo "Deleted AP connection profile"
+  fi
 
   # Check if already connected in client mode
   STATE=$(nmcli -t -f DEVICE,STATE device | grep -E "^$INTERFACE:" | grep -v '^p2p-' | cut -d: -f2)
   if [ "$STATE" = "connected" ]; then
-    IP=$(nmcli -t -f IP4.ADDRESS device show "$INTERFACE" | cut -d: -f2 | cut -d/ -f1)
-    echo "Already connected to Wi-Fi with IP $IP. No further action needed."
-    return 0
+    # Verify it's not connected to the AP (which should be deleted now anyway)
+    CURRENT_CONN=$(nmcli -t -f DEVICE,CONNECTION device | grep "^$INTERFACE:" | cut -d: -f2)
+    if [ "$CURRENT_CONN" != "$AP_CONNECTION" ] && [ -n "$CURRENT_CONN" ]; then
+      IP=$(nmcli -t -f IP4.ADDRESS device show "$INTERFACE" | cut -d: -f2 | cut -d/ -f1)
+      echo "Already connected to Wi-Fi ($CURRENT_CONN) with IP $IP. No further action needed."
+      return 0
+    fi
   fi
 
-  # Check if we have any configured Wi-Fi networks (excluding the AP)
+  # Get list of preconfigured Wi-Fi connections (excluding AP if it somehow still exists)
   WIFI_CONNECTIONS=$(nmcli -t -f TYPE,NAME connection show | grep "^802-11-wireless:" | grep -v ":$AP_CONNECTION$" | cut -d: -f2)
 
   if [ -z "$WIFI_CONNECTIONS" ]; then
@@ -95,24 +103,39 @@ switch_to_client() {
     return 1
   fi
 
-  # Let NetworkManager auto-connect to available networks
-  nmcli device set "$INTERFACE" autoconnect yes
-  nmcli device connect "$INTERFACE" || true
+  # Explicitly try to connect to the first available preconfigured network
+  echo "Found preconfigured networks: $WIFI_CONNECTIONS"
 
-  echo "Waiting up to $FALLBACK_TIMEOUT seconds for connection..."
+  # Disconnect the interface first to ensure clean state
+  nmcli device disconnect "$INTERFACE" || true
 
-  for i in $(seq 1 "$FALLBACK_TIMEOUT"); do
-    STATE=$(nmcli -t -f DEVICE,STATE device | grep "^$INTERFACE:" | cut -d: -f2)
-    if [ "$STATE" = "connected" ]; then
-      IP=$(nmcli -t -f IP4.ADDRESS device show "$INTERFACE" | cut -d: -f2 | cut -d/ -f1)
-      echo "Client mode successful: Connected with IP $IP"
-      return 0
+  # Try each preconfigured connection
+  CONNECTED=false
+  while IFS= read -r CONN; do
+    echo "Attempting to connect to: $CONN"
+    if nmcli connection up "$CONN" ifname "$INTERFACE" 2>/dev/null; then
+      echo "Waiting up to $FALLBACK_TIMEOUT seconds for connection..."
+
+      for i in $(seq 1 "$FALLBACK_TIMEOUT"); do
+        STATE=$(nmcli -t -f DEVICE,STATE device | grep "^$INTERFACE:" | cut -d: -f2)
+        if [ "$STATE" = "connected" ]; then
+          IP=$(nmcli -t -f IP4.ADDRESS device show "$INTERFACE" | cut -d: -f2 | cut -d/ -f1)
+          echo "Client mode successful: Connected to '$CONN' with IP $IP"
+          CONNECTED=true
+          break 2
+        fi
+        sleep 1
+      done
+
+      echo "Connection to '$CONN' timed out, trying next..."
     fi
-    sleep 1
-  done
+  done <<< "$WIFI_CONNECTIONS"
 
-  echo "Client mode failed after $FALLBACK_TIMEOUT seconds. Falling back to AP mode."
-  switch_to_ap
+  if [ "$CONNECTED" = false ]; then
+    echo "Client mode failed after trying all networks. Falling back to AP mode."
+    switch_to_ap
+    return 1
+  fi
 }
 
 if [ "$MODE" == "ap" ]; then

@@ -13,6 +13,9 @@ echo '[CHROOT] Updating system...'
 apt update
 apt upgrade -y
 apt dist-upgrade -y
+
+echo '[CHROOT] Removing bloat...'
+apt remove --purge -y cloud-init
 apt autoremove -y
 
 echo '[CHROOT] Fixing locale'

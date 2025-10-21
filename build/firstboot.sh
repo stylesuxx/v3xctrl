@@ -56,16 +56,34 @@ if [ -f /var/swap ]; then
   mv "/var/swap" "${TARGET}/swap"
 fi
 
-mkdir -p /etc/rpi/swap.conf.d
-cat > /etc/rpi/swap.conf.d/99-data-partition.conf << EOF
-[Main]
-Mechanism=swapfile
+# Disable rpi-swap generator and services
+echo "[v3xctrl-firstboot] Disabling rpi-swap generator and services..."
+systemctl mask rpi-resize-swap-file.service
+if [ -x /usr/lib/systemd/system-generators/rpi-swap-generator ]; then
+  chmod -x /usr/lib/systemd/system-generators/rpi-swap-generator
+fi
 
-[File]
-Path=/data/swap
+# Create static systemd swap unit
+echo "[v3xctrl-firstboot] Creating systemd swap unit..."
+cat > /etc/systemd/system/data-swap.swap <<EOF
+[Unit]
+Description=Data partition swap file
+After=data.mount local-fs.target
+RequiresMountsFor=/data
+
+[Swap]
+What=/data/swap
+Priority=100
+
+[Install]
+WantedBy=swap.target
 EOF
 
-systemctl start dev-zram0.swap
+# Enable and start the swap unit
+echo "[v3xctrl-firstboot] Enabling swap unit..."
+systemctl daemon-reload
+systemctl enable data-swap.swap
+systemctl start data-swap.swap
 
 echo "[v3xctrl-firstboot] Copy config files to persistent storage"
 if [ -f "/etc/v3xctrl/config.json" ]; then
@@ -91,7 +109,7 @@ systemctl mask v3xctrl-firstboot.service
 rm -f /boot/firmware/firstboot.sh
 
 echo "[v3xctrl-firstboot] Removing firstboot warning..."
-rm "/etc/profile.d/10_v3xctrl-motd-firstboot.sh"
+rm -f "/etc/profile.d/10_v3xctrl-motd-firstboot.sh"
 
 echo "[v3xctrl-firstboot] First boot setup complete."
 reboot
