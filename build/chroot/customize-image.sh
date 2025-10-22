@@ -14,13 +14,14 @@ apt update
 apt upgrade -y
 apt dist-upgrade -y
 
+echo '[CHROOT] Installing nice to haves...'
+sudo apt-get install -y locales-all git iperf3 nload minicom
+
 echo '[CHROOT] Removing bloat...'
 apt remove --purge -y cloud-init
 apt autoremove -y
 
 echo '[CHROOT] Fixing locale'
-sudo apt-get install -y locales-all
-
 locale-gen $LOCALE
 update-locale LANG="$LOCALE"
 
