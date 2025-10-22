@@ -5,10 +5,10 @@
 # If at all possible add functionality to the image customization script instead
 # of here. Only things that really NEED to be don here, should be:
 # - expands data partition to max available size
-# - moves swap to data partition
 # - Copy config files to data partition
 # - enables overlay FS (RO mode)
-# - set /boot to RO
+# - Disables serial console on success
+# - Disables firstboot warning MOTD
 
 set -xe
 exec > /boot/firmware/firstboot.log 2>&1
@@ -49,41 +49,12 @@ echo "[v3xctrl-firstboot] Mounting ${TARGET} and creating folder structure..."
 mount "$TARGET"
 mkdir -p "${TARGET}/config"
 
-echo "[v3xctrl-firstboot] Moving SWAP file to data partition..."
-systemctl stop dev-zram0.swap
-
-if [ -f /var/swap ]; then
-  mv "/var/swap" "${TARGET}/swap"
-fi
-
-# Disable rpi-swap generator and services
-echo "[v3xctrl-firstboot] Disabling rpi-swap generator and services..."
-systemctl mask rpi-resize-swap-file.service
-if [ -x /usr/lib/systemd/system-generators/rpi-swap-generator ]; then
-  chmod -x /usr/lib/systemd/system-generators/rpi-swap-generator
-fi
-
-# Create static systemd swap unit
-echo "[v3xctrl-firstboot] Creating systemd swap unit..."
-cat > /etc/systemd/system/data-swap.swap <<EOF
-[Unit]
-Description=Data partition swap file
-After=data.mount local-fs.target
-RequiresMountsFor=/data
-
-[Swap]
-What=/data/swap
-Priority=100
-
-[Install]
-WantedBy=swap.target
+echo "[v3xctrl-firstboot] Disable swap file..."
+sudo mkdir -p /etc/rpi/swap.conf.d/
+sudo tee /etc/rpi/swap.conf.d/zram-only.conf > /dev/null << 'EOF'
+[Main]
+Mechanism=zram
 EOF
-
-# Enable and start the swap unit
-echo "[v3xctrl-firstboot] Enabling swap unit..."
-systemctl daemon-reload
-systemctl enable data-swap.swap
-systemctl start data-swap.swap
 
 echo "[v3xctrl-firstboot] Copy config files to persistent storage"
 if [ -f "/etc/v3xctrl/config.json" ]; then
@@ -103,9 +74,11 @@ fi
 echo "[v3xctrl-firstboot] Enabling overlay fs..."
 v3xctrl-remount ro
 
+echo "[v3xctrl-firstboot] Disabling serial console..."
+sed -i 's/console=serial0,115200 //g' /boot/firmware/cmdline.txt
+
 echo "[v3xctrl-firstboot] Cleaning up..."
 systemctl disable v3xctrl-firstboot.service
-systemctl mask v3xctrl-firstboot.service
 rm -f /boot/firmware/firstboot.sh
 
 echo "[v3xctrl-firstboot] Removing firstboot warning..."

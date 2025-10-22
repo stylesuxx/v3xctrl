@@ -100,7 +100,7 @@ switch_to_client() {
   if [ -z "$WIFI_CONNECTIONS" ]; then
     echo "No Wi-Fi networks configured. Falling back to AP mode."
     switch_to_ap
-    return 1
+    return 0
   fi
 
   # Explicitly try to connect to the first available preconfigured network
@@ -134,7 +134,7 @@ switch_to_client() {
   if [ "$CONNECTED" = false ]; then
     echo "Client mode failed after trying all networks. Falling back to AP mode."
     switch_to_ap
-    return 1
+    return 0
   fi
 }
 
