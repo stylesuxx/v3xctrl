@@ -2,6 +2,7 @@ from typing import Dict, List, Any
 
 from pygame import Surface
 
+from v3xctrl_helper import is_int
 from v3xctrl_ui.fonts import LABEL_FONT, MONO_FONT
 from v3xctrl_ui.menu.input import (
   BaseInput,
@@ -71,7 +72,8 @@ class GeneralTab(Tab):
         }
 
     def _on_render_ratio_change(self, value: str) -> None:
-        self.video["render_ratio"] = int(value)
+        if is_int(value):
+            self.video["render_ratio"] = int(value)
 
     def _on_show_connection_info_change(self, value: bool) -> None:
         self.show_connection_info = value
