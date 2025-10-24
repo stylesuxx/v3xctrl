@@ -12,6 +12,7 @@ from typing import (
   Any,
 )
 
+from v3xctrl_ui.fonts import BOLD_MONO_FONT_14
 from v3xctrl_control.message import Message, Latency, Telemetry
 from v3xctrl_ui.colors import RED, WHITE
 from v3xctrl_ui.helpers import (
@@ -55,6 +56,7 @@ class OSD:
         self.widgets_signal: Dict[str, Widget] = {}
         self.signal_quality: dict[str, int] = {"rsrq": -1, "rsrp": -1}
         self.signal_band: str = "BAND ?"
+        self.signal_cell: str = "CELL ?"
         self._init_widgets_signal()
 
         self.widgets_battery: Dict[str, Widget] = {}
@@ -252,7 +254,6 @@ class OSD:
         return (0, 0)
 
     def reset(self) -> None:
-        #self.debug_data = "waiting"
         self.debug_data = None
         self.debug_latency = None
         self.debug_buffer = None
@@ -260,6 +261,9 @@ class OSD:
         self.widgets_debug["debug_latency"].set_value(None)
 
         self.signal_quality = {"rsrq": -1, "rsrp": -1}
+
+        self.signal_band = "BAND ?"
+        self.signal_cell = "CELL ?"
 
         self.battery_icon = 0
         self.battery_voltage = "0.00V"
@@ -319,10 +323,13 @@ class OSD:
 
         signal_quality_widget = SignalQualityWidget(position, (70, 50))
         signal_band_widget = TextWidget(position, 70)
+        signal_cell_widget = TextWidget(position, 70)
+        signal_cell_widget.font = BOLD_MONO_FONT_14
 
         self.widgets_signal = {
             "signal_quality": signal_quality_widget,
-            "signal_band": signal_band_widget
+            "signal_band": signal_band_widget,
+            "signal_cell": signal_cell_widget
         }
 
     def _init_widgets_debug(self) -> None:
@@ -374,6 +381,15 @@ class OSD:
         }
         band = values["cell"]["band"]
         self.signal_band = f"BAND {band}"
+
+        cell_id = values["cell"]["id"]
+        cell_text = f"CELL {cell_id}"
+        if cell_id != "?":
+            tower_id = cell_id >> 8
+            section_id = cell_id & 0xFF
+            cell_text = f"{tower_id}:{section_id}"
+
+        self.signal_cell = cell_text
 
         # Battery
         battery_voltage = values["bat"]["vol"] / 1000

@@ -90,10 +90,13 @@ class Settings:
             "signal_band": {
                 "display": True
             },
+            "signal_cell": {
+                "display": True
+            },
             "battery": {
                 "display": True,
                 "align": "top-right",
-                "offset": [82, 10]
+                "offset": [105, 10]
             },
             "battery_icon": {
                 "display": True
