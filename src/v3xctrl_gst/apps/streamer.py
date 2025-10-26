@@ -1,0 +1,50 @@
+import argparse
+from typing import Dict, Any
+
+from v3xctrl_gst.Streamer import Streamer
+
+
+def main() -> None:
+    """Main entry point for the streamer application."""
+    parser = argparse.ArgumentParser(
+        description='GStreamer video streaming pipeline'
+    )
+
+    # Required arguments
+    parser.add_argument('host', help='Destination host')
+    parser.add_argument('port', type=int, help='Destination port')
+    parser.add_argument('bind_port', type=int, help='Bind port')
+
+    # Optional arguments
+    parser.add_argument('--width', type=int, default=1280, help='Video width (default: 1280)')
+    parser.add_argument('--height', type=int, default=720, help='Video height (default: 720)')
+    parser.add_argument('--framerate', type=int, default=30, help='Framerate (default: 30)')
+    parser.add_argument('--bitrate', type=int, default=1800000, help='Bitrate (default: 1800000)')
+    parser.add_argument('--buffertime', type=int, default=150000000, help='Buffer time in ns (default: 150000000)')
+    parser.add_argument('--sizebuffers', type=int, default=5, help='Size of buffers (default: 5)')
+    parser.add_argument('--recording-dir', type=str, default='', help='Directory to save recording')
+    parser.add_argument('--test-pattern', action='store_true', help='Use test pattern instead of camera')
+    parser.add_argument('--i-frame-period', type=int, default=30, help='I-frame period (default: 30)')
+
+    args = parser.parse_args()
+
+    # Convert optional args to settings dict
+    settings: Dict[str, Any] = {
+        'width': args.width,
+        'height': args.height,
+        'framerate': args.framerate,
+        'bitrate': args.bitrate,
+        'buffertime': args.buffertime,
+        'sizebuffers': args.sizebuffers,
+        'recording_dir': args.recording_dir,
+        'test_pattern': args.test_pattern,
+        'i_frame_period': args.i_frame_period,
+    }
+
+    # Create and run streamer
+    streamer: Streamer = Streamer(args.host, args.port, args.bind_port, settings)
+    streamer.run()
+
+
+if __name__ == '__main__':
+    main()

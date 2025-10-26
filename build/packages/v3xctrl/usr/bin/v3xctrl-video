@@ -23,4 +23,4 @@ if [ "$video_testSource" = "true" ]; then
   ARGS+=(--test-pattern)
 fi
 
-/usr/share/${NAME}/gst/transmit-stream.sh "${ARGS[@]}"
+v3xctrl-python -m v3xctrl_gst.apps.streamer "${ARGS[@]}"
