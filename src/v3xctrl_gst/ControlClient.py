@@ -15,28 +15,25 @@ class ControlClient:
         """
         self.socket_path = socket_path
 
-    def set_property(self, element: str, property_name: str, value: Any) -> Dict[str, Any]:
-        """Set a property on an element."""
+    def list_properties(self, element: str) -> Dict[str, Any]:
         return self._send_command({
-            'action': 'set',
-            'element': element,
-            'property': property_name,
-            'value': value
+            'action': 'list',
+            'element': element
         })
 
     def get_property(self, element: str, property_name: str) -> Dict[str, Any]:
-        """Get a property from an element."""
         return self._send_command({
             'action': 'get',
             'element': element,
             'property': property_name
         })
 
-    def list_properties(self, element: str) -> Dict[str, Any]:
-        """List all properties of an element."""
+    def set_property(self, element: str, property_name: str, value: Any) -> Dict[str, Any]:
         return self._send_command({
-            'action': 'list',
-            'element': element
+            'action': 'set',
+            'element': element,
+            'property': property_name,
+            'value': value
         })
 
     def update_properties(self, element: str, properties: Dict[str, Any]) -> Dict[str, Any]:
@@ -47,7 +44,7 @@ class ControlClient:
             'properties': properties
         })
 
-    def stop_pipeline(self) -> Dict[str, Any]:
+    def stop(self) -> Dict[str, Any]:
         return self._send_command({'action': 'stop'})
 
     def _send_command(self, command: Dict[str, Any]) -> Dict[str, Any]:

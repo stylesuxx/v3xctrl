@@ -1,32 +1,40 @@
-import sys
 import json
+import argparse
+from typing import Any
 
 from v3xctrl_gst import ControlClient
 
 
 def main() -> None:
-    """Interactive CLI client."""
-    if len(sys.argv) < 2:
-        print("Usage:")
-        print("  Set property:    python control_client.py set <element> <property> <value> [socket_path]")
-        print("  Get property:    python control_client.py get <element> <property> [socket_path]")
-        print("  List properties: python control_client.py list <element> [socket_path]")
-        print("  Stop pipeline:   python control_client.py stop [socket_path]")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description='GStreamer pipeline control client')
+    parser.add_argument('action', choices=['set', 'get', 'list', 'stop'],
+                        help='Action to perform')
+    parser.add_argument('element', nargs='?', help='Element name')
+    parser.add_argument('property', nargs='?', help='Property name')
+    parser.add_argument('value', nargs='?', help='Property value')
+    parser.add_argument('socket_path', nargs='?', default='/tmp/v3xctrl.sock',
+                        help='Path to Unix socket (default: /tmp/v3xctrl.sock)')
+    args = parser.parse_args()
 
-    action = sys.argv[1]
+    # Validate arguments based on action
+    if args.action == 'set':
+        if not args.element or not args.property or not args.value:
+            parser.error("set requires: element property value")
 
-    # Determine socket path (last arg if it starts with /)
-    socket_path = '/tmp/v3xctrl.sock'
-    if len(sys.argv) > 2 and sys.argv[-1].startswith('/'):
-        socket_path = sys.argv[-1]
-        sys.argv = sys.argv[:-1]  # Remove socket path from args
+    elif args.action == 'get':
+        if not args.element or not args.property:
+            parser.error("get requires: element property")
 
-    client = ControlClient(socket_path)
+    elif args.action == 'list':
+        if not args.element:
+            parser.error("list requires: element")
 
-    if action == 'set' and len(sys.argv) >= 5:
-        element, prop, value = sys.argv[2], sys.argv[3], sys.argv[4]
+    client = ControlClient(args.socket_path)
+
+    response = None
+    if args.action == 'set':
         # Try to convert value to appropriate type
+        value: Any = args.value
         try:
             value = int(value)
         except ValueError:
@@ -34,26 +42,18 @@ def main() -> None:
                 value = float(value)
             except ValueError:
                 pass  # Keep as string
-        response = client.set_property(element, prop, value)
-        print(json.dumps(response, indent=2))
+        response = client.set_property(args.element, args.property, value)
 
-    elif action == 'get' and len(sys.argv) >= 4:
-        element, prop = sys.argv[2], sys.argv[3]
-        response = client.get_property(element, prop)
-        print(json.dumps(response, indent=2))
+    elif args.action == 'get':
+        response = client.get_property(args.element, args.property)
 
-    elif action == 'list' and len(sys.argv) >= 3:
-        element = sys.argv[2]
-        response = client.list_properties(element)
-        print(json.dumps(response, indent=2))
+    elif args.action == 'list':
+        response = client.list_properties(args.element)
 
-    elif action == 'stop':
-        response = client.stop_pipeline()
-        print(json.dumps(response, indent=2))
+    elif args.action == 'stop':
+        response = client.stop()
 
-    else:
-        print("Invalid command")
-        sys.exit(1)
+    print(json.dumps(response, indent=2))
 
 
 if __name__ == '__main__':
