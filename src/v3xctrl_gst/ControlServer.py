@@ -22,15 +22,17 @@ class ControlServer:
         """
         self.streamer = streamer
         self.socket_path = socket_path
+
         self.server_socket: Optional[socket.socket] = None
-        self.running = False
         self.thread: Optional[threading.Thread] = None
+        self.running = False
 
     def start(self) -> None:
         """Start the control server in a separate thread."""
         self.running = True
         self.thread = threading.Thread(target=self._run_server, daemon=True)
         self.thread.start()
+
         logging.info(f"Control server started on {self.socket_path}")
 
     def stop(self) -> None:
@@ -50,6 +52,8 @@ class ControlServer:
 
     def _run_server(self) -> None:
         """Main server loop."""
+
+        # Remove existing socket if any
         try:
             if os.path.exists(self.socket_path):
                 os.unlink(self.socket_path)
@@ -62,9 +66,9 @@ class ControlServer:
         try:
             self.server_socket.bind(self.socket_path)
             self.server_socket.listen(5)
-            self.server_socket.settimeout(1.0)  # Allow checking self.running
+            self.server_socket.settimeout(1.0)
 
-            # Set socket permissions
+            # Anyone has access
             os.chmod(self.socket_path, 0o666)
 
             while self.running:
@@ -79,8 +83,10 @@ class ControlServer:
                         daemon=True
                     )
                     client_thread.start()
+
                 except socket.timeout:
                     continue
+
                 except Exception as e:
                     if self.running:
                         logging.error(f"Server error: {e}")
@@ -88,6 +94,7 @@ class ControlServer:
         finally:
             if self.server_socket:
                 self.server_socket.close()
+
             try:
                 if os.path.exists(self.socket_path):
                     os.unlink(self.socket_path)
@@ -110,8 +117,10 @@ class ControlServer:
                 try:
                     command = json.loads(data.decode('utf-8'))
                     response = self._execute_command(command)
+
                 except json.JSONDecodeError as e:
                     response = {'status': 'error', 'message': f'Invalid JSON: {e}'}
+
                 except Exception as e:
                     response = {'status': 'error', 'message': str(e)}
 
@@ -133,14 +142,54 @@ class ControlServer:
             Response dictionary with status and result
         """
         action = command.get('action')
+        if not action:
+            return {'status': 'error', 'message': 'Missing action parameter'}
+
+        if action == 'stop':
+            self.streamer.stop()
+            return {'status': 'success', 'message': 'Pipeline stopped'}
+
+        element = command.get('element')
+        if not element:
+            return {'status': 'error', 'message': 'Missing element parameter'}
+
+        if action == 'list':
+            properties = self.streamer.list_properties(element)
+            return {
+                'status': 'success' if properties is not None else 'error',
+                'element': element,
+                'properties': self._serialize_properties(properties)
+            }
+
+        if action == 'update':
+            properties = command.get('properties')
+            if not properties:
+                return {'status': 'error', 'message': 'Missing properties parameter'}
+
+            success = self.streamer.update_properties(element, properties)
+            return {
+                'status': 'success' if success else 'error',
+                'element': element,
+                'properties': properties
+            }
+
+        property_name = command.get('property')
+        if not property_name:
+            return {'status': 'error', 'message': 'Missing property parameters'}
+
+        if action == 'get':
+            value = self.streamer.get_property(element, property_name)
+            return {
+                'status': 'success' if value is not None else 'error',
+                'element': element,
+                'property': property_name,
+                'value': self._serialize_value(value)
+            }
 
         if action == 'set':
-            element = command.get('element')
-            property_name = command.get('property')
             value = command.get('value')
-
-            if not all([element, property_name, value is not None]):
-                return {'status': 'error', 'message': 'Missing required parameters'}
+            if value is None:
+                return {'status': 'error', 'message': 'Missing value'}
 
             success = self.streamer.set_property(element, property_name, value)
             return {
@@ -150,54 +199,7 @@ class ControlServer:
                 'value': value
             }
 
-        elif action == 'get':
-            element = command.get('element')
-            property_name = command.get('property')
-
-            if not all([element, property_name]):
-                return {'status': 'error', 'message': 'Missing required parameters'}
-
-            value = self.streamer.get_property(element, property_name)
-            return {
-                'status': 'success' if value is not None else 'error',
-                'element': element,
-                'property': property_name,
-                'value': self._serialize_value(value)
-            }
-
-        elif action == 'list':
-            element = command.get('element')
-
-            if not element:
-                return {'status': 'error', 'message': 'Missing element parameter'}
-
-            properties = self.streamer.list_properties(element)
-            return {
-                'status': 'success' if properties is not None else 'error',
-                'element': element,
-                'properties': self._serialize_properties(properties)
-            }
-
-        elif action == 'update':
-            element = command.get('element')
-            properties = command.get('properties')
-
-            if not all([element, properties]):
-                return {'status': 'error', 'message': 'Missing required parameters'}
-
-            success = self.streamer.update_properties(element, properties)
-            return {
-                'status': 'success' if success else 'error',
-                'element': element,
-                'properties': properties
-            }
-
-        elif action == 'stop':
-            self.streamer.stop()
-            return {'status': 'success', 'message': 'Pipeline stopped'}
-
-        else:
-            return {'status': 'error', 'message': f'Unknown action: {action}'}
+        return {'status': 'error', 'message': f'Unknown action: {action}'}
 
     def _serialize_value(self, value: Any) -> Any:
         """
@@ -211,10 +213,13 @@ class ControlServer:
         """
         if value is None or isinstance(value, (str, int, float, bool)):
             return value
+
         elif isinstance(value, (list, tuple)):
             return [self._serialize_value(v) for v in value]
+
         elif isinstance(value, dict):
             return {k: self._serialize_value(v) for k, v in value.items()}
+
         else:
             # For GStreamer objects and other non-serializable types
             return str(value)

@@ -15,31 +15,6 @@ class ControlClient:
         """
         self.socket_path = socket_path
 
-    def _send_command(self, command: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Send a command to the control server.
-
-        Args:
-            command: Command dictionary
-
-        Returns:
-            Response dictionary
-        """
-        try:
-            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            sock.connect(self.socket_path)
-
-            # Send command
-            sock.sendall(json.dumps(command).encode('utf-8'))
-
-            # Receive response
-            response = sock.recv(4096).decode('utf-8')
-            sock.close()
-
-            return json.loads(response)
-        except Exception as e:
-            return {'status': 'error', 'message': str(e)}
-
     def set_property(self, element: str, property_name: str, value: Any) -> Dict[str, Any]:
         """Set a property on an element."""
         return self._send_command({
@@ -73,7 +48,27 @@ class ControlClient:
         })
 
     def stop_pipeline(self) -> Dict[str, Any]:
-        """Stop the pipeline."""
-        return self._send_command({
-            'action': 'stop'
-        })
+        return self._send_command({'action': 'stop'})
+
+    def _send_command(self, command: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Send a command to the control server.
+
+        Args:
+            command: Command dictionary
+
+        Returns:
+            Response dictionary
+        """
+        try:
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            sock.connect(self.socket_path)
+
+            sock.sendall(json.dumps(command).encode('utf-8'))
+            response = sock.recv(4096).decode('utf-8')
+            sock.close()
+
+            return json.loads(response)
+
+        except Exception as e:
+            return {'status': 'error', 'message': str(e)}
