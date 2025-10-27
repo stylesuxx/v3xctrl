@@ -1,0 +1,4 @@
+#! /bin/bash
+set -e
+
+v3xctrl-python -m v3xctrl_gst.apps.settings "$@"

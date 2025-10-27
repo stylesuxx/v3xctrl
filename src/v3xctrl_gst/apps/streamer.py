@@ -15,7 +15,6 @@ def main() -> None:
     parser.add_argument('port', type=int, help='Destination port')
     parser.add_argument('bind_port', type=int, help='Bind port')
 
-    # Optional arguments
     parser.add_argument('--width', type=int, default=1280, help='Video width (default: 1280)')
     parser.add_argument('--height', type=int, default=720, help='Video height (default: 720)')
     parser.add_argument('--framerate', type=int, default=30, help='Framerate (default: 30)')
@@ -28,7 +27,6 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    # Convert optional args to settings dict
     settings: Dict[str, Any] = {
         'width': args.width,
         'height': args.height,

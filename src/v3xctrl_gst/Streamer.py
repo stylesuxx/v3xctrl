@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 from datetime import datetime
@@ -7,6 +8,8 @@ import gi
 gi.require_version('Gst', '1.0')
 from gi.repository import Gst, GLib
 
+from v3xctrl_gst.ControlServer import ControlServer
+
 
 class Streamer:
     def __init__(
@@ -14,7 +17,8 @@ class Streamer:
         host: str,
         port: int,
         bind_port: int,
-        settings: Optional[Dict[str, Any]] = None
+        settings: Optional[Dict[str, Any]] = None,
+        control_socket: str = '/tmp/v3xctrl.sock'
     ) -> None:
         """
         Initialize the Streamer.
@@ -23,16 +27,8 @@ class Streamer:
             host: Destination host
             port: Destination port
             bind_port: Bind port
-            settings: Optional configuration dictionary with keys:
-                - width (int): Video width (default: 1280)
-                - height (int): Video height (default: 720)
-                - framerate (int): Framerate (default: 30)
-                - bitrate (int): Bitrate (default: 1800000)
-                - buffertime (int): Buffer time in nanoseconds (default: 150000000)
-                - sizebuffers (int): Size of buffers (default: 5)
-                - recording_dir (str): Directory to save recording (default: '')
-                - test_pattern (bool): Use test pattern instead of camera (default: False)
-                - i_frame_period (int): I-frame period (default: 30)
+            settings: Optional configuration dictionary
+            control_socket: Path to Unix socket file (default: /tmp/v3xctrl.sock)
         """
         self.host: str = host
         self.port: int = port
@@ -71,6 +67,8 @@ class Streamer:
         # Initialize GStreamer
         Gst.init(None)
 
+        self.control_server = ControlServer(self, control_socket)
+
     def _build_pipeline_string(self) -> str:
         """
         Build the GStreamer pipeline string based on settings.
@@ -86,7 +84,7 @@ class Streamer:
                 "timeoverlay halignment=center valignment=center"
             )
         else:
-            source_branch = "libcamerasrc name=src"
+            source_branch = "libcamerasrc name=camera"
 
         # Build tee branch for recording if needed
         tee_branch = ""
@@ -141,26 +139,26 @@ class Streamer:
         """
         t = message.type
         if t == Gst.MessageType.EOS:
-            print("End-of-stream")
+            logging.info("End-of-stream")
             self.stop()
         elif t == Gst.MessageType.ERROR:
             err, debug = message.parse_error()
-            print(f"Error: {err}, {debug}")
+            logging.error(f"Error: {err}, {debug}")
             self.stop()
         elif t == Gst.MessageType.WARNING:
             warn, debug = message.parse_warning()
-            print(f"Warning: {warn}, {debug}")
+            logging.warning(f"Warning: {warn}, {debug}")
 
     def start(self) -> None:
         """Create and start the pipeline."""
         pipeline_str = self._build_pipeline_string()
-        print(f"Launching pipeline:\n{pipeline_str}\n")
+        logging.info(f"Launching pipeline:\n{pipeline_str}\n")
 
         # Create pipeline
         try:
             self.pipeline = Gst.parse_launch(pipeline_str)
         except GLib.Error as e:
-            print(f"Failed to create pipeline: {e}")
+            logging.error(f"Failed to create pipeline: {e}")
             sys.exit(1)
 
         # Set up bus
@@ -174,12 +172,18 @@ class Streamer:
             print("Unable to set the pipeline to the playing state.")
             sys.exit(1)
 
-        print("Pipeline running. Press Ctrl+C to stop.")
+        logging.info("Pipeline running. Press Ctrl+C to stop.")
+
+        self.control_server.start()
 
     def stop(self) -> None:
         """Stop the pipeline and quit the main loop."""
+        if self.control_server:
+            self.control_server.stop()
+
         if self.pipeline:
             self.pipeline.set_state(Gst.State.NULL)
+
         if self.loop:
             self.loop.quit()
 
@@ -191,11 +195,13 @@ class Streamer:
         self.loop = GLib.MainLoop()
         try:
             self.loop.run()
+
         except KeyboardInterrupt:
-            print("\nInterrupted by user")
+            logging.info("\nInterrupted by user")
+
         finally:
             self.stop()
-            print("Pipeline stopped.")
+            logging.info("Pipeline stopped.")
 
     def get_element(self, name: str) -> Optional[Gst.Element]:
         """
@@ -210,3 +216,103 @@ class Streamer:
         if self.pipeline:
             return self.pipeline.get_by_name(name)
         return None
+
+    def set_property(self, element_name: str, property_name: str, value: Any) -> bool:
+        """
+        Set a property on a named element.
+
+        Args:
+            element_name: Name of the element
+            property_name: Name of the property
+            value: Value to set
+
+        Returns:
+            True if successful, False otherwise
+        """
+        element = self.get_element(element_name)
+        if element is None:
+            logging.warn(f"Element '{element_name}' not found")
+            return False
+
+        try:
+            element.set_property(property_name, value)
+            return True
+
+        except Exception as e:
+            logging.error(f"Failed to set property '{property_name}' on element '{element_name}': {e}")
+            return False
+
+    def get_property(self, element_name: str, property_name: str) -> Optional[Any]:
+        """
+        Get a property value from a named element.
+
+        Args:
+            element_name: Name of the element
+            property_name: Name of the property
+
+        Returns:
+            Property value or None if not found
+        """
+        element = self.get_element(element_name)
+        if element is None:
+            logging.error(f"Element '{element_name}' not found")
+            return None
+
+        try:
+            return element.get_property(property_name)
+        except Exception as e:
+            logging.error(f"Failed to get property '{property_name}' from element '{element_name}': {e}")
+            return None
+
+    def update_properties(self, element_name: str, properties: Dict[str, Any]) -> bool:
+        """
+        Update multiple properties on a named element at once.
+
+        Args:
+            element_name: Name of the element
+            properties: Dictionary of property names and values
+
+        Returns:
+            True if all properties were set successfully, False otherwise
+        """
+        element = self.get_element(element_name)
+        if element is None:
+            logging.error(f"Element '{element_name}' not found")
+            return False
+
+        success = True
+        for prop_name, value in properties.items():
+            try:
+                element.set_property(prop_name, value)
+            except Exception as e:
+                logging.error(f"Failed to set property '{prop_name}' on element '{element_name}': {e}")
+                success = False
+
+        return success
+
+    def list_properties(self, element_name: str) -> Optional[Dict[str, Any]]:
+        """
+        List all properties and their current values for a named element.
+
+        Args:
+            element_name: Name of the element
+
+        Returns:
+            Dictionary of property names and values, or None if element not found
+        """
+        element = self.get_element(element_name)
+        if element is None:
+            logging.error(f"Element '{element_name}' not found")
+            return None
+
+        properties = {}
+        for prop in element.list_properties():
+            try:
+                prop_name = prop.name
+                value = element.get_property(prop_name)
+                properties[prop_name] = value
+            except Exception:
+                # Some properties might not be readable
+                pass
+
+        return properties
