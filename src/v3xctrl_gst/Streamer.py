@@ -44,12 +44,13 @@ class Streamer:
             'recording_dir': '',
             'test_pattern': False,
             'i_frame_period': 30,
-            'bitrate_mode': 1,
+            'bitrate_mode': 1,  # 0 VBR, 1: CBR
             'buffertime_udp': 150000000,
             'sizebuffers_udp': 5,
             'h264_profile': 0,
             'h264_level': 31,
             'sizebuffers_write': 30,
+            'mtu': 1400,
         }
 
         self.settings: Dict[str, Any] = default_settings.copy()
@@ -353,6 +354,7 @@ class Streamer:
 
         payloader.set_property("config-interval", 1)
         payloader.set_property("pt", 96)
+        payloader.set_property("mtu", self.settings['mtu'])
 
         udpsink = Gst.ElementFactory.make("udpsink", "udpsink")
         if not udpsink:
