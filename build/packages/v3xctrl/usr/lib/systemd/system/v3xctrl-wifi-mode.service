@@ -1,7 +1,7 @@
 [Unit]
 Description=Switch between Wi-Fi client and AP mode
-After=sys-subsystem-net-devices-wlan0.device v3xctrl-setup-env.service
-Requires=sys-subsystem-net-devices-wlan0.device v3xctrl-setup-env.service
+After=sys-subsystem-net-devices-wlan0.device NetworkManager.service v3xctrl-setup-env.service
+Requires=sys-subsystem-net-devices-wlan0.device NetworkManager.service v3xctrl-setup-env.service
 
 [Service]
 Type=oneshot

@@ -55,6 +55,10 @@ v3xctrl-pip install \
 
 # Remove cache dirs
 find "${PYTHON_LIB_PATH}" -name '__pycache__' -type d -exec rm -rf {} +
+find "${PYTHON_LIB_PATH}" -name "*.so" -exec strip --strip-unneeded {} \; 2>/dev/null || true
+
+# Fix file permissions
+chmod 440 "${DEST_DIR}/etc/sudoers.d/010_v3xctrl"
 
 # Build the deb package
 gzip -9 -n "${DEST_DIR}/usr/share/doc/${NAME}/changelog"

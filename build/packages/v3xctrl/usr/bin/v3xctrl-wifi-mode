@@ -1,10 +1,5 @@
 #!/bin/bash
 
-# Make sure dhcpcd service is disabled!
-#
-# We either blacklist or enable wlan0 from dhcpcd.conf, but we will start it in
-# any case, so all other devices will get an IP via DHCP.
-
 set -e
 
 ENV_PATH="/run/v3xctrl.env"
@@ -13,9 +8,8 @@ source "${ENV_PATH}"
 INTERFACE="wlan0"
 SUBNET="192.168.23"
 AP_IP="$SUBNET.1"
-HOSTAPD_CONF="/etc/hostapd/hostapd.conf"
-DNSMASQ_CONF="/etc/dnsmasq.d/ap.conf"
 FALLBACK_TIMEOUT=15
+AP_CONNECTION="v3xctrl-ap"
 
 if [ "$EUID" -ne 0 ]; then
   echo "This script must be run as root (for example with sudo)."
@@ -32,50 +26,48 @@ fi
 DEVICE_ID=$(awk '/Serial/ {print substr($NF, length($NF)-7)}' /proc/cpuinfo)
 SSID="${NAME}-$DEVICE_ID"
 
+setup_ap_connection() {
+  # Check if AP connection already exists
+  if nmcli connection show "$AP_CONNECTION" &>/dev/null; then
+    echo "AP connection already exists"
+    return 0
+  fi
+
+  echo "Creating AP connection profile..."
+
+  # Create hotspot connection (NetworkManager handles DHCP/DNS automatically)
+  nmcli connection add \
+    type wifi \
+    ifname "$INTERFACE" \
+    con-name "$AP_CONNECTION" \
+    autoconnect no \
+    ssid "$SSID" \
+    mode ap \
+    ipv4.method shared \
+    ipv4.addresses "$AP_IP/24"
+
+  # Set WPA2 password
+  nmcli connection modify "$AP_CONNECTION" \
+    wifi-sec.key-mgmt wpa-psk \
+    wifi-sec.psk "raspberry"
+
+  # Set channel
+  nmcli connection modify "$AP_CONNECTION" \
+    802-11-wireless.band bg \
+    802-11-wireless.channel 6
+}
+
 switch_to_ap() {
   echo "Switching to AP mode"
 
-  systemctl stop wpa_supplicant || true
+  # Ensure AP connection exists
+  setup_ap_connection
 
-  # Disable DHCP for wlan0 in dhcpcd.conf
-  if ! grep -q "^denyinterfaces $INTERFACE" /etc/dhcpcd.conf; then
-    echo "denyinterfaces $INTERFACE" > /etc/dhcpcd.conf.override
-    cat /etc/dhcpcd.conf >> /etc/dhcpcd.conf.override
-    mv /etc/dhcpcd.conf.override /etc/dhcpcd.conf
-  fi
-  systemctl restart dhcpcd
+  # Bring down any active connections on wlan0
+  nmcli device disconnect "$INTERFACE" || true
 
-  ip link set "$INTERFACE" down
-  ip addr flush dev "$INTERFACE"
-  ip addr add "$AP_IP/24" dev "$INTERFACE"
-  ip link set "$INTERFACE" up
-
-  cat > "$HOSTAPD_CONF" <<EOF
-interface=$INTERFACE
-driver=nl80211
-ssid=$SSID
-hw_mode=g
-channel=6
-wmm_enabled=0
-macaddr_acl=0
-auth_algs=1
-ignore_broadcast_ssid=0
-wpa=2
-wpa_passphrase=raspberry
-wpa_key_mgmt=WPA-PSK
-rsn_pairwise=CCMP
-EOF
-
-  cat > "$DNSMASQ_CONF" <<EOF
-interface=$INTERFACE
-dhcp-range=$SUBNET.10,$SUBNET.50,255.255.255.0,24h
-EOF
-
-  sed -i 's|^#*DAEMON_CONF=.*|DAEMON_CONF="'"$HOSTAPD_CONF"'"|' /etc/default/hostapd
-
-  systemctl restart dnsmasq
-  systemctl unmask hostapd
-  systemctl restart hostapd
+  # Bring up AP
+  nmcli connection up "$AP_CONNECTION"
 
   echo "AP mode enabled at $AP_IP with SSID: $SSID"
 }
@@ -83,31 +75,67 @@ EOF
 switch_to_client() {
   echo "Switching to client mode"
 
-  systemctl stop hostapd || true
-  systemctl stop dnsmasq || true
+  # Bring down and DELETE AP connection
+  if nmcli connection show "$AP_CONNECTION" &>/dev/null; then
+    nmcli connection down "$AP_CONNECTION" 2>/dev/null || true
+    nmcli connection delete "$AP_CONNECTION"
+    echo "Deleted AP connection profile"
+  fi
 
-  # Make sure wlan0 can get an IP via DHCP
-  sed -i "/^denyinterfaces $INTERFACE/d" /etc/dhcpcd.conf
-
-  ip link set "$INTERFACE" down
-  ip addr flush dev "$INTERFACE"
-  ip link set "$INTERFACE" up
-
-  systemctl start wpa_supplicant
-  systemctl restart dhcpcd
-
-  echo "Waiting up to $FALLBACK_TIMEOUT seconds for IP..."
-
-  for i in $(seq 1 "$FALLBACK_TIMEOUT"); do
-    if ip -4 addr show "$INTERFACE" | grep -q 'inet '; then
-      echo "Client mode successful: IP assigned."
+  # Check if already connected in client mode
+  STATE=$(nmcli -t -f DEVICE,STATE device | grep -E "^$INTERFACE:" | grep -v '^p2p-' | cut -d: -f2)
+  if [ "$STATE" = "connected" ]; then
+    # Verify it's not connected to the AP (which should be deleted now anyway)
+    CURRENT_CONN=$(nmcli -t -f DEVICE,CONNECTION device | grep "^$INTERFACE:" | cut -d: -f2)
+    if [ "$CURRENT_CONN" != "$AP_CONNECTION" ] && [ -n "$CURRENT_CONN" ]; then
+      IP=$(nmcli -t -f IP4.ADDRESS device show "$INTERFACE" | cut -d: -f2 | cut -d/ -f1)
+      echo "Already connected to Wi-Fi ($CURRENT_CONN) with IP $IP. No further action needed."
       return 0
     fi
-    sleep 1
-  done
+  fi
 
-  echo "Client mode failed after $FALLBACK_TIMEOUT seconds. Falling back to AP mode."
-  switch_to_ap
+  # Get list of preconfigured Wi-Fi connections (excluding AP if it somehow still exists)
+  WIFI_CONNECTIONS=$(nmcli -t -f TYPE,NAME connection show | grep "^802-11-wireless:" | grep -v ":$AP_CONNECTION$" | cut -d: -f2)
+
+  if [ -z "$WIFI_CONNECTIONS" ]; then
+    echo "No Wi-Fi networks configured. Falling back to AP mode."
+    switch_to_ap
+    return 0
+  fi
+
+  # Explicitly try to connect to the first available preconfigured network
+  echo "Found preconfigured networks: $WIFI_CONNECTIONS"
+
+  # Disconnect the interface first to ensure clean state
+  nmcli device disconnect "$INTERFACE" || true
+
+  # Try each preconfigured connection
+  CONNECTED=false
+  while IFS= read -r CONN; do
+    echo "Attempting to connect to: $CONN"
+    if nmcli connection up "$CONN" ifname "$INTERFACE" 2>/dev/null; then
+      echo "Waiting up to $FALLBACK_TIMEOUT seconds for connection..."
+
+      for i in $(seq 1 "$FALLBACK_TIMEOUT"); do
+        STATE=$(nmcli -t -f DEVICE,STATE device | grep "^$INTERFACE:" | cut -d: -f2)
+        if [ "$STATE" = "connected" ]; then
+          IP=$(nmcli -t -f IP4.ADDRESS device show "$INTERFACE" | cut -d: -f2 | cut -d/ -f1)
+          echo "Client mode successful: Connected to '$CONN' with IP $IP"
+          CONNECTED=true
+          break 2
+        fi
+        sleep 1
+      done
+
+      echo "Connection to '$CONN' timed out, trying next..."
+    fi
+  done <<< "$WIFI_CONNECTIONS"
+
+  if [ "$CONNECTED" = false ]; then
+    echo "Client mode failed after trying all networks. Falling back to AP mode."
+    switch_to_ap
+    return 0
+  fi
 }
 
 if [ "$MODE" == "ap" ]; then

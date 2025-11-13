@@ -9,7 +9,7 @@ if ! getent passwd $USER > /dev/null; then
   useradd --system --no-create-home --shell /usr/sbin/nologin $USER
 fi
 
-usermod -aG video,dialout,systemd-journal,i2c,gpio $USER
+usermod -aG render,video,dialout,systemd-journal,i2c,gpio $USER
 
 chown $USER:$USER "/etc/${NAME}"
 find "/etc/${NAME}" -maxdepth 1 -name '*.json' -exec chown $USER:$USER {} +
@@ -18,35 +18,23 @@ chmod 640 "/etc/${NAME}/config.json"
 if command -v systemctl >/dev/null 2>&1; then
   # Disable services that we do not need or are handled by other services
   systemctl disable \
-    wpa_supplicant.service \
-    hostapd.service \
-    dnsmasq.service \
     rpi-eeprom-update.service \
     rsync.service \
-    triggerhappy.service triggerhappy.socket \
     udisks2.service \
     apt-daily.timer apt-daily-upgrade.timer \
     man-db.timer \
     e2scrub_all.timer e2scrub_reap.service \
     fstrim.timer \
-    rsyslog.service \
-    rpi-display-backlight.service \
     remote-fs.target \
-    nfs-client.target \
     nmbd.service \
     keyboard-setup.service \
-    rng-tools-debian.service \
     bluetooth.service \
-    bthelper@hci0.service \
-    hciuart.service \
-    ModemManager.service \
-    dhcpcd.service
+    ModemManager.service
 
   # Enable our services on start
   systemctl enable \
     v3xctrl-config-server.service \
     v3xctrl-service-manager.service \
-    v3xctrl-cleanup.service \
     v3xctrl-wifi-mode.service \
     v3xctrl-setup-env.service
 

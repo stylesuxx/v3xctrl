@@ -20,5 +20,20 @@ echo -e "\
 
  Web Configurator:   http://${IP}:${network_ports_webinterface}
  Start video stream: sudo systemctl start v3xctrl-video
- Start control:      sudo systemctl start v3xctrl-control
- Mount Read/Write:   sudo v3xctrl-remount rw"
+ Start control:      sudo systemctl start v3xctrl-control"
+
+if grep -q "overlayroot" /proc/mounts 2>/dev/null; then
+  echo " Mount Read/Write:   sudo v3xctrl-remount rw"
+  echo
+  echo " =========================================="
+  echo "          SYSTEM IN READ-ONLY MODE         "
+  echo " =========================================="
+  echo " Root filesystem is protected with overlay"
+  echo " All changes are stored in RAM (tmpfs)"
+  echo " Changes will be LOST on reboot/power cycle"
+  echo " =========================================="
+  echo
+else
+  echo " Mount Read-Only:    sudo v3xctrl-remount ro"
+  echo
+fi

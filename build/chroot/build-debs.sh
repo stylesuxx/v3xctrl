@@ -1,6 +1,7 @@
 #!/bin/bash
 LOCALE="en_US.UTF-8"
 
+echo '[CHROOT] Installing dependencies'
 apt update
 apt install -y \
   curl build-essential libssl-dev libbz2-dev libsqlite3-dev ca-certificates \
@@ -24,3 +25,5 @@ fi
 
 echo '[CHROOT] Building v3xctrl'
 ./build/build-v3xctrl.sh /src
+
+echo '[CHROOT] Build v3xctrl done...'

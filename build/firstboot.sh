@@ -1,22 +1,17 @@
 #!/bin/bash
 
 # Our firstboot script is running AFTER PIs firstboot is running.
-# Unfortunately the set-wlan service is configured during this first boot, but
-# only actually executed on the second boot - where we want to run our custom
-# script. But we need to wait until the set-wlan service has finished executing
-# before we can set the partitions RO - otherwise we risk that the set-wlan
-# service does it's job, but never actually deletes itself.
 
 # If at all possible add functionality to the image customization script instead
-# of here. Only things that really NEED to be don here, should be.
+# of here. Only things that really NEED to be don here, should be:
+# - expands data partition to max available size
+# - Copy config files to data partition
+# - enables overlay FS (RO mode)
+# - Disables serial console on success
+# - Disables firstboot warning MOTD
 
 set -xe
-exec > /boot/firstboot.log 2>&1
-
-while [ -f "/var/lib/raspberrypi-sys-mods/set-wlan" ]; do
-  echo "[v3xctrl-firstboot] Waiting for set-wlan to finish..."
-  sleep 1
-done
+exec > /boot/firmware/firstboot.log 2>&1
 
 PART="/dev/mmcblk0p3"
 TARGET="/data"
@@ -54,14 +49,12 @@ echo "[v3xctrl-firstboot] Mounting ${TARGET} and creating folder structure..."
 mount "$TARGET"
 mkdir -p "${TARGET}/config"
 
-dphys-swapfile swapoff
-if [ -f /var/swap ]; then
-  mv "/var/swap" "${TARGET}/swap"
-fi
-sed -i \
-  -e 's|^#\?CONF_SWAPFILE=.*|CONF_SWAPFILE=/data/swap|' \
-  /etc/dphys-swapfile
-dphys-swapfile swapon
+echo "[v3xctrl-firstboot] Disable swap file..."
+sudo mkdir -p /etc/rpi/swap.conf.d/
+sudo tee /etc/rpi/swap.conf.d/zram-only.conf > /dev/null << 'EOF'
+[Main]
+Mechanism=zram
+EOF
 
 echo "[v3xctrl-firstboot] Copy config files to persistent storage"
 if [ -f "/etc/v3xctrl/config.json" ]; then
@@ -70,34 +63,26 @@ if [ -f "/etc/v3xctrl/config.json" ]; then
   chmod a+r "${TARGET}/config/config.json"
 fi
 
-if [ -f "/etc/wpa_supplicant/wpa_supplicant.conf" ]; then
-  mv "/etc/wpa_supplicant/wpa_supplicant.conf" "${TARGET}/config/wpa_supplicant.conf"
-  ln -sf "${TARGET}/config/wpa_supplicant.conf" "/etc/wpa_supplicant/wpa_supplicant.conf"
+NM_CONNECTIONS="/etc/NetworkManager/system-connections"
+if [ -d "$NM_CONNECTIONS" ] && [ -n "$(ls -A $NM_CONNECTIONS 2>/dev/null)" ]; then
+  echo "[v3xctrl-firstboot] Moving NetworkManager connections to persistent storage..."
+
+  mv "$NM_CONNECTIONS" "${TARGET}/config/NetworkManager"
+  ln -s "${TARGET}/config/NetworkManager" "$NM_CONNECTIONS"
 fi
 
-# Enable overlay fs
-# This creates /boot/initrd.img* and adds boot=overlay to cmdline.txt
-# In order to disable the overlay fs, it is enough to remove the boot=overlay
-# parameter from cmdline.txt
-#
-# This needs to happen at runtime - during image generation not everything is
-# in place yet.
 echo "[v3xctrl-firstboot] Enabling overlay fs..."
-raspi-config nonint enable_overlayfs
-
-echo "[v3xctrl-firstboot] Switching to read-only mode..."
 v3xctrl-remount ro
 
-echo "[v3xctrl-firstboot] Setting /boot to RO via /etc/fstab"
-sed -i '/\/boot/ s|\(/boot[[:space:]]\+vfat[[:space:]]\+\)[^[:space:]]\+|\1ro|' /etc/fstab
+echo "[v3xctrl-firstboot] Disabling serial console..."
+sed -i 's/console=serial0,115200 //g' /boot/firmware/cmdline.txt
 
 echo "[v3xctrl-firstboot] Cleaning up..."
 systemctl disable v3xctrl-firstboot.service
-systemctl mask v3xctrl-firstboot.service
-rm -f /boot/firstboot.sh
+rm -f /boot/firmware/firstboot.sh
 
 echo "[v3xctrl-firstboot] Removing firstboot warning..."
-rm "/etc/profile.d/10_v3xctrl-motd-firstboot.sh"
+rm -f "/etc/profile.d/10_v3xctrl-motd-firstboot.sh"
 
 echo "[v3xctrl-firstboot] First boot setup complete."
 reboot

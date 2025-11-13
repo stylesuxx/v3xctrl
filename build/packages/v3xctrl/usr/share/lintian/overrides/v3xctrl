@@ -1,0 +1,2 @@
+# Python venv installed to /opt for isolation from system Python
+v3xctrl: dir-or-file-in-opt
