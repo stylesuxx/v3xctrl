@@ -71,6 +71,14 @@ if [ -d "$NM_CONNECTIONS" ] && [ -n "$(ls -A $NM_CONNECTIONS 2>/dev/null)" ]; th
   ln -s "${TARGET}/config/NetworkManager" "$NM_CONNECTIONS"
 fi
 
+NETPLAN="/etc/netplan"
+if [ -d "$NETPLAN" ] && [ -n "$(ls -A $NETPLAN 2>/dev/null)" ]; then
+  echo "[v3xctrl-firstboot] Moving netplan to persistent storage..."
+
+  mv "$NETPLAN" "${TARGET}/config/netplan"
+  ln -s "${TARGET}/config/netplan" "$NETPLAN"
+fi
+
 echo "[v3xctrl-firstboot] Enabling overlay fs..."
 v3xctrl-remount ro
 
