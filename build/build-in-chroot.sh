@@ -1,6 +1,16 @@
 #!/bin/bash
 set -e
 
+# Parse arguments
+BUILD_PARAMS=""
+while [[ "$#" -gt 0 ]]; do
+  case $1 in
+    --skip-deps|-s) BUILD_PARAMS="--skip-deps" ;;
+    *) echo "Unknown parameter: $1"; exit 1 ;;
+  esac
+  shift
+done
+
 if [[ $EUID -ne 0 ]]; then
   echo "This script must be run as root" >&2
   exit 1
@@ -64,8 +74,11 @@ mount -t devpts devpts "$MOUNT_DIR/dev/pts"
 echo "[HOST] Copying qemu-aarch64-static for chroot emulation"
 cp /usr/bin/qemu-aarch64-static "$MOUNT_DIR/usr/bin/"
 
-echo "[HOST] Moving build files into place"
+echo "[HOST] Cleaning previous build"
 rm -rf "${MOUNT_DIR}/src"
+rm -rf "${MOUNT_DIR}/build-debs.sh"
+
+echo "[HOST] Moving source files into place"
 mkdir -p "${MOUNT_DIR}/src/${PACKAGES_DIR}"
 
 cp -r "./${PACKAGES_DIR}/v3xctrl-python" "${MOUNT_DIR}/src/${PACKAGES_DIR}"
@@ -76,11 +89,13 @@ cp -r "./build/build-python.sh" "${MOUNT_DIR}/src/build"
 cp -r "./build/build-v3xctrl.sh" "${MOUNT_DIR}/src/build"
 cp -r "./web-server" "${MOUNT_DIR}/src"
 cp -r "./src" "${MOUNT_DIR}/src"
+
+echo "[HOST] Moving build script into place"
 cp "./build/chroot/build-debs.sh" "${MOUNT_DIR}"
 chmod +x "${MOUNT_DIR}/build-debs.sh"
 
 echo "[HOST] Entering chroot and starting build"
-chroot "$MOUNT_DIR" "./build-debs.sh"
+chroot "$MOUNT_DIR" "./build-debs.sh" ${BUILD_PARAMS}
 
-echo "[HOST] Entering chroot and starting build"
+echo "[HOST] Copying deb packages into place"
 cp ${MOUNT_DIR}/src/build/tmp/*.deb "${DEB_PATH}"

@@ -1,7 +1,19 @@
 #! /bin/bash
+#
 # Command is expected to be run from the root of the project diretory.
-# This script is meant for easy package rebuild and install during development.
+#
+# This script is meant for easy package rebuild and install during development
+# on the RPi directly. Prefered method is to build on the host machine via
+# chroot, this is just for convenience and people who don't run Linux on their
+# dev machines for whatever strange reason.
 set -e
+
+if [[ "$EUID" -ne 0 ]]; then
+  echo "[${NAME}] Please run as root (use sudo)" >&2
+  exit 1
+fi
+
+NAME="v3xctrl"
 
 MODE=${1:-default}
 PWD=$(pwd)
@@ -16,79 +28,56 @@ print_banner() {
   echo "$border"
 }
 
+print_usage() {
+  cat << EOF
+Usage: $0 <command>
+
+Commands:
+  setup     Update OS and install dependencies
+  update    Build v3xctrl and install the deb package
+
+Examples:
+  $0 setup
+  $0 update
+EOF
+}
+
 update_and_install() {
   print_banner "UPDATING OS AND INSTALLING DEPENDENCIES"
 
-  sudo apt update
-  sudo apt upgrade -y
-  sudo apt install -y mtr minicom screen lintian bc stress-ng
-}
-
-build_python() {
-  SWAP_SIZE=8192
-  SWAP_PATH="/etc/dphys-swapfile"
-
-  # Increase swap size
-  sudo dphys-swapfile swapoff
-  sudo sed -i \
-    -e "s/^CONF_SWAPSIZE=.*/CONF_SWAPSIZE=${SWAP_SIZE}/" \
-    -e "s/^#CONF_MAXSWAP=.*/CONF_MAXSWAP=${SWAP_SIZE}/" \
-    $SWAP_PATH
-  sudo dphys-swapfile setup
-  sudo dphys-swapfile swapon
-
-  sudo apt update
-  sudo apt install -y build-essential libssl-dev libbz2-dev libsqlite3-dev \
-    liblzma-dev libreadline-dev libctypes-ocaml-dev libcurses-ocaml-dev \
-    libffi-dev
-
-  sudo ./build/build-python.sh
+  apt update
+  apt upgrade -y
+  apt install -y lintian mtr minicom screen bc stress-ng
 }
 
 install_deb() {
   PKG="$1"
-  print_banner "INSTALLING ${PKG}"
+  print_banner "Updating ${PKG}"
 
   if dpkg -s "$PKG" >/dev/null 2>&1; then
-    sudo apt remove -y "$PKG"
+    apt remove -y "$PKG"
   fi
-  sudo apt install -y "./build/tmp/${PKG}.deb"
+  apt install -y "./build/tmp/${PKG}.deb"
 }
 
 # This is used when you want to build and install the deb from your local
 # development fork.
 build_v3xctrl() {
   print_banner "BUILDING V3XCTRL"
-  PKG="v3xctrl"
 
-  sudo ./build/build-${PKG}.sh
-}
-
-check_for_modem() {
-  local IFACE=$(ip -o link show | awk -F': ' '{print $2}' | grep -vE '^(lo|wlan0)$' | head -n1)
-
-  if [ -n "$IFACE" ]; then
-    echo "Potential Modem found: $IFACE"
-  else
-    echo "No 4g modem found - make sure it is plugged in and shows up via 'ip -c a'"
-  fi
+  ./build/build-${NAME}.sh
 }
 
 case "$MODE" in
-  python)
-    build_python
-    install_deb v3xctrl-python
-
-    # Print versions to make sure everything is in place and working
-    v3xctrl-python --version
-    v3xctrl-pip --version
-    ;;
   update)
     build_v3xctrl
-    install_deb v3xctrl
+    install_deb "${NAME}"
+    ;;
+  setup)
+    update_and_install
     ;;
   *)
-    update_and_install
-    check_for_modem
-    ;;
+    print_usage
+    exit 1
+  ;;
 esac
