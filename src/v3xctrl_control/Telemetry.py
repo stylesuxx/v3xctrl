@@ -34,8 +34,8 @@ class Telemetry(threading.Thread):
                 'rsrp': -1
             },
             'cell': {
-                'id': 0,
-                'band': 0,
+                'id': '?',
+                'band': '?',
             },
             'loc': {
                 'lat': 0,
@@ -69,6 +69,7 @@ class Telemetry(threading.Thread):
     def _init_modem(self) -> bool:
         try:
             self._modem = AIR780EU(self._modem_path)
+            self._modem.enable_location_reporting()
             if not self._modem:
                 logging.warning("Modem unavailable...")
                 self._modem = None
@@ -88,6 +89,7 @@ class Telemetry(threading.Thread):
 
     def _set_cell_unknown(self) -> None:
         with self._lock:
+            self.telemetry['cell']['id'] = "?"
             self.telemetry['cell']['band'] = "?"
 
     def _update_signal(self) -> None:
@@ -113,7 +115,9 @@ class Telemetry(threading.Thread):
         if self._modem:
             try:
                 band = self._modem.get_active_band()
+                id = self._modem.get_cell_location()[3]
                 with self._lock:
+                    self.telemetry['cell']['id'] = id
                     self.telemetry['cell']['band'] = band
             except Exception as e:
                 self._set_cell_unknown()

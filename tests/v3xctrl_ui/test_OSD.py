@@ -64,12 +64,13 @@ class TestOSD(unittest.TestCase):
     def test_telemetry_update_sets_values(self):
         telemetry = Telemetry({
             "sig": {"rsrq": -9, "rsrp": -95},
-            "cell": {"band": 3},
+            "cell": {"band": 3, "id": 0x0000F002},
             "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False}
         })
         self.osd._telemetry_update(telemetry)
         self.assertEqual(self.osd.signal_quality["rsrq"], -9)
         self.assertEqual(self.osd.signal_band, "BAND 3")
+        self.assertEqual(self.osd.signal_cell, "240:2")
         self.assertEqual(self.osd.battery_percent, "75%")
 
     @patch("v3xctrl_ui.OSD.pygame.display.get_window_size", return_value=(800, 600))
