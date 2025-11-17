@@ -28,7 +28,7 @@ class VideoReceiverPyAV(VideoReceiver):
     def __init__(
         self,
         port: int,
-        error_callback: Callable[[], None],
+        keep_alive: Callable[[], None],
         log_interval: int = 10,
         history_size: int = 100,
         max_frame_age_ms: int = 500,
@@ -36,7 +36,7 @@ class VideoReceiverPyAV(VideoReceiver):
     ) -> None:
         super().__init__(
             port,
-            error_callback,
+            keep_alive,
             log_interval,
             history_size,
             max_frame_age_ms,
@@ -124,6 +124,10 @@ class VideoReceiverPyAV(VideoReceiver):
                                 self.container = None
                     except Exception as e:
                         logging.warning(f"Container close failed during error recovery: {e}")
+
+                    finally:
+                        # We are not getting a video stream, send keep alive
+                        self.keep_alive()
 
                 except Exception as e:
                     logging.exception(f"Unexpected error in receiver thread: {e}")

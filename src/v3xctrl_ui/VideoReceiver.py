@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from collections import deque
 import logging
-import math
 import threading
 import time
 from typing import Callable, Deque, Optional
@@ -68,7 +67,7 @@ class VideoReceiver(ABC, threading.Thread):
     def __init__(
         self,
         port: int,
-        error_callback: Callable[[], None],
+        keep_alive: Callable[[], None],
         log_interval: int = 10,
         history_size: int = 100,
         max_frame_age_ms: int = 500,
@@ -77,7 +76,7 @@ class VideoReceiver(ABC, threading.Thread):
         super().__init__()
 
         self.port = port
-        self.error_callback = error_callback
+        self.keep_alive = keep_alive
         self.log_interval = log_interval
         self.max_age_seconds = max_frame_age_ms / 1000
 

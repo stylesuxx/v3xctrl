@@ -1,4 +1,4 @@
-from typing import Callable, List, Tuple, Any
+from typing import List, Tuple, Any
 
 import pygame
 from pygame import display, time
@@ -8,7 +8,6 @@ from v3xctrl_control.message import Message
 from v3xctrl_control.State import State
 
 from v3xctrl_ui.Settings import Settings
-from v3xctrl_ui.VideoReceiverPyAV import VideoReceiverPyAV as VideoReceiver
 
 
 class Init:
@@ -69,19 +68,3 @@ class Init:
         pygame.key.set_repeat(400, 40)
 
         return screen, clock
-
-    @classmethod
-    def video_receiver(
-        cls,
-        port: int,
-        error_callback: Callable[[], None],
-        render_ratio: int
-    ) -> VideoReceiver:
-        video_receiver = VideoReceiver(
-            port,
-            error_callback,
-            render_ratio=render_ratio
-        )
-        video_receiver.start()
-
-        return video_receiver

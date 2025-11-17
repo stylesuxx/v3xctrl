@@ -12,6 +12,7 @@ from v3xctrl_udp_relay.Peer import Peer
 from v3xctrl_ui.helpers import get_external_ip
 from v3xctrl_ui.Init import Init
 from v3xctrl_ui.Settings import Settings
+from v3xctrl_ui.VideoReceiverPyAV import VideoReceiverPyAV as VideoReceiver
 
 
 class NetworkManager:
@@ -31,36 +32,34 @@ class NetworkManager:
         self.server_error = None
 
         # Relay state
-        self.relay_status_message = "Waiting for streamer..."
         self.relay_enable = False
         self.relay_server = None
         self.relay_port = 8888
+        self.relay_status_message = "Waiting for streamer..."
         self.relay_id = None
-        self.peer: Peer | None = None
+        self.peer: Optional[Peer] = None
 
-        self._setup_relay_if_enabled()
-        self._print_connection_info_if_needed()
-
-    def setup_relay(self, relay_server: str, relay_id: str) -> None:
-        """Configure relay connection parameters."""
-        self.relay_enable = True
-        self.relay_id = relay_id
-
-        if relay_server and ':' in relay_server:
-            host, port = relay_server.rsplit(':', 1)
-            self.relay_server = host
-            try:
-                self.relay_port = int(port)
-            except ValueError:
-                logging.warning(f"Invalid port in relay_server: '{relay_server}', falling back to default {self.relay_port}")
-        else:
-            self.relay_server = relay_server
+        self._setup_relay_configuration_if_enabled()
+        self._print_direct_connection_info_if_enabled()
 
     def setup_ports(self) -> None:
-        """Setup video and control ports in a background thread."""
+        """
+        Setup video and control ports in a background thread.
+
+        Will initiate the handshake with the relay server if it is configured,
+        otherwise direct connection is assumed.
+        """
         def task() -> None:
+            relay_handshake_established = False
             video_address = None
             if self.relay_enable and self.relay_server and self.relay_id:
+                """
+                Will block until relay handshake is complete or a peer
+                registration error occurred, like unknown session ID.
+
+                Relay handshake is complete when the relay has received
+                annoncements from both, viewer and streamer.
+                """
                 local_bind_ports = {
                     "video": self.video_port,
                     "control": self.control_port
@@ -70,13 +69,18 @@ class NetworkManager:
                 try:
                     addresses = self.peer.setup("viewer", local_bind_ports)
                     video_address = addresses["video"]
+                    relay_handshake_established = True
                 except PeerRegistrationError as e:
                     self.relay_status_message = "Peer registration failed - check server and ID!"
                     logging.error(f"Peer registration failed: {e}")
                     return
 
+            # UDP Setup complete - from this point on we can ignore
+            # PeerAnnouncement messages which might be poisoning our timestamps
+
             def keep_alive() -> None:
-                if self.relay_enable and video_address:
+                """If connected via relay, send keep alive messages"""
+                if relay_handshake_established and video_address:
                     sock = None
                     try:
                         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -88,24 +92,27 @@ class NetworkManager:
                                 sock.sendto(b'SYN', video_address)
                                 time.sleep(0.1)
                             except Exception as e:
-                                logging.warning(f"Poke {i+1}/5 failed: {e}")
+                                logging.warning(f"Failed sending 'keep alive' {i+1}/5: {e}")
 
                     except Exception as e:
                         logging.error(f"Failed to poke peer: {e}", exc_info=True)
+
                     finally:
                         if sock:
                             sock.close()
-                        logging.info(f"Sent 'keep alive' to {video_address}")
 
+                    logging.info(f"Sent 'keep alive' to {video_address}")
+
+            # Initialize and start the video receiver
             render_ratio = self.settings.get("video", {}).get("render_ratio", 0)
-            self.video_receiver = Init.video_receiver(
+            self.video_receiver = VideoReceiver(
                 self.video_port,
                 keep_alive,
-                render_ratio
-              )
+                render_ratio=render_ratio
+            )
+            self.video_receiver.start()
 
-            # Set up UDP server - from this point on we can ignore
-            # PeerAnnouncement messages which might be poisoning our timestamps
+            # Initialize and start the control stream (bi-directional)
             try:
                 self.server = Init.server(
                     self.control_port,
@@ -156,16 +163,33 @@ class NetworkManager:
         if self.server:
             self.server.update_ttl(ttl_ms)
 
-    def _setup_relay_if_enabled(self) -> None:
-        """Setup relay connection if enabled in settings."""
+    def _setup_relay_configuration_if_enabled(self) -> None:
+        """
+        Setup settings for relay connection if enabled in settings.
+
+        Connection to relay is not established at this point though. It will be
+        establisehed when setup_ports is called.
+        """
         relay = self.settings.get("relay", {})
         if relay.get("enabled", False):
             server = relay.get("server")
             relay_id = relay.get("id")
             if server and relay_id:
-                self.setup_relay(server, relay_id)
+                self.relay_enable = True
+                self.relay_id = relay_id
 
-    def _print_connection_info_if_needed(self) -> None:
+                # Parse Relay server configuration (domain:port or domain)
+                if server and ':' in server:
+                    host, port = server.rsplit(':', 1)
+                    self.relay_server = host
+                    try:
+                        self.relay_port = int(port)
+                    except ValueError:
+                        logging.warning(f"Invalid port in relay_server: '{relay_server}', falling back to default {self.relay_port}")
+                else:
+                    self.relay_server = server
+
+    def _print_direct_connection_info_if_enabled(self) -> None:
         """Print connection info to console if not using relay."""
         relay = self.settings.get("relay", {})
         if not relay.get("enabled", False):
