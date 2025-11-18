@@ -136,6 +136,7 @@ class UDPRelayServer(threading.Thread):
 
     def _get_session_stats(self) -> Dict[str, Dict[str, Any]]:
         """Return current session statistics"""
+        now = time.time()
         result: Dict[str, Dict[str, Any]] = {}
 
         with self.relay.lock:
@@ -145,13 +146,21 @@ class UDPRelayServer(threading.Thread):
                 if session:
                     for addr in session.addresses:
                         if addr in self.relay.mappings:
+                            _, ts = self.relay.mappings.get(addr, (None, 0))
                             role_info = self._find_role_for_address(session, addr)
+
+                            timeout_in_sec = 0
+                            diff = now - ts
+                            if diff < self.TIMEOUT:
+                                timeout_in_sec = round(self.TIMEOUT - diff)
+
                             if role_info:
                                 role, port_type = role_info
                                 mappings.append({
                                     'address': f"{addr[0]}:{addr[1]}",
                                     'role': role.name,
-                                    'port_type': port_type.name
+                                    'port_type': port_type.name,
+                                    'timeout_in_sec': timeout_in_sec,
                                 })
 
                     result[sid] = {

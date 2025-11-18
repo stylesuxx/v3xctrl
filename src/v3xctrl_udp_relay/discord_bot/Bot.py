@@ -71,13 +71,23 @@ class Bot(commands.Bot):
                 viewers = [m for m in mappings if m['role'] == 'VIEWER']
 
                 if streamers:
-                    message_parts.append("**STREAMER:**")
+                    timeout = 0
+                    for mapping in streamers:
+                        if mapping['timeout_in_sec'] > timeout:
+                            timeout = mapping['timeout_in_sec']
+
+                    message_parts.append(f"**STREAMER (Timeout in {timeout}sec):**")
                     for mapping in streamers:
                         message_parts.append(f"    • {mapping['address']} ({mapping['port_type']})")
                     message_parts.append("")
 
                 if viewers:
-                    message_parts.append("**VIEWER:**")
+                    timeout = 0
+                    for mapping in viewers:
+                        if mapping['timeout_in_sec'] > timeout:
+                            timeout = mapping['timeout_in_sec']
+
+                    message_parts.append(f"**VIEWER (Timeout in {timeout}sec):**")
                     for mapping in viewers:
                         message_parts.append(f"    • {mapping['address']} ({mapping['port_type']})")
                     message_parts.append("")
