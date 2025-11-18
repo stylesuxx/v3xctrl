@@ -51,10 +51,10 @@ class VideoReceiverPyAV(VideoReceiver):
         self.latest_packet_pts = None
 
         self.container_options = {
-            "fflags": "nobuffer+flush_packets+discardcorrupt",
+            "fflags": "nobuffer+flush_packets+discardcorrupt+nofillin",
             "protocol_whitelist": "file,udp,rtp",
-            "analyzeduration": "100000",
-            "probesize": "2048",
+            "analyzeduration": "1",
+            "probesize": "32",
         }
 
         self.codec_options = {
@@ -76,7 +76,8 @@ class VideoReceiverPyAV(VideoReceiver):
                         self.container = av.open(
                             str(self.sdp_path),
                             format="sdp",
-                            options=self.container_options
+                            options=self.container_options,
+                            timeout=2
                         )
                         open_time = time.monotonic() - start_time
                         logging.info(f"Container opened in {open_time:.3f}s")
