@@ -155,24 +155,23 @@ class PacketRelay:
                 # Ignore sessions with active announcements
                 if (now - session.last_announcement_at) > self.timeout:
                     for r, role in session.roles.items():
-                        if not role:
-                            continue
+                        # Ignore empty roles
+                        if len(role) > 0:
+                            with self.mapping_lock:
+                                role_expired = True
+                                for _, peer in role.items():
+                                    mapping = self.mappings.get(peer.addr)
+                                    if mapping:
+                                        _, ts = mapping
+                                        if (now - ts) < self.timeout:
+                                            role_expired = False
+                                            break
 
-                        with self.mapping_lock:
-                            role_expired = True
-                            for _, peer in role.items():
-                                mapping = self.mappings.get(peer.addr)
-                                if mapping:
-                                    _, ts = mapping
-                                    if (now - ts) < self.timeout:
-                                        role_expired = False
-                                        break
+                                if role_expired:
+                                    if sid not in expired_roles:
+                                        expired_roles[sid] = []
 
-                            if role_expired:
-                                if sid not in expired_roles:
-                                    expired_roles[sid] = []
-
-                                expired_roles[sid].append(r)
+                                    expired_roles[sid].append(r)
 
             # Remove expired roles
             for sid, roles_to_remove in expired_roles.items():
@@ -181,7 +180,7 @@ class PacketRelay:
                     role = session.roles[r]
                     with self.mapping_lock:
                         for _, peer in role.items():
-                            session.addresses.remove(peer.addr)
+                            session.addresses.discard(peer.addr)
                             self.mappings.pop(peer.addr, None)
 
                     session.roles[r] = {}
@@ -190,63 +189,17 @@ class PacketRelay:
             # Remove session with no active roles
             expired_sessions: List[str] = []
             for sid, session in self.sessions.items():
-                if len(session.addresses) == 0:
+                expired = True
+                for _, role in session.roles.items():
+                    if len(role) > 0:
+                        expired = False
+
+                if expired:
                     expired_sessions.append(sid)
 
             for sid in expired_sessions:
                 del self.sessions[sid]
                 logging.info(f"{sid}: Removed expired session")
-
-            """
-            orphaned_sessions: Set[str] = set()
-            for sid in self.sessions:
-                session = self.sessions[sid]
-                if (
-                    (now - session.last_announcement_at) > self.timeout and
-                    not session.is_ready()
-                ):
-                    orphaned_sessions.add(sid)
-
-            for sid in orphaned_sessions:
-                del self.sessions[sid]
-                logging.info(f"{sid}: Removed orphaned session")
-
-            expired_mappings: List[Address] = []
-            with self.mapping_lock:
-                for addr, (_, ts) in self.mappings.items():
-                    if (now - ts) > self.timeout:
-                        expired_mappings.append(addr)
-
-                affected_sessions: Set[str] = set()
-                for addr in expired_mappings:
-                    sids = self._get_sids_for_address_unlocked(addr)
-                    for sid in sids:
-                        affected_sessions.add(sid)
-
-                        del self.mappings[addr]
-                        logging.info(f"{sid}: Removed expired mapping for {addr}")
-
-                    if len(affected_sessions) == 0:
-                        del self.mappings[addr]
-                        logging.info(f"Removed unassociated, expired mapping for {addr}")
-
-                expired_sessions: Set[str] = set()
-                for sid in affected_sessions:
-                    session = self.sessions.get(sid)
-                    if session:
-                        has_active_mappings = False
-                        for addr in session.addresses:
-                            if addr in self.mappings:
-                                has_active_mappings = True
-                                break
-
-                        if not has_active_mappings:
-                            expired_sessions.add(sid)
-
-            for sid in expired_sessions:
-                del self.sessions[sid]
-                logging.info(f"{sid}: Removed expired session")
-            """
 
     def _send_peer_info(self, session: Session) -> None:
         peers = session.roles
