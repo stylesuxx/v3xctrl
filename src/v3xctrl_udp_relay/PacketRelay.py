@@ -136,18 +136,68 @@ class PacketRelay:
 
     def cleanup_expired_mappings(self) -> None:
         """
-        Sessions need to be cleaned up if they are in one of the following
-        states:
-
-        - Never became ready: Only one peer has been seen, but stopped
-                              announcing at some point - no mappings have been
-                              established. (orphaned)
-        - Mappings timed out: Became ready, but both viewer and streamer have
-                              stopped transmitting for some time. (expired)
+        Session removal works in multiple steps:
+        1. Check if role is active: a role is considered active if any of its
+           ports has been active within the timeout period
+        2. Remove role from sesssion if it has not been active: Clear the role
+           in the session, remove from sessions address list and remove from
+           mappings
+        3. If all of a sessions roles have been cleared, remove the session
+           completely
         """
         now = time.time()
 
         with self.lock:
+            expired_roles: Dict[str, List[Role]] = {}
+
+            # Identify expired roles
+            for sid, session in self.sessions.items():
+                # Ignore sessions with active announcements
+                if (now - session.last_announcement_at) > self.timeout:
+                    for r, role in session.roles.items():
+                        if not role:
+                            continue
+
+                        with self.mapping_lock:
+                            role_expired = True
+                            for _, peer in role.items():
+                                mapping = self.mappings.get(peer.addr)
+                                if mapping:
+                                    _, ts = mapping
+                                    if (now - ts) < self.timeout:
+                                        role_expired = False
+                                        break
+
+                            if role_expired:
+                                if sid not in expired_roles:
+                                    expired_roles[sid] = []
+
+                                expired_roles[sid].append(r)
+
+            # Remove expired roles
+            for sid, roles_to_remove in expired_roles.items():
+                session = self.sessions[sid]
+                for r in roles_to_remove:
+                    role = session.roles[r]
+                    with self.mapping_lock:
+                        for _, peer in role.items():
+                            session.addresses.remove(peer.addr)
+                            self.mappings.pop(peer.addr, None)
+
+                    session.roles[r] = {}
+                    logging.info(f"{sid}: Removed expired mappings for {r.name}")
+
+            # Remove session with no active roles
+            expired_sessions: List[str] = []
+            for sid, session in self.sessions.items():
+                if len(session.addresses) == 0:
+                    expired_sessions.append(sid)
+
+            for sid in expired_sessions:
+                del self.sessions[sid]
+                logging.info(f"{sid}: Removed expired session")
+
+            """
             orphaned_sessions: Set[str] = set()
             for sid in self.sessions:
                 session = self.sessions[sid]
@@ -196,6 +246,7 @@ class PacketRelay:
             for sid in expired_sessions:
                 del self.sessions[sid]
                 logging.info(f"{sid}: Removed expired session")
+            """
 
     def _send_peer_info(self, session: Session) -> None:
         peers = session.roles

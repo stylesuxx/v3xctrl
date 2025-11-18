@@ -167,6 +167,7 @@ class UDPRelayServer(threading.Thread):
             for port_type, peer_entry in port_dict.items():
                 if peer_entry.addr == addr:
                     return role, port_type
+
         return None
 
     def _handle_peer_announcement(
