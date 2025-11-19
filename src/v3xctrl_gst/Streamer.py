@@ -38,19 +38,25 @@ class Streamer:
             'width': 1280,
             'height': 720,
             'framerate': 30,
-            'bitrate': 1800000,
             'buffertime': 150000000,
             'sizebuffers': 5,
             'recording_dir': '',
             'test_pattern': False,
-            'i_frame_period': 30,
-            'bitrate_mode': 1,  # 0 VBR, 1: CBR
             'buffertime_udp': 150000000,
             'sizebuffers_udp': 5,
-            'h264_profile': 0,
-            'h264_level': 31,
             'sizebuffers_write': 30,
             'mtu': 1400,
+
+            # Encoder (via CAPS)
+            'h264_profile': "high",
+            'h264_level': "4.1",
+
+            # via extra-controls
+            'bitrate_mode': 1,  # 0 VBR, 1: CBR
+            'bitrate': 1800000,
+            'h264_i_frame_period': 15,
+            'capture_io_mode':  4,
+
         }
 
         self.settings: Dict[str, Any] = default_settings.copy()
@@ -288,10 +294,12 @@ class Streamer:
             return False
 
         input_caps = Gst.Caps.from_string(
-            f"video/x-raw,width={self.settings['width']},"
+            f"video/x-raw,"
+            f"width={self.settings['width']},"
             f"height={self.settings['height']},"
             f"framerate={self.settings['framerate']}/1,"
-            f"format=NV12,interlace-mode=progressive"
+            f"format=NV12,"
+            f"interlace-mode=progressive"
         )
         input_caps_filter.set_property("caps", input_caps)
 
@@ -311,14 +319,13 @@ class Streamer:
 
         encoder_controls = (
             f"controls,"
+            f"video_b_frames=0,"
             f"repeat_sequence_header=1,"
             f"video_bitrate={self.settings['bitrate']},"
             f"bitrate_mode={self.settings['bitrate_mode']},"
             f"video_gop_size={self.settings['framerate']},"
-            f"h264_i_frame_period={self.settings['i_frame_period']},"
-            f"video_b_frames=0,"
-            f"h264_profile={self.settings['h264_profile']},"
-            f"h264_level={self.settings['h264_level']}"
+            f"h264_i_frame_period={self.settings['h264_i_frame_period']},"
+            f"capture_io_mode={self.settings['capture_io_mode']}"
         )
         encoder.set_property("extra-controls", Gst.Structure.from_string(encoder_controls)[0])
 
@@ -328,8 +335,10 @@ class Streamer:
             return False
 
         encoder_caps = Gst.Caps.from_string(
-            "video/x-h264,level=(string)4,profile=(string)high,"
-            "stream-format=(string)byte-stream"
+            f"video/x-h264,"
+            f"level=(string){self.settings['h264_level']},"
+            f"profile=(string){self.settings['h264_profile']},"
+            f"stream-format=(string)byte-stream"
         )
         encoder_caps_filter.set_property("caps", encoder_caps)
 

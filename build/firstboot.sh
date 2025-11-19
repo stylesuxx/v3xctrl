@@ -49,6 +49,9 @@ echo "[v3xctrl-firstboot] Mounting ${TARGET} and creating folder structure..."
 mount "$TARGET"
 mkdir -p "${TARGET}/config"
 
+mkdir -p "${TARGET}/.cache"
+chmod a+rw "${TARGET}/.cache"
+
 echo "[v3xctrl-firstboot] Disable swap file..."
 sudo mkdir -p /etc/rpi/swap.conf.d/
 sudo tee /etc/rpi/swap.conf.d/zram-only.conf > /dev/null << 'EOF'

@@ -36,7 +36,7 @@ def main() -> None:
         'sizebuffers': args.sizebuffers,
         'recording_dir': args.recording_dir,
         'test_pattern': args.test_pattern,
-        'i_frame_period': args.i_frame_period,
+        'h264_i_frame_period': args.i_frame_period,
     }
 
     # Create and run streamer
