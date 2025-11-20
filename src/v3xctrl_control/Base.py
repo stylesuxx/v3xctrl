@@ -96,8 +96,9 @@ class Base(threading.Thread, ABC):
 
     def check_timeout(self) -> None:
         if self.state != State.DISCONNECTED:
-            now = time.time()
-            if now > self.last_message_timestamp + self.no_message_timeout:
+            elapsed = time.monotonic() - self.last_message_timestamp
+            if elapsed > self.no_message_timeout:
+                logging.error(f"No message received for {self.no_message_timeout}s")
                 self.handle_state_change(State.DISCONNECTED)
 
     def subscribe(self, cls: type[T], handler: Handler[T]) -> None:
@@ -126,7 +127,7 @@ class Base(threading.Thread, ABC):
         """
         self.message_history.append(MessageFromAddress(message, addr))
         self.message_history = self.message_history[-self.message_history_length:]
-        self.last_message_timestamp = time.time()
+        self.last_message_timestamp = time.monotonic()
 
         for cls, handlers in self.subscriptions.items():
             if isinstance(message, cls):

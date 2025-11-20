@@ -242,7 +242,7 @@ def disconnect_handler() -> None:
     pwm_throttle.set_pulse_width(int(throttle_idle))
     pwm_steering.set_pulse_width(int(steering_center))
 
-    logging.info("Failsafe triggered")
+    logging.info("Disconnected")
 
 
 def connect_handler() -> None:
