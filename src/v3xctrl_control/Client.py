@@ -119,8 +119,8 @@ class Client(Base):
                 self._send_syn()
 
             elif self.state == State.CONNECTED:
-                self.heartbeat()
                 self.check_timeout()
+                self.heartbeat()
 
             time.sleep(0.005)
 

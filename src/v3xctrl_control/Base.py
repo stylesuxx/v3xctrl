@@ -95,7 +95,7 @@ class Base(threading.Thread, ABC):
         return None
 
     def check_timeout(self) -> None:
-        if self.state != State.DISCONNECTED:
+        if self.state == State.CONNECTED:
             elapsed = time.monotonic() - self.last_message_timestamp
             if elapsed > self.no_message_timeout:
                 logging.error(f"No message received for {self.no_message_timeout}s")
@@ -125,9 +125,9 @@ class Base(threading.Thread, ABC):
         All messages are handled here.
         Registered (external) handlers will get messages forwarded from here
         """
+        self.last_message_timestamp = time.monotonic()
         self.message_history.append(MessageFromAddress(message, addr))
         self.message_history = self.message_history[-self.message_history_length:]
-        self.last_message_timestamp = time.monotonic()
 
         for cls, handlers in self.subscriptions.items():
             if isinstance(message, cls):
