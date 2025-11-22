@@ -41,6 +41,7 @@ cp -r "${ROOT_DIR}/src/v3xctrl_helper" "${PYTHON_LIB_PATH}"
 cp -r "${ROOT_DIR}/src/v3xctrl_punch" "${PYTHON_LIB_PATH}"
 cp -r "${ROOT_DIR}/src/v3xctrl_udp_relay" "${PYTHON_LIB_PATH}"
 cp -r "${ROOT_DIR}/src/v3xctrl_telemetry" "${PYTHON_LIB_PATH}"
+cp -r "${ROOT_DIR}/src/v3xctrl_self_test" "${PYTHON_LIB_PATH}"
 
 # Fetch static files for the web server
 curl -o "${SERVER_LIB_PATH}/jsoneditor.min.js" "https://raw.githubusercontent.com/jdorn/json-editor/master/dist/jsoneditor.min.js"
