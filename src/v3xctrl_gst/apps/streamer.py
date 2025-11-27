@@ -1,4 +1,5 @@
 import argparse
+import logging
 from typing import Dict, Any
 
 from v3xctrl_gst.Streamer import Streamer
@@ -15,6 +16,9 @@ def main() -> None:
     parser.add_argument('port', type=int, help='Destination port')
     parser.add_argument('bind_port', type=int, help='Bind port')
 
+    parser.add_argument("--log", default="INFO",
+                    help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). (default: INFO")
+
     parser.add_argument('--width', type=int, default=1280, help='Video width (default: 1280)')
     parser.add_argument('--height', type=int, default=720, help='Video height (default: 720)')
     parser.add_argument('--framerate', type=int, default=30, help='Framerate (default: 30)')
@@ -26,6 +30,17 @@ def main() -> None:
     parser.add_argument('--i-frame-period', type=int, default=30, help='I-frame period (default: 30)')
 
     args = parser.parse_args()
+
+    level_name = args.log.upper()
+    level = getattr(logging, level_name, None)
+
+    if not isinstance(level, int):
+        raise ValueError(f"Invalid log level: {args.log}")
+
+    logging.basicConfig(
+        level=level,
+        format="%(asctime)s - %(levelname)s - %(message)s"
+    )
 
     settings: Dict[str, Any] = {
         'width': args.width,

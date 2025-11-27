@@ -34,6 +34,9 @@ class Streamer:
         self.port: int = port
         self.bind_port: int = bind_port
 
+        self.last_buffer_pts = None
+        self.frame_count = 0
+
         default_settings: Dict[str, Any] = {
             'width': 1280,
             'height': 720,
@@ -311,6 +314,7 @@ class Streamer:
         queue_encoder.set_property("max-size-buffers", self.settings['sizebuffers'])
         queue_encoder.set_property("max-size-time", self.settings['buffertime'])
         queue_encoder.set_property("leaky", 2)  # Downstream leaky
+        queue_encoder.connect("overrun", self._on_queue_overrun)
 
         encoder = Gst.ElementFactory.make("v4l2h264enc", "encoder")
         if not encoder:
@@ -334,6 +338,10 @@ class Streamer:
             logging.error("Failed to create encoder capsfilter")
             return False
 
+        # Add probe to measure encoder jitter
+        encoder_pad = encoder_caps_filter.get_static_pad("src")
+        encoder_pad.add_probe(Gst.PadProbeType.BUFFER, self._on_encoder_buffer)
+
         encoder_caps = Gst.Caps.from_string(
             f"video/x-h264,"
             f"level=(string){self.settings['h264_level']},"
@@ -355,6 +363,7 @@ class Streamer:
         queue_udp.set_property("max-size-buffers", self.settings['sizebuffers_udp'])
         queue_udp.set_property("max-size-time", self.settings['buffertime_udp'])
         queue_udp.set_property("leaky", 2)  # Downstream
+        queue_udp.connect("overrun", self._on_queue_overrun)
 
         payloader = Gst.ElementFactory.make("rtph264pay", "payloader")
         if not payloader:
@@ -459,6 +468,7 @@ class Streamer:
 
         queue_rec.set_property("max-size-buffers", self.settings['sizebuffers_write'])
         queue_rec.set_property("leaky", 2)  # Downstream
+        queue_rec.connect("overrun", self._on_queue_overrun)
 
         parser = Gst.ElementFactory.make("h264parse", "parser")
         if not parser:
@@ -502,3 +512,23 @@ class Streamer:
 
         logging.info(f"Recording to: {filename}")
         return True
+
+    def _on_queue_overrun(self, element):
+        logging.warning(f"Queue '{element.get_name()}' overrun - dropping frames!")
+
+    def _on_encoder_buffer(self, pad, info):
+        buffer = info.get_buffer()
+        pts = buffer.pts
+
+        if self.last_buffer_pts is not None:
+            delta = (pts - self.last_buffer_pts) / Gst.SECOND
+            expected = 1.0 / self.settings['framerate']
+            jitter = abs(delta - expected) * 1000  # in ms
+
+            if jitter > 5:
+                logging.warning(f"Frame timing jitter: {jitter:.2f}ms (expected {expected*1000:.2f}ms, got {delta*1000:.2f}ms)")
+
+        self.last_buffer_pts = pts
+        self.frame_count += 1
+
+        return Gst.PadProbeReturn.OK
