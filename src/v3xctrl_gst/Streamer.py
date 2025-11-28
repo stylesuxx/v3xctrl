@@ -525,6 +525,11 @@ class Streamer:
         buffer = info.get_buffer()
         pts = buffer.pts
 
+        is_keyframe = not buffer.has_flags(Gst.BufferFlags.DELTA_UNIT)
+        if is_keyframe:
+            size = buffer.get_size()
+            logging.debug(f"{size/1024:.1f} KB at PTS {pts/Gst.SECOND:.3f}s")
+
         if self.last_buffer_pts is not None:
             delta = (pts - self.last_buffer_pts) / Gst.SECOND
             expected = 1.0 / self.settings['framerate']
