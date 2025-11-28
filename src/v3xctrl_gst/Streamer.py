@@ -35,6 +35,7 @@ class Streamer:
         self.bind_port: int = bind_port
 
         self.last_buffer_pts = None
+        self.last_camera_pts = None
         self.frame_count = 0
 
         default_settings: Dict[str, Any] = {
@@ -306,6 +307,10 @@ class Streamer:
         )
         input_caps_filter.set_property("caps", input_caps)
 
+        # Add probe to measure camera jitter
+        camera_pad = input_caps_filter.get_static_pad("src")
+        camera_pad.add_probe(Gst.PadProbeType.BUFFER, self._on_camera_buffer)
+
         queue_encoder = Gst.ElementFactory.make("queue", "queue_encoder")
         if not queue_encoder:
             logging.error("Failed to create encoder queue")
@@ -531,4 +536,20 @@ class Streamer:
         self.last_buffer_pts = pts
         self.frame_count += 1
 
+        return Gst.PadProbeReturn.OK
+
+    def _on_camera_buffer(self, pad, info):
+        """Track camera frame timing"""
+        buffer = info.get_buffer()
+        pts = buffer.pts
+
+        if self.last_camera_pts is not None:
+            delta = (pts - self.last_camera_pts) / Gst.SECOND
+            expected = 1.0 / self.settings['framerate']
+            jitter = abs(delta - expected) * 1000
+
+            if jitter > 5:
+                logging.warning(f"CAMERA jitter: {jitter:.2f}ms (expected {expected*1000:.2f}ms, got {delta*1000:.2f}ms)")
+
+        self.last_camera_pts = pts
         return Gst.PadProbeReturn.OK
