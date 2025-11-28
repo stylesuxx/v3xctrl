@@ -63,8 +63,8 @@ class Tab(ABC):
 
         # Calculate total height needed
         line_padding_top = line_padding + line_width if draw_top_line else 0
-        line_padding_bottom = height + line_padding
-        total_height = line_padding_top + height + line_padding_bottom
+        line_padding_bottom = line_width + line_padding
+        total_height = line_padding_top + height + line_padding_bottom + self.y_element_padding
 
         # Create surface for the entire headline (text + lines)
         headline_width = self.width - (2 * self.padding)

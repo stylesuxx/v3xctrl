@@ -220,10 +220,13 @@ class AppState:
         delta = round(time.monotonic() - start)
         logging.debug(f"Input manager shut down after {delta}s")
 
-        start = time.monotonic()
+        start_nm = time.monotonic()
         self.network_manager.shutdown()
-        delta = round(time.monotonic() - start)
+        delta = round(time.monotonic() - start_nm)
         logging.debug(f"Network manager shut down after {delta}s")
+
+        delta = round(time.monotonic() - start)
+        logging.info(f"Shutdown took {delta}s")
 
     def _update_screen_size(self) -> None:
         if self.fullscreen:

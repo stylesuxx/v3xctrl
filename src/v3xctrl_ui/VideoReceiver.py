@@ -128,17 +128,7 @@ class VideoReceiver(ABC, threading.Thread):
 
     def stop(self) -> None:
         """Stop the receiver thread."""
-        if not self.running.is_set():
-            return
-
         self.running.clear()
-        if self.is_alive():
-            self.join(timeout=5.0)
-
-        try:
-            self._cleanup()
-        except Exception as e:
-            logging.exception(f"Error during stop cleanup: {e}")
 
     def run(self) -> None:
         """Template method that calls abstract methods."""

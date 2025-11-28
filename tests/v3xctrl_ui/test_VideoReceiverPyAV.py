@@ -385,6 +385,7 @@ class TestVideoReceiverPyAVIntegration(unittest.TestCase):
                         receiver.start()
                         time.sleep(0.1)
                         receiver.stop()
+                        receiver.join()
 
         error_callback.assert_not_called()
         mock_container.close.assert_called()
