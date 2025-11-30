@@ -132,10 +132,11 @@ class AppState:
         now = time.monotonic()
         self.loop_history.append(now)
 
-        # Handle control updates
+        # Handle control updates, send last values if user is in menu
         if now - self.last_control_update >= self.control_interval:
             try:
-                self.throttle, self.steering = self.input_manager.read_inputs()
+                if not self.menu:
+                    self.throttle, self.steering = self.input_manager.read_inputs()
                 self._send_control_message()
             except Exception as e:
                 logging.warning(f"Input read error: {e}")
@@ -302,7 +303,10 @@ class AppState:
 
     def _send_control_message(self) -> None:
         """Send control message to streamer."""
-        if self.network_manager.server and not self.network_manager.server_error:
+        if (
+            self.network_manager.server and
+            not self.network_manager.server_error
+        ):
             self.network_manager.server.send(Control({
                 "steering": self.steering,
                 "throttle": self.throttle,
