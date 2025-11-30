@@ -1,5 +1,6 @@
 import logging
 import math
+import time
 
 import pygame
 from pygame import Surface, event
@@ -109,6 +110,7 @@ class Menu:
         # Loading screen
         self.is_loading = False
         self.loading_text = "Applying settings!"
+        self.loading_result_time = 1.2
 
         self.spinner_angle = 0
         self.spinner_radius = 30
@@ -221,8 +223,25 @@ class Menu:
         }
 
     def _on_send_command(self, command: Command, callback: Callable[[bool], None]) -> None:
+        # Wrap callback so we can handle loading screen updates
+        def callback_wrapper(state: bool = False) -> None:
+            # Show success or Fail message
+            result = "Success!"
+            if not state:
+                result = "Failed!"
+
+            self.show_loading(result)
+            countdown = 0
+            while countdown < self.loading_result_time:
+                countdown += 0.1
+                time.sleep(0.1)
+
+            self.is_loading = False
+            callback(state)
+
         if self.server:
-            self.server.send_command(command, callback)
+            self.show_loading("Invoking command!")
+            self.server.send_command(command, callback_wrapper)
         else:
             logging.error(f"Server is not set, cannot send command: {command}")
 

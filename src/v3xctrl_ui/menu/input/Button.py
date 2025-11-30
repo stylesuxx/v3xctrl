@@ -115,6 +115,7 @@ class Button(BaseWidget):
             if self.focused and self.rect.collidepoint(event.pos):
                 self.callback()
             self.focused = False
+            self.disabled = False
             self._update_state()
 
             return was_focused

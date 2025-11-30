@@ -1,5 +1,4 @@
 import logging
-import time
 from typing import Callable, Dict, Any
 
 from pygame import Surface
@@ -71,10 +70,6 @@ class StreamerTab(Tab):
         return {}
 
     def _on_command_callback(self, status: bool) -> None:
-        # Wait a bit for the transition to not be "flickering" in case we have
-        # an immediate answer
-        time.sleep(1)
-
         self.disabled = False
         for element in self.elements:
             element.enable()
