@@ -1,4 +1,5 @@
 import logging
+import math
 
 import pygame
 from pygame import Surface, event
@@ -7,7 +8,7 @@ from typing import Callable, NamedTuple, Dict
 from v3xctrl_control import Server
 from v3xctrl_control.message import Command
 
-from v3xctrl_ui.colors import WHITE, DARK_GREY, CHARCOAL, GREY
+from v3xctrl_ui.colors import WHITE, DARK_GREY, CHARCOAL, GREY, TRANSPARENT_BLACK
 from v3xctrl_ui.fonts import MAIN_FONT
 from v3xctrl_ui.GamepadManager import GamepadManager
 from v3xctrl_ui.Settings import Settings
@@ -37,6 +38,7 @@ class Menu:
     TAB_SEPARATOR_COLOR = BG_COLOR
     FONT_COLOR = WHITE
     FONT_COLOR_INACTIVE = GREY
+    LOADING_OVERLAY_COLOR = TRANSPARENT_BLACK
 
     def __init__(
         self,
@@ -104,11 +106,25 @@ class Menu:
         self.tab_bar_dirty = True
         self.tab_bar_surface = pygame.Surface((self.width, self.tab_height))
 
+        # Loading screen
+        self.is_loading = False
+        self.loading_text = "Applying settings!"
+
+        self.spinner_angle = 0
+        self.spinner_radius = 30
+        self.spinner_thickness = 4
+        self.spinner_offset = 60
+
     def handle_event(self, event: event.Event) -> None:
+        # Events can be ignored if loading screen is shown
+        if self.is_loading:
+            return
+
         self.quit_button.handle_event(event)
         self.save_button.handle_event(event)
         self.exit_button.handle_event(event)
 
+        # Pass event to tabbar
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if not self.disable_tabs:
                 for entry in self.tabs:
@@ -116,6 +132,7 @@ class Menu:
                         self.active_tab = entry.name
                         self.tab_bar_dirty = True
 
+        # Pass event to active tab
         tab = self._get_active_tab()
         if tab:
             tab.view.handle_event(event)
@@ -134,6 +151,10 @@ class Menu:
         if tab:
             tab.view.draw(surface)
 
+        if self.is_loading:
+            self._draw_loading_overlay(surface)
+            self.spinner_angle = (self.spinner_angle + 5) % 360
+
     def set_tab_enabled(self, tab_name: str, enabled: bool) -> None:
         for i, entry in enumerate(self.tabs):
             if entry.name == tab_name:
@@ -144,6 +165,10 @@ class Menu:
 
                 self.tab_bar_dirty = True
                 break
+
+    def show_loading(self, text: str = "Applying settings!") -> None:
+        self.is_loading = True
+        self.loading_text = text
 
     def _create_tabs(self) -> Dict[str, Tab]:
         return {
@@ -263,3 +288,35 @@ class Menu:
         self.quit_button.draw(surface)
         self.save_button.draw(surface)
         self.exit_button.draw(surface)
+
+    def _draw_loading_overlay(self, surface: Surface) -> None:
+        """Draw semi-transparent overlay with loading spinner and text"""
+        overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        overlay.fill(self.LOADING_OVERLAY_COLOR)
+        surface.blit(overlay, (0, 0))
+
+        center_x = self.width // 2
+        center_y = self.height // 2
+
+        # Draw spinning arc
+        # Draw multiple arcs to create a smooth spinner effect
+        num_segments = 8
+
+        for i in range(num_segments):
+            # Calculate opacity for each segment (fade effect)
+            segment_angle = (self.spinner_angle + i * (360 / num_segments)) % 360
+            alpha = int(255 * (i / num_segments))
+
+            # Calculate start and end points for this segment
+            angle_rad = math.radians(segment_angle)
+            x = center_x + int(self.spinner_radius * math.cos(angle_rad))
+            y = center_y + int(self.spinner_radius * math.sin(angle_rad))
+
+            # Draw small circle for each segment
+            color = (*WHITE[:3], alpha) if len(WHITE) == 3 else (WHITE[0], WHITE[1], WHITE[2], alpha)
+            pygame.draw.circle(surface, color, (x, y), self.spinner_thickness)
+
+        # Render loading text below the spinner
+        text_surface, text_rect = MAIN_FONT.render(self.loading_text, WHITE)
+        text_rect.center = (center_x, center_y + self.spinner_offset)
+        surface.blit(text_surface, text_rect)
