@@ -16,9 +16,6 @@ def main() -> None:
     parser.add_argument('port', type=int, help='Destination port')
     parser.add_argument('bind_port', type=int, help='Bind port')
 
-    parser.add_argument("--log", default="INFO",
-                    help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). (default: INFO")
-
     parser.add_argument('--width', type=int, default=1280, help='Video width (default: 1280)')
     parser.add_argument('--height', type=int, default=720, help='Video height (default: 720)')
     parser.add_argument('--framerate', type=int, default=30, help='Framerate (default: 30)')
@@ -28,6 +25,11 @@ def main() -> None:
     parser.add_argument('--recording-dir', type=str, default='', help='Directory to save recording')
     parser.add_argument('--test-pattern', action='store_true', help='Use test pattern instead of camera')
     parser.add_argument('--i-frame-period', type=int, default=30, help='I-frame period (default: 30)')
+
+    parser.add_argument(
+        "--log", default="ERROR",
+        help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). (default: ERROR)"
+    )
 
     args = parser.parse_args()
 
