@@ -2,6 +2,7 @@ from collections import deque
 import copy
 import logging
 import signal
+import threading
 import time
 from typing import Any, Dict, Optional
 
@@ -85,6 +86,11 @@ class AppState:
         # need updating.
         self.old_settings = copy.deepcopy(self.settings)
 
+        # Network restart state
+        self.network_restart_thread: Optional[threading.Thread] = None
+        self.network_restart_complete = threading.Event()
+        self.pending_settings: Optional[Settings] = None
+
     def update_settings(self, new_settings: Optional[Settings] = None) -> None:
         """
         Update settings after exiting menu.
@@ -104,31 +110,37 @@ class AppState:
             not self._settings_equal(new_settings, "ports") or
             not self._settings_equal(new_settings, "relay")
         ):
-            logging.info("Restarting newtwork manager")
-            self.network_manager.shutdown()
-            self.network_manager = NetworkManager(
-                new_settings,
-                self.handlers
+            logging.info("Starting background network manager restart")
+            self.pending_settings = new_settings
+
+            if self.menu:
+                self.menu.show_loading("Restarting network...")
+
+            # Start background thread for network restart
+            self.network_restart_complete.clear()
+            self.network_restart_thread = threading.Thread(
+                target=self._restart_network_manager,
+                args=(new_settings,),
+                daemon=True
             )
-            self.network_manager.setup_ports()
+            self.network_restart_thread.start()
+            return
 
-        # Update new settings to settings and trigger updates on elements who
-        # need to handle new settings
-        self.settings = new_settings
-        self.old_settings = copy.deepcopy(self.settings)
-
-        self._update_timing_settings()
-        self._update_network_settings()
-
-        self.input_manager.update_settings(self.settings)
-        self.osd.update_settings(self.settings)
-        self.renderer.settings = self.settings
-
-        # Clear menu to force refresh
-        self.menu = None
+        # Apply settings immediately if no network restart needed
+        self._apply_settings(new_settings)
 
     def update(self) -> None:
         """Update application state with timed operations."""
+        # Check if network restart is complete
+        if self.network_restart_complete.is_set():
+            self.network_restart_complete.clear()
+
+            if self.pending_settings:
+                self._apply_settings(self.pending_settings)
+                self.pending_settings = None
+
+            logging.info("Network manager restart complete")
+
         now = time.monotonic()
         self.loop_history.append(now)
 
@@ -176,9 +188,10 @@ class AppState:
 
                         self.menu.set_tab_enabled("Streamer", self.control_connected)
                     else:
-                        # When exiting vie [ESC], do the same thing we would do
-                        # when using the "Back" button from the menu
-                        self.update_settings()
+                        if not self.menu.is_loading:
+                            # When exiting vie [ESC], do the same thing we would do
+                            # when using the "Back" button from the menu
+                            self.update_settings()
 
                 # [F11] - Toggle Fullscreen
                 elif event.key == pygame.K_F11:
@@ -213,6 +226,12 @@ class AppState:
 
     def shutdown(self) -> None:
         logging.info("Shutting down...")
+
+        # Wait for any pending network restart
+        if self.network_restart_thread and self.network_restart_thread.is_alive():
+            logging.info("Waiting for network restart to complete...")
+            self.network_restart_thread.join(timeout=5.0)
+
         pygame.quit()
 
         start = time.monotonic()
@@ -227,6 +246,46 @@ class AppState:
 
         delta = round(time.monotonic() - start)
         logging.info(f"Shutdown took {delta}s")
+
+    def _restart_network_manager(self, new_settings: Settings) -> None:
+        """
+        Background thread function to restart network manager.
+        This runs in a separate thread to avoid blocking the UI.
+        """
+        try:
+            logging.debug("Shutting down old network manager...")
+            self.network_manager.shutdown()
+
+            logging.debug("Creating new network manager...")
+            self.network_manager = NetworkManager(
+                new_settings,
+                self.handlers
+            )
+
+            self.network_manager.setup_ports()
+
+        except Exception as e:
+            logging.error(f"Network manager restart failed: {e}")
+
+        finally:
+            self.network_restart_complete.set()
+
+    def _apply_settings(self, new_settings: Settings) -> None:
+        """Apply new settings to all components."""
+        # Update new settings to settings and trigger updates on elements who
+        # need to handle new settings
+        self.settings = new_settings
+        self.old_settings = copy.deepcopy(self.settings)
+
+        self._update_timing_settings()
+        self._update_network_settings()
+
+        self.input_manager.update_settings(self.settings)
+        self.osd.update_settings(self.settings)
+        self.renderer.settings = self.settings
+
+        # Clear menu to force refresh
+        self.menu = None
 
     def _update_screen_size(self) -> None:
         if self.fullscreen:
