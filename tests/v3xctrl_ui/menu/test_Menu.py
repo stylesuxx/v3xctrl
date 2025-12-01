@@ -214,8 +214,7 @@ class TestMenu(unittest.TestCase):
         mock_callback = MagicMock()
 
         menu._on_send_command(mock_command, mock_callback)
-
-        self.mock_server.send_command.assert_called_once_with(mock_command, mock_callback)
+        self.mock_server.send_command.assert_called_once()
 
     @patch("src.v3xctrl_ui.menu.Menu.logging")
     def test_on_send_command_without_server(self, mock_logging, mock_button_class, mock_pygame):

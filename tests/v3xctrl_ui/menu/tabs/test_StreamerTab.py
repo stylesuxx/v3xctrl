@@ -165,8 +165,7 @@ class TestStreamerTab(unittest.TestCase):
         for element in self.tab.elements:
             element.disable.assert_called_once()
 
-    @patch('time.sleep')
-    def test_command_callback_success(self, mock_sleep):
+    def test_command_callback_success(self):
         """Test command callback with successful status"""
         # Mock the elements to test enable calls
         for element in self.tab.elements:
@@ -178,9 +177,6 @@ class TestStreamerTab(unittest.TestCase):
         # Call the callback with success
         self.tab._on_command_callback(True)
 
-        # Check that sleep was called
-        mock_sleep.assert_called_once_with(1)
-
         # Check that UI is re-enabled
         self.assertFalse(self.tab.disabled)
         self.mock_on_active_toggle.assert_called_with(False)
@@ -189,8 +185,7 @@ class TestStreamerTab(unittest.TestCase):
         for element in self.tab.elements:
             element.enable.assert_called_once()
 
-    @patch('time.sleep')
-    def test_command_callback_failure(self, mock_sleep):
+    def test_command_callback_failure(self):
         """Test command callback with failed status"""
         # Mock the elements to test enable calls
         for element in self.tab.elements:
@@ -201,9 +196,6 @@ class TestStreamerTab(unittest.TestCase):
 
         # Call the callback with failure
         self.tab._on_command_callback(False)
-
-        # Check that sleep was called
-        mock_sleep.assert_called_once_with(1)
 
         # Check that UI is re-enabled regardless of status
         self.assertFalse(self.tab.disabled)
