@@ -135,6 +135,7 @@ class AppState:
         # Handle control updates, send last values if user is in menu
         if now - self.last_control_update >= self.control_interval:
             try:
+                self.throttle, self.steering = (0, 0)
                 if not self.menu:
                     self.throttle, self.steering = self.input_manager.read_inputs()
                 self._send_control_message()
