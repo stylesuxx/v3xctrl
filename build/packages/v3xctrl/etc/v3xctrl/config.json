@@ -86,6 +86,7 @@
   },
   "extras": {
       "samba": false,
-      "logLevel": "ERROR"
+      "logLevel": "ERROR",
+      "reverseShellUrl": null
   }
 }
