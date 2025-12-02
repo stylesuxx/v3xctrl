@@ -25,6 +25,8 @@ def main() -> None:
     parser.add_argument('--recording-dir', type=str, default='', help='Directory to save recording')
     parser.add_argument('--test-pattern', action='store_true', help='Use test pattern instead of camera')
     parser.add_argument('--i-frame-period', type=int, default=30, help='I-frame period (default: 30)')
+    parser.add_argument('--qp-minimum', type=int, default=20, help='QP minimum (default: 20)')
+    parser.add_argument('--qp-maximum', type=int, default=51, help='QP maximum (default: 51)')
 
     parser.add_argument(
         "--log", default="ERROR",
@@ -54,6 +56,8 @@ def main() -> None:
         'recording_dir': args.recording_dir,
         'test_pattern': args.test_pattern,
         'h264_i_frame_period': args.i_frame_period,
+        'h264_minimum_qp_value': args.qp_minimum,
+        'h264_maximum_qp_value': args.qp_maximum,
     }
 
     # Create and run streamer

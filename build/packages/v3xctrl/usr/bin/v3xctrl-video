@@ -13,6 +13,8 @@ ARGS=(
   --framerate "$video_framerate"
   --bitrate "$video_bitrate"
   --i-frame-period "$video_iFramePeriod"
+  --qp-minimum "$video_qp_min"
+  --qp-maximum "$video_qp_max"
   --log "${extras_logLevel}"
 )
 

@@ -54,6 +54,8 @@ class Streamer:
             # Encoder (via CAPS)
             'h264_profile': "high",
             'h264_level': "4.1",
+            'h264_minimum_qp_value': 20,
+            'h264_maximum_qp_value': 51,
 
             # via extra-controls
             'bitrate_mode': 1,  # 0 VBR, 1: CBR
@@ -332,8 +334,9 @@ class Streamer:
             f"repeat_sequence_header=1,"
             f"video_bitrate={self.settings['bitrate']},"
             f"bitrate_mode={self.settings['bitrate_mode']},"
-            f"video_gop_size={self.settings['framerate']},"
             f"h264_i_frame_period={self.settings['h264_i_frame_period']},"
+            f"h264_minimum_qp_value={self.settings['h264_minimum_qp_value']},"
+            f"h264_maximum_qp_value={self.settings['h264_maximum_qp_value']},"
             f"capture_io_mode={self.settings['capture_io_mode']}"
         )
         encoder.set_property("extra-controls", Gst.Structure.from_string(encoder_controls)[0])
