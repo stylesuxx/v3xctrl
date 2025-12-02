@@ -11,6 +11,15 @@ while [[ "$#" -gt 0 ]]; do
   shift
 done
 
+echo '[CHROOT] Installing dependencies'
+apt update
+apt install -y \
+  curl build-essential libssl-dev libbz2-dev libsqlite3-dev ca-certificates \
+  liblzma-dev libreadline-dev libffi-dev libgdbm-dev libgdbm-compat-dev \
+  libdb-dev uuid-dev zlib1g-dev libncursesw5-dev tk-dev \
+  libctypes-ocaml-dev libcurses-ocaml-dev dphys-swapfile lintian libcairo2-dev \
+  libgirepository1.0-dev cmake libglib2.0-dev
+
 # Change to working directory
 cd /src
 

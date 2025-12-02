@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from collections import deque
 import logging
-import math
 import threading
 import time
 from typing import Callable, Deque, Optional
@@ -72,7 +71,8 @@ class VideoReceiver(ABC, threading.Thread):
         log_interval: int = 10,
         history_size: int = 100,
         max_frame_age_ms: int = 500,
-        frame_ratio: int = 100
+        frame_ratio: int = 100,
+        target_fps: int = 30
     ) -> None:
         super().__init__()
 
@@ -80,6 +80,7 @@ class VideoReceiver(ABC, threading.Thread):
         self.error_callback = error_callback
         self.log_interval = log_interval
         self.max_age_seconds = max_frame_age_ms / 1000
+        self.target_fps = target_fps
 
         # How much of the frame_buffer should be rendered 0..100
         # 100 Render only latest frame
@@ -94,6 +95,7 @@ class VideoReceiver(ABC, threading.Thread):
 
         # Frame monitoring
         self.render_history: Deque[float] = deque(maxlen=history_size)
+        self.frame_receive_history: Deque[float] = deque(maxlen=history_size)
 
         self.max_frame_buffer_size = 300
         self.frame_buffer: Deque[npt.NDArray[np.uint8]] = deque(maxlen=self.max_frame_buffer_size)
@@ -202,8 +204,36 @@ class VideoReceiver(ABC, threading.Thread):
         """Append new frame to frame buffer"""
         with self.frame_lock:
             self.frame_buffer.append(new_frame)
+            self.frame_receive_history.append(time.monotonic())
 
         self.decoded_frame_count += 1
+
+    def _calculate_jitter_stats(self) -> tuple[float, float]:
+        """Calculate max and average jitter from frame receive history.
+
+        Returns:
+            Tuple of (max_jitter_ms, avg_jitter_ms)
+        """
+        if len(self.frame_receive_history) < 2:
+            return 0.0, 0.0
+
+        expected_interval = 1.0 / self.target_fps
+        jitter_values = []
+
+        # Calculate inter-frame intervals
+        timestamps = list(self.frame_receive_history)
+        for i in range(1, len(timestamps)):
+            interval = timestamps[i] - timestamps[i-1]
+            jitter = abs(interval - expected_interval)
+            jitter_values.append(jitter * 1000)
+
+        if not jitter_values:
+            return 0.0, 0.0
+
+        max_jitter = max(jitter_values)
+        avg_jitter = sum(jitter_values) / len(jitter_values)
+
+        return max_jitter, avg_jitter
 
     def _log_stats_if_needed(self) -> None:
         """Log statistics if interval has passed."""
@@ -219,6 +249,8 @@ class VideoReceiver(ABC, threading.Thread):
                 avg_decoded_fps = round(self.decoded_frame_count / time_elapsed) if time_elapsed > 0 else 0
                 avg_rendered_fps = round(self.rendered_frame_count / time_elapsed) if time_elapsed > 0 else 0
 
+                max_jitter, avg_jitter = self._calculate_jitter_stats()
+
                 logging.info(
                     f"{self.__class__.__name__}: "
                     f"frames={self.decoded_frame_count}, "
@@ -227,7 +259,9 @@ class VideoReceiver(ABC, threading.Thread):
                     f"dropped_burst={self.dropped_burst_frames}, "
                     f"drop_rate={drop_rate:.1f}%, "
                     f"avg_decoded_fps={avg_decoded_fps}, "
-                    f"avg_rendered_fps={avg_rendered_fps}"
+                    f"avg_rendered_fps={avg_rendered_fps}, "
+                    f"avg_jitter={avg_jitter:.1f}ms, "
+                    f"max_jitter={max_jitter:.1f}ms"
                 )
 
             # Reset for next interval

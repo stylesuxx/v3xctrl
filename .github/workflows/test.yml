@@ -22,6 +22,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          sudo apt install libcairo2-dev pkg-config libgirepository1.0-dev
           python -m pip install --upgrade pip
           pip install -r ./build/requirements/viewer.txt
           pip install -r ./build/requirements/streamer.txt

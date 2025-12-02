@@ -37,6 +37,10 @@
       "testSource": true,
       "camera": {
         "enableHdr": false
+      },
+      "qp": {
+        "min": 20,
+        "max": 51
       }
   },
   "controls": {

@@ -132,22 +132,51 @@
           "default": 1800000,
           "description": "Make sure you stay below values your modem supports (based on category) - if latency increases, you know you went to high."
         },
-        "record": {
+        "qp": {
           "propertyOrder": 60,
+          "type": "object",
+          "description": "Controls quality-bitrate tradeoff. Lower QP = higher quality/larger files, higher QP = lower quality/smaller files.",
+          "title": "Quantization Parameter (QP)",
+          "options": {
+            "collapsed": false
+          },
+          "properties": {
+            "min": {
+              "propertyOrder": 10,
+              "type": "integer",
+              "default": 20,
+              "minimum": 0,
+              "maximum": 51,
+              "title": "Min QP",
+              "description": "Highest quality allowed. Lower = better quality, larger frames."
+            },
+            "max": {
+              "propertyOrder": 20,
+              "type": "integer",
+              "default": 51,
+              "minimum": 0,
+              "maximum": 51,
+              "title": "Max QP",
+              "description": "Lowest quality allowed. Higher = more compression, smaller frames."
+            }
+          }
+        },
+        "record": {
+          "propertyOrder": 70,
           "type": "boolean",
           "format": "checkbox",
           "default": false,
           "description": "Record video stream to the client (make sure to use a high quality SD card)"
         },
         "recordPath": {
-          "propertyOrder": 70,
+          "propertyOrder": 80,
           "title": "Record Path",
           "type": "string",
           "default": "/data/recordings",
           "description": "Path to store recordings"
         },
         "testSource": {
-          "propertyOrder": 80,
+          "propertyOrder": 90,
           "title": "Test image",
           "type": "boolean",
           "format": "checkbox",
@@ -155,7 +184,7 @@
           "description": "Use test image instead of camera - great for debugging, disable once you made sure video transmission is working"
         },
         "camera": {
-          "propertyOrder": 90,
+          "propertyOrder": 100,
           "type": "object",
           "title": "Camera Settings",
           "options": {

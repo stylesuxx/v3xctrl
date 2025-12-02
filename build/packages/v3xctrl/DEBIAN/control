@@ -3,7 +3,7 @@ Version: 0.1.0
 Section: utils
 Priority: optional
 Architecture: arm64
-Depends: libc6, jq, gstreamer1.0-tools, gstreamer1.0-plugins-base, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad, gstreamer1.0-plugins-ugly, gstreamer1.0-libcamera, iptables, git, v3xctrl-python, i2c-tools, samba, minicom, overlayroot, cryptsetup, cryptsetup-bin, fake-hwclock
+Depends: libc6, jq, gstreamer1.0-tools, gstreamer1.0-plugins-base, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad, gstreamer1.0-plugins-ugly, gstreamer1.0-libcamera, iptables, v3xctrl-python, i2c-tools, samba, overlayroot, cryptsetup, cryptsetup-bin, fake-hwclock, libgirepository-1.0-1, gir1.2-gstreamer-1.0, gir1.2-gst-plugins-base-1.0
 Maintainer: Chris Landa <stylesuxx@gmail.com>
 Description: RC client and web interface
  RC client provides functionality to transmit video to a host and establish

@@ -37,6 +37,7 @@ cp -r "${ROOT_DIR}/web-server/." "${SERVER_BASE_PATH}"
 
 # Move python dependencies into place
 cp -r "${ROOT_DIR}/src/v3xctrl_control" "${PYTHON_LIB_PATH}"
+cp -r "${ROOT_DIR}/src/v3xctrl_gst" "${PYTHON_LIB_PATH}"
 cp -r "${ROOT_DIR}/src/v3xctrl_helper" "${PYTHON_LIB_PATH}"
 cp -r "${ROOT_DIR}/src/v3xctrl_punch" "${PYTHON_LIB_PATH}"
 cp -r "${ROOT_DIR}/src/v3xctrl_udp_relay" "${PYTHON_LIB_PATH}"
