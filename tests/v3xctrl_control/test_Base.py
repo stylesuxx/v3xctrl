@@ -140,7 +140,7 @@ class TestBase(unittest.TestCase):
 
     def test_check_timeout_triggers_state_change(self) -> None:
         self.base.state = State.CONNECTED
-        self.base.last_message_timestamp = time.time() - 10
+        self.base.last_message_timestamp = time.monotonic() - 10
         self.base.no_message_timeout = 1
 
         mock_handler = Mock()
