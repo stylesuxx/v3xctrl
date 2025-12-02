@@ -238,10 +238,15 @@ def disconnect_handler() -> None:
     """
     Disconnect counts as failsafe, set values accordingly
     """
-    logging.debug("Disconnected from server...")
 
     pwm_throttle.set_pulse_width(int(throttle_idle))
     pwm_steering.set_pulse_width(int(steering_center))
+
+    logging.info("Disconnected")
+
+
+def connect_handler() -> None:
+    logging.info("Connected")
 
 
 def signal_handler(sig: int, frame: types.FrameType | None) -> None:
@@ -259,12 +264,14 @@ client.subscribe(Command, command_handler)
 
 # Subscribe to life-cycle events
 client.on(State.DISCONNECTED, disconnect_handler)
+client.on(State.CONNECTED, connect_handler)
 
 client.start()
 
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
+# Telemetry update loop
 try:
     while running:
         # Only send telemetry if connected

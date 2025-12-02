@@ -75,6 +75,7 @@ class Telemetry(threading.Thread):
                 self._modem = None
                 return False
 
+            logging.info("Modem initialized")
             return True
 
         except Exception as e:
