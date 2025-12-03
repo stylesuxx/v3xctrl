@@ -72,21 +72,18 @@ class Streamer:
         if settings:
             self.settings.update(settings)
 
-        logging.info(settings)
-
         self.max_i_frame_bytes = self.settings['max_i_frame_bytes']
 
         self.qp_min_limit = self.settings['h264_minimum_qp_value']
         self.qp_max_limit = self.settings['h264_maximum_qp_value']
         self.current_qp_min = self.qp_min_limit
 
-        self.qp_increase_threshold = 1.2
-        self.qp_decrease_threshold = 0.8
+        lower_limit_percent = 0.85
+        self.min_i_frame_bytes = self.max_i_frame_bytes * lower_limit_percent
+        self.target_i_frame_bytes = (self.max_i_frame_bytes + self.min_i_frame_bytes) / 2
 
-        self.target_i_frame_bytes = self.max_i_frame_bytes / self.qp_increase_threshold
-
-        self.qp_adjust_step = 1  # How much to adjust QP per step
-        self.qp_adjust_cooldown = 10  # Frames to wait between adjustments
+        self.qp_adjust_step = 1
+        self.qp_adjust_cooldown = 10
         self.frames_since_qp_adjust = 0
 
         self.pipeline: Optional[Gst.Pipeline] = None
@@ -557,7 +554,7 @@ class Streamer:
             # Adaptive QP adjustment based on I-frame size
             if self.settings['enable_i_frame_adjust']:
                 if self.frames_since_qp_adjust >= self.qp_adjust_cooldown:
-                    self._adjust_qp_based_on_iframe_size(size)
+                    self._adjust_qp_based_on_i_frame_size(size)
                     self.frames_since_qp_adjust = 0
 
         if self.last_buffer_pts is not None:
@@ -590,39 +587,39 @@ class Streamer:
         self.last_camera_pts = pts
         return Gst.PadProbeReturn.OK
 
-    def _adjust_qp_based_on_iframe_size(self, iframe_size: int) -> None:
+    def _adjust_qp_based_on_i_frame_size(self, i_frame_size: int) -> None:
         """
         Adjust minimum QP based on I-frame size to control bandwidth spikes.
 
         Args:
-            iframe_size: Size of the I-frame in bytes
+            i_frame_size: Size of the I-frame in bytes
         """
-        # Calculate how much over/under target we are
-        size_ratio = iframe_size / self.target_i_frame_bytes
+        if (
+            i_frame_size <= self.max_i_frame_bytes and
+            i_frame_size >= self.min_i_frame_bytes
+        ):
+            # Within acceptable range, no adjustment
+            return
+
+        size_ratio = i_frame_size / self.target_i_frame_bytes
         new_qp_min = self.current_qp_min
 
-        if size_ratio > self.qp_increase_threshold:
+        if i_frame_size > self.max_i_frame_bytes:
             # Increase min QP (more compression, lower quality)
             new_qp_min = min(self.current_qp_min + self.qp_adjust_step, self.qp_max_limit)
             action = "increased"
 
-        elif size_ratio < self.qp_decrease_threshold:
+        elif i_frame_size < self.min_i_frame_bytes:
             # Decrease min QP (less compression, better quality)
             new_qp_min = max(self.current_qp_min - self.qp_adjust_step, self.qp_min_limit)
             action = "decreased"
 
-        else:
-            # Within acceptable range, no adjustment
-            return
-
         if new_qp_min != self.current_qp_min:
             self.current_qp_min = new_qp_min
 
-            # Update encoder with new minimum QP
             encoder = self.get_element("encoder")
             if encoder:
                 try:
-                    # Build new extra-controls structure with updated min QP
                     encoder_controls = (
                         f"controls,"
                         f"h264_minimum_qp_value={self.current_qp_min},"
@@ -634,9 +631,9 @@ class Streamer:
 
                     logging.info(
                         f"QP min {action} to {self.current_qp_min} "
-                        f"(I-frame: {iframe_size/1024:.1f}KB, "
-                        f"target: {self.target_i_frame_bytes/1024:.1f}KB, "
-                        f"max: {self.max_i_frame_bytes/1024:.1f}KB, "
+                        f"(I-frame: {i_frame_size / 1024:.1f}KB, "
+                        f"target: {self.target_i_frame_bytes / 1024:.1f}KB, "
+                        f"range: {self.min_i_frame_bytes / 1024:.1f}-{self.max_i_frame_bytes / 1024:.1f}KB, "
                         f"ratio: {size_ratio:.2f})"
                     )
 
