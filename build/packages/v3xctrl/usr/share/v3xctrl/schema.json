@@ -56,21 +56,21 @@
         "width": {
           "propertyOrder": 10,
           "title": "Width",
-          "description": "his setting must also be adjusted in the viewer to match",
+          "description": "This setting must also be adjusted in the viewer to match",
           "type": "integer",
           "default": 1280
         },
         "height": {
           "propertyOrder": 20,
           "title": "Height",
-          "description": "his setting must also be adjusted in the viewer to match",
+          "description": "This setting must also be adjusted in the viewer to match",
           "type": "integer",
           "default": 720
         },
         "framerate": {
           "propertyOrder": 30,
           "title":" FPS",
-          "description": "his setting must also be adjusted in the viewer to match",
+          "description": "This setting must also be adjusted in the viewer to match",
           "type": "integer",
           "default": 30
         },
