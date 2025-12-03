@@ -56,29 +56,30 @@
         "width": {
           "propertyOrder": 10,
           "title": "Width",
-          "description": "Setting also needs to also be adjusted in the viewer",
+          "description": "his setting must also be adjusted in the viewer to match",
           "type": "integer",
           "default": 1280
         },
         "height": {
           "propertyOrder": 20,
           "title": "Height",
-          "description": "Setting also needs to also be adjusted in the viewer",
+          "description": "his setting must also be adjusted in the viewer to match",
           "type": "integer",
           "default": 720
         },
         "framerate": {
           "propertyOrder": 30,
           "title":" FPS",
-          "description": "Setting also needs to also be adjusted in the viewer",
+          "description": "his setting must also be adjusted in the viewer to match",
           "type": "integer",
           "default": 30
         },
         "iFramePeriod": {
           "propertyOrder": 40,
+          "title":" I-frame interval",
           "type": "integer",
           "default": 15,
-          "description": "Amount of frames between I frames"
+          "description": "I-frame interval controls how often a complete reference frame is encoded in the video stream. Smaller intervals provide better quality for fast-moving scenes and faster recovery from packet loss, but use more bandwidth since complete frames are larger than the delta frames sent between them."
         },
         "bitrate": {
           "propertyOrder": 50,
@@ -130,7 +131,7 @@
             ]
           },
           "default": 1800000,
-          "description": "Make sure you stay below values your modem supports (based on category) - if latency increases, you know you went to high."
+          "description": "Stay below values your modem supports (based on category). If latency increases, reduce this value."
         },
         "qp": {
           "propertyOrder": 60,
@@ -163,25 +164,26 @@
         },
         "maxIframeBytes": {
           "propertyOrder": 70,
-          "title":"Maximum i-frame bytes",
+          "title":"Maximum I-frame bytes",
           "type": "integer",
           "default": 40960,
-          "description": "Used for auto adjusting i-frames to a specific size"
+          "description": "Used for auto adjusting I-frames to a specific size"
         },
         "enableIframeAdjust": {
           "propertyOrder": 80,
-          "title": "Enable auto adjusting i-frame size",
+          "title": "Enable auto adjusting I Frame size",
           "type": "boolean",
           "format": "checkbox",
           "default": false,
-          "description": "This will make sure that QP is automatically adjusted such that i-frames will stay below 'Maximum i-frame bytes'"
+          "description": "This automatically adjusts the compression quality (QP) of I-frames to keep them under a specified size limit. It trades off I-frame quality to prevent bandwidth spikes when reference frames are transmitted."
         },
         "record": {
           "propertyOrder": 90,
+          "title": "Record",
           "type": "boolean",
           "format": "checkbox",
           "default": false,
-          "description": "Record video stream to the client (make sure to use a high quality SD card)"
+          "description": "Record video stream locally on the device (requires high-quality SD card)"
         },
         "recordPath": {
           "propertyOrder": 100,
@@ -238,7 +240,7 @@
               "propertyOrder": 10,
               "type": "integer",
               "default": 6666,
-              "description": "The port to which video will be streamed to"
+              "description": "Port for outgoing video stream"
             },
             "control": {
               "propertyOrder": 20,
@@ -269,7 +271,7 @@
                 "client",
                 "ap"
               ],
-              "description": "In client mode, the device will connect to the configured network. In access-point mode, the device will spawn it's own WiFi network to which you can connect"
+              "description": "In client mode, the device connects to an existing network. In access-point mode, the device creates its own WiFi network."
             },
             "routing": {
               "type": "string",
@@ -278,7 +280,7 @@
                 "wlan",
                 "rndis"
               ],
-              "description": "Which device should be used to route internet traffic. During setup use wlan and switch to rndis once everything ist setup and tested"
+              "description": "Which interface routes internet traffic. Use wlan during initial setup, then switch to rndis once tested."
             }
           }
         },
