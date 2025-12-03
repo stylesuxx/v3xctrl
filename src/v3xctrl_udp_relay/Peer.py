@@ -21,7 +21,12 @@ class Peer:
         self.session_id = session_id
         self._abort_event = threading.Event()
 
+        self._finalized_event = threading.Event()
+        self._finalized_event.set()
+
     def setup(self, role: str, ports: Dict[str, int]) -> Dict[str, Address]:
+        self._finalized_event.clear()
+
         sockets: Dict[str, socket.socket] = {}
         for port_type, port in ports.items():
             upper_pt = port_type.upper()
@@ -46,6 +51,7 @@ class Peer:
 
     def abort(self) -> None:
         self._abort_event.set()
+        self._finalized_event.wait()
 
     def _bind_socket(self, name: str, port: int = 0) -> socket.socket:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -150,3 +156,5 @@ class Peer:
         for sock in sockets.values():
             sock.settimeout(None)
             sock.close()
+
+        self._finalized_event.set()

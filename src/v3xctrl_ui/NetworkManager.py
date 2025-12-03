@@ -36,7 +36,7 @@ class NetworkManager:
         self.relay_server = None
         self.relay_port = 8888
         self.relay_id = None
-        self.peer: Peer | None = None
+        self.peer: Optional[Peer] = None
 
         self._setup_relay_if_enabled()
         self._print_connection_info_if_needed()
@@ -65,8 +65,8 @@ class NetworkManager:
                     "video": self.video_port,
                     "control": self.control_port
                 }
-                self.peer = Peer(self.relay_server, self.relay_port, self.relay_id)
 
+                self.peer = Peer(self.relay_server, self.relay_port, self.relay_id)
                 try:
                     addresses = self.peer.setup("viewer", local_bind_ports)
                     video_address = addresses["video"]
@@ -143,7 +143,10 @@ class NetworkManager:
             logging.debug(f"Server shut down after {delta}s")
 
         if self.peer:
+            start = time.monotonic()
             self.peer.abort()
+            delta = round(time.monotonic() - start)
+            logging.debug(f"Peer aborted after {delta}s")
 
         if self.video_receiver:
             start = time.monotonic()

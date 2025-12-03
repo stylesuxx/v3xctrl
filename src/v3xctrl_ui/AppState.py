@@ -110,18 +110,11 @@ class AppState:
             not self._settings_equal(new_settings, "ports") or
             not self._settings_equal(new_settings, "relay")
         ):
-            logging.info("Starting background network manager restart")
-            self.pending_settings = new_settings
-
-            if self.menu:
-                self.menu.show_loading("Restarting network...")
-
-            # Start background thread for network restart
-            self.network_restart_complete.clear()
-            self.network_restart_thread = threading.Thread(
-                target=self._restart_network_manager,
-                args=(new_settings,),
-                daemon=True
+            logging.info("Restarting network manager")
+            self.network_manager.shutdown()
+            self.network_manager = NetworkManager(
+                new_settings,
+                self.handlers
             )
             self.network_restart_thread.start()
             return
