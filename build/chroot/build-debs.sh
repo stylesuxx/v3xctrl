@@ -1,24 +1,18 @@
 #!/bin/bash
 LOCALE="en_US.UTF-8"
 
-# Parse arguments
+PARAMS=""
 SKIP_DEPS=false
 while [[ "$#" -gt 0 ]]; do
   case $1 in
-    --skip-deps|-s) SKIP_DEPS=true ;;
+    --skip-deps|-s)
+      PARAMS="--skip-deps"
+      SKIP_DEPS=true
+    ;;
     *) echo "Unknown parameter: $1"; exit 1 ;;
   esac
   shift
 done
-
-echo '[CHROOT] Installing dependencies'
-apt update
-apt install -y \
-  curl build-essential libssl-dev libbz2-dev libsqlite3-dev ca-certificates \
-  liblzma-dev libreadline-dev libffi-dev libgdbm-dev libgdbm-compat-dev \
-  libdb-dev uuid-dev zlib1g-dev libncursesw5-dev tk-dev \
-  libctypes-ocaml-dev libcurses-ocaml-dev dphys-swapfile lintian libcairo2-dev \
-  libgirepository1.0-dev cmake libglib2.0-dev
 
 # Change to working directory
 cd /src
@@ -48,6 +42,6 @@ if ! dpkg -s v3xctrl-python >/dev/null 2>&1; then
 fi
 
 echo '[CHROOT] Building v3xctrl'
-./build/build-v3xctrl.sh /src
+./build/build-v3xctrl.sh /src ${PARAMS}
 
 echo '[CHROOT] Package build done...'
