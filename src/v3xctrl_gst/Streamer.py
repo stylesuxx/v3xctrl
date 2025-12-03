@@ -54,20 +54,40 @@ class Streamer:
             # Encoder (via CAPS)
             'h264_profile': "high",
             'h264_level': "4.1",
-            'h264_minimum_qp_value': 20,
-            'h264_maximum_qp_value': 51,
+            'capture_io_mode':  4,
 
             # via extra-controls
             'bitrate_mode': 1,  # 0 VBR, 1: CBR
             'bitrate': 1800000,
             'h264_i_frame_period': 15,
-            'capture_io_mode':  4,
+            'h264_minimum_qp_value': 20,
+            'h264_maximum_qp_value': 51,
 
+            # Auto adjust
+            'enable_i_frame_adjust': False,
+            'max_i_frame_bytes': 51200,
         }
 
         self.settings: Dict[str, Any] = default_settings.copy()
         if settings:
             self.settings.update(settings)
+
+        logging.info(settings)
+
+        self.max_i_frame_bytes = self.settings['max_i_frame_bytes']
+
+        self.qp_min_limit = self.settings['h264_minimum_qp_value']
+        self.qp_max_limit = self.settings['h264_maximum_qp_value']
+        self.current_qp_min = self.qp_min_limit
+
+        self.qp_increase_threshold = 1.2
+        self.qp_decrease_threshold = 0.8
+
+        self.target_i_frame_bytes = self.max_i_frame_bytes / self.qp_increase_threshold
+
+        self.qp_adjust_step = 1  # How much to adjust QP per step
+        self.qp_adjust_cooldown = 10  # Frames to wait between adjustments
+        self.frames_since_qp_adjust = 0
 
         self.pipeline: Optional[Gst.Pipeline] = None
         self.loop: Optional[GLib.MainLoop] = None
@@ -336,10 +356,11 @@ class Streamer:
             f"bitrate_mode={self.settings['bitrate_mode']},"
             f"h264_i_frame_period={self.settings['h264_i_frame_period']},"
             f"h264_minimum_qp_value={self.settings['h264_minimum_qp_value']},"
-            f"h264_maximum_qp_value={self.settings['h264_maximum_qp_value']},"
-            f"capture_io_mode={self.settings['capture_io_mode']}"
+            f"h264_maximum_qp_value={self.settings['h264_maximum_qp_value']}"
         )
+
         encoder.set_property("extra-controls", Gst.Structure.from_string(encoder_controls)[0])
+        encoder.set_property("capture-io-mode", self.settings['capture_io_mode'])
 
         encoder_caps_filter = Gst.ElementFactory.make("capsfilter", "encoder_caps")
         if not encoder_caps_filter:
@@ -531,7 +552,13 @@ class Streamer:
         is_keyframe = not buffer.has_flags(Gst.BufferFlags.DELTA_UNIT)
         if is_keyframe:
             size = buffer.get_size()
-            logging.debug(f"{size/1024:.1f} KB at PTS {pts/Gst.SECOND:.3f}s")
+            logging.debug(f"i-frame: {size/1024:.1f} KB at PTS {pts/Gst.SECOND:.3f}s")
+
+            # Adaptive QP adjustment based on I-frame size
+            if self.settings['enable_i_frame_adjust']:
+                if self.frames_since_qp_adjust >= self.qp_adjust_cooldown:
+                    self._adjust_qp_based_on_iframe_size(size)
+                    self.frames_since_qp_adjust = 0
 
         if self.last_buffer_pts is not None:
             delta = (pts - self.last_buffer_pts) / Gst.SECOND
@@ -543,6 +570,7 @@ class Streamer:
 
         self.last_buffer_pts = pts
         self.frame_count += 1
+        self.frames_since_qp_adjust += 1
 
         return Gst.PadProbeReturn.OK
 
@@ -561,3 +589,56 @@ class Streamer:
 
         self.last_camera_pts = pts
         return Gst.PadProbeReturn.OK
+
+    def _adjust_qp_based_on_iframe_size(self, iframe_size: int) -> None:
+        """
+        Adjust minimum QP based on I-frame size to control bandwidth spikes.
+
+        Args:
+            iframe_size: Size of the I-frame in bytes
+        """
+        # Calculate how much over/under target we are
+        size_ratio = iframe_size / self.target_i_frame_bytes
+        new_qp_min = self.current_qp_min
+
+        if size_ratio > self.qp_increase_threshold:
+            # Increase min QP (more compression, lower quality)
+            new_qp_min = min(self.current_qp_min + self.qp_adjust_step, self.qp_max_limit)
+            action = "increased"
+
+        elif size_ratio < self.qp_decrease_threshold:
+            # Decrease min QP (less compression, better quality)
+            new_qp_min = max(self.current_qp_min - self.qp_adjust_step, self.qp_min_limit)
+            action = "decreased"
+
+        else:
+            # Within acceptable range, no adjustment
+            return
+
+        if new_qp_min != self.current_qp_min:
+            self.current_qp_min = new_qp_min
+
+            # Update encoder with new minimum QP
+            encoder = self.get_element("encoder")
+            if encoder:
+                try:
+                    # Build new extra-controls structure with updated min QP
+                    encoder_controls = (
+                        f"controls,"
+                        f"h264_minimum_qp_value={self.current_qp_min},"
+                        f"h264_maximum_qp_value={self.settings['h264_maximum_qp_value']}"
+                    )
+
+                    encoder.set_property("extra-controls",
+                        Gst.Structure.from_string(encoder_controls)[0])
+
+                    logging.info(
+                        f"QP min {action} to {self.current_qp_min} "
+                        f"(I-frame: {iframe_size/1024:.1f}KB, "
+                        f"target: {self.target_i_frame_bytes/1024:.1f}KB, "
+                        f"max: {self.max_i_frame_bytes/1024:.1f}KB, "
+                        f"ratio: {size_ratio:.2f})"
+                    )
+
+                except Exception as e:
+                    logging.error(f"Failed to adjust QP: {e}")

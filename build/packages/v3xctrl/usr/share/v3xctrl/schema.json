@@ -161,22 +161,37 @@
             }
           }
         },
-        "record": {
+        "maxIframeBytes": {
           "propertyOrder": 70,
+          "title":"Maximum i-frame bytes",
+          "type": "integer",
+          "default": 40960,
+          "description": "Used for auto adjusting i-frames to a specific size"
+        },
+        "enableIframeAdjust": {
+          "propertyOrder": 80,
+          "title": "Enable auto adjusting i-frame size",
+          "type": "boolean",
+          "format": "checkbox",
+          "default": false,
+          "description": "This will make sure that QP is automatically adjusted such that i-frames will stay below 'Maximum i-frame bytes'"
+        },
+        "record": {
+          "propertyOrder": 90,
           "type": "boolean",
           "format": "checkbox",
           "default": false,
           "description": "Record video stream to the client (make sure to use a high quality SD card)"
         },
         "recordPath": {
-          "propertyOrder": 80,
+          "propertyOrder": 100,
           "title": "Record Path",
           "type": "string",
           "default": "/data/recordings",
           "description": "Path to store recordings"
         },
         "testSource": {
-          "propertyOrder": 90,
+          "propertyOrder": 110,
           "title": "Test image",
           "type": "boolean",
           "format": "checkbox",
@@ -184,7 +199,7 @@
           "description": "Use test image instead of camera - great for debugging, disable once you made sure video transmission is working"
         },
         "camera": {
-          "propertyOrder": 100,
+          "propertyOrder": 120,
           "type": "object",
           "title": "Camera Settings",
           "options": {
