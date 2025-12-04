@@ -3,9 +3,13 @@ set -e
 
 # Parse arguments
 BUILD_PARAMS=""
+SKIP_DEPS=false
 while [[ "$#" -gt 0 ]]; do
   case $1 in
-    --skip-deps|-s) BUILD_PARAMS="--skip-deps" ;;
+    --skip-deps|-s)
+      BUILD_PARAMS="--skip-deps"
+      SKIP_DEPS=true
+    ;;
     *) echo "Unknown parameter: $1"; exit 1 ;;
   esac
   shift
@@ -75,7 +79,9 @@ echo "[HOST] Copying qemu-aarch64-static for chroot emulation"
 cp /usr/bin/qemu-aarch64-static "$MOUNT_DIR/usr/bin/"
 
 echo "[HOST] Cleaning previous build"
-rm -rf "${MOUNT_DIR}/src"
+if [[ "$SKIP_DEPS" = false ]]; then
+  rm -rf "${MOUNT_DIR}/src"
+fi
 rm -rf "${MOUNT_DIR}/build-debs.sh"
 
 echo "[HOST] Moving source files into place"
@@ -95,7 +101,7 @@ cp "./build/chroot/build-debs.sh" "${MOUNT_DIR}"
 chmod +x "${MOUNT_DIR}/build-debs.sh"
 
 echo "[HOST] Entering chroot and starting build"
-chroot "$MOUNT_DIR" "./build-debs.sh" ${BUILD_PARAMS}
+chroot "$MOUNT_DIR" bash -c "./build-debs.sh ${BUILD_PARAMS}"
 
 echo "[HOST] Copying deb packages into place"
 cp ${MOUNT_DIR}/src/build/tmp/*.deb "${DEB_PATH}"
