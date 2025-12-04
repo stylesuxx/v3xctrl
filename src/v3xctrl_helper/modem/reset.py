@@ -1,4 +1,5 @@
 import argparse
+import logging
 from atlib import AIR780EU
 
 
@@ -20,7 +21,10 @@ def main() -> None:
 
     # Reboots the modem, serial connection will be lost, radio will be powered
     # back on during a reboot cycle.
-    gsm.reboot()
+    try:
+        gsm.reboot()
+    except OSError:
+        logging.warning("Lost connection during reboot...")
 
 
 if __name__ == "__main__":

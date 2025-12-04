@@ -3,5 +3,11 @@ ENV_PATH="/run/v3xctrl.env"
 source "${ENV_PATH}"
 
 BANDS="$1"
+if [ -z "$BANDS" ]; then
+  echo "Error: No bands specified" >&2
+  echo "Usage: $0 <comma-separated-band-list>" >&2
+  echo "Example: $0 1,3,7,20" >&2
+  exit 1
+fi
 
 v3xctrl-python -m v3xctrl_helper.modem.set_allowed_bands $network_modem_path "$BANDS"
