@@ -40,7 +40,7 @@ class SelfTestClient:
         self.max_timeout = max_timeout
 
     def udp_hole_duration(self) -> None:
-        print("> Starting UDP hole duration test...")
+        print("--- Started UDP hole duration test ---")
 
         BUFFER_SIZE = 1024
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as client_socket:
@@ -52,9 +52,13 @@ class SelfTestClient:
 
                 try:
                     client_socket.recvfrom(BUFFER_SIZE)
+                    print(f"+ Received timout response: {timeout_value:7.2f} OK")
                     timeout_value += self.increment
 
                 except socket.timeout:
+                    print("")
+                    print("--- Results ---")
+                    print(f"Minimum hole lifetime: {timeout_value:.2f}s")
                     break
 
 

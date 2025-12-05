@@ -57,10 +57,10 @@ class SelfTestServer:
             except socket.timeout:
                 if not first_request:
                     print(" FAILED")
-                print("No new request received from client.")
 
+            print("")
             print("--- Results ---")
-            print(f"Minimum hole lifetime: {previous_timeout}s")
+            print(f"Minimum hole lifetime: {previous_timeout:.2f}s")
 
 
 if __name__ == "__main__":
