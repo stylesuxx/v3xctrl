@@ -19,6 +19,7 @@ SERVICES = [
     "v3xctrl-video",
     "v3xctrl-control",
     "v3xctrl-debug-log",
+    "v3xctrl-reverse-shell",
 ]
 
 

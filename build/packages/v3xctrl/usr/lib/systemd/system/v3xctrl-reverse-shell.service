@@ -1,0 +1,14 @@
+[Unit]
+Description=SSH Reverse shell
+After=network.target v3xctrl-wifi-mode.service v3xctrl-setup-env.service
+
+[Service]
+Type=simple
+ExecStart=v3xctrl-reverse-shell
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
