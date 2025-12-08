@@ -5,6 +5,8 @@ import socket
 import threading
 from typing import Optional, Dict, Any, TYPE_CHECKING
 
+from v3xctrl_gst.Command import Command, CommandValidationError
+
 if TYPE_CHECKING:
     from v3xctrl_gst.Streamer import Streamer
 
@@ -115,11 +117,16 @@ class ControlServer:
                     break
 
                 try:
-                    command = json.loads(data.decode('utf-8'))
+                    command_dict = json.loads(data.decode('utf-8'))
+                    command = Command(**command_dict)
+                    command.validate()
                     response = self._execute_command(command)
 
                 except json.JSONDecodeError as e:
                     response = {'status': 'error', 'message': f'Invalid JSON: {e}'}
+
+                except (TypeError, CommandValidationError) as e:
+                    response = {'status': 'error', 'message': str(e)}
 
                 except Exception as e:
                     response = {'status': 'error', 'message': str(e)}
@@ -131,75 +138,53 @@ class ControlServer:
         finally:
             client_socket.close()
 
-    def _execute_command(self, command: Dict[str, Any]) -> Dict[str, Any]:
+    def _execute_command(self, command: Command) -> Dict[str, Any]:
         """
         Execute a control command.
 
         Args:
-            command: Command dictionary with 'action' and parameters
+            command: Command object to execute
 
         Returns:
             Response dictionary with status and result
         """
-        action = command.get('action')
-        if not action:
-            return {'status': 'error', 'message': 'Missing action parameter'}
-
-        if action == 'stop':
+        if command.action == 'stop':
             self.streamer.stop()
             return {'status': 'success', 'message': 'Pipeline stopped'}
 
-        element = command.get('element')
-        if not element:
-            return {'status': 'error', 'message': 'Missing element parameter'}
-
-        if action == 'list':
-            properties = self.streamer.list_properties(element)
+        if command.action == 'list':
+            properties = self.streamer.list_properties(command.element)
             return {
                 'status': 'success' if properties is not None else 'error',
-                'element': element,
+                'element': command.element,
                 'properties': self._serialize_properties(properties)
             }
 
-        if action == 'update':
-            properties = command.get('properties')
-            if not properties:
-                return {'status': 'error', 'message': 'Missing properties parameter'}
-
-            success = self.streamer.update_properties(element, properties)
-            return {
-                'status': 'success' if success else 'error',
-                'element': element,
-                'properties': properties
-            }
-
-        property_name = command.get('property')
-        if not property_name:
-            return {'status': 'error', 'message': 'Missing property parameters'}
-
-        if action == 'get':
-            value = self.streamer.get_property(element, property_name)
+        if command.action == 'get':
+            value = self.streamer.get_property(command.element, command.property)
             return {
                 'status': 'success' if value is not None else 'error',
-                'element': element,
-                'property': property_name,
+                'element': command.element,
+                'property': command.property,
                 'value': self._serialize_value(value)
             }
 
-        if action == 'set':
-            value = command.get('value')
-            if value is None:
-                return {'status': 'error', 'message': 'Missing value'}
+        if command.action == 'set':
+            success = self.streamer.set_property(command.element, command.property, command.value)
+            value = self.streamer.get_property(command.element, command.property)
 
-            success = self.streamer.set_property(element, property_name, value)
+            logging.debug(value)
+
+            if value != command.value:
+                success = False
+                # TODO: retry
+
             return {
                 'status': 'success' if success else 'error',
-                'element': element,
-                'property': property_name,
+                'element': command.element,
+                'property': command.property,
                 'value': value
             }
-
-        return {'status': 'error', 'message': f'Unknown action: {action}'}
 
     def _serialize_value(self, value: Any) -> Any:
         """
