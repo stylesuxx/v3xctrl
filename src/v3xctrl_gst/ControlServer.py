@@ -25,6 +25,14 @@ class ControlServer:
         self.streamer = streamer
         self.socket_path = socket_path
 
+        # Command registry - maps action names to handler methods
+        self._command_handlers = {
+            'stop': self._handle_stop,
+            'list': self._handle_list,
+            'get': self._handle_get,
+            'set': self._handle_set,
+        }
+
         self.server_socket: Optional[socket.socket] = None
         self.thread: Optional[threading.Thread] = None
         self.running = False
@@ -138,52 +146,53 @@ class ControlServer:
         finally:
             client_socket.close()
 
+    def _handle_stop(self, command: Command) -> Dict[str, Any]:
+        self.streamer.stop()
+        return {'status': 'success', 'message': 'Pipeline stopped'}
+
+    def _handle_list(self, command: Command) -> Dict[str, Any]:
+        properties = self.streamer.list_properties(command.element)
+        return {
+            'status': 'success' if properties is not None else 'error',
+            'element': command.element,
+            'properties': self._serialize_properties(properties)
+        }
+
+    def _handle_get(self, command: Command) -> Dict[str, Any]:
+        value = self.streamer.get_property(command.element, command.property)
+        return {
+            'status': 'success' if value is not None else 'error',
+            'element': command.element,
+            'property': command.property,
+            'value': self._serialize_value(value)
+        }
+
+    def _handle_set(self, command: Command) -> Dict[str, Any]:
+        success = self.streamer.set_property(
+            command.element,
+            command.property,
+            command.value
+        )
+        value = self.streamer.get_property(
+            command.element,
+            command.property
+        )
+
+        return {
+            'status': 'success' if success else 'error',
+            'element': command.element,
+            'property': command.property,
+            'value': self._serialize_value(value)
+        }
+
     def _execute_command(self, command: Command) -> Dict[str, Any]:
-        """
-        Execute a control command.
-
-        Args:
-            command: Command object to execute
-
-        Returns:
-            Response dictionary with status and result
-        """
-        if command.action == 'stop':
-            self.streamer.stop()
-            return {'status': 'success', 'message': 'Pipeline stopped'}
-
-        if command.action == 'list':
-            properties = self.streamer.list_properties(command.element)
+        handler = self._command_handlers.get(command.action)
+        if handler:
+            return handler(command)
+        else:
             return {
-                'status': 'success' if properties is not None else 'error',
-                'element': command.element,
-                'properties': self._serialize_properties(properties)
-            }
-
-        if command.action == 'get':
-            value = self.streamer.get_property(command.element, command.property)
-            return {
-                'status': 'success' if value is not None else 'error',
-                'element': command.element,
-                'property': command.property,
-                'value': self._serialize_value(value)
-            }
-
-        if command.action == 'set':
-            success = self.streamer.set_property(command.element, command.property, command.value)
-            value = self.streamer.get_property(command.element, command.property)
-
-            logging.debug(value)
-
-            if value != command.value:
-                success = False
-                # TODO: retry
-
-            return {
-                'status': 'success' if success else 'error',
-                'element': command.element,
-                'property': command.property,
-                'value': value
+                'status': 'error',
+                'message': f"Unknown action: '{command.action}'"
             }
 
     def _serialize_value(self, value: Any) -> Any:
