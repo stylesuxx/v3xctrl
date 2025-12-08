@@ -36,14 +36,6 @@ class ControlClient:
             'value': value
         })
 
-    def update_properties(self, element: str, properties: Dict[str, Any]) -> Dict[str, Any]:
-        """Update multiple properties at once."""
-        return self._send_command({
-            'action': 'update',
-            'element': element,
-            'properties': properties
-        })
-
     def stop(self) -> Dict[str, Any]:
         return self._send_command({'action': 'stop'})
 
