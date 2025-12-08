@@ -1,0 +1,51 @@
+#!/bin/bash
+# Set and get setting parameters.
+# Does not validate against the schema.
+ENV_PATH="/run/v3xctrl.env"
+source "${ENV_PATH}"
+
+CONFIG_PATH="/etc/${NAME}/config.json"
+
+if [ $# -lt 2 ]; then
+    echo "Usage: $0 {get|set} <path> [value]" >&2
+    exit 1
+fi
+
+ACTION="$1"
+SETTING="$2"
+
+case "$ACTION" in
+    get)
+        jq -r "$SETTING" "$CONFIG_PATH"
+        ;;
+    set)
+        if [ $# -lt 3 ]; then
+            echo "Error: 'set' requires a value parameter" >&2
+            echo "Usage: $0 set <path> <value>" >&2
+            exit 1
+        fi
+        VALUE="$3"
+
+        # Check if the setting exists
+        if ! jq -e "$SETTING" "$CONFIG_PATH" >/dev/null 2>&1; then
+            echo "Error: Setting '$SETTING' does not exist in config" >&2
+            exit 1
+        fi
+
+        # Try to parse as JSON, otherwise treat as string
+        if echo "$VALUE" | jq -e . >/dev/null 2>&1; then
+            # Valid JSON - use as-is
+            jq "$SETTING = $VALUE" "$CONFIG_PATH" | sponge "$CONFIG_PATH"
+        else
+            # Not valid JSON - treat as string
+            jq --arg val "$VALUE" "$SETTING = \$val" "$CONFIG_PATH" | sponge "$CONFIG_PATH"
+        fi
+
+        v3xctrl-write-env
+        ;;
+    *)
+        echo "Error: Invalid action '$ACTION'" >&2
+        echo "Usage: $0 {get|set} <path> [value]" >&2
+        exit 1
+        ;;
+esac
