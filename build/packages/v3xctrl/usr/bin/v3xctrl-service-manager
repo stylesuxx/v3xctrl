@@ -39,6 +39,9 @@ fi
 if [ "$network_modem_limitBands" = "true" ]; then
   echo "Limiting bands..."
   v3xctrl-set-bands $network_modem_allowedBands
+else
+  echo "Setting default bands..."
+  v3xctrl-modem-reset-bands
 fi
 
 if [ "$extras_samba" = "true" ]; then

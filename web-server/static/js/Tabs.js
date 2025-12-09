@@ -88,6 +88,8 @@ class Tabs {
               console.warn('Failed to fetch modem info.');
             })
             .finally(() => {
+              // TODO: Update modem config with default values for selected
+              //       modem and save config.
               modal.remove();
             });
         });

@@ -2,4 +2,5 @@
 ENV_PATH="/run/v3xctrl.env"
 source "${ENV_PATH}"
 
+v3xctrl-modem-reset-bands
 v3xctrl-python -m v3xctrl_helper.modem.reset $network_modem_path

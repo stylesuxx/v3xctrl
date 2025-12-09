@@ -1,0 +1,20 @@
+#! /bin/bash
+ENV_PATH="/run/v3xctrl.env"
+source "${ENV_PATH}"
+
+MODEMS_JSON="/usr/share/v3xctrl/modems.json"
+SETTINGS_JSON="/etc/v3xctrl/config.json"
+
+MODEL=$network_modem_model
+
+# Set bands to default if not generic modem
+if [ -n "$MODEL" ] && [ "$MODEL" != "generic" ]; then
+    BANDS=$(jq -r --arg model "$MODEL" '.[$model].validBands | join(",")' "$MODEMS_JSON")
+    if [ -n "$BANDS" ] && [ "$BANDS" != "null" ]; then
+        v3xctrl-set-bands $BANDS
+
+        # reset limitBands in settins JSON
+        cp -p "$SETTINGS_JSON" "${SETTINGS_JSON}.tmp" && \
+            jq '.network.modem.limitBands = false' "${SETTINGS_JSON}.tmp" > "$SETTINGS_JSON"
+    fi
+fi
