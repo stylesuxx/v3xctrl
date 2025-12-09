@@ -38,6 +38,8 @@
       "camera": {
         "enableHdr": false
       },
+      "maxIframeBytes": 40960,
+      "enableIframeAdjust": false,
       "qp": {
         "min": 20,
         "max": 51

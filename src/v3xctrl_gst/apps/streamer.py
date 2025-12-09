@@ -27,6 +27,9 @@ def main() -> None:
     parser.add_argument('--i-frame-period', type=int, default=30, help='I-frame period (default: 30)')
     parser.add_argument('--qp-minimum', type=int, default=20, help='QP minimum (default: 20)')
     parser.add_argument('--qp-maximum', type=int, default=51, help='QP maximum (default: 51)')
+    parser.add_argument('--max-i-frame-bytes', type=int, default=51200, help='Maximum i-frame size (default: 51200)')
+    parser.add_argument('--enable-i-frame-adjust', action='store_true', help='Use test pattern instead of camera')
+    parser.add_argument('--file-src', type=str, default=None, help='Path to src file')
 
     parser.add_argument(
         "--log", default="ERROR",
@@ -58,6 +61,9 @@ def main() -> None:
         'h264_i_frame_period': args.i_frame_period,
         'h264_minimum_qp_value': args.qp_minimum,
         'h264_maximum_qp_value': args.qp_maximum,
+        'max_i_frame_bytes': args.max_i_frame_bytes,
+        'enable_i_frame_adjust': args.enable_i_frame_adjust,
+        'file_src': args.file_src,
     }
 
     # Create and run streamer
