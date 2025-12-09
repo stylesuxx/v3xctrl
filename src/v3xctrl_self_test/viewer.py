@@ -19,6 +19,10 @@ HOST = "0.0.0.0"
 BUFFER_SIZE = 8096
 TIMEOUT = 60
 
+READY_MARKER = b"READY"
+CONFIRM_MARKER = b"CONFIRM"
+DONE_MARKER = b"DONE"
+
 
 class SelfTestServer:
     def __init__(self, host: str, port: int, max_timeout: int) -> None:
@@ -27,18 +31,37 @@ class SelfTestServer:
         self.max_timeout = max_timeout
 
     def udp_hole_duration(self) -> None:
-        print("--- UDP hole duration test ---")
+        print("--- UDP hole duration test (SERVER) ---")
 
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             sock.bind((self.host, self.port))
             sock.settimeout(TIMEOUT)
 
+            print("Waiting for client connection...", end='', flush=True)
+            ready = False
+            while not ready:
+                try:
+                    data, addr = sock.recvfrom(BUFFER_SIZE)
+                    if data == READY_MARKER:
+                        sock.sendto(READY_MARKER, addr)
+                        ready = True
+                        print(f" OK ({addr[0]}:{addr[1]})")
+
+                except socket.timeout:
+                    print(".", end='', flush=True)
+                    continue
+
+            print("\nStarting duration test...")
             requested_timeout = 0
             previous_timeout = 0
             first_request = True
             try:
                 while requested_timeout <= self.max_timeout:
                     data, addr = sock.recvfrom(BUFFER_SIZE)
+
+                    if data == READY_MARKER:
+                        sock.sendto(READY_MARKER, addr)
+                        continue
 
                     # Complete previous line with OK if not first request
                     if not first_request:
@@ -49,9 +72,16 @@ class SelfTestServer:
                     requested_timeout = struct.unpack("d", data)[0]
                     print(f"+ Received timeout request: {requested_timeout:7.2f}", end='', flush=True)
 
-                    # Wait and send response
+                    # Send confirmation multiple times to ensure delivery
+                    for _ in range(3):
+                        sock.sendto(CONFIRM_MARKER, addr)
+                        time.sleep(0.1)
+
+                    # Wait and send completion response multiple times
                     time.sleep(requested_timeout)
-                    sock.sendto(b"", addr)
+                    for _ in range(3):
+                        sock.sendto(DONE_MARKER, addr)
+                        time.sleep(0.1)
 
                     first_request = False
             except socket.timeout:
