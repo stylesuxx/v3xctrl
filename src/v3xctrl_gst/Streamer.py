@@ -67,6 +67,10 @@ class Streamer:
             # Auto adjust
             'enable_i_frame_adjust': False,
             'max_i_frame_bytes': 51200,
+
+            # Camera settings
+            'af_mode': 0,
+            'lens_position': 0,
         }
 
         self.settings: Dict[str, Any] = default_settings.copy()
@@ -426,6 +430,9 @@ class Streamer:
         if not source:
             logging.error("Failed to create libcamerasrc")
             return False
+
+        source.set_property("af-mode", self.settings['af_mode'])
+        source.set_property("lens-position", self.settings['lens_position'])
 
         # File Source if configured
         if self.settings['file_src']:

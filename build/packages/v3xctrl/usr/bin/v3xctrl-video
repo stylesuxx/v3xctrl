@@ -31,6 +31,8 @@ ARGS=(
   --qp-minimum "$video_qp_min"
   --qp-maximum "$video_qp_max"
   --max-i-frame-bytes "$video_maxIframeBytes"
+  --af-mode "$video_camera_afMode"
+  --lens-position "$video_camera_lensPosition"
   --log "${extras_logLevel}"
 )
 

@@ -231,6 +231,31 @@
               "type": "boolean",
               "format": "checkbox",
               "default": false
+            },
+            "afMode": {
+              "propertyOrder": 20,
+              "title": "Auto focus",
+              "type": "integer",
+              "required": true,
+              "enum": [
+                0,
+                2
+              ],
+              "options": {
+                "enum_titles": [
+                  "Disabled",
+                  "Continous"
+                ]
+              },
+              "default": 2,
+              "description": "Only supported on PiCam V3 - if auto focus is disabled, lens position will be applied"
+            },
+            "lensPosition": {
+              "propertyOrder": 30,
+              "title": "Lens position",
+              "type": "float",
+              "default": 0,
+              "description": "Only applied when autofocus is disabled. 0: Infinity; Focus(m) = 1/value; Eg.: value = 0.5, Focus = 2m"
             }
           }
         }

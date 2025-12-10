@@ -36,7 +36,9 @@
       "recordPath": "/data/recordings",
       "testSource": true,
       "camera": {
-        "enableHdr": false
+        "enableHdr": false,
+        "afMode": 0,
+        "lensPosition": 0
       },
       "maxIframeBytes": 40960,
       "enableIframeAdjust": false,
