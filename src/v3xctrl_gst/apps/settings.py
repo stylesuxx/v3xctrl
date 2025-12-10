@@ -10,7 +10,7 @@ actions = [
     'get',
     'list',
     'stop',
-    'record',
+    'recording',
     'stats',
 ]
 
@@ -66,8 +66,8 @@ def main() -> None:
     elif args.action == 'stop':
         response = client.stop()
 
-    elif args.action == 'record':
-        response = client.record(args.element)
+    elif args.action == 'recording':
+        response = client.recording(args.element)
 
     elif args.action == 'stats':
         response = client.stats()

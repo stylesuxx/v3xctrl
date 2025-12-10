@@ -39,9 +39,9 @@ class ControlClient:
     def stop(self) -> Dict[str, Any]:
         return self._send_command({'action': 'stop'})
 
-    def record(self, value: str) -> Dict[str, Any]:
+    def recording(self, value: str) -> Dict[str, Any]:
         return self._send_command({
-            'action': 'record',
+            'action': 'recording',
             'value': value,
         })
 
