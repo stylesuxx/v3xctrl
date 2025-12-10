@@ -31,6 +31,8 @@ class ControlServer:
             'list': self._handle_list,
             'get': self._handle_get,
             'set': self._handle_set,
+            'stats': self._handle_stats,
+            'record': self._handle_record,
         }
 
         self.server_socket: Optional[socket.socket] = None
@@ -145,6 +147,25 @@ class ControlServer:
             logging.error(f"Client handler error: {e}")
         finally:
             client_socket.close()
+
+    def _handle_record(self, command: Command) -> Dict[str, Any]:
+        value = command.value
+        if value is None:
+            return {'status': 'error', 'message': 'Missing value'}
+
+        if value == 'start':
+            status = self.streamer.start_recording()
+            return {'status': 'success' if status else 'error'}
+
+        elif value == 'stop':
+            status = self.streamer.stop_recording()
+            return {'status': 'success' if status else 'error'}
+
+        else:
+            return {'status': 'error', 'message': 'Unrecognized value'}
+
+    def _handle_stats(self, command: Command) -> Dict[str, Any]:
+        return self.streamer.get_stats()
 
     def _handle_stop(self, command: Command) -> Dict[str, Any]:
         self.streamer.stop()

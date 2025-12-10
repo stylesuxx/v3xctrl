@@ -5,10 +5,19 @@ from typing import Any
 from v3xctrl_gst import ControlClient
 
 
+actions = [
+    'set',
+    'get',
+    'list',
+    'stop',
+    'record',
+    'stats',
+]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description='GStreamer pipeline control client')
-    parser.add_argument('action', choices=['set', 'get', 'list', 'stop'],
-                        help='Action to perform')
+    parser.add_argument('action', choices=actions, help='Action to perform')
     parser.add_argument('element', nargs='?', help='Element name')
     parser.add_argument('property', nargs='?', help='Property name')
     parser.add_argument('value', nargs='?', help='Property value')
@@ -28,6 +37,10 @@ def main() -> None:
     elif args.action == 'list':
         if not args.element:
             parser.error("list requires: element")
+
+    elif args.action == 'record':
+        if not args.element:
+            parser.error("record requires: element")
 
     client = ControlClient(args.socket_path)
 
@@ -52,6 +65,12 @@ def main() -> None:
 
     elif args.action == 'stop':
         response = client.stop()
+
+    elif args.action == 'record':
+        response = client.record(args.element)
+
+    elif args.action == 'stats':
+        response = client.stats()
 
     print(json.dumps(response, indent=2))
 

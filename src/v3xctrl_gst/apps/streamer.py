@@ -23,7 +23,7 @@ def main() -> None:
     parser.add_argument('--buffertime', type=int, default=150000000, help='Buffer time in ns (default: 150000000)')
     parser.add_argument('--sizebuffers', type=int, default=5, help='Size of buffers (default: 5)')
     parser.add_argument('--recording-dir', type=str, default='', help='Directory to save recording')
-    parser.add_argument('--test-pattern', action='store_true', help='Use test pattern instead of camera')
+    parser.add_argument('--test-pattern', action='store_true', default=False, help='Use test pattern instead of camera')
     parser.add_argument('--i-frame-period', type=int, default=30, help='I-frame period (default: 30)')
     parser.add_argument('--qp-minimum', type=int, default=20, help='QP minimum (default: 20)')
     parser.add_argument('--qp-maximum', type=int, default=51, help='QP maximum (default: 51)')
@@ -36,6 +36,7 @@ def main() -> None:
     parser.add_argument('--analogue-gain', type=int, default=1, help='Analogue gain(default: 1)')
     parser.add_argument('--exposure-time-mode', type=int, default=0, help='Exposure time mode (default: 0 - auto)')
     parser.add_argument('--exposure-time', type=int, default=32000, help='Exposure time in us (default: 32000000)')
+    parser.add_argument('--autostart-recording', action='store_true', default=False, help='Automatically start recording (requires recording-dir to be set)')
 
     parser.add_argument(
         "--log", default="ERROR",
@@ -76,6 +77,7 @@ def main() -> None:
         'analogue_gain': args.analogue_gain,
         'exposure_time_mode': args.exposure_time_mode,
         'exposure_time': args.exposure_time,
+        'recording': args.autostart_recording,
     }
 
     streamer: Streamer = Streamer(args.host, args.port, args.bind_port, settings)

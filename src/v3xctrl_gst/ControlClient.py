@@ -39,6 +39,15 @@ class ControlClient:
     def stop(self) -> Dict[str, Any]:
         return self._send_command({'action': 'stop'})
 
+    def record(self, value: str) -> Dict[str, Any]:
+        return self._send_command({
+            'action': 'record',
+            'value': value,
+        })
+
+    def stats(self) -> Dict[str, Any]:
+        return self._send_command({'action': 'stats'})
+
     def _send_command(self, command: Dict[str, Any]) -> Dict[str, Any]:
         """
         Send a command to the control server.
