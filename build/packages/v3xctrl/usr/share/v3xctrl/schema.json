@@ -253,7 +253,7 @@
             "lensPosition": {
               "propertyOrder": 30,
               "title": "Lens position",
-              "type": "float",
+              "type": "number",
               "default": 0,
               "description": "Only applied when autofocus is disabled. 0: Infinity; Focus(m) = 1/value; Eg.: value = 0.5, Focus = 2m"
             }
