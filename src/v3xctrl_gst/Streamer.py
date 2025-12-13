@@ -1,6 +1,8 @@
 import logging
 import os
 import sys
+from threading import Event
+import time
 from datetime import datetime
 from typing import Optional, Dict, Any
 
@@ -158,30 +160,79 @@ class Streamer:
 
         return None
 
-    def set_property(self, element_name: str, property_name: str, value: Any) -> bool:
+    def set_property(self, element_name: str, property_name: str, value: Any, max_retries: int = 3) -> bool:
         """
-        Set a property on a named element.
+        Set a property on a named element. Will validate the result and attempt
+        to set multiple times
 
         Args:
             element_name: Name of the element
             property_name: Name of the property
             value: Value to set
+            max_retries: Retry in case the setting did not stick
 
         Returns:
             True if successful, False otherwise
         """
-        element = self.get_element(element_name)
-        if element is None:
-            logging.warn(f"Element '{element_name}' not found")
-            return False
+        for attempt in range(max_retries):
+            result = {'success': False}
+            event = Event()
 
-        try:
-            element.set_property(property_name, value)
-            return True
+            def _do_set():
+                element = self.get_element(element_name)
+                if element:
+                    try:
+                        element.set_property(property_name, value)
+                        result['success'] = True
+                    except Exception as e:
+                        logging.error(f"Failed to set property '{property_name}': {e}")
+                event.set()
+                return False
 
-        except Exception as e:
-            logging.error(f"Failed to set property '{property_name}' on element '{element_name}': {e}")
-            return False
+            GLib.idle_add(_do_set)
+            event.wait(timeout=0.5)
+
+            if not result['success']:
+                return False
+
+            # Give the element some time to process the setting - especially
+            # important for elements that interact with hardware like libcamera
+            time.sleep(0.5)
+
+            # Verify setting actually stuck
+            verify_result = {'actual': None}
+            verify_event = Event()
+
+            def _do_verify():
+                element = self.get_element(element_name)
+                if element:
+                    try:
+                        verify_result['actual'] = element.get_property(property_name)
+                    except Exception:
+                        pass
+                verify_event.set()
+                return False
+
+            GLib.idle_add(_do_verify)
+            verify_event.wait(timeout=0.5)
+
+            # For float properties, use approximate comparison
+            if isinstance(verify_result['actual'], float):
+                if abs(verify_result['actual'] - value) < 0.001:
+                    if attempt > 0:
+                        logging.debug(f"Property '{property_name}' stuck after {attempt + 1} attempts")
+                    return True
+
+            elif verify_result['actual'] == value:
+                if attempt > 0:
+                    logging.debug(f"Property '{property_name}' stuck after {attempt + 1} attempts")
+                return True
+
+            if attempt < max_retries - 1:
+                logging.debug(f"Attempt {attempt + 1}: value is {verify_result['actual']}, expected {value}, retrying...")
+
+        logging.warning(f"Property '{property_name}' failed to stick after {max_retries} attempts (value: {verify_result['actual']})")
+        return False
 
     def get_property(self, element_name: str, property_name: str) -> Optional[Any]:
         """
@@ -204,32 +255,6 @@ class Streamer:
         except Exception as e:
             logging.error(f"Failed to get property '{property_name}' from element '{element_name}': {e}")
             return None
-
-    def update_properties(self, element_name: str, properties: Dict[str, Any]) -> bool:
-        """
-        Update multiple properties on a named element at once.
-
-        Args:
-            element_name: Name of the element
-            properties: Dictionary of property names and values
-
-        Returns:
-            True if all properties were set successfully, False otherwise
-        """
-        element = self.get_element(element_name)
-        if element is None:
-            logging.error(f"Element '{element_name}' not found")
-            return False
-
-        success = True
-        for prop_name, value in properties.items():
-            try:
-                element.set_property(prop_name, value)
-            except Exception as e:
-                logging.error(f"Failed to set property '{prop_name}' on element '{element_name}': {e}")
-                success = False
-
-        return success
 
     def list_properties(self, element_name: str) -> Optional[Dict[str, Any]]:
         """
