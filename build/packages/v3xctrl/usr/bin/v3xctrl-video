@@ -33,6 +33,10 @@ ARGS=(
   --max-i-frame-bytes "$video_maxIframeBytes"
   --af-mode "$video_camera_afMode"
   --lens-position "$video_camera_lensPosition"
+  --analogue-gain-mode "$video_camera_analogueGainMode"
+  --analogue-gain "$video_camera_analogueGain"
+  --exposure-time-mode "$video_camera_exposureTimeMode"
+  --exposure-time "$video_camera_exposureTime"
   --log "${extras_logLevel}"
 )
 

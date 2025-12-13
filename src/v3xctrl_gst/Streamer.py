@@ -71,6 +71,10 @@ class Streamer:
             # Camera settings
             'af_mode': 0,
             'lens_position': 0,
+            'analogue_gain_mode': 0,
+            'analogue_gain': 1,
+            'exposure_time_mode': 0,
+            'exposure_time': 32000,
         }
 
         self.settings: Dict[str, Any] = default_settings.copy()
@@ -433,6 +437,19 @@ class Streamer:
 
         source.set_property("af-mode", self.settings['af_mode'])
         source.set_property("lens-position", self.settings['lens_position'])
+
+        if (
+            self.settings['analogue_gain_mode'] == 1 or
+            self.settings['exposure_time_mode'] == 1
+        ):
+            # Disable auto exposure if gain or exposure are set to manual
+            source.set_property("ae-enable", 0)
+
+            source.set_property("analogue-gain-mode", self.settings['analogue_gain_mode'])
+            source.set_property("analogue-gain", self.settings['analogue_gain'])
+
+            source.set_property("exposure-time-mode", self.settings['exposure_time_mode'])
+            source.set_property("exposure-time", self.settings['exposure_time'])
 
         # File Source if configured
         if self.settings['file_src']:

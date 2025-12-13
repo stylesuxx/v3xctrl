@@ -31,7 +31,11 @@ def main() -> None:
     parser.add_argument('--enable-i-frame-adjust', action='store_true', help='Use test pattern instead of camera')
     parser.add_argument('--file-src', type=str, default=None, help='Path to src file')
     parser.add_argument('--af-mode', type=int, default=0, help='Auto focus mode (default: 0 - off)')
-    parser.add_argument('--lens-position', type=int, default=0, help='Lens position (default: 0 - infinity)')
+    parser.add_argument('--lens-position', type=float, default=0, help='Lens position (default: 0 - infinity)')
+    parser.add_argument('--analogue-gain-mode', type=int, default=0, help='Analogue gain mode (default: 0 - auto)')
+    parser.add_argument('--analogue-gain', type=int, default=1, help='Analogue gain(default: 1)')
+    parser.add_argument('--exposure-time-mode', type=int, default=0, help='Exposure time mode (default: 0 - auto)')
+    parser.add_argument('--exposure-time', type=int, default=32000, help='Exposure time in us (default: 32000000)')
 
     parser.add_argument(
         "--log", default="ERROR",
@@ -68,9 +72,12 @@ def main() -> None:
         'file_src': args.file_src,
         'af_mode': args.af_mode,
         'lens_position': args.lens_position,
+        'analogue_gain_mode': args.analogue_gain_mode,
+        'analogue_gain': args.analogue_gain,
+        'exposure_time_mode': args.exposure_time_mode,
+        'exposure_time': args.exposure_time,
     }
 
-    # Create and run streamer
     streamer: Streamer = Streamer(args.host, args.port, args.bind_port, settings)
     streamer.run()
 
