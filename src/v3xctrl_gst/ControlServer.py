@@ -32,7 +32,7 @@ class ControlServer:
             'get': self._handle_get,
             'set': self._handle_set,
             'stats': self._handle_stats,
-            'record': self._handle_record,
+            'recording': self._handle_recording,
         }
 
         self.server_socket: Optional[socket.socket] = None
@@ -148,7 +148,7 @@ class ControlServer:
         finally:
             client_socket.close()
 
-    def _handle_record(self, command: Command) -> Dict[str, Any]:
+    def _handle_recording(self, command: Command) -> Dict[str, Any]:
         value = command.value
         if value is None:
             return {'status': 'error', 'message': 'Missing value'}

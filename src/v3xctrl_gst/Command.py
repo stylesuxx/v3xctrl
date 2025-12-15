@@ -1,5 +1,9 @@
 from dataclasses import dataclass
-from typing import Any, Dict, Literal, Optional
+from typing import Any, Dict, Literal, Optional, get_args
+
+
+ActionType = Literal['stop', 'list', 'get', 'set', 'recording', 'stats']
+valid_actions = get_args(ActionType)
 
 
 class CommandValidationError(Exception):
@@ -10,7 +14,7 @@ class CommandValidationError(Exception):
 @dataclass
 class Command:
     """Represents a control command."""
-    action: Literal['stop', 'list', 'get', 'set']
+    action: ActionType
     element: Optional[str] = None
     property: Optional[str] = None
     value: Optional[Any] = None
@@ -23,10 +27,19 @@ class Command:
         Raises:
             CommandValidationError: If command is invalid
         """
-        if self.action not in ('stop', 'list', 'get', 'set'):
+        if self.action not in valid_actions:
             raise CommandValidationError(f'Unknown action: {self.action}')
 
-        if self.action == 'stop':
+        if (
+            self.action == 'stop' or
+            self.action == 'stats'
+        ):
+            return
+
+        if self.action == 'recording':
+            if not self.value:
+                raise CommandValidationError('Missing value parameter')
+
             return
 
         if not self.element:
