@@ -231,6 +231,72 @@
               "type": "boolean",
               "format": "checkbox",
               "default": false
+            },
+            "afMode": {
+              "propertyOrder": 20,
+              "title": "Auto focus",
+              "type": "integer",
+              "required": true,
+              "enum": [
+                0,
+                2
+              ],
+              "options": {
+                "enum_titles": [
+                  "Disabled",
+                  "Continous"
+                ]
+              },
+              "default": 2,
+              "description": "Only supported on PiCam V3 - if auto focus is disabled, lens position will be applied"
+            },
+            "lensPosition": {
+              "propertyOrder": 30,
+              "title": "Lens position",
+              "type": "number",
+              "default": 0,
+              "description": "Only applied when autofocus is disabled. 0: Infinity; Focus(m) = 1/value; Eg.: value = 0.5, Focus = 2m"
+            },
+            "analogueGainMode": {
+              "propertyOrder": 40,
+              "title": "Gain Control",
+              "type": "integer",
+              "required": true,
+              "enum": [0, 1],
+              "options": {
+                "enum_titles": ["Automatic", "Manual"]
+              },
+              "default": 1,
+              "description": "Control how the sensor gain is adjusted. Automatic mode adjusts gain based on lighting conditions; manual mode uses the fixed value below."
+            },
+            "analogueGain": {
+              "propertyOrder": 50,
+              "title": "Gain Level",
+              "type": "integer",
+              "required": true,
+              "enum": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+              "default": 1,
+              "description": "Sensor gain multiplier (1-16). Higher values brighten the image in low light but increase noise. Use the lowest value that provides adequate brightness."
+            },
+            "exposureTimeMode": {
+              "propertyOrder": 60,
+              "title": "Exposure Control",
+              "type": "integer",
+              "required": true,
+              "enum": [0, 1],
+              "options": {
+                "enum_titles": ["Automatic", "Manual"]
+              },
+              "default": 0,
+              "description": "Control how exposure time is determined. Automatic mode adjusts exposure based on lighting conditions; manual mode uses the fixed value below."
+            },
+            "exposureTime": {
+              "propertyOrder": 70,
+              "title": "Exposure Time (μs)",
+              "type": "integer",
+              "required": true,
+              "default": 32000,
+              "description": "Exposure duration in microseconds. Higher values brighten the image but increase motion blur. For video streaming, use the shortest time that provides adequate brightness."
             }
           }
         }

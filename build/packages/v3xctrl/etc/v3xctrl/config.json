@@ -36,7 +36,13 @@
       "recordPath": "/data/recordings",
       "testSource": true,
       "camera": {
-        "enableHdr": false
+        "enableHdr": false,
+        "afMode": 0,
+        "lensPosition": 0,
+        "analogueGainMode": 1,
+        "analogueGain": 1,
+        "exposureTimeMode": 0,
+        "exposureTime": 32000
       },
       "maxIframeBytes": 40960,
       "enableIframeAdjust": false,
