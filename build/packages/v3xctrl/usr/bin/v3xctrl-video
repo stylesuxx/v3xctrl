@@ -37,6 +37,7 @@ ARGS=(
   --analogue-gain "$video_camera_analogueGain"
   --exposure-time-mode "$video_camera_exposureTimeMode"
   --exposure-time "$video_camera_exposureTime"
+  --sensor-mode "$video_camera_sensorMode"
   --log "${extras_logLevel}"
 )
 

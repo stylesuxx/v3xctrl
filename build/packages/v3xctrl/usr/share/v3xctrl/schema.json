@@ -297,6 +297,24 @@
               "required": true,
               "default": 32000,
               "description": "Exposure duration in microseconds. Higher values brighten the image but increase motion blur. For video streaming, use the shortest time that provides adequate brightness."
+            },
+            "sensorMode": {
+              "propertyOrder": 80,
+              "title": "Force wide FOV",
+              "type": "string",
+              "required": true,
+              "enum": [
+                "0x0",
+                "2304x1296"
+              ],
+              "options": {
+                "enum_titles": [
+                  "Disabled",
+                  "RPi Cam v3, Arducam IMX708"
+                ]
+              },
+              "default": "0x0",
+              "description": "Some image sensors have wider FOV when requesting higher resolutions. With this setting you can force those higher resolutions to benefit from wider FOV."
             }
           }
         }
