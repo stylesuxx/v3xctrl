@@ -1,14 +1,9 @@
 import logging
 import signal
-import threading
 import time
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Optional
 
 import pygame
-
-from v3xctrl_control import State
-from v3xctrl_control.message import Command
-from v3xctrl_control.message import Control, Latency, Telemetry
 
 from v3xctrl_ui.ApplicationModel import ApplicationModel
 from v3xctrl_ui.EventController import EventController
@@ -19,9 +14,9 @@ from v3xctrl_ui.menu.Menu import Menu
 from v3xctrl_ui.OSD import OSD
 from v3xctrl_ui.Renderer import Renderer
 from v3xctrl_ui.Settings import Settings
-from v3xctrl_ui.NetworkManager import NetworkManager
 from v3xctrl_ui.InputManager import InputManager
 from v3xctrl_ui.DisplayManager import DisplayManager
+from v3xctrl_ui.NetworkCoordinator import NetworkCoordinator
 
 
 class AppState:
@@ -57,11 +52,10 @@ class AppState:
         self.osd = OSD(settings)
         self.renderer = Renderer(self.size, self.settings)
 
-        self.handlers = self._create_handlers()
-        self.network_manager = NetworkManager(
-            self.settings,
-            self.handlers
-        )
+        # Network coordination
+        self.network_coordinator = NetworkCoordinator(self.model, self.osd)
+        self.network_coordinator.on_connection_change = self._on_connection_change
+        self.network_coordinator.create_network_manager(self.settings)
 
         # Timing
         self.timing_controller = TimingController(self.settings, self.model)
@@ -80,7 +74,7 @@ class AppState:
 
         self._setup_signal_handling()
 
-        self.network_manager.setup_ports()
+        self.network_coordinator.setup_ports()
 
         start_time = time.monotonic()
         self.model.last_control_update = start_time
@@ -106,11 +100,8 @@ class AppState:
 
         if needs_restart:
             # Network manager shutdown and recreation handled by restart thread
-            self.network_manager.shutdown()
-            self.network_manager = NetworkManager(
-                new_settings,
-                self.handlers
-            )
+            self.network_coordinator.shutdown()
+            self.network_coordinator.create_network_manager(new_settings)
 
     def update(self) -> None:
         """Update application state with timed operations."""
@@ -130,14 +121,14 @@ class AppState:
                 self.model.throttle = throttle
                 self.model.steering = steering
 
-                self._send_control_message()
+                self.network_coordinator.send_control_message(throttle, steering)
             except Exception as e:
                 logging.warning(f"Input read error: {e}")
             self.timing_controller.mark_control_updated(now)
 
         # Handle latency checks
         if self.timing_controller.should_check_latency(now):
-            self.network_manager.send_latency_check()
+            self.network_coordinator.send_latency_check()
             self.timing_controller.mark_latency_checked(now)
 
     def tick(self) -> None:
@@ -152,20 +143,19 @@ class AppState:
     def render(self) -> None:
         """Render the current frame."""
         # Update OSD with network data
-        data_left = self.network_manager.get_data_queue_size()
-        if self.network_manager.server_error:
+        data_left = self.network_coordinator.get_data_queue_size()
+        if self.network_coordinator.has_server_error():
             self.osd.update_debug_status("fail")
 
-        if self.network_manager.video_receiver:
-            buffer_size = len(self.network_manager.video_receiver.frame_buffer)
-            self.osd.update_buffer_queue(buffer_size)
+        buffer_size = self.network_coordinator.get_video_buffer_size()
+        self.osd.update_buffer_queue(buffer_size)
 
         self.osd.update_data_queue(data_left)
         self.osd.set_control(self.model.throttle, self.model.steering)
 
         self.renderer.render_all(
             self,
-            self.network_manager,
+            self.network_coordinator.network_manager,
             self.model.fullscreen,
             self.model.scale
         )
@@ -183,36 +173,10 @@ class AppState:
         delta = round(time.monotonic() - start)
         logging.debug(f"Input manager shut down after {delta}s")
 
-        start_nm = time.monotonic()
-        self.network_manager.shutdown()
-        delta = round(time.monotonic() - start_nm)
-        logging.debug(f"Network manager shut down after {delta}s")
+        self.network_coordinator.shutdown()
 
         delta = round(time.monotonic() - start)
         logging.info(f"Shutdown took {delta}s")
-
-    def _restart_network_manager(self, new_settings: Settings) -> None:
-        """
-        Background thread function to restart network manager.
-        This runs in a separate thread to avoid blocking the UI.
-        """
-        try:
-            logging.debug("Shutting down old network manager...")
-            self.network_manager.shutdown()
-
-            logging.debug("Creating new network manager...")
-            self.network_manager = NetworkManager(
-                new_settings,
-                self.handlers
-            )
-
-            self.network_manager.setup_ports()
-
-        except Exception as e:
-            logging.error(f"Network manager restart failed: {e}")
-
-        finally:
-            self.settings_manager.network_restart_complete.set()
 
     def _on_quit(self) -> None:
         """Callback for quit event."""
@@ -224,25 +188,16 @@ class AppState:
 
     def _create_menu(self) -> Menu:
         """Callback to create a new menu instance."""
-        def invoke_command(
-            command: Command,
-            callback: Callable[[bool], None]
-        ) -> None:
-            if self.network_manager.server:
-                self.network_manager.server.send_command(command, callback)
-            else:
-                logging.error(f"Server is not set, cannot send command: {command}")
-
         menu = Menu(
             self.screen.get_size()[0],
             self.screen.get_size()[1],
             self.input_manager.gamepad_manager,
             self.settings,
-            invoke_command,
+            self.network_coordinator.send_command,
             self.update_settings,
             self._signal_handler
         )
-        menu.set_tab_enabled("Streamer", self.model.control_connected)
+        menu.set_tab_enabled("Streamer", self.network_coordinator.is_control_connected())
         return menu
 
     def _configure_settings_manager(self) -> None:
@@ -268,10 +223,7 @@ class AppState:
             self.display_manager.set_fullscreen(fullscreen)
 
         def create_restart_thread(new_settings: Settings) -> threading.Thread:
-            return threading.Thread(
-                target=self._restart_network_manager,
-                args=(new_settings,)
-            )
+            return self.network_coordinator.restart_network_manager(new_settings)
 
         self.settings_manager.on_timing_update = update_timing
         self.settings_manager.on_network_update = update_network
@@ -280,30 +232,15 @@ class AppState:
         self.settings_manager.on_renderer_update = update_renderer
         self.settings_manager.on_display_update = update_display
         self.settings_manager.create_network_restart_thread = create_restart_thread
-
+        self.settings_manager.network_restart_complete = self.network_coordinator.restart_complete
 
     def _update_network_settings(self) -> None:
         udp_ttl_ms = self.settings.get("udp_packet_ttl", 100)
-        self.network_manager.update_ttl(udp_ttl_ms)
+        self.network_coordinator.update_ttl(udp_ttl_ms)
 
-    def _update_connected(self, state: bool) -> None:
-        self.model.control_connected = state
-        self.event_controller.set_menu_tab_enabled("Streamer", self.model.control_connected)
-
-    def _create_handlers(self) -> Dict[str, Any]:
-        """Create message and state handlers for the network manager."""
-        return {
-            "messages": [
-                (Telemetry, lambda message, address: self.osd.message_handler(message)),
-                (Latency, lambda message, address: self.osd.message_handler(message)),
-            ],
-            "states": [
-                (State.CONNECTED, lambda: self.osd.connect_handler()),
-                (State.DISCONNECTED, lambda: self.osd.disconnect_handler()),
-                (State.CONNECTED, lambda: self._update_connected(True)),
-                (State.DISCONNECTED, lambda: self._update_connected(False))
-            ]
-        }
+    def _on_connection_change(self, connected: bool) -> None:
+        """Callback for connection state changes."""
+        self.event_controller.set_menu_tab_enabled("Streamer", connected)
 
     def _setup_signal_handling(self) -> None:
         """Setup signal handlers for graceful shutdown."""
@@ -318,14 +255,3 @@ class AppState:
         self.event_controller.clear_menu()
         if self.model.running:
             self.model.running = False
-
-    def _send_control_message(self) -> None:
-        """Send control message to streamer."""
-        if (
-            self.network_manager.server and
-            not self.network_manager.server_error
-        ):
-            self.network_manager.server.send(Control({
-                "steering": self.model.steering,
-                "throttle": self.model.throttle,
-            }))
