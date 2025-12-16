@@ -70,7 +70,6 @@ class AppState:
         self.main_loop_fps = 60
         self._update_timing_settings()
 
-        self.loop_history: deque[float] = deque(maxlen=300)
         self.menu: Optional[Menu] = None
 
         self.screen, self.clock = Init.ui(self.size, self.title)
@@ -138,7 +137,7 @@ class AppState:
             logging.info("Network manager restart complete")
 
         now = time.monotonic()
-        self.loop_history.append(now)
+        self.model.loop_history.append(now)
 
         # Handle control updates, send last values if user is in menu
         if now - self.last_control_update >= self.control_interval:

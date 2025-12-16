@@ -233,7 +233,7 @@ class Renderer:
 
         state.osd.render(
             state.screen,
-            state.loop_history.copy(),
+            state.model.loop_history.copy(),
             video_history
         )
 
