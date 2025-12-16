@@ -15,6 +15,7 @@ from typing import (
 from v3xctrl_ui.fonts import BOLD_MONO_FONT_14
 from v3xctrl_control.message import Message, Latency, Telemetry
 from v3xctrl_ui.colors import RED, WHITE
+from v3xctrl_ui.TelemetryParser import TelemetryParser
 from v3xctrl_ui.helpers import (
   get_fps,
   interpolate_steering_color,
@@ -372,34 +373,16 @@ class OSD:
         self.widgets_debug["debug_latency"].set_value(diff_ms)
 
     def _telemetry_update(self, message: Telemetry) -> None:
-        values = message.get_values()
+        data = TelemetryParser.parse(message)
 
-        # Signal quality & band
-        self.signal_quality = {
-            "rsrq": values["sig"]["rsrq"],
-            "rsrp": values["sig"]["rsrp"],
-        }
-        band = values["cell"]["band"]
-        self.signal_band = f"BAND {band}"
+        self.signal_quality = data.signal_quality
+        self.signal_band = data.signal_band
+        self.signal_cell = data.signal_cell
 
-        cell_id = values["cell"]["id"]
-        cell_text = f"CELL {cell_id}"
-        if cell_id != "?":
-            tower_id = cell_id >> 8
-            section_id = cell_id & 0xFF
-            cell_text = f"{tower_id}:{section_id}"
-
-        self.signal_cell = cell_text
-
-        # Battery
-        battery_voltage = values["bat"]["vol"] / 1000
-        battery_average_voltage = values["bat"]["avg"] / 1000
-        battery_percentage = values["bat"]["pct"]
-
-        self.battery_icon = battery_percentage
-        self.battery_voltage = f"{battery_voltage:.2f}V"
-        self.battery_average_voltage = f"{battery_average_voltage:.2f}V"
-        self.battery_percent = f"{battery_percentage}%"
+        self.battery_icon = data.battery_icon
+        self.battery_voltage = data.battery_voltage
+        self.battery_average_voltage = data.battery_average_voltage
+        self.battery_percent = data.battery_percent
 
         widgets_battery = [
             "battery_voltage",
@@ -407,11 +390,8 @@ class OSD:
             "battery_percent"
         ]
 
-        color = WHITE
-        if values["bat"]["wrn"]:
-            color = RED
-
+        color = RED if data.battery_warning else WHITE
         for widget in widgets_battery:
             self.widgets_battery[widget].set_text_color(color)
 
-        logging.debug(f"Received telemetry message: {values}")
+        logging.debug(f"Received telemetry message: {message.get_values()}")
