@@ -196,41 +196,41 @@ class AppState:
 
     def _configure_settings_manager(self) -> None:
         """Configure settings manager with all necessary callbacks."""
-        def update_timing(settings: Settings) -> None:
-            self.timing_controller.settings = settings
-            self.timing_controller.update_from_settings()
-            self.settings = settings
-
-        def update_network(settings: Settings) -> None:
-            self._update_network_settings()
-
-        def update_input(settings: Settings) -> None:
-            self.input_manager.update_settings(settings)
-
-        def update_osd(settings: Settings) -> None:
-            self.osd.update_settings(settings)
-
-        def update_renderer(settings: Settings) -> None:
-            self.renderer.settings = settings
-
-        def update_display(fullscreen: bool) -> None:
-            self.display_manager.set_fullscreen(fullscreen)
-
-        def create_restart_thread(new_settings: Settings) -> threading.Thread:
-            return self.network_coordinator.restart_network_manager(new_settings)
-
-        self.settings_manager.on_timing_update = update_timing
-        self.settings_manager.on_network_update = update_network
-        self.settings_manager.on_input_update = update_input
-        self.settings_manager.on_osd_update = update_osd
-        self.settings_manager.on_renderer_update = update_renderer
-        self.settings_manager.on_display_update = update_display
-        self.settings_manager.create_network_restart_thread = create_restart_thread
+        self.settings_manager.on_timing_update = self._on_timing_update
+        self.settings_manager.on_network_update = self._on_network_update
+        self.settings_manager.on_input_update = self._on_input_update
+        self.settings_manager.on_osd_update = self._on_osd_update
+        self.settings_manager.on_renderer_update = self._on_renderer_update
+        self.settings_manager.on_display_update = self._on_display_update
+        self.settings_manager.create_network_restart_thread = self._create_network_restart_thread
         self.settings_manager.network_restart_complete = self.network_coordinator.restart_complete
 
     def _update_network_settings(self) -> None:
         udp_ttl_ms = self.settings.get("udp_packet_ttl", 100)
         self.network_coordinator.update_ttl(udp_ttl_ms)
+
+    def _on_timing_update(self, settings: Settings) -> None:
+        self.timing_controller.settings = settings
+        self.timing_controller.update_from_settings()
+        self.settings = settings
+
+    def _on_network_update(self, settings: Settings) -> None:
+        self._update_network_settings()
+
+    def _on_input_update(self, settings: Settings) -> None:
+        self.input_manager.update_settings(settings)
+
+    def _on_osd_update(self, settings: Settings) -> None:
+        self.osd.update_settings(settings)
+
+    def _on_renderer_update(self, settings: Settings) -> None:
+        self.renderer.settings = settings
+
+    def _on_display_update(self, fullscreen: bool) -> None:
+        self.display_manager.set_fullscreen(fullscreen)
+
+    def _create_network_restart_thread(self, new_settings: Settings) -> threading.Thread:
+        return self.network_coordinator.restart_network_manager(new_settings)
 
     def _on_connection_change(self, connected: bool) -> None:
         self.event_controller.set_menu_tab_enabled("Streamer", connected)
