@@ -114,9 +114,9 @@ class TestAppState(unittest.TestCase):
             mock_input_cls, mock_init_cls
         )
 
-        # Check timing intervals are set correctly
-        self.assertEqual(app.control_interval, 1.0 / 30)
-        self.assertEqual(app.latency_interval, 1.0 / 1)
+        # Check timing intervals are set correctly (now in model)
+        self.assertEqual(app.model.control_interval, 1.0 / 30)
+        self.assertEqual(app.model.latency_interval, 1.0 / 1)
         self.assertEqual(app.main_loop_fps, 60)
 
     @patch("src.v3xctrl_ui.AppState.pygame.display.set_mode")
@@ -152,9 +152,9 @@ class TestAppState(unittest.TestCase):
         mock_osd.update_settings.assert_called_with(new_settings)
         self.assertEqual(mock_renderer.settings, new_settings)
 
-        # Check timing intervals were updated
-        self.assertEqual(app.control_interval, 1.0 / 60)
-        self.assertEqual(app.latency_interval, 1.0 / 2)
+        # Check timing intervals were updated (now in model)
+        self.assertEqual(app.model.control_interval, 1.0 / 60)
+        self.assertEqual(app.model.latency_interval, 1.0 / 2)
         self.assertEqual(app.main_loop_fps, 120)
 
     def test_update_reads_inputs_and_sends_control(
@@ -169,8 +169,8 @@ class TestAppState(unittest.TestCase):
         import time
         now = time.monotonic()
 
-        app.last_control_update = now - 1.0
-        app.last_latency_check = now - 2.0
+        app.model.last_control_update = now - 1.0
+        app.model.last_latency_check = now - 2.0
 
         mock_network.server = MagicMock()
         mock_network.server_error = None
@@ -178,8 +178,8 @@ class TestAppState(unittest.TestCase):
         app.update()
 
         mock_input.read_inputs.assert_called_once()
-        self.assertEqual(app.throttle, 0.5)
-        self.assertEqual(app.steering, 0.3)
+        self.assertEqual(app.model.throttle, 0.5)
+        self.assertEqual(app.model.steering, 0.3)
         mock_network.server.send.assert_called_once()
         mock_network.send_latency_check.assert_called_once()
 
@@ -195,8 +195,8 @@ class TestAppState(unittest.TestCase):
         import time
         now = time.monotonic()
 
-        app.last_control_update = now
-        app.last_latency_check = now
+        app.model.last_control_update = now
+        app.model.last_latency_check = now
 
         app.update()
 
@@ -215,8 +215,8 @@ class TestAppState(unittest.TestCase):
         mock_network.server = MagicMock()
         mock_network.server_error = None
 
-        app.throttle = 0.7
-        app.steering = -0.4
+        app.model.throttle = 0.7
+        app.model.steering = -0.4
 
         app._send_control_message()
 
@@ -271,7 +271,7 @@ class TestAppState(unittest.TestCase):
         app.render()
 
         mock_osd.update_data_queue.assert_called_with(5)
-        mock_osd.set_control.assert_called_with(app.throttle, app.steering)
+        mock_osd.set_control.assert_called_with(app.model.throttle, app.model.steering)
         mock_renderer.render_all.assert_called_with(app, mock_network, False, 1)
 
     def test_render_handles_server_error(
@@ -321,7 +321,7 @@ class TestAppState(unittest.TestCase):
         mock_get_events.return_value = [quit_event]
 
         self.assertFalse(app.handle_events())
-        self.assertFalse(app.running)
+        self.assertFalse(app.model.running)
 
     @patch("src.v3xctrl_ui.AppState.pygame.event.get")
     def test_handle_events_menu_handles_events(
@@ -357,8 +357,8 @@ class TestAppState(unittest.TestCase):
             mock_input_cls, mock_init_cls
         )
 
-        self.assertEqual(app.control_interval, 1.0 / 30)
-        self.assertEqual(app.latency_interval, 1.0 / 1)
+        self.assertEqual(app.model.control_interval, 1.0 / 30)
+        self.assertEqual(app.model.latency_interval, 1.0 / 1)
 
         new_settings = {
             "timing": {
@@ -375,8 +375,8 @@ class TestAppState(unittest.TestCase):
 
         app.update_settings(new_settings)
 
-        self.assertEqual(app.control_interval, 1.0 / 60)
-        self.assertEqual(app.latency_interval, 1.0 / 5)
+        self.assertEqual(app.model.control_interval, 1.0 / 60)
+        self.assertEqual(app.model.latency_interval, 1.0 / 5)
 
     def test_handlers_creation(
         self, mock_network_cls, mock_renderer_cls,
@@ -414,9 +414,9 @@ class TestAppState(unittest.TestCase):
         # Call update method
         app._update_timing_settings()
 
-        # Verify intervals were updated
-        self.assertEqual(app.control_interval, 1.0 / 120)
-        self.assertEqual(app.latency_interval, 1.0 / 10)
+        # Verify intervals were updated (now in model)
+        self.assertEqual(app.model.control_interval, 1.0 / 120)
+        self.assertEqual(app.model.latency_interval, 1.0 / 10)
         self.assertEqual(app.main_loop_fps, 144)
 
     def test_update_connected_state(
@@ -429,13 +429,13 @@ class TestAppState(unittest.TestCase):
             mock_input_cls, mock_init_cls
         )
 
-        self.assertFalse(app.control_connected)
+        self.assertFalse(app.model.control_connected)
 
         app._update_connected(True)
-        self.assertTrue(app.control_connected)
+        self.assertTrue(app.model.control_connected)
 
         app._update_connected(False)
-        self.assertFalse(app.control_connected)
+        self.assertFalse(app.model.control_connected)
 
     def test_settings_equal_method(
         self, mock_network_cls,
@@ -489,12 +489,12 @@ class TestAppState(unittest.TestCase):
             mock_input_cls, mock_init_cls
         )
 
-        self.assertEqual(app.loop_history.maxlen, 300)
-        self.assertEqual(len(app.loop_history), 0)
+        self.assertEqual(app.model.loop_history.maxlen, 300)
+        self.assertEqual(len(app.model.loop_history), 0)
 
         # Update should add to history
         app.update()
-        self.assertEqual(len(app.loop_history), 1)
+        self.assertEqual(len(app.model.loop_history), 1)
 
     @patch("src.v3xctrl_ui.AppState.logging")
     def test_update_handles_input_error(
@@ -512,7 +512,7 @@ class TestAppState(unittest.TestCase):
         mock_input.read_inputs.side_effect = Exception("Input error")
 
         import time
-        app.last_control_update = time.monotonic() - 1.0
+        app.model.last_control_update = time.monotonic() - 1.0
 
         # Should not crash
         app.update()
