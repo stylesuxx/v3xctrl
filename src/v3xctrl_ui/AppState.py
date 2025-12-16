@@ -21,12 +21,19 @@ from v3xctrl_ui.Renderer import Renderer
 from v3xctrl_ui.Settings import Settings
 from v3xctrl_ui.NetworkManager import NetworkManager
 from v3xctrl_ui.InputManager import InputManager
+from v3xctrl_ui.DisplayManager import DisplayManager
 
 
 class AppState:
     """
     Holds the current context of the app.
     """
+
+    @property
+    def screen(self) -> pygame.Surface:
+        """Get the current screen surface from DisplayManager."""
+        return self.display_manager.get_screen()
+
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
 
@@ -59,9 +66,9 @@ class AppState:
         # Timing
         self.timing_controller = TimingController(self.settings, self.model)
 
-        self.screen, self.clock = Init.ui(self.size, self.title)
-        if self.model.fullscreen:
-            self._update_screen_size()
+        # Display management
+        self.clock = pygame.time.Clock()
+        self.display_manager = DisplayManager(self.model, self.size, self.title)
 
         # Event handling
         self.event_controller = EventController(
@@ -88,6 +95,9 @@ class AppState:
         Update settings after exiting menu.
         Only update settings that can be hot reloaded.
         """
+        # Clear menu first to ensure clean state
+        self.event_controller.clear_menu()
+
         if new_settings is None:
             new_settings = Init.settings("settings.toml")
 
@@ -210,8 +220,7 @@ class AppState:
 
     def _on_toggle_fullscreen(self) -> None:
         """Callback for fullscreen toggle."""
-        self.model.fullscreen = not self.model.fullscreen
-        self._update_screen_size()
+        self.display_manager.toggle_fullscreen()
 
     def _create_menu(self) -> Menu:
         """Callback to create a new menu instance."""
@@ -256,10 +265,7 @@ class AppState:
             self.renderer.settings = settings
 
         def update_display(fullscreen: bool) -> None:
-            self._update_screen_size()
-
-        def clear_menu() -> None:
-            self.event_controller.clear_menu()
+            self.display_manager.set_fullscreen(fullscreen)
 
         def create_restart_thread(new_settings: Settings) -> threading.Thread:
             return threading.Thread(
@@ -273,32 +279,8 @@ class AppState:
         self.settings_manager.on_osd_update = update_osd
         self.settings_manager.on_renderer_update = update_renderer
         self.settings_manager.on_display_update = update_display
-        self.settings_manager.on_menu_clear = clear_menu
         self.settings_manager.create_network_restart_thread = create_restart_thread
 
-    def _update_screen_size(self) -> None:
-        if self.model.fullscreen:
-            # SCALED is important here, this makes it a resizable, borderless
-            # window instead of "just" the legacy FULLSCREEN mode which causes
-            # a bunch of complications.
-            flags = pygame.DOUBLEBUF | pygame.FULLSCREEN | pygame.SCALED
-
-            # Get biggest resolution for the active display
-            modes = pygame.display.list_modes()
-            size = modes[0]
-            width, height = size
-
-            self.screen = pygame.display.set_mode(size, flags)
-
-            # Calculate scale factor
-            scale_x = width / self.size[0]
-            scale_y = height / self.size[1]
-            self.model.scale = min(scale_x, scale_y)
-        else:
-            flags = pygame.DOUBLEBUF | pygame.SCALED
-            self.screen = pygame.display.set_mode(self.size, flags)
-
-            self.model.scale = 1
 
     def _update_network_settings(self) -> None:
         udp_ttl_ms = self.settings.get("udp_packet_ttl", 100)

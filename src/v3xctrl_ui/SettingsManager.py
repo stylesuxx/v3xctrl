@@ -38,7 +38,6 @@ class SettingsManager:
         self.on_osd_update: Optional[Callable[['Settings'], None]] = None
         self.on_renderer_update: Optional[Callable[['Settings'], None]] = None
         self.on_display_update: Optional[Callable[[bool], None]] = None
-        self.on_menu_clear: Optional[Callable[[], None]] = None
 
         # Callback for network restart
         self.create_network_restart_thread: Optional[Callable[['Settings'], threading.Thread]] = None
@@ -54,10 +53,10 @@ class SettingsManager:
         """
         # Handle fullscreen changes
         fullscreen_previous = self.model.fullscreen
-        self.model.fullscreen = new_settings.get("video", {}).get("fullscreen", False)
-        if fullscreen_previous is not self.model.fullscreen:
+        fullscreen_new = new_settings.get("video", {}).get("fullscreen", False)
+        if fullscreen_previous != fullscreen_new:
             if self.on_display_update:
-                self.on_display_update(self.model.fullscreen)
+                self.on_display_update(fullscreen_new)
 
         # Check if network manager needs to be restarted
         if (
@@ -120,10 +119,6 @@ class SettingsManager:
 
         if self.on_renderer_update:
             self.on_renderer_update(new_settings)
-
-        # Clear menu to force refresh
-        if self.on_menu_clear:
-            self.on_menu_clear()
 
     def settings_equal(self, new_settings: 'Settings', key: str) -> bool:
         """Compare a section of settings with the old settings.

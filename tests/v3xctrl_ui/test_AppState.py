@@ -9,6 +9,7 @@ import pygame
 from src.v3xctrl_ui.AppState import AppState
 
 
+@patch("src.v3xctrl_ui.AppState.DisplayManager")
 @patch("src.v3xctrl_ui.AppState.Init")
 @patch("src.v3xctrl_ui.AppState.InputManager")
 @patch("src.v3xctrl_ui.AppState.OSD")
@@ -43,47 +44,52 @@ class TestAppState(unittest.TestCase):
         mock_renderer_cls,
         mock_osd_cls,
         mock_input_cls,
-        mock_init_cls
+        mock_init_cls,
+        mock_display_cls
     ):
-        # Mock Init.ui to return screen and clock
+        # Mock DisplayManager
+        mock_display = MagicMock()
         mock_screen = MagicMock()
         mock_screen.get_size.return_value = (800, 600)
+        mock_display.get_screen.return_value = mock_screen
+        mock_display_cls.return_value = mock_display
+
+        # Mock clock
         mock_clock = MagicMock()
-        mock_init_cls.ui.return_value = (mock_screen, mock_clock)
+        with patch("src.v3xctrl_ui.AppState.pygame.time.Clock", return_value=mock_clock):
+            # Mock InputManager
+            mock_input = MagicMock()
+            mock_input.read_inputs.return_value = (0.5, 0.3)
+            mock_input.gamepad_manager = MagicMock()
+            mock_input_cls.return_value = mock_input
 
-        # Mock InputManager
-        mock_input = MagicMock()
-        mock_input.read_inputs.return_value = (0.5, 0.3)
-        mock_input.gamepad_manager = MagicMock()
-        mock_input_cls.return_value = mock_input
+            # Mock OSD
+            mock_osd = MagicMock()
+            mock_osd_cls.return_value = mock_osd
 
-        # Mock OSD
-        mock_osd = MagicMock()
-        mock_osd_cls.return_value = mock_osd
+            # Mock Renderer
+            mock_renderer = MagicMock()
+            mock_renderer_cls.return_value = mock_renderer
 
-        # Mock Renderer
-        mock_renderer = MagicMock()
-        mock_renderer_cls.return_value = mock_renderer
+            # Mock NetworkManager
+            mock_network = MagicMock()
+            mock_network.server = None
+            mock_network.server_error = None
+            mock_network.get_data_queue_size.return_value = 0
+            mock_network_cls.return_value = mock_network
 
-        # Mock NetworkManager
-        mock_network = MagicMock()
-        mock_network.server = None
-        mock_network.server_error = None
-        mock_network.get_data_queue_size.return_value = 0
-        mock_network_cls.return_value = mock_network
-
-        # Let deepcopy work normally - no mocking needed
-        app = AppState(self.settings)
+            # Let deepcopy work normally - no mocking needed
+            app = AppState(self.settings)
 
         return app, mock_input, mock_osd, mock_renderer, mock_network
 
     def test_initialization_creates_all_components(
         self, mock_network_cls, mock_renderer_cls,
-        mock_osd_cls, mock_input_cls, mock_init_cls
+        mock_osd_cls, mock_input_cls, mock_init_cls, mock_display_cls
     ):
         app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
             mock_network_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls
+            mock_input_cls, mock_init_cls, mock_display_cls
         )
 
         # Check components were created
@@ -107,11 +113,11 @@ class TestAppState(unittest.TestCase):
 
     def test_initialization_sets_timing_intervals(
         self, mock_network_cls, mock_renderer_cls,
-        mock_osd_cls, mock_input_cls, mock_init_cls
+        mock_osd_cls, mock_input_cls, mock_init_cls, mock_display_cls
     ):
         app, _, _, _, _ = self._create_app(
             mock_network_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls
+            mock_input_cls, mock_init_cls, mock_display_cls
         )
 
         # Check timing intervals are set correctly (now in model)
@@ -123,13 +129,13 @@ class TestAppState(unittest.TestCase):
     def test_update_settings_updates_all_components(
         self, mock_set_mode,
         mock_network_cls, mock_renderer_cls,
-        mock_osd_cls, mock_input_cls, mock_init_cls
+        mock_osd_cls, mock_input_cls, mock_init_cls, mock_display_cls
     ):
         mock_set_mode.return_value = MagicMock()
 
         app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
             mock_network_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls
+            mock_input_cls, mock_init_cls, mock_display_cls
         )
 
         new_settings = {
@@ -159,11 +165,11 @@ class TestAppState(unittest.TestCase):
 
     def test_update_reads_inputs_and_sends_control(
         self, mock_network_cls, mock_renderer_cls,
-        mock_osd_cls, mock_input_cls, mock_init_cls
+        mock_osd_cls, mock_input_cls, mock_init_cls, mock_display_cls
     ):
         app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
             mock_network_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls
+            mock_input_cls, mock_init_cls, mock_display_cls
         )
 
         import time
@@ -185,11 +191,11 @@ class TestAppState(unittest.TestCase):
 
     def test_update_no_control_when_timing_not_ready(
         self, mock_network_cls, mock_renderer_cls,
-        mock_osd_cls, mock_input_cls, mock_init_cls
+        mock_osd_cls, mock_input_cls, mock_init_cls, mock_display_cls
     ):
         app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
             mock_network_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls
+            mock_input_cls, mock_init_cls, mock_display_cls
         )
 
         import time
@@ -205,11 +211,11 @@ class TestAppState(unittest.TestCase):
 
     def test_send_control_message_with_server(
         self, mock_network_cls, mock_renderer_cls,
-        mock_osd_cls, mock_input_cls, mock_init_cls
+        mock_osd_cls, mock_input_cls, mock_init_cls, mock_display_cls
     ):
         app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
             mock_network_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls
+            mock_input_cls, mock_init_cls, mock_display_cls
         )
 
         mock_network.server = MagicMock()
@@ -228,11 +234,11 @@ class TestAppState(unittest.TestCase):
 
     def test_send_control_message_no_server(
         self, mock_network_cls, mock_renderer_cls,
-        mock_osd_cls, mock_input_cls, mock_init_cls
+        mock_osd_cls, mock_input_cls, mock_init_cls, mock_display_cls
     ):
         app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
             mock_network_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls
+            mock_input_cls, mock_init_cls, mock_display_cls
         )
 
         mock_network.server = None
@@ -242,11 +248,11 @@ class TestAppState(unittest.TestCase):
 
     def test_send_control_message_with_server_error(
         self, mock_network_cls, mock_renderer_cls,
-        mock_osd_cls, mock_input_cls, mock_init_cls
+        mock_osd_cls, mock_input_cls, mock_init_cls, mock_display_cls
     ):
         app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
             mock_network_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls
+            mock_input_cls, mock_init_cls, mock_display_cls
         )
 
         mock_network.server = MagicMock()
@@ -258,11 +264,11 @@ class TestAppState(unittest.TestCase):
 
     def test_render_updates_osd_and_calls_renderer(
         self, mock_network_cls, mock_renderer_cls,
-        mock_osd_cls, mock_input_cls, mock_init_cls
+        mock_osd_cls, mock_input_cls, mock_init_cls, mock_display_cls
     ):
         app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
             mock_network_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls
+            mock_input_cls, mock_init_cls, mock_display_cls
         )
 
         mock_network.get_data_queue_size.return_value = 5
@@ -276,11 +282,11 @@ class TestAppState(unittest.TestCase):
 
     def test_render_handles_server_error(
         self, mock_network_cls, mock_renderer_cls,
-        mock_osd_cls, mock_input_cls, mock_init_cls
+        mock_osd_cls, mock_input_cls, mock_init_cls, mock_display_cls
     ):
         app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
             mock_network_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls
+            mock_input_cls, mock_init_cls, mock_display_cls
         )
 
         mock_network.server_error = "Connection failed"
@@ -292,11 +298,11 @@ class TestAppState(unittest.TestCase):
     def test_shutdown_stops_all_components(
         self, mock_quit, mock_network_cls,
         mock_renderer_cls, mock_osd_cls,
-        mock_input_cls, mock_init_cls
+        mock_input_cls, mock_init_cls, mock_display_cls
     ):
         app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
             mock_network_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls
+            mock_input_cls, mock_init_cls, mock_display_cls
         )
 
         app.shutdown()
@@ -309,11 +315,11 @@ class TestAppState(unittest.TestCase):
     def test_handle_events_quit(
         self, mock_get_events, mock_network_cls,
         mock_renderer_cls, mock_osd_cls,
-        mock_input_cls, mock_init_cls
+        mock_input_cls, mock_init_cls, mock_display_cls
     ):
         app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
             mock_network_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls
+            mock_input_cls, mock_init_cls, mock_display_cls
         )
 
         quit_event = MagicMock()
@@ -327,11 +333,11 @@ class TestAppState(unittest.TestCase):
     def test_handle_events_menu_handles_events(
         self, mock_get_events, mock_network_cls,
         mock_renderer_cls, mock_osd_cls,
-        mock_input_cls, mock_init_cls
+        mock_input_cls, mock_init_cls, mock_display_cls
     ):
         app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
             mock_network_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls
+            mock_input_cls, mock_init_cls, mock_display_cls
         )
 
         some_event = MagicMock()
@@ -348,13 +354,13 @@ class TestAppState(unittest.TestCase):
     def test_timing_intervals_calculation(
         self, mock_set_mode,
         mock_network_cls, mock_renderer_cls,
-        mock_osd_cls, mock_input_cls, mock_init_cls
+        mock_osd_cls, mock_input_cls, mock_init_cls, mock_display_cls
     ):
         mock_set_mode.return_value = MagicMock()
 
         app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
             mock_network_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls
+            mock_input_cls, mock_init_cls, mock_display_cls
         )
 
         self.assertEqual(app.model.control_interval, 1.0 / 30)
@@ -380,11 +386,11 @@ class TestAppState(unittest.TestCase):
 
     def test_handlers_creation(
         self, mock_network_cls, mock_renderer_cls,
-        mock_osd_cls, mock_input_cls, mock_init_cls
+        mock_osd_cls, mock_input_cls, mock_init_cls, mock_display_cls
     ):
         app, mock_input, mock_osd, mock_renderer, mock_network = self._create_app(
             mock_network_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls
+            mock_input_cls, mock_init_cls, mock_display_cls
         )
 
         handlers = app._create_handlers()
@@ -396,12 +402,12 @@ class TestAppState(unittest.TestCase):
 
     def test_update_timing_settings(
         self, mock_network_cls, mock_renderer_cls,
-        mock_osd_cls, mock_input_cls, mock_init_cls
+        mock_osd_cls, mock_input_cls, mock_init_cls, mock_display_cls
     ):
         """Test that timing controller correctly updates timing intervals"""
         app, _, _, _, _ = self._create_app(
             mock_network_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls
+            mock_input_cls, mock_init_cls, mock_display_cls
         )
 
         # Modify settings
@@ -423,12 +429,12 @@ class TestAppState(unittest.TestCase):
 
     def test_update_connected_state(
         self, mock_network_cls, mock_renderer_cls,
-        mock_osd_cls, mock_input_cls, mock_init_cls
+        mock_osd_cls, mock_input_cls, mock_init_cls, mock_display_cls
     ):
         """Test that _update_connected updates control_connected state"""
         app, _, _, _, _ = self._create_app(
             mock_network_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls
+            mock_input_cls, mock_init_cls, mock_display_cls
         )
 
         self.assertFalse(app.model.control_connected)
@@ -441,12 +447,12 @@ class TestAppState(unittest.TestCase):
 
     def test_tick_calls_clock(
         self, mock_network_cls, mock_renderer_cls,
-        mock_osd_cls, mock_input_cls, mock_init_cls
+        mock_osd_cls, mock_input_cls, mock_init_cls, mock_display_cls
     ):
         """Test that tick() calls clock.tick()"""
         app, _, _, _, _ = self._create_app(
             mock_network_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls
+            mock_input_cls, mock_init_cls, mock_display_cls
         )
 
         app.tick()
@@ -454,12 +460,12 @@ class TestAppState(unittest.TestCase):
 
     def test_loop_history_deque(
         self, mock_network_cls, mock_renderer_cls,
-        mock_osd_cls, mock_input_cls, mock_init_cls
+        mock_osd_cls, mock_input_cls, mock_init_cls, mock_display_cls
     ):
         """Test that loop_history is properly initialized"""
         app, _, _, _, _ = self._create_app(
             mock_network_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls
+            mock_input_cls, mock_init_cls, mock_display_cls
         )
 
         self.assertEqual(app.model.loop_history.maxlen, 300)
@@ -473,12 +479,12 @@ class TestAppState(unittest.TestCase):
     def test_update_handles_input_error(
         self, mock_logging, mock_network_cls,
         mock_renderer_cls, mock_osd_cls,
-        mock_input_cls, mock_init_cls
+        mock_input_cls, mock_init_cls, mock_display_cls
     ):
         """Test that update() handles input read errors gracefully"""
         app, mock_input, _, _, _ = self._create_app(
             mock_network_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls
+            mock_input_cls, mock_init_cls, mock_display_cls
         )
 
         # Make read_inputs raise an exception
