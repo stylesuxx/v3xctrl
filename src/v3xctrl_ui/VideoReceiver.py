@@ -153,6 +153,10 @@ class VideoReceiver(ABC, threading.Thread):
                 # Log cleanup errors but don't let them crash the receiver
                 logging.exception(f"Error during cleanup: {e}")
 
+    @property
+    def is_connected(self) -> bool:
+        return self.frame is not None
+
     def get_frame(self) -> Optional[npt.NDArray[np.uint8]]:
         now = time.monotonic()
         log_data = None

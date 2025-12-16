@@ -1,12 +1,12 @@
-from typing import Optional, Tuple, List
-import time
 import math
+import time
+from typing import Dict, Any, Optional, Tuple, List
 
 import numpy as np
 import numpy.typing as npt
 import pygame
 
-#from v3xctrl_ui.AppState import AppState
+# from v3xctrl_ui.AppState import AppState
 from v3xctrl_ui.colors import BLACK, RED, WHITE
 from v3xctrl_ui.fonts import BOLD_MONO_FONT_24, BOLD_MONO_FONT_32
 from v3xctrl_ui.helpers import get_external_ip
@@ -60,9 +60,14 @@ class Renderer:
                     state.screen
                 )
 
+        context = {
+            'control_connected':  state.control_connected,
+            'video_connected': network_manager.video_receiver.is_connected
+        }
+
         self._render_overlay_data(state, network_manager)
         self._render_errors(state.screen, network_manager)
-        self._render_menu(state.screen, state.menu)
+        self._render_menu(state.screen, state.menu, context)
 
         pygame.display.flip()
 
@@ -125,7 +130,7 @@ class Renderer:
         * direct
         * relay
 
-        Ans in one of four signal states:
+        And in one of four signal states:
         * Control and Video missing
         * Control missing
         * Video missing
@@ -243,7 +248,12 @@ class Renderer:
             rect.center = (self.video_width // 2, 50)
             screen.blit(surface, rect)
 
-    def _render_menu(self, screen: pygame.Surface, menu: Optional['Menu']) -> None:
+    def _render_menu(
+        self,
+        screen: pygame.Surface,
+        menu: Optional['Menu'],
+        context: Dict[str, Any]
+    ) -> None:
         """Render menu above everything else."""
         if menu is not None:
-            menu.draw(screen)
+            menu.draw(screen, context)

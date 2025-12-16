@@ -67,7 +67,7 @@ class FrequenciesTab(Tab):
             "frequencies": self._create_headline("Update Frequencies")
         }
 
-    def draw(self, surface: Surface) -> None:
+    def draw(self, surface: Surface, context: Dict[str, Any]) -> None:
         _ = self._draw_frequency_section(surface, 0)
 
     def get_settings(self) -> Dict[str, Any]:

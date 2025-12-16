@@ -81,7 +81,7 @@ class OsdTab(Tab):
             "osd": self._create_headline("OSD")
         }
 
-    def draw(self, surface: Surface) -> None:
+    def draw(self, surface: Surface, context: Dict[str, Any]) -> None:
         _ = self._draw_debug_section(surface, 0)
 
     def get_settings(self) -> Dict[str, Any]:

@@ -93,7 +93,7 @@ class NetworkTab(Tab):
             "misc": self._create_headline("Miscellaneous", True),
         }
 
-    def draw(self, surface: Surface) -> None:
+    def draw(self, surface: Surface, context: Dict[str, Any]) -> None:
         y = self._draw_port_section(surface, 0)
         y_col1 = self._draw_relay_section(surface, y)
 

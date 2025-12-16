@@ -82,8 +82,10 @@ class StreamerTab(Tab):
             "actions": self._create_headline("Actions")
         }
 
-    def draw(self, surface: Surface) -> None:
-        _ = self._draw_actions_section(surface, 0)
+    def draw(self, surface: Surface, context: Dict[str, Any]) -> None:
+        logging.info(context)
+        video_connected = context.get("video_connected", False)
+        _ = self._draw_actions_section(surface, 0, video_connected)
 
     def get_settings(self) -> Dict[str, Any]:
         return {}
@@ -148,19 +150,22 @@ class StreamerTab(Tab):
         command = Command("restart")
         self.send_command(command, self._on_command_callback)
 
-    def _draw_actions_section(self, surface: Surface, y: int) -> int:
+    def _draw_actions_section(
+        self, surface: Surface,
+        y: int,
+        video_connected: bool
+    ) -> int:
         y += self.y_offset + self.padding
         y += self._draw_headline(surface, "actions", y)
 
-        self.video_start_button.set_position(self.padding, y)
-        self.video_start_button.draw(surface)
-
-        self.video_stop_button.set_position(
-            self.padding * 2 + self.video_start_button.width,
-            y
-        )
-        self.video_stop_button.draw(surface)
-        y += self.video_stop_button.get_size()[1]
+        if video_connected:
+            self.video_stop_button.set_position(self.padding, y)
+            self.video_stop_button.draw(surface)
+            y += self.video_stop_button.get_size()[1]
+        else:
+            self.video_start_button.set_position(self.padding, y)
+            self.video_start_button.draw(surface)
+            y += self.video_start_button.get_size()[1]
 
         y += self.padding
         self.recording_start_button.set_position(self.padding, y)

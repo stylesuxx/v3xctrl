@@ -59,7 +59,7 @@ class InputTab(Tab):
             "input": self._create_headline("Input device", True)
         }
 
-    def draw(self, surface: Surface) -> None:
+    def draw(self, surface: Surface, context: Dict[str, Any]) -> None:
         y = self._draw_keyboard_section(surface, 0)
         y = self._draw_input_section(surface, y)
 

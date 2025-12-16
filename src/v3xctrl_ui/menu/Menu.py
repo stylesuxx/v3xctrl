@@ -4,7 +4,7 @@ import time
 
 import pygame
 from pygame import Surface, event
-from typing import Callable, NamedTuple, Dict
+from typing import Any, Callable, NamedTuple, Dict
 
 from v3xctrl_control import Server
 from v3xctrl_control.message import Command
@@ -139,7 +139,7 @@ class Menu:
         if tab:
             tab.view.handle_event(event)
 
-    def draw(self, surface: Surface) -> None:
+    def draw(self, surface: Surface, context: Dict[str, Any]) -> None:
         surface.blit(self.background, (0, 0))
 
         if self.tab_bar_dirty:
@@ -151,7 +151,7 @@ class Menu:
 
         tab = self._get_active_tab()
         if tab:
-            tab.view.draw(surface)
+            tab.view.draw(surface, context)
 
         if self.is_loading:
             self._draw_loading_overlay(surface)

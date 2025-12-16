@@ -62,7 +62,7 @@ class GeneralTab(Tab):
             "settings": self._create_headline("Settings")
         }
 
-    def draw(self, surface: Surface) -> None:
+    def draw(self, surface: Surface, context: Dict[str, Any]) -> None:
         _ = self._draw_general_section(surface, 0)
 
     def get_settings(self) -> Dict[str, Any]:

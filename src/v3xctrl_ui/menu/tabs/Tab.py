@@ -43,7 +43,7 @@ class Tab(ABC):
         pass
 
     @abstractmethod
-    def draw(self, surface: Surface) -> None:
+    def draw(self, surface: Surface, context: Dict[str, Any]) -> None:
         pass
 
     def _create_headline(
