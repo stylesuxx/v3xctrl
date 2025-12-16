@@ -15,6 +15,7 @@ from v3xctrl_ui.Settings import Settings
 from v3xctrl_helper import is_int
 
 from .Tab import Tab
+from .VerticalLayout import VerticalLayout
 
 
 class NetworkTab(Tab):
@@ -94,6 +95,18 @@ class NetworkTab(Tab):
             "misc": self._create_headline(t("Miscellaneous"), True),
         }
 
+        self.port_layout = VerticalLayout()
+        for element in self.port_widgets:
+            self.port_layout.add(element)
+
+        self.relay_layout = VerticalLayout()
+        for element in self.relay_widgets:
+            self.relay_layout.add(element)
+
+        self.misc_layout = VerticalLayout()
+        for element in self.misc_widgets:
+            self.misc_layout.add(element)
+
     def draw(self, surface: Surface) -> None:
         y = self._draw_port_section(surface, 0)
         y_col1 = self._draw_relay_section(surface, y)
@@ -128,40 +141,16 @@ class NetworkTab(Tab):
         y += self.y_offset + self.padding
         y += self._draw_headline(surface, "ports", y)
 
-        self.video_input.set_position(self.padding, y)
-        self.video_input.draw(surface)
-        y += self.video_input.height + self.y_element_padding
-
-        self.control_input.set_position(self.padding, y)
-        self.control_input.draw(surface)
-        y += self.control_input.height + self.y_element_padding
-
-        return y
+        return self.port_layout.draw(surface, y)
 
     def _draw_relay_section(self, surface: Surface, y: int) -> int:
         y += self.y_section_padding
         y += self._draw_headline(surface, "udp_relay", y)
 
-        self.relay_server_input.set_position(self.padding, y)
-        self.relay_server_input.draw(surface)
-        y += self.relay_server_input.height + self.y_element_padding
-
-        self.relay_id_input.set_position(self.padding, y)
-        self.relay_id_input.draw(surface)
-        y += self.relay_id_input.height + self.y_element_padding
-
-        self.relay_enabled_checkbox.set_position(self.padding, y)
-        self.relay_enabled_checkbox.draw(surface)
-        y += self.relay_enabled_checkbox.height + self.y_element_padding
-
-        return y
+        return self.relay_layout.draw(surface, y)
 
     def _draw_misc_section(self, surface: Surface, y: int) -> int:
         y += self.y_section_padding
         y += self._draw_headline(surface, "misc", y)
 
-        self.udp_packet_ttl_input.set_position(self.padding, y)
-        self.udp_packet_ttl_input.draw(surface)
-        y += self.udp_packet_ttl_input.height + self.y_element_padding
-
-        return y
+        return self.misc_layout.draw(surface, y)

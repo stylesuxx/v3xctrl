@@ -12,6 +12,7 @@ from v3xctrl_ui.menu.input import KeyMappingWidget
 from v3xctrl_ui.Settings import Settings
 
 from .Tab import Tab
+from .VerticalLayout import VerticalLayout
 
 
 class InputTab(Tab):
@@ -60,6 +61,13 @@ class InputTab(Tab):
             "input": self._create_headline(t("Input device"), True)
         }
 
+        self.keyboard_layout = VerticalLayout()
+        for element in self.key_widgets:
+            self.keyboard_layout.add(element)
+
+        self.input_layout = VerticalLayout()
+        self.input_layout.add(self.calibration_widget)
+
     def draw(self, surface: Surface) -> None:
         y = self._draw_keyboard_section(surface, 0)
         y = self._draw_input_section(surface, y)
@@ -100,18 +108,10 @@ class InputTab(Tab):
         y += self.y_offset + self.padding
         y += self._draw_headline(surface, "keyboard", y)
 
-        for widget in self.key_widgets:
-            widget.set_position(self.padding, y)
-            widget.draw(surface)
-            y += widget.get_size()[1] + self.y_element_padding
-
-        return y
+        return self.keyboard_layout.draw(surface, y)
 
     def _draw_input_section(self, surface: Surface, y: int) -> int:
         y += self.y_section_padding
         y += self._draw_headline(surface, "input", y)
 
-        self.calibration_widget.set_position(self.padding, y)
-        self.calibration_widget.draw(surface)
-
-        return y
+        return self.input_layout.draw(surface, y)

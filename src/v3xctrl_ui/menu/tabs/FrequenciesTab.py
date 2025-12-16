@@ -10,6 +10,7 @@ from v3xctrl_ui.menu.input import NumberInput
 from v3xctrl_ui.Settings import Settings
 
 from .Tab import Tab
+from .VerticalLayout import VerticalLayout
 
 
 class FrequenciesTab(Tab):
@@ -69,6 +70,10 @@ class FrequenciesTab(Tab):
             "frequencies": self._create_headline(t("Update Frequencies"))
         }
 
+        self.frequency_layout = VerticalLayout()
+        for element in self.elements:
+            self.frequency_layout.add(element)
+
     def draw(self, surface: Surface) -> None:
         _ = self._draw_frequency_section(surface, 0)
 
@@ -85,15 +90,4 @@ class FrequenciesTab(Tab):
         y = self.y_offset + self.padding
         y += self._draw_headline(surface, "frequencies", y)
 
-        self.video_input.set_position(self.padding, y)
-        self.video_input.draw(surface)
-
-        y += self.video_input.get_size()[1] + self.y_element_padding
-        self.control_input.set_position(self.padding, y)
-        self.control_input.draw(surface)
-
-        y += self.control_input.get_size()[1] + self.y_element_padding
-        self.latency_input.set_position(self.padding, y)
-        self.latency_input.draw(surface)
-
-        return y
+        return self.frequency_layout.draw(surface, y)

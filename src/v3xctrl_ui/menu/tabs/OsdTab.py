@@ -8,6 +8,7 @@ from v3xctrl_ui.menu.input import Checkbox
 from v3xctrl_ui.Settings import Settings
 
 from .Tab import Tab
+from .VerticalLayout import VerticalLayout
 
 
 class OsdTab(Tab):
@@ -82,6 +83,10 @@ class OsdTab(Tab):
             "osd": self._create_headline(t("OSD"))
         }
 
+        self.osd_layout = VerticalLayout()
+        for element in self.osd_widgets:
+            self.osd_layout.add(element)
+
     def draw(self, surface: Surface) -> None:
         _ = self._draw_debug_section(surface, 0)
 
@@ -97,9 +102,4 @@ class OsdTab(Tab):
         y += self.y_offset + self.padding
         y += self._draw_headline(surface, "osd", y)
 
-        for checkbox in self.osd_widgets:
-            checkbox.set_position(self.padding, y)
-            checkbox.draw(surface)
-            y += checkbox.get_size()[1] + self.y_element_padding
-
-        return y
+        return self.osd_layout.draw(surface, y)

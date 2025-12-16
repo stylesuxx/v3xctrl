@@ -14,6 +14,7 @@ from v3xctrl_ui.menu.input import (
 from v3xctrl_ui.Settings import Settings
 
 from .Tab import Tab
+from .VerticalLayout import VerticalLayout
 
 
 class GeneralTab(Tab):
@@ -63,6 +64,10 @@ class GeneralTab(Tab):
             "settings": self._create_headline(t("Settings"))
         }
 
+        self.general_layout = VerticalLayout()
+        for element in self.elements:
+            self.general_layout.add(element)
+
     def draw(self, surface: Surface) -> None:
         _ = self._draw_general_section(surface, 0)
 
@@ -86,16 +91,4 @@ class GeneralTab(Tab):
         y += self.y_offset + self.padding
         y += self._draw_headline(surface, "settings", y)
 
-        self.fullscreen_enabled_checkbox.set_position(self.padding, y)
-        self.fullscreen_enabled_checkbox.draw(surface)
-        y += self.fullscreen_enabled_checkbox.height + self.y_element_padding
-
-        self.show_connection_info_checkbox.set_position(self.padding, y)
-        self.show_connection_info_checkbox.draw(surface)
-        y += self.show_connection_info_checkbox.height + self.y_element_padding
-
-        self.render_ratio_input.set_position(self.padding, y)
-        self.render_ratio_input.draw(surface)
-        y += self.render_ratio_input.height + self.y_element_padding
-
-        return y
+        return self.general_layout.draw(surface, y)
