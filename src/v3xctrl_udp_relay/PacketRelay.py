@@ -136,62 +136,66 @@ class PacketRelay:
 
     def cleanup_expired_mappings(self) -> None:
         """
-        Sessions need to be cleaned up if they are in one of the following
-        states:
-
-        - Never became ready: Only one peer has been seen, but stopped
-                              announcing at some point - no mappings have been
-                              established. (orphaned)
-        - Mappings timed out: Became ready, but both viewer and streamer have
-                              stopped transmitting for some time. (expired)
+        Session removal works in multiple steps:
+        1. Check if role is active: a role is considered active if any of its
+           ports has been active within the timeout period
+        2. Remove role from sesssion if it has not been active: Clear the role
+           in the session, remove from sessions address list and remove from
+           mappings
+        3. If all of a sessions roles have been cleared, remove the session
+           completely
         """
         now = time.time()
 
         with self.lock:
-            orphaned_sessions: Set[str] = set()
-            for sid in self.sessions:
+            expired_roles: Dict[str, List[Role]] = {}
+
+            # Identify expired roles
+            for sid, session in self.sessions.items():
+                # Ignore sessions with active announcements
+                if (now - session.last_announcement_at) > self.timeout:
+                    for r, role in session.roles.items():
+                        # Ignore empty roles
+                        if len(role) > 0:
+                            with self.mapping_lock:
+                                role_expired = True
+                                for _, peer in role.items():
+                                    mapping = self.mappings.get(peer.addr)
+                                    if mapping:
+                                        _, ts = mapping
+                                        if (now - ts) < self.timeout:
+                                            role_expired = False
+                                            break
+
+                                if role_expired:
+                                    if sid not in expired_roles:
+                                        expired_roles[sid] = []
+
+                                    expired_roles[sid].append(r)
+
+            # Remove expired roles
+            for sid, roles_to_remove in expired_roles.items():
                 session = self.sessions[sid]
-                if (
-                    (now - session.last_announcement_at) > self.timeout and
-                    not session.is_ready()
-                ):
-                    orphaned_sessions.add(sid)
+                for r in roles_to_remove:
+                    role = session.roles[r]
+                    with self.mapping_lock:
+                        for _, peer in role.items():
+                            session.addresses.discard(peer.addr)
+                            self.mappings.pop(peer.addr, None)
 
-            for sid in orphaned_sessions:
-                del self.sessions[sid]
-                logging.info(f"{sid}: Removed orphaned session")
+                    session.roles[r] = {}
+                    logging.info(f"{sid}: Removed expired mappings for {r.name}")
 
-            expired_mappings: List[Address] = []
-            with self.mapping_lock:
-                for addr, (_, ts) in self.mappings.items():
-                    if (now - ts) > self.timeout:
-                        expired_mappings.append(addr)
+            # Remove session with no active roles
+            expired_sessions: List[str] = []
+            for sid, session in self.sessions.items():
+                expired = True
+                for _, role in session.roles.items():
+                    if len(role) > 0:
+                        expired = False
 
-                affected_sessions: Set[str] = set()
-                for addr in expired_mappings:
-                    sids = self._get_sids_for_address_unlocked(addr)
-                    for sid in sids:
-                        affected_sessions.add(sid)
-
-                        del self.mappings[addr]
-                        logging.info(f"{sid}: Removed expired mapping for {addr}")
-
-                    if len(affected_sessions) == 0:
-                        del self.mappings[addr]
-                        logging.info(f"Removed unassociated, expired mapping for {addr}")
-
-                expired_sessions: Set[str] = set()
-                for sid in affected_sessions:
-                    session = self.sessions.get(sid)
-                    if session:
-                        has_active_mappings = False
-                        for addr in session.addresses:
-                            if addr in self.mappings:
-                                has_active_mappings = True
-                                break
-
-                        if not has_active_mappings:
-                            expired_sessions.add(sid)
+                if expired:
+                    expired_sessions.append(sid)
 
             for sid in expired_sessions:
                 del self.sessions[sid]
