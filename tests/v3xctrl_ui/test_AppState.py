@@ -439,35 +439,6 @@ class TestAppState(unittest.TestCase):
         app._update_connected(False)
         self.assertFalse(app.model.control_connected)
 
-    def test_settings_equal_method(
-        self, mock_network_cls,
-        mock_renderer_cls, mock_osd_cls,
-        mock_input_cls, mock_init_cls
-    ):
-        """Test that _settings_equal correctly compares settings"""
-        app, _, _, _, _ = self._create_app(
-            mock_network_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls
-        )
-
-        # Same settings should return True
-        same_settings = {
-            "ports": {
-                "video": 6666,
-                "control": 6668
-            }
-        }
-        self.assertTrue(app._settings_equal(same_settings, "ports"))
-
-        # Different settings should return False
-        different_settings = {
-            "ports": {
-                "video": 7777,
-                "control": 6668
-            }
-        }
-        self.assertFalse(app._settings_equal(different_settings, "ports"))
-
     def test_tick_calls_clock(
         self, mock_network_cls, mock_renderer_cls,
         mock_osd_cls, mock_input_cls, mock_init_cls

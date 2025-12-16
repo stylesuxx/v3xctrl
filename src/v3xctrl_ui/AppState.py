@@ -1,4 +1,3 @@
-import copy
 import logging
 import signal
 import threading
@@ -12,6 +11,7 @@ from v3xctrl_control.message import Control, Latency, Telemetry
 
 from v3xctrl_ui.ApplicationModel import ApplicationModel
 from v3xctrl_ui.EventController import EventController
+from v3xctrl_ui.SettingsManager import SettingsManager
 from v3xctrl_ui.TimingController import TimingController
 from v3xctrl_ui.Init import Init
 from v3xctrl_ui.menu.Menu import Menu
@@ -78,13 +78,9 @@ class AppState:
         self.model.last_control_update = start_time
         self.model.last_latency_check = start_time
 
-        # Deep copy of current settings so we can later easily check if settings
-        # need updating.
-        self.old_settings = copy.deepcopy(self.settings)
-
-        # Network restart state
-        self.network_restart_thread: Optional[threading.Thread] = None
-        self.network_restart_complete = threading.Event()
+        # Settings management
+        self.settings_manager = SettingsManager(self.settings, self.model)
+        self._configure_settings_manager()
 
     def update_settings(self, new_settings: Optional[Settings] = None) -> None:
         """
@@ -94,41 +90,21 @@ class AppState:
         if new_settings is None:
             new_settings = Init.settings("settings.toml")
 
-        # Attempt fullscreen/window switch only if the setting actually changed
-        fullscreen_previous = self.model.fullscreen
-        self.model.fullscreen = new_settings.get("video", {}).get("fullscreen", False)
-        if fullscreen_previous is not self.model.fullscreen:
-            self._update_screen_size()
+        # Delegate to settings manager
+        needs_restart = not self.settings_manager.update_settings(new_settings)
 
-        # Check if network manager needs to be restarted
-        if (
-            not self._settings_equal(new_settings, "ports") or
-            not self._settings_equal(new_settings, "relay")
-        ):
-            logging.info("Restarting network manager")
-            self.model.pending_settings = new_settings
+        if needs_restart:
+            # Network manager shutdown and recreation handled by restart thread
             self.network_manager.shutdown()
             self.network_manager = NetworkManager(
                 new_settings,
                 self.handlers
             )
-            self.network_restart_thread.start()
-            return
-
-        # Apply settings immediately if no network restart needed
-        self._apply_settings(new_settings)
 
     def update(self) -> None:
         """Update application state with timed operations."""
         # Check if network restart is complete
-        if self.network_restart_complete.is_set():
-            self.network_restart_complete.clear()
-
-            if self.model.pending_settings:
-                self._apply_settings(self.model.pending_settings)
-                self.model.pending_settings = None
-
-            logging.info("Network manager restart complete")
+        self.settings_manager.check_network_restart_complete()
 
         now = time.monotonic()
         self.model.loop_history.append(now)
@@ -187,9 +163,7 @@ class AppState:
         logging.info("Shutting down...")
 
         # Wait for any pending network restart
-        if self.network_restart_thread and self.network_restart_thread.is_alive():
-            logging.info("Waiting for network restart to complete...")
-            self.network_restart_thread.join(timeout=5.0)
+        self.settings_manager.wait_for_network_restart()
 
         pygame.quit()
 
@@ -227,7 +201,7 @@ class AppState:
             logging.error(f"Network manager restart failed: {e}")
 
         finally:
-            self.network_restart_complete.set()
+            self.settings_manager.network_restart_complete.set()
 
     def _on_quit(self) -> None:
         """Callback for quit event."""
@@ -252,23 +226,54 @@ class AppState:
         menu.set_tab_enabled("Streamer", self.model.control_connected)
         return menu
 
-    def _apply_settings(self, new_settings: Settings) -> None:
-        """Apply new settings to all components."""
-        # Update new settings to settings and trigger updates on elements who
-        # need to handle new settings
-        self.settings = new_settings
-        self.old_settings = copy.deepcopy(self.settings)
+    def _configure_settings_manager(self) -> None:
+        """Configure settings manager with all necessary callbacks."""
+        # Timing updates
+        def update_timing(settings: Settings) -> None:
+            self.timing_controller.settings = settings
+            self.timing_controller.update_from_settings()
+            self.settings = settings
 
-        self.timing_controller.settings = new_settings
-        self.timing_controller.update_from_settings()
-        self._update_network_settings()
+        # Network updates
+        def update_network(settings: Settings) -> None:
+            self._update_network_settings()
 
-        self.input_manager.update_settings(self.settings)
-        self.osd.update_settings(self.settings)
-        self.renderer.settings = self.settings
+        # Input updates
+        def update_input(settings: Settings) -> None:
+            self.input_manager.update_settings(settings)
 
-        # Clear menu to force refresh
-        self.event_controller.clear_menu()
+        # OSD updates
+        def update_osd(settings: Settings) -> None:
+            self.osd.update_settings(settings)
+
+        # Renderer updates
+        def update_renderer(settings: Settings) -> None:
+            self.renderer.settings = settings
+
+        # Display updates
+        def update_display(fullscreen: bool) -> None:
+            self._update_screen_size()
+
+        # Menu clear
+        def clear_menu() -> None:
+            self.event_controller.clear_menu()
+
+        # Network restart thread factory
+        def create_restart_thread(new_settings: Settings) -> threading.Thread:
+            return threading.Thread(
+                target=self._restart_network_manager,
+                args=(new_settings,)
+            )
+
+        # Set all callbacks
+        self.settings_manager.on_timing_update = update_timing
+        self.settings_manager.on_network_update = update_network
+        self.settings_manager.on_input_update = update_input
+        self.settings_manager.on_osd_update = update_osd
+        self.settings_manager.on_renderer_update = update_renderer
+        self.settings_manager.on_display_update = update_display
+        self.settings_manager.on_menu_clear = clear_menu
+        self.settings_manager.create_network_restart_thread = create_restart_thread
 
     def _update_screen_size(self) -> None:
         if self.model.fullscreen:
@@ -341,16 +346,3 @@ class AppState:
                 "steering": self.model.steering,
                 "throttle": self.model.throttle,
             }))
-
-    def _settings_equal(self, settings: Settings, key: str) -> bool:
-        old_settings = self.old_settings.get(key)
-        new_settings = settings.get(key)
-
-        if new_settings.keys() != old_settings.keys():
-            return False
-
-        for key in old_settings:
-            if new_settings.get(key) != old_settings.get(key):
-                return False
-
-        return True
