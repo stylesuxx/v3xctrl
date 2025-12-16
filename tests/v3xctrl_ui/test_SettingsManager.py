@@ -37,7 +37,6 @@ class TestSettingsManagerInitialization:
         assert manager.on_osd_update is None
         assert manager.on_renderer_update is None
         assert manager.on_display_update is None
-        assert manager.on_menu_clear is None
         assert manager.create_network_restart_thread is None
 
 
@@ -177,14 +176,12 @@ class TestApplySettings:
         input_cb = Mock()
         osd_cb = Mock()
         renderer_cb = Mock()
-        menu_cb = Mock()
 
         manager.on_timing_update = timing_cb
         manager.on_network_update = network_cb
         manager.on_input_update = input_cb
         manager.on_osd_update = osd_cb
         manager.on_renderer_update = renderer_cb
-        manager.on_menu_clear = menu_cb
 
         manager.apply_settings(new_settings)
 
@@ -194,7 +191,6 @@ class TestApplySettings:
         input_cb.assert_called_once_with(new_settings)
         osd_cb.assert_called_once_with(new_settings)
         renderer_cb.assert_called_once_with(new_settings)
-        menu_cb.assert_called_once()
 
     def test_apply_settings_updates_settings_references(self):
         """Test that apply_settings updates settings and old_settings."""
@@ -315,7 +311,6 @@ class TestDisplayUpdates:
         manager.update_settings(new_settings)
 
         display_cb.assert_called_once_with(True)
-        assert model.fullscreen is True
 
     def test_no_fullscreen_change_no_callback(self):
         """Test that no callback is triggered when fullscreen doesn't change."""

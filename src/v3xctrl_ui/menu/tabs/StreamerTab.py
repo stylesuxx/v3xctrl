@@ -88,7 +88,7 @@ class StreamerTab(Tab):
 
         self.elements_col_1 = [
             self.video_start_button,
-            self.recording_stop_button,
+            self.recording_start_button,
             self.shell_start_button,
             self.shutdown_button,
         ]

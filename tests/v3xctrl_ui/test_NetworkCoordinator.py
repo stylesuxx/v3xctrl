@@ -29,7 +29,7 @@ class TestNetworkCoordinator(unittest.TestCase):
         self.assertIsInstance(self.coordinator.restart_complete, threading.Event)
         self.assertIsNone(self.coordinator.on_connection_change)
 
-    @patch("v3xctrl_ui.NetworkManager.NetworkManager")
+    @patch("src.v3xctrl_ui.NetworkCoordinator.NetworkManager")
     def test_create_network_manager(self, mock_nm_class):
         """Test creating a network manager."""
         mock_settings = {"ports": {"video": 6666, "control": 6668}}
