@@ -11,6 +11,7 @@ import pygame
 from v3xctrl_control import State
 from v3xctrl_control.message import Control, Latency, Telemetry
 
+from v3xctrl_ui.ApplicationModel import ApplicationModel
 from v3xctrl_ui.Init import Init
 from v3xctrl_ui.menu.Menu import Menu
 from v3xctrl_ui.OSD import OSD
@@ -26,6 +27,12 @@ class AppState:
     """
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
+
+        self.model = ApplicationModel(
+          fullscreen=self.settings.get("video", {"fullscreen": False}).get("fullscreen", False),
+          throttle=0,
+          steering=0
+        )
 
         video = settings.get("video")
         self.size = (video.get("width"), video.get("height"))
@@ -70,9 +77,6 @@ class AppState:
         self.screen, self.clock = Init.ui(self.size, self.title)
         if self.fullscreen:
             self._update_screen_size()
-
-        self.throttle: float = 0
-        self.steering: float = 0
 
         self._setup_signal_handling()
 
@@ -140,9 +144,13 @@ class AppState:
         # Handle control updates, send last values if user is in menu
         if now - self.last_control_update >= self.control_interval:
             try:
-                self.throttle, self.steering = (0, 0)
+                throttle, steering = (0, 0)
                 if not self.menu:
-                    self.throttle, self.steering = self.input_manager.read_inputs()
+                    throttle, steering = self.input_manager.read_inputs()
+
+                self.model.throttle = throttle
+                self.model.steering = steering
+
                 self._send_control_message()
             except Exception as e:
                 logging.warning(f"Input read error: {e}")
@@ -210,7 +218,7 @@ class AppState:
             self.osd.update_buffer_queue(buffer_size)
 
         self.osd.update_data_queue(data_left)
-        self.osd.set_control(self.throttle, self.steering)
+        self.osd.set_control(self.model.throttle, self.model.steering)
 
         self.renderer.render_all(
             self,
@@ -361,8 +369,8 @@ class AppState:
             not self.network_manager.server_error
         ):
             self.network_manager.server.send(Control({
-                "steering": self.steering,
-                "throttle": self.throttle,
+                "steering": self.model.steering,
+                "throttle": self.model.throttle,
             }))
 
     def _settings_equal(self, settings: Settings, key: str) -> bool:

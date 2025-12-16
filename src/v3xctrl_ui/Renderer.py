@@ -1,4 +1,4 @@
-from typing import Optional, Tuple, List
+from typing import TYPE_CHECKING, Optional, Tuple, List
 import time
 import math
 
@@ -6,7 +6,8 @@ import numpy as np
 import numpy.typing as npt
 import pygame
 
-#from v3xctrl_ui.AppState import AppState
+if TYPE_CHECKING:
+    from v3xctrl_ui.AppState import AppState
 from v3xctrl_ui.colors import BLACK, RED, WHITE
 from v3xctrl_ui.fonts import BOLD_MONO_FONT_24, BOLD_MONO_FONT_32
 from v3xctrl_ui.helpers import get_external_ip
@@ -224,7 +225,7 @@ class Renderer:
             state.osd.update_debug_status("fail")
 
         state.osd.update_data_queue(data_left)
-        state.osd.set_control(state.throttle, state.steering)
+        state.osd.set_control(state.model.throttle, state.model.steering)
 
         video_history = None
         if network_manager.video_receiver is not None:
