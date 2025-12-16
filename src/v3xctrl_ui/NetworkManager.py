@@ -5,13 +5,14 @@ import time
 from typing import Any, Dict, Optional
 
 from v3xctrl_control import Server
-from v3xctrl_control.message import Latency
+from v3xctrl_control.message import Latency, Message
+from v3xctrl_control.State import State
 from v3xctrl_helper.exceptions import PeerRegistrationError
 from v3xctrl_udp_relay.Peer import Peer
 
 from v3xctrl_ui.helpers import get_external_ip
-from v3xctrl_ui.Init import Init
 from v3xctrl_ui.Settings import Settings
+from v3xctrl_ui.VideoReceiverPyAV import VideoReceiverPyAV as VideoReceiver
 
 
 class NetworkManager:
@@ -98,16 +99,16 @@ class NetworkManager:
                         logging.info(f"Sent 'keep alive' to {video_address}")
 
             render_ratio = self.settings.get("video", {}).get("render_ratio", 0)
-            self.video_receiver = Init.video_receiver(
+            self.video_receiver = self._create_video_receiver(
                 self.video_port,
                 keep_alive,
                 render_ratio
-              )
+            )
 
             # Set up UDP server - from this point on we can ignore
             # PeerAnnouncement messages which might be poisoning our timestamps
             try:
-                self.server = Init.server(
+                self.server = self._create_server(
                     self.control_port,
                     self.server_handlers.get("messages", []),
                     self.server_handlers.get("states", []),
@@ -181,3 +182,66 @@ class NetworkManager:
             print(f"Control port: {ports['control']}")
             print("Make sure to forward this ports!")
             print("================================")
+
+    def _create_server(
+        self,
+        port: int,
+        message_handlers: list,
+        state_handlers: list,
+        udp_ttl_ms: int
+    ) -> Server:
+        """Create and start a Server instance.
+
+        Args:
+            port: Port number for the server
+            message_handlers: List of (Message type, callback) tuples
+            state_handlers: List of (State, callback) tuples
+            udp_ttl_ms: UDP packet TTL in milliseconds
+
+        Returns:
+            Started Server instance
+
+        Raises:
+            RuntimeError: If port is already in use or other server error
+        """
+        try:
+            server = Server(port, udp_ttl_ms)
+
+            for message_type, callback in message_handlers:
+                server.subscribe(message_type, callback)
+
+            for state, callback in state_handlers:
+                server.on(state, callback)
+
+            server.start()
+
+            return server
+
+        except OSError as e:
+            msg = "Control port already in use" if e.errno == 98 else f"Server error: {str(e)}"
+            raise RuntimeError(msg) from e
+
+    def _create_video_receiver(
+        self,
+        port: int,
+        error_callback,
+        render_ratio: int
+    ) -> VideoReceiver:
+        """Create and start a VideoReceiver instance.
+
+        Args:
+            port: Port number for video reception
+            error_callback: Callback function to invoke on error
+            render_ratio: Render ratio for video processing
+
+        Returns:
+            Started VideoReceiver instance
+        """
+        video_receiver = VideoReceiver(
+            port,
+            error_callback,
+            render_ratio=render_ratio
+        )
+        video_receiver.start()
+
+        return video_receiver

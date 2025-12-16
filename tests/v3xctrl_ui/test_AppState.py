@@ -10,7 +10,6 @@ from src.v3xctrl_ui.AppState import AppState
 
 
 @patch("src.v3xctrl_ui.AppState.DisplayManager")
-@patch("src.v3xctrl_ui.AppState.Init")
 @patch("src.v3xctrl_ui.AppState.InputManager")
 @patch("src.v3xctrl_ui.AppState.OSD")
 @patch("src.v3xctrl_ui.AppState.Renderer")
@@ -44,7 +43,6 @@ class TestAppState(unittest.TestCase):
         mock_renderer_cls,
         mock_osd_cls,
         mock_input_cls,
-        mock_init_cls,
         mock_display_cls
     ):
         # Mock DisplayManager
@@ -91,11 +89,11 @@ class TestAppState(unittest.TestCase):
 
     def test_initialization_creates_all_components(
         self, mock_coordinator_cls, mock_renderer_cls,
-        mock_osd_cls, mock_input_cls, mock_init_cls, mock_display_cls
+        mock_osd_cls, mock_input_cls, mock_display_cls
     ):
         app, mock_input, mock_osd, mock_renderer, mock_coordinator = self._create_app(
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls, mock_display_cls
+            mock_input_cls, mock_display_cls
         )
 
         # Check components were created
@@ -112,11 +110,11 @@ class TestAppState(unittest.TestCase):
 
     def test_initialization_sets_timing_intervals(
         self, mock_coordinator_cls, mock_renderer_cls,
-        mock_osd_cls, mock_input_cls, mock_init_cls, mock_display_cls
+        mock_osd_cls, mock_input_cls, mock_display_cls
     ):
         app, _, _, _, _ = self._create_app(
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls, mock_display_cls
+            mock_input_cls, mock_display_cls
         )
 
         # Check timing intervals are set correctly (now in model)
@@ -128,13 +126,13 @@ class TestAppState(unittest.TestCase):
     def test_update_settings_updates_all_components(
         self, mock_set_mode,
         mock_coordinator_cls, mock_renderer_cls,
-        mock_osd_cls, mock_input_cls, mock_init_cls, mock_display_cls
+        mock_osd_cls, mock_input_cls, mock_display_cls
     ):
         mock_set_mode.return_value = MagicMock()
 
         app, mock_input, mock_osd, mock_renderer, mock_coordinator = self._create_app(
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls, mock_display_cls
+            mock_input_cls, mock_display_cls
         )
 
         new_settings = {
@@ -164,11 +162,11 @@ class TestAppState(unittest.TestCase):
 
     def test_update_reads_inputs_and_sends_control(
         self, mock_coordinator_cls, mock_renderer_cls,
-        mock_osd_cls, mock_input_cls, mock_init_cls, mock_display_cls
+        mock_osd_cls, mock_input_cls, mock_display_cls
     ):
         app, mock_input, mock_osd, mock_renderer, mock_coordinator = self._create_app(
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls, mock_display_cls
+            mock_input_cls, mock_display_cls
         )
 
         import time
@@ -187,11 +185,11 @@ class TestAppState(unittest.TestCase):
 
     def test_update_no_control_when_timing_not_ready(
         self, mock_coordinator_cls, mock_renderer_cls,
-        mock_osd_cls, mock_input_cls, mock_init_cls, mock_display_cls
+        mock_osd_cls, mock_input_cls, mock_display_cls
     ):
         app, mock_input, mock_osd, mock_renderer, mock_coordinator = self._create_app(
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls, mock_display_cls
+            mock_input_cls, mock_display_cls
         )
 
         import time
@@ -207,11 +205,11 @@ class TestAppState(unittest.TestCase):
 
     def test_render_updates_osd_and_calls_renderer(
         self, mock_coordinator_cls, mock_renderer_cls,
-        mock_osd_cls, mock_input_cls, mock_init_cls, mock_display_cls
+        mock_osd_cls, mock_input_cls, mock_display_cls
     ):
         app, mock_input, mock_osd, mock_renderer, mock_coordinator = self._create_app(
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls, mock_display_cls
+            mock_input_cls, mock_display_cls
         )
 
         mock_coordinator.get_data_queue_size.return_value = 5
@@ -225,11 +223,11 @@ class TestAppState(unittest.TestCase):
 
     def test_render_handles_server_error(
         self, mock_coordinator_cls, mock_renderer_cls,
-        mock_osd_cls, mock_input_cls, mock_init_cls, mock_display_cls
+        mock_osd_cls, mock_input_cls, mock_display_cls
     ):
         app, mock_input, mock_osd, mock_renderer, mock_coordinator = self._create_app(
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls, mock_display_cls
+            mock_input_cls, mock_display_cls
         )
 
         mock_coordinator.has_server_error.return_value = True
@@ -241,11 +239,11 @@ class TestAppState(unittest.TestCase):
     def test_shutdown_stops_all_components(
         self, mock_quit, mock_coordinator_cls,
         mock_renderer_cls, mock_osd_cls,
-        mock_input_cls, mock_init_cls, mock_display_cls
+        mock_input_cls, mock_display_cls
     ):
         app, mock_input, mock_osd, mock_renderer, mock_coordinator = self._create_app(
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls, mock_display_cls
+            mock_input_cls, mock_display_cls
         )
 
         app.shutdown()
@@ -258,11 +256,11 @@ class TestAppState(unittest.TestCase):
     def test_handle_events_quit(
         self, mock_get_events, mock_coordinator_cls,
         mock_renderer_cls, mock_osd_cls,
-        mock_input_cls, mock_init_cls, mock_display_cls
+        mock_input_cls, mock_display_cls
     ):
         app, mock_input, mock_osd, mock_renderer, mock_coordinator = self._create_app(
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls, mock_display_cls
+            mock_input_cls, mock_display_cls
         )
 
         quit_event = MagicMock()
@@ -276,11 +274,11 @@ class TestAppState(unittest.TestCase):
     def test_handle_events_menu_handles_events(
         self, mock_get_events, mock_coordinator_cls,
         mock_renderer_cls, mock_osd_cls,
-        mock_input_cls, mock_init_cls, mock_display_cls
+        mock_input_cls, mock_display_cls
     ):
         app, mock_input, mock_osd, mock_renderer, mock_coordinator = self._create_app(
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls, mock_display_cls
+            mock_input_cls, mock_display_cls
         )
 
         some_event = MagicMock()
@@ -297,13 +295,13 @@ class TestAppState(unittest.TestCase):
     def test_timing_intervals_calculation(
         self, mock_set_mode,
         mock_coordinator_cls, mock_renderer_cls,
-        mock_osd_cls, mock_input_cls, mock_init_cls, mock_display_cls
+        mock_osd_cls, mock_input_cls, mock_display_cls
     ):
         mock_set_mode.return_value = MagicMock()
 
         app, mock_input, mock_osd, mock_renderer, mock_coordinator = self._create_app(
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls, mock_display_cls
+            mock_input_cls, mock_display_cls
         )
 
         self.assertEqual(app.model.control_interval, 1.0 / 30)
@@ -329,12 +327,12 @@ class TestAppState(unittest.TestCase):
 
     def test_handlers_creation(
         self, mock_coordinator_cls, mock_renderer_cls,
-        mock_osd_cls, mock_input_cls, mock_init_cls, mock_display_cls
+        mock_osd_cls, mock_input_cls, mock_display_cls
     ):
         """Test that network coordinator is properly set up with handlers."""
         app, mock_input, mock_osd, mock_renderer, mock_coordinator = self._create_app(
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls, mock_display_cls
+            mock_input_cls, mock_display_cls
         )
 
         # Handler creation is now delegated to NetworkCoordinator
@@ -343,12 +341,12 @@ class TestAppState(unittest.TestCase):
 
     def test_update_timing_settings(
         self, mock_coordinator_cls, mock_renderer_cls,
-        mock_osd_cls, mock_input_cls, mock_init_cls, mock_display_cls
+        mock_osd_cls, mock_input_cls, mock_display_cls
     ):
         """Test that timing controller correctly updates timing intervals"""
         app, _, _, _, _ = self._create_app(
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls, mock_display_cls
+            mock_input_cls, mock_display_cls
         )
 
         # Modify settings
@@ -370,12 +368,12 @@ class TestAppState(unittest.TestCase):
 
     def test_update_connected_state(
         self, mock_coordinator_cls, mock_renderer_cls,
-        mock_osd_cls, mock_input_cls, mock_init_cls, mock_display_cls
+        mock_osd_cls, mock_input_cls, mock_display_cls
     ):
         """Test that connection change callback updates menu tab state"""
         app, _, _, _, mock_coordinator = self._create_app(
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls, mock_display_cls
+            mock_input_cls, mock_display_cls
         )
 
         self.assertFalse(app.model.control_connected)
@@ -389,12 +387,12 @@ class TestAppState(unittest.TestCase):
 
     def test_tick_calls_clock(
         self, mock_coordinator_cls, mock_renderer_cls,
-        mock_osd_cls, mock_input_cls, mock_init_cls, mock_display_cls
+        mock_osd_cls, mock_input_cls, mock_display_cls
     ):
         """Test that tick() calls clock.tick()"""
         app, _, _, _, _ = self._create_app(
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls, mock_display_cls
+            mock_input_cls, mock_display_cls
         )
 
         app.tick()
@@ -402,12 +400,12 @@ class TestAppState(unittest.TestCase):
 
     def test_loop_history_deque(
         self, mock_coordinator_cls, mock_renderer_cls,
-        mock_osd_cls, mock_input_cls, mock_init_cls, mock_display_cls
+        mock_osd_cls, mock_input_cls, mock_display_cls
     ):
         """Test that loop_history is properly initialized"""
         app, _, _, _, _ = self._create_app(
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls, mock_display_cls
+            mock_input_cls, mock_display_cls
         )
 
         self.assertEqual(app.model.loop_history.maxlen, 300)
@@ -421,12 +419,12 @@ class TestAppState(unittest.TestCase):
     def test_update_handles_input_error(
         self, mock_logging, mock_coordinator_cls,
         mock_renderer_cls, mock_osd_cls,
-        mock_input_cls, mock_init_cls, mock_display_cls
+        mock_input_cls, mock_display_cls
     ):
         """Test that update() handles input read errors gracefully"""
         app, mock_input, _, _, _ = self._create_app(
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
-            mock_input_cls, mock_init_cls, mock_display_cls
+            mock_input_cls, mock_display_cls
         )
 
         # Make read_inputs raise an exception

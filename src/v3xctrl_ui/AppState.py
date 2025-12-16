@@ -1,5 +1,6 @@
 import logging
 import signal
+import threading
 import time
 from typing import Any, Optional
 
@@ -9,7 +10,6 @@ from v3xctrl_ui.ApplicationModel import ApplicationModel
 from v3xctrl_ui.EventController import EventController
 from v3xctrl_ui.SettingsManager import SettingsManager
 from v3xctrl_ui.TimingController import TimingController
-from v3xctrl_ui.Init import Init
 from v3xctrl_ui.menu.Menu import Menu
 from v3xctrl_ui.OSD import OSD
 from v3xctrl_ui.Renderer import Renderer
@@ -93,7 +93,8 @@ class AppState:
         self.event_controller.clear_menu()
 
         if new_settings is None:
-            new_settings = Init.settings("settings.toml")
+            new_settings = Settings("settings.toml")
+            new_settings.save()
 
         # Delegate to settings manager
         needs_restart = not self.settings_manager.update_settings(new_settings)
