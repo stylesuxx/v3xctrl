@@ -46,7 +46,8 @@ class Streamer:
             'framerate': 30,
             'buffertime': 150000000,
             'sizebuffers': 5,
-            'recording_dir': '',
+            'recording_dir': None,
+            'recording': False,
             'test_pattern': False,
             'buffertime_udp': 150000000,
             'sizebuffers_udp': 5,
@@ -103,6 +104,10 @@ class Streamer:
         self.loop: Optional[GLib.MainLoop] = None
         self.bus: Optional[Gst.Bus] = None
 
+        self.is_recording = False
+        self.recording_elements = {}  # Store recording branch elements
+        self.recording_tee_pad = None  # Store the tee src pad for recording
+
         Gst.init(None)
         self.control_server = ControlServer(self, control_socket)
 
@@ -125,10 +130,19 @@ class Streamer:
 
         logging.info("Pipeline running. Press Ctrl+C to stop.")
 
+        if self.settings['recording'] and self.settings['recording_dir']:
+            if self.start_recording():
+                logging.info("Auto-started recording on pipeline start")
+            else:
+                logging.warning("Failed to auto-start recording")
+
         self.control_server.start()
 
     def stop(self) -> None:
         """Stop the pipeline and quit the main loop."""
+        if self.is_recording:
+            self.stop_recording()
+
         if self.control_server:
             self.control_server.stop()
 
@@ -290,6 +304,192 @@ class Streamer:
                 pass
 
         return properties
+
+    def get_stats(self) -> Dict[str, Any]:
+        return {
+            'recording': self.is_recording,
+            'qp_min': self.current_qp_min,
+            'qp_max': self.qp_max_limit,
+        }
+
+    def start_recording(self) -> bool:
+        """
+        Dynamically start recording by adding a recording branch to the pipeline.
+
+        Returns:
+            True if recording started successfully, False otherwise
+        """
+        if self.is_recording:
+            logging.warning("Recording is already active")
+            return False
+
+        if not self.settings['recording_dir']:
+            logging.error("Recording directory not configured")
+            return False
+
+        # Ensure recording directory exists
+        os.makedirs(self.settings['recording_dir'], exist_ok=True)
+
+        timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
+        filename = f"{self.settings['recording_dir']}/stream-{timestamp}.ts"
+
+        tee = self.get_element("t")
+        if not tee:
+            logging.error("Tee element not found")
+            return False
+
+        queue_rec = Gst.ElementFactory.make("queue", "queue_rec")
+        if not queue_rec:
+            logging.error("Failed to create recording queue")
+            return False
+
+        queue_rec.set_property("max-size-buffers", self.settings['sizebuffers_write'])
+        queue_rec.set_property("leaky", 2)  # Downstream
+        queue_rec.connect("overrun", self._on_queue_overrun)
+
+        parser = Gst.ElementFactory.make("h264parse", "parser")
+        if not parser:
+            logging.error("Failed to create h264parse")
+            return False
+
+        muxer = Gst.ElementFactory.make("mpegtsmux", "muxer")
+        if not muxer:
+            logging.error("Failed to create mpegtsmux")
+            return False
+
+        filesink = Gst.ElementFactory.make("filesink", "filesink")
+        if not filesink:
+            logging.error("Failed to create filesink")
+            return False
+
+        filesink.set_property("location", filename)
+        filesink.set_property("sync", False)
+        filesink.set_property("async", False)
+
+        self.recording_elements = {
+            'queue': queue_rec,
+            'parser': parser,
+            'muxer': muxer,
+            'filesink': filesink,
+            'filename': filename
+        }
+
+        self.pipeline.add(queue_rec)
+        self.pipeline.add(parser)
+        self.pipeline.add(muxer)
+        self.pipeline.add(filesink)
+
+        tee_src_pad = tee.request_pad_simple("src_%u")
+        if not tee_src_pad:
+            logging.error("Failed to request pad from tee")
+            self._cleanup_recording_elements()
+            return False
+
+        self.recording_tee_pad = tee_src_pad
+
+        queue_sink_pad = queue_rec.get_static_pad("sink")
+        if tee_src_pad.link(queue_sink_pad) != Gst.PadLinkReturn.OK:
+            logging.error("Failed to link tee to queue_rec")
+            self._cleanup_recording_elements()
+            return False
+
+        if not queue_rec.link(parser):
+            logging.error("Failed to link queue_rec to parser")
+            self._cleanup_recording_elements()
+            return False
+
+        if not parser.link(muxer):
+            logging.error("Failed to link parser to muxer")
+            self._cleanup_recording_elements()
+            return False
+
+        if not muxer.link(filesink):
+            logging.error("Failed to link muxer to filesink")
+            self._cleanup_recording_elements()
+            return False
+
+        # Sync element states with pipeline
+        queue_rec.sync_state_with_parent()
+        parser.sync_state_with_parent()
+        muxer.sync_state_with_parent()
+        filesink.sync_state_with_parent()
+
+        self.is_recording = True
+        logging.info(f"Recording started: {filename}")
+        return True
+
+    def stop_recording(self) -> bool:
+        """
+        Dynamically stop recording by removing the recording branch from the pipeline.
+
+        Returns:
+            True if recording stopped successfully, False otherwise
+        """
+        if not self.is_recording:
+            logging.warning("Recording is not active")
+            return False
+
+        tee = self.get_element("t")
+        if not tee:
+            logging.error("Tee element not found")
+            return False
+
+        # Send EOS to the recording queue to flush all buffers
+        queue_rec = self.recording_elements.get('queue')
+        if queue_rec:
+            queue_rec_pad = queue_rec.get_static_pad("sink")
+            if queue_rec_pad:
+                queue_rec_pad.send_event(Gst.Event.new_eos())
+
+        # Set recording elements to NULL state
+        # This blocks until EOS is processed and all buffers are flushed
+        for element_name, element in self.recording_elements.items():
+            if element_name == 'filename':
+                continue
+            if isinstance(element, Gst.Element):
+                element.set_state(Gst.State.NULL)
+
+        # Unlink and release the tee pad
+        if self.recording_tee_pad:
+            queue_sink_pad = self.recording_elements['queue'].get_static_pad("sink")
+            if queue_sink_pad:
+                self.recording_tee_pad.unlink(queue_sink_pad)
+
+            tee.release_request_pad(self.recording_tee_pad)
+            self.recording_tee_pad = None
+
+        # Remove elements from pipeline
+        for element_name, element in self.recording_elements.items():
+            if element_name == 'filename':
+                continue
+            if isinstance(element, Gst.Element):
+                self.pipeline.remove(element)
+
+        filename = self.recording_elements.get('filename', 'unknown')
+        logging.info(f"Recording stopped: {filename}")
+
+        self.recording_elements = {}
+        self.is_recording = False
+
+        return True
+
+    def _cleanup_recording_elements(self) -> None:
+        """Clean up recording elements if setup fails."""
+        if self.recording_tee_pad:
+            tee = self.get_element("t")
+            if tee:
+                tee.release_request_pad(self.recording_tee_pad)
+            self.recording_tee_pad = None
+
+        for element_name, element in self.recording_elements.items():
+            if element_name == 'filename':
+                continue
+            if isinstance(element, Gst.Element):
+                element.set_state(Gst.State.NULL)
+                if element.get_parent():
+                    self.pipeline.remove(element)
+
+        self.recording_elements = {}
 
     def _on_message(self, bus: Gst.Bus, message: Gst.Message) -> None:
         """
@@ -664,77 +864,6 @@ class Streamer:
             logging.error("Failed to link payloader to udpsink")
             return False
 
-        # Add recording branch if configured
-        if self.settings['recording_dir']:
-            if not self._add_recording_branch(tee):
-                logging.warning("Failed to add recording branch")
-
-        return True
-
-    def _add_recording_branch(self, tee: Gst.Element) -> bool:
-        """
-        Add recording branch to the pipeline.
-
-        Args:
-            tee: Tee element to connect to
-
-        Returns:
-            True if successful, False otherwise
-        """
-        os.makedirs(self.settings['recording_dir'], exist_ok=True)
-        timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
-        filename = f"{self.settings['recording_dir']}/stream-{timestamp}.ts"
-
-        queue_rec = Gst.ElementFactory.make("queue", "queue_rec")
-        if not queue_rec:
-            logging.error("Failed to create recording queue")
-            return False
-
-        queue_rec.set_property("max-size-buffers", self.settings['sizebuffers_write'])
-        queue_rec.set_property("leaky", 2)  # Downstream
-        queue_rec.connect("overrun", self._on_queue_overrun)
-
-        parser = Gst.ElementFactory.make("h264parse", "parser")
-        if not parser:
-            logging.error("Failed to create h264parse")
-            return False
-
-        muxer = Gst.ElementFactory.make("mpegtsmux", "muxer")
-        if not muxer:
-            logging.error("Failed to create mpegtsmux")
-            return False
-
-        filesink = Gst.ElementFactory.make("filesink", "filesink")
-        if not filesink:
-            logging.error("Failed to create filesink")
-            return False
-
-        filesink.set_property("location", filename)
-        filesink.set_property("sync", False)
-        filesink.set_property("async", False)
-
-        self.pipeline.add(queue_rec)
-        self.pipeline.add(parser)
-        self.pipeline.add(muxer)
-        self.pipeline.add(filesink)
-
-        if not tee.link(queue_rec):
-            logging.error("Failed to link tee to queue_rec")
-            return False
-
-        if not queue_rec.link(parser):
-            logging.error("Failed to link queue_rec to parser")
-            return False
-
-        if not parser.link(muxer):
-            logging.error("Failed to link parser to muxer")
-            return False
-
-        if not muxer.link(filesink):
-            logging.error("Failed to link muxer to filesink")
-            return False
-
-        logging.info(f"Recording to: {filename}")
         return True
 
     def _on_queue_overrun(self, element):

@@ -226,10 +226,19 @@ def command_handler(command: Command, address: Address) -> None:
         name: str = parameters["name"]
 
         subprocess.run(["sudo", "systemctl", action, name])
+
+    elif cmd == "recording":
+        parameters = command.get_parameters()
+        action: str = parameters["action"]
+
+        subprocess.run(["v3xctrl-video-control", "recording", action])
+
     elif cmd == "shutdown":
         subprocess.run(["sudo", "shutdown", "now"])
+
     elif cmd == "restart":
         subprocess.run(["sudo", "reboot", "-f"])
+
     else:
         logging.error(f"Unknown command: {command}")
 

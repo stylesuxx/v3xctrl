@@ -28,34 +28,53 @@ class StreamerTab(Tab):
         self.send_command = send_command
 
         self.disabled = False
+        self.button_width = 160
 
         self.video_stop_button = Button(
             "Stop Video",
             font=LABEL_FONT,
             callback=self._on_stop_video,
-            width=150
+            width=self.button_width
         )
         self.video_start_button = Button(
             "Start Video",
             font=LABEL_FONT,
             callback=self._on_start_video,
-            width=150
+            width=self.button_width
         )
+
+        self.recording_stop_button = Button(
+            "Stop Recording",
+            font=LABEL_FONT,
+            callback=self._on_stop_recording,
+            width=self.button_width
+        )
+        self.recording_start_button = Button(
+            "Start Recording",
+            font=LABEL_FONT,
+            callback=self._on_start_recording,
+            width=self.button_width
+        )
+
         self.shutdown_button = Button(
             "Shutdown",
             font=LABEL_FONT,
             callback=self._on_shutdown,
-            width=150
+            width=self.button_width
         )
         self.restart_button = Button(
             "Restart",
             font=LABEL_FONT,
             callback=self._on_restart,
-            width=150
+            width=self.button_width
         )
 
         self.elements.append(self.video_stop_button)
         self.elements.append(self.video_start_button)
+
+        self.elements.append(self.recording_stop_button)
+        self.elements.append(self.recording_start_button)
+
         self.elements.append(self.shutdown_button)
         self.elements.append(self.restart_button)
 
@@ -78,25 +97,38 @@ class StreamerTab(Tab):
 
         logging.info(f"Received command ack: {status}")
 
-    def _on_video_action(self, action: str) -> None:
+    def _on_action(self, command: Command) -> None:
         self.disabled = True
         self.on_active_toggle(True)
         for element in self.elements:
             element.disable()
 
+        self.send_command(command, self._on_command_callback)
+
+    def _on_video_action(self, action: str) -> None:
         command = Command(
             "service", {
                 "action": action,
                 "name": "v3xctrl-video",
             }
         )
-        self.send_command(command, self._on_command_callback)
+        self._on_action(command)
 
     def _on_stop_video(self) -> None:
         self._on_video_action("stop")
 
     def _on_start_video(self) -> None:
         self._on_video_action("start")
+
+    def _on_recording_action(self, action: str) -> None:
+        command = Command("recording", {"action": action})
+        self._on_action(command)
+
+    def _on_stop_recording(self) -> None:
+        self._on_recording_action("stop")
+
+    def _on_start_recording(self) -> None:
+        self._on_recording_action("start")
 
     def _on_shutdown(self) -> None:
         self.disabled = True
@@ -128,6 +160,17 @@ class StreamerTab(Tab):
             y
         )
         self.video_stop_button.draw(surface)
+        y += self.video_stop_button.get_size()[1]
+
+        y += self.padding
+        self.recording_start_button.set_position(self.padding, y)
+        self.recording_start_button.draw(surface)
+
+        self.recording_stop_button.set_position(
+            self.padding * 2 + self.recording_start_button.width,
+            y
+        )
+        self.recording_stop_button.draw(surface)
         y += self.video_stop_button.get_size()[1]
 
         y += self.padding

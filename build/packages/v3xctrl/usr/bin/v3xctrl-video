@@ -40,8 +40,12 @@ ARGS=(
   --log "${extras_logLevel}"
 )
 
-if [ "$video_record" = "true" ] && [ -n "$video_recordPath" ] && [ "$video_recordPath" != "null" ]; then
+if [ -n "$video_recordPath" ] && [ "$video_recordPath" != "null" ]; then
   ARGS+=(--recording-dir "$video_recordPath")
+
+  if [ "$video_record" = "true" ]; then
+    ARGS+=(--autostart-recording)
+  fi
 fi
 
 if [ "$video_enableIframeAdjust" = "true" ]; then
