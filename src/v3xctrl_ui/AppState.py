@@ -54,8 +54,6 @@ class AppState:
         self.osd = OSD(settings)
         self.renderer = Renderer(self.size, self.settings)
 
-        self.control_connected = False
-
         self.handlers = self._create_handlers()
         self.network_manager = NetworkManager(
             self.settings,
@@ -187,7 +185,7 @@ class AppState:
                             self._signal_handler
                         )
 
-                        self.menu.set_tab_enabled("Streamer", self.control_connected)
+                        self.menu.set_tab_enabled("Streamer", self.model.control_connected)
                     else:
                         if not self.menu.is_loading:
                             # When exiting vie [ESC], do the same thing we would do
@@ -327,9 +325,9 @@ class AppState:
         self.network_manager.update_ttl(udp_ttl_ms)
 
     def _update_connected(self, state: bool) -> None:
-        self.control_connected = state
+        self.model.control_connected = state
         if self.menu:
-            self.menu.set_tab_enabled("Streamer", self.control_connected)
+            self.menu.set_tab_enabled("Streamer", self.model.control_connected)
 
     def _create_handlers(self) -> Dict[str, Any]:
         """Create message and state handlers for the network manager."""

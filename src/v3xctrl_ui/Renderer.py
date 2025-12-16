@@ -51,7 +51,7 @@ class Renderer:
         else:
             self._render_no_video_signal(state.screen, network_manager.relay_status_message)
 
-            if not state.control_connected:
+            if not state.model.control_connected:
                 self._render_no_control_signal(state.screen)
 
             if network_manager.relay_enable:
