@@ -117,7 +117,7 @@ class TestAppState(unittest.TestCase):
         # Check timing intervals are set correctly (now in model)
         self.assertEqual(app.model.control_interval, 1.0 / 30)
         self.assertEqual(app.model.latency_interval, 1.0 / 1)
-        self.assertEqual(app.main_loop_fps, 60)
+        self.assertEqual(app.timing_controller.main_loop_fps, 60)
 
     @patch("src.v3xctrl_ui.AppState.pygame.display.set_mode")
     def test_update_settings_updates_all_components(
@@ -155,7 +155,7 @@ class TestAppState(unittest.TestCase):
         # Check timing intervals were updated (now in model)
         self.assertEqual(app.model.control_interval, 1.0 / 60)
         self.assertEqual(app.model.latency_interval, 1.0 / 2)
-        self.assertEqual(app.main_loop_fps, 120)
+        self.assertEqual(app.timing_controller.main_loop_fps, 120)
 
     def test_update_reads_inputs_and_sends_control(
         self, mock_network_cls, mock_renderer_cls,
@@ -398,26 +398,28 @@ class TestAppState(unittest.TestCase):
         self, mock_network_cls, mock_renderer_cls,
         mock_osd_cls, mock_input_cls, mock_init_cls
     ):
-        """Test that _update_timing_settings correctly updates timing intervals"""
+        """Test that timing controller correctly updates timing intervals"""
         app, _, _, _, _ = self._create_app(
             mock_network_cls, mock_renderer_cls, mock_osd_cls,
             mock_input_cls, mock_init_cls
         )
 
         # Modify settings
-        app.settings["timing"] = {
-            "control_update_hz": 120,
-            "latency_check_hz": 10,
-            "main_loop_fps": 144
+        app.timing_controller.settings = {
+            "timing": {
+                "control_update_hz": 120,
+                "latency_check_hz": 10,
+                "main_loop_fps": 144
+            }
         }
 
-        # Call update method
-        app._update_timing_settings()
+        # Call update method on timing controller
+        app.timing_controller.update_from_settings()
 
         # Verify intervals were updated (now in model)
         self.assertEqual(app.model.control_interval, 1.0 / 120)
         self.assertEqual(app.model.latency_interval, 1.0 / 10)
-        self.assertEqual(app.main_loop_fps, 144)
+        self.assertEqual(app.timing_controller.main_loop_fps, 144)
 
     def test_update_connected_state(
         self, mock_network_cls, mock_renderer_cls,

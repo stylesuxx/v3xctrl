@@ -12,6 +12,7 @@ from v3xctrl_control.message import Control, Latency, Telemetry
 
 from v3xctrl_ui.ApplicationModel import ApplicationModel
 from v3xctrl_ui.EventController import EventController
+from v3xctrl_ui.TimingController import TimingController
 from v3xctrl_ui.Init import Init
 from v3xctrl_ui.menu.Menu import Menu
 from v3xctrl_ui.OSD import OSD
@@ -55,8 +56,7 @@ class AppState:
         )
 
         # Timing
-        self.main_loop_fps = 60
-        self._update_timing_settings()
+        self.timing_controller = TimingController(self.settings, self.model)
 
         self.screen, self.clock = Init.ui(self.size, self.title)
         if self.model.fullscreen:
@@ -134,7 +134,7 @@ class AppState:
         self.model.loop_history.append(now)
 
         # Handle control updates, send last values if user is in menu
-        if now - self.model.last_control_update >= self.model.control_interval:
+        if self.timing_controller.should_update_control(now):
             try:
                 throttle, steering = (0, 0)
                 if not self.event_controller.menu:
@@ -146,15 +146,15 @@ class AppState:
                 self._send_control_message()
             except Exception as e:
                 logging.warning(f"Input read error: {e}")
-            self.model.last_control_update = now
+            self.timing_controller.mark_control_updated(now)
 
         # Handle latency checks
-        if now - self.model.last_latency_check >= self.model.latency_interval:
+        if self.timing_controller.should_check_latency(now):
             self.network_manager.send_latency_check()
-            self.model.last_latency_check = now
+            self.timing_controller.mark_latency_checked(now)
 
     def tick(self) -> None:
-        self.clock.tick(self.main_loop_fps)
+        self.clock.tick(self.timing_controller.main_loop_fps)
 
     def handle_events(self) -> bool:
         """
@@ -259,7 +259,8 @@ class AppState:
         self.settings = new_settings
         self.old_settings = copy.deepcopy(self.settings)
 
-        self._update_timing_settings()
+        self.timing_controller.settings = new_settings
+        self.timing_controller.update_from_settings()
         self._update_network_settings()
 
         self.input_manager.update_settings(self.settings)
@@ -292,16 +293,6 @@ class AppState:
             self.screen = pygame.display.set_mode(self.size, flags)
 
             self.model.scale = 1
-
-    def _update_timing_settings(self) -> None:
-        """Update timing intervals from settings."""
-        timing = self.settings.get("timing", {})
-        control_rate_frequency = timing.get("control_update_hz", 30)
-        latency_check_frequency = timing.get("latency_check_hz", 1)
-
-        self.model.control_interval = 1.0 / control_rate_frequency
-        self.model.latency_interval = 1.0 / latency_check_frequency
-        self.main_loop_fps = timing.get("main_loop_fps", 60)
 
     def _update_network_settings(self) -> None:
         udp_ttl_ms = self.settings.get("udp_packet_ttl", 100)
