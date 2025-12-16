@@ -72,7 +72,6 @@ class AppState:
 
         self.loop_history: deque[float] = deque(maxlen=300)
         self.menu: Optional[Menu] = None
-        self.running = True
 
         self.screen, self.clock = Init.ui(self.size, self.title)
         if self.fullscreen:
@@ -171,7 +170,7 @@ class AppState:
         events = pygame.event.get()
         for event in events:
             if event.type == pygame.QUIT:
-                self.running = False
+                self.model.running = False
                 return False
 
             elif event.type == pygame.KEYDOWN:
@@ -359,8 +358,8 @@ class AppState:
     ) -> None:
         """Handle shutdown signals gracefully."""
         self.menu = None
-        if self.running:
-            self.running = False
+        if self.model.running:
+            self.model.running = False
 
     def _send_control_message(self) -> None:
         """Send control message to streamer."""

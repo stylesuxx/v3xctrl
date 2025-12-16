@@ -54,7 +54,7 @@ if args.mem_profile:
 settings = Init.settings("settings.toml")
 state = AppState(settings)
 
-while state.running:
+while state.model.running:
     if not state.handle_events():
         break
 
