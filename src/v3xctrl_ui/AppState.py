@@ -238,44 +238,35 @@ class AppState:
 
     def _configure_settings_manager(self) -> None:
         """Configure settings manager with all necessary callbacks."""
-        # Timing updates
         def update_timing(settings: Settings) -> None:
             self.timing_controller.settings = settings
             self.timing_controller.update_from_settings()
             self.settings = settings
 
-        # Network updates
         def update_network(settings: Settings) -> None:
             self._update_network_settings()
 
-        # Input updates
         def update_input(settings: Settings) -> None:
             self.input_manager.update_settings(settings)
 
-        # OSD updates
         def update_osd(settings: Settings) -> None:
             self.osd.update_settings(settings)
 
-        # Renderer updates
         def update_renderer(settings: Settings) -> None:
             self.renderer.settings = settings
 
-        # Display updates
         def update_display(fullscreen: bool) -> None:
             self._update_screen_size()
 
-        # Menu clear
         def clear_menu() -> None:
             self.event_controller.clear_menu()
 
-        # Network restart thread factory
         def create_restart_thread(new_settings: Settings) -> threading.Thread:
             return threading.Thread(
                 target=self._restart_network_manager,
                 args=(new_settings,)
             )
 
-        # Set all callbacks
         self.settings_manager.on_timing_update = update_timing
         self.settings_manager.on_network_update = update_network
         self.settings_manager.on_input_update = update_input
