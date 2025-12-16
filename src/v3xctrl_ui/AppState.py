@@ -11,6 +11,7 @@ from v3xctrl_control import State
 from v3xctrl_control.message import Control, Latency, Telemetry
 
 from v3xctrl_ui.ApplicationModel import ApplicationModel
+from v3xctrl_ui.EventController import EventController
 from v3xctrl_ui.Init import Init
 from v3xctrl_ui.menu.Menu import Menu
 from v3xctrl_ui.OSD import OSD
@@ -57,11 +58,17 @@ class AppState:
         self.main_loop_fps = 60
         self._update_timing_settings()
 
-        self.menu: Optional[Menu] = None
-
         self.screen, self.clock = Init.ui(self.size, self.title)
         if self.model.fullscreen:
             self._update_screen_size()
+
+        # Event handling
+        self.event_controller = EventController(
+            on_quit=self._on_quit,
+            on_toggle_fullscreen=self._on_toggle_fullscreen,
+            create_menu=self._create_menu,
+            on_menu_exit=self.update_settings
+        )
 
         self._setup_signal_handling()
 
@@ -130,7 +137,7 @@ class AppState:
         if now - self.model.last_control_update >= self.model.control_interval:
             try:
                 throttle, steering = (0, 0)
-                if not self.menu:
+                if not self.event_controller.menu:
                     throttle, steering = self.input_manager.read_inputs()
 
                 self.model.throttle = throttle
@@ -153,43 +160,7 @@ class AppState:
         """
         Handle pygame events. Returns False if application should quit.
         """
-        events = pygame.event.get()
-        for event in events:
-            if event.type == pygame.QUIT:
-                self.model.running = False
-                return False
-
-            elif event.type == pygame.KEYDOWN:
-
-                # [ESC] - Toggle Menu
-                if event.key == pygame.K_ESCAPE:
-                    if self.menu is None:
-                        self.menu = Menu(
-                            self.screen.get_size()[0],
-                            self.screen.get_size()[1],
-                            self.input_manager.gamepad_manager,
-                            self.settings,
-                            self.network_manager.server,
-                            self.update_settings,
-                            self._signal_handler
-                        )
-
-                        self.menu.set_tab_enabled("Streamer", self.model.control_connected)
-                    else:
-                        if not self.menu.is_loading:
-                            # When exiting vie [ESC], do the same thing we would do
-                            # when using the "Back" button from the menu
-                            self.update_settings()
-
-                # [F11] - Toggle Fullscreen
-                elif event.key == pygame.K_F11:
-                    self.model.fullscreen = not self.model.fullscreen
-                    self._update_screen_size()
-
-            if self.menu is not None:
-                self.menu.handle_event(event)
-
-        return True
+        return self.event_controller.handle_events()
 
     def render(self) -> None:
         """Render the current frame."""
@@ -258,6 +229,29 @@ class AppState:
         finally:
             self.network_restart_complete.set()
 
+    def _on_quit(self) -> None:
+        """Callback for quit event."""
+        self.model.running = False
+
+    def _on_toggle_fullscreen(self) -> None:
+        """Callback for fullscreen toggle."""
+        self.model.fullscreen = not self.model.fullscreen
+        self._update_screen_size()
+
+    def _create_menu(self) -> Menu:
+        """Callback to create a new menu instance."""
+        menu = Menu(
+            self.screen.get_size()[0],
+            self.screen.get_size()[1],
+            self.input_manager.gamepad_manager,
+            self.settings,
+            self.network_manager.server,
+            self.update_settings,
+            self._signal_handler
+        )
+        menu.set_tab_enabled("Streamer", self.model.control_connected)
+        return menu
+
     def _apply_settings(self, new_settings: Settings) -> None:
         """Apply new settings to all components."""
         # Update new settings to settings and trigger updates on elements who
@@ -273,7 +267,7 @@ class AppState:
         self.renderer.settings = self.settings
 
         # Clear menu to force refresh
-        self.menu = None
+        self.event_controller.clear_menu()
 
     def _update_screen_size(self) -> None:
         if self.model.fullscreen:
@@ -315,8 +309,7 @@ class AppState:
 
     def _update_connected(self, state: bool) -> None:
         self.model.control_connected = state
-        if self.menu:
-            self.menu.set_tab_enabled("Streamer", self.model.control_connected)
+        self.event_controller.set_menu_tab_enabled("Streamer", self.model.control_connected)
 
     def _create_handlers(self) -> Dict[str, Any]:
         """Create message and state handlers for the network manager."""
@@ -343,7 +336,7 @@ class AppState:
         frame: Optional[Any] = None
     ) -> None:
         """Handle shutdown signals gracefully."""
-        self.menu = None
+        self.event_controller.clear_menu()
         if self.model.running:
             self.model.running = False
 

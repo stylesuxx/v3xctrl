@@ -339,7 +339,7 @@ class TestAppState(unittest.TestCase):
         mock_get_events.return_value = [some_event]
 
         mock_menu = MagicMock()
-        app.menu = mock_menu
+        app.event_controller.menu = mock_menu
 
         self.assertTrue(app.handle_events())
         mock_menu.handle_event.assert_called_once_with(some_event)

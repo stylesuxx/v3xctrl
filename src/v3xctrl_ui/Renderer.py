@@ -63,7 +63,7 @@ class Renderer:
 
         self._render_overlay_data(state, network_manager)
         self._render_errors(state.screen, network_manager)
-        self._render_menu(state.screen, state.menu)
+        self._render_menu(state.screen, state.event_controller.menu)
 
         pygame.display.flip()
 
