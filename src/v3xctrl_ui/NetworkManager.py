@@ -57,68 +57,8 @@ class NetworkManager:
             self.relay_server = relay_server
 
     def setup_ports(self) -> None:
-        def task() -> None:
-            video_address = None
-            if self.relay_enable and self.relay_server and self.relay_id:
-                local_bind_ports = {
-                    "video": self.video_port,
-                    "control": self.control_port
-                }
-
-                self.peer = Peer(self.relay_server, self.relay_port, self.relay_id)
-                try:
-                    addresses = self.peer.setup("viewer", local_bind_ports)
-                    video_address = addresses["video"]
-                except PeerRegistrationError as e:
-                    self.relay_status_message = "Peer registration failed - check server and ID!"
-                    logging.error(f"Peer registration failed: {e}")
-                    return
-
-            def keep_alive() -> None:
-                if self.relay_enable and video_address:
-                    sock = None
-                    try:
-                        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                        sock.bind(("0.0.0.0", self.video_port))
-
-                        for i in range(5):
-                            try:
-                                sock.sendto(b'SYN', video_address)
-                                time.sleep(0.1)
-                            except Exception as e:
-                                logging.warning(f"Poke {i+1}/5 failed: {e}")
-
-                    except Exception as e:
-                        logging.error(f"Failed to poke peer: {e}", exc_info=True)
-                    finally:
-                        if sock:
-                            sock.close()
-                        logging.info(f"Sent 'keep alive' to {video_address}")
-
-            render_ratio = self.settings.get("video", {}).get("render_ratio", 0)
-            self.video_receiver = self._create_video_receiver(
-                self.video_port,
-                keep_alive,
-                render_ratio
-            )
-
-            # Set up UDP server - from this point on we can ignore
-            # PeerAnnouncement messages which might be poisoning our timestamps
-            try:
-                self.server = self._create_server(
-                    self.control_port,
-                    self.server_handlers.get("messages", []),
-                    self.server_handlers.get("states", []),
-                    self.settings.get("udp_packet_ttl", 100)
-                )
-            except RuntimeError as e:
-                self.server_error = str(e)
-                logging.error(f"Server setup failed: {str(e)}")
-
-            logging.info("Port setup complete.")
-
-        threading.Thread(target=task, daemon=True).start()
+        """Setup video and control ports in a background thread."""
+        threading.Thread(target=self._setup_ports_task, daemon=True).start()
 
     def send_latency_check(self) -> None:
         if self.server and not self.server_error:
@@ -214,3 +154,98 @@ class NetworkManager:
         video_receiver.start()
 
         return video_receiver
+
+    def _setup_relay_connection(self) -> Optional[tuple]:
+        if not (self.relay_enable and self.relay_server and self.relay_id):
+            return None
+
+        local_bind_ports = {
+            "video": self.video_port,
+            "control": self.control_port
+        }
+
+        self.peer = Peer(self.relay_server, self.relay_port, self.relay_id)
+        try:
+            addresses = self.peer.setup("viewer", local_bind_ports)
+            video_address = addresses["video"]
+            logging.info(f"Relay peer setup successful, video address: {video_address}")
+
+            return video_address
+
+        except PeerRegistrationError as e:
+            self.relay_status_message = "Peer registration failed - check server and ID!"
+            logging.error(f"Peer registration failed: {e}")
+
+            return None
+
+    def _create_keep_alive_callback(self, video_address: tuple) -> callable:
+        def keep_alive() -> None:
+            if not (self.relay_enable and video_address):
+                return
+
+            sock = None
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                sock.bind(("0.0.0.0", self.video_port))
+
+                for i in range(5):
+                    try:
+                        sock.sendto(b'SYN', video_address)
+                        time.sleep(0.1)
+                    except Exception as e:
+                        logging.warning(f"Poke {i+1}/5 failed: {e}")
+
+            except Exception as e:
+                logging.error(f"Failed to poke peer: {e}", exc_info=True)
+            finally:
+                if sock:
+                    sock.close()
+                logging.info(f"Sent 'keep alive' to {video_address}")
+
+        return keep_alive
+
+    def _setup_video_receiver(self, keep_alive_callback) -> None:
+        render_ratio = self.settings.get("video", {}).get("render_ratio", 0)
+        self.video_receiver = self._create_video_receiver(
+            self.video_port,
+            keep_alive_callback,
+            render_ratio
+        )
+        logging.info("Video receiver started")
+
+    def _setup_server(self) -> None:
+        try:
+            self.server = self._create_server(
+                self.control_port,
+                self.server_handlers.get("messages", []),
+                self.server_handlers.get("states", []),
+                self.settings.get("udp_packet_ttl", 100)
+            )
+            logging.info("Control server started")
+        except RuntimeError as e:
+            self.server_error = str(e)
+            logging.error(f"Server setup failed: {str(e)}")
+
+    def _setup_ports_task(self) -> None:
+        """Background task to setup network ports and connections.
+
+        This method orchestrates the setup of:
+        1. Relay connection (if enabled)
+        2. Video receiver with keep-alive callback
+        3. Control server
+        """
+        # Setup relay connection if enabled
+        video_address = self._setup_relay_connection()
+
+        # Create keep-alive callback (works with or without relay)
+        keep_alive_callback = (
+            self._create_keep_alive_callback(video_address)
+            if video_address
+            else lambda: None
+        )
+
+        self._setup_video_receiver(keep_alive_callback)
+        self._setup_server()
+
+        logging.info("Port setup complete.")

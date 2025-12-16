@@ -23,8 +23,15 @@ class TestNetworkManager(unittest.TestCase):
         }
 
         # Patch external dependencies
-        self.init_patcher = patch("src.v3xctrl_ui.NetworkManager.Init")
-        self.mock_init = self.init_patcher.start()
+        self.server_patcher = patch("src.v3xctrl_ui.NetworkManager.Server")
+        self.mock_server_cls = self.server_patcher.start()
+        self.mock_server = MagicMock()
+        self.mock_server_cls.return_value = self.mock_server
+
+        self.video_receiver_patcher = patch("src.v3xctrl_ui.NetworkManager.VideoReceiver")
+        self.mock_video_receiver_cls = self.video_receiver_patcher.start()
+        self.mock_video_receiver = MagicMock()
+        self.mock_video_receiver_cls.return_value = self.mock_video_receiver
 
         self.peer_patcher = patch("src.v3xctrl_ui.NetworkManager.Peer")
         self.mock_peer_cls = self.peer_patcher.start()
@@ -43,7 +50,8 @@ class TestNetworkManager(unittest.TestCase):
 
     def tearDown(self):
         """Clean up patches."""
-        self.init_patcher.stop()
+        self.server_patcher.stop()
+        self.video_receiver_patcher.stop()
         self.peer_patcher.stop()
         self.get_ip_patcher.stop()
         self.socket_patcher.stop()
@@ -129,12 +137,6 @@ class TestNetworkManager(unittest.TestCase):
         """Test setup_ports without relay."""
         nm = NetworkManager(self.settings, self.handlers)
 
-        # Mock Init methods
-        mock_video_receiver = MagicMock()
-        mock_server = MagicMock()
-        self.mock_init.video_receiver.return_value = mock_video_receiver
-        self.mock_init.server.return_value = mock_server
-
         nm.setup_ports()
 
         # Verify thread was started
@@ -146,17 +148,13 @@ class TestNetworkManager(unittest.TestCase):
         task_func()
 
         # Verify video receiver and server were initialized
-        self.mock_init.video_receiver.assert_called_once()
+        self.mock_video_receiver_cls.assert_called_once()
 
-        # Server should be called with messages, states, and ttl
-        expected_messages = self.handlers["messages"]
-        expected_states = self.handlers["states"]
-        self.mock_init.server.assert_called_once_with(
-            6000,
-            expected_messages,
-            expected_states,
-            100  # udp_packet_ttl
-        )
+        # Server should be called with messages, states
+        self.mock_server_cls.assert_called_once_with(6000, 100)
+        self.mock_server.subscribe.assert_called()
+        self.mock_server.on.assert_called()
+        self.mock_server.start.assert_called_once()
 
     def test_setup_ports_with_relay_success(self):
         """Test setup_ports with successful relay connection."""
@@ -167,12 +165,6 @@ class TestNetworkManager(unittest.TestCase):
         mock_peer = MagicMock()
         mock_peer.setup.return_value = {"video": ("1.2.3.4", 1234)}
         self.mock_peer_cls.return_value = mock_peer
-
-        # Mock Init methods
-        mock_video_receiver = MagicMock()
-        mock_server = MagicMock()
-        self.mock_init.video_receiver.return_value = mock_video_receiver
-        self.mock_init.server.return_value = mock_server
 
         nm.setup_ports()
 
@@ -207,10 +199,8 @@ class TestNetworkManager(unittest.TestCase):
         """Test setup_ports when server initialization fails."""
         nm = NetworkManager(self.settings, self.handlers)
 
-        # Mock Init methods - server raises RuntimeError
-        mock_video_receiver = MagicMock()
-        self.mock_init.video_receiver.return_value = mock_video_receiver
-        self.mock_init.server.side_effect = RuntimeError("Server failed")
+        # Mock Server to raise OSError (port in use)
+        self.mock_server_cls.side_effect = OSError(98, "Address already in use")
 
         with patch("src.v3xctrl_ui.NetworkManager.logging.error") as mock_log_error:
             nm.setup_ports()
@@ -220,7 +210,7 @@ class TestNetworkManager(unittest.TestCase):
             task_func()
 
             # Verify error was logged and stored
-            self.assertEqual(nm.server_error, "Server failed")
+            self.assertEqual(nm.server_error, "Control port already in use")
             mock_log_error.assert_called_once()
 
     def test_send_latency_check_with_server(self):
