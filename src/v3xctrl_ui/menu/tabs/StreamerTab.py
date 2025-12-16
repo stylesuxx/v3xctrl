@@ -6,6 +6,7 @@ from pygame import Surface
 from v3xctrl_control.message import Command
 
 from v3xctrl_ui.fonts import LABEL_FONT
+from v3xctrl_ui.i18n import t
 from v3xctrl_ui.menu.input import Button
 from v3xctrl_ui.menu.tabs.Tab import Tab
 from v3xctrl_ui.Settings import Settings
@@ -31,39 +32,39 @@ class StreamerTab(Tab):
         self.button_width = 200
 
         self.video_stop_button = Button(
-            "Stop Video",
+            t("Stop Video"),
             font=LABEL_FONT,
             callback=self._on_stop_video,
             width=self.button_width
         )
         self.video_start_button = Button(
-            "Start Video",
+            t("Start Video"),
             font=LABEL_FONT,
             callback=self._on_start_video,
             width=self.button_width
         )
 
         self.recording_stop_button = Button(
-            "Stop Recording",
+            t("Stop Recording"),
             font=LABEL_FONT,
             callback=self._on_stop_recording,
             width=self.button_width
         )
         self.recording_start_button = Button(
-            "Start Recording",
+            t("Start Recording"),
             font=LABEL_FONT,
             callback=self._on_start_recording,
             width=self.button_width
         )
 
         self.shutdown_button = Button(
-            "Shutdown",
+            t("Shutdown"),
             font=LABEL_FONT,
             callback=self._on_shutdown,
             width=self.button_width
         )
         self.restart_button = Button(
-            "Restart",
+            t("Restart"),
             font=LABEL_FONT,
             callback=self._on_restart,
             width=self.button_width
@@ -95,7 +96,7 @@ class StreamerTab(Tab):
         self.elements.append(self.shell_start_button)
 
         self.headline_surfaces = {
-            "actions": self._create_headline("Actions")
+            "actions": self._create_headline(t("Actions"))
         }
 
     def draw(self, surface: Surface) -> None:

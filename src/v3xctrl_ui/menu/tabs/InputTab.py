@@ -3,6 +3,7 @@ from typing import Callable, Dict, List, Any
 from pygame import Surface
 
 from v3xctrl_ui.fonts import LABEL_FONT
+from v3xctrl_ui.i18n import t
 from v3xctrl_ui.GamepadManager import GamepadManager
 from v3xctrl_ui.menu.calibration.GamepadCalibrationWidget import (
   GamepadCalibrationWidget
@@ -55,8 +56,8 @@ class InputTab(Tab):
         self.elements = self.key_widgets + [self.calibration_widget]
 
         self.headline_surfaces = {
-            "keyboard": self._create_headline("Keyboard"),
-            "input": self._create_headline("Input device", True)
+            "keyboard": self._create_headline(t("Keyboard")),
+            "input": self._create_headline(t("Input device"), True)
         }
 
     def draw(self, surface: Surface) -> None:

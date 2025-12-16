@@ -9,6 +9,7 @@ from v3xctrl_control.message import Command
 
 from v3xctrl_ui.colors import WHITE, DARK_GREY, CHARCOAL, GREY, TRANSPARENT_BLACK
 from v3xctrl_ui.fonts import MAIN_FONT
+from v3xctrl_ui.i18n import t
 from v3xctrl_ui.GamepadManager import GamepadManager
 from v3xctrl_ui.Settings import Settings
 from v3xctrl_ui.menu.input import Button
@@ -59,12 +60,12 @@ class Menu:
         self.callback_quit = callback_quit
 
         tab_names = [
-            "General",
-            "Input",
-            "OSD",
-            "Network",
-            "Streamer",
-            "Frequencies",
+            t("General"),
+            t("Input"),
+            t("OSD"),
+            t("Network"),
+            t("Streamer"),
+            t("Frequencies"),
         ]
         tab_width = self.width // len(tab_names)
 
@@ -84,9 +85,9 @@ class Menu:
         self.disable_tabs = False
 
         # Buttons
-        self.quit_button = Button("Quit", MAIN_FONT, self._quit_button_callback)
-        self.save_button = Button("Save", MAIN_FONT, self._save_button_callback)
-        self.exit_button = Button("Back", MAIN_FONT, self._exit_button_callback)
+        self.quit_button = Button(t("Quit"), MAIN_FONT, self._quit_button_callback)
+        self.save_button = Button(t("Save"), MAIN_FONT, self._save_button_callback)
+        self.exit_button = Button(t("Back"), MAIN_FONT, self._exit_button_callback)
 
         # Button positions
         button_y = self.height - self.quit_button.height - self.padding
@@ -166,7 +167,7 @@ class Menu:
                 self.tab_bar_dirty = True
                 break
 
-    def show_loading(self, text: str = "Applying settings!") -> None:
+    def show_loading(self, text: str = t("Applying settings!")) -> None:
         self.is_loading = True
         self.loading_text = text
 
@@ -224,9 +225,9 @@ class Menu:
         # Wrap callback so we can handle loading screen updates
         def callback_wrapper(state: bool = False) -> None:
             # Show success or Fail message
-            result = "Success!"
+            result = t("Success!")
             if not state:
-                result = "Failed!"
+                result = t("Failed!")
 
             self.show_loading(result)
             countdown = 0

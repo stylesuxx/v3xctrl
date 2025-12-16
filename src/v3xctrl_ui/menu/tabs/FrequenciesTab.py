@@ -2,10 +2,12 @@ from typing import Dict, Any
 
 from pygame import Surface
 
+from v3xctrl_helper import is_int
+
 from v3xctrl_ui.fonts import LABEL_FONT, MONO_FONT
+from v3xctrl_ui.i18n import t
 from v3xctrl_ui.menu.input import NumberInput
 from v3xctrl_ui.Settings import Settings
-from v3xctrl_helper import is_int
 
 from .Tab import Tab
 
@@ -27,7 +29,7 @@ class FrequenciesTab(Tab):
         input_width = 75
 
         self.video_input = NumberInput(
-            "Main Loop FPS",
+            t("Main Loop FPS"),
             label_width=label_width,
             input_width=input_width,
             min_val=1, max_val=120,
@@ -36,7 +38,7 @@ class FrequenciesTab(Tab):
         )
 
         self.control_input = NumberInput(
-            "Control Frequency",
+            t("Control Frequency"),
             label_width=label_width,
             input_width=input_width,
             min_val=1, max_val=120,
@@ -45,7 +47,7 @@ class FrequenciesTab(Tab):
         )
 
         self.latency_input = NumberInput(
-            "Latency Frequency",
+            t("Latency Frequency"),
             label_width=label_width,
             input_width=input_width,
             min_val=1, max_val=120,
@@ -64,7 +66,7 @@ class FrequenciesTab(Tab):
         ]
 
         self.headline_surfaces = {
-            "frequencies": self._create_headline("Update Frequencies")
+            "frequencies": self._create_headline(t("Update Frequencies"))
         }
 
     def draw(self, surface: Surface) -> None:

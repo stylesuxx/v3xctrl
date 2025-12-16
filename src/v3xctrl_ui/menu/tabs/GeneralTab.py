@@ -4,6 +4,7 @@ from pygame import Surface
 
 from v3xctrl_helper import is_int
 from v3xctrl_ui.fonts import LABEL_FONT, MONO_FONT
+from v3xctrl_ui.i18n import t
 from v3xctrl_ui.menu.input import (
   BaseInput,
   BaseWidget,
@@ -31,19 +32,19 @@ class GeneralTab(Tab):
 
         # General widgets
         self.fullscreen_enabled_checkbox = Checkbox(
-            label="Fullscreen", font=LABEL_FONT,
+            label=t("Fullscreen"), font=LABEL_FONT,
             checked=self.video.get("fullscreen", False),
             on_change=self._on_fullscreen_enable_change
         )
 
         self.show_connection_info_checkbox = Checkbox(
-            label="Show connection info", font=LABEL_FONT,
+            label=t("Show connection info"), font=LABEL_FONT,
             checked=self.show_connection_info,
             on_change=self._on_show_connection_info_change
         )
 
         self.render_ratio_input = NumberInput(
-            "Render Ratio", label_width=120, input_width=75,
+            t("Render Ratio"), label_width=120, input_width=75,
             min_val=0, max_val=100,
             font=LABEL_FONT, mono_font=MONO_FONT,
             on_change=lambda value: self._on_render_ratio_change(value)
@@ -59,7 +60,7 @@ class GeneralTab(Tab):
         self.elements = self.general_widgets
 
         self.headline_surfaces = {
-            "settings": self._create_headline("Settings")
+            "settings": self._create_headline(t("Settings"))
         }
 
     def draw(self, surface: Surface) -> None:
