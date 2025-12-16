@@ -43,7 +43,6 @@ class NetworkManager:
         self._print_connection_info_if_needed()
 
     def setup_relay(self, relay_server: str, relay_id: str) -> None:
-        """Configure relay connection parameters."""
         self.relay_enable = True
         self.relay_id = relay_id
 
@@ -58,7 +57,6 @@ class NetworkManager:
             self.relay_server = relay_server
 
     def setup_ports(self) -> None:
-        """Setup video and control ports in a background thread."""
         def task() -> None:
             video_address = None
             if self.relay_enable and self.relay_server and self.relay_id:
@@ -123,19 +121,16 @@ class NetworkManager:
         threading.Thread(target=task, daemon=True).start()
 
     def send_latency_check(self) -> None:
-        """Send a latency check message if server is available."""
         if self.server and not self.server_error:
             self.server.send(Latency())
 
     def get_data_queue_size(self) -> int:
-        """Get the size of the outgoing data queue."""
         if self.server and not self.server_error:
             return self.server.transmitter.queue.qsize()
 
         return 0
 
     def shutdown(self) -> None:
-        """Shutdown network connections."""
         if self.server:
             start = time.monotonic()
             self.server.stop()
@@ -161,7 +156,6 @@ class NetworkManager:
             self.server.update_ttl(ttl_ms)
 
     def _setup_relay_if_enabled(self) -> None:
-        """Setup relay connection if enabled in settings."""
         relay = self.settings.get("relay", {})
         if relay.get("enabled", False):
             server = relay.get("server")
@@ -170,7 +164,6 @@ class NetworkManager:
                 self.setup_relay(server, relay_id)
 
     def _print_connection_info_if_needed(self) -> None:
-        """Print connection info to console if not using relay."""
         relay = self.settings.get("relay", {})
         if not relay.get("enabled", False):
             ip = get_external_ip()
@@ -190,20 +183,6 @@ class NetworkManager:
         state_handlers: list,
         udp_ttl_ms: int
     ) -> Server:
-        """Create and start a Server instance.
-
-        Args:
-            port: Port number for the server
-            message_handlers: List of (Message type, callback) tuples
-            state_handlers: List of (State, callback) tuples
-            udp_ttl_ms: UDP packet TTL in milliseconds
-
-        Returns:
-            Started Server instance
-
-        Raises:
-            RuntimeError: If port is already in use or other server error
-        """
         try:
             server = Server(port, udp_ttl_ms)
 
@@ -227,16 +206,6 @@ class NetworkManager:
         error_callback,
         render_ratio: int
     ) -> VideoReceiver:
-        """Create and start a VideoReceiver instance.
-
-        Args:
-            port: Port number for video reception
-            error_callback: Callback function to invoke on error
-            render_ratio: Render ratio for video processing
-
-        Returns:
-            Started VideoReceiver instance
-        """
         video_receiver = VideoReceiver(
             port,
             error_callback,

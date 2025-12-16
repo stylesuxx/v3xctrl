@@ -20,15 +20,6 @@ from v3xctrl_ui.NetworkCoordinator import NetworkCoordinator
 
 
 class AppState:
-    """
-    Holds the current context of the app.
-    """
-
-    @property
-    def screen(self) -> pygame.Surface:
-        """Get the current screen surface from DisplayManager."""
-        return self.display_manager.get_screen()
-
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
 
@@ -83,6 +74,10 @@ class AppState:
         # Settings management
         self.settings_manager = SettingsManager(self.settings, self.model)
         self._configure_settings_manager()
+
+    @property
+    def screen(self) -> pygame.Surface:
+        return self.display_manager.get_screen()
 
     def update_settings(self, new_settings: Optional[Settings] = None) -> None:
         """
@@ -142,7 +137,6 @@ class AppState:
         return self.event_controller.handle_events()
 
     def render(self) -> None:
-        """Render the current frame."""
         # Update OSD with network data
         data_left = self.network_coordinator.get_data_queue_size()
         if self.network_coordinator.has_server_error():
@@ -180,11 +174,9 @@ class AppState:
         logging.info(f"Shutdown took {delta}s")
 
     def _on_quit(self) -> None:
-        """Callback for quit event."""
         self.model.running = False
 
     def _on_toggle_fullscreen(self) -> None:
-        """Callback for fullscreen toggle."""
         self.display_manager.toggle_fullscreen()
 
     def _create_menu(self) -> Menu:
@@ -199,6 +191,7 @@ class AppState:
             self._signal_handler
         )
         menu.set_tab_enabled("Streamer", self.network_coordinator.is_control_connected())
+
         return menu
 
     def _configure_settings_manager(self) -> None:
@@ -240,11 +233,9 @@ class AppState:
         self.network_coordinator.update_ttl(udp_ttl_ms)
 
     def _on_connection_change(self, connected: bool) -> None:
-        """Callback for connection state changes."""
         self.event_controller.set_menu_tab_enabled("Streamer", connected)
 
     def _setup_signal_handling(self) -> None:
-        """Setup signal handlers for graceful shutdown."""
         signal.signal(signal.SIGINT, self._signal_handler)
 
     def _signal_handler(

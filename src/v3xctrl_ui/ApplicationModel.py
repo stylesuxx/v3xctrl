@@ -8,26 +8,24 @@ if TYPE_CHECKING:
 
 @dataclass
 class ApplicationModel:
-    """Pure state - no behavior, just data."""
-
-    # Control state
+    # Control
     throttle: float = 0.0
     steering: float = 0.0
     control_connected: bool = False
 
-    # Display state
+    # Display
     fullscreen: bool = False
     scale: float = 1.0
 
-    # Timing state
+    # Timing
     loop_history: deque[float] = field(default_factory=lambda: deque(maxlen=300))
     control_interval: float = 0.0
     latency_interval: float = 0.0
     last_control_update: float = 0.0
     last_latency_check: float = 0.0
 
-    # Lifecycle state
+    # Lifecycle
     running: bool = True
 
-    # Network restart state
+    # Network
     pending_settings: Optional['Settings'] = None
