@@ -127,8 +127,18 @@ class TestBot(unittest.TestCase):
             "session1": {
                 "created_at": 1234567890,
                 "mappings": [
-                    {"role": "STREAMER", "address": "192.168.1.100", "port_type": "RTP"},
-                    {"role": "VIEWER", "address": "192.168.1.101", "port_type": "RTCP"}
+                    {
+                        "role": "STREAMER",
+                        "address": "192.168.1.100",
+                        "port_type": "RTP",
+                        "timeout_in_sec": 60
+                    },
+                    {
+                        "role": "VIEWER",
+                        "address": "192.168.1.101",
+                        "port_type": "RTCP",
+                        "timeout_in_sec": 60
+                    }
                 ]
             }
         }
@@ -138,9 +148,9 @@ class TestBot(unittest.TestCase):
         self.assertIn("**Active Sessions: 1**", result)
         self.assertIn("**Session ID:** `session1`", result)
         self.assertIn("<t:1234567890:R>", result)
-        self.assertIn("**STREAMER:**", result)
+        self.assertIn("**STREAMER (Timeout in 60sec):**", result)
         self.assertIn("192.168.1.100 (RTP)", result)
-        self.assertIn("**VIEWER:**", result)
+        self.assertIn("**VIEWER (Timeout in 60sec):**", result)
         self.assertIn("192.168.1.101 (RTCP)", result)
 
     def test_format_stats_message_no_mappings(self):
