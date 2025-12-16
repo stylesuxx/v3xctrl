@@ -2,11 +2,12 @@ import logging
 import signal
 import threading
 import time
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 import pygame
 
 from v3xctrl_control import State
+from v3xctrl_control.message import Command
 from v3xctrl_control.message import Control, Latency, Telemetry
 
 from v3xctrl_ui.ApplicationModel import ApplicationModel
@@ -214,12 +215,21 @@ class AppState:
 
     def _create_menu(self) -> Menu:
         """Callback to create a new menu instance."""
+        def invoke_command(
+            command: Command,
+            callback: Callable[[bool], None]
+        ) -> None:
+            if self.network_manager.server:
+                self.network_manager.server.send_command(command, callback)
+            else:
+                logging.error(f"Server is not set, cannot send command: {command}")
+
         menu = Menu(
             self.screen.get_size()[0],
             self.screen.get_size()[1],
             self.input_manager.gamepad_manager,
             self.settings,
-            self.network_manager.server,
+            invoke_command,
             self.update_settings,
             self._signal_handler
         )

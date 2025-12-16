@@ -1,4 +1,3 @@
-import logging
 import math
 import time
 
@@ -6,7 +5,6 @@ import pygame
 from pygame import Surface, event
 from typing import Callable, NamedTuple, Dict
 
-from v3xctrl_control import Server
 from v3xctrl_control.message import Command
 
 from v3xctrl_ui.colors import WHITE, DARK_GREY, CHARCOAL, GREY, TRANSPARENT_BLACK
@@ -47,7 +45,7 @@ class Menu:
         height: int,
         gamepad_manager: GamepadManager,
         settings: Settings,
-        server: Server,
+        invoke_command: Callable[[Command, Callable[[bool], None]], None],
         callback: Callable[[], None],
         callback_quit: Callable[[], None],
     ) -> None:
@@ -55,7 +53,7 @@ class Menu:
         self.height = height
         self.gamepad_manager = gamepad_manager
         self.settings = settings
-        self.server = server
+        self.invoke_command = invoke_command
 
         self.callback = callback
         self.callback_quit = callback_quit
@@ -239,11 +237,7 @@ class Menu:
             self.is_loading = False
             callback(state)
 
-        if self.server:
-            self.show_loading("Invoking command!")
-            self.server.send_command(command, callback_wrapper)
-        else:
-            logging.error(f"Server is not set, cannot send command: {command}")
+        self.invoke_command(command, callback_wrapper)
 
     def _on_active_toggle(self, active: bool) -> None:
         if active:
@@ -289,6 +283,7 @@ class Menu:
             # Draw directly to the cached tab_bar_surface
             pygame.draw.rect(self.tab_bar_surface, color, entry.rect)
 
+            # Draw left border
             if i > 0:
                 pygame.draw.line(
                     self.tab_bar_surface,
