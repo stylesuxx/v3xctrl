@@ -28,8 +28,6 @@ class ApplicationModel:
 
     # Lifecycle state
     running: bool = True
-    menu_open: bool = False
 
     # Network restart state
-    network_restart_pending: bool = False
     pending_settings: Optional['Settings'] = None

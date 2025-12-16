@@ -78,7 +78,6 @@ class AppState:
         # Network restart state
         self.network_restart_thread: Optional[threading.Thread] = None
         self.network_restart_complete = threading.Event()
-        self.pending_settings: Optional[Settings] = None
 
     def update_settings(self, new_settings: Optional[Settings] = None) -> None:
         """
@@ -100,6 +99,7 @@ class AppState:
             not self._settings_equal(new_settings, "relay")
         ):
             logging.info("Restarting network manager")
+            self.model.pending_settings = new_settings
             self.network_manager.shutdown()
             self.network_manager = NetworkManager(
                 new_settings,
@@ -117,9 +117,9 @@ class AppState:
         if self.network_restart_complete.is_set():
             self.network_restart_complete.clear()
 
-            if self.pending_settings:
-                self._apply_settings(self.pending_settings)
-                self.pending_settings = None
+            if self.model.pending_settings:
+                self._apply_settings(self.model.pending_settings)
+                self.model.pending_settings = None
 
             logging.info("Network manager restart complete")
 
