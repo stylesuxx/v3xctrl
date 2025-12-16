@@ -1,4 +1,3 @@
-from collections import deque
 import copy
 import logging
 import signal
@@ -43,12 +42,6 @@ class AppState:
 
         self.title = settings.get("settings").get("title")
 
-        self.scale = 1
-        self.fullscreen = self.settings.get(
-            "video",
-            {"fullscreen": False}
-        ).get("fullscreen", False)
-
         self.input_manager = InputManager(settings)
 
         self.osd = OSD(settings)
@@ -61,17 +54,13 @@ class AppState:
         )
 
         # Timing
-        self.control_interval = 0.0
-        self.latency_interval = 0.0
-        self.last_control_update = 0.0
-        self.last_latency_check = 0.0
         self.main_loop_fps = 60
         self._update_timing_settings()
 
         self.menu: Optional[Menu] = None
 
         self.screen, self.clock = Init.ui(self.size, self.title)
-        if self.fullscreen:
+        if self.model.fullscreen:
             self._update_screen_size()
 
         self._setup_signal_handling()
@@ -79,8 +68,8 @@ class AppState:
         self.network_manager.setup_ports()
 
         start_time = time.monotonic()
-        self.last_control_update = start_time
-        self.last_latency_check = start_time
+        self.model.last_control_update = start_time
+        self.model.last_latency_check = start_time
 
         # Deep copy of current settings so we can later easily check if settings
         # need updating.
@@ -100,9 +89,9 @@ class AppState:
             new_settings = Init.settings("settings.toml")
 
         # Attempt fullscreen/window switch only if the setting actually changed
-        fullscreen_previous = self.fullscreen
-        self.fullscreen = new_settings.get("video", {}).get("fullscreen", False)
-        if fullscreen_previous is not self.fullscreen:
+        fullscreen_previous = self.model.fullscreen
+        self.model.fullscreen = new_settings.get("video", {}).get("fullscreen", False)
+        if fullscreen_previous is not self.model.fullscreen:
             self._update_screen_size()
 
         # Check if network manager needs to be restarted
@@ -138,7 +127,7 @@ class AppState:
         self.model.loop_history.append(now)
 
         # Handle control updates, send last values if user is in menu
-        if now - self.last_control_update >= self.control_interval:
+        if now - self.model.last_control_update >= self.model.control_interval:
             try:
                 throttle, steering = (0, 0)
                 if not self.menu:
@@ -150,12 +139,12 @@ class AppState:
                 self._send_control_message()
             except Exception as e:
                 logging.warning(f"Input read error: {e}")
-            self.last_control_update = now
+            self.model.last_control_update = now
 
         # Handle latency checks
-        if now - self.last_latency_check >= self.latency_interval:
+        if now - self.model.last_latency_check >= self.model.latency_interval:
             self.network_manager.send_latency_check()
-            self.last_latency_check = now
+            self.model.last_latency_check = now
 
     def tick(self) -> None:
         self.clock.tick(self.main_loop_fps)
@@ -194,7 +183,7 @@ class AppState:
 
                 # [F11] - Toggle Fullscreen
                 elif event.key == pygame.K_F11:
-                    self.fullscreen = not self.fullscreen
+                    self.model.fullscreen = not self.model.fullscreen
                     self._update_screen_size()
 
             if self.menu is not None:
@@ -219,8 +208,8 @@ class AppState:
         self.renderer.render_all(
             self,
             self.network_manager,
-            self.fullscreen,
-            self.scale
+            self.model.fullscreen,
+            self.model.scale
         )
 
     def shutdown(self) -> None:
@@ -287,7 +276,7 @@ class AppState:
         self.menu = None
 
     def _update_screen_size(self) -> None:
-        if self.fullscreen:
+        if self.model.fullscreen:
             # SCALED is important here, this makes it a resizable, borderless
             # window instead of "just" the legacy FULLSCREEN mode which causes
             # a bunch of complications.
@@ -303,12 +292,12 @@ class AppState:
             # Calculate scale factor
             scale_x = width / self.size[0]
             scale_y = height / self.size[1]
-            self.scale = min(scale_x, scale_y)
+            self.model.scale = min(scale_x, scale_y)
         else:
             flags = pygame.DOUBLEBUF | pygame.SCALED
             self.screen = pygame.display.set_mode(self.size, flags)
 
-            self.scale = 1
+            self.model.scale = 1
 
     def _update_timing_settings(self) -> None:
         """Update timing intervals from settings."""
@@ -316,8 +305,8 @@ class AppState:
         control_rate_frequency = timing.get("control_update_hz", 30)
         latency_check_frequency = timing.get("latency_check_hz", 1)
 
-        self.control_interval = 1.0 / control_rate_frequency
-        self.latency_interval = 1.0 / latency_check_frequency
+        self.model.control_interval = 1.0 / control_rate_frequency
+        self.model.latency_interval = 1.0 / latency_check_frequency
         self.main_loop_fps = timing.get("main_loop_fps", 60)
 
     def _update_network_settings(self) -> None:

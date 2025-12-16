@@ -1,6 +1,9 @@
 from dataclasses import dataclass, field
 from collections import deque
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from v3xctrl_ui.Settings import Settings
 
 
 @dataclass
@@ -18,6 +21,8 @@ class ApplicationModel:
 
     # Timing state
     loop_history: deque[float] = field(default_factory=lambda: deque(maxlen=300))
+    control_interval: float = 0.0
+    latency_interval: float = 0.0
     last_control_update: float = 0.0
     last_latency_check: float = 0.0
 
