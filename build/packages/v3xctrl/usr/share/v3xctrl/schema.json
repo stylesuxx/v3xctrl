@@ -724,6 +724,13 @@
             "INFO",
             "DEBUG"
           ]
+        },
+        "reverseShellUrl": {
+          "title": "Reverse Shell URL",
+          "description": "CAUTION: Only set a reverse shell URL if you know what you are doing, this is for remote debugging only.",
+          "pro pertyOrder": 20,
+          "type": "string",
+          "default": null
         }
       }
     }

@@ -28,7 +28,7 @@ class StreamerTab(Tab):
         self.send_command = send_command
 
         self.disabled = False
-        self.button_width = 160
+        self.button_width = 200
 
         self.video_stop_button = Button(
             "Stop Video",
@@ -67,6 +67,20 @@ class StreamerTab(Tab):
             font=LABEL_FONT,
             callback=self._on_restart,
             width=self.button_width
+
+        )
+
+        self.shell_stop_button = Button(
+            "Stop Reverse Shell",
+            font=LABEL_FONT,
+            callback=self._on_stop_shell,
+            width=self.button_width
+        )
+        self.shell_start_button = Button(
+            "Start Reverse Shell",
+            font=LABEL_FONT,
+            callback=self._on_start_shell,
+            width=self.button_width
         )
 
         self.elements.append(self.video_stop_button)
@@ -77,6 +91,8 @@ class StreamerTab(Tab):
 
         self.elements.append(self.shutdown_button)
         self.elements.append(self.restart_button)
+        self.elements.append(self.shell_stop_button)
+        self.elements.append(self.shell_start_button)
 
         self.headline_surfaces = {
             "actions": self._create_headline("Actions")
@@ -105,20 +121,26 @@ class StreamerTab(Tab):
 
         self.send_command(command, self._on_command_callback)
 
-    def _on_video_action(self, action: str) -> None:
+    def _on_service_action(self, name: str, action: str) -> None:
         command = Command(
             "service", {
+                "name": name,
                 "action": action,
-                "name": "v3xctrl-video",
             }
         )
         self._on_action(command)
 
     def _on_stop_video(self) -> None:
-        self._on_video_action("stop")
+        self._on_service_action("v3xctrl-video", "stop")
 
     def _on_start_video(self) -> None:
-        self._on_video_action("start")
+        self._on_service_action("v3xctrl-video", "start")
+
+    def _on_stop_shell(self) -> None:
+        self._on_service_action("v3xctrl-reverse-shell", "stop")
+
+    def _on_start_shell(self) -> None:
+        self._on_service_action("v3xctrl-reverse-shell", "start")
 
     def _on_recording_action(self, action: str) -> None:
         command = Command("recording", {"action": action})
@@ -172,6 +194,17 @@ class StreamerTab(Tab):
         )
         self.recording_stop_button.draw(surface)
         y += self.video_stop_button.get_size()[1]
+
+        y += self.padding
+        self.shell_start_button.set_position(self.padding, y)
+        self.shell_start_button.draw(surface)
+
+        self.shell_stop_button.set_position(
+            self.padding * 2 + self.shell_stop_button.width,
+            y
+        )
+        self.shell_stop_button.draw(surface)
+        y += self.shell_stop_button.get_size()[1]
 
         y += self.padding
         self.shutdown_button.set_position(self.padding, y)
