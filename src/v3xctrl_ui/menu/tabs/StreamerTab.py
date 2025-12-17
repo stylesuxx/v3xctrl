@@ -121,11 +121,11 @@ class StreamerTab(Tab):
 
         self.send_command(command, self._on_command_callback)
 
-    def _on_video_action(self, action: str) -> None:
+    def _on_service_action(self, name: str, action: str) -> None:
         command = Command(
             "service", {
-                "action": action,
                 "name": name,
+                "action": action,
             }
         )
         self._on_action(command)

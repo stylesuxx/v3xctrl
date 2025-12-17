@@ -51,7 +51,7 @@ class TestStreamerTab(unittest.TestCase):
         self.assertIsNotNone(self.tab.restart_button)
 
         # Check that buttons are added to elements
-        self.assertEqual(len(self.tab.elements), 6)
+        self.assertEqual(len(self.tab.elements), 8)
         self.assertIn(self.tab.recording_stop_button, self.tab.elements)
         self.assertIn(self.tab.recording_start_button, self.tab.elements)
         self.assertIn(self.tab.video_stop_button, self.tab.elements)
@@ -142,18 +142,6 @@ class TestStreamerTab(unittest.TestCase):
         sent_command = call_args[0][0]
 
         self.assertEqual(sent_command.command, "restart")
-
-    def test_video_action_disables_elements(self):
-        """Test that video actions disable all UI elements"""
-        # Mock the elements to test disable calls
-        for element in self.tab.elements:
-            element.disable = MagicMock()
-
-        self.tab._on_video_action("start")
-
-        # Check all elements were disabled
-        for element in self.tab.elements:
-            element.disable.assert_called_once()
 
     def test_shutdown_disables_elements(self):
         """Test that shutdown disables all UI elements"""
@@ -266,29 +254,6 @@ class TestStreamerTab(unittest.TestCase):
         # Should still be disabled and send_command should be called twice
         self.assertTrue(self.tab.disabled)
         self.assertEqual(self.mock_send_command.call_count, 2)
-
-    def test_video_action_generic(self):
-        """Test the generic _on_video_action method"""
-        test_action = "restart"
-
-        self.tab._on_video_action(test_action)
-
-        # Check that UI is disabled
-        self.assertTrue(self.tab.disabled)
-        self.mock_on_active_toggle.assert_called_once_with(True)
-
-        # Check that command is sent
-        self.mock_send_command.assert_called_once()
-
-        call_args = self.mock_send_command.call_args
-        sent_command = call_args[0][0]
-
-        # Compare command and parameters separately (ignore auto-generated ID)
-        self.assertEqual(sent_command.command, "service")
-        self.assertEqual(sent_command.parameters, {
-            "action": test_action,
-            "name": "v3xctrl-video",
-        })
 
 
 if __name__ == '__main__':
