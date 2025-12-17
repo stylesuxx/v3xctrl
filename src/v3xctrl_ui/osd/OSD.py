@@ -4,24 +4,18 @@ import pygame
 import time
 from typing import (
   Optional,
-  Tuple,
-  ItemsView,
   Dict,
-  cast,
-  Any,
+  List,
 )
 
 from v3xctrl_control.message import Message, Latency, Telemetry
 from v3xctrl_ui.utils.colors import RED, WHITE
 from v3xctrl_ui.osd.TelemetryParser import TelemetryParser
-from v3xctrl_ui.utils.helpers import (
-  calculate_widget_position,
-  get_fps,
-)
+from v3xctrl_ui.utils.helpers import get_fps
 from v3xctrl_ui.utils.Settings import Settings
 from v3xctrl_ui.osd.WidgetFactory import WidgetFactory
 from v3xctrl_ui.osd.WidgetGroupRenderer import WidgetGroupRenderer
-from v3xctrl_ui.osd.widgets import Widget
+from v3xctrl_ui.osd.WidgetGroup import WidgetGroup
 
 
 class OSD:
@@ -63,6 +57,34 @@ class OSD:
         self.reset()
 
         self.widgets = self.widgets_steering
+
+        # Create unified widget groups for rendering
+        self.widget_groups: List[WidgetGroup] = [
+            WidgetGroup.create(
+                name="steering",
+                widgets=self.widgets_steering,
+                get_value=lambda name: getattr(self, name),
+                use_composition=False
+            ),
+            WidgetGroup.create(
+                name="battery",
+                widgets=self.widgets_battery,
+                get_value=lambda name: getattr(self, name),
+                use_composition=True
+            ),
+            WidgetGroup.create(
+                name="signal",
+                widgets=self.widgets_signal,
+                get_value=lambda name: getattr(self, name),
+                use_composition=True
+            ),
+            WidgetGroup.create(
+                name="debug",
+                widgets=self.widgets_debug,
+                get_value=lambda name: getattr(self, name),
+                use_composition=True
+            ),
+        ]
 
     def update_settings(self, settings: Settings) -> None:
         self.settings = settings
@@ -113,66 +135,10 @@ class OSD:
         self.loop_history = loop_history
         self.video_history = video_history
 
-        for name, widget in self.widgets.items():
-            settings = self.widget_settings.get(name, {
-                "align": None,
-                "offset": (0, 0),
-                "display": False
-            })
-            if settings.get("display"):
-                align = settings.get("align")
-                offset = settings.get("offset", (0, 0))
-                screen_width, screen_height = pygame.display.get_window_size()
-                position = calculate_widget_position(
-                    align, widget.width, widget.height,
-                    screen_width, screen_height, offset
-                )
-
-                widget.position = position
-                widget.draw(screen, getattr(self, name))
-
-        # Battery information widget
-        settings = cast(Dict[str, Any], self.widget_settings.get('battery', {}))
-        widgets: ItemsView[str, Widget] = self.widgets_battery.items()
-        WidgetGroupRenderer.render_group(
-            screen, widgets, settings, self.widget_settings,
-            lambda name: getattr(self, name)
-        )
-
-        # Signal information widget
-        settings = cast(Dict[str, Any], self.widget_settings.get('signal', {}))
-        widgets: ItemsView[str, Widget] = self.widgets_signal.items()
-        WidgetGroupRenderer.render_group(
-            screen, widgets, settings, self.widget_settings,
-            lambda name: getattr(self, name)
-        )
-
-        # Debug widgets
-        settings = self.widget_settings.get('debug', {
-            "align": None,
-            "offset": (0, 0),
-            "padding": 5,
-            "display": False
-        })
-        if settings.get("display"):
-            align = settings.get("align")
-            offset = settings.get("offset", (0, 0))
-            padding = settings.get("padding", 0)
-            height = 0
-            for name, widget in self.widgets_debug.items():
-                display = self.widget_settings.get(name, {"display": True}).get("display")
-                if display:
-                    screen_width, screen_height = pygame.display.get_window_size()
-                    position = calculate_widget_position(
-                        align, widget.width, widget.height,
-                        screen_width, screen_height, offset
-                    )
-                    widget.position = (
-                        position[0],
-                        position[1] + height
-                    )
-                    widget.draw(screen, getattr(self, name))
-                    height += widget.height + padding
+        for group in self.widget_groups:
+            WidgetGroupRenderer.render_widget_group(
+                screen, group, self.widget_settings
+            )
 
     def reset(self) -> None:
         self.debug_data = None
