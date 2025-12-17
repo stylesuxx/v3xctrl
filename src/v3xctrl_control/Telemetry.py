@@ -80,7 +80,7 @@ class Telemetry(threading.Thread):
             self._modem = AIR780EU(self._modem_path)
             self._modem.enable_location_reporting()
             if not self._modem:
-                logging.warning("Modem unavailable...")
+                logging.warning("Modem unavailable")
                 self._modem = None
                 return False
 
@@ -114,8 +114,7 @@ class Telemetry(threading.Thread):
                     self.payload.sig.rsrp = signal_quality.rsrp
             except Exception as e:
                 self._set_signal_unknown()
-
-                logging.warning("Failed fetching signal information: %s", e)
+                logging.debug("Failed to fetch signal information: %s", e)
                 self._modem = None
 
     def _update_cell(self) -> None:
@@ -131,8 +130,7 @@ class Telemetry(threading.Thread):
                     self.payload.cell.band = band
             except Exception as e:
                 self._set_cell_unknown()
-
-                logging.warning("Failed fetching cell information: %s", e)
+                logging.debug("Failed to fetch cell information: %s", e)
                 self._modem = None
 
     def _update_battery(self) -> None:
@@ -151,7 +149,7 @@ class Telemetry(threading.Thread):
                 with self._lock:
                     self.payload.svc = self._services.get_byte()
             except Exception as e:
-                logging.warning("Failed to update service telemetry: %s", e)
+                logging.debug("Failed to update service telemetry: %s", e)
                 with self._lock:
                     self.payload.svc = 0
 
@@ -162,7 +160,7 @@ class Telemetry(threading.Thread):
                 with self._lock:
                     self.payload.vc = self._videocore.get_byte()
             except Exception as e:
-                logging.warning("Failed to update VideoCore telemetry: %s", e)
+                logging.debug("Failed to update VideoCore telemetry: %s", e)
                 with self._lock:
                     self.payload.vc = 0
 
