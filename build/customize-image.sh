@@ -51,7 +51,7 @@ LOOP_DEV=$(losetup -fP --show "$IMG_WORK")
 
 echo "[HOST] Formatting /data partition"
 mkfs.ext4 "${LOOP_DEV}p3"
-e2fsck -f "${LOOP_DEV}p3"
+e2fsck -fy "${LOOP_DEV}p3"
 
 echo "[HOST] Checking and mounting partitions"
 for i in 1 2 3; do

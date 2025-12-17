@@ -16,26 +16,28 @@ exec > /boot/firmware/firstboot.log 2>&1
 PART="/dev/mmcblk0p3"
 TARGET="/data"
 
+echo "[v3xctrl-firstboot] Ensuring $PART is unmounted..."
+if grep -qs "$TARGET" /proc/mounts; then
+  umount "$TARGET"
+fi
+
 echo "[v3xctrl-firstboot] Resizing $PART to fill disk..."
 parted -s /dev/mmcblk0 resizepart 3 100%
 
 echo "[v3xctrl-firstboot] Probing partitions..."
-partprobe
-sleep 2
+partprobe /dev/mmcblk0
+blockdev --rereadpt /dev/mmcblk0
+sleep 3
 udevadm settle
 
-echo "[v3xctrl-firstboot] Cleaning $PART..."
+echo "[v3xctrl-firstboot] Forcing filesystem check on $PART..."
 e2fsck -fy "$PART"
 
-echo "[v3xctrl-firstboot] Test mounting/unmounting $PART..."
-mount "$PART" "$TARGET"
-umount "$TARGET"
-
-echo "[v3xctrl-firstboot] Cleaning $PART..."
-e2fsck -fy "$PART"
-
-echo "[v3xctrl-firstboot] Resizing $PART..."
+echo "[v3xctrl-firstboot] Resizing filesystem on $PART..."
 resize2fs "$PART"
+
+echo "[v3xctrl-firstboot] Final filesystem check on $PART..."
+e2fsck -fy "$PART"
 
 if ! grep -q "${TARGET}[[:space:]]" /etc/fstab; then
   echo "[v3xctrl-firstboot] Updating /etc/fstab with /data and mounting..."
