@@ -4,12 +4,12 @@ import time
 from typing import Any, Dict, Optional
 
 from v3xctrl_control import Server
-from v3xctrl_control.message import Latency, Message
+from v3xctrl_control.message import Latency
 from v3xctrl_udp_relay.Peer import Peer
 
 from v3xctrl_ui.utils.helpers import get_external_ip
 from v3xctrl_ui.utils.Settings import Settings
-from v3xctrl_ui.network.VideoReceiverPyAV import VideoReceiverPyAV as VideoReceiver
+from v3xctrl_ui.network.VideoReceiverPyAV import VideoReceiverPyAV as VideoReceiver  # noqa: F401
 from v3xctrl_ui.network.NetworkSetup import NetworkSetup
 
 
