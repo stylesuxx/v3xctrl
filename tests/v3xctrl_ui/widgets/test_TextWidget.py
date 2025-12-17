@@ -6,7 +6,7 @@ import unittest
 
 import pygame
 
-from v3xctrl_ui.colors import WHITE, GREY
+from v3xctrl_ui.utils.colors import WHITE, GREY
 from v3xctrl_ui.widgets import TextWidget
 
 

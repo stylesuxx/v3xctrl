@@ -4,7 +4,7 @@ import pygame
 from pygame import Surface
 from pygame.freetype import Font
 
-from v3xctrl_ui.colors import (
+from v3xctrl_ui.utils.colors import (
     BLACK,
     DARK_GREY,
     GAINSBORO,

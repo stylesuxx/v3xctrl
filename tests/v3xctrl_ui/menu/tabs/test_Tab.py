@@ -10,7 +10,7 @@ from pygame import Surface
 from typing import Dict, Any
 
 from v3xctrl_ui.menu.tabs.Tab import Tab
-from v3xctrl_ui.Settings import Settings
+from v3xctrl_ui.utils.Settings import Settings
 
 
 class ConcreteTab(Tab):

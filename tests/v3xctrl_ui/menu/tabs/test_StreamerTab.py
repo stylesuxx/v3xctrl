@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 import pygame
 
 from v3xctrl_ui.menu.tabs.StreamerTab import StreamerTab
-from v3xctrl_ui.Settings import Settings
+from v3xctrl_ui.utils.Settings import Settings
 
 
 class TestStreamerTab(unittest.TestCase):

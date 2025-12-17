@@ -4,7 +4,7 @@ from typing import Tuple, Dict, Any
 from pygame import Surface, SRCALPHA
 from material_icons import IconStyle
 
-from v3xctrl_ui.colors import (
+from v3xctrl_ui.utils.colors import (
   WHITE,
   GREEN,
   RED,
@@ -13,7 +13,7 @@ from v3xctrl_ui.colors import (
   GREY,
 )
 from v3xctrl_ui.widgets.Widget import Widget
-from v3xctrl_ui.helpers import get_icon
+from v3xctrl_ui.utils.helpers import get_icon
 
 
 class SignalQuality(IntEnum):

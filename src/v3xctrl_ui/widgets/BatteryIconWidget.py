@@ -3,9 +3,9 @@ from typing import Tuple
 
 from pygame import Surface
 
-from v3xctrl_ui.colors import GREEN, RED, YELLOW, ORANGE
+from v3xctrl_ui.utils.colors import GREEN, RED, YELLOW, ORANGE
 from v3xctrl_ui.widgets.Widget import Widget
-from v3xctrl_ui.helpers import get_icon
+from v3xctrl_ui.utils.helpers import get_icon
 
 
 class BatteryIconWidget(Widget):

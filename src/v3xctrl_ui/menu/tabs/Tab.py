@@ -5,9 +5,9 @@ import pygame
 from pygame import Surface, event
 from typing import Dict, List, Any
 
-from v3xctrl_ui.colors import WHITE
-from v3xctrl_ui.fonts import MAIN_FONT, TEXT_FONT
-from v3xctrl_ui.Settings import Settings
+from v3xctrl_ui.utils.colors import WHITE
+from v3xctrl_ui.utils.fonts import MAIN_FONT, TEXT_FONT
+from v3xctrl_ui.utils.Settings import Settings
 
 
 class Tab(ABC):

@@ -2,14 +2,14 @@ from typing import Callable, Dict, List, Any
 
 from pygame import Surface
 
-from v3xctrl_ui.fonts import LABEL_FONT
-from v3xctrl_ui.i18n import t
-from v3xctrl_ui.GamepadManager import GamepadManager
+from v3xctrl_ui.utils.fonts import LABEL_FONT
+from v3xctrl_ui.utils.i18n import t
+from v3xctrl_ui.controllers.input.GamepadController import GamepadController
 from v3xctrl_ui.menu.calibration.GamepadCalibrationWidget import (
   GamepadCalibrationWidget
 )
 from v3xctrl_ui.menu.input import KeyMappingWidget
-from v3xctrl_ui.Settings import Settings
+from v3xctrl_ui.utils.Settings import Settings
 
 from .Tab import Tab
 from .VerticalLayout import VerticalLayout
@@ -23,7 +23,7 @@ class InputTab(Tab):
         height: int,
         padding: int,
         y_offset: int,
-        gamepad_manager: GamepadManager,
+        gamepad_manager: GamepadController,
         on_active_toggle: Callable[[bool], None]
     ) -> None:
         super().__init__(settings, width, height, padding, y_offset)

@@ -4,9 +4,9 @@ import pygame
 from pygame import Surface, Rect
 from pygame.freetype import Font
 
-from v3xctrl_ui.colors import MID_GREY, WHITE, DARK_GREY, GAINSBORO
+from v3xctrl_ui.utils.colors import MID_GREY, WHITE, DARK_GREY, GAINSBORO
 from v3xctrl_ui.menu.input import BaseWidget
-from v3xctrl_ui.helpers import get_icon
+from v3xctrl_ui.utils.helpers import get_icon
 
 
 class Checkbox(BaseWidget):

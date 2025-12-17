@@ -3,8 +3,8 @@ from typing import Tuple
 
 from pygame import Surface, Rect, SRCALPHA
 
-from v3xctrl_ui.colors import WHITE, GREY
-from v3xctrl_ui.fonts import BOLD_MONO_FONT
+from v3xctrl_ui.utils.colors import WHITE, GREY
+from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT
 from v3xctrl_ui.widgets.Widget import Widget
 
 

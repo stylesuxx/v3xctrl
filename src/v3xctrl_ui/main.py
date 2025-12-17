@@ -2,9 +2,9 @@ import argparse
 from datetime import datetime
 import logging
 
-from v3xctrl_ui.AppState import AppState
-from v3xctrl_ui.MemoryTracker import MemoryTracker
-from v3xctrl_ui.Settings import Settings
+from v3xctrl_ui.core.AppState import AppState
+from v3xctrl_ui.utils.MemoryTracker import MemoryTracker
+from v3xctrl_ui.utils.Settings import Settings
 
 parser = argparse.ArgumentParser(description="RC Streamer")
 parser.add_argument(

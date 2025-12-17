@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 
 import pygame
 
-from v3xctrl_ui.colors import BLACK
+from v3xctrl_ui.utils.colors import BLACK
 from v3xctrl_ui.widgets import StatusValueWidget
 
 

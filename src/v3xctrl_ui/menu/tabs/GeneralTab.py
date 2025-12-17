@@ -3,15 +3,15 @@ from typing import Dict, List, Any
 from pygame import Surface
 
 from v3xctrl_helper import is_int
-from v3xctrl_ui.fonts import LABEL_FONT, MONO_FONT
-from v3xctrl_ui.i18n import t
+from v3xctrl_ui.utils.fonts import LABEL_FONT, MONO_FONT
+from v3xctrl_ui.utils.i18n import t
 from v3xctrl_ui.menu.input import (
   BaseInput,
   BaseWidget,
   Checkbox,
   NumberInput,
 )
-from v3xctrl_ui.Settings import Settings
+from v3xctrl_ui.utils.Settings import Settings
 
 from .Tab import Tab
 from .VerticalLayout import VerticalLayout

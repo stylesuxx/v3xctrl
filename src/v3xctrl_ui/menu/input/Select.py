@@ -4,8 +4,8 @@ import pygame
 from pygame import Rect, Surface
 from pygame.freetype import Font
 
-from v3xctrl_ui.colors import WHITE, GREY, LIGHT_GREY, MID_GREY
-from v3xctrl_ui.helpers import get_icon
+from v3xctrl_ui.utils.colors import WHITE, GREY, LIGHT_GREY, MID_GREY
+from v3xctrl_ui.utils.helpers import get_icon
 from .BaseWidget import BaseWidget
 
 

@@ -2,9 +2,9 @@ from typing import Tuple, Dict, Any
 
 from pygame import Surface, Rect, SRCALPHA, draw
 
-from v3xctrl_ui.colors import WHITE, GREEN, RED, YELLOW, GREY
-from v3xctrl_ui.fonts import BOLD_MONO_FONT
-from v3xctrl_ui.helpers import round_corners
+from v3xctrl_ui.utils.colors import WHITE, GREEN, RED, YELLOW, GREY
+from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT
+from v3xctrl_ui.utils.helpers import round_corners
 from v3xctrl_ui.widgets.Widget import Widget
 
 

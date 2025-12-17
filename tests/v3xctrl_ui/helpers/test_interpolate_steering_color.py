@@ -1,4 +1,4 @@
-from v3xctrl_ui.helpers import interpolate_steering_color
+from v3xctrl_ui.utils.helpers import interpolate_steering_color
 
 
 def test_interpolate_steering_color():
