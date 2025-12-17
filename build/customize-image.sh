@@ -35,13 +35,15 @@ echo "[HOST] Expanding root file system"
 truncate -s +2G "$IMG_WORK"
 parted -s "$IMG_WORK" resizepart 2 100%
 LOOP_DEV=$(losetup -fP --show "$IMG_WORK")
+partprobe "$LOOP_DEV"
+udevadm settle
 e2fsck -fy "${LOOP_DEV}p2"
 resize2fs "${LOOP_DEV}p2"
 losetup -d "$LOOP_DEV"
 
 echo "[HOST] Adding third partition to prevent root expansion on first boot"
 truncate -s +8M "$IMG_WORK"
-parted -s "$IMG_WORK" -- mkpart primary ext4 100% 100%
+parted -s "$IMG_WORK" -- mkpart primary ext4 -8MiB 100%
 
 echo "[HOST] Reattaching loop device after partitioning"
 losetup -d "$LOOP_DEV" || echo "[WARN  ] Loop device already detached"
@@ -49,6 +51,7 @@ LOOP_DEV=$(losetup -fP --show "$IMG_WORK")
 
 echo "[HOST] Formatting /data partition"
 mkfs.ext4 "${LOOP_DEV}p3"
+e2fsck -f "${LOOP_DEV}p3"
 
 echo "[HOST] Checking and mounting partitions"
 for i in 1 2 3; do
