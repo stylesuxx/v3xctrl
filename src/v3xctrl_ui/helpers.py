@@ -140,3 +140,50 @@ def render_text_full_height(
     full_surface.blit(text_surface, (0, y_offset))
 
     return full_surface
+
+
+def calculate_widget_position(
+    alignment: str,
+    widget_width: int,
+    widget_height: int,
+    screen_width: int,
+    screen_height: int,
+    offset: Tuple[int, int] = (0, 0)
+) -> Tuple[int, int]:
+    """Calculate widget position based on alignment and offset.
+
+    Offset is always relative to the alignment point:
+    - top-left: offset is from (top, left)
+    - top-right: offset is from (top, right)
+    - bottom-left: offset is from (bottom, left)
+    - bottom-right: offset is from (bottom, right)
+    - bottom-center: offset is from (bottom, center)
+    """
+    if alignment == "top-left":
+        return offset
+
+    elif alignment == "top-right":
+        position = (screen_width, 0)
+        position = (position[0] - offset[1] - widget_width, position[1] + offset[0])
+
+        return position
+
+    elif alignment == "bottom-left":
+        position = (0, screen_height)
+        position = (position[0] + offset[1], position[1] - offset[0] - widget_height)
+
+        return position
+
+    elif alignment == "bottom-right":
+        position = (screen_width, screen_height)
+        position = (position[0] - offset[1] - widget_width, position[1] - offset[0] - widget_height)
+
+        return position
+
+    elif alignment == "bottom-center":
+        position = (screen_width // 2, screen_height)
+        position = (position[0] - offset[1] - (widget_width // 2), position[1] - offset[0] - widget_height)
+
+        return position
+
+    return (0, 0)
