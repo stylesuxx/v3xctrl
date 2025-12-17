@@ -40,8 +40,10 @@ class TestNetworkController(unittest.TestCase):
         self.mock_get_ip = self.get_ip_patcher.start()
         self.mock_get_ip.return_value = "192.168.1.100"
 
-        self.socket_patcher = patch("v3xctrl_ui.network.NetworkController.socket")
-        self.mock_socket = self.socket_patcher.start()
+        self.network_setup_patcher = patch("v3xctrl_ui.network.NetworkController.NetworkSetup")
+        self.mock_network_setup_cls = self.network_setup_patcher.start()
+        self.mock_network_setup = MagicMock()
+        self.mock_network_setup_cls.return_value = self.mock_network_setup
 
         self.threading_patcher = patch("v3xctrl_ui.network.NetworkController.threading.Thread")
         self.mock_thread_cls = self.threading_patcher.start()
@@ -54,7 +56,7 @@ class TestNetworkController(unittest.TestCase):
         self.video_receiver_patcher.stop()
         self.peer_patcher.stop()
         self.get_ip_patcher.stop()
-        self.socket_patcher.stop()
+        self.network_setup_patcher.stop()
         self.threading_patcher.stop()
 
     def test_initialization_relay_disabled(self):
@@ -135,7 +137,25 @@ class TestNetworkController(unittest.TestCase):
 
     def test_setup_ports_no_relay(self):
         """Test setup_ports without relay."""
+        from v3xctrl_ui.network.NetworkSetup import (
+            NetworkSetupResult, ServerSetupResult, VideoReceiverSetupResult
+        )
+
         nm = NetworkController(self.settings, self.handlers)
+
+        # Mock NetworkSetup to return successful result
+        mock_result = NetworkSetupResult(
+            relay_result=None,
+            video_receiver_result=VideoReceiverSetupResult(
+                success=True,
+                video_receiver=self.mock_video_receiver
+            ),
+            server_result=ServerSetupResult(
+                success=True,
+                server=self.mock_server
+            )
+        )
+        self.mock_network_setup.orchestrate_setup.return_value = mock_result
 
         nm.setup_ports()
 
@@ -147,24 +167,44 @@ class TestNetworkController(unittest.TestCase):
         task_func = self.mock_thread_cls.call_args[1]['target']
         task_func()
 
-        # Verify video receiver and server were initialized
-        self.mock_video_receiver_cls.assert_called_once()
+        # Verify NetworkSetup was instantiated and orchestrate_setup was called
+        self.mock_network_setup_cls.assert_called_once_with(self.settings)
+        self.mock_network_setup.orchestrate_setup.assert_called_once()
 
-        # Server should be called with messages, states
-        self.mock_server_cls.assert_called_once_with(6000, 100)
-        self.mock_server.subscribe.assert_called()
-        self.mock_server.on.assert_called()
-        self.mock_server.start.assert_called_once()
+        # Verify results were applied
+        self.assertEqual(nm.server, self.mock_server)
+        self.assertEqual(nm.video_receiver, self.mock_video_receiver)
 
     def test_setup_ports_with_relay_success(self):
         """Test setup_ports with successful relay connection."""
+        from v3xctrl_ui.network.NetworkSetup import (
+            NetworkSetupResult, ServerSetupResult,
+            VideoReceiverSetupResult, RelaySetupResult
+        )
+
         nm = NetworkController(self.settings, self.handlers)
         nm.setup_relay("relay.example.com:8080", "testid")
 
-        # Mock Peer setup
+        # Mock Peer
         mock_peer = MagicMock()
-        mock_peer.setup.return_value = {"video": ("1.2.3.4", 1234)}
-        self.mock_peer_cls.return_value = mock_peer
+
+        # Mock NetworkSetup to return successful relay result
+        mock_result = NetworkSetupResult(
+            relay_result=RelaySetupResult(
+                success=True,
+                video_address=("1.2.3.4", 1234),
+                peer=mock_peer
+            ),
+            video_receiver_result=VideoReceiverSetupResult(
+                success=True,
+                video_receiver=self.mock_video_receiver
+            ),
+            server_result=ServerSetupResult(
+                success=True,
+                server=self.mock_server
+            )
+        )
+        self.mock_network_setup.orchestrate_setup.return_value = mock_result
 
         nm.setup_ports()
 
@@ -172,19 +212,43 @@ class TestNetworkController(unittest.TestCase):
         task_func = self.mock_thread_cls.call_args[1]['target']
         task_func()
 
-        # Verify peer was set up
-        self.mock_peer_cls.assert_called_with("relay.example.com", 8080, "testid")
-        mock_peer.setup.assert_called_with("viewer", {"video": 5000, "control": 6000})
+        # Verify NetworkSetup orchestration was called with relay config
+        call_args = self.mock_network_setup.orchestrate_setup.call_args[0]
+        relay_config = call_args[0]
+        self.assertIsNotNone(relay_config)
+        self.assertEqual(relay_config['server'], "relay.example.com")
+        self.assertEqual(relay_config['port'], 8080)
+        self.assertEqual(relay_config['id'], "testid")
+
+        # Verify peer was stored
+        self.assertEqual(nm.peer, mock_peer)
 
     def test_setup_ports_with_relay_registration_error(self):
         """Test setup_ports with peer registration error."""
+        from v3xctrl_ui.network.NetworkSetup import (
+            NetworkSetupResult, ServerSetupResult,
+            VideoReceiverSetupResult, RelaySetupResult
+        )
+
         nm = NetworkController(self.settings, self.handlers)
         nm.setup_relay("relay.example.com:8080", "badid")
 
-        # Mock Peer to raise PeerRegistrationError
-        mock_peer = MagicMock()
-        mock_peer.setup.side_effect = PeerRegistrationError({}, {})
-        self.mock_peer_cls.return_value = mock_peer
+        # Mock NetworkSetup to return relay error
+        mock_result = NetworkSetupResult(
+            relay_result=RelaySetupResult(
+                success=False,
+                error_message="Peer registration failed - check server and ID!"
+            ),
+            video_receiver_result=VideoReceiverSetupResult(
+                success=True,
+                video_receiver=self.mock_video_receiver
+            ),
+            server_result=ServerSetupResult(
+                success=True,
+                server=self.mock_server
+            )
+        )
+        self.mock_network_setup.orchestrate_setup.return_value = mock_result
 
         nm.setup_ports()
 
@@ -197,21 +261,34 @@ class TestNetworkController(unittest.TestCase):
 
     def test_setup_ports_server_error(self):
         """Test setup_ports when server initialization fails."""
+        from v3xctrl_ui.network.NetworkSetup import (
+            NetworkSetupResult, ServerSetupResult, VideoReceiverSetupResult
+        )
+
         nm = NetworkController(self.settings, self.handlers)
 
-        # Mock Server to raise OSError (port in use)
-        self.mock_server_cls.side_effect = OSError(98, "Address already in use")
+        # Mock NetworkSetup to return server error
+        mock_result = NetworkSetupResult(
+            relay_result=None,
+            video_receiver_result=VideoReceiverSetupResult(
+                success=True,
+                video_receiver=self.mock_video_receiver
+            ),
+            server_result=ServerSetupResult(
+                success=False,
+                error_message="Control port already in use"
+            )
+        )
+        self.mock_network_setup.orchestrate_setup.return_value = mock_result
 
-        with patch("v3xctrl_ui.network.NetworkController.logging.error") as mock_log_error:
-            nm.setup_ports()
+        nm.setup_ports()
 
-            # Execute the task function
-            task_func = self.mock_thread_cls.call_args[1]['target']
-            task_func()
+        # Execute the task function
+        task_func = self.mock_thread_cls.call_args[1]['target']
+        task_func()
 
-            # Verify error was logged and stored
-            self.assertEqual(nm.server_error, "Control port already in use")
-            mock_log_error.assert_called_once()
+        # Verify error was stored
+        self.assertEqual(nm.server_error, "Control port already in use")
 
     def test_send_latency_check_with_server(self):
         """Test send_latency_check when server is available."""
