@@ -5,7 +5,6 @@ import time
 from typing import (
   Optional,
   Tuple,
-  List,
   ItemsView,
   Dict,
   cast,
@@ -18,10 +17,10 @@ from v3xctrl_ui.TelemetryParser import TelemetryParser
 from v3xctrl_ui.helpers import (
   calculate_widget_position,
   get_fps,
-  round_corners,
 )
 from v3xctrl_ui.Settings import Settings
 from v3xctrl_ui.WidgetFactory import WidgetFactory
+from v3xctrl_ui.WidgetGroupRenderer import WidgetGroupRenderer
 from v3xctrl_ui.widgets import Widget
 
 
@@ -135,12 +134,18 @@ class OSD:
         # Battery information widget
         settings = cast(Dict[str, Any], self.widget_settings.get('battery', {}))
         widgets: ItemsView[str, Widget] = self.widgets_battery.items()
-        self._render_widget_group(screen, settings, widgets)
+        WidgetGroupRenderer.render_group(
+            screen, widgets, settings, self.widget_settings,
+            lambda name: getattr(self, name)
+        )
 
         # Signal information widget
         settings = cast(Dict[str, Any], self.widget_settings.get('signal', {}))
         widgets: ItemsView[str, Widget] = self.widgets_signal.items()
-        self._render_widget_group(screen, settings, widgets)
+        WidgetGroupRenderer.render_group(
+            screen, widgets, settings, self.widget_settings,
+            lambda name: getattr(self, name)
+        )
 
         # Debug widgets
         settings = self.widget_settings.get('debug', {
@@ -168,51 +173,6 @@ class OSD:
                     )
                     widget.draw(screen, getattr(self, name))
                     height += widget.height + padding
-
-    def _render_widget_group(
-        self,
-        screen: pygame.Surface,
-        settings: Dict[str, Any],
-        widgets: ItemsView[str, Widget]
-    ) -> None:
-        if settings.get("display", False):
-            align = settings.get("align", "top-left")
-            offset = settings.get("offset", (0, 0))
-            padding = settings.get("padding", 0)
-
-            width: int = 0
-            height: int = 0
-            visible_widgets: List[Tuple[str, Widget]] = []
-
-            # Calculate width and height for the composed widget
-            for name, widget in widgets:
-                widget_settings = self.widget_settings.get(name, {})
-                display = widget_settings.get("display", True)
-                if display:
-                    width = max(width, widget.width)
-                    height += widget.height + padding
-                    visible_widgets.append((name, widget))
-
-            if height > 0:
-                height -= padding
-
-            # Prepare surface to blit visible widgets to
-            composed = pygame.Surface((width, height), pygame.SRCALPHA)
-
-            height = 0
-            for name, widget in visible_widgets:
-                position = (0, height)
-                widget.position = position
-                widget.draw(composed, getattr(self, name))
-                height += widget.height + padding
-
-            screen_width, screen_height = pygame.display.get_window_size()
-            position = calculate_widget_position(
-                align, composed.get_width(), composed.get_height(),
-                screen_width, screen_height, offset
-            )
-            rounded = round_corners(composed, 4)
-            screen.blit(rounded, position)
 
     def reset(self) -> None:
         self.debug_data = None
