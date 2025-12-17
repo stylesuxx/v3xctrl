@@ -2,11 +2,14 @@
 import unittest
 from unittest.mock import Mock, patch, MagicMock
 
-from v3xctrl_telemetry.Battery import Battery
+from v3xctrl_telemetry.Battery import BatteryTelemetry
+
+# Alias for brevity in tests
+Battery = BatteryTelemetry
 
 
 class TestBattery(unittest.TestCase):
-    """Test Battery class with mocked INA sensor."""
+    """Test BatteryTelemetry class with mocked INA sensor."""
 
     def setUp(self):
         """Set up test fixtures with mocked hardware."""

@@ -2,7 +2,7 @@ from v3xctrl_telemetry import INA
 from v3xctrl_helper import clamp
 
 
-class Battery:
+class BatteryTelemetry:
     def __init__(
         self,
         min_cell_voltage: int = 3500,

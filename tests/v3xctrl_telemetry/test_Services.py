@@ -81,6 +81,42 @@ class TestServiceTelemetry(unittest.TestCase):
         assert state is telemetry.services
         assert isinstance(state, Services)
 
+    def test_get_byte_no_services(self):
+        """Test get_byte() returns 0x00 when no services active."""
+        self.mock_subprocess.call.return_value = 3  # All services inactive
+
+        telemetry = ServiceTelemetry()
+        telemetry.update()
+
+        assert telemetry.get_byte() == 0x00
+
+    def test_get_byte_video_only(self):
+        """Test get_byte() with only v3xctrl_video active (bit 0)."""
+        self.mock_subprocess.call.side_effect = [0, 3]  # video active, debug inactive
+
+        telemetry = ServiceTelemetry()
+        telemetry.update()
+
+        assert telemetry.get_byte() == 0x01  # 0000 0001
+
+    def test_get_byte_debug_only(self):
+        """Test get_byte() with only v3xctrl_debug active (bit 1)."""
+        self.mock_subprocess.call.side_effect = [3, 0]  # video inactive, debug active
+
+        telemetry = ServiceTelemetry()
+        telemetry.update()
+
+        assert telemetry.get_byte() == 0x02  # 0000 0010
+
+    def test_get_byte_both_services(self):
+        """Test get_byte() with both services active."""
+        self.mock_subprocess.call.side_effect = [0, 0]  # Both active
+
+        telemetry = ServiceTelemetry()
+        telemetry.update()
+
+        assert telemetry.get_byte() == 0x03  # 0000 0011
+
 
 if __name__ == '__main__':
     unittest.main()

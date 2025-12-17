@@ -30,3 +30,16 @@ class ServiceTelemetry:
 
     def state(self) -> Services:
         return self.services
+
+    def get_byte(self) -> int:
+        """
+        Pack service states into a single byte.
+        Each service corresponds to a bit in field order:
+        - bit 0: v3xctrl_video
+        - bit 1: v3xctrl_debug
+        """
+        byte = 0
+        for i, field in enumerate(fields(self.services)):
+            if getattr(self.services, field.name):
+                byte |= (1 << i)
+        return byte & 0xFF
