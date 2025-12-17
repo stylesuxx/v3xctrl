@@ -4,8 +4,9 @@ import threading
 import time
 
 # Import the actual Telemetry class and dataclasses
-from src.v3xctrl_control.Telemetry import (
-    Telemetry, SignalInfo, CellInfo, BatteryInfo, TelemetryPayload
+from src.v3xctrl_control.Telemetry import Telemetry
+from src.v3xctrl_telemetry import (
+    SignalInfo, CellInfo, BatteryInfo, TelemetryPayload
 )
 
 
@@ -127,6 +128,21 @@ class TestTelemetry(unittest.TestCase):
         tel._update_services()
         self.assertEqual(tel.payload.svc, 0x01)
 
+    def test_update_services_fail(self):
+        tel = Telemetry.__new__(Telemetry)
+        tel._lock = threading.Lock()
+        tel.payload = TelemetryPayload(
+            sig=SignalInfo(),
+            cell=CellInfo(),
+            loc=MagicMock(),
+            bat=BatteryInfo(),
+            svc=0x03  # Set to non-zero initially
+        )
+        tel._services = MagicMock()
+        tel._services.update.side_effect = Exception("fail")
+        tel._update_services()
+        self.assertEqual(tel.payload.svc, 0)  # Should be reset to 0 on error
+
     def test_update_videocore(self):
         tel = Telemetry.__new__(Telemetry)
         tel._lock = threading.Lock()
@@ -142,6 +158,21 @@ class TestTelemetry(unittest.TestCase):
         tel._videocore.get_byte.return_value = 0x55  # 0101 0101 - current and history flags
         tel._update_videocore()
         self.assertEqual(tel.payload.vc, 0x55)
+
+    def test_update_videocore_fail(self):
+        tel = Telemetry.__new__(Telemetry)
+        tel._lock = threading.Lock()
+        tel.payload = TelemetryPayload(
+            sig=SignalInfo(),
+            cell=CellInfo(),
+            loc=MagicMock(),
+            bat=BatteryInfo(),
+            vc=0x55  # Set to non-zero initially
+        )
+        tel._videocore = MagicMock()
+        tel._videocore.update.side_effect = Exception("fail")
+        tel._update_videocore()
+        self.assertEqual(tel.payload.vc, 0)  # Should be reset to 0 on error
 
     def test_get_telemetry_returns_dict(self):
         tel = Telemetry.__new__(Telemetry)

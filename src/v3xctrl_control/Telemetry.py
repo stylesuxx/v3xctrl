@@ -5,49 +5,22 @@ here.
 The only public interface is the get_telemetry() method.
 """
 from atlib import AIR780EU
-from dataclasses import dataclass, asdict
+from dataclasses import asdict
 import logging
 from typing import Dict, Optional, Any
 import threading
 import time
 
-from v3xctrl_telemetry import BatteryTelemetry, ServiceTelemetry, VideoCoreTelemetry
-
-
-@dataclass
-class SignalInfo:
-    rsrq: int = -1
-    rsrp: int = -1
-
-
-@dataclass
-class CellInfo:
-    id: str = '?'
-    band: str = '?'
-
-
-@dataclass
-class LocationInfo:
-    lat: float = 0.0
-    lng: float = 0.0
-
-
-@dataclass
-class BatteryInfo:
-    vol: int = 0
-    avg: int = 0
-    pct: int = 0
-    wrn: bool = False
-
-
-@dataclass
-class TelemetryPayload:
-    sig: SignalInfo
-    cell: CellInfo
-    loc: LocationInfo
-    bat: BatteryInfo
-    svc: int = 0
-    vc: int = 0
+from v3xctrl_telemetry import (
+    BatteryTelemetry,
+    ServiceTelemetry,
+    VideoCoreTelemetry,
+    SignalInfo,
+    CellInfo,
+    LocationInfo,
+    BatteryInfo,
+    TelemetryPayload
+)
 
 
 class Telemetry(threading.Thread):
@@ -179,6 +152,8 @@ class Telemetry(threading.Thread):
                     self.payload.svc = self._services.get_byte()
             except Exception as e:
                 logging.warning("Failed to update service telemetry: %s", e)
+                with self._lock:
+                    self.payload.svc = 0
 
     def _update_videocore(self) -> None:
         if self._videocore:
@@ -188,6 +163,8 @@ class Telemetry(threading.Thread):
                     self.payload.vc = self._videocore.get_byte()
             except Exception as e:
                 logging.warning("Failed to update VideoCore telemetry: %s", e)
+                with self._lock:
+                    self.payload.vc = 0
 
     def run(self) -> None:
         self._running.set()
