@@ -7,6 +7,7 @@ import pygame
 from unittest.mock import patch
 
 from v3xctrl_ui.osd.WidgetGroupRenderer import WidgetGroupRenderer
+from v3xctrl_ui.osd.WidgetGroup import WidgetGroup
 from v3xctrl_ui.osd.widgets import TextWidget
 
 
@@ -241,6 +242,91 @@ class TestWidgetGroupRenderer(unittest.TestCase):
                 )
 
                 self.assertEqual(mock_round.call_args[0][1], 10)
+
+    def test_render_individual_widgets(self):
+        """Test _render_individual_widgets renders widgets at their individual positions."""
+        widget_settings = {
+            "widget1": {"display": True, "align": "top-left", "offset": (10, 10)},
+            "widget2": {"display": True, "align": "top-right", "offset": (20, 20)},
+            "widget3": {"display": False, "align": "bottom-left", "offset": (0, 0)}
+        }
+
+        with patch('pygame.display.get_window_size', return_value=(800, 600)):
+            with patch('v3xctrl_ui.osd.WidgetGroupRenderer.calculate_widget_position') as mock_calc:
+                mock_calc.side_effect = [(10, 10), (780, 20)]
+
+                WidgetGroupRenderer._render_individual_widgets(
+                    self.screen,
+                    self.widgets,
+                    {},
+                    widget_settings,
+                    self.get_value
+                )
+
+                # Should only position visible widgets (widget1 and widget2)
+                self.assertEqual(mock_calc.call_count, 2)
+                self.assertEqual(self.widget1.position, (10, 10))
+                self.assertEqual(self.widget2.position, (780, 20))
+
+    def test_render_widget_group_composition_mode(self):
+        """Test render_widget_group with composition mode."""
+        widgets = {
+            "widget1": self.widget1,
+            "widget2": self.widget2
+        }
+        widget_settings = {
+            "test_group": {"display": True, "align": "center"},
+            "widget1": {"display": True},
+            "widget2": {"display": True}
+        }
+
+        group = WidgetGroup.create(
+            name="test_group",
+            widgets=widgets,
+            get_value=self.get_value,
+            use_composition=True,
+            corner_radius=6
+        )
+
+        with patch('pygame.display.get_window_size', return_value=(800, 600)):
+            with patch.object(WidgetGroupRenderer, 'render_group') as mock_render:
+                WidgetGroupRenderer.render_widget_group(
+                    self.screen,
+                    group,
+                    widget_settings
+                )
+
+                mock_render.assert_called_once()
+                call_args = mock_render.call_args[0]
+                self.assertEqual(call_args[0], self.screen)
+                self.assertEqual(call_args[5], 6)  # corner_radius
+
+    def test_render_widget_group_individual_mode(self):
+        """Test render_widget_group with individual rendering mode."""
+        widgets = {
+            "widget1": self.widget1
+        }
+        widget_settings = {
+            "test_group": {"display": True},
+            "widget1": {"display": True, "align": "center", "offset": (0, 0)}
+        }
+
+        group = WidgetGroup.create(
+            name="test_group",
+            widgets=widgets,
+            get_value=self.get_value,
+            use_composition=False
+        )
+
+        with patch('pygame.display.get_window_size', return_value=(800, 600)):
+            with patch.object(WidgetGroupRenderer, '_render_individual_widgets') as mock_render:
+                WidgetGroupRenderer.render_widget_group(
+                    self.screen,
+                    group,
+                    widget_settings
+                )
+
+                mock_render.assert_called_once()
 
 
 if __name__ == "__main__":

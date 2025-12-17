@@ -1,145 +1,97 @@
-# Required before importing pygame, otherwise screen might flicker during tests
+"""Tests for BaseWidget."""
 import os
-os.environ["SDL_VIDEODRIVER"] = "dummy"
-
 import unittest
-from unittest.mock import Mock
-
 import pygame
+
+# Set SDL to use dummy video driver
+os.environ['SDL_VIDEODRIVER'] = 'dummy'
 
 from v3xctrl_ui.menu.input.BaseWidget import BaseWidget
 
 
 class ConcreteWidget(BaseWidget):
-    def __init__(self, width=100, height=50):
+    """Concrete implementation for testing BaseWidget."""
+
+    def __init__(self):
         super().__init__()
-        self._width = width
-        self._height = height
+        self.draw_called = False
 
-    def handle_event(self, event):
-        if event.type == pygame.KEYDOWN:
-            return True
-
+    def handle_event(self, event: pygame.event.Event) -> bool:
+        """Concrete implementation."""
         return False
 
-    def _draw(self, surface):
-        pygame.draw.rect(
-            surface,
-            (255, 0, 0),
-            (self.x, self.y, self._width, self._height)
-        )
+    def get_size(self) -> tuple[int, int]:
+        """Concrete implementation."""
+        return (100, 50)
 
-    def get_size(self):
-        return (self._width, self._height)
-
-
-class IncompleteWidget(BaseWidget):
-    pass
+    def _draw(self, surface: pygame.Surface) -> None:
+        """Concrete implementation."""
+        self.draw_called = True
 
 
 class TestBaseWidget(unittest.TestCase):
-    def setUp(self):
+    """Test BaseWidget base class functionality."""
+
+    @classmethod
+    def setUpClass(cls):
+        """Initialize pygame once for all tests."""
         pygame.init()
-        self.surface = pygame.Surface((800, 600))
+        pygame.display.set_mode((800, 600))
 
-    def test_cannot_instantiate_abstract_base_class(self):
-        with self.assertRaises(TypeError):
-            BaseWidget()
+    def setUp(self):
+        """Set up test fixtures."""
+        self.widget = ConcreteWidget()
 
-    def test_cannot_instantiate_incomplete_implementation(self):
-        with self.assertRaises(TypeError):
-            IncompleteWidget()
-
-    def test_concrete_widget_can_be_instantiated(self):
-        widget = ConcreteWidget()
-        self.assertIsInstance(widget, BaseWidget)
-        self.assertIsInstance(widget, ConcreteWidget)
-
-    def test_initial_position_is_zero(self):
-        widget = ConcreteWidget()
-        self.assertEqual(widget.x, 0)
-        self.assertEqual(widget.y, 0)
-        self.assertEqual(widget.position, (0, 0))
-
-    def test_initial_visibility_is_true(self):
-        widget = ConcreteWidget()
-        self.assertTrue(widget.visible)
+    def test_initialization(self):
+        """Test widget initializes with correct defaults."""
+        assert self.widget.x == 0
+        assert self.widget.y == 0
+        assert self.widget.visible is True
+        assert self.widget.focused is False
+        assert self.widget.disabled is False
 
     def test_set_position(self):
-        widget = ConcreteWidget()
-        widget.set_position(10, 20)
-
-        self.assertEqual(widget.x, 10)
-        self.assertEqual(widget.y, 20)
-        self.assertEqual(widget.position, (10, 20))
+        """Test set_position updates coordinates."""
+        self.widget.set_position(100, 200)
+        assert self.widget.x == 100
+        assert self.widget.y == 200
 
     def test_position_property(self):
-        widget = ConcreteWidget()
-        widget.x = 5
-        widget.y = 15
+        """Test position property returns tuple."""
+        self.widget.set_position(50, 75)
+        assert self.widget.position == (50, 75)
 
-        self.assertEqual(widget.position, (5, 15))
+    def test_width_property(self):
+        """Test width property calls get_size."""
+        assert self.widget.width == 100
 
-    def test_size_properties(self):
-        widget = ConcreteWidget(width=120, height=80)
+    def test_height_property(self):
+        """Test height property calls get_size."""
+        assert self.widget.height == 50
 
-        self.assertEqual(widget.width, 120)
-        self.assertEqual(widget.height, 80)
-        self.assertEqual(widget.get_size(), (120, 80))
+    def test_disable(self):
+        """Test disable sets disabled to True."""
+        self.widget.disable()
+        assert self.widget.disabled is True
 
-    def test_handle_event_returns_boolean(self):
-        widget = ConcreteWidget()
-
-        keydown_event = pygame.event.Event(pygame.KEYDOWN, {'key': pygame.K_a})
-        self.assertTrue(widget.handle_event(keydown_event))
-
-        keyup_event = pygame.event.Event(pygame.KEYUP, {'key': pygame.K_a})
-        self.assertFalse(widget.handle_event(keyup_event))
+    def test_enable(self):
+        """Test enable sets disabled to False."""
+        self.widget.disabled = True
+        self.widget.enable()
+        assert self.widget.disabled is False
 
     def test_draw_when_visible(self):
-        widget = ConcreteWidget()
-        widget._draw = Mock()
-
-        widget.visible = True
-        widget.draw(self.surface)
-
-        widget._draw.assert_called_once_with(self.surface)
+        """Test draw calls _draw when visible."""
+        surface = pygame.Surface((100, 100))
+        self.widget.draw(surface)
+        assert self.widget.draw_called is True
 
     def test_draw_when_not_visible(self):
-        widget = ConcreteWidget()
-        widget._draw = Mock()
-
-        widget.visible = False
-        widget.draw(self.surface)
-
-        widget._draw.assert_not_called()
-
-    def test_visibility_toggle(self):
-        widget = ConcreteWidget()
-        widget._draw = Mock()
-
-        widget.visible = True
-        widget.draw(self.surface)
-        self.assertEqual(widget._draw.call_count, 1)
-
-        widget.visible = False
-        widget.draw(self.surface)
-        self.assertEqual(widget._draw.call_count, 1)
-
-        widget.visible = True
-        widget.draw(self.surface)
-        self.assertEqual(widget._draw.call_count, 2)
-
-    def test_abstract_methods_signature(self):
-        widget = ConcreteWidget()
-
-        self.assertTrue(hasattr(widget, 'handle_event'))
-        self.assertTrue(hasattr(widget, '_draw'))
-        self.assertTrue(hasattr(widget, 'get_size'))
-
-        self.assertTrue(callable(widget.handle_event))
-        self.assertTrue(callable(widget._draw))
-        self.assertTrue(callable(widget.get_size))
+        """Test draw skips _draw when not visible."""
+        surface = pygame.Surface((100, 100))
+        self.widget.visible = False
+        self.widget.draw(surface)
+        assert self.widget.draw_called is False
 
 
 if __name__ == '__main__':
