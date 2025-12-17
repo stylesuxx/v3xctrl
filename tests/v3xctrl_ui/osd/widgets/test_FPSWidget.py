@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pygame
 
-from v3xctrl_ui.widgets.FpsWidget import FpsWidget
+from v3xctrl_ui.osd.widgets.FpsWidget import FpsWidget
 
 
 @patch("pygame.draw.lines")

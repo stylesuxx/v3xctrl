@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 import pygame
 from pygame import Surface, SRCALPHA
 
-from v3xctrl_ui.widgets.BaseIndicatorWidget import BaseIndicatorWidget
+from v3xctrl_ui.osd.widgets.BaseIndicatorWidget import BaseIndicatorWidget
 
 
 class ConcreteIndicatorWidget(BaseIndicatorWidget):
@@ -104,7 +104,7 @@ class TestBaseIndicatorWidget(unittest.TestCase):
         self.assertEqual(widget.color_fn(0.5), (0, 255, 0))
 
     def test_draw_background(self):
-        with patch('v3xctrl_ui.widgets.BaseIndicatorWidget.Surface') as mock_surface_class:
+        with patch('v3xctrl_ui.osd.widgets.BaseIndicatorWidget.Surface') as mock_surface_class:
             mock_surface = MagicMock()
             mock_surface_class.return_value = mock_surface
 
@@ -123,7 +123,7 @@ class TestBaseIndicatorWidget(unittest.TestCase):
             mock_screen.blit.assert_called_once_with(mock_surface, (25, 35))
 
     def test_draw_background_different_alpha(self):
-        with patch('v3xctrl_ui.widgets.BaseIndicatorWidget.Surface') as mock_surface_class:
+        with patch('v3xctrl_ui.osd.widgets.BaseIndicatorWidget.Surface') as mock_surface_class:
             mock_surface = MagicMock()
             mock_surface_class.return_value = mock_surface
 
@@ -195,7 +195,7 @@ class TestBaseIndicatorWidget(unittest.TestCase):
         self.assertEqual(widget.height, -5)
 
     def test_zero_alpha_background(self):
-        with patch('v3xctrl_ui.widgets.BaseIndicatorWidget.Surface') as mock_surface_class:
+        with patch('v3xctrl_ui.osd.widgets.BaseIndicatorWidget.Surface') as mock_surface_class:
             mock_surface = MagicMock()
             mock_surface_class.return_value = mock_surface
 
@@ -211,7 +211,7 @@ class TestBaseIndicatorWidget(unittest.TestCase):
             mock_surface.fill.assert_called_once_with((0, 0, 0, 0))
 
     def test_maximum_alpha_background(self):
-        with patch('v3xctrl_ui.widgets.BaseIndicatorWidget.Surface') as mock_surface_class:
+        with patch('v3xctrl_ui.osd.widgets.BaseIndicatorWidget.Surface') as mock_surface_class:
             mock_surface = MagicMock()
             mock_surface_class.return_value = mock_surface
 

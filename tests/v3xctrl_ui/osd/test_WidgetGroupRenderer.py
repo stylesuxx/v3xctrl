@@ -7,7 +7,7 @@ import pygame
 from unittest.mock import patch
 
 from v3xctrl_ui.osd.WidgetGroupRenderer import WidgetGroupRenderer
-from v3xctrl_ui.widgets import TextWidget
+from v3xctrl_ui.osd.widgets import TextWidget
 
 
 class TestWidgetGroupRenderer(unittest.TestCase):

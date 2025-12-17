@@ -2,7 +2,7 @@
 from typing import Dict, Any, List, Tuple, ItemsView, Callable
 import pygame
 from v3xctrl_ui.utils.helpers import calculate_widget_position, round_corners
-from v3xctrl_ui.widgets import Widget
+from v3xctrl_ui.osd.widgets import Widget
 
 
 class WidgetGroupRenderer:

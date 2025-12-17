@@ -8,7 +8,7 @@ from pygame import Surface
 from v3xctrl_ui.utils.colors import WHITE, GREEN
 from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT
 from v3xctrl_ui.utils.helpers import round_corners
-from v3xctrl_ui.widgets.Widget import Widget
+from v3xctrl_ui.osd.widgets.Widget import Widget
 
 
 class FpsWidget(Widget):

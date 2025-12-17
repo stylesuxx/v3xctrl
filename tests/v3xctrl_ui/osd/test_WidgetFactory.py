@@ -6,7 +6,7 @@ import unittest
 import pygame
 
 from v3xctrl_ui.osd.WidgetFactory import WidgetFactory
-from v3xctrl_ui.widgets import (
+from v3xctrl_ui.osd.widgets import (
     BatteryIconWidget,
     FpsWidget,
     HorizontalIndicatorWidget,

@@ -6,7 +6,7 @@ import unittest
 
 import pygame
 
-from v3xctrl_ui.widgets.SignalQualityWidget import SignalQualityWidget, SignalQuality
+from v3xctrl_ui.osd.widgets.SignalQualityWidget import SignalQualityWidget, SignalQuality
 
 
 class TestSignalQualityWidget(unittest.TestCase):

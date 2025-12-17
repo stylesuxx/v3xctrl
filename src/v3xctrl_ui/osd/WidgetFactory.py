@@ -5,7 +5,7 @@ from v3xctrl_ui.utils.helpers import (
     interpolate_steering_color,
     interpolate_throttle_color,
 )
-from v3xctrl_ui.widgets import (
+from v3xctrl_ui.osd.widgets import (
     Widget,
     BatteryIconWidget,
     Alignment,

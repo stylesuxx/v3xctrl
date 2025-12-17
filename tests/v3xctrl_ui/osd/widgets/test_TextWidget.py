@@ -7,7 +7,7 @@ import unittest
 import pygame
 
 from v3xctrl_ui.utils.colors import WHITE, GREY
-from v3xctrl_ui.widgets import TextWidget
+from v3xctrl_ui.osd.widgets import TextWidget
 
 
 class TestTextWidget(unittest.TestCase):
@@ -52,7 +52,7 @@ class TestTextWidget(unittest.TestCase):
         self.assertNotEqual(self.widget.surface.get_at((expected_x + 1, expected_y + 1)).a, 0)
 
     def test_set_alignment(self):
-        from v3xctrl_ui.widgets.TextWidget import Alignment
+        from v3xctrl_ui.osd.widgets.TextWidget import Alignment
 
         self.widget.set_alignment(Alignment.LEFT)
         self.assertEqual(self.widget.alignment, Alignment.LEFT)
@@ -69,7 +69,7 @@ class TestTextWidget(unittest.TestCase):
         self.assertEqual(self.widget.color, new_color)
 
     def test_left_alignment(self):
-        from v3xctrl_ui.widgets.TextWidget import Alignment
+        from v3xctrl_ui.osd.widgets.TextWidget import Alignment
 
         self.widget.set_alignment(Alignment.LEFT)
         self.widget.draw(self.screen, "Left")
@@ -90,7 +90,7 @@ class TestTextWidget(unittest.TestCase):
         self.assertNotEqual(self.widget.surface.get_at((expected_x + 1, self.widget.top_padding + 1)).a, 0)
 
     def test_right_alignment(self):
-        from v3xctrl_ui.widgets.TextWidget import Alignment
+        from v3xctrl_ui.osd.widgets.TextWidget import Alignment
 
         self.widget.set_alignment(Alignment.RIGHT)
 
@@ -124,7 +124,7 @@ class TestTextWidget(unittest.TestCase):
         self.assertEqual(widget.right_padding, 12)
 
     def test_alignment_enum_values(self):
-        from v3xctrl_ui.widgets.TextWidget import Alignment
+        from v3xctrl_ui.osd.widgets.TextWidget import Alignment
 
         self.assertEqual(Alignment.LEFT.value, "left")
         self.assertEqual(Alignment.RIGHT.value, "right")

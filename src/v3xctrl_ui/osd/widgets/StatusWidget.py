@@ -5,7 +5,7 @@ from pygame import Surface, Rect, SRCALPHA, draw
 from v3xctrl_ui.utils.colors import WHITE, GREEN, RED, YELLOW, GREY
 from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT
 from v3xctrl_ui.utils.helpers import round_corners
-from v3xctrl_ui.widgets.Widget import Widget
+from v3xctrl_ui.osd.widgets.Widget import Widget
 
 
 class StatusWidget(Widget):

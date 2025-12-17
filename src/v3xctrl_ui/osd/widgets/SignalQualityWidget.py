@@ -12,7 +12,7 @@ from v3xctrl_ui.utils.colors import (
   ORANGE,
   GREY,
 )
-from v3xctrl_ui.widgets.Widget import Widget
+from v3xctrl_ui.osd.widgets.Widget import Widget
 from v3xctrl_ui.utils.helpers import get_icon
 
 

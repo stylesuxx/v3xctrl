@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pygame
 
-from v3xctrl_ui.widgets import VerticalIndicatorWidget
+from v3xctrl_ui.osd.widgets import VerticalIndicatorWidget
 
 
 @patch("pygame.draw.rect")

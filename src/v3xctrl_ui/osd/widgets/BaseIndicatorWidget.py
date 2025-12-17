@@ -3,7 +3,7 @@ from typing import Callable, Tuple, Optional
 
 from pygame import Surface, SRCALPHA
 
-from v3xctrl_ui.widgets.Widget import Widget
+from v3xctrl_ui.osd.widgets.Widget import Widget
 
 
 class BaseIndicatorWidget(Widget):
