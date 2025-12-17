@@ -25,7 +25,7 @@ class VideoCoreTelemetry:
 
         try:
             value = int(out.split("=", 1)[1], 16)
-        except Exception:
+        except (ValueError, IndexError):
             raise RuntimeError(f"Unexpected vcgencmd output: {out}")
 
         # Current flags (bits 0–3)
