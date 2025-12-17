@@ -36,9 +36,12 @@ truncate -s +2G "$IMG_WORK"
 parted -s "$IMG_WORK" resizepart 2 100%
 LOOP_DEV=$(losetup -fP --show "$IMG_WORK")
 partprobe "$LOOP_DEV"
+blockdev --rereadpt "$LOOP_DEV"
+sleep 5
 udevadm settle
 e2fsck -fy "${LOOP_DEV}p2"
 resize2fs "${LOOP_DEV}p2"
+e2fsck -fy "${LOOP_DEV}p2"
 losetup -d "$LOOP_DEV"
 
 echo "[HOST] Adding third partition to prevent root expansion on first boot"
@@ -48,6 +51,10 @@ parted -s "$IMG_WORK" -- mkpart primary ext4 -8MiB 100%
 echo "[HOST] Reattaching loop device after partitioning"
 losetup -d "$LOOP_DEV" || echo "[WARN  ] Loop device already detached"
 LOOP_DEV=$(losetup -fP --show "$IMG_WORK")
+partprobe "$LOOP_DEV"
+blockdev --rereadpt "$LOOP_DEV"
+sleep 5
+udevadm settle
 
 echo "[HOST] Formatting /data partition"
 mkfs.ext4 "${LOOP_DEV}p3"
@@ -79,7 +86,8 @@ echo "[HOST] Copying qemu-aarch64-static for chroot emulation"
 cp /usr/bin/qemu-aarch64-static "$MOUNT_DIR/usr/bin/"
 
 echo "[HOST] Copying .deb files into image"
-cp "$DEB_DIR"/*.deb "$MOUNT_DIR/tmp/"
+cp "$DEB_DIR"/v3xctrl-python.deb "$MOUNT_DIR/tmp/"
+cp "$DEB_DIR"/v3xctrl.deb "$MOUNT_DIR/tmp/"
 
 echo "[HOST] Entering chroot to install packages and configure serial login"
 cp "./build/chroot/customize-image.sh" "${MOUNT_DIR}"
@@ -161,6 +169,7 @@ fi
 echo "[HOST] Cleaning up and unmounting"
 rm -r "$MOUNT_DIR/var/log/journal"
 
+sync
 umount "$MOUNT_DIR/boot"
 umount "$MOUNT_DIR/data"
 umount "$MOUNT_DIR/dev/pts"
