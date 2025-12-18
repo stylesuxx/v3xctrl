@@ -63,18 +63,12 @@ e2fsck -fy "${LOOP_DEV}p2"
 losetup -d "$LOOP_DEV"
 
 echo "[HOST] Adding third partition to prevent root expansion on first boot"
-truncate -s +8M "$IMG_WORK"
-parted -s "$IMG_WORK" -- mkpart primary ext4 -8MiB 100%
+truncate -s +32MiB "$IMG_WORK"
+parted -s "$IMG_WORK" -- mkpart primary ext4 -32MiB 100%
 sync
 
-echo "[HOST] Detaching loop device to ensure partition table is written"
-losetup -d "$LOOP_DEV" || echo "[WARN  ] Loop device already detached"
-
-echo "[HOST] Reattaching loop device after partitioning"
-LOOP_DEV=$(losetup -fP --show "$IMG_WORK")
-partprobe "$LOOP_DEV"
-blockdev --rereadpt "$LOOP_DEV" || true
-sleep 5
+echo "[HOST] Updating kernel partition table"
+partx -u "$LOOP_DEV"
 udevadm settle
 
 echo "[HOST] Verifying partition exists before formatting"
@@ -83,15 +77,9 @@ if [ ! -b "${LOOP_DEV}p3" ]; then
   exit 1
 fi
 
-echo "[HOST] Formatting /data partition with small size for resize test"
-mkfs.ext4 -F "${LOOP_DEV}p3" 4M
+echo "[HOST] Formatting /data partition at full partition size"
+mkfs.ext4 -F "${LOOP_DEV}p3"
 e2fsck -fy "${LOOP_DEV}p3"
-
-echo "[HOST] Testing partition resize to detect potential firstboot issues"
-echo "[HOST] Growing filesystem to partition size (simulates what firstboot will do)"
-resize2fs "${LOOP_DEV}p3"
-e2fsck -fy "${LOOP_DEV}p3"
-echo "[HOST] Test resize completed successfully"
 
 echo "[HOST] Checking and mounting partitions"
 for i in 1 2 3; do
