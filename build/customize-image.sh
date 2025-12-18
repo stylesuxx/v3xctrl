@@ -36,7 +36,7 @@ truncate -s +2G "$IMG_WORK"
 parted -s "$IMG_WORK" resizepart 2 100%
 LOOP_DEV=$(losetup -fP --show "$IMG_WORK")
 partprobe "$LOOP_DEV"
-blockdev --rereadpt "$LOOP_DEV"
+blockdev --rereadpt "$LOOP_DEV" || true
 sleep 5
 udevadm settle
 e2fsck -fy "${LOOP_DEV}p2"
@@ -52,7 +52,7 @@ echo "[HOST] Reattaching loop device after partitioning"
 losetup -d "$LOOP_DEV" || echo "[WARN  ] Loop device already detached"
 LOOP_DEV=$(losetup -fP --show "$IMG_WORK")
 partprobe "$LOOP_DEV"
-blockdev --rereadpt "$LOOP_DEV"
+blockdev --rereadpt "$LOOP_DEV" || true
 sleep 5
 udevadm settle
 

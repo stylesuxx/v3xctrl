@@ -26,8 +26,7 @@ parted -s /dev/mmcblk0 resizepart 3 100%
 
 echo "[v3xctrl-firstboot] Probing partitions..."
 partprobe /dev/mmcblk0
-blockdev --rereadpt /dev/mmcblk0
-sleep 3
+sleep 5
 udevadm settle
 
 echo "[v3xctrl-firstboot] Forcing filesystem check on $PART..."
