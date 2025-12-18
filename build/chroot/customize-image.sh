@@ -41,12 +41,5 @@ echo -e "${USER}\n${USER}" | smbpasswd -a -s "${USER}"
 smbpasswd -e "${USER}"
 systemctl disable smbd
 
-echo '[CHROOT] Creating gstreamer plugin registry...'
-export GST_PLUGIN_PATH=/usr/lib/aarch64-linux-gnu/gstreamer-1.0
-export GST_REGISTRY=/var/cache/gstreamer-1.0/registry.aarch64.bin
-mkdir -p /var/cache/gstreamer-1.0
-gst-inspect-1.0 libcamerasrc > /dev/null 2>&1
-
 echo '[CHROOT] Fixing file permissions'
 chown -R $USER:$USER '/data/recordings'
-chown -R $USER:$USER /var/cache/gstreamer-1.0

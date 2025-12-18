@@ -8,8 +8,7 @@ StartLimitBurst=3
 
 [Service]
 Environment="GST_PLUGIN_PATH=/usr/lib/aarch64-linux-gnu/gstreamer-1.0"
-Environment="GST_REGISTRY=/var/cache/gstreamer-1.0/registry.aarch64.bin"
-Environment="GST_REGISTRY_UPDATE=no"
+Environment="GST_REGISTRY=/data/.cache/gstreamer-1.0/registry.aarch64.bin"
 ExecStart=/usr/bin/v3xctrl-video
 Restart=on-failure
 Type=simple
