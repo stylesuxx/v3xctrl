@@ -89,11 +89,13 @@ echo "[HOST] Copying .deb files into image"
 cp "$DEB_DIR"/v3xctrl-python.deb "$MOUNT_DIR/tmp/"
 cp "$DEB_DIR"/v3xctrl.deb "$MOUNT_DIR/tmp/"
 
+### CHROOT START ###
 echo "[HOST] Entering chroot to install packages and configure serial login"
 cp "./build/chroot/customize-image.sh" "${MOUNT_DIR}"
 chmod +x "${MOUNT_DIR}/customize-image.sh"
 chroot "$MOUNT_DIR" "/customize-image.sh"
 rm "${MOUNT_DIR}/customize-image.sh"
+### CHROOT END   ###
 
 echo "[HOST] Adjust SSH welcome message"
 if grep -qE '^\s*PrintLastLog' "$SSHD_CONFIG"; then
