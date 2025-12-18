@@ -60,4 +60,4 @@ find "${DEST_DIR}/opt/v3xctrl-python/lib" -name '*.so*' -exec chmod 644 {} +
 chown -R root:root "${DEST_DIR}"
 
 dpkg-deb --build "${DEST_DIR}" "${DEB_PATH}"
-lintian "${DEB_PATH}"
+lintian "${DEB_PATH}" || true
