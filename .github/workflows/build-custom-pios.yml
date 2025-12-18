@@ -8,6 +8,10 @@ on:
         required: true
         default: 'master'
 
+env:
+  PIOS_IMAGE_URL: https://downloads.raspberrypi.com/raspios_lite_arm64/images/raspios_lite_arm64-2025-10-02/2025-10-01-raspios-trixie-arm64-lite.img.xz
+  PIOS_IMAGE_FILENAME: raspios-arm64-lite.img.xz
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -30,22 +34,21 @@ jobs:
       id: cache-pios
       uses: actions/cache@v4
       with:
-        path: image/raspios-bullseye-arm64-lite.img.xz
-        key: raspios-bullseye-arm64-lite
+        path: image/${{ env.PIOS_IMAGE_FILENAME }}
+        key: ${{ env.PIOS_IMAGE_FILENAME }}
 
     - name: Download PiOS image if cache miss
       if: steps.cache-pios.outputs.cache-hit != 'true'
       run: |
         mkdir -p image
-        wget -O image/raspios-bullseye-arm64-lite.img.xz \
-          https://downloads.raspberrypi.com/raspios_lite_arm64/images/raspios_lite_arm64-2023-05-03/2023-05-03-raspios-bullseye-arm64-lite.img.xz
+        wget -O image/${{ env.PIOS_IMAGE_FILENAME }} ${{ env.PIOS_IMAGE_URL }}
 
     - name: Save PiOS image to cache
       if: steps.cache-pios.outputs.cache-hit != 'true'
       uses: actions/cache/save@v4
       with:
-        path: image/raspios-bullseye-arm64-lite.img.xz
-        key: raspios-bullseye-arm64-lite
+        path: image/${{ env.PIOS_IMAGE_FILENAME }}
+        key: ${{ env.PIOS_IMAGE_FILENAME }}
 
     - name: Download .deb files from latest release
       env:
@@ -70,7 +73,7 @@ jobs:
 
     - name: Customize PiOS image
       run: |
-        sudo ./build/customize-image.sh mnt image/raspios-bullseye-arm64-lite.img.xz debs image/v3xctrl-raspios.img.xz
+        sudo ./build/customize-image.sh mnt image/${{ env.PIOS_IMAGE_FILENAME }} debs image/v3xctrl-raspios.img.xz
 
     - name: Upload final image
       uses: actions/upload-artifact@v4

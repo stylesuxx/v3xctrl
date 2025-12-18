@@ -14,10 +14,12 @@ while [[ "$#" -gt 0 ]]; do
   shift
 done
 
-# Fix locale only if not already configured
-if ! locale -a | grep -q "^${LOCALE}$"; then
-  echo '[CHROOT] Fixing locale'
-  echo "$LOCALE UTF-8" >> /etc/locale.gen
+# Ensure locale is configured and generated only once
+if [ ! -f "/usr/lib/locale/locale-archive" ]; then
+  # First time setup: add locale to config and generate
+  if ! grep -q "^${LOCALE} UTF-8$" /etc/locale.gen 2>/dev/null; then
+    echo "$LOCALE UTF-8" >> /etc/locale.gen
+  fi
   locale-gen
   echo "LANG=$LOCALE" > /etc/default/locale
   update-locale LANG=$LOCALE
