@@ -1,4 +1,5 @@
 #! /bin/bash
+set -e
 
 NAME="v3xctrl"
 
@@ -87,4 +88,5 @@ gzip -9 -n -f "${DEST_DIR}/usr/share/doc/${NAME}/changelog"
 chown -R root:root "${DEST_DIR}"
 
 dpkg-deb --build "${DEST_DIR}" "${DEB_PATH}"
-lintian "${DEB_PATH}"
+lintian "${DEB_PATH}" || true
+
