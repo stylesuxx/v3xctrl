@@ -30,9 +30,9 @@ cd /src
 
 if [ "$SKIP_DEPS" = false ]; then
   echo '[CHROOT] Updating OS and Installing dependencies'
-  apt update
-  apt upgrade -y
-  apt install -y \
+  apt-get update
+  apt-get upgrade -y
+  apt-get install -y \
     build-essential \
     curl \
     ca-certificates \
@@ -61,7 +61,7 @@ fi
 if ! dpkg -s v3xctrl-python >/dev/null 2>&1; then
   echo '[CHROOT] Building Python'
   ./build/build-python.sh /src
-  apt install -y ./build/tmp/v3xctrl-python.deb
+  apt-get install -y ./build/tmp/v3xctrl-python.deb
 fi
 
 echo '[CHROOT] Building v3xctrl'

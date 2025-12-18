@@ -78,7 +78,7 @@ jobs:
     - name: Upload final image
       uses: actions/upload-artifact@v4
       with:
-        name: custom-raspios-image
+        name: v3xctrl-raspios
         path: image/v3xctrl-raspios.img.xz
 
   call-cleanup:
