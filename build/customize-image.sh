@@ -6,15 +6,33 @@ if [[ $EUID -ne 0 ]]; then
   exit 1
 fi
 
-USER="v3xctrl"
+# Accept arguments: MOUNT_DIR INPUT_IMG DEB_DIR OUTPUT_IMG
+# If not provided, use defaults for local builds
+MOUNT_DIR_ARG="${1:-}"
+INPUT_IMG="${2:-}"
+DEB_DIR_ARG="${3:-}"
+OUTPUT_IMG="${4:-}"
 
-TMP_DIR="./build/tmp"
+USER="v3xctrl"
 CONF_DIR="./build/configs"
-MOUNT_DIR="${TMP_DIR}/mnt-image"
-DEB_DIR="${TMP_DIR}/dependencies/debs"
-IMG="${TMP_DIR}/dependencies/raspios.img.xz"
-IMG_WORK="${TMP_DIR}/v3xctrl.img"
-INITRD="${TMP_DIR}/initrd.img"
+
+# Use provided arguments or defaults
+if [ -n "$MOUNT_DIR_ARG" ]; then
+  MOUNT_DIR="$MOUNT_DIR_ARG"
+  IMG="$INPUT_IMG"
+  DEB_DIR="$DEB_DIR_ARG"
+  IMG_WORK="${OUTPUT_IMG%.xz}"
+else
+  # Default paths for local builds
+  TMP_DIR="./build/tmp"
+  MOUNT_DIR="${TMP_DIR}/mnt-image"
+  DEB_DIR="${TMP_DIR}/dependencies/debs"
+  IMG="${TMP_DIR}/dependencies/raspios.img.xz"
+  IMG_WORK="${TMP_DIR}/v3xctrl.img"
+  OUTPUT_IMG="${IMG_WORK}.xz"
+fi
+
+INITRD="${TMP_DIR:-./build/tmp}/initrd.img"
 SSHD_CONFIG="${MOUNT_DIR}/etc/ssh/sshd_config"
 MOTD_CONFIG="${MOUNT_DIR}/etc/motd"
 JOURNALD_CONF="${MOUNT_DIR}/etc/systemd/journald.conf"
@@ -184,4 +202,4 @@ losetup -d "$LOOP_DEV"
 echo "[HOST] Compressing modified image"
 xz -T0 -f "$IMG_WORK"
 
-echo "[HOST] Done - flashable image: ${IMG_WORK}.xz"
+echo "[HOST] Done - flashable image: ${OUTPUT_IMG}"
