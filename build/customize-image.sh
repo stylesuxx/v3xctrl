@@ -57,18 +57,20 @@ partprobe "$LOOP_DEV"
 blockdev --rereadpt "$LOOP_DEV" || true
 sleep 5
 udevadm settle
+
+# Make sure fs is clean before and after resizing
 e2fsck -fy "${LOOP_DEV}p2"
 resize2fs "${LOOP_DEV}p2"
 e2fsck -fy "${LOOP_DEV}p2"
-losetup -d "$LOOP_DEV"
 
 echo "[HOST] Adding third partition to prevent root expansion on first boot"
+losetup -d "$LOOP_DEV"
 truncate -s +32MiB "$IMG_WORK"
 parted -s "$IMG_WORK" -- mkpart primary ext4 -32MiB 100%
-sync
-
-echo "[HOST] Updating kernel partition table"
-partx -u "$LOOP_DEV"
+LOOP_DEV=$(losetup -fP --show "$IMG_WORK")
+partprobe "$LOOP_DEV"
+blockdev --rereadpt "$LOOP_DEV" || true
+sleep 5
 udevadm settle
 
 echo "[HOST] Verifying partition exists before formatting"
