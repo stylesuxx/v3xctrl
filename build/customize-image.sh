@@ -202,6 +202,11 @@ for d in $MOUNT_BIND_DIRS; do
   umount "$MOUNT_DIR/$d"
 done
 umount "$MOUNT_DIR"
+
+echo "[HOST] Final filesystem check on all partitions"
+e2fsck -fy "${LOOP_DEV}p2"
+e2fsck -fy "${LOOP_DEV}p3"
+
 losetup -d "$LOOP_DEV"
 
 echo "[HOST] Compressing modified image"
