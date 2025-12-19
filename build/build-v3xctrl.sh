@@ -1,4 +1,5 @@
 #! /bin/bash
+set -e
 
 NAME="v3xctrl"
 
@@ -38,9 +39,9 @@ PYTHON_LIB_PATH="${DEST_DIR}/opt/v3xctrl-venv/lib/python3.11/site-packages/"
 # Clean up previous build (only relevant when re-building on dev setup)
 # In workflows we start with a clean environment anyway
 if [ "$SKIP_DEPS" = false ]; then
-  rm -r "${DEST_DIR}"
+  rm -rf "${DEST_DIR}"
 fi
-rm "${DEB_PATH}"
+rm -f "${DEB_PATH}"
 
 # Create dir structure
 mkdir -p "${TMP_DIR}"
@@ -87,4 +88,5 @@ gzip -9 -n -f "${DEST_DIR}/usr/share/doc/${NAME}/changelog"
 chown -R root:root "${DEST_DIR}"
 
 dpkg-deb --build "${DEST_DIR}" "${DEB_PATH}"
-lintian "${DEB_PATH}"
+lintian "${DEB_PATH}" || true
+

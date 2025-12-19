@@ -10,24 +10,24 @@ curl -L https://kernel.googlesource.com/pub/scm/linux/kernel/git/sforshee/wirele
 curl -L https://kernel.googlesource.com/pub/scm/linux/kernel/git/sforshee/wireless-regdb/+/refs/heads/master/regulatory.db.p7s\?format=TEXT | base64 -d | tee /lib/firmware/regulatory.db.p7s > /dev/null
 
 echo '[CHROOT] Updating system...'
-apt update
-apt upgrade -y
-apt dist-upgrade -y
+apt-get update
+apt-get upgrade -y
+apt-get dist-upgrade -y
 
 echo '[CHROOT] Installing nice to haves...'
 export DEBIAN_FRONTEND=noninteractive
-apt install -y locales-all git iperf3 nload minicom mtr
+apt-get install -y locales-all git iperf3 nload minicom mtr
 
 echo '[CHROOT] Removing bloat...'
-apt remove --purge -y cloud-init
-apt autoremove -y
+apt-get remove --purge -y cloud-init
+apt-get autoremove -y
 
 echo '[CHROOT] Fixing locale'
 locale-gen $LOCALE
 update-locale LANG="$LOCALE"
 
 echo '[CHROOT] Installing dependencies...'
-apt install -y /tmp/*.deb
+apt-get install -y /tmp/*.deb
 
 rm -f /tmp/*.deb
 apt-get clean
@@ -41,4 +41,5 @@ echo -e "${USER}\n${USER}" | smbpasswd -a -s "${USER}"
 smbpasswd -e "${USER}"
 systemctl disable smbd
 
-chown $USER:$USER '/data/recordings'
+echo '[CHROOT] Fixing file permissions'
+chown -R $USER:$USER '/data/recordings'

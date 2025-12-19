@@ -14,31 +14,54 @@ while [[ "$#" -gt 0 ]]; do
   shift
 done
 
+# Ensure locale is configured and generated only once
+if [ ! -f "/usr/lib/locale/locale-archive" ]; then
+  # First time setup: add locale to config and generate
+  if ! grep -q "^${LOCALE} UTF-8$" /etc/locale.gen 2>/dev/null; then
+    echo "$LOCALE UTF-8" >> /etc/locale.gen
+  fi
+  locale-gen
+  echo "LANG=$LOCALE" > /etc/default/locale
+  update-locale LANG=$LOCALE
+fi
+
 # Change to working directory
 cd /src
 
 if [ "$SKIP_DEPS" = false ]; then
   echo '[CHROOT] Updating OS and Installing dependencies'
-  apt update
-  apt upgrade -y
-  apt install -y \
-    curl build-essential libssl-dev libbz2-dev libsqlite3-dev ca-certificates \
-    liblzma-dev libreadline-dev libffi-dev libgdbm-dev libgdbm-compat-dev \
-    libdb-dev uuid-dev zlib1g-dev libncursesw5-dev tk-dev \
-    libctypes-ocaml-dev libcurses-ocaml-dev dphys-swapfile lintian
+  apt-get update
+  apt-get upgrade -y
+  apt-get install -y \
+    build-essential \
+    curl \
+    ca-certificates \
+    dphys-swapfile \
+    libbz2-dev \
+    libcairo2-dev \
+    libctypes-ocaml-dev \
+    libcurses-ocaml-dev \
+    libdb-dev \
+    libffi-dev \
+    libgdbm-dev \
+    libgdbm-compat-dev \
+    libgirepository1.0-dev \
+    liblzma-dev \
+    libncursesw5-dev \
+    libreadline-dev \
+    libsqlite3-dev \
+    libssl-dev \
+    lintian \
+    tk-dev \
+    uuid-dev \
+    zlib1g-dev
 fi
 
 # Build v3xctrl-python only if it does not exist yet
 if ! dpkg -s v3xctrl-python >/dev/null 2>&1; then
-  echo '[CHROOT] Fixing locale'
-  echo "$LOCALE UTF-8" >> /etc/locale.gen
-  locale-gen
-  echo "LANG=$LOCALE" > /etc/default/locale
-  update-locale LANG=$LOCALE
-
   echo '[CHROOT] Building Python'
   ./build/build-python.sh /src
-  apt install -y ./build/tmp/v3xctrl-python.deb
+  apt-get install -y ./build/tmp/v3xctrl-python.deb
 fi
 
 echo '[CHROOT] Building v3xctrl'

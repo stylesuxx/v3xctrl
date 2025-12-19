@@ -1,10 +1,12 @@
-FROM arm64v8/debian:bullseye
+FROM arm64v8/debian:trixie
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install base tools and deps for package build
 RUN apt-get update
 RUN apt-get install -y \
+  libcairo2-dev \
+  libgirepository1.0-dev \
   lintian \
   ca-certificates
 
