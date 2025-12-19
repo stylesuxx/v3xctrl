@@ -56,6 +56,8 @@ class TestStreamerTab(unittest.TestCase):
         self.assertIn(self.tab.recording_start_button, self.tab.elements)
         self.assertIn(self.tab.video_stop_button, self.tab.elements)
         self.assertIn(self.tab.video_start_button, self.tab.elements)
+        self.assertIn(self.tab.shell_stop_button, self.tab.elements)
+        self.assertIn(self.tab.shell_start_button, self.tab.elements)
         self.assertIn(self.tab.shutdown_button, self.tab.elements)
         self.assertIn(self.tab.restart_button, self.tab.elements)
 
@@ -130,7 +132,7 @@ class TestStreamerTab(unittest.TestCase):
         self.assertEqual(sent_command.command, "shutdown")
 
     def test_restart_action(self):
-        """Test shutdown button functionality"""
+        """Test restart button functionality"""
         self.tab._on_restart()
 
         self.assertTrue(self.tab.disabled)
@@ -142,6 +144,72 @@ class TestStreamerTab(unittest.TestCase):
         sent_command = call_args[0][0]
 
         self.assertEqual(sent_command.command, "restart")
+
+    def test_start_recording_action(self):
+        """Test start recording button functionality"""
+        self.tab._on_start_recording()
+
+        self.assertTrue(self.tab.disabled)
+        self.mock_on_active_toggle.assert_called_once_with(True)
+
+        self.mock_send_command.assert_called_once()
+
+        call_args = self.mock_send_command.call_args
+        sent_command = call_args[0][0]
+
+        self.assertEqual(sent_command.command, "recording")
+        self.assertEqual(sent_command.parameters, {"action": "start"})
+
+    def test_stop_recording_action(self):
+        """Test stop recording button functionality"""
+        self.tab._on_stop_recording()
+
+        self.assertTrue(self.tab.disabled)
+        self.mock_on_active_toggle.assert_called_once_with(True)
+
+        self.mock_send_command.assert_called_once()
+
+        call_args = self.mock_send_command.call_args
+        sent_command = call_args[0][0]
+
+        self.assertEqual(sent_command.command, "recording")
+        self.assertEqual(sent_command.parameters, {"action": "stop"})
+
+    def test_start_shell_action(self):
+        """Test start reverse shell button functionality"""
+        self.tab._on_start_shell()
+
+        self.assertTrue(self.tab.disabled)
+        self.mock_on_active_toggle.assert_called_once_with(True)
+
+        self.mock_send_command.assert_called_once()
+
+        call_args = self.mock_send_command.call_args
+        sent_command = call_args[0][0]
+
+        self.assertEqual(sent_command.command, "service")
+        self.assertEqual(sent_command.parameters, {
+            "action": "start",
+            "name": "v3xctrl-reverse-shell",
+        })
+
+    def test_stop_shell_action(self):
+        """Test stop reverse shell button functionality"""
+        self.tab._on_stop_shell()
+
+        self.assertTrue(self.tab.disabled)
+        self.mock_on_active_toggle.assert_called_once_with(True)
+
+        self.mock_send_command.assert_called_once()
+
+        call_args = self.mock_send_command.call_args
+        sent_command = call_args[0][0]
+
+        self.assertEqual(sent_command.command, "service")
+        self.assertEqual(sent_command.parameters, {
+            "action": "stop",
+            "name": "v3xctrl-reverse-shell",
+        })
 
     def test_shutdown_disables_elements(self):
         """Test that shutdown disables all UI elements"""

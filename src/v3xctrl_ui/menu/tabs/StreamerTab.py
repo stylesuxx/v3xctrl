@@ -112,6 +112,8 @@ class StreamerTab(Tab):
         for element in self.elements_col_2:
             self.col_2_layout.add(element)
 
+        self.elements = self.elements_col_1 + self.elements_col_2
+
     def draw(self, surface: Surface) -> None:
         _ = self._draw_actions_section(surface, 0)
 
