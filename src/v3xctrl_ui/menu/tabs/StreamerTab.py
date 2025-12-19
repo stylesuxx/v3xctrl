@@ -5,10 +5,13 @@ from pygame import Surface
 
 from v3xctrl_control.message import Command
 
-from v3xctrl_ui.fonts import LABEL_FONT
+from v3xctrl_ui.utils.fonts import LABEL_FONT
+from v3xctrl_ui.utils.i18n import t
 from v3xctrl_ui.menu.input import Button
-from v3xctrl_ui.menu.tabs.Tab import Tab
-from v3xctrl_ui.Settings import Settings
+from v3xctrl_ui.utils.Settings import Settings
+
+from .Tab import Tab
+from .VerticalLayout import VerticalLayout
 
 
 class StreamerTab(Tab):
@@ -31,39 +34,39 @@ class StreamerTab(Tab):
         self.button_width = 200
 
         self.video_stop_button = Button(
-            "Stop Video",
+            t("Stop Video"),
             font=LABEL_FONT,
             callback=self._on_stop_video,
             width=self.button_width
         )
         self.video_start_button = Button(
-            "Start Video",
+            t("Start Video"),
             font=LABEL_FONT,
             callback=self._on_start_video,
             width=self.button_width
         )
 
         self.recording_stop_button = Button(
-            "Stop Recording",
+            t("Stop Recording"),
             font=LABEL_FONT,
             callback=self._on_stop_recording,
             width=self.button_width
         )
         self.recording_start_button = Button(
-            "Start Recording",
+            t("Start Recording"),
             font=LABEL_FONT,
             callback=self._on_start_recording,
             width=self.button_width
         )
 
         self.shutdown_button = Button(
-            "Shutdown",
+            t("Shutdown"),
             font=LABEL_FONT,
             callback=self._on_shutdown,
             width=self.button_width
         )
         self.restart_button = Button(
-            "Restart",
+            t("Restart"),
             font=LABEL_FONT,
             callback=self._on_restart,
             width=self.button_width
@@ -83,20 +86,33 @@ class StreamerTab(Tab):
             width=self.button_width
         )
 
-        self.elements.append(self.video_stop_button)
-        self.elements.append(self.video_start_button)
+        self.elements_col_1 = [
+            self.video_start_button,
+            self.recording_start_button,
+            self.shell_start_button,
+            self.shutdown_button,
+        ]
 
-        self.elements.append(self.recording_stop_button)
-        self.elements.append(self.recording_start_button)
-
-        self.elements.append(self.shutdown_button)
-        self.elements.append(self.restart_button)
-        self.elements.append(self.shell_stop_button)
-        self.elements.append(self.shell_start_button)
+        self.elements_col_2 = [
+            self.video_stop_button,
+            self.recording_stop_button,
+            self.shell_stop_button,
+            self.restart_button,
+        ]
 
         self.headline_surfaces = {
-            "actions": self._create_headline("Actions")
+            "actions": self._create_headline(t("Actions"))
         }
+
+        self.col_1_layout = VerticalLayout()
+        for element in self.elements_col_1:
+            self.col_1_layout.add(element)
+
+        self.col_2_layout = VerticalLayout(self.padding * 2 + self.button_width)
+        for element in self.elements_col_2:
+            self.col_2_layout.add(element)
+
+        self.elements = self.elements_col_1 + self.elements_col_2
 
     def draw(self, surface: Surface) -> None:
         _ = self._draw_actions_section(surface, 0)
@@ -174,47 +190,5 @@ class StreamerTab(Tab):
         y += self.y_offset + self.padding
         y += self._draw_headline(surface, "actions", y)
 
-        self.video_start_button.set_position(self.padding, y)
-        self.video_start_button.draw(surface)
-
-        self.video_stop_button.set_position(
-            self.padding * 2 + self.video_start_button.width,
-            y
-        )
-        self.video_stop_button.draw(surface)
-        y += self.video_stop_button.get_size()[1]
-
-        y += self.padding
-        self.recording_start_button.set_position(self.padding, y)
-        self.recording_start_button.draw(surface)
-
-        self.recording_stop_button.set_position(
-            self.padding * 2 + self.recording_start_button.width,
-            y
-        )
-        self.recording_stop_button.draw(surface)
-        y += self.video_stop_button.get_size()[1]
-
-        y += self.padding
-        self.shell_start_button.set_position(self.padding, y)
-        self.shell_start_button.draw(surface)
-
-        self.shell_stop_button.set_position(
-            self.padding * 2 + self.shell_stop_button.width,
-            y
-        )
-        self.shell_stop_button.draw(surface)
-        y += self.shell_stop_button.get_size()[1]
-
-        y += self.padding
-        self.shutdown_button.set_position(self.padding, y)
-        self.shutdown_button.draw(surface)
-
-        self.restart_button.set_position(
-            self.padding * 2 + self.shutdown_button.width,
-            y
-        )
-        self.restart_button.draw(surface)
-        y += self.video_stop_button.get_size()[1]
-
-        return y
+        _ = self.col_1_layout.draw(surface, y)
+        return self.col_2_layout.draw(surface, y)

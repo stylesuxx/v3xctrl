@@ -9,7 +9,7 @@ from unittest.mock import Mock, call, mock_open, patch
 import av
 import numpy as np
 
-from v3xctrl_ui.VideoReceiverPyAV import VideoReceiverPyAV
+from v3xctrl_ui.network.VideoReceiverPyAV import VideoReceiverPyAV
 
 
 class TestVideoReceiverPyAVInit(unittest.TestCase):

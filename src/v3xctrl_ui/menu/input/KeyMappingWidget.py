@@ -5,7 +5,7 @@ from pygame import Surface
 from pygame.freetype import Font
 
 from v3xctrl_ui.menu.input import Button, BaseWidget
-from v3xctrl_ui.colors import WHITE
+from v3xctrl_ui.utils.colors import WHITE
 
 
 class KeyMappingWidget(BaseWidget):

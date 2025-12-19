@@ -2,7 +2,8 @@ from typing import Dict, List, Any
 
 from pygame import Surface
 
-from v3xctrl_ui.fonts import LABEL_FONT, MONO_FONT
+from v3xctrl_ui.utils.fonts import LABEL_FONT, MONO_FONT
+from v3xctrl_ui.utils.i18n import t
 from v3xctrl_ui.menu.input import (
   BaseInput,
   BaseWidget,
@@ -10,10 +11,11 @@ from v3xctrl_ui.menu.input import (
   NumberInput,
   TextInput
 )
-from v3xctrl_ui.Settings import Settings
+from v3xctrl_ui.utils.Settings import Settings
 from v3xctrl_helper import is_int
 
 from .Tab import Tab
+from .VerticalLayout import VerticalLayout
 
 
 class NetworkTab(Tab):
@@ -33,12 +35,12 @@ class NetworkTab(Tab):
 
         # Port widgets
         self.video_input = NumberInput(
-            "Video", label_width=90, input_width=75, min_val=1, max_val=65535,
+            t("Video"), label_width=90, input_width=75, min_val=1, max_val=65535,
             font=LABEL_FONT, mono_font=MONO_FONT,
             on_change=lambda value: self._on_port_change("video", value)
         )
         self.control_input = NumberInput(
-            "Control", label_width=90, input_width=75, min_val=1, max_val=65535,
+            t("Control"), label_width=90, input_width=75, min_val=1, max_val=65535,
             font=LABEL_FONT, mono_font=MONO_FONT,
             on_change=lambda value: self._on_port_change("control", value)
         )
@@ -47,17 +49,17 @@ class NetworkTab(Tab):
 
         # Relay server widgets
         self.relay_server_input = TextInput(
-            label="Server", label_width=90, input_width=350,
+            label=t("Server"), label_width=90, input_width=350,
             font=LABEL_FONT, mono_font=MONO_FONT,
             on_change=self._on_relay_server_change
         )
         self.relay_id_input = TextInput(
-            label="ID", label_width=90, input_width=350,
+            label=t("ID"), label_width=90, input_width=350,
             font=LABEL_FONT, mono_font=MONO_FONT,
             on_change=self._on_relay_id_change
         )
         self.relay_enabled_checkbox = Checkbox(
-            label="Use UDP Relay", font=LABEL_FONT,
+            label=t("Use UDP Relay"), font=LABEL_FONT,
             checked=self.relay.get("enabled", False),
             on_change=self._on_relay_enable_change
         )
@@ -66,7 +68,7 @@ class NetworkTab(Tab):
 
         # Miscellanious widgets
         self.udp_packet_ttl_input = NumberInput(
-            "UDP packet TTL", label_width=180, input_width=75, min_val=1, max_val=5000,
+            t("UDP packet TTL"), label_width=180, input_width=75, min_val=1, max_val=5000,
             font=LABEL_FONT, mono_font=MONO_FONT,
             on_change=lambda value: self._on_udp_packet_ttl_change(value)
         )
@@ -88,10 +90,22 @@ class NetworkTab(Tab):
         self.elements = self.port_widgets + self.relay_widgets + self.misc_widgets
 
         self.headline_surfaces = {
-            "ports": self._create_headline("Ports"),
-            "udp_relay": self._create_headline("UDP Relay", True),
-            "misc": self._create_headline("Miscellaneous", True),
+            "ports": self._create_headline(t("Ports")),
+            "udp_relay": self._create_headline(t("UDP Relay"), True),
+            "misc": self._create_headline(t("Miscellaneous"), True),
         }
+
+        self.port_layout = VerticalLayout()
+        for element in self.port_widgets:
+            self.port_layout.add(element)
+
+        self.relay_layout = VerticalLayout()
+        for element in self.relay_widgets:
+            self.relay_layout.add(element)
+
+        self.misc_layout = VerticalLayout()
+        for element in self.misc_widgets:
+            self.misc_layout.add(element)
 
     def draw(self, surface: Surface) -> None:
         y = self._draw_port_section(surface, 0)
@@ -127,40 +141,16 @@ class NetworkTab(Tab):
         y += self.y_offset + self.padding
         y += self._draw_headline(surface, "ports", y)
 
-        self.video_input.set_position(self.padding, y)
-        self.video_input.draw(surface)
-        y += self.video_input.height + self.y_element_padding
-
-        self.control_input.set_position(self.padding, y)
-        self.control_input.draw(surface)
-        y += self.control_input.height + self.y_element_padding
-
-        return y
+        return self.port_layout.draw(surface, y)
 
     def _draw_relay_section(self, surface: Surface, y: int) -> int:
         y += self.y_section_padding
         y += self._draw_headline(surface, "udp_relay", y)
 
-        self.relay_server_input.set_position(self.padding, y)
-        self.relay_server_input.draw(surface)
-        y += self.relay_server_input.height + self.y_element_padding
-
-        self.relay_id_input.set_position(self.padding, y)
-        self.relay_id_input.draw(surface)
-        y += self.relay_id_input.height + self.y_element_padding
-
-        self.relay_enabled_checkbox.set_position(self.padding, y)
-        self.relay_enabled_checkbox.draw(surface)
-        y += self.relay_enabled_checkbox.height + self.y_element_padding
-
-        return y
+        return self.relay_layout.draw(surface, y)
 
     def _draw_misc_section(self, surface: Surface, y: int) -> int:
         y += self.y_section_padding
         y += self._draw_headline(surface, "misc", y)
 
-        self.udp_packet_ttl_input.set_position(self.padding, y)
-        self.udp_packet_ttl_input.draw(surface)
-        y += self.udp_packet_ttl_input.height + self.y_element_padding
-
-        return y
+        return self.misc_layout.draw(surface, y)

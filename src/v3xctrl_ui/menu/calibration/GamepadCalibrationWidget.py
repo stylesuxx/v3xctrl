@@ -3,8 +3,8 @@ from pygame import Surface
 from pygame.freetype import Font
 from typing import Callable, Dict, Optional
 
-from v3xctrl_ui.colors import WHITE, GREY
-from v3xctrl_ui.GamepadManager import GamepadManager
+from v3xctrl_ui.utils.colors import WHITE, GREY
+from v3xctrl_ui.controllers.input.GamepadController import GamepadController
 
 from v3xctrl_ui.menu.calibration.GamepadCalibrator import (
   GamepadCalibrator,
@@ -31,7 +31,7 @@ class GamepadCalibrationWidget(BaseWidget):
     def __init__(
         self,
         font: Font,
-        manager: GamepadManager,
+        manager: GamepadController,
         on_calibration_start: Callable[[], None] = lambda: None,
         on_calibration_done: Callable[[], None] = lambda: None,
     ) -> None:

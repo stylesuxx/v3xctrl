@@ -13,7 +13,7 @@ class TestMenu(unittest.TestCase):
         self.mock_gamepad_manager = MagicMock()
         self.mock_settings = MagicMock()
         self.mock_callback = MagicMock()
-        self.mock_server = MagicMock()
+        self.mock_invoke_command = MagicMock()
         self.mock_callback_quit = MagicMock()
 
     def _setup_mocks(self, mock_button_class, mock_pygame):
@@ -45,8 +45,8 @@ class TestMenu(unittest.TestCase):
             height=600,
             gamepad_manager=self.mock_gamepad_manager,
             settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
             callback=self.mock_callback,
-            server=self.mock_server,
             callback_quit=self.mock_callback_quit
         )
 
@@ -69,8 +69,8 @@ class TestMenu(unittest.TestCase):
             height=600,
             gamepad_manager=self.mock_gamepad_manager,
             settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
             callback=self.mock_callback,
-            server=self.mock_server,
             callback_quit=self.mock_callback_quit
         )
 
@@ -93,8 +93,8 @@ class TestMenu(unittest.TestCase):
             height=600,
             gamepad_manager=self.mock_gamepad_manager,
             settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
             callback=self.mock_callback,
-            server=self.mock_server,
             callback_quit=self.mock_callback_quit
         )
 
@@ -110,8 +110,8 @@ class TestMenu(unittest.TestCase):
             height=600,
             gamepad_manager=self.mock_gamepad_manager,
             settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
             callback=self.mock_callback,
-            server=self.mock_server,
             callback_quit=self.mock_callback_quit
         )
 
@@ -134,8 +134,8 @@ class TestMenu(unittest.TestCase):
             height=600,
             gamepad_manager=self.mock_gamepad_manager,
             settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
             callback=self.mock_callback,
-            server=self.mock_server,
             callback_quit=self.mock_callback_quit
         )
 
@@ -153,8 +153,8 @@ class TestMenu(unittest.TestCase):
             height=600,
             gamepad_manager=self.mock_gamepad_manager,
             settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
             callback=self.mock_callback,
-            server=self.mock_server,
             callback_quit=self.mock_callback_quit
         )
 
@@ -169,8 +169,8 @@ class TestMenu(unittest.TestCase):
             height=600,
             gamepad_manager=self.mock_gamepad_manager,
             settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
             callback=self.mock_callback,
-            server=self.mock_server,
             callback_quit=self.mock_callback_quit
         )
 
@@ -187,8 +187,8 @@ class TestMenu(unittest.TestCase):
             height=600,
             gamepad_manager=self.mock_gamepad_manager,
             settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
             callback=self.mock_callback,
-            server=self.mock_server,
             callback_quit=self.mock_callback_quit
         )
 
@@ -205,8 +205,8 @@ class TestMenu(unittest.TestCase):
             height=600,
             gamepad_manager=self.mock_gamepad_manager,
             settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
             callback=self.mock_callback,
-            server=self.mock_server,
             callback_quit=self.mock_callback_quit
         )
 
@@ -214,10 +214,10 @@ class TestMenu(unittest.TestCase):
         mock_callback = MagicMock()
 
         menu._on_send_command(mock_command, mock_callback)
-        self.mock_server.send_command.assert_called_once()
+        self.mock_invoke_command.assert_called_once()
 
-    @patch("src.v3xctrl_ui.menu.Menu.logging")
-    def test_on_send_command_without_server(self, mock_logging, mock_button_class, mock_pygame):
+    def test_on_send_command_callback_wrapper(self, mock_button_class, mock_pygame):
+        """Test that _on_send_command wraps the callback correctly."""
         self._setup_mocks(mock_button_class, mock_pygame)
 
         menu = Menu(
@@ -225,8 +225,8 @@ class TestMenu(unittest.TestCase):
             height=600,
             gamepad_manager=self.mock_gamepad_manager,
             settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
             callback=self.mock_callback,
-            server=None,
             callback_quit=self.mock_callback_quit
         )
 
@@ -235,7 +235,12 @@ class TestMenu(unittest.TestCase):
 
         menu._on_send_command(mock_command, mock_callback)
 
-        mock_logging.error.assert_called_once()
+        # Verify invoke_command was called with command and wrapped callback
+        self.mock_invoke_command.assert_called_once()
+        args = self.mock_invoke_command.call_args[0]
+        self.assertEqual(args[0], mock_command)
+        # Second argument should be the wrapped callback
+        self.assertTrue(callable(args[1]))
 
     def test_handle_event_button_events(self, mock_button_class, mock_pygame):
         self._setup_mocks(mock_button_class, mock_pygame)
@@ -245,8 +250,8 @@ class TestMenu(unittest.TestCase):
             height=600,
             gamepad_manager=self.mock_gamepad_manager,
             settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
             callback=self.mock_callback,
-            server=self.mock_server,
             callback_quit=self.mock_callback_quit
         )
 
@@ -264,8 +269,8 @@ class TestMenu(unittest.TestCase):
             height=600,
             gamepad_manager=self.mock_gamepad_manager,
             settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
             callback=self.mock_callback,
-            server=self.mock_server,
             callback_quit=self.mock_callback_quit
         )
 
@@ -300,8 +305,8 @@ class TestMenu(unittest.TestCase):
             height=600,
             gamepad_manager=self.mock_gamepad_manager,
             settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
             callback=self.mock_callback,
-            server=self.mock_server,
             callback_quit=self.mock_callback_quit
         )
 
@@ -330,8 +335,8 @@ class TestMenu(unittest.TestCase):
             height=600,
             gamepad_manager=self.mock_gamepad_manager,
             settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
             callback=self.mock_callback,
-            server=self.mock_server,
             callback_quit=self.mock_callback_quit
         )
 
@@ -353,8 +358,8 @@ class TestMenu(unittest.TestCase):
             height=600,
             gamepad_manager=self.mock_gamepad_manager,
             settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
             callback=self.mock_callback,
-            server=self.mock_server,
             callback_quit=self.mock_callback_quit
         )
 
@@ -380,8 +385,8 @@ class TestMenu(unittest.TestCase):
             height=600,
             gamepad_manager=self.mock_gamepad_manager,
             settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
             callback=self.mock_callback,
-            server=self.mock_server,
             callback_quit=self.mock_callback_quit
         )
 
@@ -404,8 +409,8 @@ class TestMenu(unittest.TestCase):
             height=600,
             gamepad_manager=self.mock_gamepad_manager,
             settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
             callback=self.mock_callback,
-            server=self.mock_server,
             callback_quit=self.mock_callback_quit
         )
 
@@ -426,8 +431,8 @@ class TestMenu(unittest.TestCase):
             height=600,
             gamepad_manager=self.mock_gamepad_manager,
             settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
             callback=self.mock_callback,
-            server=self.mock_server,
             callback_quit=self.mock_callback_quit
         )
 
@@ -447,8 +452,8 @@ class TestMenu(unittest.TestCase):
             height=600,
             gamepad_manager=self.mock_gamepad_manager,
             settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
             callback=self.mock_callback,
-            server=self.mock_server,
             callback_quit=self.mock_callback_quit
         )
 
@@ -466,8 +471,8 @@ class TestMenu(unittest.TestCase):
             height=600,
             gamepad_manager=self.mock_gamepad_manager,
             settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
             callback=self.mock_callback,
-            server=self.mock_server,
             callback_quit=self.mock_callback_quit
         )
 
@@ -482,8 +487,8 @@ class TestMenu(unittest.TestCase):
             height=600,
             gamepad_manager=self.mock_gamepad_manager,
             settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
             callback=self.mock_callback,
-            server=self.mock_server,
             callback_quit=self.mock_callback_quit
         )
 
@@ -501,8 +506,8 @@ class TestMenu(unittest.TestCase):
             height=600,
             gamepad_manager=self.mock_gamepad_manager,
             settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
             callback=self.mock_callback,
-            server=self.mock_server,
             callback_quit=self.mock_callback_quit
         )
 
@@ -518,8 +523,8 @@ class TestMenu(unittest.TestCase):
             height=600,
             gamepad_manager=self.mock_gamepad_manager,
             settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
             callback=self.mock_callback,
-            server=self.mock_server,
             callback_quit=self.mock_callback_quit
         )
 
@@ -539,8 +544,8 @@ class TestMenu(unittest.TestCase):
             height=600,
             gamepad_manager=self.mock_gamepad_manager,
             settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
             callback=self.mock_callback,
-            server=self.mock_server,
             callback_quit=self.mock_callback_quit
         )
 

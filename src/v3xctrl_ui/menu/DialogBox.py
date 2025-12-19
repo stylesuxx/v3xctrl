@@ -5,7 +5,7 @@ from pygame import Surface
 from pygame.freetype import SysFont, STYLE_STRONG
 
 from v3xctrl_ui.menu.input import Button, BaseWidget
-from v3xctrl_ui.colors import (
+from v3xctrl_ui.utils.colors import (
   TRANSPARENT_BLACK,
   WHITE,
   DARK_GREY,

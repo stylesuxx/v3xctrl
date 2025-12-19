@@ -3,16 +3,18 @@ from typing import Dict, List, Any
 from pygame import Surface
 
 from v3xctrl_helper import is_int
-from v3xctrl_ui.fonts import LABEL_FONT, MONO_FONT
+from v3xctrl_ui.utils.fonts import LABEL_FONT, MONO_FONT
+from v3xctrl_ui.utils.i18n import t
 from v3xctrl_ui.menu.input import (
   BaseInput,
   BaseWidget,
   Checkbox,
   NumberInput,
 )
-from v3xctrl_ui.Settings import Settings
+from v3xctrl_ui.utils.Settings import Settings
 
 from .Tab import Tab
+from .VerticalLayout import VerticalLayout
 
 
 class GeneralTab(Tab):
@@ -31,19 +33,19 @@ class GeneralTab(Tab):
 
         # General widgets
         self.fullscreen_enabled_checkbox = Checkbox(
-            label="Fullscreen", font=LABEL_FONT,
+            label=t("Fullscreen"), font=LABEL_FONT,
             checked=self.video.get("fullscreen", False),
             on_change=self._on_fullscreen_enable_change
         )
 
         self.show_connection_info_checkbox = Checkbox(
-            label="Show connection info", font=LABEL_FONT,
+            label=t("Show connection info"), font=LABEL_FONT,
             checked=self.show_connection_info,
             on_change=self._on_show_connection_info_change
         )
 
         self.render_ratio_input = NumberInput(
-            "Render Ratio", label_width=120, input_width=75,
+            t("Render Ratio"), label_width=120, input_width=75,
             min_val=0, max_val=100,
             font=LABEL_FONT, mono_font=MONO_FONT,
             on_change=lambda value: self._on_render_ratio_change(value)
@@ -59,8 +61,12 @@ class GeneralTab(Tab):
         self.elements = self.general_widgets
 
         self.headline_surfaces = {
-            "settings": self._create_headline("Settings")
+            "settings": self._create_headline(t("Settings"))
         }
+
+        self.general_layout = VerticalLayout()
+        for element in self.elements:
+            self.general_layout.add(element)
 
     def draw(self, surface: Surface) -> None:
         _ = self._draw_general_section(surface, 0)
@@ -85,16 +91,4 @@ class GeneralTab(Tab):
         y += self.y_offset + self.padding
         y += self._draw_headline(surface, "settings", y)
 
-        self.fullscreen_enabled_checkbox.set_position(self.padding, y)
-        self.fullscreen_enabled_checkbox.draw(surface)
-        y += self.fullscreen_enabled_checkbox.height + self.y_element_padding
-
-        self.show_connection_info_checkbox.set_position(self.padding, y)
-        self.show_connection_info_checkbox.draw(surface)
-        y += self.show_connection_info_checkbox.height + self.y_element_padding
-
-        self.render_ratio_input.set_position(self.padding, y)
-        self.render_ratio_input.draw(surface)
-        y += self.render_ratio_input.height + self.y_element_padding
-
-        return y
+        return self.general_layout.draw(surface, y)

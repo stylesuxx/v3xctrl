@@ -4,9 +4,9 @@ import pygame
 from pygame import Rect, Surface
 from pygame.freetype import Font
 
-from v3xctrl_ui.helpers import render_text_full_height
+from v3xctrl_ui.utils.helpers import render_text_full_height
 from v3xctrl_ui.menu.input.BaseWidget import BaseWidget
-from v3xctrl_ui.colors import (
+from v3xctrl_ui.utils.colors import (
     CHARCOAL,
     DARK_GREY,
     GREY,

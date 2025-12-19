@@ -1,4 +1,4 @@
-from v3xctrl_ui.helpers import interpolate_throttle_color
+from v3xctrl_ui.utils.helpers import interpolate_throttle_color
 
 
 def test_interpolate_throttle_color():

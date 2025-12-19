@@ -2,9 +2,9 @@ import argparse
 from datetime import datetime
 import logging
 
-from v3xctrl_ui.Init import Init
-from v3xctrl_ui.AppState import AppState
-from v3xctrl_ui.MemoryTracker import MemoryTracker
+from v3xctrl_ui.core.AppState import AppState
+from v3xctrl_ui.utils.MemoryTracker import MemoryTracker
+from v3xctrl_ui.utils.Settings import Settings
 
 parser = argparse.ArgumentParser(description="RC Streamer")
 parser.add_argument(
@@ -51,10 +51,11 @@ if args.mem_profile:
     mem_tracker.start()
 
 # Load settings from file, otherwise use default values if file not available
-settings = Init.settings("settings.toml")
+settings = Settings("settings.toml")
+settings.save()
 state = AppState(settings)
 
-while state.running:
+while state.model.running:
     if not state.handle_events():
         break
 
