@@ -12,15 +12,15 @@ curl -L https://kernel.googlesource.com/pub/scm/linux/kernel/git/sforshee/wirele
 echo '[CHROOT] Updating system...'
 apt-get update
 apt-get upgrade -y
-apt-get dist-upgrade -y
 
 echo '[CHROOT] Installing nice to haves...'
-export DEBIAN_FRONTEND=noninteractive
-apt-get install -y locales-all git iperf3 nload minicom mtr
-
-echo '[CHROOT] Removing bloat...'
-apt-get remove --purge -y cloud-init
-apt-get autoremove -y
+apt-get install -y \
+  locales-all \
+  git \
+  iperf3 \
+  minicom \
+  mtr \
+  nload
 
 echo '[CHROOT] Fixing locale'
 locale-gen $LOCALE
@@ -29,7 +29,9 @@ update-locale LANG="$LOCALE"
 echo '[CHROOT] Installing dependencies...'
 apt-get install -y /tmp/*.deb
 
+echo '[CHROOT] Removing bloat...'
 rm -f /tmp/*.deb
+apt-get autoremove -y
 apt-get clean
 
 echo '[CHROOT] Enabling firstboot service...'
@@ -40,6 +42,10 @@ usermod -s /bin/bash "${USER}"
 echo -e "${USER}\n${USER}" | smbpasswd -a -s "${USER}"
 smbpasswd -e "${USER}"
 systemctl disable smbd
+
+echo '[CHROOT] Setting default hostname...'
+echo "v3xctrl" > /etc/hostname
+sed -i 's/127.0.1.1.*/127.0.1.1\tv3xctrl/' /etc/hosts
 
 echo '[CHROOT] Fixing file permissions'
 chown -R $USER:$USER '/data/recordings'

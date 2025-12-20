@@ -53,14 +53,14 @@ mkdir -p "${TARGET}/config"
 mkdir -p "${TARGET}/.cache"
 chmod a+rw "${TARGET}/.cache"
 
-echo "[v3xctrl-firstboot] Disable swap file..."
+echo "[v3xctrl-firstboot] Disabling swap file..."
 sudo mkdir -p /etc/rpi/swap.conf.d/
 sudo tee /etc/rpi/swap.conf.d/zram-only.conf > /dev/null << 'EOF'
 [Main]
 Mechanism=zram
 EOF
 
-echo "[v3xctrl-firstboot] Copy config files to persistent storage"
+echo "[v3xctrl-firstboot] Copying config files to persistent storage..."
 if [ -f "/etc/v3xctrl/config.json" ]; then
   cp "/etc/v3xctrl/config.json" "${TARGET}/config/config.json"
   chown v3xctrl:v3xctrl "${TARGET}/config/config.json"
@@ -96,5 +96,6 @@ rm -f /boot/firmware/firstboot.sh
 echo "[v3xctrl-firstboot] Removing firstboot warning..."
 rm -f "/etc/profile.d/10_v3xctrl-motd-firstboot.sh"
 
-echo "[v3xctrl-firstboot] First boot setup complete."
+echo "[v3xctrl-firstboot] First boot setup complete, rebooting..."
+sync
 reboot
