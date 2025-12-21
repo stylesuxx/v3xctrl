@@ -14,6 +14,7 @@ DEB_DIR_ARG="${3:-}"
 OUTPUT_IMG="${4:-}"
 
 USER="v3xctrl"
+NAME="v3xctrl"
 CONF_DIR="./build/configs"
 
 # Use provided arguments or defaults
@@ -142,6 +143,10 @@ echo "[HOST] Updating journald for persistent storage..."
 if grep -Eq '^\s*#?\s*Storage=' "$JOURNALD_CONF"; then
   sed -i -E 's|^\s*#?\s*Storage=.*|Storage=persistent|' "$JOURNALD_CONF"
 fi
+
+echo '[HOST] Setting default hostname...'
+echo $NAME > "$MOUNT_DIR/etc/hostname"
+sed -i 's/127.0.1.1.*/127.0.1.1\tv3xctrl/' "$MOUNT_DIR/etc/hosts"
 
 echo "[HOST] Setting boot variables..."
 if grep -q '^#*enable_uart=' "$MOUNT_DIR/boot/config.txt"; then

@@ -1,8 +1,6 @@
 [Unit]
 Description=Run first boot script if present
-After=boot-firmware.mount
-Before=multi-user.target
-RequiresMountsFor=/boot/firmware
+After=cloud-init.target boot-firmware.mount
 ConditionPathExists=/boot/firmware/firstboot.sh
 
 [Service]
@@ -12,7 +10,6 @@ RemainAfterExit=true
 StandardOutput=journal+console
 StandardError=journal+console
 TimeoutStartSec=0
-JobTimeoutSec=0
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=cloud-init.target

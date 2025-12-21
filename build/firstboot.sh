@@ -71,8 +71,8 @@ fi
 echo "[v3xctrl-firstboot] Enabling overlay fs..."
 v3xctrl-remount ro
 
-echo "[v3xctrl-firstboot] Disabling serial console..."
-sed -i 's/console=serial0,115200 //g' /boot/firmware/cmdline.txt
+#echo "[v3xctrl-firstboot] Disabling serial console..."
+#sed -i 's/console=serial0,115200 //g' /boot/firmware/cmdline.txt
 
 echo "[v3xctrl-firstboot] Cleaning up..."
 systemctl disable v3xctrl-firstboot.service

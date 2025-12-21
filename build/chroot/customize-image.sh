@@ -1,4 +1,6 @@
 #!/bin/bash
+# Keep things to be done in chroot to a minimum, preferably do all modifications
+# in the host system - this is more performant.
 set -e
 export DEBIAN_FRONTEND=noninteractive
 
@@ -35,19 +37,15 @@ rm -f /tmp/*.deb
 apt-get autoremove -y
 apt-get clean
 
-echo '[CHROOT] Enabling firstboot service...'
-systemctl enable v3xctrl-firstboot.service
-
+# Samba username is password
 echo '[CHROOT] Setting up Samba...'
 usermod -s /bin/bash "${USER}"
 echo -e "${USER}\n${USER}" | smbpasswd -a -s "${USER}"
 smbpasswd -e "${USER}"
 systemctl disable smbd
 
-echo '[CHROOT] Setting default hostname...'
-echo $NAME > /etc/hostname
-sed -i 's/127.0.1.1.*/127.0.1.1\tv3xctrl/' /etc/hosts
-
+# This needs to be done here since we need the user reference in order to change
+# file permissions.
 echo "[CHROOT] Copying config files to persistent storage..."
 if [ -f "/etc/$NAME/config.json" ]; then
   cp "/etc/$NAME/config.json" "/data/config/config.json"
@@ -57,3 +55,6 @@ fi
 
 echo '[CHROOT] Fixing file permissions'
 chown -R $USER:$USER '/data/recordings'
+
+echo '[CHROOT] Enabling firstboot service...'
+systemctl enable v3xctrl-firstboot.service
