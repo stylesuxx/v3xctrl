@@ -1,8 +1,7 @@
-from v3xctrl_telemetry import ServiceTelemetry
+from v3xctrl_telemetry.ServiceTelemetry import ServiceTelemetry
 
 st = ServiceTelemetry()
 st.update()
 
-state = st.state()
-
+state = st.get_state()
 print(state)

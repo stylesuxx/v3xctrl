@@ -1,4 +1,4 @@
-from v3xctrl_telemetry import INA
+from v3xctrl_telemetry.INA import INA
 
 address = 0x40
 bus = 1
