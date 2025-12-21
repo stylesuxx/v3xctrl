@@ -1,7 +1,8 @@
 from .INA import INA
-from .Battery import BatteryTelemetry
-from .VideoCore import VideoCoreTelemetry, Flags
-from .Services import ServiceTelemetry, Services
+from .BatteryTelemetry import BatteryTelemetry
+from .VideoCoreTelemetry import VideoCoreTelemetry, Flags
+from .ServiceTelemetry import ServiceTelemetry, Services
+from .GstTelemetry import GstTelemetry, Stats
 from .Payload import (
     SignalInfo,
     CellInfo,
@@ -26,4 +27,6 @@ __all__ = [
   'LocationInfo',
   'BatteryInfo',
   'TelemetryPayload',
+  'GstTelemetry',
+  'Stats',
 ]

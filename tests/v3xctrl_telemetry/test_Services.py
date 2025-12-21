@@ -2,7 +2,7 @@
 import unittest
 from unittest.mock import patch
 
-from v3xctrl_telemetry.Services import ServiceTelemetry, Services
+from v3xctrl_telemetry.ServiceTelemetry import ServiceTelemetry, Services
 
 
 class TestServiceTelemetry(unittest.TestCase):
@@ -10,7 +10,7 @@ class TestServiceTelemetry(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.subprocess_patcher = patch('v3xctrl_telemetry.Services.subprocess')
+        self.subprocess_patcher = patch('v3xctrl_telemetry.ServiceTelemetry.subprocess')
         self.mock_subprocess = self.subprocess_patcher.start()
 
     def tearDown(self):

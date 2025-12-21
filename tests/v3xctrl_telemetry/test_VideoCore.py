@@ -2,7 +2,7 @@
 import unittest
 from unittest.mock import patch
 
-from v3xctrl_telemetry.VideoCore import VideoCoreTelemetry, Flags
+from v3xctrl_telemetry.VideoCoreTelemetry import VideoCoreTelemetry, Flags
 
 
 class TestVideoCoreTelemetry(unittest.TestCase):
@@ -10,7 +10,7 @@ class TestVideoCoreTelemetry(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures with mocked subprocess."""
-        self.subprocess_patcher = patch('v3xctrl_telemetry.VideoCore.subprocess')
+        self.subprocess_patcher = patch('v3xctrl_telemetry.VideoCoreTelemetry.subprocess')
         self.mock_subprocess = self.subprocess_patcher.start()
 
     def tearDown(self):

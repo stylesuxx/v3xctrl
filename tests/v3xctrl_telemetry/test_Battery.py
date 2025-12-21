@@ -2,7 +2,7 @@
 import unittest
 from unittest.mock import Mock, patch, MagicMock
 
-from v3xctrl_telemetry.Battery import BatteryTelemetry
+from v3xctrl_telemetry.BatteryTelemetry import BatteryTelemetry
 
 # Alias for brevity in tests
 Battery = BatteryTelemetry
