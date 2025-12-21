@@ -67,7 +67,7 @@ class VideoCoreTelemetry:
     def get_history(self) -> Flags:
         return self.history
 
-    def state(self) -> Dict[str, Flags]:
+    def get_state(self) -> Dict[str, Flags]:
         return {
             'current': self.current,
             'history': self.history,

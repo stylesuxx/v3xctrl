@@ -72,11 +72,11 @@ class TestServiceTelemetry(unittest.TestCase):
         assert "v3xctrl-video.service" in called_services
         assert "v3xctrl-debug.service" in called_services
 
-    def test_state_returns_services_object(self):
-        """Test state() returns the services dataclass."""
+    def test_get_state_returns_services_object(self):
+        """Test get_state() returns the services dataclass."""
         telemetry = ServiceTelemetry()
 
-        state = telemetry.state()
+        state = telemetry.get_state()
 
         assert state is telemetry.services
         assert isinstance(state, Services)

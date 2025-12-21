@@ -1,6 +1,6 @@
 """Tests for Battery monitoring."""
 import unittest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import patch, MagicMock
 
 from v3xctrl_telemetry.BatteryTelemetry import BatteryTelemetry
 
@@ -36,13 +36,14 @@ class TestBattery(unittest.TestCase):
         self._mock_voltage(12000)  # 12V for cell count detection
 
         battery = Battery()
+        state = battery.get_state()
 
         assert battery.min_cell_voltage == 3500
         assert battery.max_cell_voltage == 4200
         assert battery.warn_cell_voltage == 3700
-        assert battery.voltage == 0
-        assert battery.percentage == 100
-        assert battery.warning is False
+        assert state.voltage == 0
+        assert state.percentage == 100
+        assert state.warning is False
 
     def test_initialization_custom_values(self):
         """Test Battery initializes with custom voltage thresholds."""
@@ -64,7 +65,7 @@ class TestBattery(unittest.TestCase):
 
         battery = Battery()
 
-        assert battery.cell_count == 1
+        assert battery.get_state().cell_count == 1
 
     def test_cell_count_detection_2s(self):
         """Test cell count detection for 2S battery (~8V)."""
@@ -72,7 +73,7 @@ class TestBattery(unittest.TestCase):
 
         battery = Battery()
 
-        assert battery.cell_count == 2
+        assert battery.get_state().cell_count == 2
 
     def test_cell_count_detection_3s(self):
         """Test cell count detection for 3S battery (~12V)."""
@@ -80,7 +81,7 @@ class TestBattery(unittest.TestCase):
 
         battery = Battery()
 
-        assert battery.cell_count == 3
+        assert battery.get_state().cell_count == 3
 
     def test_cell_count_detection_4s(self):
         """Test cell count detection for 4S battery (~16V)."""
@@ -88,7 +89,7 @@ class TestBattery(unittest.TestCase):
 
         battery = Battery()
 
-        assert battery.cell_count == 4
+        assert battery.get_state().cell_count == 4
 
     def test_cell_count_minimum_is_one(self):
         """Test cell count never goes below 1 (prevents division by zero)."""
@@ -96,7 +97,7 @@ class TestBattery(unittest.TestCase):
 
         battery = Battery()
 
-        assert battery.cell_count >= 1
+        assert battery.get_state().cell_count >= 1
 
     def test_update_reads_voltage(self):
         """Test update() reads current voltage from sensor."""
@@ -106,56 +107,56 @@ class TestBattery(unittest.TestCase):
         self._mock_voltage(11400)  # Change voltage
         battery.update()
 
-        assert battery.voltage == 11400
+        assert battery.get_state().voltage == 11400
 
     def test_update_calculates_average_voltage(self):
         """Test update() calculates average cell voltage."""
         self._mock_voltage(12000)
         battery = Battery()
-        assert battery.cell_count == 3
+        assert battery.get_state().cell_count == 3
 
         self._mock_voltage(11700)
         battery.update()
 
         # 11700 / 3 = 3900
-        assert battery.average_voltage == 3900
+        assert battery.get_state().average_voltage == 3900
 
     def test_percentage_calculation_full_battery(self):
         """Test percentage calculation for fully charged battery."""
         self._mock_voltage(12000)
         battery = Battery(min_cell_voltage=3500, max_cell_voltage=4200)
-        assert battery.cell_count == 3
+        assert battery.get_state().cell_count == 3
 
         # 3S fully charged: 3 * 4200 = 12600mV
         self._mock_voltage(12600)
         battery.update()
 
-        assert battery.percentage == 100
+        assert battery.get_state().percentage == 100
 
     def test_percentage_calculation_empty_battery(self):
         """Test percentage calculation for empty battery."""
         self._mock_voltage(12000)
         battery = Battery(min_cell_voltage=3500, max_cell_voltage=4200)
-        assert battery.cell_count == 3
+        assert battery.get_state().cell_count == 3
 
         # 3S empty: 3 * 3500 = 10500mV
         self._mock_voltage(10500)
         battery.update()
 
-        assert battery.percentage == 0
+        assert battery.get_state().percentage == 0
 
     def test_percentage_calculation_mid_battery(self):
         """Test percentage calculation for half-charged battery."""
         self._mock_voltage(12000)
         battery = Battery(min_cell_voltage=3500, max_cell_voltage=4200)
-        assert battery.cell_count == 3
+        assert battery.get_state().cell_count == 3
 
         # 3S half: 3 * 3850 = 11550mV (halfway between 3500-4200)
         self._mock_voltage(11550)
         battery.update()
 
         # (11550 - 10500) / (12600 - 10500) * 100 = 50%
-        assert 49 <= battery.percentage <= 51
+        assert 49 <= battery.get_state().percentage <= 51
 
     def test_percentage_clamped_at_100(self):
         """Test percentage doesn't exceed 100% for overcharged batteries."""
@@ -166,7 +167,7 @@ class TestBattery(unittest.TestCase):
         self._mock_voltage(15000)
         battery.update()
 
-        assert battery.percentage == 100
+        assert battery.get_state().percentage == 100
 
     def test_percentage_clamped_at_0(self):
         """Test percentage doesn't go below 0% for overdischarged batteries."""
@@ -177,7 +178,7 @@ class TestBattery(unittest.TestCase):
         self._mock_voltage(8000)
         battery.update()
 
-        assert battery.percentage == 0
+        assert battery.get_state().percentage == 0
 
     def test_warning_triggered_below_threshold(self):
         """Test warning is set when cell voltage drops below threshold."""
@@ -187,13 +188,13 @@ class TestBattery(unittest.TestCase):
             max_cell_voltage=4200,
             warn_cell_voltage=3700
         )
-        assert battery.cell_count == 3
+        assert battery.get_state().cell_count == 3
 
         # 3S with cells at 3650mV (below 3700 warning)
         self._mock_voltage(10950)  # 3 * 3650
         battery.update()
 
-        assert battery.warning is True
+        assert battery.get_state().warning is True
 
     def test_warning_not_triggered_above_threshold(self):
         """Test warning is not set when cell voltage is above threshold."""
@@ -203,26 +204,26 @@ class TestBattery(unittest.TestCase):
             max_cell_voltage=4200,
             warn_cell_voltage=3700
         )
-        assert battery.cell_count == 3
+        assert battery.get_state().cell_count == 3
 
         # 3S with cells at 3900mV (above 3700 warning)
         self._mock_voltage(11700)  # 3 * 3900
         battery.update()
 
-        assert battery.warning is False
+        assert battery.get_state().warning is False
 
     def test_warning_at_exact_threshold(self):
         """Test warning behavior at exact threshold voltage."""
         self._mock_voltage(12000)
         battery = Battery(warn_cell_voltage=3700)
-        assert battery.cell_count == 3
+        assert battery.get_state().cell_count == 3
 
         # Exactly at threshold: 3 * 3700 = 11100mV
         self._mock_voltage(11100)
         battery.update()
 
         # Should trigger warning (<=)
-        assert battery.warning is True
+        assert battery.get_state().warning is True
 
     def test_get_volts_conversion(self):
         """Test get_volts() converts millivolts to volts."""
@@ -232,8 +233,8 @@ class TestBattery(unittest.TestCase):
         self._mock_voltage(11700)
         battery.update()
 
-        volts = battery.get_volts()
-        assert volts == 11.7
+        state = battery.get_state()
+        assert state.voltage / 1000 == 11.7
 
     def test_multiple_updates(self):
         """Test multiple update cycles work correctly."""
@@ -243,20 +244,23 @@ class TestBattery(unittest.TestCase):
         # First update
         self._mock_voltage(12600)
         battery.update()
-        assert battery.percentage == 100
-        assert battery.warning is False
+        state = battery.get_state()
+        assert state.percentage == 100
+        assert state.warning is False
 
         # Second update - voltage drops
         self._mock_voltage(11550)
         battery.update()
-        assert 49 <= battery.percentage <= 51
-        assert battery.warning is False
+        state = battery.get_state()
+        assert 49 <= state.percentage <= 51
+        assert state.warning is False
 
         # Third update - voltage drops to warning level
         self._mock_voltage(10950)
         battery.update()
-        assert battery.percentage < 30
-        assert battery.warning is True
+        state = battery.get_state()
+        assert state.percentage < 30
+        assert state.warning is True
 
 
 if __name__ == '__main__':

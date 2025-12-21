@@ -136,11 +136,12 @@ class Telemetry(threading.Thread):
     def _update_battery(self) -> None:
         if self._battery:
             self._battery.update()
+            state = self._battery.get_state()
             with self._lock:
-                self.payload.bat.vol = self._battery.voltage
-                self.payload.bat.avg = self._battery.average_voltage
-                self.payload.bat.pct = self._battery.percentage
-                self.payload.bat.wrn = self._battery.warning
+                self.payload.bat.vol = state.voltage
+                self.payload.bat.avg = state.average_voltage
+                self.payload.bat.pct = state.percentage
+                self.payload.bat.wrn = state.warning
 
     def _update_services(self) -> None:
         if self._services:

@@ -96,6 +96,8 @@ class TestTelemetry(unittest.TestCase):
         tel._set_cell_unknown.assert_called_once()
 
     def test_update_battery(self):
+        from v3xctrl_telemetry import BatteryState
+
         tel = Telemetry.__new__(Telemetry)
         tel._lock = threading.Lock()
         tel.payload = TelemetryPayload(
@@ -104,8 +106,15 @@ class TestTelemetry(unittest.TestCase):
             loc=MagicMock(),
             bat=BatteryInfo()
         )
-        tel._battery = MagicMock(voltage=1, average_voltage=2, percentage=3, warning=True)
-        tel._battery.update = MagicMock()
+        # Mock battery with get_state() returning BatteryState
+        tel._battery = MagicMock()
+        tel._battery.get_state.return_value = BatteryState(
+            voltage=1,
+            average_voltage=2,
+            percentage=3,
+            warning=True,
+            cell_count=3
+        )
         tel._update_battery()
         self.assertEqual(tel.payload.bat.vol, 1)
         self.assertEqual(tel.payload.bat.avg, 2)

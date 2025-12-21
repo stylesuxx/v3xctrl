@@ -1,5 +1,16 @@
+from dataclasses import dataclass
 from v3xctrl_telemetry import INA
 from v3xctrl_helper import clamp
+
+
+@dataclass
+class BatteryState:
+    """Battery telemetry state."""
+    voltage: int = 0
+    average_voltage: int = 0
+    percentage: int = 100
+    warning: bool = False
+    cell_count: int = 1
 
 
 class BatteryTelemetry:
@@ -16,11 +27,13 @@ class BatteryTelemetry:
         self.max_cell_voltage = max_cell_voltage
         self.warn_cell_voltage = warn_cell_voltage
 
-        self.voltage = 0
-        self.average_voltage = 0
-        self.warning = False
-        self.percentage = 100
-        self.cell_count = self._guess_cell_count()
+        self._state = BatteryState(
+            voltage=0,
+            average_voltage=0,
+            percentage=100,
+            warning=False,
+            cell_count=self._guess_cell_count()
+        )
 
     def _guess_cell_count(self) -> int:
         """
@@ -33,18 +46,19 @@ class BatteryTelemetry:
         return max(round(voltage / average_cell_voltage), 1)
 
     def update(self) -> None:
-        self.voltage = self._sensor.get_bus_voltage()
-        self.average_voltage = round(self.voltage / self.cell_count)
+        """Update battery telemetry from INA sensor."""
+        self._state.voltage = self._sensor.get_bus_voltage()
+        self._state.average_voltage = round(self._state.voltage / self._state.cell_count)
 
         # Calculate percentage
-        min_voltage = self.min_cell_voltage * self.cell_count
-        max_voltage = self.max_cell_voltage * self.cell_count
-        percentage = round((self.voltage - min_voltage) / (max_voltage - min_voltage) * 100)
+        min_voltage = self.min_cell_voltage * self._state.cell_count
+        max_voltage = self.max_cell_voltage * self._state.cell_count
+        percentage = round((self._state.voltage - min_voltage) / (max_voltage - min_voltage) * 100)
         percentage = clamp(percentage, 0, 100)
-        self.percentage = percentage
+        self._state.percentage = percentage
 
         # Check warning states
-        self.warning = (self.voltage / self.cell_count) <= self.warn_cell_voltage
+        self._state.warning = (self._state.voltage / self._state.cell_count) <= self.warn_cell_voltage
 
-    def get_volts(self) -> float:
-        return self.voltage / 1000
+    def get_state(self) -> BatteryState:
+        return self._state

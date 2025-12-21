@@ -257,14 +257,14 @@ class TestVideoCoreTelemetry(unittest.TestCase):
         assert isinstance(history, Flags)
         assert history.undervolt is True
 
-    def test_state_returns_dict(self):
-        """Test state() returns dict with current and history."""
+    def test_get_state_returns_dict(self):
+        """Test get_state() returns dict with current and history."""
         self.mock_subprocess.check_output.return_value = "throttled=0x50005"
 
         telemetry = VideoCoreTelemetry()
         telemetry.update()
 
-        state = telemetry.state()
+        state = telemetry.get_state()
 
         assert isinstance(state, dict)
         assert 'current' in state

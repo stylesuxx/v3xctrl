@@ -28,7 +28,7 @@ class ServiceTelemetry:
                 self._is_active(service_name),
             )
 
-    def state(self) -> Services:
+    def get_state(self) -> Services:
         return self.services
 
     def get_byte(self) -> int:
