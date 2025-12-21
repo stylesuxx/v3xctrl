@@ -354,7 +354,8 @@ class TestTimingControllerIntegration:
         model.last_control_update = start
 
         # After 1/120 seconds, should allow update
-        now = start + (1.0 / 120)
+        # Use the actual interval from the model to avoid FP precision issues
+        now = start + model.control_interval
         assert controller.should_update_control(now) is True
 
         controller.mark_control_updated(now)
