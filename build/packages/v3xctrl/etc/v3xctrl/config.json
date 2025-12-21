@@ -39,10 +39,11 @@
         "enableHdr": false,
         "afMode": 0,
         "lensPosition": 0,
-        "analogueGainMode": 1,
+        "analogueGainMode": 0,
         "analogueGain": 1,
         "exposureTimeMode": 0,
-        "exposureTime": 32000
+        "exposureTime": 32000,
+        "sensorMode": "0x0"
       },
       "maxIframeBytes": 40960,
       "enableIframeAdjust": false,

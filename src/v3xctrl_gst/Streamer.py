@@ -10,6 +10,7 @@ import gi
 gi.require_version('Gst', '1.0')
 from gi.repository import Gst, GLib
 
+from v3xctrl_gst.SourceRegistry import SourceRegistry
 from v3xctrl_gst.ControlServer import ControlServer
 
 
@@ -78,6 +79,12 @@ class Streamer:
             'analogue_gain': 1,
             'exposure_time_mode': 0,
             'exposure_time': 32000,
+
+            # Sensor mode control
+            'sensor_mode_width': 0,
+            'sensor_mode_height': 0,
+            # 'sensor_mode_width': 2304,
+            # 'sensor_mode_height': 1296,
         }
 
         self.settings: Dict[str, Any] = default_settings.copy()
@@ -513,137 +520,6 @@ class Streamer:
             warn, debug = message.parse_warning()
             logging.warning(f"Warning: {warn}, {debug}")
 
-    def _create_file_source(self) -> Optional[Gst.Bin]:
-        """
-        Create a bin containing file source, demuxer, and decoder with looping.
-
-        Returns:
-            Bin element with a src pad outputting raw video, or None on failure
-        """
-        bin_name = "file_source_bin"
-        source_bin = Gst.Bin.new(bin_name)
-
-        # Create elements for file source pipeline
-        filesrc = Gst.ElementFactory.make("filesrc", "filesrc")
-        if not filesrc:
-            logging.error("Failed to create filesrc")
-            return None
-
-        filesrc.set_property("location", self.settings['file_src'])
-
-        # QuickTime demuxer for .mov files
-        demux = Gst.ElementFactory.make("qtdemux", "demux")
-        if not demux:
-            logging.error("Failed to create qtdemux")
-            return None
-
-        # H.264 parser
-        h264parse = Gst.ElementFactory.make("h264parse", "h264parse")
-        if not h264parse:
-            logging.error("Failed to create h264parse")
-            return None
-
-        # Try software decoders in order of preference
-        # Note: Cannot use v4l2h264dec since we need the hardware encoder for encoding later
-        decoder_options = [
-            ("avdec_h264", "avdec_h264 (FFmpeg)"),
-            ("openh264dec", "openh264dec")
-        ]
-
-        decoder = None
-        decoder_name = None
-        for decoder_element, description in decoder_options:
-            decoder = Gst.ElementFactory.make(decoder_element, "decoder")
-            if decoder:
-                decoder_name = description
-                logging.info(f"Using H.264 decoder: {decoder_name}")
-                break
-
-        if not decoder:
-            logging.error("Failed to create H.264 software decoder. Tried: " +
-                         ", ".join([opt[0] for opt in decoder_options]))
-            logging.error("You need to install: gstreamer1.0-libav (provides avdec_h264)")
-            return None
-
-        # Video converter to ensure proper format
-        videoconvert = Gst.ElementFactory.make("videoconvert", "videoconvert")
-        if not videoconvert:
-            logging.error("Failed to create videoconvert")
-            return None
-
-        # Videorate for framerate conversion and timing enforcement
-        videorate = Gst.ElementFactory.make("videorate", "videorate")
-        if not videorate:
-            logging.error("Failed to create videorate")
-            return None
-
-        # Configure videorate to enforce timing
-        videorate.set_property("drop-only", False)
-        videorate.set_property("skip-to-first", True)
-
-        # Identity element to enforce real-time playback synchronization
-        identity = Gst.ElementFactory.make("identity", "identity")
-        if not identity:
-            logging.error("Failed to create identity")
-            return None
-
-        identity.set_property("sync", True)
-
-        # Add all elements to the bin
-        source_bin.add(filesrc)
-        source_bin.add(demux)
-        source_bin.add(h264parse)
-        source_bin.add(decoder)
-        source_bin.add(videoconvert)
-        source_bin.add(videorate)
-        source_bin.add(identity)
-
-        # Link static elements
-        if not filesrc.link(demux):
-            logging.error("Failed to link filesrc to demux")
-            return None
-
-        # Demux has dynamic pads, so we need to connect to the pad-added signal
-        def on_demux_pad_added(element, pad):
-            """Callback for when demuxer creates a pad"""
-            pad_name = pad.get_name()
-            logging.info(f"Demux pad added: {pad_name}")
-
-            # We're looking for the video pad
-            if pad_name.startswith("video_"):
-                sink_pad = h264parse.get_static_pad("sink")
-                if not sink_pad.is_linked():
-                    ret = pad.link(sink_pad)
-                    if ret != Gst.PadLinkReturn.OK:
-                        logging.error(f"Failed to link demux to h264parse: {ret}")
-
-        demux.connect("pad-added", on_demux_pad_added)
-
-        # Link the rest of the chain
-        if not h264parse.link(decoder):
-            logging.error("Failed to link h264parse to decoder")
-            return None
-
-        if not decoder.link(videoconvert):
-            logging.error("Failed to link decoder to videoconvert")
-            return None
-
-        if not videoconvert.link(videorate):
-            logging.error("Failed to link videoconvert to videorate")
-            return None
-
-        if not videorate.link(identity):
-            logging.error("Failed to link videorate to identity")
-            return None
-
-        # Create a ghost pad for the bin's output
-        identity_src = identity.get_static_pad("src")
-        ghost_pad = Gst.GhostPad.new("src", identity_src)
-        source_bin.add_pad(ghost_pad)
-
-        logging.info(f"Created file source from: {self.settings['file_src']}")
-        return source_bin
-
     def _build_pipeline(self) -> bool:
         """
         Build the GStreamer pipeline programmatically.
@@ -653,53 +529,20 @@ class Streamer:
         """
         self.pipeline = Gst.Pipeline.new("streamer-pipeline")
 
-        overlay = None
+        source_type = 'camera'
+        if self.settings.get('file_src'):
+            source_type = 'file'
+        elif self.settings.get('test_pattern'):
+            source_type = 'test'
 
-        source = Gst.ElementFactory.make("libcamerasrc", "camera")
-        if not source:
-            logging.error("Failed to create libcamerasrc")
+        # Create source using registry
+        try:
+            source_builder = SourceRegistry.create(source_type, self.settings)
+            _ = source_builder.build(self.pipeline)
+            source_output = source_builder.get_output_element()
+        except (RuntimeError, ValueError) as e:
+            logging.error(f"Failed to create source: {e}")
             return False
-
-        source.set_property("af-mode", self.settings['af_mode'])
-        source.set_property("lens-position", self.settings['lens_position'])
-
-        if (
-            self.settings['analogue_gain_mode'] == 1 or
-            self.settings['exposure_time_mode'] == 1
-        ):
-            # Disable auto exposure if gain or exposure are set to manual
-            source.set_property("ae-enable", 0)
-
-            source.set_property("analogue-gain-mode", self.settings['analogue_gain_mode'])
-            source.set_property("analogue-gain", self.settings['analogue_gain'])
-
-            source.set_property("exposure-time-mode", self.settings['exposure_time_mode'])
-            source.set_property("exposure-time", self.settings['exposure_time'])
-
-        # File Source if configured
-        if self.settings['file_src']:
-            source = self._create_file_source()
-            if not source:
-                logging.error("Failed to create file source pipeline")
-                return False
-
-        # Test Source if enabled
-        elif self.settings['test_pattern']:
-            source = Gst.ElementFactory.make("videotestsrc", "testsrc")
-            if not source:
-                logging.error("Failed to create videotestsrc")
-                return False
-
-            source.set_property("is-live", True)
-            source.set_property("pattern", "smpte")
-
-            overlay = Gst.ElementFactory.make("timeoverlay", "overlay")
-            if not overlay:
-                logging.error("Failed to create timeoverlay")
-                return False
-
-            overlay.set_property("halignment", "center")
-            overlay.set_property("valignment", "center")
 
         # Create caps filter for video format
         input_caps_filter = Gst.ElementFactory.make("capsfilter", "input_caps")
@@ -716,10 +559,16 @@ class Streamer:
             f"interlace-mode=progressive"
         )
         input_caps_filter.set_property("caps", input_caps)
+        self.pipeline.add(input_caps_filter)
 
         # Add probe to measure camera jitter
         camera_pad = input_caps_filter.get_static_pad("src")
         camera_pad.add_probe(Gst.PadProbeType.BUFFER, self._on_camera_buffer)
+
+        # Link source output to encoder pipeline
+        if not source_output.link(input_caps_filter):
+            logging.error("Failed to link source to input_caps_filter")
+            return False
 
         queue_encoder = Gst.ElementFactory.make("queue", "queue_encoder")
         if not queue_encoder:
@@ -730,6 +579,7 @@ class Streamer:
         queue_encoder.set_property("max-size-time", self.settings['buffertime'])
         queue_encoder.set_property("leaky", 2)  # Downstream leaky
         queue_encoder.connect("overrun", self._on_queue_overrun)
+        self.pipeline.add(queue_encoder)
 
         encoder = Gst.ElementFactory.make("v4l2h264enc", "encoder")
         if not encoder:
@@ -749,6 +599,7 @@ class Streamer:
 
         encoder.set_property("extra-controls", Gst.Structure.from_string(encoder_controls)[0])
         encoder.set_property("capture-io-mode", self.settings['capture_io_mode'])
+        self.pipeline.add(encoder)
 
         encoder_caps_filter = Gst.ElementFactory.make("capsfilter", "encoder_caps")
         if not encoder_caps_filter:
@@ -766,11 +617,13 @@ class Streamer:
             f"stream-format=(string)byte-stream"
         )
         encoder_caps_filter.set_property("caps", encoder_caps)
+        self.pipeline.add(encoder_caps_filter)
 
         tee = Gst.ElementFactory.make("tee", "t")
         if not tee:
             logging.error("Failed to create tee")
             return False
+        self.pipeline.add(tee)
 
         queue_udp = Gst.ElementFactory.make("queue", "queue_udp")
         if not queue_udp:
@@ -781,6 +634,7 @@ class Streamer:
         queue_udp.set_property("max-size-time", self.settings['buffertime_udp'])
         queue_udp.set_property("leaky", 2)  # Downstream
         queue_udp.connect("overrun", self._on_queue_overrun)
+        self.pipeline.add(queue_udp)
 
         payloader = Gst.ElementFactory.make("rtph264pay", "payloader")
         if not payloader:
@@ -790,6 +644,7 @@ class Streamer:
         payloader.set_property("config-interval", 1)
         payloader.set_property("pt", 96)
         payloader.set_property("mtu", self.settings['mtu'])
+        self.pipeline.add(payloader)
 
         udpsink = Gst.ElementFactory.make("udpsink", "udpsink")
         if not udpsink:
@@ -800,41 +655,12 @@ class Streamer:
         udpsink.set_property("port", self.port)
         udpsink.set_property("bind-port", self.bind_port)
 
-        # Enable sync for file sources to enforce real-time playback
-        # Disable for live sources (camera/test) for minimum latency
-        if self.settings['file_src']:
-            udpsink.set_property("sync", True)
-            udpsink.set_property("async", False)
-        else:
-            udpsink.set_property("sync", False)
-            udpsink.set_property("async", False)
-
-        # Add elements to pipeline
-        self.pipeline.add(source)
-        self.pipeline.add(input_caps_filter)
-        self.pipeline.add(queue_encoder)
-        self.pipeline.add(encoder)
-        self.pipeline.add(encoder_caps_filter)
-        self.pipeline.add(tee)
-        self.pipeline.add(queue_udp)
-        self.pipeline.add(payloader)
+        # Use source builder's NEEDS_SYNC property
+        udpsink.set_property("sync", source_builder.NEEDS_SYNC)
+        udpsink.set_property("async", False)
         self.pipeline.add(udpsink)
 
-        # Link elements
-        if overlay:
-            self.pipeline.add(overlay)
-            if not source.link(overlay):
-                logging.error("Failed to link source to overlay")
-                return False
-
-            if not overlay.link(input_caps_filter):
-                logging.error("Failed to link overlay to input_caps_filter")
-                return False
-        else:
-            if not source.link(input_caps_filter):
-                logging.error("Failed to link source to input_caps_filter")
-                return False
-
+        # Link encoder pipeline
         if not input_caps_filter.link(queue_encoder):
             logging.error("Failed to link input_caps_filter to queue_encoder")
             return False

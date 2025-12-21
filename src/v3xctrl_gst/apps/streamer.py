@@ -37,6 +37,7 @@ def main() -> None:
     parser.add_argument('--exposure-time-mode', type=int, default=0, help='Exposure time mode (default: 0 - auto)')
     parser.add_argument('--exposure-time', type=int, default=32000, help='Exposure time in us (default: 32000000)')
     parser.add_argument('--autostart-recording', action='store_true', default=False, help='Automatically start recording (requires recording-dir to be set)')
+    parser.add_argument('--sensor-mode', type=str, default="0x0", help='Path to src file (dafault: 0x0; automatic)')
 
     parser.add_argument(
         "--log", default="ERROR",
@@ -78,6 +79,8 @@ def main() -> None:
         'exposure_time_mode': args.exposure_time_mode,
         'exposure_time': args.exposure_time,
         'recording': args.autostart_recording,
+        'sensor_mode_width': int(args.sensor_mode.split('x')[0]),
+        'sensor_mode_height': int(args.sensor_mode.split('x')[1]),
     }
 
     streamer: Streamer = Streamer(args.host, args.port, args.bind_port, settings)
