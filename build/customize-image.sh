@@ -96,8 +96,9 @@ mkdir -p "$MOUNT_DIR/data"
 mount "${LOOP_DEV}p3" "$MOUNT_DIR/data"
 
 echo "[HOST] Creating structure under /data"
-mkdir -p "${MOUNT_DIR}/data"/{log,config,recordings}
+mkdir -p "${MOUNT_DIR}/data"/{log,config,recordings,.cache}
 chmod a+rw "${MOUNT_DIR}/data/recordings"
+chmod a+rw "${MOUNT_DIR}/data/.cache"
 
 echo "[HOST] Binding system directories..."
 for d in $MOUNT_BIND_DIRS; do
@@ -190,6 +191,13 @@ fi
 if grep -qw 'quiet' "$MOUNT_DIR/boot/cmdline.txt"; then
   sed -i 's/\bquiet\b//g' "$MOUNT_DIR/boot/cmdline.txt"
 fi
+
+echo "[HOST] Disabling swap file..."
+sudo mkdir -p $MOUNT_DIR/etc/rpi/swap.conf.d/
+sudo tee $MOUNT_DIR/etc/rpi/swap.conf.d/zram-only.conf > /dev/null << 'EOF'
+[Main]
+Mechanism=zram
+EOF
 
 echo "[HOST] Cleaning up and unmounting"
 rm -r "$MOUNT_DIR/var/log/journal"

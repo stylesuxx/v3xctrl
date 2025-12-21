@@ -3,6 +3,7 @@ set -e
 export DEBIAN_FRONTEND=noninteractive
 
 USER="v3xctrl"
+NAME="v3xctrl"
 LOCALE="en_US.UTF-8"
 
 echo '[CHROOT] Fetching signed regulatory domain files'
@@ -44,8 +45,15 @@ smbpasswd -e "${USER}"
 systemctl disable smbd
 
 echo '[CHROOT] Setting default hostname...'
-echo "v3xctrl" > /etc/hostname
+echo $NAME > /etc/hostname
 sed -i 's/127.0.1.1.*/127.0.1.1\tv3xctrl/' /etc/hosts
+
+echo "[CHROOT] Copying config files to persistent storage..."
+if [ -f "/etc/$NAME/config.json" ]; then
+  cp "/etc/$NAME/config.json" "/data/config/config.json"
+  chown $USER:$USER "/data/config/config.json"
+  chmod a+r "/data/config/config.json"
+fi
 
 echo '[CHROOT] Fixing file permissions'
 chown -R $USER:$USER '/data/recordings'

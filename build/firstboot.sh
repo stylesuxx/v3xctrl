@@ -1,14 +1,15 @@
 #!/bin/bash
 
-# Our firstboot script is running AFTER PIs firstboot is running.
+# This firstboot script is running AFTER cloud-init is finished.
 
 # If at all possible add functionality to the image customization script instead
 # of here. Only things that really NEED to be don here, should be:
 # - expands data partition to max available size
-# - Copy config files to data partition
+# - Copy configs - created during cloud-init - to data partition
 # - enables overlay FS (RO mode)
 # - Disables serial console on success
 # - Disables firstboot warning MOTD
+# - Cleanup
 
 set -xe
 exec > /boot/firmware/firstboot.log 2>&1
@@ -16,6 +17,8 @@ exec > /boot/firmware/firstboot.log 2>&1
 PART="/dev/mmcblk0p3"
 TARGET="/data"
 
+# Just in case data was already added to fstab in a previous run but failed
+# somewhere else inbetween.
 echo "[v3xctrl-firstboot] Ensuring $PART is unmounted..."
 if grep -qs "$TARGET" /proc/mounts; then
   umount "$TARGET"
@@ -46,26 +49,8 @@ PARTUUID=${PARTUUID} ${TARGET} ext4 defaults 0 2
 EOF
 fi
 
-echo "[v3xctrl-firstboot] Mounting ${TARGET} and creating folder structure..."
+echo "[v3xctrl-firstboot] Mounting ${TARGET} and copying config files..."
 mount "$TARGET"
-mkdir -p "${TARGET}/config"
-
-mkdir -p "${TARGET}/.cache"
-chmod a+rw "${TARGET}/.cache"
-
-echo "[v3xctrl-firstboot] Disabling swap file..."
-sudo mkdir -p /etc/rpi/swap.conf.d/
-sudo tee /etc/rpi/swap.conf.d/zram-only.conf > /dev/null << 'EOF'
-[Main]
-Mechanism=zram
-EOF
-
-echo "[v3xctrl-firstboot] Copying config files to persistent storage..."
-if [ -f "/etc/v3xctrl/config.json" ]; then
-  cp "/etc/v3xctrl/config.json" "${TARGET}/config/config.json"
-  chown v3xctrl:v3xctrl "${TARGET}/config/config.json"
-  chmod a+r "${TARGET}/config/config.json"
-fi
 
 NM_CONNECTIONS="/etc/NetworkManager/system-connections"
 if [ -d "$NM_CONNECTIONS" ] && [ -n "$(ls -A $NM_CONNECTIONS 2>/dev/null)" ]; then
