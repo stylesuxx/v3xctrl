@@ -38,6 +38,10 @@ ARGS=(
   --exposure-time-mode "$video_camera_exposureTimeMode"
   --exposure-time "$video_camera_exposureTime"
   --sensor-mode "$video_camera_sensorMode"
+  --brightness "$video_camera_brightness"
+  --contrast "$video_camera_contrast"
+  --saturation "$video_camera_saturation"
+  --sharpness "$video_camera_sharpness"
   --log "${extras_logLevel}"
 )
 

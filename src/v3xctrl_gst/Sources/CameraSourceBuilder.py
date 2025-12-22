@@ -29,6 +29,11 @@ class CameraSourceBuilder(SourceBuilder):
         source.set_property("af-mode", self.settings['af_mode'])
         source.set_property("lens-position", self.settings['lens_position'])
 
+        source.set_property("brightness", self.settings['brightness'])
+        source.set_property("contrast", self.settings['contrast'])
+        source.set_property("saturation", self.settings['saturation'])
+        source.set_property("sharpness", self.settings['sharpness'])
+
         if (
             self.settings['analogue_gain_mode'] == 1 or
             self.settings['exposure_time_mode'] == 1
