@@ -15,6 +15,7 @@ from v3xctrl_telemetry import (
     BatteryTelemetry,
     ServiceTelemetry,
     VideoCoreTelemetry,
+    GstTelemetry,
     SignalInfo,
     CellInfo,
     LocationInfo,
@@ -43,7 +44,8 @@ class Telemetry(threading.Thread):
             loc=LocationInfo(),
             bat=BatteryInfo(),
             svc=0,
-            vc=0
+            vc=0,
+            gst=0
         )
 
         self._running = threading.Event()
@@ -74,6 +76,12 @@ class Telemetry(threading.Thread):
             self._videocore = VideoCoreTelemetry()
         except Exception as e:
             logging.warning("Failed to initialize VideoCore telemetry: %s", e)
+
+        self._gst = None
+        try:
+            self._gst = GstTelemetry()
+        except Exception as e:
+            logging.warning("Failed to initialize GST telemetry: %s", e)
 
     def _init_modem(self) -> bool:
         try:
@@ -165,6 +173,24 @@ class Telemetry(threading.Thread):
                 with self._lock:
                     self.payload.vc = 0
 
+    def _update_gst(self) -> None:
+        if self._gst:
+            try:
+                self._gst.update()
+                state = self._gst.get_state()
+                byte_value = 0
+
+                if state.recording:
+                    byte_value |= (1 << 0)
+
+                with self._lock:
+                    self.payload.gst = byte_value
+
+            except Exception as e:
+                logging.debug("Failed to update GST telemetry: %s", e)
+                with self._lock:
+                    self.payload.gst = 0
+
     def run(self) -> None:
         self._running.set()
         while self._running.is_set():
@@ -173,6 +199,7 @@ class Telemetry(threading.Thread):
             self._update_battery()
             self._update_services()
             self._update_videocore()
+            self._update_gst()
 
             time.sleep(self._interval)
 

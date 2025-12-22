@@ -36,3 +36,4 @@ class TelemetryPayload:
     bat: BatteryInfo
     svc: int = 0
     vc: int = 0
+    gst: int = 0

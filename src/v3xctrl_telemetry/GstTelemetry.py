@@ -16,11 +16,8 @@ class GstTelemetry:
     def update(self) -> None:
         try:
             response = self._client.stats()
-            if response.get('status') == 'success':
-                # Update stats from response
-                self._stats.recording = response.get('recording', False)
+            self._stats.recording = response.get('recording', False)
         except Exception:
-            # If we can't reach the control socket, assume not recording
             self._stats.recording = False
 
     def get_state(self) -> Stats:
