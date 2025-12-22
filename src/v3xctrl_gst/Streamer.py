@@ -70,7 +70,7 @@ class Streamer:
 
             # Auto adjust
             'enable_i_frame_adjust': False,
-            'max_i_frame_bytes': 51200,
+            'max_i_frame_bytes': 25600,
 
             # Camera settings
             'af_mode': 0,

@@ -27,7 +27,7 @@ def main() -> None:
     parser.add_argument('--i-frame-period', type=int, default=30, help='I-frame period (default: 30)')
     parser.add_argument('--qp-minimum', type=int, default=20, help='QP minimum (default: 20)')
     parser.add_argument('--qp-maximum', type=int, default=51, help='QP maximum (default: 51)')
-    parser.add_argument('--max-i-frame-bytes', type=int, default=51200, help='Maximum i-frame size (default: 51200)')
+    parser.add_argument('--max-i-frame-bytes', type=int, default=25600, help='Maximum i-frame size (default: 25600)')
     parser.add_argument('--enable-i-frame-adjust', action='store_true', help='Use test pattern instead of camera')
     parser.add_argument('--file-src', type=str, default=None, help='Path to src file')
     parser.add_argument('--af-mode', type=int, default=0, help='Auto focus mode (default: 0 - off)')

@@ -45,7 +45,7 @@
         "exposureTime": 32000,
         "sensorMode": "0x0"
       },
-      "maxIframeBytes": 40960,
+      "maxIframeBytes": 25600,
       "enableIframeAdjust": false,
       "qp": {
         "min": 20,

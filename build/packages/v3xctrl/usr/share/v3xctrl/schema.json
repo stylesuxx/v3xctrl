@@ -182,7 +182,7 @@
           "propertyOrder": 70,
           "title":"Maximum I-frame bytes",
           "type": "integer",
-          "default": 40960,
+          "default": 25600,
           "description": "Used for auto adjusting I-frames to a specific size"
         },
         "enableIframeAdjust": {
