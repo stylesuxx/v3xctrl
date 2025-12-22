@@ -183,6 +183,57 @@ class TestTelemetry(unittest.TestCase):
         tel._update_videocore()
         self.assertEqual(tel.payload.vc, 0)  # Should be reset to 0 on error
 
+    def test_update_gst(self):
+        from v3xctrl_telemetry import Stats
+
+        tel = Telemetry.__new__(Telemetry)
+        tel._lock = threading.Lock()
+        tel.payload = TelemetryPayload(
+            sig=SignalInfo(),
+            cell=CellInfo(),
+            loc=MagicMock(),
+            bat=BatteryInfo(),
+            gst=0
+        )
+        tel._gst = MagicMock()
+        tel._gst.update = MagicMock()
+        tel._gst.get_state.return_value = Stats(recording=True)
+        tel._update_gst()
+        self.assertEqual(tel.payload.gst, 0x01)  # bit 0 set for recording
+
+    def test_update_gst_not_recording(self):
+        from v3xctrl_telemetry import Stats
+
+        tel = Telemetry.__new__(Telemetry)
+        tel._lock = threading.Lock()
+        tel.payload = TelemetryPayload(
+            sig=SignalInfo(),
+            cell=CellInfo(),
+            loc=MagicMock(),
+            bat=BatteryInfo(),
+            gst=0x01  # Set to 1 initially
+        )
+        tel._gst = MagicMock()
+        tel._gst.update = MagicMock()
+        tel._gst.get_state.return_value = Stats(recording=False)
+        tel._update_gst()
+        self.assertEqual(tel.payload.gst, 0x00)  # Should be 0 when not recording
+
+    def test_update_gst_fail(self):
+        tel = Telemetry.__new__(Telemetry)
+        tel._lock = threading.Lock()
+        tel.payload = TelemetryPayload(
+            sig=SignalInfo(),
+            cell=CellInfo(),
+            loc=MagicMock(),
+            bat=BatteryInfo(),
+            gst=0x01  # Set to non-zero initially
+        )
+        tel._gst = MagicMock()
+        tel._gst.update.side_effect = Exception("fail")
+        tel._update_gst()
+        self.assertEqual(tel.payload.gst, 0)  # Should be reset to 0 on error
+
     def test_get_telemetry_returns_dict(self):
         tel = Telemetry.__new__(Telemetry)
         tel._lock = threading.Lock()
@@ -192,7 +243,8 @@ class TestTelemetry(unittest.TestCase):
             loc=MagicMock(),
             bat=BatteryInfo(vol=12000, avg=4000, pct=75, wrn=False),
             svc=0x01,
-            vc=0x55
+            vc=0x55,
+            gst=0x01
         )
         result = tel.get_telemetry()
 
@@ -204,6 +256,7 @@ class TestTelemetry(unittest.TestCase):
         self.assertEqual(result["sig"]["rsrp"], 20)
         self.assertEqual(result["svc"], 0x01)
         self.assertEqual(result["vc"], 0x55)
+        self.assertEqual(result["gst"], 0x01)
 
         # Verify it's a copy (modifying result doesn't affect payload)
         result["sig"]["rsrq"] = 999
@@ -220,6 +273,7 @@ class TestTelemetry(unittest.TestCase):
         tel._update_battery = MagicMock()
         tel._update_services = MagicMock()
         tel._update_videocore = MagicMock()
+        tel._update_gst = MagicMock()
         tel.run = Telemetry.run.__get__(tel)  # bind actual run method
         t = threading.Thread(target=tel.run)
         t.start()
