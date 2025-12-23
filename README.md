@@ -1,8 +1,8 @@
+# V3XCTRL - /vɛks kənˈtɹoʊl/ (Video eXchange and ConTRoL)
+
 <p align="center">
   <img src="branding/v3xctrl_logo.svg" alt="V3XCTRL Logo" width="400">
 </p>
-
-# V3XCTRL - /vɛks kənˈtɹoʊl/ (Video eXchange and ConTRoL)
 
 > Control your vehicle and stream video over 4G from anywhere.
 
