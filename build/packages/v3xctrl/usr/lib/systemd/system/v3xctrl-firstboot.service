@@ -1,6 +1,6 @@
 [Unit]
 Description=Run first boot script if present
-After=cloud-init.target boot-firmware.mount
+After=cloud-init.target multi-user.target
 ConditionPathExists=/boot/firmware/firstboot.sh
 
 [Service]
