@@ -12,4 +12,4 @@ StandardError=journal+console
 TimeoutStartSec=0
 
 [Install]
-WantedBy=cloud-init.target
+WantedBy=multi-user.target
