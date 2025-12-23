@@ -1,5 +1,9 @@
 # V3XCTRL - /vɛks kənˈtɹoʊl/ (Video eXchange and ConTRoL)
 
+<p align="center">
+  <img src="branding/v3xctrl_logo.svg" alt="V3XCTRL Logo" width="400">
+</p>
+
 > Control your vehicle and stream video over 4G from anywhere.
 
 This project provides a platform to stream video and control servos via a 4G mobile connection using low cost, off the shelf hardware with minimal latency.
