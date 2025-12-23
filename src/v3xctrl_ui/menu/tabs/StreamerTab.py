@@ -5,6 +5,7 @@ from pygame import Surface
 
 from v3xctrl_control.message import Command
 
+from v3xctrl_ui.utils.Commands import Commands
 from v3xctrl_ui.utils.fonts import LABEL_FONT
 from v3xctrl_ui.utils.i18n import t
 from v3xctrl_ui.menu.input import Button
@@ -61,6 +62,19 @@ class StreamerTab(Tab):
             width=self.button_width
         )
 
+        self.trim_decrease_button = Button(
+            "Trim -",
+            font=LABEL_FONT,
+            callback=self._on_trim_decrease,
+            width=self.button_width
+        )
+        self.trim_increase_button = Button(
+            "Trim +",
+            font=LABEL_FONT,
+            callback=self._on_trim_increase,
+            width=self.button_width
+        )
+
         self.shutdown_button = Button(
             t("Shutdown"),
             font=LABEL_FONT,
@@ -91,6 +105,7 @@ class StreamerTab(Tab):
         self.elements_col_1 = [
             self.video_start_button,
             self.recording_start_button,
+            self.trim_decrease_button,
             self.shell_start_button,
             self.shutdown_button,
         ]
@@ -98,6 +113,7 @@ class StreamerTab(Tab):
         self.elements_col_2 = [
             self.video_stop_button,
             self.recording_stop_button,
+            self.trim_increase_button,
             self.shell_stop_button,
             self.restart_button,
         ]
@@ -158,36 +174,29 @@ class StreamerTab(Tab):
         self.on_active_toggle(True)
         self.send_command(command, self._on_command_callback)
 
-    def _on_service_action(self, name: str, action: str) -> None:
-        command = Command(
-            "service", {
-                "name": name,
-                "action": action,
-            }
-        )
-        self._on_action(command)
-
     def _on_stop_video(self) -> None:
-        self._on_service_action("v3xctrl-video", "stop")
+        self._on_action(Commands.video_stop())
 
     def _on_start_video(self) -> None:
-        self._on_service_action("v3xctrl-video", "start")
+        self._on_action(Commands.video_start())
 
     def _on_stop_shell(self) -> None:
-        self._on_service_action("v3xctrl-reverse-shell", "stop")
+        self._on_action(Commands.shell_stop())
 
     def _on_start_shell(self) -> None:
-        self._on_service_action("v3xctrl-reverse-shell", "start")
-
-    def _on_recording_action(self, action: str) -> None:
-        command = Command("recording", {"action": action})
-        self._on_action(command)
+        self._on_action(Commands.shell_start())
 
     def _on_stop_recording(self) -> None:
-        self._on_recording_action("stop")
+        self._on_action(Commands.recording_stop())
 
     def _on_start_recording(self) -> None:
-        self._on_recording_action("start")
+        self._on_action(Commands.recording_start())
+
+    def _on_trim_decrease(self) -> None:
+        self._on_action(Commands.trim_decrease())
+
+    def _on_trim_increase(self) -> None:
+        self._on_action(Commands.trim_increase())
 
     def _on_shutdown(self) -> None:
         self.on_active_toggle(True)
