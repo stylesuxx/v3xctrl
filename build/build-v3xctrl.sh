@@ -32,6 +32,7 @@ DEST_DIR="${TMP_DIR}/$NAME"
 BASE_PATH="${DEST_DIR}/usr/share/$NAME"
 SERVER_BASE_PATH="${BASE_PATH}/config-server/"
 SERVER_LIB_PATH="${SERVER_BASE_PATH}/static/libs/"
+SERVER_IMAGE_PATH="${SERVER_BASE_PATH}/static/images/"
 
 PYTHON_REQUIREMENTS="${BUILD_DIR}/requirements/streamer.txt"
 PYTHON_LIB_PATH="${DEST_DIR}/opt/v3xctrl-venv/lib/python3.11/site-packages/"
@@ -48,11 +49,13 @@ mkdir -p "${TMP_DIR}"
 mkdir -p "${BASE_PATH}"
 mkdir -p "${SERVER_BASE_PATH}"
 mkdir -p "${SERVER_LIB_PATH}"
+mkdir -p "${SERVER_IMAGE_PATH}"
 mkdir -p "${PYTHON_LIB_PATH}"
 
 # Move files into place
 cp -r "${SRC_DIR}/" "$TMP_DIR"
 cp -r "${ROOT_DIR}/web-server/." "${SERVER_BASE_PATH}"
+cp -r "${ROOT_DIR}/branding/favicon.ico" "${SERVER_IMAGE_PATH}"
 
 # Move python dependencies into place
 cp -r "${ROOT_DIR}/src/v3xctrl_control" "${PYTHON_LIB_PATH}"

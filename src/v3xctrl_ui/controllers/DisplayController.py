@@ -1,5 +1,8 @@
 """Display management for handling screen modes, sizing, and scaling."""
 from typing import TYPE_CHECKING, Tuple
+import logging
+import os
+from pathlib import Path
 
 import pygame
 
@@ -33,6 +36,15 @@ class DisplayController:
 
     def _create_initial_screen(self) -> pygame.Surface:
         pygame.display.set_caption(self.title)
+
+        try:
+            # Get the path to the assets directory relative to this file
+            assets_dir = Path(__file__).parent.parent / "assets" / "images"
+            icon_path = assets_dir / "logo.png"
+            icon = pygame.image.load(str(icon_path))
+            pygame.display.set_icon(icon)
+        except Exception as e:
+            logging.info(f"Failed setting icon: {e}")
 
         if self.model.fullscreen:
             return self._create_fullscreen()
