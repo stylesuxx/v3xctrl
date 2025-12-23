@@ -36,7 +36,6 @@ fi
 INITRD="${TMP_DIR:-./build/tmp}/initrd.img"
 SSHD_CONFIG="${MOUNT_DIR}/etc/ssh/sshd_config"
 MOTD_CONFIG="${MOUNT_DIR}/etc/motd"
-JOURNALD_CONF="${MOUNT_DIR}/etc/systemd/journald.conf"
 
 IMG_UNCOMPRESSED="${IMG%.xz}"
 MOUNT_BIND_DIRS="dev proc sys"
@@ -139,11 +138,6 @@ echo "[HOST] Copying files to boot partition..."
 cp "./build/firstboot.sh" "$MOUNT_DIR/boot/firstboot.sh"
 chmod +x "$MOUNT_DIR/boot/firstboot.sh"
 
-echo "[HOST] Updating journald for persistent storage..."
-if grep -Eq '^\s*#?\s*Storage=' "$JOURNALD_CONF"; then
-  sed -i -E 's|^\s*#?\s*Storage=.*|Storage=persistent|' "$JOURNALD_CONF"
-fi
-
 echo '[HOST] Setting default hostname...'
 echo $NAME > "$MOUNT_DIR/etc/hostname"
 sed -i 's/127.0.1.1.*/127.0.1.1\tv3xctrl/' "$MOUNT_DIR/etc/hosts"
@@ -205,9 +199,8 @@ Mechanism=zram
 EOF
 
 echo "[HOST] Cleaning up and unmounting"
-rm -r "$MOUNT_DIR/var/log/journal"
-
 sync
+
 umount "$MOUNT_DIR/boot"
 umount "$MOUNT_DIR/data"
 umount "$MOUNT_DIR/dev/pts"
