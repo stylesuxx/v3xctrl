@@ -9,6 +9,9 @@ if TYPE_CHECKING:
 class TimingController:
     """Manages timing intervals and frame rate limits."""
 
+    # Epsilon for floating-point comparison tolerance
+    TIMING_EPSILON = 1e-9
+
     def __init__(self, settings: 'Settings', model: 'ApplicationModel'):
         """Initialize timing controller with settings.
 
@@ -40,7 +43,7 @@ class TimingController:
         Returns:
             True if a control update should occur
         """
-        return now - self.model.last_control_update >= self.model.control_interval
+        return now - self.model.last_control_update >= self.model.control_interval - self.TIMING_EPSILON
 
     def should_check_latency(self, now: float) -> bool:
         """Check if enough time has passed for a latency check.
@@ -51,7 +54,7 @@ class TimingController:
         Returns:
             True if a latency check should occur
         """
-        return now - self.model.last_latency_check >= self.model.latency_interval
+        return now - self.model.last_latency_check >= self.model.latency_interval - self.TIMING_EPSILON
 
     def mark_control_updated(self, now: float) -> None:
         """Mark that a control update has occurred.
