@@ -31,14 +31,15 @@ This section is meant to get you up and running within minutes.
 
 ### Prerequisites
 
-- A Raspberry Pi Zero 2W
+- A Raspberry Pi Zero 2W - without soldered pins
 - A SD card (good quality, at least 8GB - if you want to save videos, bigger is better)
 - A compatible 4G modem
 - A Raspberry Pi Zero 2W compatible camera
+- Solid 5V/1A power supply
 - Electronic speed controller - ESC (with PWM input)
 - Servo (with PWM input)
 
-> Check [Recommended Hardware](https://github.com/stylesuxx/v3xctrl/wiki/Hardware) for a list of compatible modems and cameras.
+> Check [Recommended Hardware](https://github.com/stylesuxx/v3xctrl/wiki/Hardware) for a list of compatible modems and cameras or check the [shopping-list](https://github.com/stylesuxx/v3xctrl/wiki/Shopping-List) for everything you need to get you going.
 
 ### Viewer Configuration
 
