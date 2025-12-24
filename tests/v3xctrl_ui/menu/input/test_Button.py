@@ -165,6 +165,23 @@ class TestButton(unittest.TestCase):
             self.button.enable()
             mock_render.assert_called_with(Button.FONT_COLOR)
 
+    def test_disable_updates_state(self):
+        """Test that disable() updates the visual state to 'disabled'"""
+        self.assertEqual(self.button._current_state, 'normal')
+
+        self.button.disable()
+        self.assertEqual(self.button._current_state, 'disabled')
+        self.assertTrue(self.button.disabled)
+
+    def test_enable_updates_state(self):
+        """Test that enable() updates the visual state from 'disabled'"""
+        self.button.disable()
+        self.assertEqual(self.button._current_state, 'disabled')
+
+        self.button.enable()
+        self.assertEqual(self.button._current_state, 'normal')
+        self.assertFalse(self.button.disabled)
+
     def test_other_event_types_ignored(self):
         event = pygame.event.Event(pygame.KEYDOWN, {'key': pygame.K_SPACE})
         self.assertFalse(self.button.handle_event(event))

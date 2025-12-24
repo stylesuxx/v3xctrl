@@ -12,6 +12,7 @@ from v3xctrl_ui.utils.fonts import MAIN_FONT
 from v3xctrl_ui.utils.i18n import t
 from v3xctrl_ui.controllers.input.GamepadController import GamepadController
 from v3xctrl_ui.utils.Settings import Settings
+from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 from v3xctrl_ui.menu.input import Button
 from v3xctrl_ui.menu.tabs import (
   GeneralTab,
@@ -49,12 +50,14 @@ class Menu:
         invoke_command: Callable[[Command, Callable[[bool], None]], None],
         callback: Callable[[], None],
         callback_quit: Callable[[], None],
+        telemetry_context: TelemetryContext
     ) -> None:
         self.width = width
         self.height = height
         self.gamepad_manager = gamepad_manager
         self.settings = settings
         self.invoke_command = invoke_command
+        self.telemetry_context = telemetry_context
 
         self.callback = callback
         self.callback_quit = callback_quit
@@ -211,6 +214,7 @@ class Menu:
                 y_offset=self.tab_height,
                 on_active_toggle=self._on_active_toggle,
                 send_command=self._on_send_command,
+                telemetry_context=self.telemetry_context
             ),
             "Network": NetworkTab(
                 settings=self.settings,
@@ -238,6 +242,7 @@ class Menu:
             self.is_loading = False
             callback(state)
 
+        self.show_loading("Sending command...")
         self.invoke_command(command, callback_wrapper)
 
     def _on_active_toggle(self, active: bool) -> None:

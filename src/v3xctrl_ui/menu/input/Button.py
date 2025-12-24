@@ -83,10 +83,12 @@ class Button(BaseWidget):
     def disable(self) -> None:
         self.disabled = True
         self._render_label(self.FONT_COLOR_DISABLED)
+        self._update_state()
 
     def enable(self) -> None:
         self.disabled = False
         self._render_label(self.FONT_COLOR)
+        self._update_state()
 
     def handle_event(self, event: pygame.event.Event) -> bool:
         if self.disabled:

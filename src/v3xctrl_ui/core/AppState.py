@@ -191,7 +191,8 @@ class AppState:
             self.settings,
             self.network_coordinator.send_command,
             self.update_settings,
-            self._signal_handler
+            self._signal_handler,
+            self.telemetry_context
         )
         menu.set_tab_enabled("Streamer", self.network_coordinator.is_control_connected())
 
