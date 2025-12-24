@@ -14,6 +14,7 @@ DEB_DIR_ARG="${3:-}"
 OUTPUT_IMG="${4:-}"
 
 USER="v3xctrl"
+NAME="v3xctrl"
 CONF_DIR="./build/configs"
 
 # Use provided arguments or defaults
@@ -35,7 +36,6 @@ fi
 INITRD="${TMP_DIR:-./build/tmp}/initrd.img"
 SSHD_CONFIG="${MOUNT_DIR}/etc/ssh/sshd_config"
 MOTD_CONFIG="${MOUNT_DIR}/etc/motd"
-JOURNALD_CONF="${MOUNT_DIR}/etc/systemd/journald.conf"
 
 IMG_UNCOMPRESSED="${IMG%.xz}"
 MOUNT_BIND_DIRS="dev proc sys"
@@ -96,8 +96,9 @@ mkdir -p "$MOUNT_DIR/data"
 mount "${LOOP_DEV}p3" "$MOUNT_DIR/data"
 
 echo "[HOST] Creating structure under /data"
-mkdir -p "${MOUNT_DIR}/data"/{log,config,recordings}
+mkdir -p "${MOUNT_DIR}/data"/{log,config,recordings,.cache}
 chmod a+rw "${MOUNT_DIR}/data/recordings"
+chmod a+rw "${MOUNT_DIR}/data/.cache"
 
 echo "[HOST] Binding system directories..."
 for d in $MOUNT_BIND_DIRS; do
@@ -137,10 +138,9 @@ echo "[HOST] Copying files to boot partition..."
 cp "./build/firstboot.sh" "$MOUNT_DIR/boot/firstboot.sh"
 chmod +x "$MOUNT_DIR/boot/firstboot.sh"
 
-echo "[HOST] Updating journald for persistent storage..."
-if grep -Eq '^\s*#?\s*Storage=' "$JOURNALD_CONF"; then
-  sed -i -E 's|^\s*#?\s*Storage=.*|Storage=persistent|' "$JOURNALD_CONF"
-fi
+echo '[HOST] Setting default hostname...'
+echo $NAME > "$MOUNT_DIR/etc/hostname"
+sed -i 's/127.0.1.1.*/127.0.1.1\tv3xctrl/' "$MOUNT_DIR/etc/hosts"
 
 echo "[HOST] Setting boot variables..."
 if grep -q '^#*enable_uart=' "$MOUNT_DIR/boot/config.txt"; then
@@ -191,10 +191,16 @@ if grep -qw 'quiet' "$MOUNT_DIR/boot/cmdline.txt"; then
   sed -i 's/\bquiet\b//g' "$MOUNT_DIR/boot/cmdline.txt"
 fi
 
-echo "[HOST] Cleaning up and unmounting"
-rm -r "$MOUNT_DIR/var/log/journal"
+echo "[HOST] Disabling swap file..."
+sudo mkdir -p $MOUNT_DIR/etc/rpi/swap.conf.d/
+sudo tee $MOUNT_DIR/etc/rpi/swap.conf.d/zram-only.conf > /dev/null << 'EOF'
+[Main]
+Mechanism=zram
+EOF
 
+echo "[HOST] Cleaning up and unmounting"
 sync
+
 umount "$MOUNT_DIR/boot"
 umount "$MOUNT_DIR/data"
 umount "$MOUNT_DIR/dev/pts"
