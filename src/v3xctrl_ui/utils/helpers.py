@@ -13,6 +13,7 @@ from v3xctrl_helper import clamp, color_to_hex
 
 
 _icon_cache: Dict[Tuple, pygame.Surface] = {}
+_mask_cache: Dict[Tuple[int, int, int, int], pygame.Surface] = {}
 
 
 def interpolate_steering_color(steering: float) -> Tuple[int, int, int]:
@@ -102,18 +103,38 @@ def round_corners(
     radius: int,
     scale: int = 2
 ) -> pygame.Surface:
+    """
+    Apply rounded corners to a pygame surface with anti-aliasing.
+
+    The rounded corner mask is cached based on surface dimensions, radius, and scale
+    to avoid expensive smoothscale operations on repeated calls.
+
+    Args:
+        surface: The surface to apply rounded corners to
+        radius: Corner radius in pixels
+        scale: Anti-aliasing scale factor (2 = 2x upscale for smoother edges)
+
+    Returns:
+        New surface with rounded corners applied
+    """
     width, height = surface.get_size()
+    cache_key = (width, height, radius, scale)
 
-    # Scale and transform mask for anti-alias
-    mask_large = pygame.Surface((width * scale, height * scale), pygame.SRCALPHA)
-    pygame.draw.rect(
-        mask_large,
-        (255, 255, 255, 255),
-        (0, 0, width * scale, height * scale),
-        border_radius=radius * scale
-    )
-    mask = pygame.transform.smoothscale(mask_large, (width, height))
+    # Re-use cached mask if possible
+    if cache_key not in _mask_cache:
+        mask_large = pygame.Surface((width * scale, height * scale), pygame.SRCALPHA)
+        pygame.draw.rect(
+            mask_large,
+            (255, 255, 255, 255),
+            (0, 0, width * scale, height * scale),
+            border_radius=radius * scale
+        )
+        mask = pygame.transform.smoothscale(mask_large, (width, height))
+        _mask_cache[cache_key] = mask
+    else:
+        mask = _mask_cache[cache_key]
 
+    # Apply the mask to the surface
     rounded = pygame.Surface((width, height), pygame.SRCALPHA)
     rounded.blit(surface, (0, 0))
     rounded.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
