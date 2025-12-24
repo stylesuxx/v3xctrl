@@ -1,5 +1,4 @@
 from collections import deque
-import math
 from typing import Tuple
 
 import pygame
@@ -46,6 +45,16 @@ class FpsWidget(Widget):
         self.graph_top = int(self.height * 0.5)
         self.graph_height = self.height - self.graph_top
 
+        # Pre-render the background with label (never changes)
+        self._background_surface = Surface((self.width, self.height), pygame.SRCALPHA)
+        self._background_surface.fill((0, 0, 0, self.graph_alpha))
+        self._background_surface.blit(self.label, self.label_rect)
+
+        # Cache for rendered FPS text
+        self._cached_smoothed_fps: int | None = None
+        self._cached_fps_surface: Surface | None = None
+        self._cached_fps_rect = None
+
     def draw(self, screen: Surface, fps: float) -> None:
         self.history.append(fps)
         if len(self.history) < 2:
@@ -56,19 +65,27 @@ class FpsWidget(Widget):
         self.smoothed_fps.append(average_fps)
         smoothed_fps = int(sum(self.smoothed_fps) // len(self.smoothed_fps))
 
+        # Clear surface and blit cached background
+        self.surface.fill((0, 0, 0, 0))  # Fully transparent
+        self.surface.blit(self._background_surface, (0, 0))
+
+        # Only render FPS text if value changed
+        if smoothed_fps != self._cached_smoothed_fps:
+            fps_value, value_rect = self.font.render(f"{smoothed_fps:2d} FPS", WHITE)
+            value_rect.center = (self.width // 2, self.value_offset)
+            self._cached_fps_surface = fps_value
+            self._cached_fps_rect = value_rect
+            self._cached_smoothed_fps = smoothed_fps
+
+        # Blit cached FPS text
+        if self._cached_fps_surface is not None:
+            self.surface.blit(self._cached_fps_surface, self._cached_fps_rect)
+
+        # Draw graph (updated every frame)
         min_fps = 0
         max_fps = max(self.history)
         fps_range = max(max_fps - min_fps, 1)
 
-        self.surface.fill((0, 0, 0, self.graph_alpha))
-
-        # Draw label and value in top half
-        self.surface.blit(self.label, self.label_rect)
-        fps_value, value_rect = self.font.render(f"{smoothed_fps:2d} FPS", WHITE)
-        value_rect.center = (self.width // 2, self.value_offset)
-        self.surface.blit(fps_value, value_rect)
-
-        # Graph in bottom half
         graph_points = []
         for i, fps in enumerate(self.history):
             x = int(i / self.graph_frames * self.width)
@@ -78,5 +95,5 @@ class FpsWidget(Widget):
         if len(graph_points) >= 2:
             pygame.draw.lines(self.surface, GREEN, False, graph_points, 2)
 
-        rounded = round_corners(self.surface, 4, 16)
+        rounded = round_corners(self.surface, 4)
         screen.blit(rounded, self.position)
