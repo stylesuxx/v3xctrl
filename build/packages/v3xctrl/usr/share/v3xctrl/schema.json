@@ -315,6 +315,46 @@
               },
               "default": "0x0",
               "description": "Some image sensors have wider FOV when requesting higher resolutions. With this setting you can force those higher resolutions to benefit from wider FOV."
+            },
+            "brightness": {
+              "propertyOrder": 90,
+              "title": "Brightness",
+              "type": "number",
+              "required": true,
+              "default": 0.0,
+              "minimum": -1.0,
+              "maximum": 1.0,
+              "description": "Change brightness in camera (not supported by all cameras)"
+            },
+            "contrast": {
+              "propertyOrder": 100,
+              "title": "Contrast",
+              "type": "number",
+              "required": true,
+              "default": 1.0,
+              "minimum": 0.0,
+              "maximum": 2.0,
+              "description": "Change contrast in camera (not supported by all cameras)"
+            },
+            "saturation": {
+              "propertyOrder": 110,
+              "title": "Saturation",
+              "type": "number",
+              "required": true,
+              "default": 1.0,
+              "minimum": 0.0,
+              "maximum": 2.0,
+              "description": "Change saturtion in camera (not supported by all cameras)"
+            },
+            "sharpness": {
+              "propertyOrder": 120,
+              "title": "Sharpness",
+              "type": "number",
+              "required": true,
+              "default": 0.0,
+              "minimum": 0.0,
+              "maximum": 10.0,
+              "description": "Change sharpness in camera (not supported by all cameras)"
             }
           }
         }

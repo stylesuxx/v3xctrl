@@ -80,6 +80,11 @@ class Streamer:
             'exposure_time_mode': 0,
             'exposure_time': 32000,
 
+            'brightness': 0.0,
+            'contrast': 1.0,
+            'saturation': 1.0,
+            'sharpness': 0.0,
+
             # Sensor mode control
             'sensor_mode_width': 0,
             'sensor_mode_height': 0,
