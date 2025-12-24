@@ -1,19 +1,11 @@
-from v3xctrl_telemetry import Battery
-import time
+from v3xctrl_telemetry.BatteryTelemetry import BatteryTelemetry
 
 min_voltage = int(3.5 * 1000)
 max_voltage = int(4.2 * 1000)
 warn_voltage = int(3.7 * 1000)
 
-battery = Battery(min_voltage, max_voltage, warn_voltage)
+battery = BatteryTelemetry(min_voltage, max_voltage, warn_voltage)
+battery.update()
 
-while True:
-    battery.update()
-    print("Voltage:", battery.get_volts())
-    print("Average:", battery.average_voltage)
-    print(battery.voltage, "mV")
-    print(battery.percentage, "%")
-    print("Cells:", battery.cell_count)
-    print("Warning:", battery.warning)
-
-    time.sleep(1)
+state = battery.get_state()
+print(state)

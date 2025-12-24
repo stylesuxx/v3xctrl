@@ -14,6 +14,11 @@ class TelemetryData:
     battery_average_voltage: str = "0.00V"
     battery_percent: str = "0%"
     battery_warning: bool = False
+    recording: bool = False
+    service_video: bool = False
+    service_debug: bool = False
+    vc_current_flags: int = 0
+    vc_history_flags: int = 0
 
 
 class TelemetryParser:
@@ -49,5 +54,19 @@ class TelemetryParser:
         data.battery_average_voltage = f"{battery_average_voltage:.2f}V"
         data.battery_percent = f"{battery_percentage}%"
         data.battery_warning = values["bat"]["wrn"]
+
+        # GStreamer - bit 0 = recording
+        gst = values.get("gst", 0)
+        data.recording = bool(gst & (1 << 0))
+
+        # Services - bit 0 = video, bit 1 = debug
+        svc = values.get("svc", 0)
+        data.service_video = bool(svc & (1 << 0))
+        data.service_debug = bool(svc & (1 << 1))
+
+        # VideoCore - bits 0-3 = current, bits 4-7 = history
+        vc = values.get("vc", 0)
+        data.vc_current_flags = vc & 0x0F
+        data.vc_history_flags = (vc >> 4) & 0x0F
 
         return data

@@ -16,6 +16,7 @@ from v3xctrl_ui.utils.Settings import Settings
 from v3xctrl_ui.osd.WidgetFactory import WidgetFactory
 from v3xctrl_ui.osd.WidgetGroupRenderer import WidgetGroupRenderer
 from v3xctrl_ui.osd.WidgetGroup import WidgetGroup
+from v3xctrl_ui.osd.widgets import Widget
 
 
 class OSD:
