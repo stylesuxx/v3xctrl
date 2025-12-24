@@ -13,6 +13,7 @@ from v3xctrl_ui.controllers.TimingController import TimingController
 from v3xctrl_ui.menu.Menu import Menu
 from v3xctrl_ui.osd.OSD import OSD
 from v3xctrl_ui.core.Renderer import Renderer
+from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 from v3xctrl_ui.utils.Settings import Settings
 from v3xctrl_ui.controllers.input.InputController import InputController
 from v3xctrl_ui.controllers.DisplayController import DisplayController
@@ -40,7 +41,9 @@ class AppState:
 
         self.input_controller = InputController(settings)
 
-        self.osd = OSD(settings)
+        self.telemetry_context = TelemetryContext()
+
+        self.osd = OSD(settings, self.telemetry_context)
         self.renderer = Renderer(self.size, self.settings)
 
         # Network coordination
