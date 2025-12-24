@@ -1,6 +1,13 @@
 """Tests for TelemetrySource protocol."""
+import sys
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
+
+# Mock GStreamer before any imports
+sys.modules['gi'] = MagicMock()
+sys.modules['gi.repository'] = MagicMock()
+sys.modules['gi.repository.Gst'] = MagicMock()
+sys.modules['gi.repository.GLib'] = MagicMock()
 
 from v3xctrl_telemetry import (
     TelemetrySource,

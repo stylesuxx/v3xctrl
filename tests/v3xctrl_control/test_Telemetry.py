@@ -1,7 +1,14 @@
+import sys
 import unittest
 from unittest.mock import MagicMock
 import threading
 import time
+
+# Mock GStreamer before any imports
+sys.modules['gi'] = MagicMock()
+sys.modules['gi.repository'] = MagicMock()
+sys.modules['gi.repository.Gst'] = MagicMock()
+sys.modules['gi.repository.GLib'] = MagicMock()
 
 # Import the actual Telemetry class and dataclasses
 from src.v3xctrl_control.Telemetry import Telemetry
