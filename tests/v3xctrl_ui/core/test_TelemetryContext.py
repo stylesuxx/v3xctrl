@@ -20,30 +20,49 @@ class TestServiceFlags(unittest.TestCase):
         """Test parsing byte with no services active."""
         flags = ServiceFlags.from_byte(0b00000000)
         self.assertFalse(flags.video)
+        self.assertFalse(flags.reverse_shell)
         self.assertFalse(flags.debug)
 
     def test_from_byte_video_only(self):
         """Test parsing byte with only video service active."""
         flags = ServiceFlags.from_byte(0b00000001)
         self.assertTrue(flags.video)
+        self.assertFalse(flags.reverse_shell)
+        self.assertFalse(flags.debug)
+
+    def test_from_byte_reverse_shell_only(self):
+        """Test parsing byte with only reverse_shell service active."""
+        flags = ServiceFlags.from_byte(0b00000010)
+        self.assertFalse(flags.video)
+        self.assertTrue(flags.reverse_shell)
         self.assertFalse(flags.debug)
 
     def test_from_byte_debug_only(self):
         """Test parsing byte with only debug service active."""
-        flags = ServiceFlags.from_byte(0b00000010)
+        flags = ServiceFlags.from_byte(0b00000100)
         self.assertFalse(flags.video)
+        self.assertFalse(flags.reverse_shell)
         self.assertTrue(flags.debug)
 
-    def test_from_byte_both_services(self):
-        """Test parsing byte with both services active."""
-        flags = ServiceFlags.from_byte(0b00000011)
+    def test_from_byte_all_services(self):
+        """Test parsing byte with all services active."""
+        flags = ServiceFlags.from_byte(0b00000111)
         self.assertTrue(flags.video)
+        self.assertTrue(flags.reverse_shell)
+        self.assertTrue(flags.debug)
+
+    def test_from_byte_video_and_debug(self):
+        """Test parsing byte with video and debug active."""
+        flags = ServiceFlags.from_byte(0b00000101)
+        self.assertTrue(flags.video)
+        self.assertFalse(flags.reverse_shell)
         self.assertTrue(flags.debug)
 
     def test_default_values(self):
         """Test default values."""
         flags = ServiceFlags()
         self.assertFalse(flags.video)
+        self.assertFalse(flags.reverse_shell)
         self.assertFalse(flags.debug)
 
 
@@ -161,6 +180,7 @@ class TestTelemetryContext(unittest.TestCase):
         """Test initial state of context."""
         services = self.context.get_services()
         self.assertFalse(services.video)
+        self.assertFalse(services.reverse_shell)
         self.assertFalse(services.debug)
 
         gst = self.context.get_gst()
@@ -183,11 +203,13 @@ class TestTelemetryContext(unittest.TestCase):
         self.context.update_services(0b00000001)
         services = self.context.get_services()
         self.assertTrue(services.video)
+        self.assertFalse(services.reverse_shell)
         self.assertFalse(services.debug)
 
-        self.context.update_services(0b00000011)
+        self.context.update_services(0b00000111)
         services = self.context.get_services()
         self.assertTrue(services.video)
+        self.assertTrue(services.reverse_shell)
         self.assertTrue(services.debug)
 
     def test_update_gst(self):
@@ -244,7 +266,7 @@ class TestTelemetryContext(unittest.TestCase):
     def test_reset(self):
         """Test resetting all telemetry data."""
         # Set some values
-        self.context.update_services(0b00000011)
+        self.context.update_services(0b00000111)
         self.context.update_gst(0b00000001)
         self.context.update_battery(75, "12.34V", "12.30V", "75%", True)
         self.context.update_signal_band("BAND 7")
@@ -255,6 +277,7 @@ class TestTelemetryContext(unittest.TestCase):
         # Verify all back to defaults
         services = self.context.get_services()
         self.assertFalse(services.video)
+        self.assertFalse(services.reverse_shell)
         self.assertFalse(services.debug)
 
         gst = self.context.get_gst()
