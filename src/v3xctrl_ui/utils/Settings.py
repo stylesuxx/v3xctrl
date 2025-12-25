@@ -110,6 +110,11 @@ class Settings:
             "battery_percent": {
                 "display": True
             },
+            "rec": {
+                "display": True,
+                "align": "bottom-right",
+                "offset": [10, 10]
+            },
         },
         "settings": {
             "title": f"V3XCTRL {__version__}",

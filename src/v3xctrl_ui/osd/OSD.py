@@ -45,6 +45,9 @@ class OSD:
         self.widgets_battery: Dict[str, Widget] = {}
         self._init_widgets_battery()
 
+        self.widgets_rec: Dict[str, Widget] = {}
+        self._init_widgets_rec()
+
         self.widgets_steering = {}
         self.throttle: float = 0.0
         self.steering: float = 0.0
@@ -80,6 +83,12 @@ class OSD:
                 get_value=self._get_debug_value,
                 use_composition=True
             ),
+            WidgetGroup.create(
+                name="rec",
+                widgets=self.widgets_rec,
+                get_value=self._get_rec_value,
+                use_composition=False
+            ),
         ]
 
     def update_settings(self, settings: Settings) -> None:
@@ -110,6 +119,10 @@ class OSD:
 
     def _get_debug_value(self, name: str):
         return getattr(self, name)
+
+    def _get_rec_value(self, name: str):
+        gst = self.telemetry_context.get_gst()
+        return gst.recording
 
     def message_handler(self, message: Message) -> None:
         if isinstance(message, Telemetry):
@@ -156,9 +169,19 @@ class OSD:
         self.loop_history = loop_history
         self.video_history = video_history
 
+        gst = self.telemetry_context.get_gst()
+        rec_enabled_in_settings = self.widget_settings.get("rec", {}).get("display", True)
+        render_settings = {
+            **self.widget_settings,
+            "rec": {
+                **self.widget_settings.get("rec", {}),
+                "display": rec_enabled_in_settings and gst.recording
+            }
+        }
+
         for group in self.widget_groups:
             WidgetGroupRenderer.render_widget_group(
-                screen, group, self.widget_settings
+                screen, group, render_settings
             )
 
     def reset(self) -> None:
@@ -185,6 +208,9 @@ class OSD:
         width = self.widget_settings["fps"].get("width")
         height = self.widget_settings["fps"].get("height")
         self.widgets_debug = WidgetFactory.create_debug_widgets(width, height)
+
+    def _init_widgets_rec(self) -> None:
+        self.widgets_rec = WidgetFactory.create_rec_widget()
 
     def _latency_update(self, message: Latency) -> None:
         """
