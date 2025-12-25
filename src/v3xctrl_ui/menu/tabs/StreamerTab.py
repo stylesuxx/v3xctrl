@@ -120,6 +120,13 @@ class StreamerTab(Tab):
         services = self.telemetry_context.get_services()
         gst = self.telemetry_context.get_gst()
 
+        if services.reverse_shell:
+            self.shell_start_button.disable()
+            self.shell_stop_button.enable()
+        else:
+            self.shell_start_button.enable()
+            self.shell_stop_button.disable()
+
         if services.video:
             self.video_start_button.disable()
             self.video_stop_button.enable()

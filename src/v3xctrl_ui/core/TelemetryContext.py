@@ -8,6 +8,7 @@ from typing import Dict, Optional
 class ServiceFlags:
     """Service status flags from telemetry."""
     video: bool = False
+    reverse_shell: bool = False
     debug: bool = False
 
     @classmethod
@@ -15,7 +16,8 @@ class ServiceFlags:
         """Parse service flags from byte value."""
         return cls(
             video=bool(byte & (1 << 0)),
-            debug=bool(byte & (1 << 1))
+            reverse_shell=bool(byte & (1 << 1)),
+            debug=bool(byte & (1 << 2))
         )
 
 
@@ -129,6 +131,7 @@ class TelemetryContext:
         with self._lock:
             return ServiceFlags(
                 video=self._services.video,
+                reverse_shell=self._services.reverse_shell,
                 debug=self._services.debug
             )
 

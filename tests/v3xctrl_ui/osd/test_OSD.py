@@ -13,6 +13,7 @@ import pygame
 
 from v3xctrl_ui.utils.Settings import Settings
 from v3xctrl_ui.osd.OSD import OSD
+from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 from v3xctrl_control.message import Latency, Telemetry
 
 
@@ -25,7 +26,8 @@ class TestOSD(unittest.TestCase):
         self.tempfile.close()
 
         self.settings = Settings(self.path)
-        self.osd = OSD(self.settings)
+        self.telemetry_context = TelemetryContext()
+        self.osd = OSD(self.settings, self.telemetry_context)
         self.screen = pygame.Surface((self.osd.width, self.osd.height))
 
     def tearDown(self):
@@ -34,9 +36,12 @@ class TestOSD(unittest.TestCase):
     def test_reset_defaults(self):
         self.osd.reset()
         self.assertEqual(self.osd.debug_data, None)
-        self.assertEqual(self.osd.signal_quality, {"rsrq": -1, "rsrp": -1})
-        self.assertEqual(self.osd.battery_voltage, "0.00V")
-        self.assertEqual(self.osd.battery_percent, "0%")
+        # Signal/battery data now in telemetry_context
+        signal = self.telemetry_context.get_signal()
+        battery = self.telemetry_context.get_battery()
+        self.assertEqual(signal.quality, {"rsrq": -1, "rsrp": -1})
+        self.assertEqual(battery.voltage, "0.00V")
+        self.assertEqual(battery.percent, "0%")
         self.assertEqual(self.osd.throttle, 0.0)
         self.assertEqual(self.osd.steering, 0.0)
 
@@ -68,10 +73,13 @@ class TestOSD(unittest.TestCase):
             "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False}
         })
         self.osd._telemetry_update(telemetry)
-        self.assertEqual(self.osd.signal_quality["rsrq"], -9)
-        self.assertEqual(self.osd.signal_band, "BAND 3")
-        self.assertEqual(self.osd.signal_cell, "240:2")
-        self.assertEqual(self.osd.battery_percent, "75%")
+        # Data now in telemetry_context
+        signal = self.telemetry_context.get_signal()
+        battery = self.telemetry_context.get_battery()
+        self.assertEqual(signal.quality["rsrq"], -9)
+        self.assertEqual(signal.band, "BAND 3")
+        self.assertEqual(signal.cell, "240:2")
+        self.assertEqual(battery.percent, "75%")
 
     @patch("v3xctrl_ui.osd.OSD.pygame.display.get_window_size", return_value=(800, 600))
     def test_render_executes(self, mock_get_size):
