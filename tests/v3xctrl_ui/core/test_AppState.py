@@ -98,7 +98,12 @@ class TestAppState(unittest.TestCase):
 
         # Check components were created
         mock_input_cls.assert_called_once_with(self.settings)
-        mock_osd_cls.assert_called_once_with(self.settings)
+        # OSD is called with settings and telemetry_context
+        self.assertEqual(mock_osd_cls.call_count, 1)
+        call_args = mock_osd_cls.call_args[0]
+        self.assertEqual(call_args[0], self.settings)  # First arg is settings
+        # Second arg is TelemetryContext instance - just verify it exists
+        self.assertIsNotNone(call_args[1])
         mock_renderer_cls.assert_called_once_with((800, 600), self.settings)
 
         # NetworkCoordinator should be created with model and osd

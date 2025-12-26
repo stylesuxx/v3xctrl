@@ -8,6 +8,7 @@ import pygame
 
 from v3xctrl_ui.menu.tabs.StreamerTab import StreamerTab
 from v3xctrl_ui.utils.Settings import Settings
+from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 
 
 class TestStreamerTab(unittest.TestCase):
@@ -20,6 +21,7 @@ class TestStreamerTab(unittest.TestCase):
         self.mock_settings = MagicMock(spec=Settings)
         self.mock_on_active_toggle = MagicMock()
         self.mock_send_command = MagicMock()
+        self.telemetry_context = TelemetryContext()
 
         # Test parameters
         self.width = 800
@@ -35,14 +37,15 @@ class TestStreamerTab(unittest.TestCase):
             padding=self.padding,
             y_offset=self.y_offset,
             on_active_toggle=self.mock_on_active_toggle,
-            send_command=self.mock_send_command
+            send_command=self.mock_send_command,
+            telemetry_context=self.telemetry_context
         )
 
     def test_initialization(self):
         """Test that StreamerTab initializes correctly"""
         self.assertEqual(self.tab.on_active_toggle, self.mock_on_active_toggle)
         self.assertEqual(self.tab.send_command, self.mock_send_command)
-        self.assertFalse(self.tab.disabled)
+        self.assertIsNotNone(self.tab.telemetry_context)
 
         # Check that buttons are created
         self.assertIsNotNone(self.tab.video_stop_button)
@@ -76,7 +79,7 @@ class TestStreamerTab(unittest.TestCase):
         self.tab._on_stop_video()
 
         # Check that UI is disabled
-        self.assertTrue(self.tab.disabled)
+        # Disabled attribute removed - now controlled by telemetry context
         self.mock_on_active_toggle.assert_called_once_with(True)
 
         # Check that command is sent
@@ -100,7 +103,7 @@ class TestStreamerTab(unittest.TestCase):
         self.tab._on_start_video()
 
         # Check that UI is disabled
-        self.assertTrue(self.tab.disabled)
+        # Disabled attribute removed - now controlled by telemetry context
         self.mock_on_active_toggle.assert_called_once_with(True)
 
         # Check that command is sent
@@ -121,7 +124,7 @@ class TestStreamerTab(unittest.TestCase):
         """Test shutdown button functionality"""
         self.tab._on_shutdown()
 
-        self.assertTrue(self.tab.disabled)
+        # Disabled attribute removed - now controlled by telemetry context
         self.mock_on_active_toggle.assert_called_once_with(True)
 
         self.mock_send_command.assert_called_once()
@@ -135,7 +138,7 @@ class TestStreamerTab(unittest.TestCase):
         """Test restart button functionality"""
         self.tab._on_restart()
 
-        self.assertTrue(self.tab.disabled)
+        # Disabled attribute removed - now controlled by telemetry context
         self.mock_on_active_toggle.assert_called_once_with(True)
 
         self.mock_send_command.assert_called_once()
@@ -149,7 +152,7 @@ class TestStreamerTab(unittest.TestCase):
         """Test start recording button functionality"""
         self.tab._on_start_recording()
 
-        self.assertTrue(self.tab.disabled)
+        # Disabled attribute removed - now controlled by telemetry context
         self.mock_on_active_toggle.assert_called_once_with(True)
 
         self.mock_send_command.assert_called_once()
@@ -164,7 +167,7 @@ class TestStreamerTab(unittest.TestCase):
         """Test stop recording button functionality"""
         self.tab._on_stop_recording()
 
-        self.assertTrue(self.tab.disabled)
+        # Disabled attribute removed - now controlled by telemetry context
         self.mock_on_active_toggle.assert_called_once_with(True)
 
         self.mock_send_command.assert_called_once()
@@ -179,7 +182,7 @@ class TestStreamerTab(unittest.TestCase):
         """Test start reverse shell button functionality"""
         self.tab._on_start_shell()
 
-        self.assertTrue(self.tab.disabled)
+        # Disabled attribute removed - now controlled by telemetry context
         self.mock_on_active_toggle.assert_called_once_with(True)
 
         self.mock_send_command.assert_called_once()
@@ -197,7 +200,7 @@ class TestStreamerTab(unittest.TestCase):
         """Test stop reverse shell button functionality"""
         self.tab._on_stop_shell()
 
-        self.assertTrue(self.tab.disabled)
+        # Disabled attribute removed - now controlled by telemetry context
         self.mock_on_active_toggle.assert_called_once_with(True)
 
         self.mock_send_command.assert_called_once()
@@ -212,56 +215,29 @@ class TestStreamerTab(unittest.TestCase):
         })
 
     def test_shutdown_disables_elements(self):
-        """Test that shutdown disables all UI elements"""
-        # Mock the elements to test disable calls
-        for element in self.tab.elements:
-            element.disable = MagicMock()
-
+        """Test that shutdown triggers on_active_toggle"""
         self.tab._on_shutdown()
 
-        # Check all elements were disabled
-        for element in self.tab.elements:
-            element.disable.assert_called_once()
+        # Shutdown should toggle UI to active state
+        self.mock_on_active_toggle.assert_called_with(True)
+        # And send shutdown command
+        self.mock_send_command.assert_called_once()
 
     def test_command_callback_success(self):
         """Test command callback with successful status"""
-        # Mock the elements to test enable calls
-        for element in self.tab.elements:
-            element.enable = MagicMock()
-
-        # Set tab to disabled state first
-        self.tab.disabled = True
-
         # Call the callback with success
         self.tab._on_command_callback(True)
 
-        # Check that UI is re-enabled
-        self.assertFalse(self.tab.disabled)
+        # Check that UI is re-enabled via on_active_toggle
         self.mock_on_active_toggle.assert_called_with(False)
-
-        # Check all elements were enabled
-        for element in self.tab.elements:
-            element.enable.assert_called_once()
 
     def test_command_callback_failure(self):
         """Test command callback with failed status"""
-        # Mock the elements to test enable calls
-        for element in self.tab.elements:
-            element.enable = MagicMock()
-
-        # Set tab to disabled state first
-        self.tab.disabled = True
-
         # Call the callback with failure
         self.tab._on_command_callback(False)
 
         # Check that UI is re-enabled regardless of status
-        self.assertFalse(self.tab.disabled)
         self.mock_on_active_toggle.assert_called_with(False)
-
-        # Check all elements were enabled
-        for element in self.tab.elements:
-            element.enable.assert_called_once()
 
     @patch('time.sleep')
     @patch('logging.info')
@@ -314,13 +290,13 @@ class TestStreamerTab(unittest.TestCase):
         """Test behavior when multiple commands are sent rapidly"""
         # First command
         self.tab._on_start_video()
-        self.assertTrue(self.tab.disabled)
+        # Disabled attribute removed - now controlled by telemetry context
 
         # Second command while first is still processing
         self.tab._on_stop_video()
 
         # Should still be disabled and send_command should be called twice
-        self.assertTrue(self.tab.disabled)
+        # Disabled attribute removed - now controlled by telemetry context
         self.assertEqual(self.mock_send_command.call_count, 2)
 
 

@@ -5,6 +5,7 @@ import subprocess
 @dataclass
 class Services:
     v3xctrl_video: bool = False
+    v3xctrl_reverse_shell: bool = False
     v3xctrl_debug: bool = False
 
 
@@ -36,10 +37,12 @@ class ServiceTelemetry:
         Pack service states into a single byte.
         Each service corresponds to a bit in field order:
         - bit 0: v3xctrl_video
-        - bit 1: v3xctrl_debug
+        - bit 1: v3xctrl_reverse_shell
+        - bit 2: v3xctrl_debug
         """
         byte = 0
         for i, field in enumerate(fields(self.services)):
             if getattr(self.services, field.name):
                 byte |= (1 << i)
+
         return byte & 0xFF

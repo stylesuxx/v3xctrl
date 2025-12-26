@@ -9,6 +9,7 @@ from v3xctrl_ui.utils.fonts import LABEL_FONT
 from v3xctrl_ui.utils.i18n import t
 from v3xctrl_ui.menu.input import Button
 from v3xctrl_ui.utils.Settings import Settings
+from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 
 from .Tab import Tab
 from .VerticalLayout import VerticalLayout
@@ -23,14 +24,15 @@ class StreamerTab(Tab):
         padding: int,
         y_offset: int,
         on_active_toggle: Callable[[bool], None],
-        send_command: Callable[[Command, Callable[[bool], None]], None]
+        send_command: Callable[[Command, Callable[[bool], None]], None],
+        telemetry_context: TelemetryContext
     ) -> None:
         super().__init__(settings, width, height, padding, y_offset)
 
         self.on_active_toggle = on_active_toggle
         self.send_command = send_command
+        self.telemetry_context = telemetry_context
 
-        self.disabled = False
         self.button_width = 200
 
         self.video_stop_button = Button(
@@ -115,26 +117,45 @@ class StreamerTab(Tab):
         self.elements = self.elements_col_1 + self.elements_col_2
 
     def draw(self, surface: Surface) -> None:
+        services = self.telemetry_context.get_services()
+        gst = self.telemetry_context.get_gst()
+
+        if services.reverse_shell:
+            self.shell_start_button.disable()
+            self.shell_stop_button.enable()
+        else:
+            self.shell_start_button.enable()
+            self.shell_stop_button.disable()
+
+        if services.video:
+            self.video_start_button.disable()
+            self.video_stop_button.enable()
+
+            if gst.recording:
+                self.recording_start_button.disable()
+                self.recording_stop_button.enable()
+            else:
+                self.recording_start_button.enable()
+                self.recording_stop_button.disable()
+        else:
+            self.video_start_button.enable()
+            self.video_stop_button.disable()
+
+            # Disable recording buttons if video service is not running anyway
+            self.recording_start_button.disable()
+            self.recording_stop_button.disable()
+
         _ = self._draw_actions_section(surface, 0)
 
     def get_settings(self) -> Dict[str, Any]:
         return {}
 
     def _on_command_callback(self, status: bool) -> None:
-        self.disabled = False
-        for element in self.elements:
-            element.enable()
-
         self.on_active_toggle(False)
-
         logging.info(f"Received command ack: {status}")
 
     def _on_action(self, command: Command) -> None:
-        self.disabled = True
         self.on_active_toggle(True)
-        for element in self.elements:
-            element.disable()
-
         self.send_command(command, self._on_command_callback)
 
     def _on_service_action(self, name: str, action: str) -> None:
@@ -169,20 +190,12 @@ class StreamerTab(Tab):
         self._on_recording_action("start")
 
     def _on_shutdown(self) -> None:
-        self.disabled = True
         self.on_active_toggle(True)
-        for element in self.elements:
-            element.disable()
-
         command = Command("shutdown")
         self.send_command(command, self._on_command_callback)
 
     def _on_restart(self) -> None:
-        self.disabled = True
         self.on_active_toggle(True)
-        for element in self.elements:
-            element.disable()
-
         command = Command("restart")
         self.send_command(command, self._on_command_callback)
 

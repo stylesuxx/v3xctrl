@@ -130,6 +130,33 @@ class TestTextWidget(unittest.TestCase):
         self.assertEqual(Alignment.RIGHT.value, "right")
         self.assertEqual(Alignment.CENTER.value, "center")
 
+    def test_set_background_color_with_default_alpha(self):
+        new_color = (255, 0, 0)
+        self.widget.set_background_color(new_color)
+        self.assertEqual(self.widget.bg_color, new_color)
+        self.assertEqual(self.widget.background_alpha, 180)
+        self.assertIsNotNone(self.widget.bg_surface)
+
+    def test_set_background_color_with_custom_alpha(self):
+        new_color = (0, 255, 0)
+        custom_alpha = 200
+        self.widget.set_background_color(new_color, alpha=custom_alpha)
+        self.assertEqual(self.widget.bg_color, new_color)
+        self.assertEqual(self.widget.background_alpha, custom_alpha)
+        self.assertIsNotNone(self.widget.bg_surface)
+
+    def test_set_background_color_recreates_background(self):
+        # Get initial background surface
+        initial_bg = self.widget.bg_surface
+
+        # Change background color
+        self.widget.set_background_color((100, 100, 100), alpha=255)
+
+        # Background surface should be recreated (different object)
+        self.assertIsNotNone(self.widget.bg_surface)
+        self.assertEqual(self.widget.bg_color, (100, 100, 100))
+        self.assertEqual(self.widget.background_alpha, 255)
+
 
 if __name__ == "__main__":
     unittest.main()

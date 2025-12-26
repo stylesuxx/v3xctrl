@@ -11,6 +11,7 @@ from v3xctrl_ui.osd.widgets import (
     Alignment,
     FpsWidget,
     HorizontalIndicatorWidget,
+    RecWidget,
     StatusValueWidget,
     SignalQualityWidget,
     TextWidget,
@@ -94,4 +95,13 @@ class WidgetFactory:
             "debug_data": debug_data_widget,
             "debug_latency": debug_latency_widget,
             "debug_buffer": debug_buffer_widget
+        }
+
+    @staticmethod
+    def create_rec_widget() -> Dict[str, Widget]:
+        position = (0, 0)
+        rec_widget = RecWidget(position)
+
+        return {
+            "rec": rec_widget
         }

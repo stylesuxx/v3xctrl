@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Tuple
 
-from pygame import Surface, Rect, SRCALPHA
+from pygame import Surface, SRCALPHA
 
 from v3xctrl_ui.utils.colors import WHITE, GREY
 from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT
@@ -49,19 +49,27 @@ class TextWidget(Widget):
         self.width = length
 
         # Pre-create background
-        self.bg_surface = Surface((self.length, self.height), SRCALPHA)
-        self.bg_surface.fill((*self.bg_color[:3], self.background_alpha))
+        self._create_background()
 
         # Cache variables - initialize to None
         self._cached_text = None
         self._cached_text_surface = None
         self._cached_text_rect = None
 
+    def _create_background(self) -> None:
+        self.bg_surface = Surface((self.length, self.height), SRCALPHA)
+        self.bg_surface.fill((*self.bg_color[:3], self.background_alpha))
+
     def set_alignment(self, align: Alignment) -> None:
         self.alignment = align
 
     def set_text_color(self, color: Tuple[int, int, int]) -> None:
         self.color = color
+
+    def set_background_color(self, color: Tuple[int, int, int], alpha: int = 180) -> None:
+        self.bg_color = color
+        self.background_alpha = alpha
+        self._create_background()
 
     def draw(self, screen: Surface, text: str) -> None:
         # Re-render text

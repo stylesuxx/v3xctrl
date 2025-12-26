@@ -17,11 +17,13 @@ from v3xctrl_ui.osd.WidgetFactory import WidgetFactory
 from v3xctrl_ui.osd.WidgetGroupRenderer import WidgetGroupRenderer
 from v3xctrl_ui.osd.WidgetGroup import WidgetGroup
 from v3xctrl_ui.osd.widgets import Widget
+from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 
 
 class OSD:
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, telemetry_context: TelemetryContext) -> None:
         self.settings = settings
+        self.telemetry_context = telemetry_context
 
         self.width = self.settings.get("video").get("width")
         self.height = self.settings.get("video").get("height")
@@ -38,17 +40,13 @@ class OSD:
         self._init_widgets_debug()
 
         self.widgets_signal: Dict[str, Widget] = {}
-        self.signal_quality: dict[str, int] = {"rsrq": -1, "rsrp": -1}
-        self.signal_band: str = "BAND ?"
-        self.signal_cell: str = "CELL ?"
         self._init_widgets_signal()
 
         self.widgets_battery: Dict[str, Widget] = {}
-        self.battery_icon: int = 0
-        self.battery_voltage: str = "0.00V"
-        self.battery_average_voltage: str = "0.00V"
-        self.battery_percent: str = "0%"
         self._init_widgets_battery()
+
+        self.widgets_rec: Dict[str, Widget] = {}
+        self._init_widgets_rec()
 
         self.widgets_steering = {}
         self.throttle: float = 0.0
@@ -64,32 +62,67 @@ class OSD:
             WidgetGroup.create(
                 name="steering",
                 widgets=self.widgets_steering,
-                get_value=lambda name: getattr(self, name),
+                get_value=self._get_steering_value,
                 use_composition=False
             ),
             WidgetGroup.create(
                 name="battery",
                 widgets=self.widgets_battery,
-                get_value=lambda name: getattr(self, name),
+                get_value=self._get_battery_value,
                 use_composition=True
             ),
             WidgetGroup.create(
                 name="signal",
                 widgets=self.widgets_signal,
-                get_value=lambda name: getattr(self, name),
+                get_value=self._get_signal_value,
                 use_composition=True
             ),
             WidgetGroup.create(
                 name="debug",
                 widgets=self.widgets_debug,
-                get_value=lambda name: getattr(self, name),
+                get_value=self._get_debug_value,
                 use_composition=True
+            ),
+            WidgetGroup.create(
+                name="rec",
+                widgets=self.widgets_rec,
+                get_value=self._get_rec_value,
+                use_composition=False
             ),
         ]
 
     def update_settings(self, settings: Settings) -> None:
         self.settings = settings
         self.widget_settings = self.settings.get("widgets", {})
+
+    def _get_steering_value(self, name: str):
+        return getattr(self, name)
+
+    def _get_battery_value(self, name: str):
+        battery = self.telemetry_context.get_battery()
+        mapping = {
+            "battery_icon": battery.icon,
+            "battery_voltage": battery.voltage,
+            "battery_average_voltage": battery.average_voltage,
+            "battery_percent": battery.percent,
+        }
+        return mapping.get(name)
+
+    def _get_signal_value(self, name: str):
+        signal = self.telemetry_context.get_signal()
+        mapping = {
+            "signal_quality": signal.quality,
+            "signal_band": signal.band,
+            "signal_cell": signal.cell,
+        }
+        return mapping.get(name)
+
+    def _get_debug_value(self, name: str):
+        return getattr(self, name)
+
+    def _get_rec_value(self, name: str):
+        gst = self.telemetry_context.get_gst()
+        return gst.recording
 
     def message_handler(self, message: Message) -> None:
         if isinstance(message, Telemetry):
@@ -136,9 +169,19 @@ class OSD:
         self.loop_history = loop_history
         self.video_history = video_history
 
+        gst = self.telemetry_context.get_gst()
+        rec_enabled_in_settings = self.widget_settings.get("rec", {}).get("display", True)
+        render_settings = {
+            **self.widget_settings,
+            "rec": {
+                **self.widget_settings.get("rec", {}),
+                "display": rec_enabled_in_settings and gst.recording
+            }
+        }
+
         for group in self.widget_groups:
             WidgetGroupRenderer.render_widget_group(
-                screen, group, self.widget_settings
+                screen, group, render_settings
             )
 
     def reset(self) -> None:
@@ -147,17 +190,7 @@ class OSD:
         self.debug_buffer = None
 
         self.widgets_debug["debug_latency"].set_value(None)
-
-        self.signal_quality = {"rsrq": -1, "rsrp": -1}
-
-        self.signal_band = "BAND ?"
-        self.signal_cell = "CELL ?"
-
-        self.battery_icon = 0
-        self.battery_voltage = "0.00V"
-        self.battery_average_voltage = "0.00V"
-        self.battery_percent = "0%"
-        self.battery_warn = False
+        self.telemetry_context.reset()
 
         self.throttle = 0.0
         self.steering = 0.0
@@ -175,6 +208,9 @@ class OSD:
         width = self.widget_settings["fps"].get("width")
         height = self.widget_settings["fps"].get("height")
         self.widgets_debug = WidgetFactory.create_debug_widgets(width, height)
+
+    def _init_widgets_rec(self) -> None:
+        self.widgets_rec = WidgetFactory.create_rec_widget()
 
     def _latency_update(self, message: Latency) -> None:
         """
@@ -196,24 +232,29 @@ class OSD:
 
     def _telemetry_update(self, message: Telemetry) -> None:
         data = TelemetryParser.parse(message)
+        values = message.get_values()
 
-        self.signal_quality = data.signal_quality
-        self.signal_band = data.signal_band
-        self.signal_cell = data.signal_cell
+        self.telemetry_context.update_signal_quality(
+            values["sig"]["rsrq"],
+            values["sig"]["rsrp"]
+        )
+        self.telemetry_context.update_signal_band(data.signal_band)
+        self.telemetry_context.update_signal_cell(data.signal_cell)
 
-        self.battery_icon = data.battery_icon
-        self.battery_voltage = data.battery_voltage
-        self.battery_average_voltage = data.battery_average_voltage
-        self.battery_percent = data.battery_percent
+        self.telemetry_context.update_battery(
+            icon=data.battery_icon,
+            voltage=data.battery_voltage,
+            average_voltage=data.battery_average_voltage,
+            percent=data.battery_percent,
+            warning=data.battery_warning
+        )
 
-        widgets_battery = [
-            "battery_voltage",
-            "battery_average_voltage",
-            "battery_percent"
-        ]
+        self.telemetry_context.update_services(values.get("svc", 0))
+        self.telemetry_context.update_gst(values.get("gst", 0))
+        self.telemetry_context.update_videocore(values.get("vc", 0))
 
         color = RED if data.battery_warning else WHITE
-        for widget in widgets_battery:
-            self.widgets_battery[widget].set_text_color(color)
+        for widget_name in ["battery_voltage", "battery_average_voltage", "battery_percent"]:
+            self.widgets_battery[widget_name].set_text_color(color)
 
         logging.debug(f"Received telemetry message: {message.get_values()}")
