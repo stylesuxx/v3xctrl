@@ -23,16 +23,19 @@ class TestGamepadCalibrationWidget(unittest.TestCase):
         with patch('v3xctrl_ui.menu.calibration.GamepadCalibrationWidget.Select') as mock_select, \
              patch('v3xctrl_ui.menu.calibration.GamepadCalibrationWidget.Button') as mock_button, \
              patch('v3xctrl_ui.menu.calibration.GamepadCalibrationWidget.Checkbox') as mock_checkbox, \
+             patch('v3xctrl_ui.menu.calibration.GamepadCalibrationWidget.NumberInput') as mock_number_input, \
              patch('v3xctrl_ui.menu.calibration.GamepadCalibrationWidget.DialogBox') as mock_dialog:
 
             self.mock_select = MagicMock()
             self.mock_button = MagicMock()
             self.mock_checkbox = MagicMock()
+            self.mock_number_input = MagicMock()
             self.mock_dialog = MagicMock()
 
             mock_select.return_value = self.mock_select
             mock_button.return_value = self.mock_button
             mock_checkbox.return_value = self.mock_checkbox
+            mock_number_input.return_value = self.mock_number_input
             mock_dialog.return_value = self.mock_dialog
 
             self.mock_select.get_size.return_value = (400, 35)
@@ -92,6 +95,8 @@ class TestGamepadCalibrationWidget(unittest.TestCase):
         self.widget.controller_select.handle_event.return_value = False
         for checkbox in self.widget.invert_checkboxes.values():
             checkbox.handle_event.return_value = False
+        for input_widget in self.widget.deadband_inputs.values():
+            input_widget.handle_event.return_value = False
 
         event = MagicMock()
         result = self.widget.handle_event(event)

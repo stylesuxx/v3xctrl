@@ -1,4 +1,8 @@
 """Tests for EventController - handles pygame events and menu state."""
+# Required before importing pygame, otherwise screen might flicker during tests
+import os
+os.environ["SDL_VIDEODRIVER"] = "dummy"
+
 from unittest.mock import Mock, MagicMock, call
 import pygame
 import pytest
