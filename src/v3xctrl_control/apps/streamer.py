@@ -187,10 +187,11 @@ def control_handler(message: Control, address: Address) -> None:
         raw_steering = values['steering']
 
         # Determine throttle pulse forward or reverse
+        scaled_throttle = raw_throttle * forward_multiplier
         if raw_throttle > 0:
             scaled_throttle = raw_throttle * forward_multiplier
             throttle_value = map_range(scaled_throttle, 0, 1, forward_min, throttle_max)
-        else:
+        elif raw_throttle < 0:
             scaled_throttle = raw_throttle * reverse_multiplier
             throttle_value = map_range(scaled_throttle, -1, 0, throttle_min, reverse_min)
 
