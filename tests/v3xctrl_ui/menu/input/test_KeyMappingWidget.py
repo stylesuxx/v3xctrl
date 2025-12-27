@@ -26,6 +26,7 @@ class TestKeyMappingWidget(unittest.TestCase):
             on_key_change=self.on_key_change,
             on_remap_toggle=self.on_remap_toggle
         )
+        self.widget.set_column_width(400)
         self.widget.set_position(10, 20)
 
     def test_initialization(self):

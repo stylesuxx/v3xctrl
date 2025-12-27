@@ -63,7 +63,10 @@ class AppState:
             on_quit=self._on_quit,
             on_toggle_fullscreen=self._on_toggle_fullscreen,
             create_menu=self._create_menu,
-            on_menu_exit=self.update_settings
+            on_menu_exit=self.update_settings,
+            send_command=self.network_coordinator.send_command,
+            settings=settings,
+            telemetry_context=self.telemetry_context
         )
 
         self._setup_signal_handling()
@@ -223,6 +226,7 @@ class AppState:
 
     def _on_input_update(self, settings: Settings) -> None:
         self.input_controller.update_settings(settings)
+        self.event_controller.update_settings(settings)
 
     def _on_osd_update(self, settings: Settings) -> None:
         self.osd.update_settings(settings)
