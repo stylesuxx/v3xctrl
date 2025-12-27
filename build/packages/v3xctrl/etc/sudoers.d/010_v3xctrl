@@ -1,4 +1,5 @@
 v3xctrl ALL=(ALL) NOPASSWD: /sbin/reboot
 v3xctrl ALL=(ALL) NOPASSWD: /bin/systemctl
-v3xctrl ALL=(ALL) NOPASSWD: /usr/bin/v3xctrl-write-env
 v3xctrl ALL=(ALL) NOPASSWD: /sbin/shutdown
+v3xctrl ALL=(ALL) NOPASSWD: /usr/bin/v3xctrl-write-env
+v3xctrl ALL=(ALL) NOPASSWD: /usr/bin/v3xctrl-settings

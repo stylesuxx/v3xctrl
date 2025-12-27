@@ -136,9 +136,13 @@ received_command_ids: set[str] = set()
 pwm_throttle = HardwarePWM(pwm_channel_throttle)
 pwm_steering = HardwarePWM(pwm_channel_steering)
 
-steering_center = (steering_max + steering_min) / 2 + steering_trim
-# Clamp result between defined min/max pulewidth
-steering_center = int(max(steering_min, min(steering_max, steering_center)))
+
+def calculate_steering_center() -> int:
+    center = (steering_max + steering_min) / 2 + steering_trim
+    return int(max(steering_min, min(steering_max, center)))
+
+
+steering_center = calculate_steering_center()
 
 pwm_throttle.setup(throttle_idle)
 pwm_steering.setup(steering_center)
@@ -212,6 +216,10 @@ def latency_handler(message: Latency, address: Address) -> None:
 
 
 def command_handler(command: Command, address: Address) -> None:
+    """
+    Commands are executed with Popen to run in the background, so we do not know
+    (nor do we care) if they finish successfully.
+    """
     command_id = command.get_command_id()
     if command_id in received_command_ids:
         return
@@ -220,27 +228,47 @@ def command_handler(command: Command, address: Address) -> None:
     logging.debug(f"Received command: {command}")
 
     cmd = command.get_command()
-    if cmd == "service":
-        parameters = command.get_parameters()
-        action: str = parameters["action"]
-        name: str = parameters["name"]
+    match cmd:
+        case "service":
+            parameters = command.get_parameters()
+            action: str = parameters["action"]
+            name: str = parameters["name"]
+            subprocess.Popen(["sudo", "systemctl", action, name])
 
-        subprocess.run(["sudo", "systemctl", action, name])
+        case "recording":
+            parameters = command.get_parameters()
+            action: str = parameters["action"]
+            subprocess.Popen(["v3xctrl-video-control", "recording", action])
 
-    elif cmd == "recording":
-        parameters = command.get_parameters()
-        action: str = parameters["action"]
+        case "trim":
+            global steering_trim, steering_center
+            parameters = command.get_parameters()
+            action: str = parameters["action"]
 
-        subprocess.run(["v3xctrl-video-control", "recording", action])
+            step = 5
 
-    elif cmd == "shutdown":
-        subprocess.run(["sudo", "shutdown", "now"])
+            if action == "increase":
+                steering_trim += step
+            else:
+                steering_trim -= step
 
-    elif cmd == "restart":
-        subprocess.run(["sudo", "reboot", "-f"])
+            steering_center = calculate_steering_center()
+            subprocess.Popen([
+                "sudo",
+                "v3xctrl-settings",
+                "set",
+                ".controls.steering.trim",
+                str(steering_trim)
+            ])
 
-    else:
-        logging.error(f"Unknown command: {command}")
+        case "shutdown":
+            subprocess.Popen(["sudo", "shutdown", "now"])
+
+        case "restart":
+            subprocess.Popen(["sudo", "reboot", "-f"])
+
+        case _:
+            logging.error(f"Unknown command: {command}")
 
 
 def disconnect_handler() -> None:

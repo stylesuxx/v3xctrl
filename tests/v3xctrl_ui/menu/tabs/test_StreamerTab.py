@@ -54,13 +54,15 @@ class TestStreamerTab(unittest.TestCase):
         self.assertIsNotNone(self.tab.restart_button)
 
         # Check that buttons are added to elements
-        self.assertEqual(len(self.tab.elements), 8)
+        self.assertEqual(len(self.tab.elements), 10)
         self.assertIn(self.tab.recording_stop_button, self.tab.elements)
         self.assertIn(self.tab.recording_start_button, self.tab.elements)
         self.assertIn(self.tab.video_stop_button, self.tab.elements)
         self.assertIn(self.tab.video_start_button, self.tab.elements)
         self.assertIn(self.tab.shell_stop_button, self.tab.elements)
         self.assertIn(self.tab.shell_start_button, self.tab.elements)
+        self.assertIn(self.tab.trim_decrease_button, self.tab.elements)
+        self.assertIn(self.tab.trim_increase_button, self.tab.elements)
         self.assertIn(self.tab.shutdown_button, self.tab.elements)
         self.assertIn(self.tab.restart_button, self.tab.elements)
 
