@@ -138,10 +138,10 @@ pwm_steering = HardwarePWM(pwm_channel_steering)
 
 steering_center = (steering_max + steering_min) / 2 + steering_trim
 # Clamp result between defined min/max pulewidth
-steering_center = max(steering_min, min(steering_max, steering_center))
+steering_center = int(max(steering_min, min(steering_max, steering_center)))
 
-pwm_throttle.setup(int(throttle_idle))
-pwm_steering.setup(int(steering_center))
+pwm_throttle.setup(throttle_idle)
+pwm_steering.setup(steering_center)
 
 telemetry = TelemetryHandler(modem_path)
 telemetry.start()
@@ -248,8 +248,8 @@ def disconnect_handler() -> None:
     Disconnect counts as failsafe, set values accordingly
     """
 
-    pwm_throttle.set_pulse_width(int(throttle_idle))
-    pwm_steering.set_pulse_width(int(steering_center))
+    pwm_throttle.set_pulse_width(throttle_idle)
+    pwm_steering.set_pulse_width(steering_center)
 
     logging.info("Disconnected")
 
@@ -262,6 +262,30 @@ def signal_handler(sig: int, frame: types.FrameType | None) -> None:
     global running
     if running:
         running = False
+
+
+def cleanup_pwm() -> None:
+    # An attempt to cleanly shut down PWM without making Servo/ESC freak out and
+    # switch to max positions. The idea here is the following:
+    # 1. Set a known save state for some time
+    # 2. Set to 0 pulse width for some time
+    # 3. Disable and close
+    #
+    # Setting for 0 pulse width for some reason seems to work really well to not
+    # make the servo/ESC act up when disabling and closing PWM.
+    pwm_throttle.set_pulse_width(throttle_idle)
+    pwm_steering.set_pulse_width(steering_center)
+    time.sleep(1)
+
+    pwm_throttle.set_pulse_width(0)
+    pwm_steering.set_pulse_width(0)
+    time.sleep(1)
+
+    pwm_throttle.disable()
+    pwm_steering.disable()
+
+    pwm_throttle.close()
+    pwm_steering.close()
 
 
 client = Client(HOST, PORT, BIND_PORT, failsafe_ms)
@@ -303,10 +327,7 @@ finally:
     client.join()
     telemetry.join()
 
-    pwm_throttle.disable()
-    pwm_steering.disable()
-
-    pwm_throttle.close()
-    pwm_steering.close()
+    cleanup_pwm()
+    logging.info("cleaned up.")
 
     sys.exit(0)
