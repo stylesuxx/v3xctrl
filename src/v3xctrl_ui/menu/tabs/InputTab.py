@@ -61,9 +61,31 @@ class InputTab(Tab):
             "input": self._create_headline(t("Input device"), True)
         }
 
-        self.keyboard_layout = VerticalLayout()
-        for element in self.key_widgets:
-            self.keyboard_layout.add(element)
+        # Column layout configuration
+        num_columns = 3
+        items_per_column = 4
+        self.column_spacing = 20
+        self.keyboard_columns: List[VerticalLayout] = []
+
+        if len(self.key_widgets) > 0:
+            available_width = self.width - ((num_columns - 1) * self.padding)
+            column_width = (available_width - (num_columns - 1) * self.column_spacing) // num_columns
+
+            for i in range(num_columns):
+                start = i * items_per_column
+                end_idx = min(start + items_per_column, len(self.key_widgets))
+
+                if start >= len(self.key_widgets):
+                    break
+
+                padding_x = self.padding + i * (column_width + self.column_spacing)
+
+                column = VerticalLayout(padding_x=padding_x)
+                for widget in self.key_widgets[start:end_idx]:
+                    widget.set_column_width(column_width)
+                    column.add(widget)
+
+                self.keyboard_columns.append(column)
 
         self.input_layout = VerticalLayout()
         self.input_layout.add(self.calibration_widget)
@@ -108,7 +130,15 @@ class InputTab(Tab):
         y += self.y_offset + self.padding
         y += self._draw_headline(surface, "keyboard", y)
 
-        return self.keyboard_layout.draw(surface, y)
+        start_y = y
+        for i, column in enumerate(self.keyboard_columns):
+            column_y = column.draw(surface, start_y)
+
+            # First column always has the most items, so use its y position
+            if i == 0:
+                y = column_y
+
+        return y
 
     def _draw_input_section(self, surface: Surface, y: int) -> int:
         y += self.y_section_padding
