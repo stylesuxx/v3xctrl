@@ -71,7 +71,7 @@ class DummyGamepadManager:
     def add_observer(self, callback):
         self.observers.append(callback)
 
-    def read_inputs(self):
+    def read_inputs(self, apply_deadband: bool = True):
         return {
             "throttle": 0.0,
             "steering": 0.0

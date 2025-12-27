@@ -130,7 +130,7 @@ class GamepadController(threading.Thread):
         with self._lock:
             self._set_active_unlocked(guid)
 
-    def read_inputs(self) -> Optional[Dict[str, float]]:
+    def read_inputs(self, apply_deadband: bool = True) -> Optional[Dict[str, float]]:
         with self._lock:
             js = self._active_gamepad
             settings = self._active_settings
@@ -165,6 +165,23 @@ class GamepadController(threading.Thread):
                         cal = (min_cal, max_cal)
                         out = (0.0, 1.0)
                         normalized = self._remap(raw, cal, out)
+
+                    if apply_deadband:
+                        deadband_pct = cfg.get("deadband", 0) / 100.0
+
+                        if center_cal is not None:
+                            # Deadband symmetric around center (0.0)
+                            if abs(normalized) < deadband_pct:
+                                normalized = 0.0
+                            else:
+                                sign = 1.0 if normalized > 0 else -1.0
+                                normalized = sign * (abs(normalized) - deadband_pct) / (1.0 - deadband_pct)
+                        else:
+                            # Deadband from start (0.0)
+                            if normalized < deadband_pct:
+                                normalized = 0.0
+                            else:
+                                normalized = (normalized - deadband_pct) / (1.0 - deadband_pct)
 
                     values[key] = normalized
                 except pygame.error:
