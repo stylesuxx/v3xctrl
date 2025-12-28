@@ -1,85 +1,98 @@
 {
   "autostart": {
-      "control": false,
-      "video": false
+    "control": false,
+    "video": false
   },
   "server": {
-      "mode": "direct",
-      "host": "192.168.1.100",
-      "relayServer": "rendezvous.websium.at:8888",
-      "relaySessionId": "test123"
+    "mode": "direct",
+    "host": "192.168.1.100",
+    "relayServer": "relay.v3xctrl.com:8888",
+    "relaySessionId": "test123"
   },
   "network": {
     "ports": {
-        "control": 6668,
-        "video": 6666,
-        "webinterface": 5000
+      "control": 6668,
+      "video": 6666,
+      "webinterface": 5000
     },
     "wifi": {
-        "mode": "client",
-        "routing": "wlan"
+      "mode": "client",
+      "routing": "wlan"
     },
     "modem": {
       "model": "generic",
       "path": "/dev/eigencomm-at",
       "limitBands": false,
-      "allowedBands": [1, 3, 5, 7, 8, 20, 28, 34, 38, 39, 40, 41]
+      "allowedBands": [
+        1,
+        3,
+        5,
+        7,
+        8,
+        20,
+        28,
+        34,
+        38,
+        39,
+        40,
+        41
+      ]
     }
   },
   "video": {
-      "bitrate": 1800000,
-      "framerate": 30,
-      "iFramePeriod": 15,
-      "height": 720,
-      "width": 1280,
-      "record": false,
-      "recordPath": "/data/recordings",
-      "testSource": true,
-      "camera": {
-        "enableHdr": false,
-        "afMode": 0,
-        "lensPosition": 0,
-        "analogueGainMode": 0,
-        "analogueGain": 1,
-        "exposureTimeMode": 0,
-        "exposureTime": 32000,
-        "sensorMode": "0x0",
-        "brightness": 0.0,
-        "contrast": 1.0,
-        "saturation": 1.0,
-        "sharpness": 0.0
-      },
-      "maxIframeBytes": 25600,
-      "enableIframeAdjust": false,
-      "qp": {
-        "min": 20,
-        "max": 51
-      }
+    "bitrate": 1800000,
+    "framerate": 30,
+    "iFramePeriod": 15,
+    "height": 720,
+    "width": 1280,
+    "record": false,
+    "recordPath": "/data/recordings",
+    "testSource": true,
+    "camera": {
+      "enableHdr": false,
+      "afMode": 0,
+      "lensPosition": 0,
+      "analogueGainMode": 0,
+      "analogueGain": 1,
+      "exposureTimeMode": 0,
+      "exposureTime": 32000,
+      "sensorMode": "0x0",
+      "brightness": 0.0,
+      "contrast": 1.0,
+      "saturation": 1.0,
+      "sharpness": 0.0
+    },
+    "maxIframeBytes": 25600,
+    "enableIframeAdjust": false,
+    "qp": {
+      "min": 20,
+      "max": 51
+    }
   },
   "controls": {
-      "failsafeTimeout": 150,
-      "throttle": {
-          "min": 1000,
-          "max": 2000,
-          "failsafe": 1500,
-          "scaleForward": 100,
-          "scaleReverse": 100,
-          "minForward": 0,
-          "minReverse": 0,
-          "idle": 1500
-      },
-      "steering": {
-          "min": 1000,
-          "max": 2000,
-          "failsafe": 1500,
-          "trim": 0,
-          "scale": 100,
-          "invert": false
-      },
-      "pwm": {
-          "throttle": 0,
-          "steering": 1
-      }
+    "failsafeTimeout": 150,
+    "throttle": {
+      "min": 1000,
+      "max": 2000,
+      "failsafe": 1500,
+      "scaleForward": 100,
+      "scaleReverse": 100,
+      "minForward": 0,
+      "minReverse": 0,
+      "idle": 1500
+    },
+    "steering": {
+      "min": 1000,
+      "max": 2000,
+      "failsafe": 1500,
+      "trim": 0,
+      "scale": 100,
+      "invert": false
+    },
+    "pwm": {
+      "throttle": 0,
+      "steering": 1
+    }
   },
   "telemetry": {
     "battery": {
@@ -90,8 +103,8 @@
     }
   },
   "extras": {
-      "samba": false,
-      "logLevel": "ERROR",
-      "reverseShellUrl": null
+    "samba": false,
+    "logLevel": "ERROR",
+    "reverseShellUrl": null
   }
 }
