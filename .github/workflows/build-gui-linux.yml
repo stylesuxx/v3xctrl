@@ -10,7 +10,7 @@ on:
 
 jobs:
   build-linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04  # Use Ubuntu 22.04 for better glibc compatibility (glibc 2.35)
 
     steps:
       - uses: actions/checkout@v4
@@ -26,31 +26,67 @@ jobs:
           python3.11 -m venv venv
           source venv/bin/activate
           pip install --upgrade pip
-          pip install -r ./build/requirements/viewer.txt pyinstaller staticx
+          pip install -r ./build/requirements/viewer.txt pyinstaller
 
       - name: Build executable with PyInstaller
         run: |
           source venv/bin/activate
-          cd src/v3xctrl_ui
-          pyinstaller --noconfirm --onefile --windowed -n V3XCTRL main.py
+          cd src
+          pyinstaller --noconfirm --onedir --windowed \
+            --add-data "v3xctrl_ui/assets:assets" \
+            --collect-data material_icons \
+            -n V3XCTRL v3xctrl_ui/main.py
 
-      - name: Make static binary with staticx
+      - name: Download appimagetool
         run: |
-          source venv/bin/activate
-          staticx src/dist/V3XCTRL src/dist/V3XCTRL-static
+          wget https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool-x86_64.AppImage
 
-      - name: Rename output
-        shell: bash
+      - name: Create AppImage structure
         run: |
-          cd src/v3xctrl_ui/dist
+          mkdir -p AppDir/usr/bin
+          mkdir -p AppDir/usr/share/applications
+          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+
+          # Copy the entire PyInstaller directory (contains all bundled libraries)
+          cp -r src/dist/V3XCTRL AppDir/usr/bin/v3xctrl
+
+          # Copy icon
+          cp src/v3xctrl_ui/assets/images/logo.png AppDir/usr/share/icons/hicolor/256x256/apps/v3xctrl.png
+          cp src/v3xctrl_ui/assets/images/logo.png AppDir/v3xctrl.png
+
+          # Create desktop entry
+          cat > AppDir/usr/share/applications/v3xctrl.desktop << 'EOF'
+          [Desktop Entry]
+          Name=V3XCTRL
+          Exec=v3xctrl
+          Icon=v3xctrl
+          Type=Application
+          Categories=Utility;
+          EOF
+
+          # Create AppRun script that launches the PyInstaller executable
+          cat > AppDir/AppRun << 'EOF'
+          #!/bin/bash
+          SELF=$(readlink -f "$0")
+          HERE=${SELF%/*}
+          exec "${HERE}/usr/bin/v3xctrl/V3XCTRL" "$@"
+          EOF
+          chmod +x AppDir/AppRun
+
+          # Copy desktop file to root
+          cp AppDir/usr/share/applications/v3xctrl.desktop AppDir/
+
+      - name: Build AppImage
+        run: |
           SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          mv V3XCTRL-static V3XCTRL-$SHA
+          ARCH=x86_64 ./appimagetool-x86_64.AppImage AppDir V3XCTRL-$SHA-x86_64.AppImage
 
-      - name: Upload executable
+      - name: Upload AppImage
         uses: actions/upload-artifact@v4
         with:
-          name: V3XCTRL-Linux
-          path: src/v3xctrl_ui/dist/V3XCTRL-*
+          name: V3XCTRL-Linux-AppImage
+          path: V3XCTRL-*-x86_64.AppImage
 
   call-cleanup:
     name: Cleanup old workflow runs
