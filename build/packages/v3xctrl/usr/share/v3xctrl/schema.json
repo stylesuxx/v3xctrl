@@ -17,7 +17,10 @@
           "propertyOrder": 10,
           "title": "Connection Mode",
           "type": "string",
-          "enum": ["direct", "relay"],
+          "enum": [
+            "direct",
+            "relay"
+          ],
           "required": true,
           "default": "direct",
           "description": "Choose how the client connects to the server."
@@ -40,7 +43,7 @@
           "propertyOrder": 40,
           "type": "string",
           "title": "UDP Relay Server",
-          "default": "rendezvous.websium.at:8888",
+          "default": "relay.v3xctrl.com:8888",
           "description": "Used in relay mode only (only change if you are using your own relay server)"
         }
       }
@@ -69,14 +72,14 @@
         },
         "framerate": {
           "propertyOrder": 30,
-          "title":" FPS",
+          "title": " FPS",
           "description": "This setting must also be adjusted in the viewer to match",
           "type": "integer",
           "default": 30
         },
         "iFramePeriod": {
           "propertyOrder": 40,
-          "title":" I-frame interval",
+          "title": " I-frame interval",
           "type": "integer",
           "default": 15,
           "description": "I-frame interval controls how often a complete reference frame is encoded in the video stream. Smaller intervals provide better quality for fast-moving scenes and faster recovery from packet loss, but use more bandwidth since complete frames are larger than the delta frames sent between them."
@@ -180,7 +183,7 @@
         },
         "maxIframeBytes": {
           "propertyOrder": 70,
-          "title":"Maximum I-frame bytes",
+          "title": "Maximum I-frame bytes",
           "type": "integer",
           "default": 25600,
           "description": "Used for auto adjusting I-frames to a specific size"
@@ -262,9 +265,15 @@
               "title": "Gain Control",
               "type": "integer",
               "required": true,
-              "enum": [0, 1],
+              "enum": [
+                0,
+                1
+              ],
               "options": {
-                "enum_titles": ["Automatic", "Manual"]
+                "enum_titles": [
+                  "Automatic",
+                  "Manual"
+                ]
               },
               "default": 1,
               "description": "Control how the sensor gain is adjusted. Automatic mode adjusts gain based on lighting conditions; manual mode uses the fixed value below."
@@ -274,7 +283,24 @@
               "title": "Gain Level",
               "type": "integer",
               "required": true,
-              "enum": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+              "enum": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16
+              ],
               "default": 1,
               "description": "Sensor gain multiplier (1-16). Higher values brighten the image in low light but increase noise. Use the lowest value that provides adequate brightness."
             },
@@ -283,9 +309,15 @@
               "title": "Exposure Control",
               "type": "integer",
               "required": true,
-              "enum": [0, 1],
+              "enum": [
+                0,
+                1
+              ],
               "options": {
-                "enum_titles": ["Automatic", "Manual"]
+                "enum_titles": [
+                  "Automatic",
+                  "Manual"
+                ]
               },
               "default": 0,
               "description": "Control how exposure time is determined. Automatic mode adjusts exposure based on lighting conditions; manual mode uses the fixed value below."
@@ -649,12 +681,12 @@
           "default": 150,
           "description": "After this many ms without a control packet, failsafe is triggered"
         },
-        "pwm":{
-          "propertyOrder":40,
+        "pwm": {
+          "propertyOrder": 40,
           "type": "object",
           "title": "PWM Channel Mapping",
           "options": {
-          "collapsed": false
+            "collapsed": false
           },
           "properties": {
             "throttle": {
