@@ -26,7 +26,7 @@ class Settings:
         },
         "relay": {
             "enabled": False,
-            "server": "rendezvous.websium.at:8888",
+            "server": "relay.v3xctrl.com:8888",
             "id": "test123"
         },
         "ports": {
