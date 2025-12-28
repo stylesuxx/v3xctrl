@@ -423,7 +423,7 @@
             "webinterface": {
               "propertyOrder": 30,
               "type": "integer",
-              "default": 5000,
+              "default": 80,
               "description": "The port on which this interface should be running (requires reboot)"
             }
           }
