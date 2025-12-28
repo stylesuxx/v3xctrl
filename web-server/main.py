@@ -50,7 +50,7 @@ def main() -> None:
     parser.add_argument('--config', required=True, help='Path to config.json')
     parser.add_argument('--modems', required=True, help='Path to modems.json')
     parser.add_argument('--host', default='0.0.0.0', help='Host to run the server on')
-    parser.add_argument('--port', default=5000, type=int, help='Port to run the server on')
+    parser.add_argument('--port', default=80, type=int, help='Port to run the server on')
     args = parser.parse_args()
 
     app = create_app(args.schema, args.config, args.modems)
