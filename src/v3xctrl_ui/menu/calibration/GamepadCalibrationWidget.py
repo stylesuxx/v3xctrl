@@ -15,6 +15,7 @@ from v3xctrl_ui.menu.DialogBox import DialogBox
 from v3xctrl_ui.menu.input import (
   BaseWidget,
   Button,
+  ButtonMappingWidget,
   Checkbox,
   NumberInput,
   Select,
@@ -30,6 +31,7 @@ class GamepadCalibrationWidget(BaseWidget):
     BARS_X_OFFSSET = 100
     INVERT_X_OFFSET = 530
     DEADBAND_X_OFFSET = 630
+    BUTTON_MAPPING_X_OFFSET = 800
 
     def __init__(
         self,
@@ -37,6 +39,7 @@ class GamepadCalibrationWidget(BaseWidget):
         manager: GamepadController,
         on_calibration_start: Callable[[], None] = lambda: None,
         on_calibration_done: Callable[[], None] = lambda: None,
+        on_remap_toggle: Callable[[bool], None] = lambda active: None,
     ) -> None:
         super().__init__()
 
@@ -44,16 +47,24 @@ class GamepadCalibrationWidget(BaseWidget):
         self.manager = manager
         self.on_calibration_start = on_calibration_start
         self.on_calibration_done = on_calibration_done
+        self.on_remap_toggle_callback = on_remap_toggle
 
         self.selected_guid: Optional[str] = None
         self.calibrator: Optional[GamepadCalibrator] = None
         self.invert_axes: Dict[str, bool] = {k: False for k in ["steering", "throttle", "brake"]}
         self.deadband_values: Dict[str, int] = {k: 0 for k in ["steering", "throttle", "brake"]}
+        self.button_mappings: Dict[str, Optional[int]] = {
+            "trim_increase": None,
+            "trim_decrease": None,
+            "rec_toggle": None
+        }
 
         self.controller_select: Select
         self.calibrate_button: Button
         self.invert_checkboxes: Dict[str, Checkbox]
         self.deadband_inputs: Dict[str, NumberInput]
+        self.button_mapping_widgets: Dict[str, ButtonMappingWidget]
+        self.button_remap_active: bool = False
 
         self.dialog = DialogBox(title="Next Step", lines=[], button_label="OK", on_confirm=lambda: None)
 
@@ -83,6 +94,9 @@ class GamepadCalibrationWidget(BaseWidget):
 
                 for input_widget in self.deadband_inputs.values():
                     handled |= input_widget.handle_event(event)
+
+                for button_widget in self.button_mapping_widgets.values():
+                    handled |= button_widget.handle_event(event)
 
                 return handled
 
@@ -135,6 +149,49 @@ class GamepadCalibrationWidget(BaseWidget):
         except ValueError:
             pass
 
+    def update_button_mapping(self, key: str, button: Optional[int]) -> None:
+        self.button_mappings[key] = button
+
+        js = self.gamepads.get(self.selected_guid)
+        if js:
+            guid = str(js.get_guid())
+            settings = self.manager.get_calibration(guid)
+            if settings:
+                if "buttons" not in settings:
+                    settings["buttons"] = {}
+                settings["buttons"][key] = button
+                self.manager.set_calibration(guid, settings)
+
+    def toggle_button_remap(self, active: bool) -> None:
+        self.button_remap_active = active
+        self.on_remap_toggle_callback(active)
+
+        if active:
+            for widget in self.button_mapping_widgets.values():
+                if not widget.waiting_for_button:
+                    widget.disable()
+
+            for checkbox in self.invert_checkboxes.values():
+                checkbox.disable()
+
+            for input_widget in self.deadband_inputs.values():
+                input_widget.disable()
+
+            self.calibrate_button.disable()
+            self.controller_select.disable()
+        else:
+            for widget in self.button_mapping_widgets.values():
+                widget.enable()
+
+            for checkbox in self.invert_checkboxes.values():
+                checkbox.enable()
+
+            for input_widget in self.deadband_inputs.values():
+                input_widget.enable()
+
+            self.calibrate_button.enable()
+            self.controller_select.enable()
+
     def set_selected_gamepad(self, index: int) -> None:
         guids = list(self.gamepads.keys())
         if 0 <= index < len(guids):
@@ -176,6 +233,30 @@ class GamepadCalibrationWidget(BaseWidget):
                 mono_font=MONO_FONT,
                 on_change=lambda value, k=name: self.update_deadband(k, value)
             ) for name in ["steering", "throttle", "brake"]
+        }
+
+        self.button_mapping_widgets = {
+            "trim_increase": ButtonMappingWidget(
+                control_name="trim_increase",
+                button_number=None,
+                font=font,
+                on_button_change=lambda button: self.update_button_mapping("trim_increase", button),
+                on_remap_toggle=self.toggle_button_remap
+            ),
+            "trim_decrease": ButtonMappingWidget(
+                control_name="trim_decrease",
+                button_number=None,
+                font=font,
+                on_button_change=lambda button: self.update_button_mapping("trim_decrease", button),
+                on_remap_toggle=self.toggle_button_remap
+            ),
+            "rec_toggle": ButtonMappingWidget(
+                control_name="rec_toggle",
+                button_number=None,
+                font=font,
+                on_button_change=lambda button: self.update_button_mapping("rec_toggle", button),
+                on_remap_toggle=self.toggle_button_remap
+            )
         }
 
     def _on_gamepads_changed(
@@ -253,6 +334,18 @@ class GamepadCalibrationWidget(BaseWidget):
 
                 self.deadband_values[k] = settings.get(k, {}).get("deadband", 0)
                 self.deadband_inputs[k].value = str(self.deadband_values[k])
+
+            # Load button mappings
+            buttons = settings.get("buttons", {})
+            for k in self.button_mappings:
+                button_num = buttons.get(k)
+                self.button_mappings[k] = button_num
+                self.button_mapping_widgets[k].button_number = button_num
+
+                reset_button = self.button_mapping_widgets[k].reset_button
+                reset_button.disable()
+                if button_num is not None:
+                    reset_button.enable()
 
     def _draw(self, surface: Surface) -> None:
         if not self.gamepads:
@@ -338,6 +431,14 @@ class GamepadCalibrationWidget(BaseWidget):
             input_y = bar_center_y - input_height // 2
             self.deadband_inputs[key].set_position(self.x + self.DEADBAND_X_OFFSET, input_y)
             self.deadband_inputs[key].draw(surface)
+
+        button_keys = ["trim_increase", "trim_decrease", "rec_toggle"]
+        for i, key in enumerate(button_keys):
+            widget = self.button_mapping_widgets[key]
+            bar_y = y_base + i * self.BAR_SPACING
+
+            widget.set_position(self.x + self.BUTTON_MAPPING_X_OFFSET, bar_y)
+            widget.draw(surface)
 
     def _draw_calibration_steps(self, surface: Surface) -> None:
         y_base = self.y + self.INSTRUCTION_Y_OFFSET
