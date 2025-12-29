@@ -5,8 +5,6 @@ set -e
 ENV_PATH="/run/v3xctrl.env"
 source "${ENV_PATH}"
 
-SUBDEV_0="/dev/v4l-subdev0"
-
 # Stop video & control service
 if [ "$autostart_video" = "true" ]; then
   echo "Stopping video service..."
@@ -16,24 +14,6 @@ fi
 if [ "$autostart_control" = "true" ]; then
   echo "Stopping control service..."
   systemctl stop v3xctrl-control
-fi
-
-# RPi-cam v3 related settings
-if [ -e "$SUBDEV_0" ]; then
-
-  # Set WDR if control available
-  CONTROL="wide_dynamic_range"
-  if v4l2-ctl -d "$SUBDEV_0" --list-ctrls | grep -q "$CONTROL"; then
-    WIDE_DYNAMIC_RANGE=0
-    if [ "$video_camera_enableHdr" = "true" ]; then
-      echo "Enable HDR mode..."
-      WIDE_DYNAMIC_RANGE=1
-    else
-      echo "Disable HDR mode..."
-    fi
-
-    v4l2-ctl -d "$SUBDEV_0" --set-ctrl "$CONTROL=$WIDE_DYNAMIC_RANGE"
-  fi
 fi
 
 if [ "$network_modem_limitBands" = "true" ]; then
