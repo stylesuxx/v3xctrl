@@ -33,6 +33,7 @@ jobs:
           source venv/bin/activate
           cd src
           pyinstaller --noconfirm --onedir --windowed \
+            --icon=v3xctrl_ui/assets/images/logo.ico \
             --add-data "v3xctrl_ui/assets:assets" \
             --collect-data material_icons \
             -n V3XCTRL v3xctrl_ui/main.py

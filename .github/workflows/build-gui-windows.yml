@@ -58,6 +58,7 @@ jobs:
           cd src
 
           "$PY" -m PyInstaller --noconfirm --onedir --windowed \
+            --icon=v3xctrl_ui/assets/images/logo.ico \
             --add-data "v3xctrl_ui/assets;assets" \
             --collect-data material_icons \
             --add-binary "${{ runner.temp }}/msys64/mingw64/bin/*.dll;." \
