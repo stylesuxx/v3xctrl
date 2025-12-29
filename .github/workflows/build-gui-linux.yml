@@ -52,19 +52,19 @@ jobs:
           # Copy the entire PyInstaller directory (contains all bundled libraries)
           cp -r src/dist/V3XCTRL AppDir/usr/bin/v3xctrl
 
-          # Copy icon
+          # Copy icon (appimagetool will create .DirIcon symlink automatically)
           cp src/v3xctrl_ui/assets/images/logo.png AppDir/usr/share/icons/hicolor/256x256/apps/v3xctrl.png
           cp src/v3xctrl_ui/assets/images/logo.png AppDir/v3xctrl.png
 
           # Create desktop entry
           cat > AppDir/usr/share/applications/v3xctrl.desktop << 'EOF'
-          [Desktop Entry]
-          Name=V3XCTRL
-          Exec=v3xctrl
-          Icon=v3xctrl
-          Type=Application
-          Categories=Utility;
-          EOF
+[Desktop Entry]
+Name=V3XCTRL
+Exec=v3xctrl
+Icon=v3xctrl
+Type=Application
+Categories=Utility;
+EOF
 
           # Create AppRun script that launches the PyInstaller executable
           cat > AppDir/AppRun << 'EOF'
