@@ -120,7 +120,7 @@ class TestEventHandling:
     def test_handle_escape_key_creates_menu(self, controller, mock_pygame):
         """Test that ESC key creates menu when none exists."""
         esc_event = Mock()
-        esc_event.type = pygame.KEYDOWN
+        esc_event.type = pygame.KEYUP
         esc_event.key = pygame.K_ESCAPE
         mock_pygame.return_value = [esc_event]
 
@@ -139,7 +139,7 @@ class TestEventHandling:
         controller.menu = Mock(is_loading=False)
 
         esc_event = Mock()
-        esc_event.type = pygame.KEYDOWN
+        esc_event.type = pygame.KEYUP
         esc_event.key = pygame.K_ESCAPE
         mock_pygame.return_value = [esc_event]
 
@@ -165,7 +165,7 @@ class TestEventHandling:
     def test_handle_f11_key(self, controller, mock_pygame):
         """Test handling F11 key for fullscreen toggle."""
         f11_event = Mock()
-        f11_event.type = pygame.KEYDOWN
+        f11_event.type = pygame.KEYUP
         f11_event.key = pygame.K_F11
         mock_pygame.return_value = [f11_event]
 
@@ -204,7 +204,7 @@ class TestEventHandling:
     def test_multiple_events_in_sequence(self, controller, mock_pygame):
         """Test handling multiple different events in one call."""
         f11_event = Mock()
-        f11_event.type = pygame.KEYDOWN
+        f11_event.type = pygame.KEYUP
         f11_event.key = pygame.K_F11
 
         mouse_event = Mock()
@@ -316,7 +316,7 @@ class TestEventControllerIntegration:
 
         # Press ESC to create menu
         esc_event = Mock()
-        esc_event.type = pygame.KEYDOWN
+        esc_event.type = pygame.KEYUP
         esc_event.key = pygame.K_ESCAPE
         mock_get.return_value = [esc_event]
 
@@ -348,7 +348,7 @@ class TestEventControllerIntegration:
 
         # Press F11 while menu is open
         f11_event = Mock()
-        f11_event.type = pygame.KEYDOWN
+        f11_event.type = pygame.KEYUP
         f11_event.key = pygame.K_F11
         mock_get.return_value = [f11_event]
 
