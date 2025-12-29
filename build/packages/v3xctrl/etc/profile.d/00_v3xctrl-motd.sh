@@ -18,7 +18,7 @@ echo -e "\
 
  Video eXchange and ConTRoL                         /vɛks kənˈtɹoʊl/
 
- Web Configurator:   http://${IP}:${network_ports_webinterface}
+ Web Configurator:   http://${IP}
  Start video stream: sudo systemctl start v3xctrl-video
  Start control:      sudo systemctl start v3xctrl-control"
 

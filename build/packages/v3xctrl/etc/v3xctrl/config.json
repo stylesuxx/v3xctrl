@@ -12,8 +12,7 @@
   "network": {
     "ports": {
       "control": 6668,
-      "video": 6666,
-      "webinterface": 5000
+      "video": 6666
     },
     "wifi": {
       "mode": "client",

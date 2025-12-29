@@ -419,12 +419,6 @@
               "type": "integer",
               "default": 6668,
               "description": "The port for the bi-directional control channel"
-            },
-            "webinterface": {
-              "propertyOrder": 30,
-              "type": "integer",
-              "default": 80,
-              "description": "The port on which this interface should be running (requires reboot)"
             }
           }
         },

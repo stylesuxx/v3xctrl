@@ -21,4 +21,4 @@ v3xctrl-python "/usr/share/${NAME}/config-server/main.py" \
   --schema "$SCHEMA_PATH" \
   --modems "$MODEMS_PATH" \
   --host "$HOST" \
-  --port "$network_ports_webinterface"
+  --port 80
