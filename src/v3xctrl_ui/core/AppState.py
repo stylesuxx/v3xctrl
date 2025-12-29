@@ -94,7 +94,7 @@ class AppState:
         self.event_controller.clear_menu()
 
         if new_settings is None:
-            new_settings = Settings("settings.toml")
+            new_settings = Settings()
             new_settings.save()
 
         # Delegate to settings controller
@@ -184,6 +184,11 @@ class AppState:
 
     def _on_toggle_fullscreen(self) -> None:
         self.display_controller.toggle_fullscreen()
+
+        video_settings = self.settings.get("video", {})
+        video_settings["fullscreen"] = self.model.fullscreen
+        self.settings.set("video", video_settings)
+        self.settings.save()
 
     def _create_menu(self) -> Menu:
         """Callback to create a new menu instance."""

@@ -1,7 +1,7 @@
 """Display management for handling screen modes, sizing, and scaling."""
 from typing import TYPE_CHECKING, Tuple
 import logging
-import os
+import sys
 from pathlib import Path
 
 import pygame
@@ -38,9 +38,15 @@ class DisplayController:
         pygame.display.set_caption(self.title)
 
         try:
-            # Get the path to the assets directory relative to this file
-            assets_dir = Path(__file__).parent.parent / "assets" / "images"
-            icon_path = assets_dir / "logo.png"
+            # Get path to icon, works for both dev and PyInstaller
+            if getattr(sys, 'frozen', False):
+                # Running in PyInstaller bundle
+                base_path = Path(sys._MEIPASS)
+            else:
+                # Running in normal Python environment
+                base_path = Path(__file__).parent.parent
+
+            icon_path = base_path / "assets" / "images" / "logo.png"
             icon = pygame.image.load(str(icon_path))
             pygame.display.set_icon(icon)
         except Exception as e:
