@@ -41,7 +41,7 @@ class EventController:
                 self.on_quit()
                 return False
 
-            elif event.type == pygame.KEYDOWN:
+            elif event.type == pygame.KEYUP:
                 match event.key:
                     case pygame.K_ESCAPE:
                         # [ESC] - Toggle Menu
