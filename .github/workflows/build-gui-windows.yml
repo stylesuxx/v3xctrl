@@ -55,28 +55,31 @@ jobs:
       - name: Build executable with PyInstaller
         shell: bash
         run: |
-          cd src/v3xctrl_ui
+          cd src
 
-          iconsPath=$("$PY" -c "import material_icons, os; print(os.path.join(material_icons.__path__[0], 'icons'))")
-          echo "Material icons path: $iconsPath"
+          "$PY" -m PyInstaller --noconfirm --onedir --windowed \
+            --add-data "v3xctrl_ui/assets;assets" \
+            --collect-data material_icons \
+            --add-binary "${{ runner.temp }}/msys64/mingw64/bin/*.dll;." \
+            -n V3XCTRL v3xctrl_ui/main.py
 
-          "$PY" -m PyInstaller --noconfirm --onefile \
-            --add-data "$iconsPath:material_icons/icons" \
-            --add-binary "${{ runner.temp }}/msys64/mingw64/bin/*.dll:." \
-            -n V3XCTRL main.py
-
-      - name: Rename output
+      - name: Create release package
         shell: bash
         run: |
-          cd src/v3xctrl_ui/dist
+          cd src/dist
           SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          mv V3XCTRL.exe V3XCTRL-$SHA.exe
+
+          # Rename the directory to include the SHA
+          mv V3XCTRL V3XCTRL-$SHA
+
+          # Create a zip file
+          powershell Compress-Archive -Path V3XCTRL-$SHA -DestinationPath V3XCTRL-$SHA-windows.zip
 
       - name: Upload executable
         uses: actions/upload-artifact@v4
         with:
           name: V3XCTRL-Windows
-          path: src/v3xctrl_ui/dist/V3XCTRL-*.exe
+          path: src/dist/V3XCTRL-*-windows.zip
 
   call-cleanup:
     name: Cleanup old workflow runs
