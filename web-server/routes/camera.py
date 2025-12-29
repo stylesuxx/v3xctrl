@@ -36,13 +36,14 @@ class CameraSetting(MethodView):
                     "error": "Both 'name' and 'value' are required"
                 }), 400)
 
-            # The element is 'source' (the camera source element)
-            element = 'source'
-
-            # Call v3xctrl-video-control to set the property
-            # The property name is the hyphenated setting name (GStreamer property naming)
             output = subprocess.check_output(
-                ["v3xctrl-video-control", "set", element, setting_name, str(value)],
+                [
+                    "v3xctrl-video-control",
+                    "set",
+                    "camera",
+                    setting_name,
+                    str(value)
+                ],
                 stderr=subprocess.STDOUT
             ).decode().strip()
 

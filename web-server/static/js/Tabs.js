@@ -200,8 +200,6 @@ class Tabs {
       const settingName = $form.attr('name');
       const value = parseFloat($form.find('input').val());
 
-      console.log(`Setting ${settingName} to:`, value);
-
       API.setCameraSetting(settingName, value)
         .then((response) => {
           console.log('Camera setting applied:', response);

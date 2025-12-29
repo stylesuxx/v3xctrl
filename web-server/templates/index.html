@@ -37,6 +37,10 @@
       .mb-15 {
         margin-bottom: 15px;
       }
+
+      input.form-control.camera-setting {
+        width: 150px;
+      }
     </style>
 
     <link rel="stylesheet" href="{{ url_for('static', filename='libs/bootstrap3.min.css') }}">
@@ -106,6 +110,14 @@
             </div>
 
             <div class="content hidden">
+              <div class="row">
+                <div class="col-md-12">
+                  <div class="alert alert-info">
+                    <strong>NOTE:</strong> In live mode, some values need to be applied multiple times before they stick.
+                  </div>
+                </div>
+              </div>
+
               <div class="row mb-15">
                 <form
                   name="brightness"
@@ -207,6 +219,7 @@
 
                     <button class="set btn btn-secondary" type="submit">Set</button>
                   </div>
+                  <div class="small">This setting will only update when autofocus is disabled in camera settings!</div>
                 </form>
               </div>
 
@@ -228,6 +241,7 @@
 
                     <button class="set btn btn-secondary" type="submit">Set</button>
                   </div>
+                  <div class="small">This setting will only update when "Gain Control" is set to manual in camera settings!</div>
                 </form>
               </div>
 
@@ -248,6 +262,7 @@
 
                     <button class="set btn btn-secondary" type="submit">Set</button>
                   </div>
+                  <div class="small">This setting will only update when "Exposure Control" is set to manual in camera settings!</div>
                 </form>
               </div>
 

@@ -90,6 +90,10 @@ chmod 440 "${DEST_DIR}/etc/sudoers.d/010_v3xctrl"
 gzip -9 -n -f "${DEST_DIR}/usr/share/doc/${NAME}/changelog"
 chown -R root:root "${DEST_DIR}"
 
+# Ensure web server files have correct permissions
+find "${SERVER_BASE_PATH}" -type f -exec chmod 644 {} \;
+find "${SERVER_BASE_PATH}" -type d -exec chmod 755 {} \;
+
 dpkg-deb --build "${DEST_DIR}" "${DEB_PATH}"
 lintian "${DEB_PATH}" || true
 
