@@ -11,6 +11,7 @@ class Tabs {
 
     this.tabs = {
       "calibration": this.$panes.filter('#calibration'),
+      "camera": this.$panes.filter('#camera'),
       "dmesg": this.$panes.filter('#dmesg'),
       "editor": this.$panes.filter('#editor'),
       "modem": this.$panes.filter('#modem'),
@@ -55,6 +56,10 @@ class Tabs {
 
         case '#calibration': {
           that.renderCalibration();
+        } break;
+
+        case '#camera': {
+          that.renderCamera();
         } break;
 
         case '#version': {
@@ -185,6 +190,50 @@ class Tabs {
       const values = that.editor.getValue();
       const channel = parseInt(values.controls.pwm.throttle);
       API.setPwm(channel, value);
+    });
+
+    // Camera settings
+    this.tabs.camera.find('form button').on('click', (e) => {
+      e.preventDefault();
+
+      const $form = $(e.target).closest('form');
+      const settingName = $form.attr('name');
+      const value = parseFloat($form.find('input').val());
+
+      console.log(`Setting ${settingName} to:`, value);
+
+      API.setCameraSetting(settingName, value)
+        .then((response) => {
+          console.log('Camera setting applied:', response);
+        })
+        .catch((error) => {
+          console.error('Failed to set camera setting:', error);
+        });
+    });
+
+    this.tabs.camera.find('button.save-camera-settings').on('click', (e) => {
+      e.preventDefault();
+
+      const $camera = that.tabs.camera;
+      const brightness = parseFloat($camera.find('form[name="brightness"] input').val());
+      const contrast = parseFloat($camera.find('form[name="contrast"] input').val());
+      const saturation = parseFloat($camera.find('form[name="saturation"] input').val());
+      const sharpness = parseFloat($camera.find('form[name="sharpness"] input').val());
+      const lensPosition = parseFloat($camera.find('form[name="lens-position"] input').val());
+      const analogueGain = parseInt($camera.find('form[name="analogue-gain"] input').val());
+      const exposureTime = parseInt($camera.find('form[name="exposure-time"] input').val());
+
+      const values = that.editor.getValue();
+      values.video.camera.brightness = brightness;
+      values.video.camera.contrast = contrast;
+      values.video.camera.saturation = saturation;
+      values.video.camera.sharpness = sharpness;
+      values.video.camera.lensPosition = lensPosition;
+      values.video.camera.analogueGain = analogueGain;
+      values.video.camera.exposureTime = exposureTime;
+
+      that.editor.setValue(values);
+      that.editor.save();
     });
   }
 
@@ -448,6 +497,38 @@ class Tabs {
     }
 
     $content.html($table);
+  }
+
+  async renderCamera() {
+    const $warning = this.tabs.camera.find('.service-warning');
+    const $content = this.tabs.camera.find('.content');
+
+    const services = await API.getServices();
+    services.forEach((service) => {
+      if(service.name === 'v3xctrl-video') {
+        if(service.state == 'active') {
+          $warning.addClass('hidden');
+          $content.removeClass('hidden');
+        } else {
+          $warning.removeClass('hidden');
+          $content.addClass('hidden');
+        }
+      }
+    });
+
+    // Populate form values from editor settings
+    const values = this.editor.getValue();
+    if (values && values.video && values.video.camera) {
+      const camera = values.video.camera;
+
+      this.tabs.camera.find('form[name="brightness"] input').val(camera.brightness || 0.0);
+      this.tabs.camera.find('form[name="contrast"] input').val(camera.contrast || 1.0);
+      this.tabs.camera.find('form[name="saturation"] input').val(camera.saturation || 1.0);
+      this.tabs.camera.find('form[name="sharpness"] input').val(camera.sharpness || 0.0);
+      this.tabs.camera.find('form[name="lens-position"] input').val(camera.lensPosition || 0);
+      this.tabs.camera.find('form[name="analogue-gain"] input').val(camera.analogueGain || 1);
+      this.tabs.camera.find('form[name="exposure-time"] input').val(camera.exposureTime || 32000);
+    }
   }
 
   activateTabFromHash() {
