@@ -57,14 +57,14 @@ jobs:
           cp src/v3xctrl_ui/assets/images/logo.png AppDir/v3xctrl.png
 
           # Create desktop entry
-          cat > AppDir/usr/share/applications/v3xctrl.desktop << 'EOF'
-[Desktop Entry]
-Name=V3XCTRL
-Exec=v3xctrl
-Icon=v3xctrl
-Type=Application
-Categories=Utility;
-EOF
+          cat > AppDir/usr/share/applications/v3xctrl.desktop <<'EOF'
+          [Desktop Entry]
+          Name=V3XCTRL
+          Exec=v3xctrl
+          Icon=v3xctrl
+          Type=Application
+          Categories=Utility;
+          EOF
 
           # Create AppRun script that launches the PyInstaller executable
           cat > AppDir/AppRun << 'EOF'
