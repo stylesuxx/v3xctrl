@@ -185,6 +185,11 @@ class AppState:
     def _on_toggle_fullscreen(self) -> None:
         self.display_controller.toggle_fullscreen()
 
+        video_settings = self.settings.get("video", {})
+        video_settings["fullscreen"] = self.model.fullscreen
+        self.settings.set("video", video_settings)
+        self.settings.save()
+
     def _create_menu(self) -> Menu:
         """Callback to create a new menu instance."""
         menu = Menu(
