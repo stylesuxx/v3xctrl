@@ -94,7 +94,7 @@ class AppState:
         self.event_controller.clear_menu()
 
         if new_settings is None:
-            new_settings = Settings("settings.toml")
+            new_settings = Settings()
             new_settings.save()
 
         # Delegate to settings controller

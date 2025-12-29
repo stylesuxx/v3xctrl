@@ -4,6 +4,7 @@ import copy
 
 import tomllib
 import tomli_w
+from platformdirs import user_config_dir
 
 import pygame
 
@@ -132,10 +133,17 @@ class Settings:
         },
     }
 
-    def __init__(self, path: str) -> None:
-        self.path = Path(path)
+    def __init__(self, path: str = None) -> None:
+        if path is not None:
+            self.path = Path(path)
+        else:
+            config_dir = Path(user_config_dir("v3xctrl", "v3xctrl"))
+            config_dir.mkdir(parents=True, exist_ok=True)
+            self.path = config_dir / "settings.toml"
+
         self.settings = {}
         self.load()
+        self.save()
 
     def load(self) -> None:
         if self.path.exists():

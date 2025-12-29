@@ -50,9 +50,7 @@ if args.mem_profile:
     mem_tracker = MemoryTracker(interval=10, top=5)
     mem_tracker.start()
 
-# Load settings from file, otherwise use default values if file not available
-settings = Settings("settings.toml")
-settings.save()
+settings = Settings()
 state = AppState(settings)
 
 while state.model.running:
