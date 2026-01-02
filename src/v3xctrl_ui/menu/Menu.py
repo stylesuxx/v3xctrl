@@ -80,7 +80,13 @@ class Menu:
 
         self.tabs = []
         for i, name in enumerate(tab_names):
-            rect = pygame.Rect(i * tab_width, 0, tab_width, self.tab_height)
+            width = tab_width
+
+            # Make the last tab fill the remaining width to avoid gaps
+            if i == len(tab_names) - 1:
+                width = self.width - (i * tab_width)
+
+            rect = pygame.Rect(i * tab_width, 0, width, self.tab_height)
             view = tab_views[name]
             self.tabs.append(TabEntry(name, rect, view))
 
