@@ -62,6 +62,13 @@ class NetworkCoordinator:
         return threading.Thread(target=_restart)
 
     def send_control_message(self, throttle: float, steering: float) -> None:
+        # Skip sending control messages in spectator mode
+        if (
+            self.network_manager and
+            self.network_manager.relay_spectator_mode
+        ):
+            return
+
         if (
             self.network_manager and
             self.network_manager.server and
@@ -77,12 +84,28 @@ class NetworkCoordinator:
         command: Command,
         callback: Callable[[bool], None]
     ) -> None:
+        # Skip sending commands in spectator mode
+        if (
+            self.network_manager and
+            self.network_manager.relay_spectator_mode
+        ):
+            logging.debug(f"Blocked command in spectator mode: {command}")
+            callback(False)
+            return
+
         if self.network_manager and self.network_manager.server:
             self.network_manager.server.send_command(command, callback)
         else:
             logging.error(f"Server is not set, cannot send command: {command}")
 
     def send_latency_check(self) -> None:
+        # Skip latency checks in spectator mode
+        if (
+            self.network_manager and
+            self.network_manager.relay_spectator_mode
+        ):
+            return
+
         if self.network_manager:
             self.network_manager.send_latency_check()
 
@@ -113,6 +136,12 @@ class NetworkCoordinator:
 
     def is_control_connected(self) -> bool:
         return self.model.control_connected
+
+    def is_spectator_mode(self) -> bool:
+        return bool(
+            self.network_manager and
+            self.network_manager.relay_spectator_mode
+        )
 
     def shutdown(self) -> None:
         if self.network_manager:

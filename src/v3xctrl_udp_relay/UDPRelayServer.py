@@ -15,7 +15,8 @@ from v3xctrl_control.message import (
 
 from v3xctrl_udp_relay.SessionStore import SessionStore
 from v3xctrl_udp_relay.PacketRelay import PacketRelay
-from v3xctrl_udp_relay.custom_types import Role, PortType, Session
+from v3xctrl_udp_relay.Role import Role
+from v3xctrl_udp_relay.custom_types import PortType, Session
 
 
 class UDPRelayServer(threading.Thread):
@@ -142,6 +143,7 @@ class UDPRelayServer(threading.Thread):
         with self.relay.lock:
             for sid, session in self.relay.sessions.items():
                 mappings: List[Dict[str, Any]] = []
+                spectators: List[Dict[str, Any]] = []
 
                 if session:
                     for addr in session.addresses:
@@ -156,16 +158,22 @@ class UDPRelayServer(threading.Thread):
 
                             if role_info:
                                 role, port_type = role_info
-                                mappings.append({
+                                entry = {
                                     'address': f"{addr[0]}:{addr[1]}",
                                     'role': role.name,
                                     'port_type': port_type.name,
                                     'timeout_in_sec': timeout_in_sec,
-                                })
+                                }
+
+                                if role == Role.SPECTATOR:
+                                    spectators.append(entry)
+                                else:
+                                    mappings.append(entry)
 
                     result[sid] = {
                         'created_at': session.created_at,
-                        'mappings': mappings
+                        'mappings': mappings,
+                        'spectators': spectators
                     }
 
         return result
@@ -176,6 +184,11 @@ class UDPRelayServer(threading.Thread):
             for port_type, peer_entry in port_dict.items():
                 if peer_entry.addr == addr:
                     return role, port_type
+
+        for spectator in session.spectators:
+            for port_type, peer_entry in spectator.ports.items():
+                if peer_entry.addr == addr:
+                    return Role.SPECTATOR, port_type
 
         return None
 

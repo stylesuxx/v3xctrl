@@ -70,7 +70,7 @@ class NetworkSetup:
         relay_server: str,
         relay_port: int,
         relay_id: str,
-        peer_callback: Optional[Callable[[Peer], None]] = None
+        spectator_mode: bool = False
     ) -> RelaySetupResult:
         """
         Setup relay connection.
@@ -79,6 +79,7 @@ class NetworkSetup:
             relay_server: Relay server hostname
             relay_port: Relay server port
             relay_id: Session ID for relay
+            spectator_mode: Whether to register as spectator instead of viewer
 
         Returns:
             RelaySetupResult with connection details or error
@@ -89,10 +90,9 @@ class NetworkSetup:
         }
 
         peer = Peer(relay_server, relay_port, relay_id)
-        if peer_callback:
-            peer_callback(peer)
         try:
-            addresses = peer.setup("viewer", local_bind_ports)
+            role = "spectator" if spectator_mode else "viewer"
+            addresses = peer.setup(role, local_bind_ports)
             video_address = addresses["video"]
             logging.info(f"Relay peer setup successful, video address: {video_address}")
 
@@ -256,7 +256,7 @@ class NetworkSetup:
                 relay_config['server'],
                 relay_config['port'],
                 relay_config['id'],
-                peer_callback
+                relay_config.get('spectator_mode', False)
             )
             result.relay_result = relay_result
 

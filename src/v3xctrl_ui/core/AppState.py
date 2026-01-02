@@ -156,6 +156,7 @@ class AppState:
 
         self.osd.update_data_queue(data_left)
         self.osd.set_control(self.model.throttle, self.model.steering)
+        self.osd.set_spectator_mode(self.network_coordinator.is_spectator_mode())
 
         self.renderer.render_all(
             self,
@@ -214,7 +215,12 @@ class AppState:
             self._signal_handler,
             self.telemetry_context
         )
-        menu.set_tab_enabled("Streamer", self.network_coordinator.is_control_connected())
+
+        streamer_enabled = (
+            self.network_coordinator.is_control_connected() and
+            not self.network_coordinator.is_spectator_mode()
+        )
+        menu.set_tab_enabled("Streamer", streamer_enabled)
 
         return menu
 
@@ -262,7 +268,11 @@ class AppState:
         return self.network_coordinator.restart_network_manager(new_settings)
 
     def _on_connection_change(self, connected: bool) -> None:
-        self.menu.set_tab_enabled("Streamer", connected)
+        streamer_enabled = (
+            connected and
+            not self.network_coordinator.is_spectator_mode()
+        )
+        self.event_controller.set_menu_tab_enabled("Streamer", streamer_enabled)
 
     def _setup_signal_handling(self) -> None:
         signal.signal(signal.SIGINT, self._signal_handler)

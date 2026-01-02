@@ -390,6 +390,73 @@ class TestAppState(unittest.TestCase):
         app._on_connection_change(True)
         # Verify the event controller would be called (we can't test directly as it's mocked)
 
+    def test_streamer_tab_disabled_in_spectator_mode(
+        self, mock_coordinator_cls, mock_renderer_cls,
+        mock_osd_cls, mock_input_cls, mock_display_cls
+    ):
+        """Test that Streamer tab is disabled when in spectator mode"""
+        app, _, _, _, mock_coordinator = self._create_app(
+            mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
+            mock_input_cls, mock_display_cls
+        )
+
+        # Mock spectator mode
+        mock_coordinator.is_spectator_mode.return_value = True
+        mock_coordinator.is_control_connected.return_value = True
+
+        # Create menu
+        menu = app._create_menu()
+
+        # Verify Streamer tab is disabled even though connected
+        streamer_tab = next((t for t in menu.tabs if t.name == "Streamer"), None)
+        self.assertIsNotNone(streamer_tab)
+        self.assertFalse(streamer_tab.enabled)
+
+    def test_streamer_tab_enabled_when_connected_and_not_spectator(
+        self, mock_coordinator_cls, mock_renderer_cls,
+        mock_osd_cls, mock_input_cls, mock_display_cls
+    ):
+        """Test that Streamer tab is enabled when connected and not in spectator mode"""
+        app, _, _, _, mock_coordinator = self._create_app(
+            mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
+            mock_input_cls, mock_display_cls
+        )
+
+        # Mock connected and not spectator
+        mock_coordinator.is_spectator_mode.return_value = False
+        mock_coordinator.is_control_connected.return_value = True
+
+        # Create menu
+        menu = app._create_menu()
+
+        # Verify Streamer tab is enabled
+        streamer_tab = next((t for t in menu.tabs if t.name == "Streamer"), None)
+        self.assertIsNotNone(streamer_tab)
+        self.assertTrue(streamer_tab.enabled)
+
+    def test_on_connection_change_respects_spectator_mode(
+        self, mock_coordinator_cls, mock_renderer_cls,
+        mock_osd_cls, mock_input_cls, mock_display_cls
+    ):
+        """Test that connection change handler respects spectator mode"""
+        app, _, _, _, mock_coordinator = self._create_app(
+            mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
+            mock_input_cls, mock_display_cls
+        )
+
+        # Mock spectator mode
+        mock_coordinator.is_spectator_mode.return_value = True
+
+        # Create a mock menu
+        mock_menu = MagicMock()
+        app.event_controller.menu = mock_menu
+
+        # Simulate connection when in spectator mode
+        app._on_connection_change(True)
+
+        # Verify tab is disabled (False) even though connected
+        mock_menu.set_tab_enabled.assert_called_with("Streamer", False)
+
     def test_tick_calls_clock(
         self, mock_coordinator_cls, mock_renderer_cls,
         mock_osd_cls, mock_input_cls, mock_display_cls

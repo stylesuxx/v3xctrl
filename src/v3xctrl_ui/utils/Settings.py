@@ -27,7 +27,8 @@ class Settings:
         "relay": {
             "enabled": False,
             "server": "relay.v3xctrl.com:8888",
-            "id": "test123"
+            "id": "test123",
+            "spectator_mode": False
         },
         "ports": {
             "video": 6666,

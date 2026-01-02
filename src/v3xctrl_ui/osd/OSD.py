@@ -37,6 +37,7 @@ class OSD:
         self.debug_buffer: Optional[str] = None
         self.loop_history: Optional[deque[float]] = None
         self.video_history: Optional[deque[float]] = None
+        self.is_spectator_mode: bool = False
         self._init_widgets_debug()
 
         self.widgets_signal: Dict[str, Widget] = {}
@@ -94,6 +95,9 @@ class OSD:
     def update_settings(self, settings: Settings) -> None:
         self.settings = settings
         self.widget_settings = self.settings.get("widgets", {})
+
+    def set_spectator_mode(self, is_spectator: bool) -> None:
+        self.is_spectator_mode = is_spectator
 
     def _get_steering_value(self, name: str):
         return getattr(self, name)
@@ -217,6 +221,14 @@ class OSD:
         NOTE: We rely on the streamer and viewer to have the same timezone set
               and do not account for any form of drift.
         """
+
+        # In spectator mode, latency is not meaningful
+        if self.is_spectator_mode:
+            self.debug_latency = "default"
+            self.widgets_debug["debug_latency"].set_value("N/A")
+
+            return
+
         now = time.time()
         timestamp = message.timestamp
         diff_ms = round((now - timestamp) * 1000)

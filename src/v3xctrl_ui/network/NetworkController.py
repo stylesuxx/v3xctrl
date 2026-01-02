@@ -35,6 +35,7 @@ class NetworkController:
         self.relay_server = None
         self.relay_port = 8888
         self.relay_id = None
+        self.relay_spectator_mode = False
         self.peer: Optional[Peer] = None
         self._setup_peer: Optional[Peer] = None  # Peer being set up in background
 
@@ -75,7 +76,8 @@ class NetworkController:
             relay_config = {
                 'server': self.relay_server,
                 'port': self.relay_port,
-                'id': self.relay_id
+                'id': self.relay_id,
+                'spectator_mode': self.relay_spectator_mode
             }
 
         # Run orchestrated setup
@@ -148,6 +150,7 @@ class NetworkController:
         if relay.get("enabled", False):
             server = relay.get("server")
             relay_id = relay.get("id")
+            self.relay_spectator_mode = relay.get("spectator_mode", False)
             if server and relay_id:
                 self.setup_relay(server, relay_id)
 
