@@ -7,7 +7,7 @@ Depends: v3xctrl-python, libc6, jq, moreutils, samba, iptables,
  gstreamer1.0-tools, gstreamer1.0-plugins-base, gstreamer1.0-plugins-good,
  gstreamer1.0-plugins-bad, gstreamer1.0-plugins-ugly, gstreamer1.0-libcamera,
  libgirepository-1.0-1, gir1.2-gstreamer-1.0, gir1.2-gst-plugins-base-1.0,
- i2c-tools, overlayroot, cryptsetup, cryptsetup-bin, fake-hwclock, socat
+ i2c-tools, overlayroot, cryptsetup, cryptsetup-bin, fake-hwclock, socat, libcap2-bin
 Maintainer: Chris Landa <stylesuxx@gmail.com>
 Description: RC client and web interface
  RC client provides functionality to transmit video to a host and establish
