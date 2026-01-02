@@ -6,6 +6,7 @@ import pygame
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 from v3xctrl_ui.utils.Commands import Commands
 from v3xctrl_ui.utils.Settings import Settings
+from v3xctrl_ui.controllers.input.GamepadController import GamepadController
 
 if TYPE_CHECKING:
     from v3xctrl_ui.menu.Menu import Menu
@@ -20,7 +21,8 @@ class EventController:
         on_menu_exit: Callable[[], None],
         send_command: Callable,
         settings: Settings,
-        telemetry_context: TelemetryContext
+        telemetry_context: TelemetryContext,
+        gamepad_controller: Optional[GamepadController] = None
     ):
         self.on_quit = on_quit
         self.on_toggle_fullscreen = on_toggle_fullscreen
@@ -29,6 +31,7 @@ class EventController:
         self.send_command = send_command
         self.settings = settings
         self.telemetry_context = telemetry_context
+        self.gamepad_controller = gamepad_controller
         self.menu: Optional['Menu'] = None
 
         self._load_keyboard_controls()
@@ -71,6 +74,25 @@ class EventController:
                                     self.send_command(Commands.recording_stop(), lambda success: None)
                                 else:
                                     self.send_command(Commands.recording_start(), lambda success: None)
+
+            elif event.type == pygame.JOYBUTTONUP and self.menu is None:
+                # Only process gamepad button controls when not in menu
+                if self.gamepad_controller:
+                    trim_increase_btn = self.gamepad_controller.get_button_mapping("trim_increase")
+                    trim_decrease_btn = self.gamepad_controller.get_button_mapping("trim_decrease")
+                    rec_toggle_btn = self.gamepad_controller.get_button_mapping("rec_toggle")
+
+                    if trim_increase_btn is not None and event.button == trim_increase_btn:
+                        self.send_command(Commands.trim_increase(), lambda success: None)
+
+                    elif trim_decrease_btn is not None and event.button == trim_decrease_btn:
+                        self.send_command(Commands.trim_decrease(), lambda success: None)
+
+                    elif rec_toggle_btn is not None and event.button == rec_toggle_btn:
+                        if self.telemetry_context.get_gst().recording:
+                            self.send_command(Commands.recording_stop(), lambda success: None)
+                        else:
+                            self.send_command(Commands.recording_start(), lambda success: None)
 
             if self.menu is not None:
                 self.menu.handle_event(event)

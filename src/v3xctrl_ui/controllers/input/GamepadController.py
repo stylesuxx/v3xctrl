@@ -140,6 +140,9 @@ class GamepadController(threading.Thread):
 
         values: Dict[str, float] = {}
         for key, cfg in settings.items():
+            if key == "buttons":
+                continue
+
             axis = cfg.get("axis")
             if axis is not None and 0 <= axis < js.get_numaxes():
                 try:
@@ -188,6 +191,17 @@ class GamepadController(threading.Thread):
                     continue
 
         return values
+
+    def get_button_mapping(self, button_name: str) -> Optional[int]:
+        with self._lock:
+            settings = self._active_settings
+
+        if not settings:
+            return None
+
+        buttons = settings.get("buttons", {})
+
+        return buttons.get(button_name)
 
     def stop(self) -> None:
         self._stop_event.set()

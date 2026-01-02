@@ -66,7 +66,8 @@ class AppState:
             on_menu_exit=self.update_settings,
             send_command=self.network_coordinator.send_command,
             settings=settings,
-            telemetry_context=self.telemetry_context
+            telemetry_context=self.telemetry_context,
+            gamepad_controller=self.input_controller.gamepad_controller
         )
 
         self._setup_signal_handling()

@@ -51,7 +51,8 @@ class InputTab(Tab):
             font=LABEL_FONT,
             manager=self.gamepad_manager,
             on_calibration_start=self._on_calibration_start,
-            on_calibration_done=self._on_calibration_done
+            on_calibration_done=self._on_calibration_done,
+            on_remap_toggle=self._on_active_toggle
         )
 
         self.elements = self.key_widgets + [self.calibration_widget]
