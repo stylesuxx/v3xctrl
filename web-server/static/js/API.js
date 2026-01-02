@@ -106,4 +106,10 @@ class API {
 
     return json;
   }
+
+  static async setCameraSetting(name, value) {
+    const json = await this.#post('/camera/setting', { name, value });
+
+    return json;
+  }
 }

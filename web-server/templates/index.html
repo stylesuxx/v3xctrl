@@ -37,6 +37,10 @@
       .mb-15 {
         margin-bottom: 15px;
       }
+
+      input.form-control.camera-setting {
+        width: 150px;
+      }
     </style>
 
     <link rel="stylesheet" href="{{ url_for('static', filename='libs/bootstrap3.min.css') }}">
@@ -76,6 +80,7 @@
           <li class="editor active"><a href="#editor" role="tab" data-toggle="tab">Config Editor</a></li>
           <li><a class="services" href="#services" role="tab" data-toggle="tab">Services</a></li>
           <li><a class="calibration" href="#calibration" role="tab" data-toggle="tab">Calibration</a></li>
+          <li><a class="camera" href="#camera" role="tab" data-toggle="tab">Camera</a></li>
           <li><a class="dmesg" href="#dmesg" role="tab" data-toggle="tab">DMESG</a></li>
           <li><a class="modem" href="#modem" role="tab" data-toggle="tab">Modem</a></li>
           <li><a class="version" href="#version" role="tab" data-toggle="tab">Version</a></li>
@@ -92,6 +97,181 @@
             <div id="service-log-wrapper">
               <textarea id="service-log" class="hidden form-control" rows="50" readonly></textarea>
               <p></p>
+            </div>
+          </div>
+
+          <div class="tab-pane" id="camera">
+            <div class="row service-warning">
+              <div class="col-md-12">
+                <div class="alert alert-danger">
+                  Camera settings can not be run while video service is stoppped. Start the video service first!
+                </div>
+              </div>
+            </div>
+
+            <div class="content hidden">
+              <div class="row">
+                <div class="col-md-12">
+                  <div class="alert alert-info">
+                    <strong>NOTE:</strong> In live mode, some values need to be applied multiple times before they stick.
+                  </div>
+                </div>
+              </div>
+
+              <div class="row mb-15">
+                <form
+                  name="brightness"
+                  class="form-inline camera col-md-12"
+                >
+                  <div class="form-group">
+                    <label class="label-same control-label">Brightness</label>
+                    <input
+                      class="form-control camera-setting"
+                      type="number"
+                      value="0"
+                      min="-1.0"
+                      max="1.0"
+                      step="0.1"
+                    />
+
+                    <button class="set btn btn-secondary" type="submit">Set</button>
+                  </div>
+                </form>
+              </div>
+
+              <div class="row mb-15">
+                <form
+                  name="contrast"
+                  class="form-inline camera col-md-12"
+                >
+                  <div class="form-group">
+                    <label class="label-same control-label">Contrast</label>
+                    <input
+                      class="form-control camera-setting"
+                      type="number"
+                      value="1.0"
+                      min="0.0"
+                      max="2.0"
+                      step="0.1"
+                    />
+
+                    <button class="set btn btn-secondary" type="submit">Set</button>
+                  </div>
+                </form>
+              </div>
+
+              <div class="row mb-15">
+                <form
+                  name="saturation"
+                  class="form-inline camera col-md-12"
+                >
+                  <div class="form-group">
+                    <label class="label-same control-label">Saturation</label>
+                    <input
+                      class="form-control camera-setting"
+                      type="number"
+                      value="1.0"
+                      min="0.0"
+                      max="2.0"
+                      step="0.1"
+                    />
+
+                    <button class="set btn btn-secondary" type="submit">Set</button>
+                  </div>
+                </form>
+              </div>
+
+              <div class="row mb-15">
+                <form
+                  name="sharpness"
+                  class="form-inline camera col-md-12"
+                >
+                  <div class="form-group">
+                    <label class="label-same control-label">Sharpness</label>
+                    <input
+                      class="form-control camera-setting"
+                      type="number"
+                      value="0.0"
+                      min="0.0"
+                      max="10.0"
+                      step="0.1"
+                    />
+
+                    <button class="set btn btn-secondary" type="submit">Set</button>
+                  </div>
+                </form>
+              </div>
+
+              <div class="row mb-15">
+                <form
+                  name="lens-position"
+                  class="form-inline camera col-md-12"
+                >
+                  <div class="form-group">
+                    <label class="label-same control-label">Lens Position</label>
+                    <input
+                      class="form-control camera-setting"
+                      type="number"
+                      value="0"
+                      min="0"
+                      step="0.1"
+                    />
+
+                    <button class="set btn btn-secondary" type="submit">Set</button>
+                  </div>
+                  <div class="small">This setting will only update when autofocus is disabled in camera settings!</div>
+                </form>
+              </div>
+
+              <div class="row mb-15">
+                <form
+                  name="analogue-gain"
+                  class="form-inline camera col-md-12"
+                >
+                  <div class="form-group">
+                    <label class="label-same control-label">Analogue Gain</label>
+                    <input
+                      class="form-control camera-setting"
+                      type="number"
+                      value="1"
+                      min="1"
+                      max="16"
+                      step="1"
+                    />
+
+                    <button class="set btn btn-secondary" type="submit">Set</button>
+                  </div>
+                  <div class="small">This setting will only update when "Gain Control" is set to manual in camera settings!</div>
+                </form>
+              </div>
+
+              <div class="row mb-15">
+                <form
+                  name="exposure-time"
+                  class="form-inline camera col-md-12"
+                >
+                  <div class="form-group">
+                    <label class="label-same control-label">Exposure Time (μs)</label>
+                    <input
+                      class="form-control camera-setting"
+                      type="number"
+                      value="32000"
+                      min="0"
+                      step="100"
+                    />
+
+                    <button class="set btn btn-secondary" type="submit">Set</button>
+                  </div>
+                  <div class="small">This setting will only update when "Exposure Control" is set to manual in camera settings!</div>
+                </form>
+              </div>
+
+              <div class="row mb-15">
+                <div class="col-md-12">
+                  <button class="btn btn-primary save-camera-settings">Save camera settings</button>
+                </div>
+              </div>
+
             </div>
           </div>
 
