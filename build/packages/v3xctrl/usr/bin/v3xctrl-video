@@ -19,6 +19,23 @@ done
 ENV_PATH="/run/v3xctrl.env"
 source "${ENV_PATH}"
 
+# Activate HDR mode if enabled and supported by device
+SUBDEV_0="/dev/v4l-subdev0"
+if [ -e "$SUBDEV_0" ]; then
+  CONTROL="wide_dynamic_range"
+  if v4l2-ctl -d "$SUBDEV_0" --list-ctrls | grep -q "$CONTROL"; then
+    WIDE_DYNAMIC_RANGE=0
+    if [ "$video_camera_enableHdr" = "true" ]; then
+      echo "Enable HDR mode..."
+      WIDE_DYNAMIC_RANGE=1
+    else
+      echo "Disable HDR mode..."
+    fi
+
+    v4l2-ctl -d "$SUBDEV_0" --set-ctrl "$CONTROL=$WIDE_DYNAMIC_RANGE"
+  fi
+fi
+
 ARGS=(
   "$server_host"
   "$network_ports_video"
