@@ -191,6 +191,10 @@ class AppState:
         self.settings.set("video", video_settings)
         self.settings.save()
 
+        # Recreate menu with new screen dimensions if it's currently open
+        if self.event_controller.menu:
+            self.event_controller.menu = self._create_menu()
+
     def _create_menu(self) -> Menu:
         """Callback to create a new menu instance."""
         menu = Menu(
