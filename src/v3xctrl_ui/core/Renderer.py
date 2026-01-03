@@ -65,7 +65,7 @@ class Renderer:
 
         self._render_overlay_data(state, network_manager)
         self._render_errors(state.screen, network_manager)
-        self._render_menu(state.screen, state.event_controller.menu)
+        self._render_menu(state.screen, state.menu)
 
         pygame.display.flip()
 
@@ -246,7 +246,7 @@ class Renderer:
             rect.center = (self.center_x, 50)
             screen.blit(surface, rect)
 
-    def _render_menu(self, screen: pygame.Surface, menu: Optional['Menu']) -> None:
+    def _render_menu(self, screen: pygame.Surface, menu: Menu) -> None:
         """Render menu above everything else."""
-        if menu is not None:
+        if menu.visible:
             menu.draw(screen)

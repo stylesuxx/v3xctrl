@@ -39,14 +39,14 @@ class TestEventControllerInitialization:
         """Test that EventController initializes with all required callbacks."""
         on_quit = Mock()
         on_toggle_fullscreen = Mock()
-        create_menu = Mock()
+        mock_menu = Mock(visible=False, is_loading=False)
         on_menu_exit = Mock()
         send_command = Mock()
 
         controller = EventController(
             on_quit=on_quit,
             on_toggle_fullscreen=on_toggle_fullscreen,
-            create_menu=create_menu,
+            menu=mock_menu,
             on_menu_exit=on_menu_exit,
             send_command=send_command,
             settings=mock_settings,
@@ -55,26 +55,27 @@ class TestEventControllerInitialization:
 
         assert controller.on_quit == on_quit
         assert controller.on_toggle_fullscreen == on_toggle_fullscreen
-        assert controller.create_menu == create_menu
+        assert controller.menu == mock_menu
         assert controller.on_menu_exit == on_menu_exit
         assert controller.send_command == send_command
         assert controller.settings == mock_settings
         assert controller.telemetry_context == mock_telemetry
-        assert controller.menu is None
 
     def test_menu_starts_as_none(self, mock_settings, mock_telemetry):
-        """Test that menu is None initially."""
+        """Test that menu is provided and starts as not visible."""
+        mock_menu = Mock(visible=False, is_loading=False)
         controller = EventController(
             on_quit=Mock(),
             on_toggle_fullscreen=Mock(),
-            create_menu=Mock(),
+            menu=mock_menu,
             on_menu_exit=Mock(),
             send_command=Mock(),
             settings=mock_settings,
             telemetry_context=mock_telemetry
         )
 
-        assert controller.menu is None
+        assert controller.menu is not None
+        assert controller.menu.visible is False
 
 
 class TestEventHandling:
@@ -83,10 +84,11 @@ class TestEventHandling:
     @pytest.fixture
     def controller(self, mock_settings, mock_telemetry):
         """Create a controller with mock callbacks for testing."""
+        mock_menu = Mock(visible=False, is_loading=False)
         return EventController(
             on_quit=Mock(),
             on_toggle_fullscreen=Mock(),
-            create_menu=Mock(return_value=Mock(is_loading=False)),
+            menu=mock_menu,
             on_menu_exit=Mock(),
             send_command=Mock(),
             settings=mock_settings,
@@ -118,25 +120,24 @@ class TestEventHandling:
         assert result is False
 
     def test_handle_escape_key_creates_menu(self, controller, mock_pygame):
-        """Test that ESC key creates menu when none exists."""
+        """Test that ESC key shows menu when not visible."""
         esc_event = Mock()
         esc_event.type = pygame.KEYUP
         esc_event.key = pygame.K_ESCAPE
         mock_pygame.return_value = [esc_event]
 
-        mock_menu = Mock(is_loading=False)
-        controller.create_menu.return_value = mock_menu
+        controller.menu.visible = False
 
         result = controller.handle_events()
 
-        controller.create_menu.assert_called_once()
-        assert controller.menu == mock_menu
+        controller.menu.show.assert_called_once()
         assert result is True
 
     def test_handle_escape_key_exits_menu(self, controller, mock_pygame):
-        """Test that ESC key exits menu when menu exists and is not loading."""
-        # First create the menu
-        controller.menu = Mock(is_loading=False)
+        """Test that ESC key exits menu when menu is visible and not loading."""
+        # First show the menu
+        controller.menu.visible = True
+        controller.menu.is_loading = False
 
         esc_event = Mock()
         esc_event.type = pygame.KEYUP
@@ -150,10 +151,11 @@ class TestEventHandling:
 
     def test_handle_escape_key_does_nothing_when_menu_loading(self, controller, mock_pygame):
         """Test that ESC key does nothing when menu is loading."""
-        controller.menu = Mock(is_loading=True)
+        controller.menu.visible = True
+        controller.menu.is_loading = True
 
         esc_event = Mock()
-        esc_event.type = pygame.KEYDOWN
+        esc_event.type = pygame.KEYUP
         esc_event.key = pygame.K_ESCAPE
         mock_pygame.return_value = [esc_event]
 
@@ -175,8 +177,9 @@ class TestEventHandling:
         assert result is True
 
     def test_menu_receives_events_when_exists(self, controller, mock_pygame):
-        """Test that menu receives events when it exists."""
-        controller.menu = Mock(is_loading=False)
+        """Test that menu receives events when it is visible."""
+        controller.menu.visible = True
+        controller.menu.is_loading = False
 
         event1 = Mock()
         event1.type = pygame.MOUSEMOTION
@@ -192,13 +195,15 @@ class TestEventHandling:
         controller.menu.handle_event.assert_any_call(event2)
 
     def test_menu_does_not_receive_events_when_none(self, controller, mock_pygame):
-        """Test that no error occurs when menu is None."""
+        """Test that menu does not receive events when not visible."""
+        controller.menu.visible = False
         event = Mock()
         event.type = pygame.MOUSEMOTION
         mock_pygame.return_value = [event]
 
-        # Should not raise an error
         result = controller.handle_events()
+
+        controller.menu.handle_event.assert_not_called()
         assert result is True
 
     def test_multiple_events_in_sequence(self, controller, mock_pygame):
@@ -218,113 +223,41 @@ class TestEventHandling:
         assert result is True
 
 
-class TestMenuManagement:
-    """Test menu management methods."""
-
-    def test_clear_menu(self, mock_settings, mock_telemetry):
-        """Test clearing the menu."""
-        controller = EventController(
-            on_quit=Mock(),
-            on_toggle_fullscreen=Mock(),
-            create_menu=Mock(),
-            on_menu_exit=Mock(),
-            send_command=Mock(),
-            settings=mock_settings,
-            telemetry_context=mock_telemetry
-        )
-
-        controller.menu = Mock()
-        assert controller.menu is not None
-
-        controller.clear_menu()
-        assert controller.menu is None
-
-    def test_clear_menu_when_already_none(self, mock_settings, mock_telemetry):
-        """Test clearing menu when it's already None."""
-        controller = EventController(
-            on_quit=Mock(),
-            on_toggle_fullscreen=Mock(),
-            create_menu=Mock(),
-            on_menu_exit=Mock(),
-            send_command=Mock(),
-            settings=mock_settings,
-            telemetry_context=mock_telemetry
-        )
-
-        assert controller.menu is None
-        controller.clear_menu()  # Should not raise error
-        assert controller.menu is None
-
-    def test_set_menu_tab_enabled_when_menu_exists(self, mock_settings, mock_telemetry):
-        """Test enabling/disabling menu tabs when menu exists."""
-        controller = EventController(
-            on_quit=Mock(),
-            on_toggle_fullscreen=Mock(),
-            create_menu=Mock(),
-            on_menu_exit=Mock(),
-            send_command=Mock(),
-            settings=mock_settings,
-            telemetry_context=mock_telemetry
-        )
-
-        mock_menu = Mock()
-        controller.menu = mock_menu
-
-        controller.set_menu_tab_enabled("Streamer", True)
-        mock_menu.set_tab_enabled.assert_called_once_with("Streamer", True)
-
-    def test_set_menu_tab_enabled_when_menu_is_none(self, mock_settings, mock_telemetry):
-        """Test that set_menu_tab_enabled does nothing when menu is None."""
-        controller = EventController(
-            on_quit=Mock(),
-            on_toggle_fullscreen=Mock(),
-            create_menu=Mock(),
-            on_menu_exit=Mock(),
-            send_command=Mock(),
-            settings=mock_settings,
-            telemetry_context=mock_telemetry
-        )
-
-        assert controller.menu is None
-        # Should not raise error
-        controller.set_menu_tab_enabled("Streamer", True)
-
-
 class TestEventControllerIntegration:
     """Integration tests simulating real usage patterns."""
 
     def test_menu_lifecycle(self, monkeypatch, mock_settings, mock_telemetry):
-        """Test complete menu lifecycle: create, interact, exit."""
+        """Test complete menu lifecycle: show, interact, hide."""
         mock_get = Mock(return_value=[])
         monkeypatch.setattr('pygame.event.get', mock_get)
 
         on_menu_exit = Mock()
-        create_menu = Mock(return_value=Mock(is_loading=False))
+        mock_menu = Mock(visible=False, is_loading=False)
 
         controller = EventController(
             on_quit=Mock(),
             on_toggle_fullscreen=Mock(),
-            create_menu=create_menu,
+            menu=mock_menu,
             on_menu_exit=on_menu_exit,
             send_command=Mock(),
             settings=mock_settings,
             telemetry_context=mock_telemetry
         )
 
-        # Initially no menu
-        assert controller.menu is None
+        # Initially menu not visible
+        assert controller.menu.visible is False
 
-        # Press ESC to create menu
+        # Press ESC to show menu
         esc_event = Mock()
         esc_event.type = pygame.KEYUP
         esc_event.key = pygame.K_ESCAPE
         mock_get.return_value = [esc_event]
 
         controller.handle_events()
-        assert controller.menu is not None
-        create_menu.assert_called_once()
+        mock_menu.show.assert_called_once()
 
         # Press ESC again to exit menu
+        mock_menu.visible = True
         controller.handle_events()
         on_menu_exit.assert_called_once()
 
@@ -334,17 +267,17 @@ class TestEventControllerIntegration:
         monkeypatch.setattr('pygame.event.get', mock_get)
 
         on_toggle_fullscreen = Mock()
+        mock_menu = Mock(visible=True, is_loading=False)
+
         controller = EventController(
             on_quit=Mock(),
             on_toggle_fullscreen=on_toggle_fullscreen,
-            create_menu=Mock(return_value=Mock(is_loading=False)),
+            menu=mock_menu,
             on_menu_exit=Mock(),
             send_command=Mock(),
             settings=mock_settings,
             telemetry_context=mock_telemetry
         )
-
-        controller.menu = Mock(is_loading=False)
 
         # Press F11 while menu is open
         f11_event = Mock()
@@ -356,7 +289,7 @@ class TestEventControllerIntegration:
 
         on_toggle_fullscreen.assert_called_once()
         # Menu should still receive the event
-        controller.menu.handle_event.assert_called_once_with(f11_event)
+        mock_menu.handle_event.assert_called_once_with(f11_event)
 
     def test_quit_during_menu(self, monkeypatch, mock_settings, mock_telemetry):
         """Test that quit works even when menu is open."""
@@ -364,17 +297,17 @@ class TestEventControllerIntegration:
         monkeypatch.setattr('pygame.event.get', mock_get)
 
         on_quit = Mock()
+        mock_menu = Mock(visible=True, is_loading=False)
+
         controller = EventController(
             on_quit=on_quit,
             on_toggle_fullscreen=Mock(),
-            create_menu=Mock(),
+            menu=mock_menu,
             on_menu_exit=Mock(),
             send_command=Mock(),
             settings=mock_settings,
             telemetry_context=mock_telemetry
         )
-
-        controller.menu = Mock(is_loading=False)
 
         quit_event = Mock()
         quit_event.type = pygame.QUIT
@@ -387,26 +320,25 @@ class TestEventControllerIntegration:
 
     def test_tab_enable_during_connection_state_change(self, mock_settings, mock_telemetry):
         """Test enabling streamer tab when connection state changes."""
+        mock_menu = Mock(visible=False, is_loading=False)
+
         controller = EventController(
             on_quit=Mock(),
             on_toggle_fullscreen=Mock(),
-            create_menu=Mock(),
+            menu=mock_menu,
             on_menu_exit=Mock(),
             send_command=Mock(),
             settings=mock_settings,
             telemetry_context=mock_telemetry
         )
 
-        # Simulate connection established while menu is open
-        mock_menu = Mock()
-        controller.menu = mock_menu
-
+        # Simulate connection established - tab enabling is now done directly on menu
         # Enable streamer tab
-        controller.set_menu_tab_enabled("Streamer", True)
+        controller.menu.set_tab_enabled("Streamer", True)
         mock_menu.set_tab_enabled.assert_called_with("Streamer", True)
 
         # Simulate connection lost
-        controller.set_menu_tab_enabled("Streamer", False)
+        controller.menu.set_tab_enabled("Streamer", False)
         mock_menu.set_tab_enabled.assert_called_with("Streamer", False)
 
         assert mock_menu.set_tab_enabled.call_count == 2

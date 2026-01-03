@@ -597,6 +597,183 @@ class TestMenu(unittest.TestCase):
         menu.handle_event(mock_event)
         self.assertTrue(menu.tab_bar_dirty)
 
+    def test_initialization_visible_flag(self, mock_button_class, mock_pygame):
+        """Test that menu starts with visible=False"""
+        self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
+            callback=self.mock_callback,
+            callback_quit=self.mock_callback_quit,
+            telemetry_context=self.telemetry_context
+        )
+
+        self.assertFalse(menu.visible)
+
+    def test_show_method(self, mock_button_class, mock_pygame):
+        """Test that show() sets visible to True"""
+        self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
+            callback=self.mock_callback,
+            callback_quit=self.mock_callback_quit,
+            telemetry_context=self.telemetry_context
+        )
+
+        self.assertFalse(menu.visible)
+        menu.show()
+        self.assertTrue(menu.visible)
+
+    def test_hide_method(self, mock_button_class, mock_pygame):
+        """Test that hide() sets visible to False and resets state"""
+        self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
+            callback=self.mock_callback,
+            callback_quit=self.mock_callback_quit,
+            telemetry_context=self.telemetry_context
+        )
+
+        # Show menu and change to different tab
+        menu.show()
+        menu.active_tab = "Input"
+        menu.tab_bar_dirty = False
+
+        # Hide should reset state
+        menu.hide()
+
+        self.assertFalse(menu.visible)
+        self.assertEqual(menu.active_tab, "General")
+        self.assertTrue(menu.tab_bar_dirty)
+
+    def test_update_dimensions(self, mock_button_class, mock_pygame):
+        """Test that update_dimensions updates menu size and recreates surfaces"""
+        self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
+            callback=self.mock_callback,
+            callback_quit=self.mock_callback_quit,
+            telemetry_context=self.telemetry_context
+        )
+
+        # Change dimensions
+        menu.update_dimensions(1920, 1080)
+
+        # Verify dimensions updated
+        self.assertEqual(menu.width, 1920)
+        self.assertEqual(menu.height, 1080)
+
+        # Verify tab bar marked dirty
+        self.assertTrue(menu.tab_bar_dirty)
+
+        # Verify new surfaces created
+        mock_pygame.Surface.assert_called()
+
+    def test_update_dimensions_updates_tab_views(self, mock_button_class, mock_pygame):
+        """Test that update_dimensions updates tab view dimensions"""
+        self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
+            callback=self.mock_callback,
+            callback_quit=self.mock_callback_quit,
+            telemetry_context=self.telemetry_context
+        )
+
+        # Change dimensions
+        menu.update_dimensions(1920, 1080)
+
+        # Verify all tab views have updated dimensions
+        for tab in menu.tabs:
+            self.assertEqual(tab.view.width, 1920)
+            self.assertEqual(tab.view.height, 1080)
+
+    def test_update_dimensions_updates_button_positions(self, mock_button_class, mock_pygame):
+        """Test that update_dimensions repositions buttons"""
+        self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
+            callback=self.mock_callback,
+            callback_quit=self.mock_callback_quit,
+            telemetry_context=self.telemetry_context
+        )
+
+        # Reset call counts from initialization
+        self.mock_button.set_position.reset_mock()
+
+        # Change dimensions
+        menu.update_dimensions(1920, 1080)
+
+        # Verify buttons were repositioned
+        # Should be called 3 times (quit, save, exit buttons)
+        self.assertEqual(self.mock_button.set_position.call_count, 3)
+
+    def test_visibility_toggle_workflow(self, mock_button_class, mock_pygame):
+        """Test complete visibility toggle workflow"""
+        self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
+            callback=self.mock_callback,
+            callback_quit=self.mock_callback_quit,
+            telemetry_context=self.telemetry_context
+        )
+
+        # Initially not visible
+        self.assertFalse(menu.visible)
+
+        # Show menu
+        menu.show()
+        self.assertTrue(menu.visible)
+
+        # Navigate to different tab
+        menu.active_tab = "Network"
+
+        # Hide menu
+        menu.hide()
+        self.assertFalse(menu.visible)
+
+        # Should reset to General tab
+        self.assertEqual(menu.active_tab, "General")
+
+        # Show again
+        menu.show()
+        self.assertTrue(menu.visible)
+        # Should still be on General after hiding and showing
+        self.assertEqual(menu.active_tab, "General")
+
 
 if __name__ == "__main__":
     unittest.main()
