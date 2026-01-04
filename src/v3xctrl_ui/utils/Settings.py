@@ -95,7 +95,7 @@ class Settings:
                 "display": True
             },
             "signal_cell": {
-                "display": True
+                "display": False
             },
             "battery": {
                 "display": True,

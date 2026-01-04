@@ -60,10 +60,20 @@ class OsdTab(Tab):
             checked=self.widgets.get("battery_percent", {}).get("display", False),
             on_change=lambda value: self._on_widget_toggle("battery_percent", value)
         )
-        self.signal_checkbox = Checkbox(
-            label=t("Show Signal indicator"), font=LABEL_FONT,
-            checked=self.widgets.get("signal", {}).get("display", False),
-            on_change=lambda value: self._on_widget_toggle("signal", value)
+        self.signal_quality_checkbox = Checkbox(
+            label=t("Show Signal quality"), font=LABEL_FONT,
+            checked=self.widgets.get("signal_quality", {}).get("display", False),
+            on_change=lambda value: self._on_widget_toggle("signal_quality", value)
+        )
+        self.signal_band_checkbox = Checkbox(
+            label=t("Show Signal band"), font=LABEL_FONT,
+            checked=self.widgets.get("signal_band", {}).get("display", False),
+            on_change=lambda value: self._on_widget_toggle("signal_band", value)
+        )
+        self.signal_cell_checkbox = Checkbox(
+            label=t("Show Signal cell (CAUTION: This potentially exposes your location)"), font=LABEL_FONT,
+            checked=self.widgets.get("signal_cell", {}).get("display", False),
+            on_change=lambda value: self._on_widget_toggle("signal_cell", value)
         )
         self.rec_checkbox = Checkbox(
             label=t("Show Recording indicator"), font=LABEL_FONT,
@@ -79,7 +89,9 @@ class OsdTab(Tab):
             self.battery_voltage_checkbox,
             self.battery_average_voltage_checkbox,
             self.battery_percent_checkbox,
-            self.signal_checkbox,
+            self.signal_quality_checkbox,
+            self.signal_band_checkbox,
+            self.signal_cell_checkbox,
             self.rec_checkbox,
         ]
 
