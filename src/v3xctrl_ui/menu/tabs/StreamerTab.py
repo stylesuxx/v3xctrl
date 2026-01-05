@@ -118,9 +118,7 @@ class StreamerTab(Tab):
             self.restart_button,
         ]
 
-        self.headline_surfaces = {
-            "actions": self._create_headline(t("Actions"))
-        }
+        self._add_headline("actions", t("Actions"))
 
         self.col_1_layout = VerticalLayout()
         for element in self.elements_col_1:
@@ -207,7 +205,6 @@ class StreamerTab(Tab):
         self.on_active_toggle(True)
         command = Command("restart")
         self.send_command(command, self._on_command_callback)
-
     def _draw_actions_section(self, surface: Surface, y: int) -> int:
         y += self.y_offset + self.padding
         y += self._draw_headline(surface, "actions", y)

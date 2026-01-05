@@ -85,7 +85,7 @@ class TestRenderer(unittest.TestCase):
         state = MagicMock()
         state.screen = pygame.Surface((1280, 720))
         state.model.control_connected = True
-        state.event_controller.menu = None
+        state.menu = MagicMock(visible=False)
         state.osd.update_debug_status = MagicMock()
         state.osd.update_data_queue = MagicMock()
         state.osd.set_control = MagicMock()
@@ -123,7 +123,7 @@ class TestRenderer(unittest.TestCase):
         state = MagicMock()
         state.screen = pygame.Surface((1280, 720))
         state.model.control_connected = False
-        state.event_controller.menu = None
+        state.menu = MagicMock(visible=False)
         state.osd.update_debug_status = MagicMock()
         state.osd.update_data_queue = MagicMock()
         state.osd.set_control = MagicMock()
@@ -162,7 +162,7 @@ class TestRenderer(unittest.TestCase):
         state = MagicMock()
         state.screen = pygame.Surface((1280, 720))
         state.model.control_connected = True
-        state.event_controller.menu = None
+        state.menu = MagicMock(visible=False)
         state.osd.update_debug_status = MagicMock()
         state.osd.update_data_queue = MagicMock()
         state.osd.set_control = MagicMock()
@@ -212,8 +212,8 @@ class TestRenderer(unittest.TestCase):
         state.model.loop_history = MagicMock()
 
         # Mock menu
-        mock_menu = MagicMock()
-        state.event_controller.menu = mock_menu
+        mock_menu = MagicMock(visible=True)
+        state.menu = mock_menu
 
         network_manager = MagicMock()
         network_manager.video_receiver = None

@@ -95,7 +95,11 @@ class Checkbox(BaseWidget):
         icon_x = 0
         icon_y = 0
         label_x = self.BOX_SIZE + self.BOX_MARGIN
-        label_y = (height - label_rect.height) // 2
+        # Use consistent font metrics for alignment regardless of per-label descenders
+        font_ascent = self.font.get_sized_ascender()
+        font_descent = abs(self.font.get_sized_descender())
+        font_height = font_ascent + font_descent
+        label_y = (height - font_height + font_descent) // 2 + 2
 
         for state in states.keys():
             surface = Surface((width, height), pygame.SRCALPHA)

@@ -42,8 +42,10 @@ class Renderer:
         self.fullscreen = fullscreen
         self.scale = scale
 
-        self.center_x = pygame.display.get_window_size()[0] // 2
-        self.center_y = pygame.display.get_window_size()[1] // 2
+        # Use screen surface size (not window size) to handle HiDPI scaling correctly
+        screen_size = state.screen.get_size()
+        self.center_x = screen_size[0] // 2
+        self.center_y = screen_size[1] // 2
 
         frame = self._get_video_frame(network_manager)
         if frame is not None:
@@ -63,7 +65,7 @@ class Renderer:
 
         self._render_overlay_data(state, network_manager)
         self._render_errors(state.screen, network_manager)
-        self._render_menu(state.screen, state.event_controller.menu)
+        self._render_menu(state.screen, state.menu)
 
         pygame.display.flip()
 
@@ -241,10 +243,10 @@ class Renderer:
         """Render error messages on top of main UI."""
         if network_manager.server_error:
             surface, rect = BOLD_MONO_FONT_24.render(network_manager.server_error, RED)
-            rect.center = (self.video_width // 2, 50)
+            rect.center = (self.center_x, 50)
             screen.blit(surface, rect)
 
-    def _render_menu(self, screen: pygame.Surface, menu: Optional['Menu']) -> None:
+    def _render_menu(self, screen: pygame.Surface, menu: Menu) -> None:
         """Render menu above everything else."""
-        if menu is not None:
+        if menu.visible:
             menu.draw(screen)

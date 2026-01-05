@@ -69,7 +69,8 @@ class NetworkSetup:
         self,
         relay_server: str,
         relay_port: int,
-        relay_id: str
+        relay_id: str,
+        peer_callback: Optional[Callable[[Peer], None]] = None
     ) -> RelaySetupResult:
         """
         Setup relay connection.
@@ -88,6 +89,8 @@ class NetworkSetup:
         }
 
         peer = Peer(relay_server, relay_port, relay_id)
+        if peer_callback:
+            peer_callback(peer)
         try:
             addresses = peer.setup("viewer", local_bind_ports)
             video_address = addresses["video"]
@@ -230,7 +233,8 @@ class NetworkSetup:
     def orchestrate_setup(
         self,
         relay_config: Optional[Dict[str, Any]],
-        handlers: Dict[str, Any]
+        handlers: Dict[str, Any],
+        peer_callback: Optional[Callable[[Peer], None]] = None
     ) -> NetworkSetupResult:
         """
         Orchestrate complete network setup.
@@ -251,7 +255,8 @@ class NetworkSetup:
             relay_result = self.setup_relay(
                 relay_config['server'],
                 relay_config['port'],
-                relay_config['id']
+                relay_config['id'],
+                peer_callback
             )
             result.relay_result = relay_result
 

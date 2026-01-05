@@ -60,9 +60,7 @@ class GeneralTab(Tab):
 
         self.elements = self.general_widgets
 
-        self.headline_surfaces = {
-            "settings": self._create_headline(t("Settings"))
-        }
+        self._add_headline("settings", t("Settings"))
 
         self.general_layout = VerticalLayout()
         for element in self.elements:
@@ -76,6 +74,16 @@ class GeneralTab(Tab):
             "show_connection_info": self.show_connection_info,
             "video": self.video,
         }
+
+    def refresh_from_settings(self) -> None:
+        self.video = self.settings.get("video", {})
+        self.show_connection_info = self.settings.get("show_connection_info", False)
+
+        # Could have been updated via [F11]
+        self.fullscreen_enabled_checkbox.checked = self.video.get("fullscreen", False)
+        self.show_connection_info_checkbox.checked = self.show_connection_info
+
+        self.render_ratio_input.value = str(self.video.get("render_ratio", 0))
 
     def _on_render_ratio_change(self, value: str) -> None:
         if is_int(value):

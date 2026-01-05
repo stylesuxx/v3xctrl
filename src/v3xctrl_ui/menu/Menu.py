@@ -80,12 +80,19 @@ class Menu:
 
         self.tabs = []
         for i, name in enumerate(tab_names):
-            rect = pygame.Rect(i * tab_width, 0, tab_width, self.tab_height)
+            width = tab_width
+
+            # Make the last tab fill the remaining width to avoid gaps
+            if i == len(tab_names) - 1:
+                width = self.width - (i * tab_width)
+
+            rect = pygame.Rect(i * tab_width, 0, width, self.tab_height)
             view = tab_views[name]
             self.tabs.append(TabEntry(name, rect, view))
 
         self.active_tab = self.tabs[0].name
         self.disable_tabs = False
+        self.visible = False
 
         # Buttons
         self.quit_button = Button(t("Quit"), MAIN_FONT, self._quit_button_callback)
@@ -173,6 +180,62 @@ class Menu:
     def show_loading(self, text: str = t("Applying settings!")) -> None:
         self.is_loading = True
         self.loading_text = text
+
+    def show(self) -> None:
+        self.visible = True
+
+        # Refresh all tabs to reflect current settings (e.g., after F11 fullscreen toggle)
+        for tab in self.tabs:
+            tab.view.refresh_from_settings()
+
+    def hide(self) -> None:
+        """Hide the menu and reset to initial state."""
+        self.visible = False
+
+        self.active_tab = self.tabs[0].name
+        self.tab_bar_dirty = True
+
+    def update_settings_reference(self, settings: Settings) -> None:
+        """Update settings reference for menu and all tabs."""
+        self.settings = settings
+        for tab in self.tabs:
+            tab.view.settings = settings
+
+    def update_dimensions(self, width: int, height: int) -> None:
+        """Update menu dimensions (used when toggling fullscreen)."""
+        self.width = width
+        self.height = height
+
+        tab_names = [tab.name for tab in self.tabs]
+        tab_width = self.width // len(tab_names)
+
+        for i, tab in enumerate(self.tabs):
+            width_val = tab_width
+            # Make the last tab fill the remaining width to avoid gaps
+            if i == len(tab_names) - 1:
+                width_val = self.width - (i * tab_width)
+
+            rect = pygame.Rect(i * tab_width, 0, width_val, self.tab_height)
+            self.tabs[i] = tab._replace(rect=rect)
+
+            # Update tab view dimensions
+            tab.view.update_dimensions(self.width, self.height)
+
+        # Update button positions
+        button_y = self.height - self.quit_button.height - self.padding
+        quit_button_x = self.padding
+        exit_button_x = self.width - self.exit_button.width - self.padding
+        save_button_x = exit_button_x - self.save_button.width - self.padding
+
+        self.quit_button.set_position(quit_button_x, button_y)
+        self.save_button.set_position(save_button_x, button_y)
+        self.exit_button.set_position(exit_button_x, button_y)
+
+        # Recreate surfaces with new dimensions
+        self.background = pygame.Surface((self.width, self.height))
+        self.background.fill(self.BG_COLOR)
+        self.tab_bar_surface = pygame.Surface((self.width, self.tab_height))
+        self.tab_bar_dirty = True
 
     def _create_tabs(self) -> Dict[str, Tab]:
         return {

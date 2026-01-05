@@ -58,11 +58,14 @@ class AppState:
         self.clock = pygame.time.Clock()
         self.display_controller = DisplayController(self.model, self.size, self.title)
 
+        # Create menu once
+        self.menu = self._create_menu()
+
         # Event handling
         self.event_controller = EventController(
             on_quit=self._on_quit,
             on_toggle_fullscreen=self._on_toggle_fullscreen,
-            create_menu=self._create_menu,
+            menu=self.menu,
             on_menu_exit=self.update_settings,
             send_command=self.network_coordinator.send_command,
             settings=settings,
@@ -91,8 +94,7 @@ class AppState:
         Update settings after exiting menu.
         Only update settings that can be hot reloaded.
         """
-        # Clear menu first to ensure clean state
-        self.event_controller.clear_menu()
+        self.menu.hide()
 
         if new_settings is None:
             new_settings = Settings()
@@ -118,7 +120,7 @@ class AppState:
         if self.timing_controller.should_update_control(now):
             try:
                 throttle, steering = (0, 0)
-                if not self.event_controller.menu:
+                if not self.menu.visible:
                     throttle, steering = self.input_controller.read_inputs()
 
                 self.model.throttle = throttle
@@ -191,6 +193,15 @@ class AppState:
         self.settings.set("video", video_settings)
         self.settings.save()
 
+        # Update menu dimensions with new screen size
+        screen_size = self.screen.get_size()
+        self.menu.update_dimensions(screen_size[0], screen_size[1])
+
+        # Refresh menu tabs to update widget states (e.g., fullscreen checkbox)
+        if self.menu.visible:
+            for tab in self.menu.tabs:
+                tab.view.refresh_from_settings()
+
     def _create_menu(self) -> Menu:
         """Callback to create a new menu instance."""
         menu = Menu(
@@ -226,6 +237,7 @@ class AppState:
         self.timing_controller.settings = settings
         self.timing_controller.update_from_settings()
         self.settings = settings
+        self.menu.update_settings_reference(settings)
 
     def _on_network_update(self, settings: Settings) -> None:
         self._update_network_settings()
@@ -243,11 +255,14 @@ class AppState:
     def _on_display_update(self, fullscreen: bool) -> None:
         self.display_controller.set_fullscreen(fullscreen)
 
+        screen_size = self.screen.get_size()
+        self.menu.update_dimensions(screen_size[0], screen_size[1])
+
     def _create_network_restart_thread(self, new_settings: Settings) -> threading.Thread:
         return self.network_coordinator.restart_network_manager(new_settings)
 
     def _on_connection_change(self, connected: bool) -> None:
-        self.event_controller.set_menu_tab_enabled("Streamer", connected)
+        self.menu.set_tab_enabled("Streamer", connected)
 
     def _setup_signal_handling(self) -> None:
         signal.signal(signal.SIGINT, self._signal_handler)
@@ -258,6 +273,6 @@ class AppState:
         frame: Optional[Any] = None
     ) -> None:
         """Handle shutdown signals gracefully."""
-        self.event_controller.clear_menu()
+        self.menu.hide()
         if self.model.running:
             self.model.running = False

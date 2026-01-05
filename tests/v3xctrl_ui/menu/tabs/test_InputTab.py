@@ -136,6 +136,37 @@ class TestInputTab(unittest.TestCase):
         surface = pygame.Surface((640, 480))
         self.tab.draw(surface)
 
+    def test_update_dimensions_rebuilds_columns(self):
+        """Test that update_dimensions properly rebuilds column layout"""
+        # Get initial column count and check widget column widths
+        initial_columns = len(self.tab.keyboard_columns)
+        self.assertGreater(initial_columns, 0)
+
+        # Get initial column width for first widget (if exists)
+        if len(self.tab.key_widgets) > 0:
+            # Store reference to a widget
+            first_widget = self.tab.key_widgets[0]
+
+            # Update to a much larger width
+            new_width = 1920
+            new_height = 1080
+            self.tab.update_dimensions(new_width, new_height)
+
+            # Verify dimensions were updated
+            self.assertEqual(self.tab.width, new_width)
+            self.assertEqual(self.tab.height, new_height)
+
+            # Verify columns were rebuilt
+            self.assertEqual(len(self.tab.keyboard_columns), initial_columns)
+
+            # Verify the widget is still in a column
+            widget_found = False
+            for column in self.tab.keyboard_columns:
+                if first_widget in column.widgets:
+                    widget_found = True
+                    break
+            self.assertTrue(widget_found, "Widget should be in a column after resize")
+
 
 if __name__ == "__main__":
     unittest.main()

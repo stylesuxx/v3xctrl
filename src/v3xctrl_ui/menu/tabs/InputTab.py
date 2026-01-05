@@ -57,36 +57,13 @@ class InputTab(Tab):
 
         self.elements = self.key_widgets + [self.calibration_widget]
 
-        self.headline_surfaces = {
-            "keyboard": self._create_headline(t("Keyboard")),
-            "input": self._create_headline(t("Input device"), True)
-        }
-
         # Column layout configuration
-        num_columns = 3
-        items_per_column = 4
         self.column_spacing = 20
         self.keyboard_columns: List[VerticalLayout] = []
 
-        if len(self.key_widgets) > 0:
-            available_width = self.width - ((num_columns - 1) * self.padding)
-            column_width = (available_width - (num_columns - 1) * self.column_spacing) // num_columns
-
-            for i in range(num_columns):
-                start = i * items_per_column
-                end_idx = min(start + items_per_column, len(self.key_widgets))
-
-                if start >= len(self.key_widgets):
-                    break
-
-                padding_x = self.padding + i * (column_width + self.column_spacing)
-
-                column = VerticalLayout(padding_x=padding_x)
-                for widget in self.key_widgets[start:end_idx]:
-                    widget.set_column_width(column_width)
-                    column.add(widget)
-
-                self.keyboard_columns.append(column)
+        self._add_headline("keyboard", t("Keyboard"))
+        self._add_headline("input", t("Input device"), True)
+        self._rebuild_columns()
 
         self.input_layout = VerticalLayout()
         self.input_layout.add(self.calibration_widget)
@@ -126,6 +103,37 @@ class InputTab(Tab):
         self.on_active_toggle(False)
         for widget in self.key_widgets:
             widget.enable()
+
+    def _regenerate(self) -> None:
+        """Override to also rebuild columns when dimensions change"""
+        super()._regenerate()
+        self._rebuild_columns()
+
+    def _rebuild_columns(self) -> None:
+        """Rebuild column layout based on current width"""
+        num_columns = 3
+        items_per_column = 4
+        self.keyboard_columns = []
+
+        if len(self.key_widgets) > 0:
+            available_width = self.width - ((num_columns - 1) * self.padding)
+            column_width = (available_width - (num_columns - 1) * self.column_spacing) // num_columns
+
+            for i in range(num_columns):
+                start = i * items_per_column
+                end_idx = min(start + items_per_column, len(self.key_widgets))
+
+                if start >= len(self.key_widgets):
+                    break
+
+                padding_x = self.padding + i * (column_width + self.column_spacing)
+
+                column = VerticalLayout(padding_x=padding_x)
+                for widget in self.key_widgets[start:end_idx]:
+                    widget.set_column_width(column_width)
+                    column.add(widget)
+
+                self.keyboard_columns.append(column)
 
     def _draw_keyboard_section(self, surface: Surface, y: int) -> int:
         y += self.y_offset + self.padding

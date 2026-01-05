@@ -36,6 +36,7 @@ class NetworkController:
         self.relay_port = 8888
         self.relay_id = None
         self.peer: Optional[Peer] = None
+        self._setup_peer: Optional[Peer] = None  # Peer being set up in background
 
         self._setup_relay_if_enabled()
         self._print_connection_info_if_needed()
@@ -50,7 +51,10 @@ class NetworkController:
             try:
                 self.relay_port = int(port)
             except ValueError:
-                logging.warning(f"Invalid port in relay_server: '{relay_server}', falling back to default {self.relay_port}")
+                logging.warning(
+                    f"Invalid port in relay_server: '{relay_server}', "
+                    f"falling back to default {self.relay_port}"
+                )
         else:
             self.relay_server = relay_server
 
@@ -75,7 +79,11 @@ class NetworkController:
             }
 
         # Run orchestrated setup
-        result = setup.orchestrate_setup(relay_config, self.server_handlers)
+        result = setup.orchestrate_setup(
+            relay_config,
+            self.server_handlers,
+            peer_callback=lambda p: setattr(self, '_setup_peer', p)
+        )
 
         # Apply results to controller state
         if result.relay_result:
@@ -110,6 +118,13 @@ class NetworkController:
             self.server.join()
             delta = round(time.monotonic() - start)
             logging.debug(f"Server shut down after {delta}s")
+
+        # Abort setup peer if it exists (even if setup hasn't completed)
+        if self._setup_peer:
+            start = time.monotonic()
+            self._setup_peer.abort()
+            delta = round(time.monotonic() - start)
+            logging.debug(f"Setup peer aborted after {delta}s")
 
         if self.peer:
             start = time.monotonic()
