@@ -184,12 +184,22 @@ class Menu:
     def show(self) -> None:
         self.visible = True
 
+        # Refresh all tabs to reflect current settings (e.g., after F11 fullscreen toggle)
+        for tab in self.tabs:
+            tab.view.refresh_from_settings()
+
     def hide(self) -> None:
         """Hide the menu and reset to initial state."""
         self.visible = False
 
         self.active_tab = self.tabs[0].name
         self.tab_bar_dirty = True
+
+    def update_settings_reference(self, settings: Settings) -> None:
+        """Update settings reference for menu and all tabs."""
+        self.settings = settings
+        for tab in self.tabs:
+            tab.view.settings = settings
 
     def update_dimensions(self, width: int, height: int) -> None:
         """Update menu dimensions (used when toggling fullscreen)."""

@@ -774,6 +774,60 @@ class TestMenu(unittest.TestCase):
         # Should still be on General after hiding and showing
         self.assertEqual(menu.active_tab, "General")
 
+    def test_show_refreshes_tabs(self, mock_button_class, mock_pygame):
+        """Test that show() calls refresh_from_settings on all tabs"""
+        self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
+            callback=self.mock_callback,
+            callback_quit=self.mock_callback_quit,
+            telemetry_context=self.telemetry_context
+        )
+
+        # Mock refresh_from_settings on all tab views
+        for tab in menu.tabs:
+            tab.view.refresh_from_settings = MagicMock()
+
+        # Show menu
+        menu.show()
+
+        # Verify refresh_from_settings was called on all tabs
+        for tab in menu.tabs:
+            tab.view.refresh_from_settings.assert_called_once()
+
+    def test_update_settings_reference(self, mock_button_class, mock_pygame):
+        """Test that update_settings_reference updates settings for menu and all tabs"""
+        self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
+            callback=self.mock_callback,
+            callback_quit=self.mock_callback_quit,
+            telemetry_context=self.telemetry_context
+        )
+
+        # Create new settings object
+        new_settings = MagicMock()
+
+        # Update settings reference
+        menu.update_settings_reference(new_settings)
+
+        # Verify menu settings updated
+        self.assertEqual(menu.settings, new_settings)
+
+        # Verify all tab settings updated
+        for tab in menu.tabs:
+            self.assertEqual(tab.view.settings, new_settings)
+
 
 if __name__ == "__main__":
     unittest.main()

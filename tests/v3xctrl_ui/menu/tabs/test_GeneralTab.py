@@ -90,6 +90,29 @@ class TestGeneralTab(unittest.TestCase):
         # Should not raise an exception
         self.tab.draw(surface)
 
+    def test_refresh_from_settings(self):
+        """Test refresh_from_settings updates widget states."""
+        # Change settings mock to return different values
+        self.settings.get.side_effect = lambda key, default=None: {
+            "video": {"fullscreen": True, "render_ratio": 50},
+            "show_connection_info": False
+        }.get(key, default)
+
+        # Call refresh
+        self.tab.refresh_from_settings()
+
+        # Verify internal state is updated
+        assert self.tab.video["fullscreen"] is True
+        assert self.tab.video["render_ratio"] == 50
+        assert self.tab.show_connection_info is False
+
+        # Verify checkbox states are updated
+        assert self.tab.fullscreen_enabled_checkbox.checked is True
+        assert self.tab.show_connection_info_checkbox.checked is False
+
+        # Verify input value is updated
+        assert self.tab.render_ratio_input.value == "50"
+
 
 if __name__ == '__main__':
     unittest.main()

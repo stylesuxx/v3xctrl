@@ -197,6 +197,11 @@ class AppState:
         screen_size = self.screen.get_size()
         self.menu.update_dimensions(screen_size[0], screen_size[1])
 
+        # Refresh menu tabs to update widget states (e.g., fullscreen checkbox)
+        if self.menu.visible:
+            for tab in self.menu.tabs:
+                tab.view.refresh_from_settings()
+
     def _create_menu(self) -> Menu:
         """Callback to create a new menu instance."""
         menu = Menu(
@@ -232,6 +237,7 @@ class AppState:
         self.timing_controller.settings = settings
         self.timing_controller.update_from_settings()
         self.settings = settings
+        self.menu.update_settings_reference(settings)
 
     def _on_network_update(self, settings: Settings) -> None:
         self._update_network_settings()
@@ -248,6 +254,9 @@ class AppState:
 
     def _on_display_update(self, fullscreen: bool) -> None:
         self.display_controller.set_fullscreen(fullscreen)
+
+        screen_size = self.screen.get_size()
+        self.menu.update_dimensions(screen_size[0], screen_size[1])
 
     def _create_network_restart_thread(self, new_settings: Settings) -> threading.Thread:
         return self.network_coordinator.restart_network_manager(new_settings)

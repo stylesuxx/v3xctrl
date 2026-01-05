@@ -75,6 +75,16 @@ class GeneralTab(Tab):
             "video": self.video,
         }
 
+    def refresh_from_settings(self) -> None:
+        self.video = self.settings.get("video", {})
+        self.show_connection_info = self.settings.get("show_connection_info", False)
+
+        # Could have been updated via [F11]
+        self.fullscreen_enabled_checkbox.checked = self.video.get("fullscreen", False)
+        self.show_connection_info_checkbox.checked = self.show_connection_info
+
+        self.render_ratio_input.value = str(self.video.get("render_ratio", 0))
+
     def _on_render_ratio_change(self, value: str) -> None:
         if is_int(value):
             self.video["render_ratio"] = int(value)
@@ -84,6 +94,7 @@ class GeneralTab(Tab):
 
     def _on_fullscreen_enable_change(self, value: bool) -> None:
         self.video["fullscreen"] = value
+
     def _draw_general_section(self, surface: Surface, y: int) -> int:
         y += self.y_offset + self.padding
         y += self._draw_headline(surface, "settings", y)
