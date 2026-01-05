@@ -97,9 +97,7 @@ class OsdTab(Tab):
 
         self.elements = self.osd_widgets
 
-        self.headline_surfaces = {
-            "osd": self._create_headline(t("OSD"))
-        }
+        self._add_headline("osd", t("OSD"))
 
         self.osd_layout = VerticalLayout()
         for element in self.osd_widgets:

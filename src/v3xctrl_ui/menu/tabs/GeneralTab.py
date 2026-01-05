@@ -60,9 +60,7 @@ class GeneralTab(Tab):
 
         self.elements = self.general_widgets
 
-        self.headline_surfaces = {
-            "settings": self._create_headline(t("Settings"))
-        }
+        self._add_headline("settings", t("Settings"))
 
         self.general_layout = VerticalLayout()
         for element in self.elements:
@@ -86,7 +84,6 @@ class GeneralTab(Tab):
 
     def _on_fullscreen_enable_change(self, value: bool) -> None:
         self.video["fullscreen"] = value
-
     def _draw_general_section(self, surface: Surface, y: int) -> int:
         y += self.y_offset + self.padding
         y += self._draw_headline(surface, "settings", y)

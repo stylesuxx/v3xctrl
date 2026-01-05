@@ -1,13 +1,13 @@
 
 from abc import ABC, abstractmethod
 
-import pygame
 from pygame import Surface, event
 from typing import Dict, List, Any
 
 from v3xctrl_ui.utils.colors import WHITE
-from v3xctrl_ui.utils.fonts import MAIN_FONT, TEXT_FONT
+from v3xctrl_ui.utils.fonts import TEXT_FONT
 from v3xctrl_ui.utils.Settings import Settings
+from v3xctrl_ui.menu.tabs.Headline import Headline
 
 
 class Tab(ABC):
@@ -32,11 +32,25 @@ class Tab(ABC):
         self.y_note_padding_bottom = 5
 
         self.elements: List[Any] = []
-        self.headline_surfaces: Dict[str, Surface] = {}
+        self.headlines: Dict[str, Headline] = {}
 
     def handle_event(self, event: event.Event) -> None:
         for element in self.elements:
             element.handle_event(event)
+
+    def update_dimensions(self, width: int, height: int) -> None:
+        """
+        Update tab dimensions and regenerate content.
+        Called when window is resized (e.g., fullscreen toggle).
+        """
+        self.width = width
+        self.height = height
+        self._regenerate()
+
+    def _regenerate(self) -> None:
+        """Regenerate all dynamic content (headlines, layouts, etc.) with current dimensions"""
+        for headline in self.headlines.values():
+            headline.render(self.width, self.padding)
 
     @abstractmethod
     def get_settings(self) -> Dict[str, Any]:
@@ -46,54 +60,11 @@ class Tab(ABC):
     def draw(self, surface: Surface) -> None:
         pass
 
-    def _create_headline(
-        self,
-        title: str,
-        draw_top_line: bool = False
-      ) -> Surface:
-        """
-        Pre-render a headline surface (EXPENSIVE - only call once in __init__).
-        Returns a surface with the headline text and lines already drawn.
-        """
-        line_padding = 10
-        line_width = 2
-
-        text_surface, _ = MAIN_FONT.render(title, WHITE)
-        height = text_surface.get_height()
-
-        # Calculate total height needed
-        line_padding_top = line_padding + line_width if draw_top_line else 0
-        line_padding_bottom = line_width + line_padding
-        total_height = line_padding_top + height + line_padding_bottom + self.y_element_padding
-
-        # Create surface for the entire headline (text + lines)
-        headline_width = self.width - (2 * self.padding)
-        surface = Surface((headline_width, total_height), pygame.SRCALPHA)
-        surface.fill((0, 0, 0, 0))
-
-        # Draw top line if needed
-        y_offset = 0
-        if draw_top_line:
-            pygame.draw.line(
-                surface, WHITE,
-                (0, line_width // 2),
-                (headline_width, line_width // 2),
-                line_width
-            )
-            y_offset = line_padding_top
-
-        surface.blit(text_surface, (0, y_offset))
-
-        # Draw bottom line
-        bottom_line_y = y_offset + height + line_padding
-        pygame.draw.line(
-            surface, WHITE,
-            (0, bottom_line_y),
-            (headline_width, bottom_line_y),
-            line_width
-        )
-
-        return surface
+    def _add_headline(self, key: str, title: str, draw_top_line: bool = False) -> None:
+        """Add a headline that will be automatically rendered and regenerated"""
+        headline = Headline(title, draw_top_line)
+        headline.render(self.width, self.padding)
+        self.headlines[key] = headline
 
     def _draw_headline(
         self,
@@ -101,11 +72,11 @@ class Tab(ABC):
         headline_key: str,
         y: int
     ) -> int:
-        if headline_key not in self.headline_surfaces:
-            raise KeyError(f"Headline '{headline_key}' not found. Did you forget to pre-render it in __init__?")
+        if headline_key not in self.headlines:
+            raise KeyError(f"Headline '{headline_key}' not found. Did you forget to add it with _add_headline()?")
 
-        headline = self.headline_surfaces[headline_key]
-        surface.blit(headline, (self.padding, y))
+        headline = self.headlines[headline_key]
+        surface.blit(headline.get_surface(), (self.padding, y))
 
         return headline.height
 

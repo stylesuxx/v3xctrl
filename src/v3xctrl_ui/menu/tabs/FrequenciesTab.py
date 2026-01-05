@@ -66,9 +66,7 @@ class FrequenciesTab(Tab):
             self.latency_input,
         ]
 
-        self.headline_surfaces = {
-            "frequencies": self._create_headline(t("Update Frequencies"))
-        }
+        self._add_headline("frequencies", t("Update Frequencies"))
 
         self.frequency_layout = VerticalLayout()
         for element in self.elements:
@@ -85,7 +83,6 @@ class FrequenciesTab(Tab):
     def _on_rate_change(self, name: str, value: str) -> None:
         if is_int(value):
             self.timing[name] = int(value)
-
     def _draw_frequency_section(self, surface: Surface, y: int) -> int:
         y = self.y_offset + self.padding
         y += self._draw_headline(surface, "frequencies", y)

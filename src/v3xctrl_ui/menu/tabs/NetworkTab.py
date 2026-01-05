@@ -89,11 +89,9 @@ class NetworkTab(Tab):
 
         self.elements = self.port_widgets + self.relay_widgets + self.misc_widgets
 
-        self.headline_surfaces = {
-            "ports": self._create_headline(t("Ports")),
-            "udp_relay": self._create_headline(t("UDP Relay"), True),
-            "misc": self._create_headline(t("Miscellaneous"), True),
-        }
+        self._add_headline("ports", t("Ports"))
+        self._add_headline("udp_relay", t("UDP Relay"), True)
+        self._add_headline("misc", t("Miscellaneous"), True)
 
         self.port_layout = VerticalLayout()
         for element in self.port_widgets:
@@ -136,7 +134,6 @@ class NetworkTab(Tab):
 
     def _on_relay_id_change(self, value: str) -> None:
         self.relay["id"] = value
-
     def _draw_port_section(self, surface: Surface, y: int) -> int:
         y += self.y_offset + self.padding
         y += self._draw_headline(surface, "ports", y)

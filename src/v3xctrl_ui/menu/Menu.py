@@ -209,8 +209,7 @@ class Menu:
             self.tabs[i] = tab._replace(rect=rect)
 
             # Update tab view dimensions
-            tab.view.width = self.width
-            tab.view.height = self.height
+            tab.view.update_dimensions(self.width, self.height)
 
         # Update button positions
         button_y = self.height - self.quit_button.height - self.padding

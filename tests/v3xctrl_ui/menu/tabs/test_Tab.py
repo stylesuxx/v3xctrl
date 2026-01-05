@@ -17,7 +17,7 @@ class ConcreteTab(Tab):
     def __init__(self, settings, width, height, padding, y_offset):
         super().__init__(settings, width, height, padding, y_offset)
         # Pre-render headlines during initialization
-        self.headline_surfaces["main"] = self._create_headline("Test Tab", draw_top_line=False)
+        self._add_headline("main", "Test Tab", draw_top_line=False)
 
     def get_settings(self) -> Dict[str, Any]:
         return {"test_setting": "test_value"}
@@ -62,7 +62,7 @@ class TestTab(unittest.TestCase):
         self.assertIsInstance(self.tab.elements, list)
         self.assertEqual(len(self.tab.elements), 0)
 
-        self.assertIsInstance(self.tab.headline_surfaces, dict)
+        self.assertIsInstance(self.tab.headlines, dict)
 
     def test_abstract_base_class(self):
         with self.assertRaises(TypeError):
@@ -76,18 +76,21 @@ class TestTab(unittest.TestCase):
 
     def test_headline_surfaces_initialized(self):
         """Test that headline_surfaces dict is created during initialization"""
-        self.assertIsInstance(self.tab.headline_surfaces, dict)
+        self.assertIsInstance(self.tab.headlines, dict)
 
     def test_concrete_tab_pre_renders_headlines(self):
         """Test that ConcreteTab pre-renders its headlines"""
-        self.assertIn("main", self.tab.headline_surfaces)
-        self.assertIsInstance(self.tab.headline_surfaces["main"], Surface)
+        self.assertIn("main", self.tab.headlines)
+        headline_surface = self.tab.headlines["main"].get_surface()
+        self.assertIsInstance(headline_surface, Surface)
 
     @patch('pygame.draw.line')
     def test_create_headline_without_top_line(self, mock_draw_line):
-        """Test _create_headline creates a surface without top line"""
-        surface = self.tab._create_headline("Test Title", draw_top_line=False)
+        """Test _add_headline creates a headline without top line"""
+        self.tab._add_headline("test1", "Test Title", draw_top_line=False)
 
+        self.assertIn("test1", self.tab.headlines)
+        surface = self.tab.headlines["test1"].get_surface()
         self.assertIsInstance(surface, Surface)
 
         # Should draw only 1 line (bottom line)
@@ -95,9 +98,11 @@ class TestTab(unittest.TestCase):
 
     @patch('pygame.draw.line')
     def test_create_headline_with_top_line(self, mock_draw_line):
-        """Test _create_headline creates a surface with top line"""
-        surface = self.tab._create_headline("Test Title", draw_top_line=True)
+        """Test _add_headline creates a headline with top line"""
+        self.tab._add_headline("test2", "Test Title", draw_top_line=True)
 
+        self.assertIn("test2", self.tab.headlines)
+        surface = self.tab.headlines["test2"].get_surface()
         self.assertIsInstance(surface, Surface)
 
         # Should draw 2 lines (top and bottom)
@@ -114,7 +119,7 @@ class TestTab(unittest.TestCase):
         self.assertGreater(height, 0)
 
         # Should match the actual headline surface height
-        expected_height = self.tab.headline_surfaces["main"].get_height()
+        expected_height = self.tab.headlines["main"].get_surface().get_height()
         self.assertEqual(height, expected_height)
 
     def test_draw_headline_blits_at_correct_position(self):
@@ -129,7 +134,7 @@ class TestTab(unittest.TestCase):
         args = surface.blit.call_args[0]
 
         # First arg should be the headline surface
-        self.assertEqual(args[0], self.tab.headline_surfaces["main"])
+        self.assertEqual(args[0], self.tab.headlines["main"].get_surface())
 
         # Second arg should be the position (padding, y)
         self.assertEqual(args[1], (self.padding, y))
@@ -224,9 +229,10 @@ class TestTab(unittest.TestCase):
         self.assertIn(element2, self.tab.elements)
 
     def test_create_headline_surface_dimensions(self):
-        """Test that _create_headline creates a surface with correct dimensions"""
+        """Test that _add_headline creates a headline with correct dimensions"""
         # Test without top line
-        surface = self.tab._create_headline("Test", draw_top_line=False)
+        self.tab._add_headline("test_no_top", "Test", draw_top_line=False)
+        surface = self.tab.headlines["test_no_top"].get_surface()
 
         expected_width = self.width - (2 * self.padding)
         self.assertEqual(surface.get_width(), expected_width)
@@ -235,14 +241,15 @@ class TestTab(unittest.TestCase):
         self.assertGreater(surface.get_height(), 0)
 
         # Test with top line should be taller
-        surface_with_top = self.tab._create_headline("Test", draw_top_line=True)
+        self.tab._add_headline("test_with_top", "Test", draw_top_line=True)
+        surface_with_top = self.tab.headlines["test_with_top"].get_surface()
         self.assertGreater(surface_with_top.get_height(), surface.get_height())
 
     @patch('pygame.draw.line')
     def test_create_headline_draws_lines_correctly(self, mock_draw_line):
-        """Test that _create_headline draws lines at correct positions"""
+        """Test that _add_headline draws lines at correct positions"""
         # Test with top line
-        self.tab._create_headline("Test", draw_top_line=True)
+        self.tab._add_headline("test_lines", "Test", draw_top_line=True)
 
         self.assertEqual(mock_draw_line.call_count, 2)
 
@@ -269,30 +276,40 @@ class TestTab(unittest.TestCase):
 
     def test_multiple_headlines_can_be_stored(self):
         """Test that multiple headlines can be pre-rendered and stored"""
-        headline1 = self.tab._create_headline("Headline 1", draw_top_line=False)
-        headline2 = self.tab._create_headline("Headline 2", draw_top_line=True)
+        self.tab._add_headline("h1", "Headline 1", draw_top_line=False)
+        self.tab._add_headline("h2", "Headline 2", draw_top_line=True)
 
-        self.tab.headline_surfaces["h1"] = headline1
-        self.tab.headline_surfaces["h2"] = headline2
-
-        self.assertEqual(len(self.tab.headline_surfaces), 3)  # main + h1 + h2
-        self.assertIn("main", self.tab.headline_surfaces)
-        self.assertIn("h1", self.tab.headline_surfaces)
-        self.assertIn("h2", self.tab.headline_surfaces)
+        self.assertEqual(len(self.tab.headlines), 3)  # main + h1 + h2
+        self.assertIn("main", self.tab.headlines)
+        self.assertIn("h1", self.tab.headlines)
+        self.assertIn("h2", self.tab.headlines)
 
     def test_draw_headline_does_not_re_render(self):
         """Test that _draw_headline uses cached surface without re-rendering"""
         surface = MagicMock()
 
         # Get the original headline surface
-        original_surface = self.tab.headline_surfaces["main"]
+        original_surface = self.tab.headlines["main"].get_surface()
 
         # Call draw multiple times
         self.tab._draw_headline(surface, "main", 50)
         self.tab._draw_headline(surface, "main", 100)
 
         # Should still be the same surface object (not re-rendered)
-        self.assertIs(self.tab.headline_surfaces["main"], original_surface)
+        self.assertIs(self.tab.headlines["main"].get_surface(), original_surface)
+
+    def test_update_dimensions(self):
+        """Test that update_dimensions updates width and height"""
+        new_width = 1024
+        new_height = 768
+
+        self.assertEqual(self.tab.width, self.width)
+        self.assertEqual(self.tab.height, self.height)
+
+        self.tab.update_dimensions(new_width, new_height)
+
+        self.assertEqual(self.tab.width, new_width)
+        self.assertEqual(self.tab.height, new_height)
 
 
 class IncompleteTab(Tab):
