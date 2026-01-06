@@ -5,22 +5,25 @@ from unittest.mock import patch
 from v3xctrl_udp_relay.custom_types import (
     PeerEntry,
     PortType,
-    Role,
     Session,
     SessionNotFoundError,
+    SpectatorEntry,
 )
+from v3xctrl_udp_relay.Role import Role
 
 
 class TestRole(unittest.TestCase):
     def test_role_values(self):
         self.assertEqual(Role.STREAMER.value, "streamer")
         self.assertEqual(Role.VIEWER.value, "viewer")
+        self.assertEqual(Role.SPECTATOR.value, "spectator")
 
     def test_role_enumeration(self):
         roles = list(Role)
-        self.assertEqual(len(roles), 2)
+        self.assertEqual(len(roles), 3)
         self.assertIn(Role.STREAMER, roles)
         self.assertIn(Role.VIEWER, roles)
+        self.assertIn(Role.SPECTATOR, roles)
 
 
 class TestPortType(unittest.TestCase):
@@ -192,6 +195,143 @@ class TestSession(unittest.TestCase):
         self.session.register(Role.VIEWER, PortType.CONTROL, ("2.2.2.2", 2222))
 
         self.assertTrue(self.session.is_ready())
+
+
+class TestSpectatorEntry(unittest.TestCase):
+    def test_initialization(self):
+        spectator = SpectatorEntry()
+
+        self.assertIsInstance(spectator.ports, dict)
+        self.assertEqual(len(spectator.ports), 0)
+        self.assertIsInstance(spectator.created_at, float)
+
+    def test_register_port_new(self):
+        spectator = SpectatorEntry()
+        addr = ("192.168.1.100", 5000)
+
+        result = spectator.register_port(PortType.VIDEO, addr)
+
+        self.assertTrue(result)
+        self.assertIn(PortType.VIDEO, spectator.ports)
+        self.assertEqual(spectator.ports[PortType.VIDEO].addr, addr)
+
+    def test_register_port_existing(self):
+        spectator = SpectatorEntry()
+        addr1 = ("192.168.1.100", 5000)
+        addr2 = ("192.168.1.101", 5001)
+
+        spectator.register_port(PortType.VIDEO, addr1)
+        result = spectator.register_port(PortType.VIDEO, addr2)
+
+        self.assertFalse(result)
+        self.assertEqual(spectator.ports[PortType.VIDEO].addr, addr2)
+
+    def test_is_complete_empty(self):
+        spectator = SpectatorEntry()
+        self.assertFalse(spectator.is_complete())
+
+    def test_is_complete_partial(self):
+        spectator = SpectatorEntry()
+        spectator.register_port(PortType.VIDEO, ("192.168.1.100", 5000))
+
+        self.assertFalse(spectator.is_complete())
+
+    def test_is_complete_full(self):
+        spectator = SpectatorEntry()
+        spectator.register_port(PortType.VIDEO, ("192.168.1.100", 5000))
+        spectator.register_port(PortType.CONTROL, ("192.168.1.100", 5001))
+
+        self.assertTrue(spectator.is_complete())
+
+    def test_get_addresses(self):
+        spectator = SpectatorEntry()
+        addr1 = ("192.168.1.100", 5000)
+        addr2 = ("192.168.1.100", 5001)
+
+        spectator.register_port(PortType.VIDEO, addr1)
+        spectator.register_port(PortType.CONTROL, addr2)
+
+        addresses = spectator.get_addresses()
+
+        self.assertIsInstance(addresses, set)
+        self.assertEqual(len(addresses), 2)
+        self.assertIn(addr1, addresses)
+        self.assertIn(addr2, addresses)
+
+
+class TestSessionSpectator(unittest.TestCase):
+    def setUp(self):
+        self.session = Session("test_session")
+
+    def test_register_spectator_new(self):
+        addr = ("192.168.1.100", 5000)
+
+        result = self.session.register(Role.SPECTATOR, PortType.VIDEO, addr)
+
+        self.assertTrue(result)
+        self.assertEqual(len(self.session.spectators), 1)
+
+    def test_register_spectator_same_ip_different_port(self):
+        addr1 = ("192.168.1.100", 5000)
+        addr2 = ("192.168.1.100", 5001)
+
+        result1 = self.session.register(Role.SPECTATOR, PortType.VIDEO, addr1)
+        result2 = self.session.register(Role.SPECTATOR, PortType.CONTROL, addr2)
+
+        self.assertTrue(result1)  # First port is new
+        self.assertTrue(result2)  # Second port is also new
+        self.assertEqual(len(self.session.spectators), 1)  # But same spectator
+        self.assertTrue(self.session.spectators[0].is_complete())
+
+    def test_register_spectator_different_ip(self):
+        addr1 = ("192.168.1.100", 5000)
+        addr2 = ("192.168.1.101", 5000)
+
+        self.session.register(Role.SPECTATOR, PortType.VIDEO, addr1)
+        result = self.session.register(Role.SPECTATOR, PortType.VIDEO, addr2)
+
+        self.assertTrue(result)  # Different IP, new spectator
+        self.assertEqual(len(self.session.spectators), 2)
+
+    def test_register_spectator_does_not_update_last_announcement(self):
+        with patch('time.time', return_value=1000.0):
+            session = Session("test")
+
+        initial_time = session.last_announcement_at
+
+        with patch('time.time', return_value=2000.0):
+            session.register(Role.SPECTATOR, PortType.VIDEO, ("192.168.1.100", 5000))
+
+        self.assertEqual(session.last_announcement_at, initial_time)
+
+    def test_register_viewer_updates_last_announcement(self):
+        with patch('time.time', return_value=1000.0):
+            session = Session("test")
+
+        with patch('time.time', return_value=2000.0):
+            session.register(Role.VIEWER, PortType.VIDEO, ("192.168.1.100", 5000))
+
+        self.assertEqual(session.last_announcement_at, 2000.0)
+
+    def test_is_ready_ignores_spectators(self):
+        # Add spectator only
+        self.session.register(Role.SPECTATOR, PortType.VIDEO, ("192.168.1.100", 5000))
+        self.session.register(Role.SPECTATOR, PortType.CONTROL, ("192.168.1.100", 5001))
+
+        self.assertFalse(self.session.is_ready())
+
+        # Add streamer and viewer
+        self.session.register(Role.STREAMER, PortType.VIDEO, ("1.1.1.1", 1111))
+        self.session.register(Role.STREAMER, PortType.CONTROL, ("1.1.1.2", 1112))
+        self.session.register(Role.VIEWER, PortType.VIDEO, ("2.2.2.1", 2221))
+        self.session.register(Role.VIEWER, PortType.CONTROL, ("2.2.2.2", 2222))
+
+        self.assertTrue(self.session.is_ready())
+
+    def test_register_unknown_role_raises_error(self):
+        with self.assertRaises(ValueError):
+            # Create a mock role that's not in the enum
+            self.session.register("invalid_role", PortType.VIDEO, ("1.1.1.1", 1111))
 
 
 class TestSessionNotFoundError(unittest.TestCase):

@@ -505,6 +505,7 @@ class TestUDPRelayServerIntegration(unittest.TestCase):
                 PortType.VIDEO: PeerEntry(("192.168.1.100", 54321))
             }
         }
+        mock_session.spectators = []
 
         addr = ("192.168.1.100", 54321)
 

@@ -63,6 +63,11 @@ class NetworkTab(Tab):
             checked=self.relay.get("enabled", False),
             on_change=self._on_relay_enable_change
         )
+        self.relay_spectator_checkbox = Checkbox(
+            label=t("Spectator Mode"), font=LABEL_FONT,
+            checked=self.relay.get("spectator_mode", False),
+            on_change=self._on_relay_spectator_change
+        )
         self.relay_server_input.value = self.relay.get("server", "")
         self.relay_id_input.value = self.relay.get("id", "")
 
@@ -81,7 +86,8 @@ class NetworkTab(Tab):
         self.relay_widgets: List[BaseInput | BaseWidget] = [
             self.relay_server_input,
             self.relay_id_input,
-            self.relay_enabled_checkbox
+            self.relay_enabled_checkbox,
+            self.relay_spectator_checkbox
         ]
         self.misc_widgets: List[BaseInput | BaseWidget] = [
             self.udp_packet_ttl_input
@@ -134,6 +140,10 @@ class NetworkTab(Tab):
 
     def _on_relay_id_change(self, value: str) -> None:
         self.relay["id"] = value
+
+    def _on_relay_spectator_change(self, value: bool) -> None:
+        self.relay["spectator_mode"] = value
+
     def _draw_port_section(self, surface: Surface, y: int) -> int:
         y += self.y_offset + self.padding
         y += self._draw_headline(surface, "ports", y)

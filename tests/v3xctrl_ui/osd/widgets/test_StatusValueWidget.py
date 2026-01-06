@@ -31,6 +31,14 @@ class TestStatusValueWidget(unittest.TestCase):
         self.widget.set_value(42)
         self.assertEqual(self.widget.value, 42)
 
+    def test_set_value_accepts_string(self):
+        self.widget.set_value("N/A")
+        self.assertEqual(self.widget.value, "N/A")
+
+    def test_set_value_accepts_none(self):
+        self.widget.set_value(None)
+        self.assertIsNone(self.widget.value)
+
     def test_draw_extra_renders_value_when_set(self):
         self.widget.set_value(99)
 

@@ -128,6 +128,41 @@ class TestOSD(unittest.TestCase):
             self.osd._latency_update(msg)
             self.assertEqual(self.osd.debug_latency, expected)
 
+    def test_set_spectator_mode(self):
+        self.osd.set_spectator_mode(True)
+        self.assertTrue(self.osd.is_spectator_mode)
+        self.osd.set_spectator_mode(False)
+        self.assertFalse(self.osd.is_spectator_mode)
+
+    def test_latency_update_in_spectator_mode(self):
+        self.osd.set_spectator_mode(True)
+        self.osd.widgets_debug["debug_latency"].set_value = MagicMock()
+
+        msg = Latency()
+        msg.timestamp = time.time() - 0.05
+        self.osd._latency_update(msg)
+
+        # Should display N/A and default color
+        self.osd.widgets_debug["debug_latency"].set_value.assert_called_with("N/A")
+        self.assertEqual(self.osd.debug_latency, "default")
+
+    def test_latency_update_normal_mode_after_spectator(self):
+        # Set spectator mode then disable it
+        self.osd.set_spectator_mode(True)
+        self.osd.set_spectator_mode(False)
+
+        self.osd.widgets_debug["debug_latency"].set_value = MagicMock()
+        msg = Latency()
+        msg.timestamp = time.time() - 0.05  # ~50ms, should be green
+        self.osd._latency_update(msg)
+
+        # Should work normally
+        self.assertEqual(self.osd.debug_latency, "green")
+        self.osd.widgets_debug["debug_latency"].set_value.assert_called()
+        # Check it was called with an int, not "N/A"
+        call_args = self.osd.widgets_debug["debug_latency"].set_value.call_args[0][0]
+        self.assertIsInstance(call_args, int)
+
 
 if __name__ == "__main__":
     pygame.init()

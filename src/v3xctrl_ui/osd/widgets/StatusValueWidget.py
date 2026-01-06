@@ -27,12 +27,16 @@ class StatusValueWidget(StatusWidget):
         self.average = average
         self.history: deque[int] = deque(maxlen=average_window)
 
-    def set_value(self, value: int) -> None:
-        if self.average:
-            self.history.append(value)
-            value = sum(self.history) // len(self.history)
-
-        self.value = value
+    def set_value(self, value: int | str | None) -> None:
+        if value is None or isinstance(value, str):
+            # Handle None or string values (e.g., "N/A") directly
+            self.value = value
+        else:
+            # Handle numeric values with averaging
+            if self.average:
+                self.history.append(value)
+                value = sum(self.history) // len(self.history)
+            self.value = value
 
     def draw_extra(self, surface: Surface) -> None:
         if self.value is None:

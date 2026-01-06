@@ -99,6 +99,9 @@ class EventController:
         self.settings = settings
         self._load_keyboard_controls()
 
+    def set_menu_tab_enabled(self, tab_name: str, enabled: bool) -> None:
+        self.menu.set_tab_enabled(tab_name, enabled)
+
     def _load_keyboard_controls(self) -> None:
         keyboard_controls = self.settings.get("controls", {}).get("keyboard", {})
 

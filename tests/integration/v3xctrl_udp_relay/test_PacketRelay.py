@@ -71,8 +71,8 @@ class TestPacketRelayIntegration(unittest.TestCase):
         # Verify mappings created (inspect mapping dict under lock)
         with self.relay.mapping_lock:
             self.assertIn(self.streamer_video_addr, self.relay.mappings)
-            target, _ = self.relay.mappings[self.streamer_video_addr]
-            self.assertEqual(target, self.viewer_video_addr)
+            targets, _ = self.relay.mappings[self.streamer_video_addr]
+            self.assertEqual(targets, {self.viewer_video_addr})
 
         # Forwarding: calling forward_packet should use relay.sock (self.mock_sock)
         self.mock_sock.reset_mock()

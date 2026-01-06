@@ -94,6 +94,7 @@ class TestNetworkCoordinator(unittest.TestCase):
         mock_nm = MagicMock()
         mock_nm.server = mock_server
         mock_nm.server_error = False
+        mock_nm.relay_spectator_mode = False
         self.coordinator.network_manager = mock_nm
 
         self.coordinator.send_control_message(0.5, -0.3)
@@ -129,6 +130,7 @@ class TestNetworkCoordinator(unittest.TestCase):
         mock_server = MagicMock()
         mock_nm = MagicMock()
         mock_nm.server = mock_server
+        mock_nm.relay_spectator_mode = False
         self.coordinator.network_manager = mock_nm
 
         command = Command({"action": "test"})
@@ -153,6 +155,7 @@ class TestNetworkCoordinator(unittest.TestCase):
     def test_send_latency_check(self):
         """Test sending latency check."""
         mock_nm = MagicMock()
+        mock_nm.relay_spectator_mode = False
         self.coordinator.network_manager = mock_nm
 
         self.coordinator.send_latency_check()
@@ -340,6 +343,77 @@ class TestNetworkCoordinator(unittest.TestCase):
         # Should not raise an error
         connected_handler()
         self.assertTrue(self.model.control_connected)
+
+    def test_is_spectator_mode_true(self):
+        """Test checking spectator mode when enabled."""
+        mock_nm = MagicMock()
+        mock_nm.relay_spectator_mode = True
+        self.coordinator.network_manager = mock_nm
+
+        result = self.coordinator.is_spectator_mode()
+
+        self.assertTrue(result)
+
+    def test_is_spectator_mode_false(self):
+        """Test checking spectator mode when disabled."""
+        mock_nm = MagicMock()
+        mock_nm.relay_spectator_mode = False
+        self.coordinator.network_manager = mock_nm
+
+        result = self.coordinator.is_spectator_mode()
+
+        self.assertFalse(result)
+
+    def test_is_spectator_mode_no_manager(self):
+        """Test checking spectator mode when no network manager."""
+        self.coordinator.network_manager = None
+
+        result = self.coordinator.is_spectator_mode()
+
+        self.assertFalse(result)
+
+    def test_send_control_message_spectator_mode(self):
+        """Test that control messages are not sent in spectator mode."""
+        mock_server = MagicMock()
+        mock_nm = MagicMock()
+        mock_nm.server = mock_server
+        mock_nm.server_error = False
+        mock_nm.relay_spectator_mode = True
+        self.coordinator.network_manager = mock_nm
+
+        self.coordinator.send_control_message(0.5, -0.3)
+
+        # Should not send when in spectator mode
+        mock_server.send.assert_not_called()
+
+    def test_send_latency_check_spectator_mode(self):
+        """Test that latency checks are not sent in spectator mode."""
+        mock_nm = MagicMock()
+        mock_nm.relay_spectator_mode = True
+        self.coordinator.network_manager = mock_nm
+
+        self.coordinator.send_latency_check()
+
+        # Should not send when in spectator mode
+        mock_nm.send_latency_check.assert_not_called()
+
+    def test_send_command_spectator_mode(self):
+        """Test that commands are not sent in spectator mode."""
+        mock_server = MagicMock()
+        mock_nm = MagicMock()
+        mock_nm.server = mock_server
+        mock_nm.relay_spectator_mode = True
+        self.coordinator.network_manager = mock_nm
+
+        command = Command({"action": "test"})
+        callback = MagicMock()
+
+        self.coordinator.send_command(command, callback)
+
+        # Should not send command when in spectator mode
+        mock_server.send_command.assert_not_called()
+        # Callback should be invoked with False to indicate failure
+        callback.assert_called_once_with(False)
 
 
 if __name__ == "__main__":
