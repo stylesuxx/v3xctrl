@@ -80,7 +80,7 @@ class Bot(discord.Client):
             "• `/stats` - View relay server statistics (requires 'stats' role)\n\n"
             "All responses are sent via DM for privacy.\n\n"
             "## CAUTION!\n"
-            "**Do not share your session ID** with others, they will have access to your streamer.\n\n"
+            "**Do not share your session ID** with untrusted users, they will have access to your streamer.\n\n"
             "Messages will be auto-deleted in this channel, only interactions with me are allowed!"
         )
 
@@ -226,7 +226,10 @@ class Bot(discord.Client):
                 return
 
         try:
-            await interaction.user.send(f"Your session ID is: `{session_id}`")
+            await interaction.user.send(
+                f"Your session ID is: `{session_id}`\n"
+                "**CAUTION**: Do not share your session ID with untrusted users!"
+            )
             await interaction.followup.send("Session ID sent via DM!", ephemeral=True)
 
         except discord.Forbidden:
@@ -252,7 +255,10 @@ class Bot(discord.Client):
                 session_id = self.store.create(user_id, username)
                 logging.info(f"Created new session ID for {username}")
 
-            await interaction.user.send(f"Your session ID is: `{session_id}`")
+            await interaction.user.send(
+                f"Your session ID is: `{session_id}`\n"
+                "**CAUTION**: Do not share your session ID with untrusted users!"
+            )
             await interaction.followup.send("Session ID sent via DM!", ephemeral=True)
 
         except RuntimeError as e:
