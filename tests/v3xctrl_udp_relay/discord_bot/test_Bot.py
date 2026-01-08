@@ -1,11 +1,9 @@
 import asyncio
-import io
-import json
 import unittest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import discord
-from discord.ext import commands
+from discord import app_commands
 
 from v3xctrl_udp_relay.discord_bot.Bot import Bot
 from v3xctrl_udp_relay.discord_bot.RelayClient import RelayClient
@@ -15,27 +13,29 @@ class TestBot(unittest.TestCase):
     def setUp(self):
         self.mock_relay_client = MagicMock(spec=RelayClient)
         self.mock_store = MagicMock()
+        self.test_channel_id = 123456789
 
         with patch('v3xctrl_udp_relay.discord_bot.Bot.SessionStore') as mock_session_store_class:
             mock_session_store_class.return_value = self.mock_store
             self.bot = Bot(
                 db_path="test.db",
                 token="test_token",
-                relay_client=self.mock_relay_client,
-                command_prefix="!"
+                channel_id=self.test_channel_id,
+                relay_client=self.mock_relay_client
             )
 
     def test_init_with_default_relay_client(self):
-        with patch('v3xctrl_udp_relay.discord_bot.Bot.SessionStore') as mock_session_store_class, \
+        with patch('v3xctrl_udp_relay.discord_bot.Bot.SessionStore'), \
              patch('v3xctrl_udp_relay.discord_bot.Bot.RelayClient') as mock_relay_client_class:
 
             mock_relay_client_instance = MagicMock()
             mock_relay_client_class.return_value = mock_relay_client_instance
 
-            bot = Bot("test.db", "test_token")
+            bot = Bot("test.db", "test_token", 123456789)
 
             self.assertEqual(bot.token, "test_token")
             self.assertEqual(bot.relay_client, mock_relay_client_instance)
+            self.assertEqual(bot.channel_id, 123456789)
             mock_relay_client_class.assert_called_once_with()
 
     def test_init_with_custom_relay_client(self):
@@ -43,7 +43,7 @@ class TestBot(unittest.TestCase):
         self.assertEqual(self.bot.relay_client, self.mock_relay_client)
         self.assertEqual(self.bot.store, self.mock_store)
 
-    @patch('discord.ext.commands.Bot.run')
+    @patch('discord.Client.run')
     def test_run_bot(self, mock_super_run):
         self.bot.run_bot()
         mock_super_run.assert_called_once_with("test_token")
@@ -58,6 +58,86 @@ class TestBot(unittest.TestCase):
                 await self.bot.on_ready()
 
             mock_logging_info.assert_called_once_with("Bot connected as TestBot#1234")
+
+        asyncio.run(async_test())
+
+    def test_on_message_deletes_user_message_in_designated_channel(self):
+        async def async_test():
+            mock_message = AsyncMock(spec=discord.Message)
+            mock_message.channel = MagicMock()
+            mock_message.channel.id = self.test_channel_id
+            mock_message.author = MagicMock()
+            mock_message.author.__str__ = MagicMock(return_value="User#1234")
+
+            with patch.object(type(self.bot), 'user', MagicMock(), create=True):
+                await self.bot.on_message(mock_message)
+
+            mock_message.delete.assert_called_once()
+
+        asyncio.run(async_test())
+
+    def test_on_message_ignores_bot_own_messages(self):
+        async def async_test():
+            mock_bot_user = MagicMock()
+            mock_message = AsyncMock(spec=discord.Message)
+            mock_message.channel = MagicMock()
+            mock_message.channel.id = self.test_channel_id
+            mock_message.author = mock_bot_user
+
+            with patch.object(type(self.bot), 'user', mock_bot_user, create=True):
+                await self.bot.on_message(mock_message)
+
+            mock_message.delete.assert_not_called()
+
+        asyncio.run(async_test())
+
+    def test_on_message_ignores_messages_in_other_channels(self):
+        async def async_test():
+            mock_message = AsyncMock(spec=discord.Message)
+            mock_message.channel = MagicMock()
+            mock_message.channel.id = 999999999  # Different channel
+            mock_message.author = MagicMock()
+
+            await self.bot.on_message(mock_message)
+
+            mock_message.delete.assert_not_called()
+
+        asyncio.run(async_test())
+
+    @patch('logging.error')
+    def test_on_message_handles_forbidden_error(self, mock_logging_error):
+        async def async_test():
+            mock_message = AsyncMock(spec=discord.Message)
+            mock_message.channel = MagicMock()
+            mock_message.channel.id = self.test_channel_id
+            mock_message.author = MagicMock()
+
+            forbidden_exception = discord.Forbidden(
+                response=MagicMock(),
+                message="Missing Permissions"
+            )
+            mock_message.delete = AsyncMock(side_effect=forbidden_exception)
+
+            with patch.object(type(self.bot), 'user', MagicMock(), create=True):
+                await self.bot.on_message(mock_message)
+
+            mock_logging_error.assert_called_once_with(f"Cannot delete messages in channel {self.test_channel_id} - missing permissions")
+
+        asyncio.run(async_test())
+
+    @patch('logging.error')
+    def test_on_message_handles_general_exception(self, mock_logging_error):
+        async def async_test():
+            mock_message = AsyncMock(spec=discord.Message)
+            mock_message.channel = MagicMock()
+            mock_message.channel.id = self.test_channel_id
+            mock_message.author = MagicMock()
+            mock_message.delete = AsyncMock(side_effect=Exception("Some error"))
+
+            with patch.object(type(self.bot), 'user', MagicMock(), create=True):
+                await self.bot.on_message(mock_message)
+
+            mock_logging_error.assert_called_once_with(f"Failed to delete message in channel {self.test_channel_id}: Some error")
 
         asyncio.run(async_test())
 
@@ -165,51 +245,77 @@ class TestBot(unittest.TestCase):
 
         self.assertIn("*No active mappings*", result)
 
+    def test_handle_stats_command_wrong_channel(self):
+        async def async_test():
+            mock_interaction = AsyncMock(spec=discord.Interaction)
+            mock_interaction.channel_id = 999999999  # Wrong channel
+            mock_interaction.response = AsyncMock()
+
+            await self.bot.handle_stats_command(mock_interaction)
+
+            # Should silently ignore - no response sent
+            mock_interaction.response.send_message.assert_not_called()
+            mock_interaction.response.defer.assert_not_called()
+
+        asyncio.run(async_test())
+
     def test_handle_stats_command_not_in_guild(self):
         async def async_test():
-            mock_ctx = AsyncMock()
-            mock_ctx.guild = None
+            mock_interaction = AsyncMock(spec=discord.Interaction)
+            mock_interaction.channel_id = self.test_channel_id  # Correct channel
+            mock_interaction.guild = None
+            mock_interaction.response = AsyncMock()
 
-            await self.bot.handle_stats_command(mock_ctx)
+            await self.bot.handle_stats_command(mock_interaction)
 
-            mock_ctx.reply.assert_called_once_with("This command can only be used in a server.")
+            mock_interaction.response.send_message.assert_called_once_with(
+                "This command can only be used in a server.", ephemeral=True
+            )
 
         asyncio.run(async_test())
 
     def test_handle_stats_command_author_not_member(self):
         async def async_test():
-            mock_ctx = AsyncMock()
-            mock_ctx.guild = MagicMock()
-            mock_ctx.author = MagicMock()  # Not a discord.Member
-            mock_ctx.message.add_reaction = AsyncMock()
+            mock_interaction = AsyncMock(spec=discord.Interaction)
+            mock_interaction.channel_id = self.test_channel_id
+            mock_interaction.guild = MagicMock()
+            mock_interaction.user = MagicMock()  # Not a discord.Member
+            mock_interaction.response = AsyncMock()
 
-            await self.bot.handle_stats_command(mock_ctx)
+            await self.bot.handle_stats_command(mock_interaction)
 
-            mock_ctx.message.add_reaction.assert_called_once_with("❌")
+            mock_interaction.response.send_message.assert_called_once_with(
+                "This command is only available to server members.", ephemeral=True
+            )
 
         asyncio.run(async_test())
 
     def test_handle_stats_command_no_permission(self):
         async def async_test():
-            mock_ctx = AsyncMock()
-            mock_ctx.guild = MagicMock()
-            mock_ctx.author = MagicMock(spec=discord.Member)
-            mock_ctx.message.add_reaction = AsyncMock()
+            mock_interaction = AsyncMock(spec=discord.Interaction)
+            mock_interaction.channel_id = self.test_channel_id
+            mock_interaction.guild = MagicMock()
+            mock_interaction.user = MagicMock(spec=discord.Member)
+            mock_interaction.response = AsyncMock()
 
             with patch.object(self.bot, '_has_role', return_value=False):
-                await self.bot.handle_stats_command(mock_ctx)
+                await self.bot.handle_stats_command(mock_interaction)
 
-            mock_ctx.message.add_reaction.assert_called_once_with("❌")
+            mock_interaction.response.send_message.assert_called_once_with(
+                "You don't have permission to use this command.", ephemeral=True
+            )
 
         asyncio.run(async_test())
 
     def test_handle_stats_command_success_short_message(self):
         async def async_test():
-            mock_ctx = AsyncMock()
-            mock_ctx.guild = MagicMock()
-            mock_ctx.author = MagicMock(spec=discord.Member)
-            mock_ctx.message.add_reaction = AsyncMock()
-            mock_ctx.author.send = AsyncMock()
+            mock_interaction = AsyncMock(spec=discord.Interaction)
+            mock_interaction.channel_id = self.test_channel_id
+            mock_interaction.guild = MagicMock()
+            mock_interaction.user = MagicMock(spec=discord.Member)
+            mock_interaction.response = AsyncMock()
+            mock_interaction.followup = AsyncMock()
+            mock_interaction.user.send = AsyncMock()
 
             stats = {"session1": {"created_at": 123, "mappings": []}}
 
@@ -217,20 +323,23 @@ class TestBot(unittest.TestCase):
                  patch.object(self.bot, '_get_relay_stats', return_value=stats), \
                  patch.object(self.bot, '_format_stats_message', return_value="Short message"):
 
-                await self.bot.handle_stats_command(mock_ctx)
+                await self.bot.handle_stats_command(mock_interaction)
 
-            mock_ctx.author.send.assert_called_once_with("Short message")
-            mock_ctx.message.add_reaction.assert_called_once_with("✅")
+            mock_interaction.user.send.assert_called_once_with("Short message")
+            mock_interaction.response.defer.assert_called_once_with(ephemeral=True)
+            mock_interaction.followup.send.assert_called_once_with("Stats sent via DM!", ephemeral=True)
 
         asyncio.run(async_test())
 
     def test_handle_stats_command_success_long_message(self):
         async def async_test():
-            mock_ctx = AsyncMock()
-            mock_ctx.guild = MagicMock()
-            mock_ctx.author = MagicMock(spec=discord.Member)
-            mock_ctx.message.add_reaction = AsyncMock()
-            mock_ctx.author.send = AsyncMock()
+            mock_interaction = AsyncMock(spec=discord.Interaction)
+            mock_interaction.channel_id = self.test_channel_id
+            mock_interaction.guild = MagicMock()
+            mock_interaction.user = MagicMock(spec=discord.Member)
+            mock_interaction.response = AsyncMock()
+            mock_interaction.followup = AsyncMock()
+            mock_interaction.user.send = AsyncMock()
 
             stats = {"session1": {"created_at": 123, "mappings": []}}
             long_message = "x" * 2001  # Over 2000 chars
@@ -239,211 +348,225 @@ class TestBot(unittest.TestCase):
                  patch.object(self.bot, '_get_relay_stats', return_value=stats), \
                  patch.object(self.bot, '_format_stats_message', return_value=long_message), \
                  patch('discord.File') as mock_file_class, \
-                 patch('io.BytesIO') as mock_bytesio:
+                 patch('io.BytesIO'):
 
                 mock_file_instance = MagicMock()
                 mock_file_class.return_value = mock_file_instance
 
-                await self.bot.handle_stats_command(mock_ctx)
+                await self.bot.handle_stats_command(mock_interaction)
 
-            mock_ctx.author.send.assert_called_once_with(
+            mock_interaction.user.send.assert_called_once_with(
                 "Stats too long for message, sending as file:",
                 file=mock_file_instance
             )
-            mock_ctx.message.add_reaction.assert_called_once_with("✅")
+            mock_interaction.response.defer.assert_called_once_with(ephemeral=True)
+            mock_interaction.followup.send.assert_called_once_with("Stats sent via DM!", ephemeral=True)
 
         asyncio.run(async_test())
 
     def test_handle_stats_command_dm_forbidden(self):
         async def async_test():
-            mock_ctx = AsyncMock()
-            mock_ctx.guild = MagicMock()
-            mock_ctx.author = MagicMock(spec=discord.Member)
-            mock_ctx.message.add_reaction = AsyncMock()
+            mock_interaction = AsyncMock(spec=discord.Interaction)
+            mock_interaction.channel_id = self.test_channel_id
+            mock_interaction.guild = MagicMock()
+            mock_interaction.user = MagicMock(spec=discord.Member)
+            mock_interaction.response = AsyncMock()
+            mock_interaction.followup = AsyncMock()
 
             forbidden_exception = discord.Forbidden(
                 response=MagicMock(),
                 message="DMs disabled"
             )
-            mock_ctx.author.send = AsyncMock(side_effect=forbidden_exception)
+            mock_interaction.user.send = AsyncMock(side_effect=forbidden_exception)
 
             with patch.object(self.bot, '_has_role', return_value=True), \
                  patch.object(self.bot, '_get_relay_stats', return_value={}), \
                  patch.object(self.bot, '_format_stats_message', return_value="test"):
 
-                await self.bot.handle_stats_command(mock_ctx)
+                await self.bot.handle_stats_command(mock_interaction)
 
-            mock_ctx.reply.assert_called_once_with(
-                "I couldn't DM you the stats. Please enable DMs from server members and try again."
+            mock_interaction.followup.send.assert_called_once_with(
+                "I couldn't DM you the stats. Please enable DMs from server members and try again.",
+                ephemeral=True
             )
-            mock_ctx.message.add_reaction.assert_called_once_with("❌")
 
         asyncio.run(async_test())
 
     @patch('logging.error')
     def test_handle_stats_command_relay_error(self, mock_logging_error):
         async def async_test():
-            mock_ctx = AsyncMock()
-            mock_ctx.guild = MagicMock()
-            mock_ctx.author = MagicMock(spec=discord.Member)
-            mock_ctx.message.add_reaction = AsyncMock()
+            mock_interaction = AsyncMock(spec=discord.Interaction)
+            mock_interaction.channel_id = self.test_channel_id
+            mock_interaction.guild = MagicMock()
+            mock_interaction.user = MagicMock(spec=discord.Member)
+            mock_interaction.response = AsyncMock()
+            mock_interaction.followup = AsyncMock()
 
             with patch.object(self.bot, '_has_role', return_value=True), \
                  patch.object(self.bot, '_get_relay_stats', side_effect=Exception("Relay error")):
 
-                await self.bot.handle_stats_command(mock_ctx)
+                await self.bot.handle_stats_command(mock_interaction)
 
-            mock_ctx.reply.assert_called_once_with(
-                "Failed to retrieve relay statistics. Check if the relay server is running."
+            mock_interaction.followup.send.assert_called_once_with(
+                "Failed to retrieve relay statistics. Check if the relay server is running.",
+                ephemeral=True
             )
-            mock_ctx.message.add_reaction.assert_called_once_with("❌")
             mock_logging_error.assert_called_once_with("Stats command failed: Relay error")
 
         asyncio.run(async_test())
 
-    @patch('logging.info')
-    def test_handle_requestid_command_guild_context_existing_session(self, mock_logging_info):
+    def test_handle_requestid_command_guild_context_existing_session(self):
         async def async_test():
-            mock_ctx = AsyncMock()
-            mock_ctx.guild = MagicMock()
-            mock_ctx.author.id = 12345
-            mock_ctx.author.__str__ = MagicMock(return_value="TestUser#1234")
-            mock_ctx.message.add_reaction = AsyncMock()
-            mock_ctx.author.send = AsyncMock()
+            mock_interaction = AsyncMock(spec=discord.Interaction)
+            mock_interaction.channel_id = self.test_channel_id
+            mock_interaction.guild = MagicMock()
+            mock_interaction.user = MagicMock()
+            mock_interaction.user.id = 12345
+            mock_interaction.user.__str__ = MagicMock(return_value="TestUser#1234")
+            mock_interaction.response = AsyncMock()
+            mock_interaction.followup = AsyncMock()
+            mock_interaction.user.send = AsyncMock()
 
             self.mock_store.get.return_value = "existing_session"
 
-            await self.bot.handle_requestid_command(mock_ctx)
+            await self.bot.handle_requestid_command(mock_interaction)
 
-            mock_ctx.message.add_reaction.assert_called_once_with("✅")
-            expected_calls = [
-                unittest.mock.call("!requestid called by TestUser#1234 in server, responding via DM."),
-                unittest.mock.call("Returning existing session ID for TestUser#1234")
-            ]
-            mock_logging_info.assert_has_calls(expected_calls)
-            mock_ctx.author.send.assert_called_once_with("Your session ID is: `existing_session`")
+            mock_interaction.user.send.assert_called_once_with(
+                "Your session ID is: `existing_session`\n"
+                "**CAUTION**: Do not share your session ID with untrusted users!"
+            )
+            mock_interaction.followup.send.assert_called_once_with("Session ID sent via DM!", ephemeral=True)
 
         asyncio.run(async_test())
 
     @patch('logging.info')
     def test_handle_requestid_command_dm_context_new_session(self, mock_logging_info):
         async def async_test():
-            mock_ctx = AsyncMock()
-            mock_ctx.guild = None
-            mock_ctx.author.id = 67890
-            mock_ctx.author.__str__ = MagicMock(return_value="NewUser#5678")
-            mock_ctx.author.send = AsyncMock()
+            mock_interaction = AsyncMock(spec=discord.Interaction)
+            mock_interaction.channel_id = self.test_channel_id
+            mock_interaction.guild = None
+            mock_interaction.user = MagicMock()
+            mock_interaction.user.id = 67890
+            mock_interaction.user.__str__ = MagicMock(return_value="NewUser#5678")
+            mock_interaction.response = AsyncMock()
+            mock_interaction.followup = AsyncMock()
+            mock_interaction.user.send = AsyncMock()
 
             self.mock_store.get.return_value = None
             self.mock_store.create.return_value = "new_session"
 
-            await self.bot.handle_requestid_command(mock_ctx)
+            await self.bot.handle_requestid_command(mock_interaction)
 
             self.mock_store.create.assert_called_once_with("67890", "NewUser#5678")
-            mock_ctx.author.send.assert_called_once_with("Your session ID is: `new_session`")
+            mock_interaction.user.send.assert_called_once_with(
+                "Your session ID is: `new_session`\n"
+                "**CAUTION**: Do not share your session ID with untrusted users!"
+            )
+            mock_interaction.followup.send.assert_called_once_with("Session ID sent via DM!", ephemeral=True)
 
         asyncio.run(async_test())
 
     @patch('logging.error')
     def test_handle_requestid_command_create_session_error(self, mock_logging_error):
         async def async_test():
-            mock_ctx = AsyncMock()
-            mock_ctx.guild = None
-            mock_ctx.author.id = 12345
-            mock_ctx.author.__str__ = MagicMock(return_value="TestUser#1234")
-            mock_ctx.author.send = AsyncMock()
+            mock_interaction = AsyncMock(spec=discord.Interaction)
+            mock_interaction.channel_id = self.test_channel_id
+            mock_interaction.guild = None
+            mock_interaction.user = MagicMock()
+            mock_interaction.user.id = 12345
+            mock_interaction.user.__str__ = MagicMock(return_value="TestUser#1234")
+            mock_interaction.response = AsyncMock()
+            mock_interaction.followup = AsyncMock()
 
             self.mock_store.get.return_value = None
             self.mock_store.create.side_effect = RuntimeError("Creation failed")
 
-            await self.bot.handle_requestid_command(mock_ctx)
+            await self.bot.handle_requestid_command(mock_interaction)
 
             mock_logging_error.assert_called_once_with(
                 "ID generation failed for TestUser#1234: Creation failed"
             )
-            mock_ctx.author.send.assert_called_once_with(
-                "Failed to generate a unique session ID. Try again later."
+            mock_interaction.followup.send.assert_called_once_with(
+                "Failed to generate a unique session ID. Try again later.", ephemeral=True
             )
 
         asyncio.run(async_test())
 
     def test_handle_requestid_command_dm_forbidden(self):
         async def async_test():
-            mock_ctx = AsyncMock()
-            mock_ctx.guild = None
-            mock_ctx.author.id = 12345
-            mock_ctx.author.__str__ = MagicMock(return_value="TestUser#1234")
+            mock_interaction = AsyncMock(spec=discord.Interaction)
+            mock_interaction.channel_id = self.test_channel_id
+            mock_interaction.guild = None
+            mock_interaction.user = MagicMock()
+            mock_interaction.user.id = 12345
+            mock_interaction.user.__str__ = MagicMock(return_value="TestUser#1234")
+            mock_interaction.response = AsyncMock()
+            mock_interaction.followup = AsyncMock()
 
             forbidden_exception = discord.Forbidden(
                 response=MagicMock(),
                 message="DMs disabled"
             )
-            mock_ctx.author.send = AsyncMock(side_effect=forbidden_exception)
+            mock_interaction.user.send = AsyncMock(side_effect=forbidden_exception)
 
             self.mock_store.get.return_value = "session_id"
 
-            await self.bot.handle_requestid_command(mock_ctx)
+            await self.bot.handle_requestid_command(mock_interaction)
 
-            mock_ctx.reply.assert_called_once_with(
-                "I couldn't DM you. Please enable DMs from server members and try again."
+            mock_interaction.followup.send.assert_called_once_with(
+                "I couldn't DM you. Please enable DMs from server members and try again.", ephemeral=True
             )
 
         asyncio.run(async_test())
 
-    def test_handle_requestid_command_reaction_http_exception(self):
+    def test_stats_command_is_registered(self):
+        commands = {cmd.name: cmd for cmd in self.bot.tree.get_commands()}
+        self.assertIn("stats", commands)
+        self.assertIsInstance(commands["stats"], app_commands.Command)
+
+    def test_requestid_command_is_registered(self):
+        commands = {cmd.name: cmd for cmd in self.bot.tree.get_commands()}
+        self.assertIn("requestid", commands)
+        self.assertIsInstance(commands["requestid"], app_commands.Command)
+
+    def test_renewid_command_is_registered(self):
+        commands = {cmd.name: cmd for cmd in self.bot.tree.get_commands()}
+        self.assertIn("renewid", commands)
+        self.assertIsInstance(commands["renewid"], app_commands.Command)
+
+    def test_stats_command_calls_handler(self):
         async def async_test():
-            mock_ctx = AsyncMock()
-            mock_ctx.guild = MagicMock()
-            mock_ctx.author.id = 12345
-            mock_ctx.author.__str__ = MagicMock(return_value="TestUser#1234")
-            mock_ctx.author.send = AsyncMock()
+            mock_interaction = AsyncMock(spec=discord.Interaction)
+            mock_interaction.channel_id = self.test_channel_id
 
-            http_exception = discord.HTTPException(
-                response=MagicMock(),
-                message="Failed to add reaction"
-            )
-            mock_ctx.message.add_reaction = AsyncMock(side_effect=http_exception)
-
-            self.mock_store.get.return_value = "session_id"
-
-            await self.bot.handle_requestid_command(mock_ctx)
-
-            # Should not raise exception, just continue
-            mock_ctx.author.send.assert_called_once_with("Your session ID is: `session_id`")
-
-        asyncio.run(async_test())
-
-    def test_stats_command_factory_returns_command(self):
-        command = self.bot._stats_command()
-
-        self.assertIsInstance(command, commands.Command)
-        self.assertEqual(command.name, "stats")
-
-    def test_requestid_command_factory_returns_command(self):
-        command = self.bot._requestid_command()
-
-        self.assertIsInstance(command, commands.Command)
-        self.assertEqual(command.name, "requestid")
-
-    def test_stats_command_factory_calls_handler(self):
-        async def async_test():
-            command = self.bot._stats_command()
-            mock_ctx = AsyncMock()
-
+            commands = {cmd.name: cmd for cmd in self.bot.tree.get_commands()}
             with patch.object(self.bot, 'handle_stats_command') as mock_handler:
-                await command.callback(mock_ctx)
-                mock_handler.assert_called_once_with(mock_ctx)
+                await commands["stats"].callback(mock_interaction)
+                mock_handler.assert_called_once_with(mock_interaction)
 
         asyncio.run(async_test())
 
-    def test_requestid_command_factory_calls_handler(self):
+    def test_requestid_command_calls_handler(self):
         async def async_test():
-            command = self.bot._requestid_command()
-            mock_ctx = AsyncMock()
+            mock_interaction = AsyncMock(spec=discord.Interaction)
+            mock_interaction.channel_id = self.test_channel_id
 
+            commands = {cmd.name: cmd for cmd in self.bot.tree.get_commands()}
             with patch.object(self.bot, 'handle_requestid_command') as mock_handler:
-                await command.callback(mock_ctx)
-                mock_handler.assert_called_once_with(mock_ctx)
+                await commands["requestid"].callback(mock_interaction)
+                mock_handler.assert_called_once_with(mock_interaction)
+
+        asyncio.run(async_test())
+
+    def test_renewid_command_calls_handler(self):
+        async def async_test():
+            mock_interaction = AsyncMock(spec=discord.Interaction)
+            mock_interaction.channel_id = self.test_channel_id
+
+            commands = {cmd.name: cmd for cmd in self.bot.tree.get_commands()}
+            with patch.object(self.bot, 'handle_renewid_command') as mock_handler:
+                await commands["renewid"].callback(mock_interaction)
+                mock_handler.assert_called_once_with(mock_interaction)
 
         asyncio.run(async_test())
 
