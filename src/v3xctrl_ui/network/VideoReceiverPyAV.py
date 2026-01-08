@@ -49,12 +49,15 @@ class VideoReceiverPyAV(VideoReceiver):
         self.thread_count = str(min(os.cpu_count() or 1, 4))
 
         self.latest_packet_pts = None
+        self.consecutive_old_frames = 0
+        self.max_consecutive_old_frames = 60
 
         self.container_options = {
             "fflags": "nobuffer+flush_packets+discardcorrupt+nofillin",
             "protocol_whitelist": "file,udp,rtp",
             "analyzeduration": "1",
             "probesize": "32",
+            "rw_timeout": "5000000",  # timeout for demux read operations (in us)
         }
 
         self.codec_options = {
@@ -83,6 +86,7 @@ class VideoReceiverPyAV(VideoReceiver):
                         logging.info(f"Container opened in {open_time:.3f}s")
 
                         self.latest_packet_pts = None
+                        self.consecutive_old_frames = 0
                     break
                 except av.AVError as e:
                     logging.warning(f"av.open() failed: {e}")
@@ -104,7 +108,19 @@ class VideoReceiverPyAV(VideoReceiver):
 
                                 if self._should_drop_packet_by_age(packet, stream):
                                     self.dropped_old_frames += 1
+                                    self.consecutive_old_frames += 1
+
+                                    # Force restart if too many consecutive old frames
+                                    if self.consecutive_old_frames > self.max_consecutive_old_frames:
+                                        logging.warning(
+                                            f"Dropped {self.consecutive_old_frames} consecutive old frames, "
+                                            f"forcing container restart"
+                                        )
+                                        raise av.AVError(-1, "Stale packet stream detected", "")
+
                                     continue
+
+                                self.consecutive_old_frames = 0
 
                                 decoded_frames = list(packet.decode())
                                 if decoded_frames:
