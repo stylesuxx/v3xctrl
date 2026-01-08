@@ -42,14 +42,62 @@ class TestVideoReceiverPyAVInit(unittest.TestCase):
             self.assertEqual(receiver.thread_count, "1")
 
     def test_container_options(self):
+        """Test that container options include all critical timeout and performance settings.
+
+        These options are critical for stream recovery when the streamer restarts.
+        DO NOT remove or change these without testing stream recovery behavior!
+
+        See commit 1bc366b for context on why these values are important.
+        """
         receiver = VideoReceiverPyAV(5600, Mock())
         expected_options = {
-            "fflags": "nobuffer+flush_packets+discardcorrupt",
+            "fflags": "nobuffer+flush_packets+discardcorrupt+nofillin",
             "protocol_whitelist": "file,udp,rtp",
-            "analyzeduration": "100000",
-            "probesize": "2048",
+            "analyzeduration": "1",
+            "probesize": "32",
+            "rw_timeout": "5000000",  # 5 seconds in microseconds - CRITICAL for stream recovery
         }
         self.assertEqual(receiver.container_options, expected_options)
+
+    def test_container_options_has_rw_timeout(self):
+        """Explicitly test that rw_timeout is present.
+
+        This timeout is CRITICAL for allowing the demux() loop to recover when
+        the streamer stops/restarts. Without it, demux() blocks indefinitely.
+
+        Regression: This was accidentally removed in commit c74f1f3 (Dec 17, 2025)
+        during refactoring, causing stream recovery failures.
+        """
+        receiver = VideoReceiverPyAV(5600, Mock())
+        self.assertIn("rw_timeout", receiver.container_options)
+        self.assertEqual(receiver.container_options["rw_timeout"], "5000000")
+
+    def test_container_options_has_low_analyze_duration(self):
+        """Test that analyzeduration is low for fast stream detection.
+
+        Low analyzeduration (1) allows faster detection of new streams
+        when the streamer restarts, compared to default high values.
+        """
+        receiver = VideoReceiverPyAV(5600, Mock())
+        self.assertEqual(receiver.container_options["analyzeduration"], "1")
+
+    def test_container_options_has_small_probesize(self):
+        """Test that probesize is small for fast stream detection.
+
+        Small probesize (32) reduces the amount of data needed to identify
+        the stream format, speeding up recovery on streamer restarts.
+        """
+        receiver = VideoReceiverPyAV(5600, Mock())
+        self.assertEqual(receiver.container_options["probesize"], "32")
+
+    def test_container_options_has_nofillin_flag(self):
+        """Test that nofillin flag is present in fflags.
+
+        The nofillin flag prevents FFmpeg from trying to fill in missing
+        frames, which can cause delays during stream reconnection.
+        """
+        receiver = VideoReceiverPyAV(5600, Mock())
+        self.assertIn("nofillin", receiver.container_options["fflags"])
 
     def test_codec_options(self):
         receiver = VideoReceiverPyAV(5600, Mock())
@@ -245,6 +293,40 @@ class TestVideoReceiverPyAVMainLoop(unittest.TestCase):
 
                 # Container should have been set (briefly) during execution
                 self.assertEqual(mock_stream.codec_context.options, self.receiver.codec_options)
+
+    def test_main_loop_uses_timeout_on_av_open(self):
+        """Test that av.open() is called with timeout parameter.
+
+        The timeout parameter prevents av.open() from hanging indefinitely
+        during the initial container opening phase. This is critical for
+        allowing quick recovery when the streamer restarts.
+
+        Regression: This was accidentally removed in commit c74f1f3 (Dec 17, 2025)
+        during refactoring, causing stream recovery failures.
+        """
+        mock_container = Mock()
+        mock_stream = Mock(spec=av.VideoStream)
+        mock_stream.codec_context = Mock()
+        mock_stream.time_base = 1.0 / 90000
+        mock_container.streams.video = [mock_stream]
+        mock_container.demux.return_value = []
+
+        def mock_open(*args, **kwargs):
+            # Verify timeout is passed
+            self.assertIn('timeout', kwargs)
+            self.assertGreater(kwargs['timeout'], 0)
+            self.receiver.running.clear()
+            return mock_container
+
+        with patch('av.open', side_effect=mock_open) as mock_av_open:
+            self.receiver._main_loop()
+
+            # Verify av.open was called with timeout
+            mock_av_open.assert_called()
+            call_kwargs = mock_av_open.call_args[1]
+            self.assertIn('timeout', call_kwargs)
+            # Should be at least 2 seconds (was the original value in commit 1bc366b)
+            self.assertGreaterEqual(call_kwargs['timeout'], 2)
 
     def test_main_loop_packet_processing(self):
         mock_container = Mock()
