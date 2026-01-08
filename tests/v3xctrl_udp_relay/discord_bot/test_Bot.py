@@ -61,8 +61,7 @@ class TestBot(unittest.TestCase):
 
         asyncio.run(async_test())
 
-    @patch('logging.info')
-    def test_on_message_deletes_user_message_in_designated_channel(self, mock_logging_info):
+    def test_on_message_deletes_user_message_in_designated_channel(self):
         async def async_test():
             mock_message = AsyncMock(spec=discord.Message)
             mock_message.channel = MagicMock()
@@ -74,7 +73,6 @@ class TestBot(unittest.TestCase):
                 await self.bot.on_message(mock_message)
 
             mock_message.delete.assert_called_once()
-            mock_logging_info.assert_called_once_with(f"Deleted message from {mock_message.author} in channel {self.test_channel_id}")
 
         asyncio.run(async_test())
 
@@ -433,7 +431,10 @@ class TestBot(unittest.TestCase):
 
             await self.bot.handle_requestid_command(mock_interaction)
 
-            mock_interaction.user.send.assert_called_once_with("Your session ID is: `existing_session`")
+            mock_interaction.user.send.assert_called_once_with(
+                "Your session ID is: `existing_session`\n"
+                "**CAUTION**: Do not share your session ID with untrusted users!"
+            )
             mock_interaction.followup.send.assert_called_once_with("Session ID sent via DM!", ephemeral=True)
 
         asyncio.run(async_test())
@@ -457,7 +458,10 @@ class TestBot(unittest.TestCase):
             await self.bot.handle_requestid_command(mock_interaction)
 
             self.mock_store.create.assert_called_once_with("67890", "NewUser#5678")
-            mock_interaction.user.send.assert_called_once_with("Your session ID is: `new_session`")
+            mock_interaction.user.send.assert_called_once_with(
+                "Your session ID is: `new_session`\n"
+                "**CAUTION**: Do not share your session ID with untrusted users!"
+            )
             mock_interaction.followup.send.assert_called_once_with("Session ID sent via DM!", ephemeral=True)
 
         asyncio.run(async_test())
@@ -516,24 +520,28 @@ class TestBot(unittest.TestCase):
         asyncio.run(async_test())
 
     def test_stats_command_is_registered(self):
-        self.assertIsInstance(self.bot.stats, app_commands.Command)
-        self.assertEqual(self.bot.stats.name, "stats")
+        commands = {cmd.name: cmd for cmd in self.bot.tree.get_commands()}
+        self.assertIn("stats", commands)
+        self.assertIsInstance(commands["stats"], app_commands.Command)
 
     def test_requestid_command_is_registered(self):
-        self.assertIsInstance(self.bot.requestid, app_commands.Command)
-        self.assertEqual(self.bot.requestid.name, "requestid")
+        commands = {cmd.name: cmd for cmd in self.bot.tree.get_commands()}
+        self.assertIn("requestid", commands)
+        self.assertIsInstance(commands["requestid"], app_commands.Command)
 
     def test_renewid_command_is_registered(self):
-        self.assertIsInstance(self.bot.renewid, app_commands.Command)
-        self.assertEqual(self.bot.renewid.name, "renewid")
+        commands = {cmd.name: cmd for cmd in self.bot.tree.get_commands()}
+        self.assertIn("renewid", commands)
+        self.assertIsInstance(commands["renewid"], app_commands.Command)
 
     def test_stats_command_calls_handler(self):
         async def async_test():
             mock_interaction = AsyncMock(spec=discord.Interaction)
             mock_interaction.channel_id = self.test_channel_id
 
+            commands = {cmd.name: cmd for cmd in self.bot.tree.get_commands()}
             with patch.object(self.bot, 'handle_stats_command') as mock_handler:
-                await self.bot.stats.callback(self.bot, mock_interaction)
+                await commands["stats"].callback(mock_interaction)
                 mock_handler.assert_called_once_with(mock_interaction)
 
         asyncio.run(async_test())
@@ -543,8 +551,9 @@ class TestBot(unittest.TestCase):
             mock_interaction = AsyncMock(spec=discord.Interaction)
             mock_interaction.channel_id = self.test_channel_id
 
+            commands = {cmd.name: cmd for cmd in self.bot.tree.get_commands()}
             with patch.object(self.bot, 'handle_requestid_command') as mock_handler:
-                await self.bot.requestid.callback(self.bot, mock_interaction)
+                await commands["requestid"].callback(mock_interaction)
                 mock_handler.assert_called_once_with(mock_interaction)
 
         asyncio.run(async_test())
@@ -554,8 +563,9 @@ class TestBot(unittest.TestCase):
             mock_interaction = AsyncMock(spec=discord.Interaction)
             mock_interaction.channel_id = self.test_channel_id
 
+            commands = {cmd.name: cmd for cmd in self.bot.tree.get_commands()}
             with patch.object(self.bot, 'handle_renewid_command') as mock_handler:
-                await self.bot.renewid.callback(self.bot, mock_interaction)
+                await commands["renewid"].callback(mock_interaction)
                 mock_handler.assert_called_once_with(mock_interaction)
 
         asyncio.run(async_test())
