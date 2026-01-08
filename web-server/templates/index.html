@@ -438,13 +438,23 @@
           </div>
 
           <div class="tab-pane" id="modem">
-            <div class="form-group">
-              <button class="btn btn-primary reset">
-                Reset
-              </button>
+            <div class="row service-warning">
+              <div class="col-md-12">
+                <div class="alert alert-danger">
+                  Modem info can not be shown while control service is running. Stop the control service first!
+                </div>
+              </div>
             </div>
 
-            <p>Fetching modem info...</p>
+            <div class="modem-content hidden">
+              <div class="form-group">
+                <button class="btn btn-primary reset">
+                  Reset
+                </button>
+              </div>
+
+              <p>Fetching modem info...</p>
+            </div>
           </div>
 
           <div class="tab-pane" id="version">
