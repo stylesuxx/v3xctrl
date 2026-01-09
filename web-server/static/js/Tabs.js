@@ -409,60 +409,79 @@ class Tabs {
   }
 
   async renderModemInfo() {
-    const info = await API.getModemInfo();
-    const $content = this.tabs.modem.find('p');
+    const $warning = this.tabs.modem.find('.service-warning');
+    const $content = this.tabs.modem.find('.modem-content');
 
-    const $table = $("<table />", {
-      class: "table"
+    const services = await API.getServices();
+    services.forEach((service) => {
+      if(service.name === 'v3xctrl-control') {
+        if(service.state == 'inactive') {
+          $warning.addClass('hidden');
+          $content.removeClass('hidden');
+        } else {
+          $warning.removeClass('hidden');
+          $content.addClass('hidden');
+        }
+      }
     });
 
-    const $tbody = $("<tbody />");
-    $table.append($tbody);
+    // Only fetch and render modem info if control service is inactive
+    if(!$content.hasClass('hidden')) {
+      const info = await API.getModemInfo();
+      const $p = this.tabs.modem.find('p');
 
-    var $row = $("<tr />");
-    $row.append(`<td>Version</td>`);
-    $row.append(`<td>${info["version"]}</td>`);
-    $tbody.append($row);
+      const $table = $("<table />", {
+        class: "table"
+      });
 
-    $row = $("<tr />");
-    $row.append(`<td>SIM Status</td>`);
-    $row.append(`<td>${info["status"]}</td>`);
-    $tbody.append($row);
+      const $tbody = $("<tbody />");
+      $table.append($tbody);
 
-    $row = $("<tr />");
-    $row.append(`<td>Allowed Bands</td>`);
-    $row.append(`<td>${info["allowedBands"].join(", ")}</td>`);
-    $tbody.append($row);
-
-    $row = $("<tr />");
-    $row.append(`<td>Active Band</td>`);
-    $row.append(`<td>${info["activeBand"]}</td>`);
-    $tbody.append($row);
-
-    $row = $("<tr />");
-    $row.append(`<td>Carrier</td>`);
-    $row.append(`<td>${info["carrier"]}</td>`);
-    $tbody.append($row);
-
-    for(var i = 0; i < info["contexts"].length; i += 1) {
-      var current = info["contexts"][i];
+      var $row = $("<tr />");
+      $row.append(`<td>Version</td>`);
+      $row.append(`<td>${info["version"]}</td>`);
+      $tbody.append($row);
 
       $row = $("<tr />");
-      $row.append(`<td>Context ${current.id}</td>`);
-      $row.append(`<td>${current.type}: ${current.value} (${current.apn})</td>`);
+      $row.append(`<td>SIM Status</td>`);
+      $row.append(`<td>${info["status"]}</td>`);
       $tbody.append($row);
-    }
-
-    for(var i = 0; i < info["addresses"].length; i += 1) {
-      var current = info["addresses"][i];
 
       $row = $("<tr />");
-      $row.append(`<td>Address ${current.id}</td>`);
-      $row.append(`<td>${current.ip}</td>`);
+      $row.append(`<td>Allowed Bands</td>`);
+      $row.append(`<td>${info["allowedBands"].join(", ")}</td>`);
       $tbody.append($row);
-    }
 
-    $("#modem p").html($table);
+      $row = $("<tr />");
+      $row.append(`<td>Active Band</td>`);
+      $row.append(`<td>${info["activeBand"]}</td>`);
+      $tbody.append($row);
+
+      $row = $("<tr />");
+      $row.append(`<td>Carrier</td>`);
+      $row.append(`<td>${info["carrier"]}</td>`);
+      $tbody.append($row);
+
+      for(var i = 0; i < info["contexts"].length; i += 1) {
+        var current = info["contexts"][i];
+
+        $row = $("<tr />");
+        $row.append(`<td>Context ${current.id}</td>`);
+        $row.append(`<td>${current.type}: ${current.value} (${current.apn})</td>`);
+        $tbody.append($row);
+      }
+
+      for(var i = 0; i < info["addresses"].length; i += 1) {
+        var current = info["addresses"][i];
+
+        $row = $("<tr />");
+        $row.append(`<td>Address ${current.id}</td>`);
+        $row.append(`<td>${current.ip}</td>`);
+        $tbody.append($row);
+      }
+
+      $p.html($table);
+    }
   }
 
   async renderVersionInfo() {
