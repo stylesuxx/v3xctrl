@@ -9,15 +9,24 @@ from typing import (
 )
 
 from v3xctrl_control.message import Message, Latency, Telemetry
-from v3xctrl_ui.utils.colors import RED, WHITE
-from v3xctrl_ui.osd.TelemetryParser import TelemetryParser
-from v3xctrl_ui.utils.helpers import get_fps
-from v3xctrl_ui.utils.Settings import Settings
-from v3xctrl_ui.osd.WidgetFactory import WidgetFactory
-from v3xctrl_ui.osd.WidgetGroupRenderer import WidgetGroupRenderer
+
+from v3xctrl_ui.core.TelemetryContext import TelemetryContext
+
+from v3xctrl_ui.osd.TelemetryParser import parse_telemetry
+from v3xctrl_ui.osd.WidgetFactory import (
+    create_steering_widgets,
+    create_battery_widgets,
+    create_signal_widgets,
+    create_debug_widgets,
+    create_rec_widget,
+)
+from v3xctrl_ui.osd.WidgetGroupRenderer import render_widget_group
 from v3xctrl_ui.osd.WidgetGroup import WidgetGroup
 from v3xctrl_ui.osd.widgets import Widget
-from v3xctrl_ui.core.TelemetryContext import TelemetryContext
+
+from v3xctrl_ui.utils.colors import RED, WHITE
+from v3xctrl_ui.utils.helpers import get_fps
+from v3xctrl_ui.utils.Settings import Settings
 
 
 class OSD:
@@ -31,32 +40,28 @@ class OSD:
         self.widget_settings = {}
         self.update_settings(settings)
 
-        self.widgets_debug = {}
         self.debug_data: Optional[str] = None
         self.debug_latency: Optional[str] = None
         self.debug_buffer: Optional[str] = None
         self.loop_history: Optional[deque[float]] = None
         self.video_history: Optional[deque[float]] = None
         self.is_spectator_mode: bool = False
-        self._init_widgets_debug()
-
-        self.widgets_signal: Dict[str, Widget] = {}
-        self._init_widgets_signal()
-
-        self.widgets_battery: Dict[str, Widget] = {}
-        self._init_widgets_battery()
-
-        self.widgets_rec: Dict[str, Widget] = {}
-        self._init_widgets_rec()
-
-        self.widgets_steering = {}
         self.throttle: float = 0.0
         self.steering: float = 0.0
+
+        self.widgets_debug: Dict[str, Widget] = {}
+        self.widgets_signal: Dict[str, Widget] = {}
+        self.widgets_battery: Dict[str, Widget] = {}
+        self.widgets_rec: Dict[str, Widget] = {}
+        self.widgets_steering: Dict[str, Widget] = {}
+
+        self._init_widgets_debug()
+        self._init_widgets_signal()
+        self._init_widgets_battery()
+        self._init_widgets_rec()
         self._init_widgets_steering()
 
         self.reset()
-
-        self.widgets = self.widgets_steering
 
         # Create unified widget groups for rendering
         self.widget_groups: List[WidgetGroup] = [
@@ -92,6 +97,17 @@ class OSD:
             ),
         ]
 
+    @property
+    def debug_fps_loop(self) -> float:
+        return get_fps(self.loop_history)
+
+    @property
+    def debug_fps_video(self) -> int:
+        if self.video_history is None:
+            return 0
+
+        return get_fps(self.video_history)
+
     def update_settings(self, settings: Settings) -> None:
         self.settings = settings
         self.widget_settings = self.settings.get("widgets", {})
@@ -99,40 +115,12 @@ class OSD:
     def set_spectator_mode(self, is_spectator: bool) -> None:
         self.is_spectator_mode = is_spectator
 
-    def _get_steering_value(self, name: str):
-        return getattr(self, name)
-
-    def _get_battery_value(self, name: str):
-        battery = self.telemetry_context.get_battery()
-        mapping = {
-            "battery_icon": battery.icon,
-            "battery_voltage": battery.voltage,
-            "battery_average_voltage": battery.average_voltage,
-            "battery_percent": battery.percent,
-        }
-        return mapping.get(name)
-
-    def _get_signal_value(self, name: str):
-        signal = self.telemetry_context.get_signal()
-        mapping = {
-            "signal_quality": signal.quality,
-            "signal_band": signal.band,
-            "signal_cell": signal.cell,
-        }
-        return mapping.get(name)
-
-    def _get_debug_value(self, name: str):
-        return getattr(self, name)
-
-    def _get_rec_value(self, name: str):
-        gst = self.telemetry_context.get_gst()
-        return gst.recording
-
     def message_handler(self, message: Message) -> None:
-        if isinstance(message, Telemetry):
-            self._telemetry_update(message)
-        elif isinstance(message, Latency):
-            self._latency_update(message)
+        match message:
+            case Telemetry():
+                self._telemetry_update(message)
+            case Latency():
+                self._latency_update(message)
 
     def connect_handler(self) -> None:
         self.debug_data = "success"
@@ -152,17 +140,6 @@ class OSD:
 
     def update_debug_status(self, status: str) -> None:
         self.debug_data = status
-
-    @property
-    def debug_fps_loop(self) -> float:
-        return get_fps(self.loop_history)
-
-    @property
-    def debug_fps_video(self) -> int:
-        if self.video_history is None:
-            return 0
-
-        return get_fps(self.video_history)
 
     def render(
             self,
@@ -184,9 +161,7 @@ class OSD:
         }
 
         for group in self.widget_groups:
-            WidgetGroupRenderer.render_widget_group(
-                screen, group, render_settings
-            )
+            render_widget_group(screen, group, render_settings)
 
     def reset(self) -> None:
         self.debug_data = None
@@ -200,21 +175,21 @@ class OSD:
         self.steering = 0.0
 
     def _init_widgets_steering(self) -> None:
-        self.widgets_steering = WidgetFactory.create_steering_widgets()
+        self.widgets_steering = create_steering_widgets()
 
     def _init_widgets_battery(self) -> None:
-        self.widgets_battery = WidgetFactory.create_battery_widgets()
+        self.widgets_battery = create_battery_widgets()
 
     def _init_widgets_signal(self) -> None:
-        self.widgets_signal = WidgetFactory.create_signal_widgets()
+        self.widgets_signal = create_signal_widgets()
 
     def _init_widgets_debug(self) -> None:
         width = self.widget_settings["fps"].get("width")
         height = self.widget_settings["fps"].get("height")
-        self.widgets_debug = WidgetFactory.create_debug_widgets(width, height)
+        self.widgets_debug = create_debug_widgets(width, height)
 
     def _init_widgets_rec(self) -> None:
-        self.widgets_rec = WidgetFactory.create_rec_widget()
+        self.widgets_rec = create_rec_widget()
 
     def _latency_update(self, message: Latency) -> None:
         """
@@ -243,7 +218,7 @@ class OSD:
         self.widgets_debug["debug_latency"].set_value(diff_ms)
 
     def _telemetry_update(self, message: Telemetry) -> None:
-        data = TelemetryParser.parse(message)
+        data = parse_telemetry(message)
         values = message.get_values()
 
         self.telemetry_context.update_signal_quality(
@@ -270,3 +245,34 @@ class OSD:
             self.widgets_battery[widget_name].set_text_color(color)
 
         logging.debug(f"Received telemetry message: {message.get_values()}")
+
+    def _get_steering_value(self, name: str):
+        return getattr(self, name)
+
+    def _get_battery_value(self, name: str):
+        battery = self.telemetry_context.get_battery()
+        mapping = {
+            "battery_icon": battery.icon,
+            "battery_voltage": battery.voltage,
+            "battery_average_voltage": battery.average_voltage,
+            "battery_percent": battery.percent,
+        }
+
+        return mapping.get(name)
+
+    def _get_signal_value(self, name: str):
+        signal = self.telemetry_context.get_signal()
+        mapping = {
+            "signal_quality": signal.quality,
+            "signal_band": signal.band,
+            "signal_cell": signal.cell,
+        }
+
+        return mapping.get(name)
+
+    def _get_debug_value(self, name: str):
+        return getattr(self, name)
+
+    def _get_rec_value(self, name: str):
+        gst = self.telemetry_context.get_gst()
+        return gst.recording

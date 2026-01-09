@@ -1,26 +1,25 @@
 import pygame
 from pygame.freetype import Font
-import sys
-import os
+
 from pathlib import Path
+import sys
 
 pygame.init()
 pygame.freetype.init()
 
 
 def _get_resource_path(relative_path: str) -> Path:
-    """Get absolute path to resource, works for dev and for PyInstaller."""
     if getattr(sys, 'frozen', False):
         # Running in PyInstaller bundle
         base_path = Path(sys._MEIPASS)
     else:
         # Running in normal Python environment
         base_path = Path(__file__).parent.parent
+
     return base_path / relative_path
 
 
 def _load_font(filename: str, size: int) -> Font:
-    """Load a font from the assets."""
     font_path = _get_resource_path(f"assets/fonts/{filename}")
     return Font(str(font_path), size)
 

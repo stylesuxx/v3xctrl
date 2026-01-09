@@ -28,12 +28,12 @@ class TestNetworkController(unittest.TestCase):
         self.mock_server = MagicMock()
         self.mock_server_cls.return_value = self.mock_server
 
-        self.video_receiver_patcher = patch("v3xctrl_ui.network.NetworkController.VideoReceiver")
+        self.video_receiver_patcher = patch("v3xctrl_ui.network.NetworkSetup.VideoReceiver")
         self.mock_video_receiver_cls = self.video_receiver_patcher.start()
         self.mock_video_receiver = MagicMock()
         self.mock_video_receiver_cls.return_value = self.mock_video_receiver
 
-        self.peer_patcher = patch("v3xctrl_ui.network.NetworkController.Peer")
+        self.peer_patcher = patch("v3xctrl_udp_relay.Peer.Peer")
         self.mock_peer_cls = self.peer_patcher.start()
 
         self.get_ip_patcher = patch("v3xctrl_ui.network.NetworkController.get_external_ip")

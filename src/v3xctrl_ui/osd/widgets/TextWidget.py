@@ -5,6 +5,7 @@ from pygame import Surface, SRCALPHA
 
 from v3xctrl_ui.utils.colors import WHITE, GREY
 from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT
+
 from v3xctrl_ui.osd.widgets.Widget import Widget
 
 
@@ -41,24 +42,18 @@ class TextWidget(Widget):
         self.color = WHITE
         self.alignment = Alignment.CENTER
 
-        # Default state
+        """
+        Default state - we always want the widget to be same height no matter
+        of the actual text. Therefore we have to make sure to measure with all
+        the valid characters
+        """
         reference_text = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
         _, reference_rect = self.font.render(reference_text)
         max_char_height = reference_rect.height
         self.height = max_char_height + self.top_padding + self.bottom_padding
         self.width = length
 
-        # Pre-create background
         self._create_background()
-
-        # Cache variables - initialize to None
-        self._cached_text = None
-        self._cached_text_surface = None
-        self._cached_text_rect = None
-
-    def _create_background(self) -> None:
-        self.bg_surface = Surface((self.length, self.height), SRCALPHA)
-        self.bg_surface.fill((*self.bg_color[:3], self.background_alpha))
 
     def set_alignment(self, align: Alignment) -> None:
         self.alignment = align
@@ -72,17 +67,22 @@ class TextWidget(Widget):
         self._create_background()
 
     def draw(self, screen: Surface, text: str) -> None:
-        # Re-render text
         self.text_surface, self.text_rect = self.font.render(text, self.color)
         self.surface = self.bg_surface.copy()
 
-        text_x = self.left_padding
-        if self.alignment == Alignment.CENTER:
-            text_x = (self.length - self.text_rect.width) // 2
-        if self.alignment == Alignment.RIGHT:
-            text_x = self.length - self.text_rect.width - self.right_padding
+        match self.alignment:
+            case Alignment.LEFT:
+                text_x = self.left_padding
+            case Alignment.CENTER:
+                text_x = (self.length - self.text_rect.width) // 2
+            case Alignment.RIGHT:
+                text_x = self.length - self.text_rect.width - self.right_padding
 
         text_y = self.top_padding
         self.surface.blit(self.text_surface, (text_x, text_y))
 
         screen.blit(self.surface, self.position)
+
+    def _create_background(self) -> None:
+        self.bg_surface = Surface((self.length, self.height), SRCALPHA)
+        self.bg_surface.fill((*self.bg_color[:3], self.background_alpha))
