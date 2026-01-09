@@ -6,7 +6,14 @@ import unittest
 import pygame
 from unittest.mock import patch
 
-from v3xctrl_ui.osd.WidgetGroupRenderer import WidgetGroupRenderer
+from v3xctrl_ui.osd.WidgetGroupRenderer import (
+    render_widget_group,
+    render_group,
+    _render_individual_widgets,
+    _filter_visible_widgets,
+    _calculate_dimensions,
+    _draw_widgets_to_surface,
+)
 from v3xctrl_ui.osd.WidgetGroup import WidgetGroup
 from v3xctrl_ui.osd.widgets import TextWidget
 
@@ -38,7 +45,7 @@ class TestWidgetGroupRenderer(unittest.TestCase):
         self.get_value = lambda name: f"Value for {name}"
 
     def test_filter_visible_widgets_returns_all_when_all_visible(self):
-        visible = WidgetGroupRenderer._filter_visible_widgets(
+        visible = _filter_visible_widgets(
             self.widgets,
             self.widget_settings
         )
@@ -52,7 +59,7 @@ class TestWidgetGroupRenderer(unittest.TestCase):
     def test_filter_visible_widgets_filters_hidden_widgets(self):
         self.widget_settings["widget2"]["display"] = False
 
-        visible = WidgetGroupRenderer._filter_visible_widgets(
+        visible = _filter_visible_widgets(
             self.widgets,
             self.widget_settings
         )
@@ -66,7 +73,7 @@ class TestWidgetGroupRenderer(unittest.TestCase):
     def test_filter_visible_widgets_defaults_to_visible_when_no_settings(self):
         widget_settings = {}
 
-        visible = WidgetGroupRenderer._filter_visible_widgets(
+        visible = _filter_visible_widgets(
             self.widgets,
             widget_settings
         )
@@ -78,7 +85,7 @@ class TestWidgetGroupRenderer(unittest.TestCase):
         self.widget_settings["widget2"]["display"] = False
         self.widget_settings["widget3"]["display"] = False
 
-        visible = WidgetGroupRenderer._filter_visible_widgets(
+        visible = _filter_visible_widgets(
             self.widgets,
             self.widget_settings
         )
@@ -99,7 +106,7 @@ class TestWidgetGroupRenderer(unittest.TestCase):
             ("widget3", self.widget3)
         ]
 
-        width, height = WidgetGroupRenderer._calculate_dimensions(visible, 0)
+        width, height = _calculate_dimensions(visible, 0)
 
         self.assertEqual(width, 120)
         self.assertEqual(height, 75)
@@ -115,7 +122,7 @@ class TestWidgetGroupRenderer(unittest.TestCase):
             ("widget2", self.widget2)
         ]
 
-        width, height = WidgetGroupRenderer._calculate_dimensions(visible, 10)
+        width, height = _calculate_dimensions(visible, 10)
 
         self.assertEqual(width, 100)
         self.assertEqual(height, 60)
@@ -126,7 +133,7 @@ class TestWidgetGroupRenderer(unittest.TestCase):
 
         visible = [("widget1", self.widget1)]
 
-        width, height = WidgetGroupRenderer._calculate_dimensions(visible, 5)
+        width, height = _calculate_dimensions(visible, 5)
 
         self.assertEqual(width, 150)
         self.assertEqual(height, 40)
@@ -134,7 +141,7 @@ class TestWidgetGroupRenderer(unittest.TestCase):
     def test_calculate_dimensions_empty_list(self):
         visible = []
 
-        width, height = WidgetGroupRenderer._calculate_dimensions(visible, 5)
+        width, height = _calculate_dimensions(visible, 5)
 
         self.assertEqual(width, 0)
         self.assertEqual(height, 0)
@@ -151,7 +158,7 @@ class TestWidgetGroupRenderer(unittest.TestCase):
             ("widget3", self.widget3)
         ]
 
-        WidgetGroupRenderer._draw_widgets_to_surface(
+        _draw_widgets_to_surface(
             surface, visible, self.get_value, 5
         )
 
@@ -164,7 +171,7 @@ class TestWidgetGroupRenderer(unittest.TestCase):
         visible = [("widget1", self.widget1)]
 
         with patch.object(self.widget1, 'draw') as mock_draw:
-            WidgetGroupRenderer._draw_widgets_to_surface(
+            _draw_widgets_to_surface(
                 surface, visible, self.get_value, 0
             )
             mock_draw.assert_called_once_with(surface, "Value for widget1")
@@ -176,7 +183,7 @@ class TestWidgetGroupRenderer(unittest.TestCase):
             with patch('v3xctrl_ui.osd.WidgetGroupRenderer.calculate_widget_position') as mock_calc:
                 mock_calc.return_value = (0, 0)
 
-                WidgetGroupRenderer.render_group(
+                render_group(
                     self.screen,
                     self.widgets,
                     settings,
@@ -194,7 +201,7 @@ class TestWidgetGroupRenderer(unittest.TestCase):
             with patch('v3xctrl_ui.osd.WidgetGroupRenderer.calculate_widget_position') as mock_calc:
                 mock_calc.return_value = (100, 200)
 
-                WidgetGroupRenderer.render_group(
+                render_group(
                     self.screen,
                     self.widgets,
                     settings,
@@ -213,7 +220,7 @@ class TestWidgetGroupRenderer(unittest.TestCase):
                 mock_surface = pygame.Surface((100, 50), pygame.SRCALPHA)
                 mock_round.return_value = mock_surface
 
-                WidgetGroupRenderer.render_group(
+                render_group(
                     self.screen,
                     self.widgets,
                     settings,
@@ -232,7 +239,7 @@ class TestWidgetGroupRenderer(unittest.TestCase):
                 mock_surface = pygame.Surface((100, 50), pygame.SRCALPHA)
                 mock_round.return_value = mock_surface
 
-                WidgetGroupRenderer.render_group(
+                render_group(
                     self.screen,
                     self.widgets,
                     settings,
@@ -255,10 +262,9 @@ class TestWidgetGroupRenderer(unittest.TestCase):
             with patch('v3xctrl_ui.osd.WidgetGroupRenderer.calculate_widget_position') as mock_calc:
                 mock_calc.side_effect = [(10, 10), (780, 20)]
 
-                WidgetGroupRenderer._render_individual_widgets(
+                _render_individual_widgets(
                     self.screen,
                     self.widgets,
-                    {},
                     widget_settings,
                     self.get_value
                 )
@@ -289,8 +295,8 @@ class TestWidgetGroupRenderer(unittest.TestCase):
         )
 
         with patch('pygame.display.get_window_size', return_value=(800, 600)):
-            with patch.object(WidgetGroupRenderer, 'render_group') as mock_render:
-                WidgetGroupRenderer.render_widget_group(
+            with patch('v3xctrl_ui.osd.WidgetGroupRenderer.render_group') as mock_render:
+                render_widget_group(
                     self.screen,
                     group,
                     widget_settings
@@ -319,8 +325,8 @@ class TestWidgetGroupRenderer(unittest.TestCase):
         )
 
         with patch('pygame.display.get_window_size', return_value=(800, 600)):
-            with patch.object(WidgetGroupRenderer, '_render_individual_widgets') as mock_render:
-                WidgetGroupRenderer.render_widget_group(
+            with patch('v3xctrl_ui.osd.WidgetGroupRenderer._render_individual_widgets') as mock_render:
+                render_widget_group(
                     self.screen,
                     group,
                     widget_settings

@@ -28,24 +28,23 @@ class BatteryIconWidget(Widget):
         ]
 
     def draw(self, screen: Surface, percent: int) -> None:
-        state = 7
-        if percent > 95:
-            state = 7
-        elif percent > 85:
-            state = 6
-        elif percent > 70:
-            state = 5
-        elif percent > 55:
-            state = 4
-        elif percent > 40:
-            state = 3
-        elif percent > 25:
-            state = 2
-        elif percent > 10:
-            state = 1
-        else:
-            state = 0
+        match percent:
+            case _ if percent > 95:
+                state = 7
+            case _ if percent > 85:
+                state = 6
+            case _ if percent > 70:
+                state = 5
+            case _ if percent > 55:
+                state = 4
+            case _ if percent > 40:
+                state = 3
+            case _ if percent > 25:
+                state = 2
+            case _ if percent > 10:
+                state = 1
+            case _:
+                state = 0
 
         position = (self.position[0], self.position[1] - self.offset)
-
         screen.blit(self.states[state], position)

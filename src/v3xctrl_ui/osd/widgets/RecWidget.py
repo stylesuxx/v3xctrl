@@ -19,7 +19,6 @@ class RecWidget(TextWidget):
         right_padding: int = 8,
         border_radius: int = 5
     ) -> None:
-        # Set border_radius before calling parent __init__ since _create_background is called there
         self.border_radius = border_radius
 
         # Calculate length based on "REC" text

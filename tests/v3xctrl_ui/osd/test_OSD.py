@@ -93,8 +93,8 @@ class TestOSD(unittest.TestCase):
     def test_render_draws_widgets(self, mock_get_size):
         self.osd.widget_settings["steering"] = {"display": True}
         self.osd.widget_settings["throttle"] = {"display": True}
-        self.osd.widgets["steering"].draw = MagicMock()
-        self.osd.widgets["throttle"].draw = MagicMock()
+        self.osd.widgets_steering["steering"].draw = MagicMock()
+        self.osd.widgets_steering["throttle"].draw = MagicMock()
 
         self.osd.render(
             self.screen,
@@ -102,8 +102,8 @@ class TestOSD(unittest.TestCase):
             video_history=deque([time.time()])
         )
 
-        self.osd.widgets["steering"].draw.assert_called()
-        self.osd.widgets["throttle"].draw.assert_called()
+        self.osd.widgets_steering["steering"].draw.assert_called()
+        self.osd.widgets_steering["throttle"].draw.assert_called()
 
     @patch("v3xctrl_ui.osd.OSD.pygame.display.get_window_size", return_value=(800, 600))
     def test_render_draws_debug(self, mock_get_size):

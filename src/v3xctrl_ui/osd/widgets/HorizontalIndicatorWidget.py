@@ -2,10 +2,10 @@ from typing import Tuple, Dict, Any
 
 from pygame import draw, Surface, Rect
 
-from v3xctrl_ui.utils.colors import WHITE
-from v3xctrl_ui.osd.widgets.BaseIndicatorWidget import BaseIndicatorWidget
-
 from v3xctrl_helper import clamp
+from v3xctrl_ui.utils.colors import WHITE
+
+from v3xctrl_ui.osd.widgets.BaseIndicatorWidget import BaseIndicatorWidget
 
 
 class HorizontalIndicatorWidget(BaseIndicatorWidget):

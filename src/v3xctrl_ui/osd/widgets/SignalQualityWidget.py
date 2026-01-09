@@ -12,8 +12,9 @@ from v3xctrl_ui.utils.colors import (
   ORANGE,
   GREY,
 )
-from v3xctrl_ui.osd.widgets.Widget import Widget
 from v3xctrl_ui.utils.helpers import get_icon
+
+from v3xctrl_ui.osd.widgets.Widget import Widget
 
 
 class SignalQuality(IntEnum):
@@ -67,6 +68,7 @@ class SignalQualityWidget(Widget):
         rsrp = signal.get('rsrp')
         rsrq = signal.get('rsrq')
 
+        # No signal
         if rsrp in (-1, 255) or rsrq in (-1, 255):
             position = (
                 self.position[0] + self.x_offset,
@@ -79,12 +81,17 @@ class SignalQualityWidget(Widget):
         bars = self._get_bars(rsrp)
         quality = self._get_quality(rsrq)
 
-        bg_color = {
-            SignalQuality.POOR: RED,
-            SignalQuality.FAIR: ORANGE,
-            SignalQuality.GOOD: YELLOW,
-            SignalQuality.EXCELLENT: GREEN
-        }.get(quality, GREY)
+        match quality:
+            case SignalQuality.POOR:
+                bg_color = RED
+            case SignalQuality.FAIR:
+                bg_color = ORANGE
+            case SignalQuality.GOOD:
+                bg_color = YELLOW
+            case SignalQuality.EXCELLENT:
+                bg_color = GREEN
+            case _:
+                bg_color = GREY
 
         surface = Surface((self.width, self.height), SRCALPHA)
         surface.fill((*bg_color, 180))
@@ -117,29 +124,30 @@ class SignalQualityWidget(Widget):
 
     def _get_bars(self, value: int) -> int:
         rsrp_dbm = self._rsrp_to_dbm(value)
-        if rsrp_dbm >= -80:
-            return 5
-        elif rsrp_dbm >= -90:
-            return 4
-        elif rsrp_dbm >= -100:
-            return 3
-        elif rsrp_dbm >= -110:
-            return 2
-        elif rsrp_dbm >= -120:
-            return 1
-        else:
-            return 0
+        match rsrp_dbm:
+            case _ if rsrp_dbm >= -80:
+                return 5
+            case _ if rsrp_dbm >= -90:
+                return 4
+            case _ if rsrp_dbm >= -100:
+                return 3
+            case _ if rsrp_dbm >= -110:
+                return 2
+            case _ if rsrp_dbm >= -120:
+                return 1
+            case _:
+                return 0
 
     def _get_quality(self, value: int) -> SignalQuality:
         rsrq_dbm = self._rsrq_to_dbm(value)
-        if rsrq_dbm is None:
-            return SignalQuality.POOR
-
-        if rsrq_dbm >= -9:
-            return SignalQuality.EXCELLENT
-        elif rsrq_dbm >= -14:
-            return SignalQuality.GOOD
-        elif rsrq_dbm >= -19:
-            return SignalQuality.FAIR
-        else:
-            return SignalQuality.POOR
+        match rsrq_dbm:
+            case None:
+                return SignalQuality.POOR
+            case _ if rsrq_dbm >= -9:
+                return SignalQuality.EXCELLENT
+            case _ if rsrq_dbm >= -14:
+                return SignalQuality.GOOD
+            case _ if rsrq_dbm >= -19:
+                return SignalQuality.FAIR
+            case _:
+                return SignalQuality.POOR
