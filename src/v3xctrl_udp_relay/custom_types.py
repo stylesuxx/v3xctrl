@@ -22,10 +22,12 @@ class SpectatorEntry:
     def __init__(self) -> None:
         self.ports: Dict[PortType, PeerEntry] = {}
         self.created_at: float = time.time()
+        self.last_announcement_at: float = time.time()
 
     def register_port(self, port_type: PortType, addr: Address) -> bool:
         new_port = port_type not in self.ports
         self.ports[port_type] = PeerEntry(addr)
+        self.last_announcement_at = time.time()
         return new_port
 
     def is_complete(self) -> bool:

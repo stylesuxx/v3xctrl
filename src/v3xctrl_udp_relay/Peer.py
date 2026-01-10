@@ -2,10 +2,10 @@ import logging
 import socket
 import time
 import threading
-from typing import Dict
+from typing import Dict, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from v3xctrl_control.message import PeerAnnouncement, Message, PeerInfo, Error
+from v3xctrl_control.message import PeerAnnouncement, Message, PeerInfo, Error, Heartbeat
 from v3xctrl_helper.exceptions import UnauthorizedError, PeerRegistrationError
 from v3xctrl_helper import Address
 
@@ -24,6 +24,9 @@ class Peer:
         self._finalized_event = threading.Event()
         self._finalized_event.set()
 
+        self._heartbeat_thread = None
+        self._heartbeat_socket: Optional[socket.socket] = None
+
     def setup(self, role: str, ports: Dict[str, int]) -> Dict[str, Address]:
         self._finalized_event.clear()
 
@@ -35,7 +38,13 @@ class Peer:
 
         try:
             peer_info_map = self._register_all(sockets, role)
+
+            # For spectators, keep the control socket and send heartbeats
+            if role == "spectator":
+                control_sock = sockets.pop("control")
+                self._start_heartbeat(control_sock, role)
         finally:
+            # Close all sockets except the one kept for heartbeat
             self._finalize_sockets(sockets)
 
         return {
@@ -51,6 +60,19 @@ class Peer:
 
     def abort(self) -> None:
         self._abort_event.set()
+
+        # Stop heartbeat thread if running
+        if self._heartbeat_thread and self._heartbeat_thread.is_alive():
+            self._heartbeat_thread.join(timeout=2.0)
+
+        # Close heartbeat socket if it exists
+        if self._heartbeat_socket:
+            try:
+                self._heartbeat_socket.close()
+            except Exception as e:
+                logging.debug(f"Error closing heartbeat socket: {e}")
+            self._heartbeat_socket = None
+
         self._finalized_event.wait()
 
     def _bind_socket(self, name: str, port: int = 0) -> socket.socket:
@@ -158,3 +180,32 @@ class Peer:
             sock.close()
 
         self._finalized_event.set()
+
+    def _start_heartbeat(self, control_socket: socket.socket, role: str) -> None:
+        """Start background thread to send heartbeats on control port for spectators."""
+        self._heartbeat_socket = control_socket
+
+        self._heartbeat_thread = threading.Thread(
+            target=self._send_heartbeat_loop,
+            args=(role,),
+            daemon=True,
+            name="SpectatorHeartbeatThread"
+        )
+        self._heartbeat_thread.start()
+        logging.info("Started heartbeat for spectator")
+
+    def _send_heartbeat_loop(self, role: str) -> None:
+        """Background loop that sends heartbeats on the control port."""
+        while not self._abort_event.is_set():
+            try:
+                heartbeat = Heartbeat()
+                self._heartbeat_socket.sendto(
+                    heartbeat.to_bytes(),
+                    (self.server, self.port)
+                )
+                logging.debug(f"Sent heartbeat to {self.server}:{self.port}")
+            except Exception as e:
+                logging.debug(f"Error sending heartbeat: {e}")
+
+            # Sleep for announcement interval
+            self._abort_event.wait(self.ANNOUNCE_INTERVAL)

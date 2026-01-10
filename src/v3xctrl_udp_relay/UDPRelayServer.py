@@ -199,6 +199,10 @@ class UDPRelayServer(threading.Thread):
     ) -> None:
         self.relay.register_peer(msg, addr)
 
+    def _handle_heartbeat(self, addr: Address) -> None:
+        """Update spectator timestamp on heartbeat."""
+        self.relay.update_spectator_heartbeat(addr)
+
     def _cleanup_expired_entries(self) -> None:
         while self.running.is_set():
             self.relay.cleanup_expired_mappings()
@@ -219,7 +223,10 @@ class UDPRelayServer(threading.Thread):
                 except Exception:
                     return
 
-            self.relay.forward_packet(data, addr)
+            # Try to forward the packet. If no mapping exists, update spectator heartbeat
+            forwarded = self.relay.forward_packet(data, addr)
+            if not forwarded:
+                self.relay.update_spectator_heartbeat(addr)
 
         except Exception as e:
             logging.error(f"Error handling packet from {addr}: {e}", exc_info=True)

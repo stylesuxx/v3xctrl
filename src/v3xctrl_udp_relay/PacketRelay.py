@@ -51,6 +51,8 @@ class PacketRelay:
                 being orphaned or being expired.
     """
 
+    SPECTATOR_TIMEOUT = 10
+
     def __init__(
         self,
         store: SessionStore,
@@ -88,15 +90,31 @@ class PacketRelay:
         sid = msg.get_id()
 
         with self.lock:
-            if not self.store.exists(sid):
-                logging.info(f"Ignoring announcement for unknown session '{sid}' from {addr}")
-                try:
-                    error_msg = Error(str(403))
-                    self.sock.sendto(error_msg.to_bytes(), addr)
-                except Exception as e:
-                    logging.error(f"Failed to send error message to {addr}: {e}", exc_info=True)
+            match role:
+                case Role.STREAMER | Role.VIEWER:
+                    # For streamer and viewer, verify the session ID exists
+                    if not self.store.exists(sid):
+                        logging.info(f"Ignoring announcement for unknown session '{sid}' from {addr}")
+                        try:
+                            error_msg = Error(str(403))
+                            self.sock.sendto(error_msg.to_bytes(), addr)
+                        except Exception as e:
+                            logging.error(f"Failed to send error message to {addr}: {e}", exc_info=True)
 
-                return
+                        return
+
+                case Role.SPECTATOR:
+                    actual_sid = self.store.get_session_id_from_spectator_id(sid)
+                    if not actual_sid:
+                        logging.info(f"Ignoring spectator announcement for unknown spectator ID '{sid}' from {addr}")
+                        try:
+                            error_msg = Error(str(403))
+                            self.sock.sendto(error_msg.to_bytes(), addr)
+                        except Exception as e:
+                            logging.error(f"Failed to send error message to {addr}: {e}", exc_info=True)
+                        return
+                    sid = actual_sid
+                    logging.info(f"Spectator using spectator_id, mapped to session '{sid}'")
 
             session = self.sessions.setdefault(sid, Session(sid))
             is_new_peer = session.register(role, port_type, addr)
@@ -131,15 +149,26 @@ class PacketRelay:
 
             return session.roles
 
+    def update_spectator_heartbeat(self, addr: Address) -> None:
+        """Update the last_announcement_at timestamp for a spectator based on address."""
+        with self.lock:
+            for session in self.sessions.values():
+                for spectator in session.spectators:
+                    # Check if this address belongs to this spectator's control port
+                    if addr in spectator.get_addresses():
+                        spectator.last_announcement_at = time.time()
+                        logging.debug(f"Updated heartbeat for spectator at {addr}")
+                        return
+
     def forward_packet(
         self,
         data: bytes,
         addr: Address
-    ) -> None:
+    ) -> bool:
         with self.mapping_lock:
             mapping = self.mappings.get(addr)
             if not mapping:
-                return
+                return False
 
             targets, _ = mapping
             self.mappings[addr] = (targets, time.time())
@@ -147,6 +176,8 @@ class PacketRelay:
         # Send to all targets (viewer + spectators for streamer, or just streamer for viewer)
         for target in targets:
             self.sock.sendto(data, target)
+
+        return True
 
     def cleanup_expired_mappings(self) -> None:
         """
@@ -211,20 +242,38 @@ class PacketRelay:
                 if expired:
                     expired_sessions.append(sid)
 
-            # Clean up spectators from expired sessions
-            # Spectators don't send data, so we can't check their activity.
-            # They are removed when their session expires (no active streamer/viewer).
+            # Clean up inactive spectators from active sessions
+            # Spectators must send announcements to stay active
+            for sid, session in self.sessions.items():
+                if sid not in expired_sessions:
+                    for i in reversed(range(len(session.spectators))):
+                        spectator = session.spectators[i]
+                        if (now - spectator.last_announcement_at) > self.SPECTATOR_TIMEOUT:
+                            streamer_peers = session.roles.get(Role.STREAMER, {})
+
+                            with self.mapping_lock:
+                                for port_addr in spectator.get_addresses():
+                                    session.addresses.discard(port_addr)
+                                    for _, peer in streamer_peers.items():
+                                        streamer_addr = peer.addr
+                                        if streamer_addr in self.mappings:
+                                            targets, ts = self.mappings[streamer_addr]
+                                            if isinstance(targets, set) and port_addr in targets:
+                                                targets.discard(port_addr)
+                                                self.mappings[streamer_addr] = (targets, ts)
+
+                            del session.spectators[i]
+                            logging.info(f"{sid}: Removed inactive spectator")
+
+            # Remove expired sessions and cleanup their spectators
             for sid in expired_sessions:
                 session = self.sessions[sid]
-                for idx in reversed(range(len(session.spectators))):
-                    spectator = session.spectators[idx]
+                # Clean up spectator mappings before deleting session
+                for spectator in session.spectators:
                     streamer_peers = session.roles.get(Role.STREAMER, {})
-
                     with self.mapping_lock:
                         for port_addr in spectator.get_addresses():
-                            session.addresses.discard(port_addr)
-                            # Remove spectator from streamer's target set (if any)
-                            for port_type, peer in streamer_peers.items():
+                            for _, peer in streamer_peers.items():
                                 streamer_addr = peer.addr
                                 if streamer_addr in self.mappings:
                                     targets, ts = self.mappings[streamer_addr]
@@ -232,11 +281,6 @@ class PacketRelay:
                                         targets.discard(port_addr)
                                         self.mappings[streamer_addr] = (targets, ts)
 
-                    del session.spectators[idx]
-                    logging.info(f"{sid}: Removed spectator at index {idx} (session expiring)")
-
-            # Remove expired sessions
-            for sid in expired_sessions:
                 del self.sessions[sid]
                 logging.info(f"{sid}: Removed expired session")
 
@@ -363,4 +407,3 @@ class PacketRelay:
             targets, _ = self.mappings[source_addr]
             return targets.copy()
         return set()
-
