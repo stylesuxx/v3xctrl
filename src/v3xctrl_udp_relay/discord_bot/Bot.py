@@ -215,10 +215,13 @@ class Bot(discord.Client):
         user_id = str(interaction.user.id)
         username = str(interaction.user)
 
-        session_id = self.store.get(user_id)
-        if not session_id:
+        result = self.store.get(user_id)
+        if result:
+            session_id, spectator_id = result
+            logging.info(f"Returning existing session ID for {username}")
+        else:
             try:
-                session_id = self.store.create(user_id, username)
+                session_id, spectator_id = self.store.create(user_id, username)
 
             except RuntimeError as e:
                 logging.error(f"ID generation failed for {username}: {e}")
@@ -228,6 +231,9 @@ class Bot(discord.Client):
         try:
             await interaction.user.send(
                 f"Your session ID is: `{session_id}`\n"
+                f"Your spectator ID is: `{spectator_id}`\n\n"
+                f"**Session ID**: Use this to stream or view as the main participant.\n"
+                f"**Spectator ID**: Share this with others to let them watch your session without giving them control.\n\n"
                 "**CAUTION**: Do not share your session ID with untrusted users!"
             )
             await interaction.followup.send("Session ID sent via DM!", ephemeral=True)
@@ -249,14 +255,17 @@ class Bot(discord.Client):
 
         try:
             if existing_session:
-                session_id = self.store.update(user_id, username)
+                session_id, spectator_id = self.store.update(user_id, username)
                 logging.info(f"Renewed session ID for {username}")
             else:
-                session_id = self.store.create(user_id, username)
+                session_id, spectator_id = self.store.create(user_id, username)
                 logging.info(f"Created new session ID for {username}")
 
             await interaction.user.send(
                 f"Your session ID is: `{session_id}`\n"
+                f"Your spectator ID is: `{spectator_id}`\n\n"
+                f"**Session ID**: Use this to stream or view as the main participant.\n"
+                f"**Spectator ID**: Share this with others to let them watch your session without giving them control.\n\n"
                 "**CAUTION**: Do not share your session ID with untrusted users!"
             )
             await interaction.followup.send("Session ID sent via DM!", ephemeral=True)

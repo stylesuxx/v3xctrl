@@ -204,6 +204,7 @@ class TestSpectatorEntry(unittest.TestCase):
         self.assertIsInstance(spectator.ports, dict)
         self.assertEqual(len(spectator.ports), 0)
         self.assertIsInstance(spectator.created_at, float)
+        self.assertIsInstance(spectator.last_announcement_at, float)
 
     def test_register_port_new(self):
         spectator = SpectatorEntry()
@@ -257,6 +258,23 @@ class TestSpectatorEntry(unittest.TestCase):
         self.assertEqual(len(addresses), 2)
         self.assertIn(addr1, addresses)
         self.assertIn(addr2, addresses)
+
+    def test_register_port_updates_last_announcement(self):
+        with patch('time.time', return_value=1000.0):
+            spectator = SpectatorEntry()
+
+        initial_time = spectator.last_announcement_at
+        self.assertEqual(initial_time, 1000.0)
+
+        with patch('time.time', return_value=2000.0):
+            spectator.register_port(PortType.VIDEO, ("192.168.1.100", 5000))
+
+        self.assertEqual(spectator.last_announcement_at, 2000.0)
+
+        with patch('time.time', return_value=3000.0):
+            spectator.register_port(PortType.CONTROL, ("192.168.1.100", 5001))
+
+        self.assertEqual(spectator.last_announcement_at, 3000.0)
 
 
 class TestSessionSpectator(unittest.TestCase):

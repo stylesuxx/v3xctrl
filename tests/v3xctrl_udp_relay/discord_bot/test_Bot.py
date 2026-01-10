@@ -427,12 +427,15 @@ class TestBot(unittest.TestCase):
             mock_interaction.followup = AsyncMock()
             mock_interaction.user.send = AsyncMock()
 
-            self.mock_store.get.return_value = "existing_session"
+            self.mock_store.get.return_value = ("existing_session", "existing_spectator")
 
             await self.bot.handle_requestid_command(mock_interaction)
 
             mock_interaction.user.send.assert_called_once_with(
                 "Your session ID is: `existing_session`\n"
+                "Your spectator ID is: `existing_spectator`\n\n"
+                "**Session ID**: Use this to stream or view as the main participant.\n"
+                "**Spectator ID**: Share this with others to let them watch your session without giving them control.\n\n"
                 "**CAUTION**: Do not share your session ID with untrusted users!"
             )
             mock_interaction.followup.send.assert_called_once_with("Session ID sent via DM!", ephemeral=True)
@@ -453,13 +456,16 @@ class TestBot(unittest.TestCase):
             mock_interaction.user.send = AsyncMock()
 
             self.mock_store.get.return_value = None
-            self.mock_store.create.return_value = "new_session"
+            self.mock_store.create.return_value = ("new_session", "new_spectator")
 
             await self.bot.handle_requestid_command(mock_interaction)
 
             self.mock_store.create.assert_called_once_with("67890", "NewUser#5678")
             mock_interaction.user.send.assert_called_once_with(
                 "Your session ID is: `new_session`\n"
+                "Your spectator ID is: `new_spectator`\n\n"
+                "**Session ID**: Use this to stream or view as the main participant.\n"
+                "**Spectator ID**: Share this with others to let them watch your session without giving them control.\n\n"
                 "**CAUTION**: Do not share your session ID with untrusted users!"
             )
             mock_interaction.followup.send.assert_called_once_with("Session ID sent via DM!", ephemeral=True)
@@ -509,7 +515,7 @@ class TestBot(unittest.TestCase):
             )
             mock_interaction.user.send = AsyncMock(side_effect=forbidden_exception)
 
-            self.mock_store.get.return_value = "session_id"
+            self.mock_store.get.return_value = ("session_id", "spectator_id")
 
             await self.bot.handle_requestid_command(mock_interaction)
 
