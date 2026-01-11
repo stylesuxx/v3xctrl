@@ -92,7 +92,7 @@ class PacketRelay:
         with self.lock:
             match role:
                 case Role.STREAMER | Role.VIEWER:
-                    # For streamer and viewer, verify the session ID exists
+                    self._remove_spectator_from_all_sessions(addr)
                     if not self.store.exists(sid):
                         logging.info(f"Ignoring announcement for unknown session '{sid}' from {addr}")
                         try:
@@ -150,7 +150,6 @@ class PacketRelay:
             return session.roles
 
     def update_spectator_heartbeat(self, addr: Address) -> None:
-        """Update the last_announcement_at timestamp for a spectator based on address."""
         with self.lock:
             for session in self.sessions.values():
                 for spectator in session.spectators:
@@ -159,6 +158,24 @@ class PacketRelay:
                         spectator.last_announcement_at = time.time()
                         logging.debug(f"Updated heartbeat for spectator at {addr}")
                         return
+
+    def _remove_spectator_from_all_sessions(self, addr: Address) -> None:
+        for sid, session in self.sessions.items():
+            spectator_addresses = session.remove_spectator_by_address(addr)
+            if spectator_addresses:
+                streamer_peers = session.roles.get(Role.STREAMER, {})
+                with self.mapping_lock:
+                    for spectator_addr in spectator_addresses:
+                        for peer in streamer_peers.values():
+                            streamer_addr = peer.addr
+                            if streamer_addr in self.mappings:
+                                targets, ts = self.mappings[streamer_addr]
+                                if isinstance(targets, set) and spectator_addr in targets:
+                                    targets.discard(spectator_addr)
+                                    self.mappings[streamer_addr] = (targets, ts)
+
+                logging.info(f"{sid}: Removed spectator at {addr}")
+                return
 
     def forward_packet(
         self,
