@@ -1,6 +1,6 @@
 from enum import Enum
 import time
-from typing import Dict, Set, List
+from typing import Dict, Set, List, Optional
 
 from v3xctrl_helper import Address
 from v3xctrl_udp_relay.Role import Role
@@ -83,6 +83,19 @@ class Session:
 
         self.addresses.add(addr)
         return spectator.register_port(port_type, addr)
+
+    def remove_spectator_by_address(self, addr: Address) -> Optional[set[Address]]:
+        for i, spectator in enumerate(self.spectators):
+            if addr in spectator.get_addresses():
+                spectator_addresses = spectator.get_addresses().copy()
+
+                for spectator_addr in spectator_addresses:
+                    self.addresses.discard(spectator_addr)
+
+                self.spectators.pop(i)
+                return spectator_addresses
+
+        return None
 
     def is_role_ready(self, role: Role) -> bool:
         for port_type in PortType:
