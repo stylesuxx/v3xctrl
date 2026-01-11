@@ -156,7 +156,6 @@ class PacketRelay:
                     # Check if this address belongs to this spectator's control port
                     if addr in spectator.get_addresses():
                         spectator.last_announcement_at = time.time()
-                        logging.debug(f"Updated heartbeat for spectator at {addr}")
                         return
 
     def _remove_spectator_from_all_sessions(self, addr: Address) -> None:

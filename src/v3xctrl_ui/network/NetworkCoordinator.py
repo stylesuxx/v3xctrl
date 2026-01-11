@@ -163,8 +163,10 @@ class NetworkCoordinator:
             ],
             "states": [
                 (State.CONNECTED, lambda: self.osd.connect_handler()),
+                (State.SPECTATING, lambda: self.osd.connect_handler()),
                 (State.DISCONNECTED, lambda: self.osd.disconnect_handler()),
                 (State.CONNECTED, lambda: update_connected(True)),
+                (State.SPECTATING, lambda: update_connected(True)),
                 (State.DISCONNECTED, lambda: update_connected(False))
             ]
         }

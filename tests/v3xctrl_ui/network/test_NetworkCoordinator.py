@@ -261,21 +261,23 @@ class TestNetworkCoordinator(unittest.TestCase):
         self.assertEqual(messages[0][0], Telemetry)
         self.assertEqual(messages[1][0], Latency)
 
-        # Verify state handlers
+        # Verify state handlers (updated for SPECTATING state)
         states = handlers["states"]
-        self.assertEqual(len(states), 4)
+        self.assertEqual(len(states), 6)
         self.assertEqual(states[0][0], State.CONNECTED)
-        self.assertEqual(states[1][0], State.DISCONNECTED)
-        self.assertEqual(states[2][0], State.CONNECTED)
-        self.assertEqual(states[3][0], State.DISCONNECTED)
+        self.assertEqual(states[1][0], State.SPECTATING)
+        self.assertEqual(states[2][0], State.DISCONNECTED)
+        self.assertEqual(states[3][0], State.CONNECTED)
+        self.assertEqual(states[4][0], State.SPECTATING)
+        self.assertEqual(states[5][0], State.DISCONNECTED)
 
     def test_handlers_update_connected_state(self):
         """Test that handlers update connection state correctly."""
         handlers = self.coordinator._create_handlers()
 
-        # Get the connected and disconnected state handlers
-        connected_handler = handlers["states"][2][1]
-        disconnected_handler = handlers["states"][3][1]
+        # Get the connected and disconnected state handlers (updated indices for SPECTATING state)
+        connected_handler = handlers["states"][3][1]
+        disconnected_handler = handlers["states"][5][1]
 
         # Test connected
         self.assertFalse(self.model.control_connected)
@@ -302,14 +304,16 @@ class TestNetworkCoordinator(unittest.TestCase):
 
         self.assertEqual(self.mock_osd.message_handler.call_count, 2)
 
-        # Test state handlers
+        # Test state handlers (both CONNECTED and SPECTATING call connect_handler)
         connect_handler = handlers["states"][0][1]
-        disconnect_handler = handlers["states"][1][1]
+        spectating_handler = handlers["states"][1][1]
+        disconnect_handler = handlers["states"][2][1]
 
         connect_handler()
+        spectating_handler()
         disconnect_handler()
 
-        self.mock_osd.connect_handler.assert_called_once()
+        self.assertEqual(self.mock_osd.connect_handler.call_count, 2)  # Called by both CONNECTED and SPECTATING
         self.mock_osd.disconnect_handler.assert_called_once()
 
     def test_connection_change_callback(self):
@@ -319,9 +323,9 @@ class TestNetworkCoordinator(unittest.TestCase):
 
         handlers = self.coordinator._create_handlers()
 
-        # Get connection state handlers
-        connected_handler = handlers["states"][2][1]
-        disconnected_handler = handlers["states"][3][1]
+        # Get connection state handlers (updated indices for SPECTATING state)
+        connected_handler = handlers["states"][3][1]
+        disconnected_handler = handlers["states"][5][1]
 
         # Test connected
         connected_handler()
@@ -338,7 +342,7 @@ class TestNetworkCoordinator(unittest.TestCase):
         self.coordinator.on_connection_change = None
 
         handlers = self.coordinator._create_handlers()
-        connected_handler = handlers["states"][2][1]
+        connected_handler = handlers["states"][3][1]  # Updated index for SPECTATING state
 
         # Should not raise an error
         connected_handler()
