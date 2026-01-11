@@ -116,6 +116,9 @@ class Server(Base):
             elif self.state == State.WAITING:
                 pass
 
+            elif self.state == State.SPECTATING:
+                self.heartbeat()
+
             elif self.state == State.CONNECTED:
                 self.check_timeout()
                 self.heartbeat()

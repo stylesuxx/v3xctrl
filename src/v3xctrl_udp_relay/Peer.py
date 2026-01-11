@@ -38,11 +38,6 @@ class Peer:
 
         try:
             peer_info_map = self._register_all(sockets, role)
-
-            # For spectators, keep the control socket and send heartbeats
-            if role == "spectator":
-                control_sock = sockets.pop("control")
-                self._start_heartbeat(control_sock, role)
         finally:
             # Close all sockets except the one kept for heartbeat
             self._finalize_sockets(sockets)
@@ -180,32 +175,3 @@ class Peer:
             sock.close()
 
         self._finalized_event.set()
-
-    def _start_heartbeat(self, control_socket: socket.socket, role: str) -> None:
-        """Start background thread to send heartbeats on control port for spectators."""
-        self._heartbeat_socket = control_socket
-
-        self._heartbeat_thread = threading.Thread(
-            target=self._send_heartbeat_loop,
-            args=(role,),
-            daemon=True,
-            name="SpectatorHeartbeatThread"
-        )
-        self._heartbeat_thread.start()
-        logging.info("Started heartbeat for spectator")
-
-    def _send_heartbeat_loop(self, role: str) -> None:
-        """Background loop that sends heartbeats on the control port."""
-        while not self._abort_event.is_set():
-            try:
-                heartbeat = Heartbeat()
-                self._heartbeat_socket.sendto(
-                    heartbeat.to_bytes(),
-                    (self.server, self.port)
-                )
-                logging.debug(f"Sent heartbeat to {self.server}:{self.port}")
-            except Exception as e:
-                logging.debug(f"Error sending heartbeat: {e}")
-
-            # Sleep for announcement interval
-            self._abort_event.wait(self.ANNOUNCE_INTERVAL)

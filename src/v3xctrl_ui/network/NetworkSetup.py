@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from v3xctrl_control import Server
+from v3xctrl_control.State import State
 from v3xctrl_helper.exceptions import PeerRegistrationError
 from v3xctrl_udp_relay.Peer import Peer
 
@@ -188,7 +189,8 @@ class NetworkSetup:
     def setup_server(
         self,
         message_handlers: List[Tuple[Any, Callable]],
-        state_handlers: List[Tuple[Any, Callable]]
+        state_handlers: List[Tuple[Any, Callable]],
+        spectator_mode: bool = False
     ) -> ServerSetupResult:
         """
         Setup control server.
@@ -196,6 +198,7 @@ class NetworkSetup:
         Args:
             message_handlers: List of (message_type, callback) tuples
             state_handlers: List of (state, callback) tuples
+            spectator_mode: Whether to start in spectating state
 
         Returns:
             ServerSetupResult with server instance or error message
@@ -209,6 +212,10 @@ class NetworkSetup:
 
             for state, callback in state_handlers:
                 server.on(state, callback)
+
+            # Set initial state based on spectator mode
+            if spectator_mode:
+                server.state = State.SPECTATING
 
             server.start()
             logging.info("Control server started")
@@ -251,12 +258,14 @@ class NetworkSetup:
 
         # Step 1: Setup relay if configured
         video_address = None
+        spectator_mode = False
         if relay_config:
+            spectator_mode = relay_config.get('spectator_mode', False)
             relay_result = self.setup_relay(
                 relay_config['server'],
                 relay_config['port'],
                 relay_config['id'],
-                relay_config.get('spectator_mode', False)
+                spectator_mode
             )
             result.relay_result = relay_result
 
@@ -271,7 +280,8 @@ class NetworkSetup:
         # Step 3: Setup control server
         server_result = self.setup_server(
             handlers.get("messages", []),
-            handlers.get("states", [])
+            handlers.get("states", []),
+            spectator_mode
         )
         result.server_result = server_result
 
