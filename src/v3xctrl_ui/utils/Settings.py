@@ -19,8 +19,8 @@ class Settings:
               "throttle_down": pygame.K_s,
               "steering_left": pygame.K_a,
               "steering_right": pygame.K_d,
-              "trim_increase": pygame.K_LEFT,
-              "trim_decrease": pygame.K_RIGHT,
+              "trim_increase": pygame.K_RIGHT,
+              "trim_decrease": pygame.K_LEFT,
               "rec_toggle": pygame.K_r,
           }
         },
