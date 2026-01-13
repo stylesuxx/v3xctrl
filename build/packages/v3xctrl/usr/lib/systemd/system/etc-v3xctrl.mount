@@ -1,0 +1,16 @@
+[Unit]
+Description=Bind mount /data/config to /etc/v3xctrl for persistent configuration
+DefaultDependencies=no
+Conflicts=umount.target
+Before=local-fs.target umount.target
+After=data.mount
+RequiresMountsFor=/data/config
+
+[Mount]
+What=/data/config
+Where=/etc/v3xctrl
+Type=none
+Options=bind
+
+[Install]
+WantedBy=local-fs.target
