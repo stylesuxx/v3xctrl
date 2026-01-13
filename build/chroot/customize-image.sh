@@ -44,17 +44,15 @@ echo -e "${USER}\n${USER}" | smbpasswd -a -s "${USER}"
 smbpasswd -e "${USER}"
 systemctl disable smbd
 
-# This needs to be done here since we need the user reference in order to change
-# file permissions.
-echo "[CHROOT] Copying config files to persistent storage..."
-if [ -f "/etc/$NAME/config.json" ]; then
-  cp "/etc/$NAME/config.json" "/data/config/config.json"
-  chown $USER:$USER "/data/config/config.json"
-  chmod a+r "/data/config/config.json"
-fi
-
+# Set permissions on /data directories
 echo '[CHROOT] Fixing file permissions'
 chown -R $USER:$USER '/data/recordings'
+chown -R $USER:$USER '/data/config'
+chmod 640 /data/config/config.json
+
+# Enable the bind mount so /etc/v3xctrl points to /data/config
+echo '[CHROOT] Enabling etc-v3xctrl.mount for persistent config...'
+systemctl enable etc-v3xctrl.mount
 
 echo '[CHROOT] Enabling firstboot service...'
 systemctl enable v3xctrl-firstboot.service
