@@ -41,6 +41,7 @@ case "$ACTION" in
             jq --arg val "$VALUE" "$SETTING = \$val" "$CONFIG_PATH" | sponge "$CONFIG_PATH"
         fi
 
+        sync
         v3xctrl-write-env
         ;;
     *)
