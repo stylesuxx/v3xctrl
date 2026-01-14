@@ -7,7 +7,7 @@
   "properties": {
     "server": {
       "propertyOrder": 10,
-      "title": "Server",
+      "title": "Viewer",
       "type": "object",
       "options": {
         "collapsed": false
@@ -21,6 +21,12 @@
             "direct",
             "relay"
           ],
+          "options": {
+            "enum_titles": [
+              "Direct",
+              "Relay server"
+            ]
+          },
           "required": true,
           "default": "direct",
           "description": "Choose how the client connects to the server."
@@ -30,21 +36,21 @@
           "type": "string",
           "title": "Host",
           "default": "192.168.0.1",
-          "description": "Used in direct mode only"
+          "description": "The host the viewer is running on. IP address is preferred but domain name is fine. (Used in direct mode only)"
         },
         "relaySessionId": {
           "propertyOrder": 30,
           "type": "string",
           "title": "Relay Session ID",
           "default": "test123",
-          "description": "Needs to be the same on client and server"
+          "description": "Needs to be the same on client and server. (Only relevant for relay mode)"
         },
         "relayServer": {
           "propertyOrder": 40,
           "type": "string",
-          "title": "UDP Relay Server",
+          "title": "Relay Server",
           "default": "relay.v3xctrl.com:8888",
-          "description": "Used in relay mode only (only change if you are using your own relay server)"
+          "description": "Change if you are using your own relay server."
         }
       }
     },
@@ -72,17 +78,17 @@
         },
         "framerate": {
           "propertyOrder": 30,
-          "title": " FPS",
+          "title": "FPS",
           "description": "This setting must also be adjusted in the viewer to match",
           "type": "integer",
           "default": 30
         },
         "iFramePeriod": {
           "propertyOrder": 40,
-          "title": " I-frame interval",
+          "title": "I-frame interval",
           "type": "integer",
           "default": 15,
-          "description": "I-frame interval controls how often a complete reference frame is encoded in the video stream. Smaller intervals provide better quality for fast-moving scenes and faster recovery from packet loss, but use more bandwidth since complete frames are larger than the delta frames sent between them."
+          "description": "Controls how often a complete reference frame is encoded in the video stream. Smaller intervals provide better quality for fast-moving scenes and faster recovery from packet loss, but use more bandwidth since complete frames are larger than the delta frames sent between them."
         },
         "bitrate": {
           "propertyOrder": 50,
@@ -125,7 +131,7 @@
               "30.0 Mbps",
               "20.0 Mbps (realistic maximum for 4G, CAT-3)",
               "10.0 Mbps",
-              "5.0 Mbps (theoretical maximum fro 4G, Cat-1)",
+              "5.0 Mbps (theoretical maximum for 4G, Cat-1)",
               "4.8 Mbps",
               "4.6 Mbps",
               "4.4 Mbps",
@@ -150,15 +156,15 @@
             ]
           },
           "default": 1800000,
-          "description": "Stay below values your modem supports (based on category). If latency increases, reduce this value."
+          "description": "Stay below values your modem supports (based on category). If latency increases, reduce this value. The default is very conservative, you can most likely increase this value."
         },
         "qp": {
           "propertyOrder": 60,
           "type": "object",
-          "description": "Controls quality-bitrate tradeoff. Lower QP = higher quality/larger files, higher QP = lower quality/smaller files.",
           "title": "Quantization Parameter (QP)",
+          "description": "Controls quality-bitrate tradeoff. Lower QP = higher quality/larger files, higher QP = lower quality/smaller files.",
           "options": {
-            "collapsed": false
+            "collapsed": true
           },
           "properties": {
             "min": {
@@ -167,7 +173,7 @@
               "default": 20,
               "minimum": 0,
               "maximum": 51,
-              "title": "Min QP",
+              "title": "Minimum QP",
               "description": "Highest quality allowed. Lower = better quality, larger frames."
             },
             "max": {
@@ -176,44 +182,44 @@
               "default": 51,
               "minimum": 0,
               "maximum": 51,
-              "title": "Max QP",
+              "title": "Maximum QP",
               "description": "Lowest quality allowed. Higher = more compression, smaller frames."
             }
           }
         },
-        "maxIframeBytes": {
-          "propertyOrder": 70,
-          "title": "Maximum I-frame bytes",
-          "type": "integer",
-          "default": 25600,
-          "description": "Used for auto adjusting I-frames to a specific size"
-        },
         "enableIframeAdjust": {
-          "propertyOrder": 80,
+          "propertyOrder": 70,
           "title": "Enable auto adjusting I Frame size",
           "type": "boolean",
           "format": "checkbox",
           "default": false,
           "description": "This automatically adjusts the compression quality (QP) of I-frames to keep them under a specified size limit. It trades off I-frame quality to prevent bandwidth spikes when reference frames are transmitted."
         },
+        "maxIframeBytes": {
+          "propertyOrder": 80,
+          "title": "Maximum I-frame bytes",
+          "type": "integer",
+          "default": 25600,
+          "description": "Used for auto adjusting I-frames to a specific size. (Only relevant if 'auto adjusting' is enabled)"
+        },
         "record": {
           "propertyOrder": 90,
-          "title": "Record",
+          "title": "Auto Record",
           "type": "boolean",
           "format": "checkbox",
           "default": false,
-          "description": "Record video stream locally on the device (requires high-quality SD card)"
+          "description": "Automatically record video stream locally on the device. (Requires high-quality SD card)"
         },
         "recordPath": {
           "propertyOrder": 100,
           "title": "Record Path",
           "type": "string",
           "default": "/data/recordings",
-          "description": "Path to store recordings"
+          "description": "Path where to store recordings. (Make sure directory exists if you change this value)"
         },
         "testSource": {
           "propertyOrder": 110,
-          "title": "Test image",
+          "title": "Transmit test image",
           "type": "boolean",
           "format": "checkbox",
           "default": true,
@@ -230,7 +236,7 @@
             "enableHdr": {
               "propertyOrder": 10,
               "title": "Enable HDR",
-              "description": "Only supported on PiCam V3 - highly recommended (more FOV and better handling of dark/bright transitions)",
+              "description": "Only takes effect on cameras with HDR support (PiCam V3, ArduCam IMX708,...) - highly recommended when outside (improves handling of dark/bright transitions)",
               "type": "boolean",
               "format": "checkbox",
               "default": false
@@ -247,11 +253,11 @@
               "options": {
                 "enum_titles": [
                   "Disabled",
-                  "Continous"
+                  "Continuous"
                 ]
               },
               "default": 2,
-              "description": "Only supported on PiCam V3 - if auto focus is disabled, lens position will be applied"
+              "description": "Only takes effect on cameras with focus module (like PiCam V3, some ArduCam models) - if auto focus is disabled, lens position will be applied"
             },
             "lensPosition": {
               "propertyOrder": 30,
@@ -376,7 +382,7 @@
               "default": 1.0,
               "minimum": 0.0,
               "maximum": 2.0,
-              "description": "Change saturtion in camera (not supported by all cameras)"
+              "description": "Change saturation in camera (not supported by all cameras)"
             },
             "sharpness": {
               "propertyOrder": 120,
@@ -405,20 +411,22 @@
           "type": "object",
           "title": "Ports",
           "options": {
-            "collapsed": false
+            "collapsed": true
           },
           "properties": {
             "video": {
               "propertyOrder": 10,
               "type": "integer",
               "default": 6666,
-              "description": "Port for outgoing video stream"
+              "title" : "Video port",
+              "description": "Port for outgoing video stream. (Only change this if you know what you are doing and you need this port for something else for whatever reason)"
             },
             "control": {
               "propertyOrder": 20,
               "type": "integer",
               "default": 6668,
-              "description": "The port for the bi-directional control channel"
+              "title" : "Control port",
+              "description": "The port for the bi-directional control channel. (Only change this if you know what you are doing and you need this port for something else for whatever reason)"
             }
           }
         },
@@ -437,6 +445,13 @@
                 "client",
                 "ap"
               ],
+              "options": {
+                "enum_titles": [
+                  "Client",
+                  "Access Point"
+                ]
+              },
+              "title": "WiFI",
               "description": "In client mode, the device connects to an existing network. In access-point mode, the device creates its own WiFi network."
             },
             "routing": {
@@ -446,7 +461,13 @@
                 "wlan",
                 "rndis"
               ],
-              "description": "Which interface routes internet traffic. Use wlan during initial setup, then switch to rndis once tested."
+              "options": {
+                "enum_titles": [
+                  "WiFi",
+                  "LTE/4G"
+                ]
+              },
+              "description": "Which interface routes internet traffic. Use 'WiFi' during initial setup, then switch to 'LTE/4G' once tested."
             }
           }
         },
@@ -478,7 +499,8 @@
                   "McuZone Cat1 EU",
                   "McuZone Cat1 EA"
                 ]
-              }
+              },
+              "description": "Set this to your actual modem, this is used for band limiting and feature detection. Some features will not work properly if this is not set correctly."
             },
             "path": {
               "propertyOrder": 20,
@@ -517,7 +539,8 @@
                 ]
               },
               "uniqueItems": true,
-              "default": []
+              "default": [],
+              "description": "If above checkbox is set, the bands will be limited to the selected once. (Be aware that not all modems respect this limitation)"
             }
           }
         }
@@ -536,14 +559,16 @@
           "propertyOrder": 10,
           "type": "boolean",
           "format": "checkbox",
-          "default": true,
+          "default": false,
+          "title": "Video stream",
           "description": "Automatically start video stream after boot"
         },
         "control": {
           "propertyOrder": 20,
           "type": "boolean",
           "format": "checkbox",
-          "default": true,
+          "default": false,
+          "title": "Control channel",
           "description": "Automatically start control channel after boot"
         }
       }
@@ -568,25 +593,29 @@
               "propertyOrder": 10,
               "type": "integer",
               "default": 1000,
-              "description": "Minimum pulse width"
+              "title": "Minimum PWM pulse width",
+              "description": "Check your ESC manual to find out more about range options"
             },
             "max": {
               "propertyOrder": 20,
               "type": "integer",
               "default": 2000,
-              "description": "Maximum pulse width"
+              "title": "Maximum PWM pulse width",
+              "description": "Check your ESC manual to find out more about range options"
             },
             "failsafe": {
               "propertyOrder": 30,
               "type": "integer",
               "default": 1000,
-              "description": "Pulse width when failsafe"
+              "title": "Failsafe",
+              "description": "Pulse width when failsafe state is detected. (No control messages for a certain time)"
             },
             "idle": {
               "propertyOrder": 40,
               "type": "integer",
               "default": 1200,
-              "description": "Pulsewidth for throttle position between forwards and brake/backwards"
+              "title": "Idle PWM pulse width",
+              "description": "Pulse width for throttle position between forwards and brake/backwards"
             },
             "scaleForward": {
               "propertyOrder": 50,
@@ -594,7 +623,8 @@
               "default": 100,
               "minimum": 1,
               "maximum": 100,
-              "description": "Scales the throttle forward range as a percentage of the maximum possible value"
+              "title": "Scale forward",
+              "description": "Scales the throttle forward range as a percentage of the maximum possible value."
             },
             "scaleReverse": {
               "propertyOrder": 60,
@@ -602,18 +632,21 @@
               "default": 100,
               "minimum": 1,
               "maximum": 100,
-              "description": "Scales the throttle reverse range as a percentage of the maximum possible value"
+              "title": "Scale reverse",
+              "description": "Scales the throttle reverse range as a percentage of the maximum possible value. (You would use this to for example limit your reverse speed to only half the possible speed)"
             },
             "minForward": {
               "propertyOrder": 70,
               "type": "integer",
               "default": 0,
+              "title": "Dead-zone forward",
               "description": "Compensate for 'dead-zone' of ESC. Set this to a value just slightly before the motor starts spinning forward."
             },
             "minReverse": {
               "propertyOrder": 80,
               "type": "integer",
               "default": 0,
+              "title": "Dead-zone reverse",
               "description": "Compensate for 'dead-zone' of ESC. Set this to a value just slightly before the motor starts spinning reverse."
             }
           }
@@ -630,25 +663,29 @@
               "propertyOrder": 10,
               "type": "integer",
               "default": 1000,
-              "description": "Minimum pulse width"
+              "title": "Minimum PWM pulse width",
+              "description": "Check your servo manual to find out more about range options"
             },
             "max": {
               "propertyOrder": 20,
               "type": "integer",
               "default": 2000,
-              "description": "Maximum pulse width"
+              "title": "Maximum PWM pulse width",
+              "description": "Check your servo manual to find out more about range options"
             },
             "failsafe": {
               "propertyOrder": 30,
               "type": "integer",
               "default": 1500,
-              "description": "Pulse width when failsafe"
+              "title": "Failsafe",
+              "description": "Pulse width when failsafe state is detected. (No control messages for a certain time)"
             },
             "trim": {
               "propertyOrder": 40,
               "type": "integer",
               "default": 0,
-              "description": "Pulse width for trim"
+              "title": "Trim",
+              "description": "Use this to adjust servo position so it is centered without steering input."
             },
             "scale": {
               "propertyOrder": 50,
@@ -657,7 +694,7 @@
               "default": 100,
               "minimum": 1,
               "maximum": 100,
-              "description": "Scales the steering output range as a percentage of the maximum possible value"
+              "description": "Scales the steering output range as a percentage of the maximum possible value. Example: setting to '50' will limit the output to 50% of the range and thus PWM pulse width."
             },
             "invert": {
               "propertyOrder": 60,
@@ -665,7 +702,7 @@
               "type": "boolean",
               "format": "checkbox",
               "default": false,
-              "description": "Invert steering direction"
+              "description": "Check if the servo does move in opposite directions when pressing [a] and [d] in the viewer."
             }
           }
         },
@@ -673,12 +710,14 @@
           "propertyOrder": 30,
           "type": "integer",
           "default": 150,
-          "description": "After this many ms without a control packet, failsafe is triggered"
+          "title": "Failsafe",
+          "description": "After this many ms without a control packet, failsafe is triggered and failsafe values are sent to the peripherals."
         },
         "pwm": {
           "propertyOrder": 40,
           "type": "object",
           "title": "PWM Channel Mapping",
+          "description": "Make sure that each channel is used only once.",
           "options": {
             "collapsed": false
           },
@@ -749,7 +788,7 @@
               "type": "string",
               "required": true,
               "default": "0x40",
-              "description": "I2C address of the INA sensor"
+              "description": "I2C address of the INA sensor. (Only change if you know that your address differs from defaults)"
             },
             "minVoltage": {
               "title": "Minimum Voltage",
@@ -812,7 +851,7 @@
         "reverseShellUrl": {
           "title": "Reverse Shell URL",
           "description": "CAUTION: Only set a reverse shell URL if you know what you are doing, this is for remote debugging only.",
-          "pro pertyOrder": 20,
+          "propertyOrder": 20,
           "type": "string",
           "default": null
         }
