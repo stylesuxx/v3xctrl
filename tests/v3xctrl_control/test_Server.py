@@ -379,6 +379,58 @@ class TestServer(unittest.TestCase):
         # Should have made fewer than max retries due to early exit
         self.assertLess(self.mock_base_send.call_count, self.server.COMMAND_MAX_RETRIES)
 
+    def test_send_command_thread_pool_shutdown_calls_callback(self):
+        """Test that callback is called with False when thread pool is shut down."""
+        command = Command("ping", {})
+        callback = MagicMock()
+
+        # Shutdown the thread pool first
+        self.server.thread_pool.shutdown(wait=True)
+
+        # Now try to send a command - should call callback with False
+        self.server.send_command(command, callback=callback)
+
+        callback.assert_called_once_with(False)
+
+        # Verify command was cleaned up from pending
+        with self.server.pending_lock:
+            self.assertNotIn(command.get_command_id(), self.server.pending_commands)
+
+    def test_send_command_exception_in_retry_task_calls_callback(self):
+        """Test that callback is called with False when retry task raises exception."""
+        command = Command("ping", {})
+        callback = MagicMock()
+
+        # Make send() raise an exception
+        self.server.send = MagicMock(side_effect=Exception("Network error"))
+
+        self.server.COMMAND_DELAY = 0.01
+        self.server.send_command(command, callback=callback, max_retries=1)
+
+        # Wait for retry task to complete
+        time.sleep(0.05)
+
+        # Callback should be called with False due to exception
+        callback.assert_called_once_with(False)
+
+        # Verify command was cleaned up from pending
+        with self.server.pending_lock:
+            self.assertNotIn(command.get_command_id(), self.server.pending_commands)
+
+    def test_send_command_thread_pool_shutdown_without_callback(self):
+        """Test that no error occurs when thread pool is shut down and no callback."""
+        command = Command("ping", {})
+
+        # Shutdown the thread pool first
+        self.server.thread_pool.shutdown(wait=True)
+
+        # Should not raise an error even without callback
+        self.server.send_command(command, callback=None)
+
+        # Verify command was cleaned up from pending
+        with self.server.pending_lock:
+            self.assertNotIn(command.get_command_id(), self.server.pending_commands)
+
 
 if __name__ == "__main__":
     unittest.main()

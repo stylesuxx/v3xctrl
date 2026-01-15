@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
+import logging
 import threading
 import time
 from typing import Dict, Callable, Optional
@@ -69,28 +70,42 @@ class Server(Base):
         command_id = command.get_command_id()
 
         def retry_task() -> None:
-            for attempt in range(max_retries):
+            try:
+                for attempt in range(max_retries):
+                    with self.pending_lock:
+                        if command_id not in self.pending_commands:
+                            return
+
+                    self.send(command)
+
+                    # Do not sleep after last attempt
+                    if attempt < max_retries - 1:
+                        time.sleep(self.COMMAND_DELAY)
+
+                # Timeout - no ACK received
                 with self.pending_lock:
-                    if command_id not in self.pending_commands:
-                        return
-
-                self.send(command)
-
-                # Do not sleep after last attempt
-                if attempt < max_retries - 1:
-                    time.sleep(self.COMMAND_DELAY)
-
-            # Timeout - no ACK received
-            with self.pending_lock:
-                if command_id in self.pending_commands:
-                    del self.pending_commands[command_id]
-                    if callback:
-                        callback(False)
+                    if command_id in self.pending_commands:
+                        del self.pending_commands[command_id]
+                        if callback:
+                            callback(False)
+            except Exception as e:
+                logging.error(f"Error in command retry task: {e}")
+                with self.pending_lock:
+                    self.pending_commands.pop(command_id, None)
+                if callback:
+                    callback(False)
 
         with self.pending_lock:
             self.pending_commands[command_id] = callback
 
-        self.thread_pool.submit(retry_task)
+        try:
+            self.thread_pool.submit(retry_task)
+        except RuntimeError:
+            # Thread pool is shut down, clean up and notify failure
+            with self.pending_lock:
+                self.pending_commands.pop(command_id, None)
+            if callback:
+                callback(False)
 
     def run(self) -> None:
         self.started.set()

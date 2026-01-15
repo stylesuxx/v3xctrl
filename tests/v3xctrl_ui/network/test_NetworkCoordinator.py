@@ -141,16 +141,31 @@ class TestNetworkCoordinator(unittest.TestCase):
         mock_server.send_command.assert_called_once_with(command, callback)
 
     def test_send_command_no_server(self):
-        """Test sending command when server is None."""
+        """Test sending command when server is None calls callback with False."""
         mock_nm = MagicMock()
         mock_nm.server = None
+        mock_nm.relay_spectator_mode = False
         self.coordinator.network_manager = mock_nm
 
         command = Command({"action": "test"})
         callback = MagicMock()
 
-        # Should log error but not raise
         self.coordinator.send_command(command, callback)
+
+        # Callback should be invoked with False to indicate failure
+        callback.assert_called_once_with(False)
+
+    def test_send_command_no_network_manager(self):
+        """Test sending command when network_manager is None calls callback with False."""
+        self.coordinator.network_manager = None
+
+        command = Command({"action": "test"})
+        callback = MagicMock()
+
+        self.coordinator.send_command(command, callback)
+
+        # Callback should be invoked with False to indicate failure
+        callback.assert_called_once_with(False)
 
     def test_send_latency_check(self):
         """Test sending latency check."""
@@ -373,6 +388,47 @@ class TestNetworkCoordinator(unittest.TestCase):
         self.coordinator.network_manager = None
 
         result = self.coordinator.is_spectator_mode()
+
+        self.assertFalse(result)
+
+    def test_wait_for_server_ready_success(self):
+        """Test waiting for server to be ready."""
+        mock_nm = MagicMock()
+        mock_nm.server = MagicMock()
+        mock_nm.server_error = None
+        self.coordinator.network_manager = mock_nm
+
+        result = self.coordinator._wait_for_server_ready(timeout=1.0)
+
+        self.assertTrue(result)
+
+    def test_wait_for_server_ready_with_error(self):
+        """Test waiting for server returns True even with error (error is still a ready state)."""
+        mock_nm = MagicMock()
+        mock_nm.server = None
+        mock_nm.server_error = "Some error"
+        self.coordinator.network_manager = mock_nm
+
+        result = self.coordinator._wait_for_server_ready(timeout=1.0)
+
+        self.assertTrue(result)
+
+    def test_wait_for_server_ready_timeout(self):
+        """Test timeout when server never becomes ready."""
+        mock_nm = MagicMock()
+        mock_nm.server = None
+        mock_nm.server_error = None
+        self.coordinator.network_manager = mock_nm
+
+        result = self.coordinator._wait_for_server_ready(timeout=0.2)
+
+        self.assertFalse(result)
+
+    def test_wait_for_server_ready_no_manager(self):
+        """Test timeout when no network manager."""
+        self.coordinator.network_manager = None
+
+        result = self.coordinator._wait_for_server_ready(timeout=0.2)
 
         self.assertFalse(result)
 
