@@ -50,9 +50,5 @@ chown -R $USER:$USER '/data/recordings'
 chown -R $USER:$USER '/data/config'
 chmod 640 /data/config/config.json
 
-# Enable the bind mount so /etc/v3xctrl points to /data/config
-echo '[CHROOT] Enabling etc-v3xctrl.mount for persistent config...'
-systemctl enable etc-v3xctrl.mount
-
 echo '[CHROOT] Enabling firstboot service...'
 systemctl enable v3xctrl-firstboot.service
