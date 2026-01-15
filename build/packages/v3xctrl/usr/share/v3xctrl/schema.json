@@ -36,7 +36,7 @@
           "type": "string",
           "title": "Host",
           "default": "192.168.0.1",
-          "description": "The host the viewer is running on. IP address is preferred but domain name is fine. (Used in direct mode only)"
+          "description": "Target host running the viewer. IP address is preferred but domain name is fine. (Used in direct mode only)"
         },
         "relaySessionId": {
           "propertyOrder": 30,
@@ -215,7 +215,7 @@
           "title": "Record Path",
           "type": "string",
           "default": "/data/recordings",
-          "description": "Path where to store recordings. (Make sure directory exists if you change this value)"
+          "description": "Recordings storage path. (Make sure directory exists if you change this value)"
         },
         "testSource": {
           "propertyOrder": 110,
@@ -426,7 +426,7 @@
               "type": "integer",
               "default": 6668,
               "title" : "Control port",
-              "description": "The port for the bi-directional control channel. (Only change this if you know what you are doing and you need this port for something else for whatever reason)"
+              "description": "Port for the bi-directional control channel. (Only change this if you know what you are doing and you need this port for something else for whatever reason)"
             }
           }
         },
@@ -540,7 +540,7 @@
               },
               "uniqueItems": true,
               "default": [],
-              "description": "If above checkbox is set, the bands will be limited to the selected once. (Be aware that not all modems respect this limitation)"
+              "description": "If above checkbox is set, the bands will be limited to the selected ones. (Be aware that not all modems respect this limitation)"
             }
           }
         }
@@ -613,7 +613,7 @@
             "idle": {
               "propertyOrder": 40,
               "type": "integer",
-              "default": 1200,
+              "default": 1500,
               "title": "Idle PWM pulse width",
               "description": "Pulse width for throttle position between forwards and brake/backwards"
             },
