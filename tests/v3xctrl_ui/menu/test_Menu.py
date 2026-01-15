@@ -828,6 +828,157 @@ class TestMenu(unittest.TestCase):
         for tab in menu.tabs:
             self.assertEqual(tab.view.settings, new_settings)
 
+    def test_on_send_command_stores_pending_result(self, mock_button_class, mock_pygame):
+        """Test that callback stores result for main thread processing."""
+        self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
+            callback=self.mock_callback,
+            callback_quit=self.mock_callback_quit,
+            telemetry_context=self.telemetry_context
+        )
+
+        mock_command = MagicMock()
+        mock_callback = MagicMock()
+
+        menu._on_send_command(mock_command, mock_callback)
+
+        # Get the wrapped callback that was passed to invoke_command
+        args = self.mock_invoke_command.call_args[0]
+        callback_wrapper = args[1]
+
+        # Simulate the callback being called from a background thread
+        callback_wrapper(True)
+
+        # Pending result should be stored
+        self.assertIsNotNone(menu._pending_result)
+        self.assertEqual(menu._pending_result[0], True)
+        self.assertEqual(menu._pending_result[1], mock_callback)
+
+    def test_process_pending_result_no_result(self, mock_button_class, mock_pygame):
+        """Test that _process_pending_result does nothing when no result pending."""
+        self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
+            callback=self.mock_callback,
+            callback_quit=self.mock_callback_quit,
+            telemetry_context=self.telemetry_context
+        )
+
+        # Should not raise when no pending result
+        menu._process_pending_result()
+        self.assertIsNone(menu._pending_result)
+
+    def test_process_pending_result_shows_success(self, mock_button_class, mock_pygame):
+        """Test that _process_pending_result shows success message."""
+        self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
+            callback=self.mock_callback,
+            callback_quit=self.mock_callback_quit,
+            telemetry_context=self.telemetry_context
+        )
+
+        mock_callback = MagicMock()
+        menu._pending_result = (True, mock_callback)
+
+        # First call should set the loading text and start time
+        menu._process_pending_result()
+
+        self.assertEqual(menu.loading_text, "Success!")
+        self.assertIsNotNone(menu._result_start_time)
+        # Callback should not be called yet
+        mock_callback.assert_not_called()
+
+    def test_process_pending_result_shows_failed(self, mock_button_class, mock_pygame):
+        """Test that _process_pending_result shows failed message."""
+        self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
+            callback=self.mock_callback,
+            callback_quit=self.mock_callback_quit,
+            telemetry_context=self.telemetry_context
+        )
+
+        mock_callback = MagicMock()
+        menu._pending_result = (False, mock_callback)
+
+        # First call should set the loading text
+        menu._process_pending_result()
+
+        self.assertEqual(menu.loading_text, "Failed!")
+        self.assertIsNotNone(menu._result_start_time)
+
+    @patch('src.v3xctrl_ui.menu.Menu.time')
+    def test_process_pending_result_completes_after_timeout(self, mock_time, mock_button_class, mock_pygame):
+        """Test that _process_pending_result completes after display time."""
+        self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
+            callback=self.mock_callback,
+            callback_quit=self.mock_callback_quit,
+            telemetry_context=self.telemetry_context
+        )
+
+        mock_callback = MagicMock()
+        menu._pending_result = (True, mock_callback)
+        menu._result_start_time = 0  # Already started
+        menu.is_loading = True
+
+        # Simulate enough time has passed
+        mock_time.time.return_value = menu.loading_result_time + 1
+
+        menu._process_pending_result()
+
+        # Should have cleaned up and called callback
+        self.assertIsNone(menu._pending_result)
+        self.assertIsNone(menu._result_start_time)
+        self.assertFalse(menu.is_loading)
+        mock_callback.assert_called_once_with(True)
+
+    def test_pending_result_initialized_to_none(self, mock_button_class, mock_pygame):
+        """Test that pending result is initialized to None."""
+        self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
+            callback=self.mock_callback,
+            callback_quit=self.mock_callback_quit,
+            telemetry_context=self.telemetry_context
+        )
+
+        self.assertIsNone(menu._pending_result)
+        self.assertIsNone(menu._result_start_time)
+
 
 if __name__ == "__main__":
     unittest.main()

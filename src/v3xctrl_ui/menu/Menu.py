@@ -121,6 +121,10 @@ class Menu:
         self.loading_text = "Applying settings!"
         self.loading_result_time = 1.2
 
+        # Pending command result for thread-safe UI updates
+        self._pending_result: tuple[bool, Callable[[bool], None]] | None = None
+        self._result_start_time: float | None = None
+
         self.spinner_angle = 0
         self.spinner_radius = 30
         self.spinner_thickness = 4
@@ -163,6 +167,7 @@ class Menu:
             tab.view.draw(surface)
 
         if self.is_loading:
+            self._process_pending_result()
             self._draw_loading_overlay(surface)
             self.spinner_angle = (self.spinner_angle + 5) % 360
 
@@ -290,23 +295,39 @@ class Menu:
 
     def _on_send_command(self, command: Command, callback: Callable[[bool], None]) -> None:
         # Wrap callback so we can handle loading screen updates
+        # This callback is called from a background thread, so we store the
+        # result and process it in the main thread's draw loop
         def callback_wrapper(state: bool = False) -> None:
-            # Show success or Fail message
-            result = t("Success!")
-            if not state:
-                result = t("Failed!")
+            # Store the result to be processed in the main thread
+            self._pending_result = (state, callback)
 
-            self.show_loading(result)
-            countdown = 0
-            while countdown < self.loading_result_time:
-                countdown += 0.1
-                time.sleep(0.1)
-
-            self.is_loading = False
-            callback(state)
-
-        self.show_loading("Sending command...")
+        self.show_loading(t("Sending command..."))
         self.invoke_command(command, callback_wrapper)
+
+    def _process_pending_result(self) -> None:
+        """Process pending command result in the main thread."""
+        if self._pending_result is None:
+            return
+
+        # First time seeing the result - show success/fail message
+        if self._result_start_time is None:
+            state, _ = self._pending_result
+            result = t("Success!") if state else t("Failed!")
+            self.loading_text = result
+            self._result_start_time = time.time()
+            return
+
+        # Wait for the result display time
+        elapsed = time.time() - self._result_start_time
+        if elapsed < self.loading_result_time:
+            return
+
+        # Done waiting - clean up and call the original callback
+        state, callback = self._pending_result
+        self._pending_result = None
+        self._result_start_time = None
+        self.is_loading = False
+        callback(state)
 
     def _on_active_toggle(self, active: bool) -> None:
         if active:

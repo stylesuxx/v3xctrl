@@ -53,6 +53,9 @@ class NetworkCoordinator:
                 self.create_network_manager(settings)
                 self.setup_ports()
 
+                # Wait for server to be ready (setup_ports runs async)
+                self._wait_for_server_ready()
+
             except Exception as e:
                 logging.error(f"Network manager restart failed: {e}")
 
@@ -60,6 +63,27 @@ class NetworkCoordinator:
                 self.restart_complete.set()
 
         return threading.Thread(target=_restart)
+
+    def _wait_for_server_ready(self, timeout: float = 10.0) -> bool:
+        """Wait for the server to be ready after port setup.
+
+        Args:
+            timeout: Maximum time to wait in seconds
+
+        Returns:
+            True if server is ready, False if timeout occurred
+        """
+        start = time.monotonic()
+        while time.monotonic() - start < timeout:
+            if (
+                self.network_manager and
+                (self.network_manager.server or self.network_manager.server_error)
+            ):
+                return True
+            time.sleep(0.1)
+
+        logging.warning("Timeout waiting for server to be ready")
+        return False
 
     def send_control_message(self, throttle: float, steering: float) -> None:
         # Skip sending control messages in spectator mode
@@ -97,6 +121,7 @@ class NetworkCoordinator:
             self.network_manager.server.send_command(command, callback)
         else:
             logging.error(f"Server is not set, cannot send command: {command}")
+            callback(False)
 
     def send_latency_check(self) -> None:
         # Skip latency checks in spectator mode
