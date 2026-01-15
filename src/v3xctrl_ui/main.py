@@ -35,7 +35,7 @@ log_format = "%(asctime)s - %(levelname)s - %(message)s"
 handlers = [logging.StreamHandler()]
 
 if args.log_to_file:
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     log_filename = f"{timestamp}.txt"
     handlers.append(logging.FileHandler(log_filename))
 
