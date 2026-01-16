@@ -1,10 +1,13 @@
 import argparse
 from datetime import datetime
+import faulthandler
 import logging
 
 from v3xctrl_ui.core.AppState import AppState
 from v3xctrl_ui.utils.MemoryTracker import MemoryTracker
 from v3xctrl_ui.utils.Settings import Settings
+
+faulthandler.enable()
 
 parser = argparse.ArgumentParser(description="RC Streamer")
 parser.add_argument(

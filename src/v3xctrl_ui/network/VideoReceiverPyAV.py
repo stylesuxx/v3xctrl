@@ -70,103 +70,97 @@ class VideoReceiverPyAV(VideoReceiver):
         """Setup SDP file."""
         self._write_sdp()
 
+    def _close_container(self) -> None:
+        with self.container_lock:
+            if self.container is not None:
+                try:
+                    self.container.close()
+                except Exception as e:
+                    logging.warning(f"Container close failed: {e}")
+                finally:
+                    self.container = None
+
     def _main_loop(self) -> None:
         while self.running.is_set():
+            container = None
             while self.running.is_set():
                 try:
-                    with self.container_lock:
-                        start_time = time.monotonic()
-                        self.container = av.open(
-                            str(self.sdp_path),
-                            format="sdp",
-                            options=self.container_options,
-                            timeout=5
-                        )
-                        open_time = time.monotonic() - start_time
-                        logging.info(f"Container opened in {open_time:.3f}s")
+                    start_time = time.monotonic()
+                    container = av.open(
+                        str(self.sdp_path),
+                        format="sdp",
+                        options=self.container_options,
+                        timeout=5
+                    )
+                    open_time = time.monotonic() - start_time
+                    logging.info(f"Container opened in {open_time:.3f}s")
 
+                    with self.container_lock:
+                        self.container = container
                         self.latest_packet_pts = None
                         self.consecutive_old_frames = 0
+
                     break
+
                 except av.AVError as e:
                     logging.warning(f"av.open() failed: {e}")
                     time.sleep(0.5)
 
-            if self.container:
-                stream = self.container.streams.video[0]
-                stream.codec_context.thread_type = "AUTO"
-                stream.codec_context.options = self.codec_options
+            if container is None:
+                continue
 
-                try:
-                    while self.running.is_set():
-                        if self.container:
-                            for packet in self.container.demux(stream):
-                                if not self.running.is_set():
-                                    break
+            stream = container.streams.video[0]
+            stream.codec_context.thread_type = "AUTO"
+            stream.codec_context.options = self.codec_options
 
-                                self.packet_count += 1
+            try:
+                for packet in container.demux(stream):
+                    if not self.running.is_set():
+                        break
 
-                                if self._should_drop_packet_by_age(packet, stream):
-                                    self.dropped_old_frames += 1
-                                    self.consecutive_old_frames += 1
+                    self.packet_count += 1
 
-                                    # Force restart if too many consecutive old frames
-                                    if self.consecutive_old_frames > self.max_consecutive_old_frames:
-                                        logging.warning(
-                                            f"Dropped {self.consecutive_old_frames} consecutive old frames, "
-                                            f"forcing container restart"
-                                        )
-                                        raise av.AVError(-1, "Stale packet stream detected", "")
+                    if self._should_drop_packet_by_age(packet, stream):
+                        self.dropped_old_frames += 1
+                        self.consecutive_old_frames += 1
 
-                                    continue
+                        # Force restart if too many consecutive old frames
+                        if self.consecutive_old_frames > self.max_consecutive_old_frames:
+                            logging.warning(
+                                f"Dropped {self.consecutive_old_frames} consecutive old frames, "
+                                f"forcing container restart"
+                            )
+                            raise av.AVError(-1, "Stale packet stream detected", "")
 
-                                self.consecutive_old_frames = 0
+                        continue
 
-                                decoded_frames = list(packet.decode())
-                                if decoded_frames:
-                                    for frame in decoded_frames:
-                                        rgb_frame = frame.to_ndarray(format="rgb24")
-                                        self._update_frame(rgb_frame)
-                                else:
-                                    self.dropped_empty_frames += 1
+                    self.consecutive_old_frames = 0
 
-                                self._log_stats_if_needed()
+                    decoded_frames = list(packet.decode())
+                    if decoded_frames:
+                        for frame in decoded_frames:
+                            rgb_frame = frame.to_ndarray(format="rgb24")
+                            self._update_frame(rgb_frame)
+                    else:
+                        self.dropped_empty_frames += 1
 
-                except av.AVError as e:
-                    logging.warning(f"Stream decode error: {e}")
-                    try:
-                        with self.container_lock:
-                            if self.container:
-                                self.container.close()
-                                self.container = None
-                    except Exception as e:
-                        logging.warning(f"Container close failed during error recovery: {e}")
+                    self._log_stats_if_needed()
 
-                except Exception as e:
-                    logging.exception(f"Unexpected error in receiver thread: {e}")
+            except av.AVError as e:
+                logging.warning(f"Stream decode error: {e}")
 
-                finally:
-                    with self.frame_lock:
-                        self.frame = None
+            except Exception as e:
+                logging.exception(f"Unexpected error in receiver thread: {e}")
 
-                    try:
-                        with self.container_lock:
-                            if self.container:
-                                self.container.close()
-                                self.container = None
-                    except Exception as e:
-                        logging.warning(f"Container close failed: {e}")
+            finally:
+                with self.frame_lock:
+                    self.frame = None
+
+                self._close_container()
 
     def _cleanup(self) -> None:
         """Cleanup container and SDP file."""
-        with self.container_lock:
-            if self.container:
-                try:
-                    self.container.close()
-                except Exception as e:
-                    logging.warning(f"Container close failed during cleanup: {e}")
-                finally:
-                    self.container = None
+        self._close_container()
 
         try:
             if self.sdp_path.exists():
