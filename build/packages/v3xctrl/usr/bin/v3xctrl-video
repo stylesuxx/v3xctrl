@@ -44,10 +44,10 @@ ARGS=(
   --height "$video_height"
   --framerate "$video_framerate"
   --bitrate "$video_bitrate"
-  --i-frame-period "$video_iFramePeriod"
+  --i-frame-period "$video_iFrame_period"
   --qp-minimum "$video_qp_min"
   --qp-maximum "$video_qp_max"
-  --max-i-frame-bytes "$video_maxIframeBytes"
+  --max-i-frame-bytes "$video_iFrame_maxBytes"
   --af-mode "$video_camera_afMode"
   --lens-position "$video_camera_lensPosition"
   --analogue-gain-mode "$video_camera_analogueGainMode"
@@ -62,15 +62,15 @@ ARGS=(
   --log "${extras_logLevel}"
 )
 
-if [ -n "$video_recordPath" ] && [ "$video_recordPath" != "null" ]; then
-  ARGS+=(--recording-dir "$video_recordPath")
+if [ -n "$video_record_path" ] && [ "$video_record_path" != "null" ]; then
+  ARGS+=(--recording-dir "$video_record_path")
 
   if [ "$video_record" = "true" ]; then
     ARGS+=(--autostart-recording)
   fi
 fi
 
-if [ "$video_enableIframeAdjust" = "true" ]; then
+if [ "$video_iFrame_autoAdjust" = "true" ]; then
   ARGS+=(--enable-i-frame-adjust)
 fi
 

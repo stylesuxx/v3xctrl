@@ -6,12 +6,12 @@ ENV_PATH="/run/v3xctrl.env"
 source "${ENV_PATH}"
 
 # Stop video & control service
-if [ "$autostart_video" = "true" ]; then
+if [ "$video_autostart" = "true" ]; then
   echo "Stopping video service..."
   systemctl stop v3xctrl-video
 fi
 
-if [ "$autostart_control" = "true" ]; then
+if [ "$control_autostart" = "true" ]; then
   echo "Stopping control service..."
   systemctl stop v3xctrl-control
 fi
@@ -46,12 +46,12 @@ if [ "$server_mode" = "relay" ]; then
 fi
 
 # Start video & control service
-if [ "$autostart_video" = "true" ]; then
+if [ "$video_autostart" = "true" ]; then
   echo "Starting video service..."
   systemctl start v3xctrl-video
 fi
 
-if [ "$autostart_control" = "true" ]; then
+if [ "$control_autostart" = "true" ]; then
   echo "Starting control service..."
   systemctl start v3xctrl-control
 fi
