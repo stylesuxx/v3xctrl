@@ -4,6 +4,9 @@ set -e
 if command -v systemctl >/dev/null 2>&1; then
   # Reset services only on removal
   if [ "$1" = "remove" ]; then
+    # Stop and unmount before disabling
+    systemctl stop etc-v3xctrl.mount || true
+
     systemctl disable \
       etc-v3xctrl.mount \
       v3xctrl-config-server.service \

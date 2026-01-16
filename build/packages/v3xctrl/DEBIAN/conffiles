@@ -1,4 +1,4 @@
-/etc/v3xctrl/config.json
+/data/config/config.json
 /etc/profile.d/00_v3xctrl-motd.sh
 /etc/sudoers.d/010_v3xctrl
 /etc/sysctl.d/99-disable-ipv6.conf

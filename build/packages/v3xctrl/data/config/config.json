@@ -1,52 +1,26 @@
 {
-  "autostart": {
-    "control": false,
-    "video": false
-  },
   "server": {
     "mode": "direct",
     "host": "192.168.1.100",
     "relayServer": "relay.v3xctrl.com:8888",
     "relaySessionId": "test123"
   },
-  "network": {
-    "ports": {
-      "control": 6668,
-      "video": 6666
-    },
-    "wifi": {
-      "mode": "client",
-      "routing": "wlan"
-    },
-    "modem": {
-      "model": "generic",
-      "path": "/dev/eigencomm-at",
-      "limitBands": false,
-      "allowedBands": [
-        1,
-        3,
-        5,
-        7,
-        8,
-        20,
-        28,
-        34,
-        38,
-        39,
-        40,
-        41
-      ]
-    }
-  },
   "video": {
-    "bitrate": 1800000,
-    "framerate": 30,
-    "iFramePeriod": 15,
+    "autostart": false,
+    "testSource": true,
     "height": 720,
     "width": 1280,
-    "record": false,
-    "recordPath": "/data/recordings",
-    "testSource": true,
+    "framerate": 30,
+    "bitrate": 1800000,
+    "record": {
+      "autostart": false,
+      "path": "/data/recordings"
+    },
+    "iFrame": {
+      "period": 15,
+      "autoAdjust": false,
+      "maxBytes": 25600
+    },
     "camera": {
       "enableHdr": false,
       "afMode": 0,
@@ -61,14 +35,13 @@
       "saturation": 1.0,
       "sharpness": 0.0
     },
-    "maxIframeBytes": 25600,
-    "enableIframeAdjust": false,
     "qp": {
       "min": 20,
       "max": 51
     }
   },
-  "controls": {
+  "control": {
+    "autostart": true,
     "failsafeTimeout": 150,
     "throttle": {
       "min": 1000,
@@ -91,14 +64,30 @@
     "pwm": {
       "throttle": 0,
       "steering": 1
+    },
+    "telemetry": {
+      "battery": {
+        "i2cAddress": "0x40",
+        "minVoltage": 3.5,
+        "warnVoltage": 3.7,
+        "maxVoltage": 4.2
+      }
     }
   },
-  "telemetry": {
-    "battery": {
-      "i2cAddress": "0x40",
-      "minVoltage": 3.5,
-      "warnVoltage": 3.7,
-      "maxVoltage": 4.2
+  "network": {
+    "ports": {
+      "control": 6668,
+      "video": 6666
+    },
+    "wifi": {
+      "mode": "client",
+      "routing": "wlan"
+    },
+    "modem": {
+      "model": "generic",
+      "path": "/dev/eigencomm-at",
+      "limitBands": false,
+      "allowedBands": []
     }
   },
   "extras": {

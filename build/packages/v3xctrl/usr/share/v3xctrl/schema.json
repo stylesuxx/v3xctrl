@@ -8,9 +8,10 @@
     "server": {
       "propertyOrder": 10,
       "title": "Viewer",
+      "description": "Connection settings for viewer and relay.<i>Changes in this section require the 'v3xctrl-service-manager' service to be restarted!</i>",
       "type": "object",
       "options": {
-        "collapsed": false
+        "collapsed": true
       },
       "properties": {
         "mode": {
@@ -35,7 +36,7 @@
           "propertyOrder": 20,
           "type": "string",
           "title": "Host",
-          "default": "192.168.0.1",
+          "default": "192.168.1.100",
           "description": "Target host running the viewer. IP address is preferred but domain name is fine. (Used in direct mode only)"
         },
         "relaySessionId": {
@@ -55,43 +56,53 @@
       }
     },
     "video": {
-      "propertyOrder": 30,
+      "propertyOrder": 20,
       "type": "object",
       "title": "Video",
+      "description": "Video, camera and Encoder settings.<i>Changes in this section require the 'v3xctrl-video' service to be restarted!</i>",
       "options": {
         "collapsed": true
       },
       "properties": {
-        "width": {
+        "autostart": {
           "propertyOrder": 10,
+          "type": "boolean",
+          "format": "checkbox",
+          "default": false,
+          "title": "Autostart",
+          "description": "Automatically start video stream after boot"
+        },
+        "testSource": {
+          "propertyOrder": 20,
+          "title": "Transmit test image",
+          "type": "boolean",
+          "format": "checkbox",
+          "default": true,
+          "description": "Use test image instead of camera - great for debugging, disable once you made sure video transmission is working"
+        },
+        "width": {
+          "propertyOrder": 30,
           "title": "Width",
           "description": "This setting must also be adjusted in the viewer to match",
           "type": "integer",
           "default": 1280
         },
         "height": {
-          "propertyOrder": 20,
+          "propertyOrder": 40,
           "title": "Height",
           "description": "This setting must also be adjusted in the viewer to match",
           "type": "integer",
           "default": 720
         },
         "framerate": {
-          "propertyOrder": 30,
+          "propertyOrder": 50,
           "title": "FPS",
           "description": "This setting must also be adjusted in the viewer to match",
           "type": "integer",
           "default": 30
         },
-        "iFramePeriod": {
-          "propertyOrder": 40,
-          "title": "I-frame interval",
-          "type": "integer",
-          "default": 15,
-          "description": "Controls how often a complete reference frame is encoded in the video stream. Smaller intervals provide better quality for fast-moving scenes and faster recovery from packet loss, but use more bandwidth since complete frames are larger than the delta frames sent between them."
-        },
         "bitrate": {
-          "propertyOrder": 50,
+          "propertyOrder": 60,
           "title": "Bitrate",
           "required": true,
           "type": "integer",
@@ -158,8 +169,67 @@
           "default": 1800000,
           "description": "Stay below values your modem supports (based on category). If latency increases, reduce this value. The default is very conservative, you can most likely increase this value."
         },
+        "record": {
+          "propertyOrder": 70,
+          "type": "object",
+          "title": "Recording",
+          "description": "Local recording settings",
+          "options": {
+            "collapsed": true
+          },
+          "properties": {
+            "autostart": {
+              "propertyOrder": 10,
+              "title": "Autostart",
+              "type": "boolean",
+              "format": "checkbox",
+              "default": false,
+              "description": "Automatically record video stream locally on the device. (Requires high-quality SD card)"
+            },
+            "path": {
+              "propertyOrder": 20,
+              "title": "Record Path",
+              "type": "string",
+              "default": "/data/recordings",
+              "description": "Recordings storage path. (Make sure directory exists if you change this value)"
+            }
+          }
+        },
+        "iFrame": {
+          "propertyOrder": 80,
+          "type": "object",
+          "title": "I-Frame settings",
+          "description": "Controls for I-Frames (reference frames)",
+          "options": {
+            "collapsed": true
+          },
+          "properties": {
+            "period": {
+              "propertyOrder": 10,
+              "title": "I-frame interval",
+              "type": "integer",
+              "default": 15,
+              "description": "Controls how often a complete reference frame is encoded in the video stream. Smaller intervals provide better quality for fast-moving scenes and faster recovery from packet loss, but use more bandwidth since complete frames are larger than the delta frames sent between them."
+            },
+            "autoAdjust": {
+              "propertyOrder": 20,
+              "title": "Enable auto adjusting I Frame size",
+              "type": "boolean",
+              "format": "checkbox",
+              "default": false,
+              "description": "This automatically adjusts the compression quality (QP) of I-frames to keep them under a specified size limit. It trades off I-frame quality to prevent bandwidth spikes when reference frames are transmitted."
+            },
+            "maxBytes": {
+              "propertyOrder": 30,
+              "title": "Maximum I-frame bytes",
+              "type": "integer",
+              "default": 25600,
+              "description": "Used for auto adjusting I-frames to a specific size. (Only relevant if 'auto adjusting' is enabled)"
+            }
+          }
+        },
         "qp": {
-          "propertyOrder": 60,
+          "propertyOrder": 90,
           "type": "object",
           "title": "Quantization Parameter (QP)",
           "description": "Controls quality-bitrate tradeoff. Lower QP = higher quality/larger files, higher QP = lower quality/smaller files.",
@@ -187,50 +257,12 @@
             }
           }
         },
-        "enableIframeAdjust": {
-          "propertyOrder": 70,
-          "title": "Enable auto adjusting I Frame size",
-          "type": "boolean",
-          "format": "checkbox",
-          "default": false,
-          "description": "This automatically adjusts the compression quality (QP) of I-frames to keep them under a specified size limit. It trades off I-frame quality to prevent bandwidth spikes when reference frames are transmitted."
-        },
-        "maxIframeBytes": {
-          "propertyOrder": 80,
-          "title": "Maximum I-frame bytes",
-          "type": "integer",
-          "default": 25600,
-          "description": "Used for auto adjusting I-frames to a specific size. (Only relevant if 'auto adjusting' is enabled)"
-        },
-        "record": {
-          "propertyOrder": 90,
-          "title": "Auto Record",
-          "type": "boolean",
-          "format": "checkbox",
-          "default": false,
-          "description": "Automatically record video stream locally on the device. (Requires high-quality SD card)"
-        },
-        "recordPath": {
-          "propertyOrder": 100,
-          "title": "Record Path",
-          "type": "string",
-          "default": "/data/recordings",
-          "description": "Recordings storage path. (Make sure directory exists if you change this value)"
-        },
-        "testSource": {
-          "propertyOrder": 110,
-          "title": "Transmit test image",
-          "type": "boolean",
-          "format": "checkbox",
-          "default": true,
-          "description": "Use test image instead of camera - great for debugging, disable once you made sure video transmission is working"
-        },
         "camera": {
-          "propertyOrder": 120,
+          "propertyOrder": 100,
           "type": "object",
           "title": "Camera Settings",
           "options": {
-            "collapsed": false
+            "collapsed": true
           },
           "properties": {
             "enableHdr": {
@@ -256,7 +288,7 @@
                   "Continuous"
                 ]
               },
-              "default": 2,
+              "default": 0,
               "description": "Only takes effect on cameras with focus module (like PiCam V3, some ArduCam models) - if auto focus is disabled, lens position will be applied"
             },
             "lensPosition": {
@@ -281,7 +313,7 @@
                   "Manual"
                 ]
               },
-              "default": 1,
+              "default": 0,
               "description": "Control how the sensor gain is adjusted. Automatic mode adjusts gain based on lighting conditions; manual mode uses the fixed value below."
             },
             "analogueGain": {
@@ -398,10 +430,265 @@
         }
       }
     },
+    "control": {
+      "propertyOrder": 30,
+      "type": "object",
+      "title": "Controls",
+      "description": "Steering, throttle and PWM settings.<i>Changes in this section require the 'v3xctrl-control' service to be restarted!</i>",
+      "options": {
+        "collapsed": true
+      },
+      "properties": {
+        "autostart": {
+          "propertyOrder": 10,
+          "type": "boolean",
+          "format": "checkbox",
+          "default": true,
+          "title": "Autostart",
+          "description": "Automatically start control service after boot"
+        },
+        "failsafeTimeout": {
+          "propertyOrder": 20,
+          "type": "integer",
+          "default": 150,
+          "title": "Failsafe",
+          "description": "After this many ms without a control packet, failsafe is triggered and failsafe values are sent to the peripherals."
+        },
+        "throttle": {
+          "propertyOrder": 30,
+          "type": "object",
+          "title": "Throttle",
+          "options": {
+            "collapsed": true
+          },
+          "properties": {
+            "min": {
+              "propertyOrder": 10,
+              "type": "integer",
+              "default": 1000,
+              "title": "Minimum PWM pulse width",
+              "description": "Check your ESC manual to find out more about range options"
+            },
+            "max": {
+              "propertyOrder": 20,
+              "type": "integer",
+              "default": 2000,
+              "title": "Maximum PWM pulse width",
+              "description": "Check your ESC manual to find out more about range options"
+            },
+            "failsafe": {
+              "propertyOrder": 30,
+              "type": "integer",
+              "default": 1500,
+              "title": "Failsafe",
+              "description": "Pulse width when failsafe state is detected. (No control messages for a certain time)"
+            },
+            "idle": {
+              "propertyOrder": 40,
+              "type": "integer",
+              "default": 1500,
+              "title": "Idle PWM pulse width",
+              "description": "Pulse width for throttle position between forwards and brake/backwards"
+            },
+            "scaleForward": {
+              "propertyOrder": 50,
+              "type": "integer",
+              "default": 100,
+              "minimum": 1,
+              "maximum": 100,
+              "title": "Scale forward",
+              "description": "Scales the throttle forward range as a percentage of the maximum possible value."
+            },
+            "scaleReverse": {
+              "propertyOrder": 60,
+              "type": "integer",
+              "default": 100,
+              "minimum": 1,
+              "maximum": 100,
+              "title": "Scale reverse",
+              "description": "Scales the throttle reverse range as a percentage of the maximum possible value. (You would use this to for example limit your reverse speed to only half the possible speed)"
+            },
+            "minForward": {
+              "propertyOrder": 70,
+              "type": "integer",
+              "default": 0,
+              "title": "Dead-zone forward",
+              "description": "Compensate for 'dead-zone' of ESC. Set this to a value just slightly before the motor starts spinning forward."
+            },
+            "minReverse": {
+              "propertyOrder": 80,
+              "type": "integer",
+              "default": 0,
+              "title": "Dead-zone reverse",
+              "description": "Compensate for 'dead-zone' of ESC. Set this to a value just slightly before the motor starts spinning reverse."
+            }
+          }
+        },
+        "steering": {
+          "propertyOrder": 40,
+          "type": "object",
+          "title": "Steering",
+          "options": {
+            "collapsed": true
+          },
+          "properties": {
+            "min": {
+              "propertyOrder": 10,
+              "type": "integer",
+              "default": 1000,
+              "title": "Minimum PWM pulse width",
+              "description": "Check your servo manual to find out more about range options"
+            },
+            "max": {
+              "propertyOrder": 20,
+              "type": "integer",
+              "default": 2000,
+              "title": "Maximum PWM pulse width",
+              "description": "Check your servo manual to find out more about range options"
+            },
+            "failsafe": {
+              "propertyOrder": 30,
+              "type": "integer",
+              "default": 1500,
+              "title": "Failsafe",
+              "description": "Pulse width when failsafe state is detected. (No control messages for a certain time)"
+            },
+            "trim": {
+              "propertyOrder": 40,
+              "type": "integer",
+              "default": 0,
+              "title": "Trim",
+              "description": "Use this to adjust servo position so it is centered without steering input."
+            },
+            "scale": {
+              "propertyOrder": 50,
+              "title": "Scale (in percent)",
+              "type": "integer",
+              "default": 100,
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Scales the steering output range as a percentage of the maximum possible value. Example: setting to '50' will limit the output to 50% of the range and thus PWM pulse width."
+            },
+            "invert": {
+              "propertyOrder": 60,
+              "title": "Invert steering",
+              "type": "boolean",
+              "format": "checkbox",
+              "default": false,
+              "description": "Check if the servo does move in opposite directions when pressing [a] and [d] in the viewer."
+            }
+          }
+        },
+        "pwm": {
+          "propertyOrder": 50,
+          "type": "object",
+          "title": "PWM Channel Mapping",
+          "description": "Make sure that each channel is used only once.",
+          "options": {
+            "collapsed": true
+          },
+          "properties": {
+            "throttle": {
+              "title": "Throttle PWM channel",
+              "propertyOrder": 10,
+              "type": "integer",
+              "default": 0,
+              "required": true,
+              "description": "PWM channel for ESC",
+              "enum": [
+                0,
+                1
+              ],
+              "options": {
+                "enum_titles": [
+                  "0 (Pin 18)",
+                  "1 (Pin 13)"
+                ]
+              }
+            },
+            "steering": {
+              "propertyOrder": 20,
+              "title": "Steering PWM channel",
+              "type": "integer",
+              "default": 1,
+              "required": true,
+              "description": "PWM channel for Servo",
+              "enum": [
+                0,
+                1
+              ],
+              "options": {
+                "enum_titles": [
+                  "0 (Pin 18)",
+                  "1 (Pin 13)"
+                ]
+              }
+            }
+          }
+        },
+        "telemetry": {
+          "propertyOrder": 60,
+          "type": "object",
+          "title": "Telemetry",
+          "options": {
+            "collapsed": true,
+            "disable_edit_json": true,
+            "disable_properties": true
+          },
+          "properties": {
+            "battery": {
+              "title": "Battery",
+              "propertyOrder": 10,
+              "type": "object",
+              "options": {
+                "collapsed": true,
+                "disable_edit_json": true,
+                "disable_properties": true
+              },
+              "properties": {
+                "i2cAddress": {
+                  "title": "I2C Address",
+                  "propertyOrder": 10,
+                  "type": "string",
+                  "required": true,
+                  "default": "0x40",
+                  "description": "I2C address of the INA sensor. (Only change if you know that your address differs from defaults)"
+                },
+                "minVoltage": {
+                  "title": "Minimum Voltage",
+                  "propertyOrder": 20,
+                  "type": "number",
+                  "required": true,
+                  "default": 3.5,
+                  "description": "Minimum voltage per cell (used to calculate battery percentage)"
+                },
+                "maxVoltage": {
+                  "title": "Maximum Voltage",
+                  "propertyOrder": 30,
+                  "type": "number",
+                  "required": true,
+                  "default": 4.2,
+                  "description": "Maximum voltage per cell (used to calculate battery percentage)"
+                },
+                "warnVoltage": {
+                  "title": "Warning Voltage",
+                  "propertyOrder": 40,
+                  "type": "number",
+                  "required": true,
+                  "default": 3.7,
+                  "description": "Level at which low voltage warnings should be triggered"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "network": {
       "propertyOrder": 40,
       "type": "object",
       "title": "Network",
+      "description": "WiFi and Modem settings.<br/> <i>Changes in this section require the streamer to be restarted!</i>",
       "options": {
         "collapsed": true
       },
@@ -435,7 +722,7 @@
           "type": "object",
           "title": "WiFi",
           "options": {
-            "collapsed": false
+            "collapsed": true
           },
           "properties": {
             "mode": {
@@ -476,7 +763,7 @@
           "type": "object",
           "title": "Modem",
           "options": {
-            "collapsed": false
+            "collapsed": true
           },
           "properties": {
             "model": {
@@ -546,282 +833,11 @@
         }
       }
     },
-    "autostart": {
+    "extras": {
       "propertyOrder": 50,
       "type": "object",
-      "title": "Autostart",
-      "options": {
-        "collapsed": true
-      },
-      "description": "Before enabling autostart, make sure that the services work fine when started manually.",
-      "properties": {
-        "video": {
-          "propertyOrder": 10,
-          "type": "boolean",
-          "format": "checkbox",
-          "default": false,
-          "title": "Video stream",
-          "description": "Automatically start video stream after boot"
-        },
-        "control": {
-          "propertyOrder": 20,
-          "type": "boolean",
-          "format": "checkbox",
-          "default": false,
-          "title": "Control channel",
-          "description": "Automatically start control channel after boot"
-        }
-      }
-    },
-    "controls": {
-      "propertyOrder": 60,
-      "type": "object",
-      "title": "Controls",
-      "options": {
-        "collapsed": true
-      },
-      "properties": {
-        "throttle": {
-          "propertyOrder": 10,
-          "type": "object",
-          "title": "Throttle",
-          "options": {
-            "collapsed": false
-          },
-          "properties": {
-            "min": {
-              "propertyOrder": 10,
-              "type": "integer",
-              "default": 1000,
-              "title": "Minimum PWM pulse width",
-              "description": "Check your ESC manual to find out more about range options"
-            },
-            "max": {
-              "propertyOrder": 20,
-              "type": "integer",
-              "default": 2000,
-              "title": "Maximum PWM pulse width",
-              "description": "Check your ESC manual to find out more about range options"
-            },
-            "failsafe": {
-              "propertyOrder": 30,
-              "type": "integer",
-              "default": 1000,
-              "title": "Failsafe",
-              "description": "Pulse width when failsafe state is detected. (No control messages for a certain time)"
-            },
-            "idle": {
-              "propertyOrder": 40,
-              "type": "integer",
-              "default": 1500,
-              "title": "Idle PWM pulse width",
-              "description": "Pulse width for throttle position between forwards and brake/backwards"
-            },
-            "scaleForward": {
-              "propertyOrder": 50,
-              "type": "integer",
-              "default": 100,
-              "minimum": 1,
-              "maximum": 100,
-              "title": "Scale forward",
-              "description": "Scales the throttle forward range as a percentage of the maximum possible value."
-            },
-            "scaleReverse": {
-              "propertyOrder": 60,
-              "type": "integer",
-              "default": 100,
-              "minimum": 1,
-              "maximum": 100,
-              "title": "Scale reverse",
-              "description": "Scales the throttle reverse range as a percentage of the maximum possible value. (You would use this to for example limit your reverse speed to only half the possible speed)"
-            },
-            "minForward": {
-              "propertyOrder": 70,
-              "type": "integer",
-              "default": 0,
-              "title": "Dead-zone forward",
-              "description": "Compensate for 'dead-zone' of ESC. Set this to a value just slightly before the motor starts spinning forward."
-            },
-            "minReverse": {
-              "propertyOrder": 80,
-              "type": "integer",
-              "default": 0,
-              "title": "Dead-zone reverse",
-              "description": "Compensate for 'dead-zone' of ESC. Set this to a value just slightly before the motor starts spinning reverse."
-            }
-          }
-        },
-        "steering": {
-          "propertyOrder": 20,
-          "type": "object",
-          "title": "Steering",
-          "options": {
-            "collapsed": false
-          },
-          "properties": {
-            "min": {
-              "propertyOrder": 10,
-              "type": "integer",
-              "default": 1000,
-              "title": "Minimum PWM pulse width",
-              "description": "Check your servo manual to find out more about range options"
-            },
-            "max": {
-              "propertyOrder": 20,
-              "type": "integer",
-              "default": 2000,
-              "title": "Maximum PWM pulse width",
-              "description": "Check your servo manual to find out more about range options"
-            },
-            "failsafe": {
-              "propertyOrder": 30,
-              "type": "integer",
-              "default": 1500,
-              "title": "Failsafe",
-              "description": "Pulse width when failsafe state is detected. (No control messages for a certain time)"
-            },
-            "trim": {
-              "propertyOrder": 40,
-              "type": "integer",
-              "default": 0,
-              "title": "Trim",
-              "description": "Use this to adjust servo position so it is centered without steering input."
-            },
-            "scale": {
-              "propertyOrder": 50,
-              "title": "Scale (in percent)",
-              "type": "integer",
-              "default": 100,
-              "minimum": 1,
-              "maximum": 100,
-              "description": "Scales the steering output range as a percentage of the maximum possible value. Example: setting to '50' will limit the output to 50% of the range and thus PWM pulse width."
-            },
-            "invert": {
-              "propertyOrder": 60,
-              "title": "Invert steering",
-              "type": "boolean",
-              "format": "checkbox",
-              "default": false,
-              "description": "Check if the servo does move in opposite directions when pressing [a] and [d] in the viewer."
-            }
-          }
-        },
-        "failsafeTimeout": {
-          "propertyOrder": 30,
-          "type": "integer",
-          "default": 150,
-          "title": "Failsafe",
-          "description": "After this many ms without a control packet, failsafe is triggered and failsafe values are sent to the peripherals."
-        },
-        "pwm": {
-          "propertyOrder": 40,
-          "type": "object",
-          "title": "PWM Channel Mapping",
-          "description": "Make sure that each channel is used only once.",
-          "options": {
-            "collapsed": false
-          },
-          "properties": {
-            "throttle": {
-              "title": "Throttle PWM channel",
-              "propertyOrder": 10,
-              "type": "integer",
-              "default": 0,
-              "required": true,
-              "description": "PWM channel for ESC",
-              "enum": [
-                0,
-                1
-              ],
-              "options": {
-                "enum_titles": [
-                  "0 (Pin 18)",
-                  "1 (Pin 13)"
-                ]
-              }
-            },
-            "steering": {
-              "propertyOrder": 20,
-              "title": "Steering PWM channel",
-              "type": "integer",
-              "default": 1,
-              "required": true,
-              "description": "PWM channel for Servo",
-              "enum": [
-                0,
-                1
-              ],
-              "options": {
-                "enum_titles": [
-                  "0 (Pin 18)",
-                  "1 (Pin 13)"
-                ]
-              }
-            }
-          }
-        }
-      }
-    },
-    "telemetry": {
-      "propertyOrder": 70,
-      "type": "object",
-      "title": "Telemetry",
-      "options": {
-        "collapsed": true,
-        "disable_edit_json": true,
-        "disable_properties": true
-      },
-      "properties": {
-        "battery": {
-          "title": "Battery",
-          "propertyOrder": 10,
-          "type": "object",
-          "options": {
-            "collapsed": false,
-            "disable_edit_json": true,
-            "disable_properties": true
-          },
-          "properties": {
-            "i2cAddress": {
-              "title": "I2C Address",
-              "propertyOrder": 10,
-              "type": "string",
-              "required": true,
-              "default": "0x40",
-              "description": "I2C address of the INA sensor. (Only change if you know that your address differs from defaults)"
-            },
-            "minVoltage": {
-              "title": "Minimum Voltage",
-              "propertyOrder": 20,
-              "type": "number",
-              "required": true,
-              "default": 3.5,
-              "description": "Minimum voltage per cell (used to calculate battery percentage)"
-            },
-            "maxVoltage": {
-              "title": "Maximum Voltage",
-              "propertyOrder": 30,
-              "type": "number",
-              "required": true,
-              "default": 4.2,
-              "description": "Maximum voltage per cell (used to calculate battery percentage)"
-            },
-            "warnVoltage": {
-              "title": "Warning Voltage",
-              "propertyOrder": 40,
-              "type": "number",
-              "required": true,
-              "default": 3.7,
-              "description": "Level at which low voltage warnings should be triggered"
-            }
-          }
-        }
-      }
-    },
-    "extras": {
-      "propertyOrder": 80,
-      "type": "object",
       "title": "Extras",
+      "description": "Miscelanious settings that to not fit any other category.<br /><i>Changes in this section require the streamer to be restarted!</i>",
       "options": {
         "collapsed": true
       },
@@ -851,7 +867,7 @@
         "reverseShellUrl": {
           "title": "Reverse Shell URL",
           "description": "CAUTION: Only set a reverse shell URL if you know what you are doing, this is for remote debugging only.",
-          "propertyOrder": 20,
+          "propertyOrder": 30,
           "type": "string",
           "default": null
         }
