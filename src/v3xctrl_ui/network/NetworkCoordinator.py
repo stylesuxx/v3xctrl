@@ -1,8 +1,9 @@
 """Network coordination for handling message routing and network lifecycle."""
 import logging
+import queue
 import threading
 import time
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, Tuple
 
 from v3xctrl_control import State
 from v3xctrl_control.message import Command, Control, Latency, Telemetry
@@ -24,6 +25,12 @@ class NetworkCoordinator:
         self.network_manager: Optional[NetworkController] = None
         self.restart_complete = threading.Event()
         self.on_connection_change: Optional[Callable[[bool], None]] = None
+
+        # Queue for deferring callbacks to the main thread.
+        # Network callbacks (e.g. command ACKs) are invoked from background threads,
+        # but UI operations like font rendering are not thread-safe. This queue
+        # collects callbacks to be processed on the main thread.
+        self._callback_queue: queue.Queue[Tuple[Callable, tuple]] = queue.Queue()
 
     def create_network_manager(
         self,
@@ -103,6 +110,19 @@ class NetworkCoordinator:
                 "throttle": throttle,
             }))
 
+    def process_callbacks(self) -> None:
+        """Process pending callbacks on the main thread.
+
+        This should be called from the main loop to ensure UI callbacks
+        (which may do font rendering) run on the main thread.
+        """
+        while True:
+            try:
+                callback, args = self._callback_queue.get_nowait()
+                callback(*args)
+            except queue.Empty:
+                break
+
     def send_command(
         self,
         command: Command,
@@ -114,11 +134,15 @@ class NetworkCoordinator:
             self.network_manager.relay_spectator_mode
         ):
             logging.debug(f"Blocked command in spectator mode: {command}")
-            callback(False)
+            self._callback_queue.put((callback, (False,)))
             return
 
         if self.network_manager and self.network_manager.server:
-            self.network_manager.server.send_command(command, callback)
+            # Wrap callback to defer execution to the main thread
+            def deferred_callback(result: bool) -> None:
+                self._callback_queue.put((callback, (result,)))
+
+            self.network_manager.server.send_command(command, deferred_callback)
         else:
             logging.error(f"Server is not set, cannot send command: {command}")
             callback(False)

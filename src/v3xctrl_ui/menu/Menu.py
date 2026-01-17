@@ -3,7 +3,7 @@ import time
 
 import pygame
 from pygame import Surface, event
-from typing import Callable, NamedTuple, Dict
+from typing import Callable, NamedTuple, Dict, Optional
 
 from v3xctrl_control.message import Command
 
@@ -130,6 +130,11 @@ class Menu:
         self.spinner_thickness = 4
         self.spinner_offset = 60
 
+        # Timer-based loading result display (non-blocking)
+        self._loading_hide_time: Optional[float] = None
+        self._loading_callback: Optional[Callable[[bool], None]] = None
+        self._loading_result: bool = False
+
     def handle_event(self, event: event.Event) -> None:
         # Events can be ignored if loading screen is shown
         if self.is_loading:
@@ -165,6 +170,14 @@ class Menu:
         tab = self._get_active_tab()
         if tab:
             tab.view.draw(surface)
+
+        # Check if loading result display time has passed
+        if self._loading_hide_time is not None and time.monotonic() >= self._loading_hide_time:
+            self.is_loading = False
+            self._loading_hide_time = None
+            if self._loading_callback:
+                self._loading_callback(self._loading_result)
+                self._loading_callback = None
 
         if self.is_loading:
             self._process_pending_result()
