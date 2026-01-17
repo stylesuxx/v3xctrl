@@ -9,8 +9,8 @@
       "sessionId": "test123"
     },
     "ports": {
-      "control": 6668,
-      "video": 6666
+      "control": 16386,
+      "video": 16384
     }
   },
   "video": {

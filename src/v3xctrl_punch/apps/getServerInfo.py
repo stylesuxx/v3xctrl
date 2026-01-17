@@ -10,8 +10,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("server", help="Rendezvous server address")
     parser.add_argument("id", help="Session ID (required positional argument)")
     parser.add_argument("--port", default=8888, type=int, help="Rendezvous server port")
-    parser.add_argument("--port-video", default=6666, type=int, help="Local video port")
-    parser.add_argument("--port-control", default=6668, type=int, help="Local control port")
+    parser.add_argument("--port-video", default=16384, type=int, help="Local video port")
+    parser.add_argument("--port-control", default=16386, type=int, help="Local control port")
     parser.add_argument("--log", default="ERROR", help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). (default: ERROR")
 
     return parser.parse_args()

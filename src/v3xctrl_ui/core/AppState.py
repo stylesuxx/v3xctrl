@@ -34,8 +34,8 @@ class AppState:
         self.size = (video.get("width"), video.get("height"))
 
         ports = settings.get("ports", {})
-        self.video_port = ports.get("video", 6666)
-        self.control_port = ports.get("control", 6668)
+        self.video_port = ports.get("video", 16384)
+        self.control_port = ports.get("control", 16386)
 
         self.title = settings.get("settings").get("title")
 
