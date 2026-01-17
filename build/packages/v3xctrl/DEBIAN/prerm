@@ -6,6 +6,8 @@ if command -v systemctl >/dev/null 2>&1; then
   if [ "$1" = "remove" ]; then
     # Stop and unmount before disabling
     systemctl stop etc-v3xctrl.mount || true
+    systemctl stop v3xctrl-control || true
+    systemctl stop v3xctrl-video || true
 
     systemctl disable \
       etc-v3xctrl.mount \
