@@ -28,4 +28,8 @@ v3xctrl-python -m v3xctrl_control.apps.streamer "${server_host}" "${network_port
   --pwm-channel-steering "${control_pwm_steering}" \
   --modem-path "${network_modem_path}" \
   --log "${extras_logLevel}" \
+  --battery-min-voltage "${control_telemetry_battery_minVoltage}" \
+  --battery-max-voltage "${control_telemetry_battery_maxVoltage}" \
+  --battery-warn-voltage "${control_telemetry_battery_warnVoltage}" \
+  --battery-i2c-address "${control_telemetry_battery_i2cAddress}" \
   ${ARGS}

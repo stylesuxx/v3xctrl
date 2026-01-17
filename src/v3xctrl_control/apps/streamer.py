@@ -71,6 +71,14 @@ parser.add_argument("--failsafe-throttle", type=int, default=1500,
                     help="Throttle value when failsafe (default: 1500)")
 parser.add_argument("--failsafe-steering", type=int, default=1500,
                     help="Steering value when failsafe (default: 1500)")
+parser.add_argument("--battery-min-voltage", type=int, default=3500,
+                    help="Minimum cell voltage in mV (default: 3500)")
+parser.add_argument("--battery-max-voltage", type=int, default=4200,
+                    help="Maximum cell voltage in mV (default: 4200)")
+parser.add_argument("--battery-warn-voltage", type=int, default=3700,
+                    help="Warning cell voltage in mV (default: 3700)")
+parser.add_argument("--battery-i2c-address", type=lambda x: int(x, 0), default=0x40,
+                    help="I2C address of battery sensor (default: 0x40)")
 
 
 args = parser.parse_args()
@@ -147,7 +155,13 @@ steering_center = calculate_steering_center()
 pwm_throttle.setup(throttle_idle)
 pwm_steering.setup(steering_center)
 
-telemetry = TelemetryHandler(modem_path)
+telemetry = TelemetryHandler(
+    modem_path,
+    battery_min_voltage=args.battery_min_voltage,
+    battery_max_voltage=args.battery_max_voltage,
+    battery_warn_voltage=args.battery_warn_voltage,
+    battery_i2c_address=args.battery_i2c_address
+)
 telemetry.start()
 
 

@@ -655,28 +655,28 @@
                   "description": "I2C address of the INA sensor. (Only change if you know that your address differs from defaults)"
                 },
                 "minVoltage": {
-                  "title": "Minimum Voltage",
+                  "title": "Minimum Voltage (mV)",
                   "propertyOrder": 20,
-                  "type": "number",
+                  "type": "integer",
                   "required": true,
-                  "default": 3.5,
-                  "description": "Minimum voltage per cell (used to calculate battery percentage)"
+                  "default": 3500,
+                  "description": "Minimum voltage per cell in millivolts (used to calculate battery percentage)"
                 },
                 "maxVoltage": {
-                  "title": "Maximum Voltage",
+                  "title": "Maximum Voltage (mV)",
                   "propertyOrder": 30,
-                  "type": "number",
+                  "type": "integer",
                   "required": true,
-                  "default": 4.2,
-                  "description": "Maximum voltage per cell (used to calculate battery percentage)"
+                  "default": 4200,
+                  "description": "Maximum voltage per cell in millivolts (used to calculate battery percentage)"
                 },
                 "warnVoltage": {
-                  "title": "Warning Voltage",
+                  "title": "Warning Voltage (mV)",
                   "propertyOrder": 40,
-                  "type": "number",
+                  "type": "integer",
                   "required": true,
-                  "default": 3.7,
-                  "description": "Level at which low voltage warnings should be triggered"
+                  "default": 3700,
+                  "description": "Level in millivolts at which low voltage warnings should be triggered"
                 }
               }
             }
