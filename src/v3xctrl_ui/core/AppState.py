@@ -110,6 +110,10 @@ class AppState:
 
     def update(self) -> None:
         """Update application state with timed operations."""
+        # Process any pending callbacks from network threads on the main thread.
+        # This ensures UI operations (like font rendering) are thread-safe.
+        self.network_coordinator.process_callbacks()
+
         # Check if network restart is complete
         self.settings_controller.check_network_restart_complete()
 
