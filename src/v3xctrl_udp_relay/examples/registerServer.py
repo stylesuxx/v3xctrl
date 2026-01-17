@@ -9,8 +9,8 @@ logging.basicConfig(
 )
 
 LOCAL_BIND_PORTS = {
-    "video": 6666,
-    "control": 6668
+    "video": 16384,
+    "control": 16386
 }
 
 DEFAULT_RENDEZVOUS_SERVER = 'rendezvous.websium.at'

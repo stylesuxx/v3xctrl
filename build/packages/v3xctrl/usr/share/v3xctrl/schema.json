@@ -87,14 +87,14 @@
             "video": {
               "propertyOrder": 10,
               "type": "integer",
-              "default": 6666,
+              "default": 16384,
               "title" : "Video port",
               "description": "Port for outgoing video stream."
             },
             "control": {
               "propertyOrder": 20,
               "type": "integer",
-              "default": 6668,
+              "default": 16386,
               "title" : "Control port",
               "description": "Port for the bi-directional control channel."
             }

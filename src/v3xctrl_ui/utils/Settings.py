@@ -31,8 +31,8 @@ class Settings:
             "spectator_mode": False
         },
         "ports": {
-            "video": 6666,
-            "control": 6668,
+            "video": 16384,
+            "control": 16386,
         },
         "video": {
             "width": 1280,

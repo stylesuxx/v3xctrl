@@ -7,7 +7,7 @@ from v3xctrl_control.message import Message, Heartbeat
 from v3xctrl_helper import Address
 
 HOST = "0.0.0.0"
-PORT = 6666
+PORT = 16384
 
 sock_tx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock_tx.settimeout(1)
