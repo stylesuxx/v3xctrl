@@ -743,6 +743,7 @@
       },
       "properties": {
         "routing": {
+          "propertyOrder": 10,
           "title": "Routing",
           "description": "Which interface routes internet traffic. Use 'WiFi' during initial setup, then switch to 'LTE/4G' once tested.",
           "type": "string",
