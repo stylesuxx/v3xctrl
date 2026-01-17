@@ -49,5 +49,6 @@ if command -v systemctl >/dev/null 2>&1; then
   # Make sure the minimum requirements to start the chain after install are in
   # place.
   systemctl restart \
+    etc-v3xctrl.mount \
     v3xctrl-config-server.service
 fi

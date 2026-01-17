@@ -37,9 +37,9 @@ if [ -e "$SUBDEV_0" ]; then
 fi
 
 ARGS=(
-  "$server_host"
-  "$network_ports_video"
-  "$network_ports_video_bind"
+  "$server_direct_host"
+  "$server_ports_video"
+  "$server_ports_video_bind"
   --width "$video_width"
   --height "$video_height"
   --framerate "$video_framerate"

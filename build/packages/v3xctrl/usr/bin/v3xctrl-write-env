@@ -25,6 +25,6 @@ jq -r '
 source "${ENV_PATH}"
 
 # Custom adaptations that are not part of the config JSON
-echo "network_ports_video_bind=${network_ports_video}" >> "${ENV_PATH}"
-echo "network_ports_control_bind=${network_ports_control}" >> "${ENV_PATH}"
+echo "server_ports_video_bind=${server_ports_video}" >> "${ENV_PATH}"
+echo "server_ports_control_bind=${server_ports_control}" >> "${ENV_PATH}"
 echo "NAME=v3xctrl" >> "${ENV_PATH}"

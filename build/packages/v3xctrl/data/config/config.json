@@ -1,9 +1,17 @@
 {
   "server": {
     "mode": "direct",
-    "host": "192.168.1.100",
-    "relayServer": "relay.v3xctrl.com:8888",
-    "relaySessionId": "test123"
+    "direct": {
+      "host": "192.168.1.100"
+    },
+    "relay": {
+      "host": "relay.v3xctrl.com:8888",
+      "sessionId": "test123"
+    },
+    "ports": {
+      "control": 6668,
+      "video": 6666
+    }
   },
   "video": {
     "autostart": false,
@@ -75,13 +83,9 @@
     }
   },
   "network": {
-    "ports": {
-      "control": 6668,
-      "video": 6666
-    },
+    "routing": "wlan",
     "wifi": {
-      "mode": "client",
-      "routing": "wlan"
+      "mode": "client"
     },
     "modem": {
       "model": "generic",
