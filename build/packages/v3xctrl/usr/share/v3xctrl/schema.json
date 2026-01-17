@@ -8,7 +8,7 @@
     "server": {
       "propertyOrder": 10,
       "title": "Viewer",
-      "description": "Connection settings for viewer and relay.<i>Changes in this section require the 'v3xctrl-service-manager' service to be restarted!</i>",
+      "description": "Connection settings for viewer and relay.<br/><i>Changes in this section require the 'v3xctrl-service-manager' service to be restarted!</i>",
       "type": "object",
       "options": {
         "collapsed": true
@@ -32,26 +32,73 @@
           "default": "direct",
           "description": "Choose how the client connects to the server."
         },
-        "host": {
+        "direct": {
           "propertyOrder": 20,
-          "type": "string",
-          "title": "Host",
-          "default": "192.168.1.100",
-          "description": "Target host running the viewer. IP address is preferred but domain name is fine. (Used in direct mode only)"
+          "title": "Direct Connection",
+          "description": "Connection settings for direct P2P connection.",
+          "type": "object",
+          "options": {
+            "collapsed": true
+          },
+          "properties": {
+            "host": {
+              "propertyOrder": 20,
+              "type": "string",
+              "title": "Host",
+              "default": "192.168.1.100",
+              "description": "Target host running the viewer. IP address is preferred but domain name is fine. (Used in direct mode only)"
+            }
+          }
         },
-        "relaySessionId": {
+        "relay": {
           "propertyOrder": 30,
-          "type": "string",
-          "title": "Relay Session ID",
-          "default": "test123",
-          "description": "Needs to be the same on client and server. (Only relevant for relay mode)"
-        },
-        "relayServer": {
-          "propertyOrder": 40,
-          "type": "string",
           "title": "Relay Server",
-          "default": "relay.v3xctrl.com:8888",
-          "description": "Change if you are using your own relay server."
+          "description": "Connection settings for relay connection.",
+          "type": "object",
+          "options": {
+            "collapsed": true
+          },
+          "properties": {
+            "sessionId": {
+              "propertyOrder": 30,
+              "type": "string",
+              "title": "Session ID",
+              "default": "test123",
+              "description": "Needs to be the same on streamer and viewer."
+            },
+            "host": {
+              "propertyOrder": 40,
+              "type": "string",
+              "title": "Relay Server",
+              "default": "relay.v3xctrl.com:8888",
+              "description": "Change if you are using your own relay server."
+            }
+          }
+        },
+        "ports": {
+          "propertyOrder": 40,
+          "type": "object",
+          "title": "Ports",
+          "description": "Outgoing ports. In direct mode those MUST match the viewers ports",
+          "options": {
+            "collapsed": true
+          },
+          "properties": {
+            "video": {
+              "propertyOrder": 10,
+              "type": "integer",
+              "default": 6666,
+              "title" : "Video port",
+              "description": "Port for outgoing video stream."
+            },
+            "control": {
+              "propertyOrder": 20,
+              "type": "integer",
+              "default": 6668,
+              "title" : "Control port",
+              "description": "Port for the bi-directional control channel."
+            }
+          }
         }
       }
     },
@@ -59,7 +106,7 @@
       "propertyOrder": 20,
       "type": "object",
       "title": "Video",
-      "description": "Video, camera and Encoder settings.<i>Changes in this section require the 'v3xctrl-video' service to be restarted!</i>",
+      "description": "Video, camera and Encoder settings.<br/><i>Changes in this section require the 'v3xctrl-video' service to be restarted!</i>",
       "options": {
         "collapsed": true
       },
@@ -433,8 +480,8 @@
     "control": {
       "propertyOrder": 30,
       "type": "object",
-      "title": "Controls",
-      "description": "Steering, throttle and PWM settings.<i>Changes in this section require the 'v3xctrl-control' service to be restarted!</i>",
+      "title": "Control",
+      "description": "Steering, throttle and PWM settings.<br/><i>Changes in this section require the 'v3xctrl-control' service to be restarted!</i>",
       "options": {
         "collapsed": true
       },
@@ -630,6 +677,7 @@
           "propertyOrder": 60,
           "type": "object",
           "title": "Telemetry",
+          "description": "Settings for telemetry that is transmitted back to the viewer like battery monitoring.",
           "options": {
             "collapsed": true,
             "disable_edit_json": true,
@@ -638,6 +686,7 @@
           "properties": {
             "battery": {
               "title": "Battery",
+              "description": "Battery monitor settings, alarm thresholds min and max values.",
               "propertyOrder": 10,
               "type": "object",
               "options": {
@@ -662,21 +711,21 @@
                   "default": 3500,
                   "description": "Minimum voltage per cell in millivolts (used to calculate battery percentage)"
                 },
-                "maxVoltage": {
-                  "title": "Maximum Voltage (mV)",
-                  "propertyOrder": 30,
-                  "type": "integer",
-                  "required": true,
-                  "default": 4200,
-                  "description": "Maximum voltage per cell in millivolts (used to calculate battery percentage)"
-                },
                 "warnVoltage": {
                   "title": "Warning Voltage (mV)",
-                  "propertyOrder": 40,
+                  "propertyOrder": 30,
                   "type": "integer",
                   "required": true,
                   "default": 3700,
                   "description": "Level in millivolts at which low voltage warnings should be triggered"
+                },
+                "maxVoltage": {
+                  "title": "Maximum Voltage (mV)",
+                  "propertyOrder": 40,
+                  "type": "integer",
+                  "required": true,
+                  "default": 4200,
+                  "description": "Maximum voltage per cell in millivolts (used to calculate battery percentage)"
                 }
               }
             }
@@ -693,34 +742,27 @@
         "collapsed": true
       },
       "properties": {
-        "ports": {
-          "propertyOrder": 10,
-          "type": "object",
-          "title": "Ports",
+        "routing": {
+          "title": "Routing",
+          "description": "Which interface routes internet traffic. Use 'WiFi' during initial setup, then switch to 'LTE/4G' once tested.",
+          "type": "string",
+          "required": true,
+          "enum": [
+            "wlan",
+            "rndis"
+          ],
           "options": {
-            "collapsed": true
-          },
-          "properties": {
-            "video": {
-              "propertyOrder": 10,
-              "type": "integer",
-              "default": 6666,
-              "title" : "Video port",
-              "description": "Port for outgoing video stream. (Only change this if you know what you are doing and you need this port for something else for whatever reason)"
-            },
-            "control": {
-              "propertyOrder": 20,
-              "type": "integer",
-              "default": 6668,
-              "title" : "Control port",
-              "description": "Port for the bi-directional control channel. (Only change this if you know what you are doing and you need this port for something else for whatever reason)"
-            }
+            "enum_titles": [
+              "WiFi",
+              "LTE/4G"
+            ]
           }
         },
         "wifi": {
           "propertyOrder": 20,
           "type": "object",
           "title": "WiFi",
+          "description": "Settings related to the WiFi device.",
           "options": {
             "collapsed": true
           },
@@ -740,21 +782,6 @@
               },
               "title": "WiFI",
               "description": "In client mode, the device connects to an existing network. In access-point mode, the device creates its own WiFi network."
-            },
-            "routing": {
-              "type": "string",
-              "required": true,
-              "enum": [
-                "wlan",
-                "rndis"
-              ],
-              "options": {
-                "enum_titles": [
-                  "WiFi",
-                  "LTE/4G"
-                ]
-              },
-              "description": "Which interface routes internet traffic. Use 'WiFi' during initial setup, then switch to 'LTE/4G' once tested."
             }
           }
         },
@@ -762,6 +789,7 @@
           "propertyOrder": 30,
           "type": "object",
           "title": "Modem",
+          "description": "Settings related to the LTE/4G modem.",
           "options": {
             "collapsed": true
           },

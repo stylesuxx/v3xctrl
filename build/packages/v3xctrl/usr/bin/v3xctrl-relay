@@ -4,31 +4,31 @@ set -e
 ENV_PATH="/run/v3xctrl.env"
 source "${ENV_PATH}"
 
-relay_host="${server_relayServer}"
+relay_host="${server_relay_host}"
 extra_args=()
 
 # Split host:port if provided
-if [[ "$server_relayServer" == *:* ]]; then
-  relay_host="${server_relayServer%%:*}"
-  relay_port="${server_relayServer##*:}"
+if [[ "$server_relay_host" == *:* ]]; then
+  relay_host="${server_relay_host%%:*}"
+  relay_port="${server_relay_host##*:}"
   extra_args+=(--port "$relay_port")
 fi
 
 json=$(
   v3xctrl-python -m v3xctrl_udp_relay.apps.getRelayInfo \
-    "$relay_host" "$server_relaySessionId" \
-    --port-video "$network_ports_video_bind" \
-    --port-control "$network_ports_control_bind" \
+    "$relay_host" "$server_relay_sessionId" \
+    --port-video "$server_ports_video_bind" \
+    --port-control "$server_ports_control_bind" \
     --log "$extras_logLevel" \
     "${extra_args[@]}"
 )
 
-server_host=$(echo "$json" | jq -r '.server.host')
-network_ports_video=$(echo "$json" | jq -r '.ports.video')
-network_ports_control=$(echo "$json" | jq -r '.ports.control')
+server_direct_host=$(echo "$json" | jq -r '.server.direct.host')
+server_ports_video=$(echo "$json" | jq -r '.ports.video')
+server_ports_control=$(echo "$json" | jq -r '.ports.control')
 
 sed -i \
-  -e "s/^server_host=.*/server_host=${server_host}/" \
-  -e "s/^network_ports_video=.*/network_ports_video=${network_ports_video}/" \
-  -e "s/^network_ports_control=.*/network_ports_control=${network_ports_control}/" \
+  -e "s/^server_direct_host=.*/server_direct_host=${server_direct_host}/" \
+  -e "s/^server_ports_video=.*/server_ports_video=${server_ports_video}/" \
+  -e "s/^server_ports_control=.*/server_ports_control=${server_ports_control}/" \
   "$ENV_PATH"

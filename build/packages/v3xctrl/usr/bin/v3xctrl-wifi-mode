@@ -148,7 +148,7 @@ else
 fi
 
 # Setup routes after switching
-v3xctrl-route-manager "${network_wifi_routing}"
+v3xctrl-route-manager "${network_routing}"
 
 # If the web-interface is already active, restart it to bind to the new IP
 if systemctl is-active --quiet v3xctrl-config-server; then

@@ -9,7 +9,7 @@ if [ "$control_steering_invert" = "true" ]; then
   ARGS+="--steering-invert"
 fi
 
-v3xctrl-python -m v3xctrl_control.apps.streamer "${server_host}" "${network_ports_control}" "${network_ports_control_bind}" \
+v3xctrl-python -m v3xctrl_control.apps.streamer "${server_direct_host}" "${server_ports_control}" "${server_ports_control_bind}" \
   --throttle-min "${control_throttle_min}" \
   --throttle-max "${control_throttle_max}" \
   --throttle-idle "${control_throttle_idle}" \
