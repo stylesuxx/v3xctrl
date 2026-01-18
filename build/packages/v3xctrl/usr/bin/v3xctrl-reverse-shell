@@ -4,4 +4,4 @@ set -e
 ENV_PATH="/run/v3xctrl.env"
 source "${ENV_PATH}"
 
-socat TCP:${extras_reverseShellUrl} EXEC:'/bin/bash',pty,stderr,setsid,sigint,sane
+socat TCP:${network_extras_reverseShellUrl} EXEC:'/bin/bash',pty,stderr,setsid,sigint,sane

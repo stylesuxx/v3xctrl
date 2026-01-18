@@ -19,7 +19,7 @@ json=$(
     "$relay_host" "$server_relay_sessionId" \
     --port-video "$server_ports_video_bind" \
     --port-control "$server_ports_control_bind" \
-    --log "$extras_logLevel" \
+    --log "$development_logLevel" \
     "${extra_args[@]}"
 )
 

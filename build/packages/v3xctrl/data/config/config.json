@@ -92,11 +92,13 @@
       "path": "/dev/eigencomm-at",
       "limitBands": false,
       "allowedBands": []
+    },
+    "extras": {
+      "samba": false,
+      "reverseShellUrl": null
     }
   },
-  "extras": {
-    "samba": false,
-    "logLevel": "ERROR",
-    "reverseShellUrl": null
+  "development": {
+    "logLevel": "ERROR"
   }
 }

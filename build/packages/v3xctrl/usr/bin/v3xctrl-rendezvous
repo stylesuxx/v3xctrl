@@ -10,7 +10,7 @@ json=$(
     --port 8888 \
     --port-video "${server_ports_video_bind}" \
     --port-control "${server_ports_control_bind}" \
-    --log "${extras_logLevel}"
+    --log "${development_logLevel}"
 )
 
 server_direct_host=$(echo "$json" | jq -r '.server.direct.host')

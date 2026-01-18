@@ -10,4 +10,4 @@ if [ -z "$BANDS" ]; then
   exit 1
 fi
 
-v3xctrl-python -m v3xctrl_helper.modem.set_allowed_bands $network_modem_path "$BANDS" --log "${extras_logLevel}"
+v3xctrl-python -m v3xctrl_helper.modem.set_allowed_bands $network_modem_path "$BANDS" --log "${development_logLevel}"
