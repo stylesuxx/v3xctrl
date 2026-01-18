@@ -138,7 +138,20 @@ class TestNetworkCoordinator(unittest.TestCase):
 
         self.coordinator.send_command(command, callback)
 
-        mock_server.send_command.assert_called_once_with(command, callback)
+        # Verify send_command was called with the command and a deferred callback wrapper
+        mock_server.send_command.assert_called_once()
+        call_args = mock_server.send_command.call_args
+        self.assertEqual(call_args[0][0], command)
+        # The second arg should be the deferred callback wrapper (a callable)
+        self.assertTrue(callable(call_args[0][1]))
+
+        # Simulate the server invoking the deferred callback with success
+        deferred_callback = call_args[0][1]
+        deferred_callback(True)
+
+        # Process the callback queue to invoke the original callback
+        self.coordinator.process_callbacks()
+        callback.assert_called_once_with(True)
 
     def test_send_command_no_server(self):
         """Test sending command when server is None calls callback with False."""
@@ -472,7 +485,8 @@ class TestNetworkCoordinator(unittest.TestCase):
 
         # Should not send command when in spectator mode
         mock_server.send_command.assert_not_called()
-        # Callback should be invoked with False to indicate failure
+        # Callback is queued, process it to invoke with False
+        self.coordinator.process_callbacks()
         callback.assert_called_once_with(False)
 
 

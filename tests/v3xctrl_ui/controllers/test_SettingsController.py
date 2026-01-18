@@ -101,12 +101,12 @@ class TestUpdateSettings:
         old_settings = {
             "video": {"fullscreen": False},
             "ports": {"video": 6666},
-            "relay": {"enabled": False}
+            "relay": {"enabled": False, "id": "test-session"}
         }
         new_settings = {
             "video": {"fullscreen": False},
             "ports": {"video": 6666},
-            "relay": {"enabled": True}  # Changed relay
+            "relay": {"enabled": True, "id": "test-session"}  # Changed relay
         }
         model = ApplicationModel()
         manager = SettingsController(old_settings, model)
