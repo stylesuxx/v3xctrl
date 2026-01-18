@@ -6,13 +6,13 @@ function setCalibrationValues(editor) {
   editor.editor.on('ready', () => {
     const editorValues = editor.getValue();
 
-    const steeringMin = editorValues.controls.steering.min;
-    const steeringMax = editorValues.controls.steering.max;
-    const steeringTrim = editorValues.controls.steering.trim;
+    const steeringMin = editorValues.control.steering.min;
+    const steeringMax = editorValues.control.steering.max;
+    const steeringTrim = editorValues.control.steering.trim;
 
-    const throttleMin = editorValues.controls.throttle.min;
-    const throttleMax = editorValues.controls.throttle.max;
-    const throttleIdle = editorValues.controls.throttle.idle;
+    const throttleMin = editorValues.control.throttle.min;
+    const throttleMax = editorValues.control.throttle.max;
+    const throttleIdle = editorValues.control.throttle.idle;
 
     $('input.steering-min').val(steeringMin);
     $('input.steering-max').val(steeringMax);
