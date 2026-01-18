@@ -201,6 +201,7 @@ class Menu:
 
     def show(self) -> None:
         self.visible = True
+        pygame.mouse.set_visible(True)
 
         # Refresh all tabs to reflect current settings (e.g., after F11 fullscreen toggle)
         for tab in self.tabs:
@@ -209,6 +210,7 @@ class Menu:
     def hide(self) -> None:
         """Hide the menu and reset to initial state."""
         self.visible = False
+        pygame.mouse.set_visible(False)
 
         self.active_tab = self.tabs[0].name
         self.tab_bar_dirty = True

@@ -34,6 +34,9 @@ class DisplayController:
         # Repeat keydown events when button is held
         pygame.key.set_repeat(400, 40)
 
+        # Hide mouse cursor by default (shown when menu is open)
+        pygame.mouse.set_visible(False)
+
     def _create_initial_screen(self) -> pygame.Surface:
         pygame.display.set_caption(self.title)
 
