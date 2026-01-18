@@ -47,10 +47,11 @@ if command -v systemctl >/dev/null 2>&1; then
     v3xctrl-setup-env.service
 
   # Make sure the minimum requirements to start the chain after install are in
-  # place.
+  # place. Note: v3xctrl-service-manager is not restarted here because it has
+  # runtime dependencies (wlan0, NetworkManager) that may not be available
+  # during package installation. It will start properly on next boot.
   systemctl restart \
     etc-v3xctrl.mount \
     v3xctrl-setup-env.service \
-    v3xctrl-service-manager.service \
     v3xctrl-config-server.service
 fi
