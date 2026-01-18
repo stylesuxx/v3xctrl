@@ -92,7 +92,6 @@ class AppState:
     def update_settings(self, new_settings: Optional[Settings] = None) -> None:
         """
         Update settings after exiting menu.
-        Only update settings that can be hot reloaded.
         """
         self.menu.hide()
 
@@ -100,13 +99,7 @@ class AppState:
             new_settings = Settings()
             new_settings.save()
 
-        # Delegate to settings controller
-        needs_restart = not self.settings_controller.update_settings(new_settings)
-
-        if needs_restart:
-            # Network manager shutdown and recreation handled by restart thread
-            self.network_coordinator.shutdown()
-            self.network_coordinator.create_network_manager(new_settings)
+        self.settings_controller.update_settings(new_settings)
 
     def update(self) -> None:
         """Update application state with timed operations."""

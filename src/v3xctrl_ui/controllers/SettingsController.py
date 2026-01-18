@@ -61,7 +61,7 @@ class SettingsController:
         # Check if network manager needs to be restarted
         if (
             not self.settings_equal(new_settings, "ports") or
-            not self.settings_equal(new_settings, "relay")
+            self._needs_relay_restart(new_settings)
         ):
             logging.info("Restarting network manager")
             self.model.pending_settings = new_settings
@@ -119,6 +119,55 @@ class SettingsController:
 
         if self.on_renderer_update:
             self.on_renderer_update(new_settings)
+
+    def _needs_relay_restart(self, new_settings: 'Settings') -> bool:
+        """Check if relay settings changes require a network restart.
+
+        Restart is needed when:
+        - Relay enabled/disabled toggled (with session ID present)
+        - Relay enabled and session ID, server, or spectator mode changed
+        - Direct mode and spectator mode enabled (with session ID present)
+
+        Args:
+            new_settings: New settings to compare
+
+        Returns:
+            True if network restart is needed
+        """
+        old_relay = self.old_settings.get("relay", {})
+        new_relay = new_settings.get("relay", {})
+
+        old_enabled = old_relay.get("enabled", False)
+        new_enabled = new_relay.get("enabled", False)
+
+        old_spectator = old_relay.get("spectator_mode", False)
+        new_spectator = new_relay.get("spectator_mode", False)
+
+        old_id = old_relay.get("id", "")
+        new_id = new_relay.get("id", "")
+
+        old_server = old_relay.get("server", "")
+        new_server = new_relay.get("server", "")
+
+        has_session_id = bool(new_id)
+
+        # Relay toggled on/off (requires session ID)
+        if old_enabled != new_enabled and has_session_id:
+            return True
+
+        # Relay enabled: check if connection settings changed
+        if new_enabled and (
+            old_id != new_id or
+            old_server != new_server or
+            old_spectator != new_spectator
+        ):
+            return True
+
+        # Direct mode: spectator enabled (requires session ID for relay connection)
+        if not new_enabled and not old_spectator and new_spectator and has_session_id:
+            return True
+
+        return False
 
     def settings_equal(self, new_settings: 'Settings', key: str) -> bool:
         """Compare a section of settings with the old settings.
