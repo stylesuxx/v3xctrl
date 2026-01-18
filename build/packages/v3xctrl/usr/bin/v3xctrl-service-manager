@@ -35,12 +35,12 @@ if [ "$development_logLevel" = "DEBUG" ]; then
 fi
 
 # Setup rendezvous/relay servers if not in direct connection mode
-if [ "$server_mode" = "rendezvous" ]; then
+if [ "$network_server_mode" = "rendezvous" ]; then
   echo "Registering with rendezvous server..."
   v3xctrl-rendezvous
 fi
 
-if [ "$server_mode" = "relay" ]; then
+if [ "$network_server_mode" = "relay" ]; then
   echo "Registering with relay server..."
   v3xctrl-relay
 fi

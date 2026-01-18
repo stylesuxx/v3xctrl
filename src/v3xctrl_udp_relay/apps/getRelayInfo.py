@@ -50,14 +50,16 @@ if __name__ == "__main__":
     control = peer_addresses["control"]
 
     print(json.dumps({
-        "server": {
-            "direct": {
-                "host": video[0]
+        "network": {
+            "server": {
+                "direct": {
+                    "host": video[0]
+                },
+                "ports": {
+                    "video": video[1],
+                    "control": control[1]
+                }
             }
-        },
-        "ports": {
-            "video": video[1],
-            "control": control[1]
         }
     }, indent=2))
 

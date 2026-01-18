@@ -5,98 +5,253 @@
     "disable_collapse": true
   },
   "properties": {
-    "server": {
+    "network": {
       "propertyOrder": 10,
-      "title": "Viewer",
-      "description": "Connection settings for viewer and relay.<br/><i>Changes in this section require the 'v3xctrl-service-manager' service to be restarted!</i>",
       "type": "object",
+      "title": "Network",
+      "description": "Viewer, WiFi and Modem settings.<br/><i>Changes in this section require the streamer to be restarted!</i>",
       "options": {
         "collapsed": true
       },
       "properties": {
-        "mode": {
+        "routing": {
           "propertyOrder": 10,
-          "title": "Connection Mode",
+          "title": "Routing",
+          "description": "Which interface routes internet traffic. Use 'WiFi' during initial setup, then switch to 'LTE/4G' once tested.",
           "type": "string",
+          "required": true,
           "enum": [
-            "direct",
-            "relay"
+            "wlan",
+            "rndis"
           ],
           "options": {
             "enum_titles": [
-              "Direct",
-              "Relay server"
+              "WiFi",
+              "LTE/4G"
             ]
-          },
-          "required": true,
-          "default": "direct",
-          "description": "Choose how the client connects to the server."
+          }
         },
-        "direct": {
+        "server": {
           "propertyOrder": 20,
-          "title": "Direct Connection",
-          "description": "Connection settings for direct P2P connection.",
+          "title": "Viewer",
+          "description": "Connection settings for viewer and relay.<br/><i>Changes in this section require the 'v3xctrl-service-manager' service to be restarted!</i>",
           "type": "object",
           "options": {
             "collapsed": true
           },
           "properties": {
-            "host": {
-              "propertyOrder": 20,
+            "mode": {
+              "propertyOrder": 10,
+              "title": "Connection Mode",
               "type": "string",
-              "title": "Host",
-              "default": "192.168.1.100",
-              "description": "Target host running the viewer. IP address is preferred but domain name is fine. (Used in direct mode only)"
-            }
-          }
-        },
-        "relay": {
-          "propertyOrder": 30,
-          "title": "Relay Server",
-          "description": "Connection settings for relay connection.",
-          "type": "object",
-          "options": {
-            "collapsed": true
-          },
-          "properties": {
-            "sessionId": {
-              "propertyOrder": 30,
-              "type": "string",
-              "title": "Session ID",
-              "default": "test123",
-              "description": "Needs to be the same on streamer and viewer."
+              "enum": [
+                "direct",
+                "relay"
+              ],
+              "options": {
+                "enum_titles": [
+                  "Direct",
+                  "Relay server"
+                ]
+              },
+              "required": true,
+              "default": "direct",
+              "description": "Choose how the client connects to the server."
             },
-            "host": {
-              "propertyOrder": 40,
-              "type": "string",
+            "direct": {
+              "propertyOrder": 20,
+              "title": "Direct Connection",
+              "description": "Connection settings for direct P2P connection.",
+              "type": "object",
+              "options": {
+                "collapsed": true
+              },
+              "properties": {
+                "host": {
+                  "propertyOrder": 20,
+                  "type": "string",
+                  "title": "Host",
+                  "default": "192.168.1.100",
+                  "description": "Target host running the viewer. IP address is preferred but domain name is fine. (Used in direct mode only)"
+                }
+              }
+            },
+            "relay": {
+              "propertyOrder": 30,
               "title": "Relay Server",
-              "default": "relay.v3xctrl.com:8888",
-              "description": "Change if you are using your own relay server."
+              "description": "Connection settings for relay connection.",
+              "type": "object",
+              "options": {
+                "collapsed": true
+              },
+              "properties": {
+                "sessionId": {
+                  "propertyOrder": 30,
+                  "type": "string",
+                  "title": "Session ID",
+                  "default": "test123",
+                  "description": "Needs to be the same on streamer and viewer."
+                },
+                "host": {
+                  "propertyOrder": 40,
+                  "type": "string",
+                  "title": "Relay Server",
+                  "default": "relay.v3xctrl.com:8888",
+                  "description": "Change if you are using your own relay server."
+                }
+              }
+            },
+            "ports": {
+              "propertyOrder": 40,
+              "type": "object",
+              "title": "Ports",
+              "description": "Outgoing ports. In direct mode those MUST match the viewers ports",
+              "options": {
+                "collapsed": true
+              },
+              "properties": {
+                "video": {
+                  "propertyOrder": 10,
+                  "type": "integer",
+                  "default": 16384,
+                  "title" : "Video port",
+                  "description": "Port for outgoing video stream."
+                },
+                "control": {
+                  "propertyOrder": 20,
+                  "type": "integer",
+                  "default": 16386,
+                  "title" : "Control port",
+                  "description": "Port for the bi-directional control channel."
+                }
+              }
             }
           }
         },
-        "ports": {
+        "wifi": {
+          "propertyOrder": 30,
+          "type": "object",
+          "title": "WiFi",
+          "description": "Settings related to the WiFi device.",
+          "options": {
+            "collapsed": true
+          },
+          "properties": {
+            "mode": {
+              "type": "string",
+              "required": true,
+              "enum": [
+                "client",
+                "ap"
+              ],
+              "options": {
+                "enum_titles": [
+                  "Client",
+                  "Access Point"
+                ]
+              },
+              "title": "WiFI",
+              "description": "In client mode, the device connects to an existing network. In access-point mode, the device creates its own WiFi network."
+            }
+          }
+        },
+        "modem": {
           "propertyOrder": 40,
           "type": "object",
-          "title": "Ports",
-          "description": "Outgoing ports. In direct mode those MUST match the viewers ports",
+          "title": "Modem",
+          "description": "Settings related to the LTE/4G modem.",
           "options": {
             "collapsed": true
           },
           "properties": {
-            "video": {
+            "model": {
               "propertyOrder": 10,
-              "type": "integer",
-              "default": 16384,
-              "title" : "Video port",
-              "description": "Port for outgoing video stream."
+              "required": true,
+              "title": "Model",
+              "type": "string",
+              "enum": [
+                "generic",
+                "mzuzone-cat1_lte",
+                "mzuzone-cat1_gps",
+                "mzuzone-cat1_eu",
+                "mzuzone-cat1_ea"
+              ],
+              "options": {
+                "enum_titles": [
+                  "Generic",
+                  "McuZone Cat1 LTE",
+                  "McuZone Cat1 GPS",
+                  "McuZone Cat1 EU",
+                  "McuZone Cat1 EA"
+                ]
+              },
+              "description": "Set this to your actual modem, this is used for band limiting and feature detection. Some features will not work properly if this is not set correctly."
             },
-            "control": {
+            "path": {
               "propertyOrder": 20,
-              "type": "integer",
-              "default": 16386,
-              "title" : "Control port",
-              "description": "Port for the bi-directional control channel."
+              "title": "Path",
+              "type": "string",
+              "description": "Path to the modem device",
+              "default": "/dev/eigencomm-at"
+            },
+            "limitBands": {
+              "title": "Limit Bands",
+              "propertyOrder": 30,
+              "type": "boolean",
+              "format": "checkbox",
+              "default": false,
+              "description": "Sometimes it might be beneficial to limit 4G bands, only change this if you know what and why you are doing this. By default, this decision is left up to the firmware of your modem. Once set, this setting is persistent! Make sure you know which values are your modems default, so you can return to the correct ones."
+            },
+            "allowedBands": {
+              "type": "array",
+              "title": "Allowed Bands",
+              "propertyOrder": 40,
+              "items": {
+                "type": "number",
+                "enum": [
+                  1,
+                  3,
+                  5,
+                  7,
+                  8,
+                  20,
+                  28,
+                  34,
+                  38,
+                  39,
+                  40,
+                  41
+                ]
+              },
+              "uniqueItems": true,
+              "default": [],
+              "description": "If above checkbox is set, the bands will be limited to the selected ones. (Be aware that not all modems respect this limitation)"
+            }
+          }
+        },
+        "extras": {
+          "propertyOrder": 50,
+          "type": "object",
+          "title": "Extras",
+          "description": "Miscelanious networking related settings.",
+          "options": {
+            "collapsed": true
+          },
+          "properties": {
+            "samba": {
+              "title": "SAMBA",
+              "propertyOrder": 10,
+              "type": "boolean",
+              "format": "checkbox",
+              "default": false,
+              "description": "Enable SAMBA network share for recording directory"
+            },
+            "reverseShellUrl": {
+              "title": "Reverse Shell URL",
+              "description": "CAUTION: Only set a reverse shell URL if you know what you are doing, this is for remote debugging only.",
+              "propertyOrder": 20,
+              "type": "string",
+              "default": null
             }
           }
         }
@@ -728,161 +883,6 @@
                   "description": "Maximum voltage per cell in millivolts (used to calculate battery percentage)"
                 }
               }
-            }
-          }
-        }
-      }
-    },
-    "network": {
-      "propertyOrder": 40,
-      "type": "object",
-      "title": "Network",
-      "description": "WiFi and Modem settings.<br/> <i>Changes in this section require the streamer to be restarted!</i>",
-      "options": {
-        "collapsed": true
-      },
-      "properties": {
-        "routing": {
-          "propertyOrder": 10,
-          "title": "Routing",
-          "description": "Which interface routes internet traffic. Use 'WiFi' during initial setup, then switch to 'LTE/4G' once tested.",
-          "type": "string",
-          "required": true,
-          "enum": [
-            "wlan",
-            "rndis"
-          ],
-          "options": {
-            "enum_titles": [
-              "WiFi",
-              "LTE/4G"
-            ]
-          }
-        },
-        "wifi": {
-          "propertyOrder": 20,
-          "type": "object",
-          "title": "WiFi",
-          "description": "Settings related to the WiFi device.",
-          "options": {
-            "collapsed": true
-          },
-          "properties": {
-            "mode": {
-              "type": "string",
-              "required": true,
-              "enum": [
-                "client",
-                "ap"
-              ],
-              "options": {
-                "enum_titles": [
-                  "Client",
-                  "Access Point"
-                ]
-              },
-              "title": "WiFI",
-              "description": "In client mode, the device connects to an existing network. In access-point mode, the device creates its own WiFi network."
-            }
-          }
-        },
-        "modem": {
-          "propertyOrder": 30,
-          "type": "object",
-          "title": "Modem",
-          "description": "Settings related to the LTE/4G modem.",
-          "options": {
-            "collapsed": true
-          },
-          "properties": {
-            "model": {
-              "propertyOrder": 10,
-              "required": true,
-              "title": "Model",
-              "type": "string",
-              "enum": [
-                "generic",
-                "mzuzone-cat1_lte",
-                "mzuzone-cat1_gps",
-                "mzuzone-cat1_eu",
-                "mzuzone-cat1_ea"
-              ],
-              "options": {
-                "enum_titles": [
-                  "Generic",
-                  "McuZone Cat1 LTE",
-                  "McuZone Cat1 GPS",
-                  "McuZone Cat1 EU",
-                  "McuZone Cat1 EA"
-                ]
-              },
-              "description": "Set this to your actual modem, this is used for band limiting and feature detection. Some features will not work properly if this is not set correctly."
-            },
-            "path": {
-              "propertyOrder": 20,
-              "title": "Path",
-              "type": "string",
-              "description": "Path to the modem device",
-              "default": "/dev/eigencomm-at"
-            },
-            "limitBands": {
-              "title": "Limit Bands",
-              "propertyOrder": 30,
-              "type": "boolean",
-              "format": "checkbox",
-              "default": false,
-              "description": "Sometimes it might be beneficial to limit 4G bands, only change this if you know what and why you are doing this. By default, this decision is left up to the firmware of your modem. Once set, this setting is persistent! Make sure you know which values are your modems default, so you can return to the correct ones."
-            },
-            "allowedBands": {
-              "type": "array",
-              "title": "Allowed Bands",
-              "propertyOrder": 40,
-              "items": {
-                "type": "number",
-                "enum": [
-                  1,
-                  3,
-                  5,
-                  7,
-                  8,
-                  20,
-                  28,
-                  34,
-                  38,
-                  39,
-                  40,
-                  41
-                ]
-              },
-              "uniqueItems": true,
-              "default": [],
-              "description": "If above checkbox is set, the bands will be limited to the selected ones. (Be aware that not all modems respect this limitation)"
-            }
-          }
-        },
-        "extras": {
-          "propertyOrder": 50,
-          "type": "object",
-          "title": "Extras",
-          "description": "Miscelanious networking related settings.",
-          "options": {
-            "collapsed": true
-          },
-          "properties": {
-            "samba": {
-              "title": "SAMBA",
-              "propertyOrder": 10,
-              "type": "boolean",
-              "format": "checkbox",
-              "default": false,
-              "description": "Enable SAMBA network share for recording directory"
-            },
-            "reverseShellUrl": {
-              "title": "Reverse Shell URL",
-              "description": "CAUTION: Only set a reverse shell URL if you know what you are doing, this is for remote debugging only.",
-              "propertyOrder": 20,
-              "type": "string",
-              "default": null
             }
           }
         }

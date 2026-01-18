@@ -115,9 +115,9 @@ class Tabs {
       const trim = parseInt($calibration.find('.steering.trim input').val());
 
       const values = that.editor.getValue();
-      values.controls.steering.min = min;
-      values.controls.steering.max = max;
-      values.controls.steering.trim = trim;
+      values.control.steering.min = min;
+      values.control.steering.max = max;
+      values.control.steering.trim = trim;
 
       that.editor.setValue(values);
       that.editor.save();
@@ -132,9 +132,9 @@ class Tabs {
       const idle = parseInt($calibration.find('.throttle.idle input').val());
 
       const values = that.editor.getValue();
-      values.controls.throttle.min = min;
-      values.controls.throttle.max = max;
-      values.controls.throttle.idle = idle;
+      values.control.throttle.min = min;
+      values.control.throttle.max = max;
+      values.control.throttle.idle = idle;
 
       that.editor.setValue(values);
       that.editor.save();
@@ -166,7 +166,7 @@ class Tabs {
       }
 
       const values = that.editor.getValue();
-      const channel = parseInt(values.controls.pwm.steering);
+      const channel = parseInt(values.control.pwm.steering);
       API.setPwm(channel, value);
     });
 
@@ -188,7 +188,7 @@ class Tabs {
       $input.val(value);
 
       const values = that.editor.getValue();
-      const channel = parseInt(values.controls.pwm.throttle);
+      const channel = parseInt(values.control.pwm.throttle);
       API.setPwm(channel, value);
     });
 
