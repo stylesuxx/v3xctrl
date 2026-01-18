@@ -135,6 +135,9 @@ class UDPReceiver(threading.Thread):
 
                 try:
                     data, addr = self.socket.recvfrom(self.BUFFERSIZE)
+                except ConnectionResetError:
+                    # Windows-specific: ICMP port unreachable received, safe to ignore
+                    continue
                 except (socket.error, OSError) as e:
                     logging.error(f"Socket error during recvfrom: {e}")
                     break
