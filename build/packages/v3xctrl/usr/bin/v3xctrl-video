@@ -59,7 +59,7 @@ ARGS=(
   --contrast "$video_camera_contrast"
   --saturation "$video_camera_saturation"
   --sharpness "$video_camera_sharpness"
-  --log "${extras_logLevel}"
+  --log "${development_logLevel}"
 )
 
 if [ -n "$video_record_path" ] && [ "$video_record_path" != "null" ]; then

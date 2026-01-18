@@ -24,12 +24,12 @@ else
   v3xctrl-modem-reset-bands
 fi
 
-if [ "$extras_samba" = "true" ]; then
+if [ "$network_extras_samba" = "true" ]; then
   echo "Starting samba service..."
   systemctl start smbd
 fi
 
-if [ "$extras_logLevel" = "DEBUG" ]; then
+if [ "$development_logLevel" = "DEBUG" ]; then
   echo "Starting debug log service..."
   systemctl start v3xctrl-debug-log
 fi

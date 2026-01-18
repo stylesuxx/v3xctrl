@@ -27,7 +27,7 @@ v3xctrl-python -m v3xctrl_control.apps.streamer "${server_direct_host}" "${serve
   --pwm-channel-throttle "${control_pwm_throttle}" \
   --pwm-channel-steering "${control_pwm_steering}" \
   --modem-path "${network_modem_path}" \
-  --log "${extras_logLevel}" \
+  --log "${development_logLevel}" \
   --battery-min-voltage "${control_telemetry_battery_minVoltage}" \
   --battery-max-voltage "${control_telemetry_battery_maxVoltage}" \
   --battery-warn-voltage "${control_telemetry_battery_warnVoltage}" \

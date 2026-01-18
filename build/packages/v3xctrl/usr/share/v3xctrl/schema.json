@@ -859,29 +859,47 @@
               "description": "If above checkbox is set, the bands will be limited to the selected ones. (Be aware that not all modems respect this limitation)"
             }
           }
+        },
+        "extras": {
+          "propertyOrder": 50,
+          "type": "object",
+          "title": "Extras",
+          "description": "Miscelanious networking related settings.",
+          "options": {
+            "collapsed": true
+          },
+          "properties": {
+            "samba": {
+              "title": "SAMBA",
+              "propertyOrder": 10,
+              "type": "boolean",
+              "format": "checkbox",
+              "default": false,
+              "description": "Enable SAMBA network share for recording directory"
+            },
+            "reverseShellUrl": {
+              "title": "Reverse Shell URL",
+              "description": "CAUTION: Only set a reverse shell URL if you know what you are doing, this is for remote debugging only.",
+              "propertyOrder": 20,
+              "type": "string",
+              "default": null
+            }
+          }
         }
       }
     },
-    "extras": {
+    "development": {
       "propertyOrder": 50,
       "type": "object",
-      "title": "Extras",
-      "description": "Miscelanious settings that to not fit any other category.<br /><i>Changes in this section require the streamer to be restarted!</i>",
+      "title": "Development",
+      "description": "Settings regarding development and debugging.<br /><i>Changes in this section require the streamer to be restarted!</i>",
       "options": {
         "collapsed": true
       },
       "properties": {
-        "samba": {
-          "title": "SAMBA",
-          "propertyOrder": 10,
-          "type": "boolean",
-          "format": "checkbox",
-          "default": false,
-          "description": "Enable SAMBA network share for recording directory"
-        },
         "logLevel": {
           "title": "Log Level",
-          "propertyOrder": 20,
+          "propertyOrder": 10,
           "type": "string",
           "required": true,
           "default": "ERROR",
@@ -892,13 +910,6 @@
             "INFO",
             "DEBUG"
           ]
-        },
-        "reverseShellUrl": {
-          "title": "Reverse Shell URL",
-          "description": "CAUTION: Only set a reverse shell URL if you know what you are doing, this is for remote debugging only.",
-          "propertyOrder": 30,
-          "type": "string",
-          "default": null
         }
       }
     }
