@@ -2,6 +2,7 @@
 from typing import TYPE_CHECKING, Tuple
 import logging
 import sys
+import time
 from pathlib import Path
 
 import pygame
@@ -11,6 +12,8 @@ if TYPE_CHECKING:
 
 
 class DisplayController:
+    CURSOR_HIDE_DELAY = 5.0  # Seconds of inactivity before hiding cursor
+
     def __init__(
         self,
         model: 'ApplicationModel',
@@ -34,8 +37,11 @@ class DisplayController:
         # Repeat keydown events when button is held
         pygame.key.set_repeat(400, 40)
 
-        # Hide mouse cursor by default (shown when menu is open)
-        pygame.mouse.set_visible(False)
+        # Mouse cursor auto-hide after inactivity
+        self._last_mouse_move_time = time.monotonic()
+        self._last_mouse_pos = pygame.mouse.get_pos()
+        self._cursor_visible = True
+        pygame.mouse.set_visible(True)
 
     def _create_initial_screen(self) -> pygame.Surface:
         pygame.display.set_caption(self.title)
@@ -109,3 +115,36 @@ class DisplayController:
 
     def get_scale(self) -> float:
         return self.model.scale
+
+    def update_cursor_visibility(self, menu_visible: bool = False) -> None:
+        """Update cursor visibility based on mouse activity.
+
+        Shows the cursor when the mouse moves, hides it after
+        CURSOR_HIDE_DELAY seconds of inactivity. The cursor is
+        always visible while the menu is open.
+        """
+        current_pos = pygame.mouse.get_pos()
+        current_time = time.monotonic()
+
+        # Always show cursor when menu is visible
+        if menu_visible:
+            if not self._cursor_visible:
+                self._cursor_visible = True
+                pygame.mouse.set_visible(True)
+
+            # Reset timer so cursor doesn't hide immediately when menu closes
+            self._last_mouse_move_time = current_time
+            self._last_mouse_pos = current_pos
+            return
+
+        if current_pos != self._last_mouse_pos:
+            self._last_mouse_pos = current_pos
+            self._last_mouse_move_time = current_time
+            if not self._cursor_visible:
+                self._cursor_visible = True
+                pygame.mouse.set_visible(True)
+
+        elif self._cursor_visible:
+            if current_time - self._last_mouse_move_time >= self.CURSOR_HIDE_DELAY:
+                self._cursor_visible = False
+                pygame.mouse.set_visible(False)
