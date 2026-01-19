@@ -10,11 +10,7 @@ def clamp(raw: float, min_val: float, max_val: float) -> float:
 
 
 def color_to_hex(color: Tuple[int, int, int]) -> str:
-    hex_color = "#"
-    for item in color:
-        hex_color += hex(item)[2:].upper().zfill(2)
-
-    return hex_color
+    return "#" + "".join(f"{c:02X}" for c in color)
 
 
 def is_int(number: str) -> bool:
@@ -22,5 +18,5 @@ def is_int(number: str) -> bool:
         int(number)
         return True
 
-    except Exception:
+    except ValueError:
         return False
