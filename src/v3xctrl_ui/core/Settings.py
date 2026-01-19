@@ -137,6 +137,7 @@ class Settings:
     def __init__(self, path: str = None) -> None:
         if path is not None:
             self.path = Path(path)
+            self.path.parent.mkdir(parents=True, exist_ok=True)
         else:
             config_dir = Path(user_config_dir("v3xctrl-viewer"))
             config_dir.mkdir(parents=True, exist_ok=True)

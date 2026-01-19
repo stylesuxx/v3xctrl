@@ -96,7 +96,7 @@ class AppState:
         self.menu.hide()
 
         if new_settings is None:
-            new_settings = Settings()
+            new_settings = Settings(str(self.settings.path))
             new_settings.save()
 
         self.settings_controller.update_settings(new_settings)

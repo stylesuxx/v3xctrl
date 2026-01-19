@@ -73,6 +73,28 @@ class TestSettings(unittest.TestCase):
         settings.delete("debug")
         self.assertNotIn("debug", settings.settings)
 
+    def test_custom_path_creates_parent_directories(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            nested_path = Path(tmpdir) / "nested" / "dir" / "config.toml"
+            settings = Settings(str(nested_path))
+            self.assertTrue(nested_path.exists())
+            self.assertEqual(settings.path, nested_path)
+
+    def test_custom_path_creates_file_with_defaults(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = Path(tmpdir) / "custom_config.toml"
+            self.assertFalse(config_path.exists())
+            settings = Settings(str(config_path))
+            self.assertTrue(config_path.exists())
+            self.assertEqual(settings.get("debug"), True)
+            self.assertEqual(settings.get("timing").get("main_loop_fps"), 60)
+
+    def test_custom_path_preserves_path_attribute(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = Path(tmpdir) / "my_settings.toml"
+            settings = Settings(str(config_path))
+            self.assertEqual(settings.path, config_path)
+
 
 if __name__ == "__main__":
     pygame.init()

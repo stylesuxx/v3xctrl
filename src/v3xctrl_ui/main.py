@@ -25,6 +25,11 @@ parser.add_argument(
     action="store_true",
     help="Save logs to txt file."
 )
+parser.add_argument(
+    "--config",
+    default=None,
+    help="Path to custom config file. If not specified, uses default location."
+)
 
 args, unknown = parser.parse_known_args()
 
@@ -53,7 +58,7 @@ if args.mem_profile:
     mem_tracker = MemoryTracker(interval=10, top=5)
     mem_tracker.start()
 
-settings = Settings()
+settings = Settings(args.config)
 state = AppState(settings)
 
 while state.model.running:
