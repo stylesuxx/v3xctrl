@@ -53,7 +53,7 @@ class DisplayController:
                 base_path = Path(sys._MEIPASS)
             else:
                 # Running in normal Python environment
-                base_path = Path(__file__).parent.parent
+                base_path = Path(__file__).parent.parent.parent
 
             icon_path = base_path / "assets" / "images" / "logo.png"
             icon = pygame.image.load(str(icon_path))
