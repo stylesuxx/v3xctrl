@@ -86,7 +86,6 @@ class ControlServer:
             while self.running:
                 try:
                     client_socket, _ = self.server_socket.accept()
-                    logging.info("Client connected")
 
                     # Handle client in separate thread
                     client_thread = threading.Thread(

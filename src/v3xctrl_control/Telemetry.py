@@ -7,7 +7,7 @@ The only public interface is the get_telemetry() method.
 from atlib import AIR780EU
 from dataclasses import asdict
 import logging
-from typing import Dict, Optional, Any
+from typing import Callable, Dict, Optional, Any, TypeVar
 import threading
 import time
 
@@ -22,6 +22,8 @@ from v3xctrl_telemetry import (
     BatteryInfo,
     TelemetryPayload
 )
+
+T = TypeVar("T")
 
 
 class Telemetry(threading.Thread):
@@ -54,34 +56,45 @@ class Telemetry(threading.Thread):
         self._modem: Optional[AIR780EU] = None
         self._init_modem()
 
-        self._battery = None
-        try:
-            self._battery = BatteryTelemetry(
+        self._battery = self._init_component(
+            "Battery",
+            lambda: BatteryTelemetry(
                 battery_min_voltage,
                 battery_max_voltage,
                 battery_warn_voltage,
                 battery_i2c_address
             )
-        except Exception as e:
-            logging.warning("Failed to initialize battery sensor: %s", e)
+        )
+        self._services = self._init_component("service", ServiceTelemetry)
+        self._videocore = self._init_component("VideoCore", VideoCoreTelemetry)
+        self._gst = self._init_component("GST", GstTelemetry)
 
-        self._services = None
-        try:
-            self._services = ServiceTelemetry()
-        except Exception as e:
-            logging.warning("Failed to initialize service telemetry: %s", e)
+    def get_telemetry(self) -> Dict[str, Any]:
+        with self._lock:
+            return asdict(self.payload)
 
-        self._videocore = None
-        try:
-            self._videocore = VideoCoreTelemetry()
-        except Exception as e:
-            logging.warning("Failed to initialize VideoCore telemetry: %s", e)
+    def run(self) -> None:
+        self._running.set()
+        while self._running.is_set():
+            self._update_signal()
+            self._update_cell()
+            self._update_battery()
+            self._update_services()
+            self._update_videocore()
+            self._update_gst()
 
-        self._gst = None
+            time.sleep(self._interval)
+
+    def stop(self) -> None:
+        self._running.clear()
+
+    def _init_component(self, name: str, factory: Callable[[], T]) -> Optional[T]:
         try:
-            self._gst = GstTelemetry()
+            return factory()
+
         except Exception as e:
-            logging.warning("Failed to initialize GST telemetry: %s", e)
+            logging.warning("Failed to initialize %s telemetry: %s", name, e)
+            return None
 
     def _init_modem(self) -> bool:
         try:
@@ -190,22 +203,3 @@ class Telemetry(threading.Thread):
                 logging.debug("Failed to update GST telemetry: %s", e)
                 with self._lock:
                     self.payload.gst = 0
-
-    def run(self) -> None:
-        self._running.set()
-        while self._running.is_set():
-            self._update_signal()
-            self._update_cell()
-            self._update_battery()
-            self._update_services()
-            self._update_videocore()
-            self._update_gst()
-
-            time.sleep(self._interval)
-
-    def get_telemetry(self) -> Dict[str, Any]:
-        with self._lock:
-            return asdict(self.payload)
-
-    def stop(self) -> None:
-        self._running.clear()

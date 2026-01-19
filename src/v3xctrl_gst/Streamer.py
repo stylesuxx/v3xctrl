@@ -1,9 +1,7 @@
 import logging
-import os
 import sys
 from threading import Event
 import time
-from datetime import datetime
 from typing import Optional, Dict, Any
 
 import gi
@@ -12,6 +10,8 @@ from gi.repository import Gst, GLib
 
 from v3xctrl_gst.SourceRegistry import SourceRegistry
 from v3xctrl_gst.ControlServer import ControlServer
+from v3xctrl_gst.RecordingManager import RecordingManager
+from v3xctrl_gst.QPManager import QPManager
 
 
 class Streamer:
@@ -59,7 +59,7 @@ class Streamer:
             # Encoder (via CAPS)
             'h264_profile': "high",
             'h264_level': "4.1",
-            'capture_io_mode':  4,
+            'capture_io_mode': 4,
 
             # via extra-controls
             'bitrate_mode': 1,  # 0 VBR, 1: CBR
@@ -88,37 +88,17 @@ class Streamer:
             # Sensor mode control
             'sensor_mode_width': 0,
             'sensor_mode_height': 0,
-            # 'sensor_mode_width': 2304,
-            # 'sensor_mode_height': 1296,
         }
 
         self.settings: Dict[str, Any] = default_settings.copy()
         if settings:
             self.settings.update(settings)
 
-        self.max_i_frame_bytes = self.settings['max_i_frame_bytes']
-
-        self.qp_min_limit = self.settings['h264_minimum_qp_value']
-        self.qp_max_limit = self.settings['h264_maximum_qp_value']
-        self.current_qp_min = self.qp_min_limit
-
-        lower_limit_percent = 0.85
-        self.min_i_frame_bytes = self.max_i_frame_bytes * lower_limit_percent
-        self.target_i_frame_bytes = (self.max_i_frame_bytes + self.min_i_frame_bytes) / 2
-
-        # Fixed QP adjustment parameters
-        self.qp_adjust_min_step = 1
-        self.qp_adjust_max_step = 5
-        self.qp_adjust_cooldown = 10
-        self.frames_since_qp_adjust = 0
+        logging.debug(self.settings)
 
         self.pipeline: Optional[Gst.Pipeline] = None
         self.loop: Optional[GLib.MainLoop] = None
         self.bus: Optional[Gst.Bus] = None
-
-        self.is_recording = False
-        self.recording_elements = {}  # Store recording branch elements
-        self.recording_tee_pad = None  # Store the tee src pad for recording
 
         Gst.init(None)
         self.control_server = ControlServer(self, control_socket)
@@ -130,6 +110,21 @@ class Streamer:
         if not self._build_pipeline():
             logging.error("Failed to build pipeline")
             sys.exit(1)
+
+        self.recording_manager = RecordingManager(
+            pipeline=self.pipeline,
+            tee=self.get_element("t"),
+            recording_dir=self.settings['recording_dir'],
+            sizebuffers=self.settings['sizebuffers_write'],
+            on_queue_overrun=self._on_queue_overrun
+        )
+
+        self.qp_manager = QPManager(
+            encoder=self.get_element("encoder"),
+            max_i_frame_bytes=self.settings['max_i_frame_bytes'],
+            qp_min=self.settings['h264_minimum_qp_value'],
+            qp_max=self.settings['h264_maximum_qp_value'],
+        )
 
         self.bus = self.pipeline.get_bus()
         self.bus.add_signal_watch()
@@ -152,8 +147,8 @@ class Streamer:
 
     def stop(self) -> None:
         """Stop the pipeline and quit the main loop."""
-        if self.is_recording:
-            self.stop_recording()
+        if self.recording_manager.is_recording:
+            self.recording_manager.stop()
 
         if self.control_server:
             self.control_server.stop()
@@ -319,189 +314,16 @@ class Streamer:
 
     def get_stats(self) -> Dict[str, Any]:
         return {
-            'recording': self.is_recording,
-            'qp_min': self.current_qp_min,
-            'qp_max': self.qp_max_limit,
+            'recording': self.recording_manager.is_recording,
+            'qp_min': self.qp_manager.current_qp_min,
+            'qp_max': self.qp_manager.qp_max,
         }
 
     def start_recording(self) -> bool:
-        """
-        Dynamically start recording by adding a recording branch to the pipeline.
-
-        Returns:
-            True if recording started successfully, False otherwise
-        """
-        if self.is_recording:
-            logging.warning("Recording is already active")
-            return False
-
-        if not self.settings['recording_dir']:
-            logging.error("Recording directory not configured")
-            return False
-
-        # Ensure recording directory exists
-        os.makedirs(self.settings['recording_dir'], exist_ok=True)
-
-        timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
-        filename = f"{self.settings['recording_dir']}/stream-{timestamp}.ts"
-
-        tee = self.get_element("t")
-        if not tee:
-            logging.error("Tee element not found")
-            return False
-
-        queue_rec = Gst.ElementFactory.make("queue", "queue_rec")
-        if not queue_rec:
-            logging.error("Failed to create recording queue")
-            return False
-
-        queue_rec.set_property("max-size-buffers", self.settings['sizebuffers_write'])
-        queue_rec.set_property("leaky", 2)  # Downstream
-        queue_rec.connect("overrun", self._on_queue_overrun)
-
-        parser = Gst.ElementFactory.make("h264parse", "parser")
-        if not parser:
-            logging.error("Failed to create h264parse")
-            return False
-
-        muxer = Gst.ElementFactory.make("mpegtsmux", "muxer")
-        if not muxer:
-            logging.error("Failed to create mpegtsmux")
-            return False
-
-        filesink = Gst.ElementFactory.make("filesink", "filesink")
-        if not filesink:
-            logging.error("Failed to create filesink")
-            return False
-
-        filesink.set_property("location", filename)
-        filesink.set_property("sync", False)
-        filesink.set_property("async", False)
-
-        self.recording_elements = {
-            'queue': queue_rec,
-            'parser': parser,
-            'muxer': muxer,
-            'filesink': filesink,
-            'filename': filename
-        }
-
-        self.pipeline.add(queue_rec)
-        self.pipeline.add(parser)
-        self.pipeline.add(muxer)
-        self.pipeline.add(filesink)
-
-        tee_src_pad = tee.request_pad_simple("src_%u")
-        if not tee_src_pad:
-            logging.error("Failed to request pad from tee")
-            self._cleanup_recording_elements()
-            return False
-
-        self.recording_tee_pad = tee_src_pad
-
-        queue_sink_pad = queue_rec.get_static_pad("sink")
-        if tee_src_pad.link(queue_sink_pad) != Gst.PadLinkReturn.OK:
-            logging.error("Failed to link tee to queue_rec")
-            self._cleanup_recording_elements()
-            return False
-
-        if not queue_rec.link(parser):
-            logging.error("Failed to link queue_rec to parser")
-            self._cleanup_recording_elements()
-            return False
-
-        if not parser.link(muxer):
-            logging.error("Failed to link parser to muxer")
-            self._cleanup_recording_elements()
-            return False
-
-        if not muxer.link(filesink):
-            logging.error("Failed to link muxer to filesink")
-            self._cleanup_recording_elements()
-            return False
-
-        # Sync element states with pipeline
-        queue_rec.sync_state_with_parent()
-        parser.sync_state_with_parent()
-        muxer.sync_state_with_parent()
-        filesink.sync_state_with_parent()
-
-        self.is_recording = True
-        logging.info(f"Recording started: {filename}")
-        return True
+        return self.recording_manager.start()
 
     def stop_recording(self) -> bool:
-        """
-        Dynamically stop recording by removing the recording branch from the pipeline.
-
-        Returns:
-            True if recording stopped successfully, False otherwise
-        """
-        if not self.is_recording:
-            logging.warning("Recording is not active")
-            return False
-
-        tee = self.get_element("t")
-        if not tee:
-            logging.error("Tee element not found")
-            return False
-
-        # Send EOS to the recording queue to flush all buffers
-        queue_rec = self.recording_elements.get('queue')
-        if queue_rec:
-            queue_rec_pad = queue_rec.get_static_pad("sink")
-            if queue_rec_pad:
-                queue_rec_pad.send_event(Gst.Event.new_eos())
-
-        # Set recording elements to NULL state
-        # This blocks until EOS is processed and all buffers are flushed
-        for element_name, element in self.recording_elements.items():
-            if element_name == 'filename':
-                continue
-            if isinstance(element, Gst.Element):
-                element.set_state(Gst.State.NULL)
-
-        # Unlink and release the tee pad
-        if self.recording_tee_pad:
-            queue_sink_pad = self.recording_elements['queue'].get_static_pad("sink")
-            if queue_sink_pad:
-                self.recording_tee_pad.unlink(queue_sink_pad)
-
-            tee.release_request_pad(self.recording_tee_pad)
-            self.recording_tee_pad = None
-
-        # Remove elements from pipeline
-        for element_name, element in self.recording_elements.items():
-            if element_name == 'filename':
-                continue
-            if isinstance(element, Gst.Element):
-                self.pipeline.remove(element)
-
-        filename = self.recording_elements.get('filename', 'unknown')
-        logging.info(f"Recording stopped: {filename}")
-
-        self.recording_elements = {}
-        self.is_recording = False
-
-        return True
-
-    def _cleanup_recording_elements(self) -> None:
-        """Clean up recording elements if setup fails."""
-        if self.recording_tee_pad:
-            tee = self.get_element("t")
-            if tee:
-                tee.release_request_pad(self.recording_tee_pad)
-            self.recording_tee_pad = None
-
-        for element_name, element in self.recording_elements.items():
-            if element_name == 'filename':
-                continue
-            if isinstance(element, Gst.Element):
-                element.set_state(Gst.State.NULL)
-                if element.get_parent():
-                    self.pipeline.remove(element)
-
-        self.recording_elements = {}
+        return self.recording_manager.stop()
 
     def _on_message(self, bus: Gst.Bus, message: Gst.Message) -> None:
         """
@@ -705,15 +527,11 @@ class Streamer:
         pts = buffer.pts
 
         is_keyframe = not buffer.has_flags(Gst.BufferFlags.DELTA_UNIT)
-        if is_keyframe:
+
+        if is_keyframe and self.settings['enable_i_frame_adjust']:
             size = buffer.get_size()
             logging.debug(f"i-frame: {size/1024:.1f} KB at PTS {pts/Gst.SECOND:.3f}s")
-
-            # Adaptive QP adjustment based on I-frame size
-            if self.settings['enable_i_frame_adjust']:
-                if self.frames_since_qp_adjust >= self.qp_adjust_cooldown:
-                    self._adjust_qp_based_on_i_frame_size(size)
-                    self.frames_since_qp_adjust = 0
+            self.qp_manager.on_keyframe(size)
 
         if self.last_buffer_pts is not None:
             delta = (pts - self.last_buffer_pts) / Gst.SECOND
@@ -725,7 +543,6 @@ class Streamer:
 
         self.last_buffer_pts = pts
         self.frame_count += 1
-        self.frames_since_qp_adjust += 1
 
         return Gst.PadProbeReturn.OK
 
@@ -744,62 +561,3 @@ class Streamer:
 
         self.last_camera_pts = pts
         return Gst.PadProbeReturn.OK
-
-    def _adjust_qp_based_on_i_frame_size(self, i_frame_size: int) -> None:
-        """
-        Adjust minimum QP based on I-frame size to control bandwidth spikes.
-        Uses adaptive step size based on how far the I-frame is from target.
-
-        Args:
-            i_frame_size: Size of the I-frame in bytes
-        """
-        if (
-            i_frame_size <= self.max_i_frame_bytes and
-            i_frame_size >= self.min_i_frame_bytes
-        ):
-            # Within acceptable range, no adjustment
-            return
-
-        size_ratio = i_frame_size / self.target_i_frame_bytes
-
-        # Calculate adaptive step size based on ratio
-        calculated_step = int(size_ratio)
-        step_size = min(max(calculated_step, self.qp_adjust_min_step), self.qp_adjust_max_step)
-
-        new_qp_min = self.current_qp_min
-
-        if i_frame_size > self.max_i_frame_bytes:
-            # Increase min QP (more compression, lower quality)
-            new_qp_min = min(self.current_qp_min + step_size, self.qp_max_limit)
-            action = "increased"
-
-        elif i_frame_size < self.min_i_frame_bytes:
-            # Decrease min QP (less compression, better quality)
-            new_qp_min = max(self.current_qp_min - step_size, self.qp_min_limit)
-            action = "decreased"
-
-        if new_qp_min != self.current_qp_min:
-            self.current_qp_min = new_qp_min
-
-            encoder = self.get_element("encoder")
-            if encoder:
-                try:
-                    encoder_controls = (
-                        f"controls,"
-                        f"h264_minimum_qp_value={self.current_qp_min},"
-                        f"h264_maximum_qp_value={self.settings['h264_maximum_qp_value']}"
-                    )
-
-                    encoder.set_property("extra-controls",
-                        Gst.Structure.from_string(encoder_controls)[0])
-
-                    logging.info(
-                        f"QP min {action} by {step_size} to {self.current_qp_min} "
-                        f"(I-frame: {i_frame_size / 1024:.1f}KB, "
-                        f"target: {self.target_i_frame_bytes / 1024:.1f}KB, "
-                        f"range: {self.min_i_frame_bytes / 1024:.1f}-{self.max_i_frame_bytes / 1024:.1f}KB, "
-                        f"ratio: {size_ratio:.2f})"
-                    )
-
-                except Exception as e:
-                    logging.error(f"Failed to adjust QP: {e}")

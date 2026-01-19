@@ -162,7 +162,7 @@ d. Nothing in this Public License constitutes or may be interpreted as a limitat
 
 This section clarifies how we interpret **"NonCommercial"** under the [Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)] license applied to this project. It is provided for transparency and guidance.
 
-Use cases that fall outside of traditional commercial exploitation (such as monetized streams) are considered acceptable under the license. However, other types of use — especially redistribution or integration into paid products or services — require a commercial license.
+Use cases that fall outside of traditional commercial exploitation (such as monetized streams) are considered acceptable under the license. However, other types of use - especially redistribution or integration into paid products or services - require a commercial license.
 
 The software/content licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0) is intended for non-commercial use only. If you would like to use this project, or parts of it, in a commercial context (e.g., in a product, service, or for-profit project), you must obtain a separate commercial license.
 
@@ -172,6 +172,8 @@ The following use cases are permitted under the non-commercial license:
 * Public demonstrations or exhibitions not involving direct sale
 * Personal projects, even if publicly shared or promoted
 * Use in educational or research settings
+* Internal business use (e.g., company hobby projects, internal tools)
+* Freelance/consulting work, provided the final product for the client is not used commercially
 
 ## Restricted Use (Requires a Commercial License)
 The following uses require a separate commercial license:
@@ -179,3 +181,5 @@ The following uses require a separate commercial license:
 * Integration into commercial software or hardware
 * Use in a service provided to clients or customers for a fee
 * Any redistribution where the software is used as a feature or value proposition of a paid offering
+
+To inquire about commercial licensing, contact: stylesuxx@gmail.com
