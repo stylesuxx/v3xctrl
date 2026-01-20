@@ -130,9 +130,9 @@ class TestOSD(unittest.TestCase):
 
     def test_set_spectator_mode(self):
         self.osd.set_spectator_mode(True)
-        self.assertTrue(self.osd.is_spectator_mode)
+        self.assertTrue(self.osd.is_spectator)
         self.osd.set_spectator_mode(False)
-        self.assertFalse(self.osd.is_spectator_mode)
+        self.assertFalse(self.osd.is_spectator)
 
     def test_latency_update_in_spectator_mode(self):
         self.osd.set_spectator_mode(True)

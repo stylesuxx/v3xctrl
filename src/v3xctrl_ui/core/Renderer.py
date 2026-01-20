@@ -35,7 +35,7 @@ class Renderer:
     def render_all(
         self,
         state: 'AppState',
-        network_manager: NetworkController,
+        network_controller: NetworkController,
         fullscreen: bool = False,
         scale: float = 1.0,
     ) -> None:
@@ -47,24 +47,24 @@ class Renderer:
         self.center_x = screen_size[0] // 2
         self.center_y = screen_size[1] // 2
 
-        frame = self._get_video_frame(network_manager)
+        frame = self._get_video_frame(network_controller)
         if frame is not None:
             self._render_video_frame(state.screen, frame)
         else:
-            self._render_no_video_signal(state.screen, network_manager.relay_status_message)
+            self._render_no_video_signal(state.screen, network_controller.relay_status_message)
 
             if not state.model.control_connected:
                 self._render_no_control_signal(state.screen)
 
-            if network_manager.relay_enable:
+            if network_controller.relay_enable:
                 self._render_status(
-                    network_manager.relay_status_message.upper(),
+                    network_controller.relay_status_message.upper(),
                     (self.center_x - 6, self.center_y - 110),
                     state.screen
                 )
 
-        self._render_overlay_data(state, network_manager)
-        self._render_errors(state.screen, network_manager)
+        self._render_overlay_data(state, network_controller)
+        self._render_errors(state.screen, network_controller)
         self._render_menu(state.screen, state.menu)
 
         pygame.display.flip()

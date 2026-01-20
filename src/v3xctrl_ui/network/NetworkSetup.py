@@ -1,4 +1,3 @@
-"""Network setup orchestration with clear result types and error handling."""
 import logging
 import socket
 import time
@@ -7,7 +6,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from v3xctrl_control import Server
 from v3xctrl_control.State import State
-from v3xctrl_helper.exceptions import PeerRegistrationError
+from v3xctrl_helper.exceptions import PeerRegistrationError, PeerRegistrationAborted
 from v3xctrl_udp_relay.Peer import Peer
 
 from v3xctrl_ui.network.VideoReceiverPyAV import VideoReceiverPyAV as VideoReceiver
@@ -20,7 +19,6 @@ class RelaySetupResult:
     success: bool
     video_address: Optional[Tuple[str, int]] = None
     error_message: Optional[str] = None
-    peer: Optional[Peer] = None
 
 
 @dataclass
@@ -58,14 +56,88 @@ class NetworkSetupResult:
 
 
 class NetworkSetup:
-    """Orchestrates network component setup with clear error handling."""
+    """Orchestrates network component setup with clear error handling.
+
+    This happens in three steps
+    1. Relay setup (optional): If relay is enabled, this established connection
+       to the relay. This blocks until one of the following conditions is met
+       * Relay replies with PeerInfo
+       * Peer announcement is aborted (for example by switching to direct mode)
+       * Peer registration fails (for example because of wrong session/spectator
+         ID)
+    2. Video receiver setup: This step is triggered in any case, no matter if
+       direct or relay connection. Video receiver is started in the background
+       and runs in a separate thread.
+    3. Control channel setup: This step is also triggered in both cases and sets
+       up the bi-directional control channel for sending control and receiving
+       telemetry. Runs in a separate thread like the video receiver
+    """
 
     def __init__(self, settings: Settings):
         self.settings = settings
         self.ports = settings.get("ports", {})
         self.video_port = self.ports.get("video")
         self.control_port = self.ports.get("control")
+        self._peer: Optional[Peer] = None
 
+    def abort(self) -> None:
+        """Abort any in-progress relay setup."""
+        if self._peer:
+            self._peer.abort()
+
+    def orchestrate_setup(
+        self,
+        relay_config: Optional[Dict[str, Any]],
+        handlers: Dict[str, Any],
+    ) -> NetworkSetupResult:
+        """
+        Orchestrate complete network setup.
+
+        Args:
+            relay_config: Optional relay configuration with keys:
+                         'server', 'port', 'id'. If None, no relay used.
+            handlers: Dictionary with 'messages' and 'states' handler lists
+
+        Returns:
+            NetworkSetupResult with all setup results
+        """
+        result = NetworkSetupResult()
+
+        # Step 1: Setup relay if configured
+        video_address = None
+        spectator_mode = False
+        if relay_config:
+            spectator_mode = relay_config.get('spectator_mode', False)
+            relay_result = self.setup_relay(
+                relay_config['server'],
+                relay_config['port'],
+                relay_config['id'],
+                spectator_mode
+            )
+            result.relay_result = relay_result
+
+            # Connection attempt to relay aborted or failed, no need to continue
+            if not relay_result.success:
+                return result
+
+            video_address = relay_result.video_address
+
+        # Step 2: Create keep-alive callback and setup video receiver
+        keep_alive_callback = self.create_keep_alive_callback(video_address)
+        video_result = self.setup_video_receiver(keep_alive_callback)
+        result.video_receiver_result = video_result
+
+        # Step 3: Setup control server
+        server_result = self.setup_server(
+            handlers.get("messages", []),
+            handlers.get("states", []),
+            spectator_mode
+        )
+        result.server_result = server_result
+
+        return result
+
+    # Step 1
     def setup_relay(
         self,
         relay_server: str,
@@ -90,28 +162,31 @@ class NetworkSetup:
             "control": self.control_port
         }
 
-        peer = Peer(relay_server, relay_port, relay_id)
+        self._peer = Peer(relay_server, relay_port, relay_id)
+
         try:
             role = "spectator" if spectator_mode else "viewer"
-            addresses = peer.setup(role, local_bind_ports)
+            addresses = self._peer.setup(role, local_bind_ports)
             video_address = addresses["video"]
-            logging.info(f"Relay peer setup successful, video address: {video_address}")
 
             return RelaySetupResult(
                 success=True,
                 video_address=video_address,
-                peer=peer
             )
 
-        except PeerRegistrationError as e:
-            error_msg = "Peer registration failed - check server and ID!"
-            logging.error(f"Peer registration failed: {e}")
-
+        except PeerRegistrationAborted:
             return RelaySetupResult(
                 success=False,
-                error_message=error_msg
+                error_message="Registration aborted",
             )
 
+        except PeerRegistrationError:
+            return RelaySetupResult(
+                success=False,
+                error_message="Peer registration failed - check server and ID!",
+            )
+
+    # Step 2.a
     def create_keep_alive_callback(
         self,
         video_address: Optional[Tuple[str, int]]
@@ -151,6 +226,7 @@ class NetworkSetup:
 
         return keep_alive
 
+    # Step 2.b
     def setup_video_receiver(
         self,
         error_callback: Callable[[], None]
@@ -172,7 +248,6 @@ class NetworkSetup:
                 render_ratio=render_ratio
             )
             video_receiver.start()
-            logging.info("Video receiver started")
 
             return VideoReceiverSetupResult(
                 success=True,
@@ -180,12 +255,12 @@ class NetworkSetup:
             )
 
         except Exception as e:
-            logging.error(f"Video receiver setup failed: {e}")
             return VideoReceiverSetupResult(
                 success=False,
                 error=e
             )
 
+    # Step 3
     def setup_server(
         self,
         message_handlers: List[Tuple[Any, Callable]],
@@ -218,7 +293,6 @@ class NetworkSetup:
                 server.state = State.SPECTATING
 
             server.start()
-            logging.info("Control server started")
 
             return ServerSetupResult(
                 success=True,
@@ -231,59 +305,8 @@ class NetworkSetup:
                 if e.errno == 98
                 else f"Server error: {str(e)}"
             )
-            logging.error(f"Server setup failed: {error_msg}")
+
             return ServerSetupResult(
                 success=False,
                 error_message=error_msg
             )
-
-    def orchestrate_setup(
-        self,
-        relay_config: Optional[Dict[str, Any]],
-        handlers: Dict[str, Any],
-        peer_callback: Optional[Callable[[Peer], None]] = None
-    ) -> NetworkSetupResult:
-        """
-        Orchestrate complete network setup.
-
-        Args:
-            relay_config: Optional relay configuration with keys:
-                         'server', 'port', 'id'. If None, no relay used.
-            handlers: Dictionary with 'messages' and 'states' handler lists
-
-        Returns:
-            NetworkSetupResult with all setup results
-        """
-        result = NetworkSetupResult()
-
-        # Step 1: Setup relay if configured
-        video_address = None
-        spectator_mode = False
-        if relay_config:
-            spectator_mode = relay_config.get('spectator_mode', False)
-            relay_result = self.setup_relay(
-                relay_config['server'],
-                relay_config['port'],
-                relay_config['id'],
-                spectator_mode
-            )
-            result.relay_result = relay_result
-
-            if relay_result.success:
-                video_address = relay_result.video_address
-
-        # Step 2: Create keep-alive callback and setup video receiver
-        keep_alive_callback = self.create_keep_alive_callback(video_address)
-        video_result = self.setup_video_receiver(keep_alive_callback)
-        result.video_receiver_result = video_result
-
-        # Step 3: Setup control server
-        server_result = self.setup_server(
-            handlers.get("messages", []),
-            handlers.get("states", []),
-            spectator_mode
-        )
-        result.server_result = server_result
-
-        logging.info("Network setup complete.")
-        return result

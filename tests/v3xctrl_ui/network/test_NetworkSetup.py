@@ -56,8 +56,10 @@ class TestNetworkSetup(unittest.TestCase):
         # Verify successful result
         self.assertTrue(result.success)
         self.assertEqual(result.video_address, ("1.2.3.4", 1234))
-        self.assertEqual(result.peer, mock_peer)
         self.assertIsNone(result.error_message)
+
+        # Verify peer was stored internally
+        self.assertEqual(setup._peer, mock_peer)
 
         # Verify peer was called correctly
         self.mock_peer_cls.assert_called_once_with("relay.example.com", 8080, "test123")
@@ -80,7 +82,6 @@ class TestNetworkSetup(unittest.TestCase):
         # Verify error result
         self.assertFalse(result.success)
         self.assertIsNone(result.video_address)
-        self.assertIsNone(result.peer)
         self.assertIn("registration failed", result.error_message.lower())
 
     def test_create_keep_alive_callback_with_address(self):
@@ -251,6 +252,28 @@ class TestNetworkSetup(unittest.TestCase):
         # Verify no errors
         self.assertFalse(result.has_errors)
 
+    def test_abort_with_peer(self):
+        """Test abort() when peer exists."""
+        setup = NetworkSetup(self.settings)
+
+        # Mock peer
+        mock_peer = MagicMock()
+        setup._peer = mock_peer
+
+        setup.abort()
+
+        mock_peer.abort.assert_called_once()
+
+    def test_abort_without_peer(self):
+        """Test abort() when no peer exists."""
+        setup = NetworkSetup(self.settings)
+
+        # No peer set
+        self.assertIsNone(setup._peer)
+
+        # Should not raise exception
+        setup.abort()
+
     def test_orchestrate_setup_with_relay(self):
         """Test complete setup orchestration with relay."""
         setup = NetworkSetup(self.settings)
@@ -281,6 +304,9 @@ class TestNetworkSetup(unittest.TestCase):
         self.assertIsNotNone(result.relay_result)
         self.assertTrue(result.relay_result.success)
         self.assertEqual(result.relay_result.video_address, ("1.2.3.4", 1234))
+
+        # Verify peer was stored internally
+        self.assertEqual(setup._peer, mock_peer)
 
         # Verify video receiver success
         self.assertTrue(result.video_receiver_result.success)
@@ -343,6 +369,38 @@ class TestNetworkSetup(unittest.TestCase):
             video_receiver_result=VideoReceiverSetupResult(success=True),
             server_result=ServerSetupResult(success=False, error_message="Failed")
         )
+        self.assertTrue(result.has_errors)
+
+    def test_orchestrate_setup_relay_failure_returns_early(self):
+        """Test that orchestrate_setup returns early when relay fails."""
+        setup = NetworkSetup(self.settings)
+
+        # Mock peer to raise PeerRegistrationError
+        mock_peer = MagicMock()
+        mock_peer.setup.side_effect = PeerRegistrationError({}, {})
+        self.mock_peer_cls.return_value = mock_peer
+
+        relay_config = {
+            'server': 'relay.example.com',
+            'port': 8080,
+            'id': 'badid'
+        }
+        handlers = {
+            "messages": [],
+            "states": []
+        }
+
+        result = setup.orchestrate_setup(relay_config, handlers)
+
+        # Verify relay failed
+        self.assertIsNotNone(result.relay_result)
+        self.assertFalse(result.relay_result.success)
+
+        # Verify video receiver and server were NOT started (early return)
+        self.assertIsNone(result.video_receiver_result)
+        self.assertIsNone(result.server_result)
+
+        # Verify has_errors is True
         self.assertTrue(result.has_errors)
 
 

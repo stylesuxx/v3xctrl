@@ -15,6 +15,15 @@ from v3xctrl_ui.osd.OSD import OSD
 
 
 class NetworkCoordinator:
+    """
+    NetworkCoordinator -> NetworkController -> NetworkSetup
+
+    Entry point for all things network:
+    * Sets up network controller
+    * Sends control messages, commands, latency checks
+    * Setup handlers for incoming messages and state changes
+    * Handles callbacks that should deferred to the main thread
+    """
     def __init__(
         self,
         model: ApplicationModel,
@@ -22,7 +31,8 @@ class NetworkCoordinator:
     ):
         self.model = model
         self.osd = osd
-        self.network_manager: Optional[NetworkController] = None
+
+        self.network_controller: Optional[NetworkController] = None
         self.restart_complete = threading.Event()
         self.on_connection_change: Optional[Callable[[bool], None]] = None
 
@@ -32,83 +42,92 @@ class NetworkCoordinator:
         # collects callbacks to be processed on the main thread.
         self._callback_queue: queue.Queue[Tuple[Callable, tuple]] = queue.Queue()
 
-    def create_network_manager(
+    def create_network_controller(
         self,
         settings: Settings
     ) -> NetworkController:
         handlers = self._create_handlers()
-        self.network_manager = NetworkController(settings, handlers)
+        return NetworkController(settings, handlers)
 
-        return self.network_manager
-
-    def setup_ports(self) -> None:
-        if self.network_manager:
-            self.network_manager.setup_ports()
-
-    def restart_network_manager(
+    def restart_network_controller(
         self,
         settings: Settings
     ) -> threading.Thread:
         def _restart() -> None:
-            """Background thread function to restart network manager."""
+            logging.info("[NetworkController] Restarting...")
             try:
-                logging.debug("Shutting down old network manager...")
-                if self.network_manager:
-                    self.network_manager.shutdown()
+                if self.network_controller:
+                    self.network_controller.shutdown()
 
-                logging.debug("Creating new network manager...")
-                self.create_network_manager(settings)
-                self.setup_ports()
+                self.network_controller = self.create_network_controller(settings)
+                self.network_controller.setup_ports()
 
-                # Wait for server to be ready (setup_ports runs async)
-                self._wait_for_server_ready()
+                logging.info("[NetworkController] Restart complete...")
 
             except Exception as e:
-                logging.error(f"Network manager restart failed: {e}")
+                logging.error(f"[NetworkController] Restart failed: {e}")
 
             finally:
                 self.restart_complete.set()
 
         return threading.Thread(target=_restart)
 
-    def _wait_for_server_ready(self, timeout: float = 10.0) -> bool:
-        """Wait for the server to be ready after port setup.
-
-        Args:
-            timeout: Maximum time to wait in seconds
-
-        Returns:
-            True if server is ready, False if timeout occurred
-        """
-        start = time.monotonic()
-        while time.monotonic() - start < timeout:
-            if (
-                self.network_manager and
-                (self.network_manager.server or self.network_manager.server_error)
-            ):
-                return True
-            time.sleep(0.1)
-
-        logging.warning("Timeout waiting for server to be ready")
-        return False
+    def setup_ports(self):
+        if self.network_controller:
+            self.network_controller.setup_ports()
 
     def send_control_message(self, throttle: float, steering: float) -> None:
         # Skip sending control messages in spectator mode
         if (
-            self.network_manager and
-            self.network_manager.relay_spectator_mode
+            self.network_controller and
+            self.network_controller.relay_spectator_mode
         ):
             return
 
         if (
-            self.network_manager and
-            self.network_manager.server and
-            not self.network_manager.server_error
+            self.network_controller and
+            self.network_controller.server and
+            not self.network_controller.server_error
         ):
-            self.network_manager.server.send(Control({
+            self.network_controller.server.send(Control({
                 "steering": steering,
                 "throttle": throttle,
             }))
+
+    def send_command(
+        self,
+        command: Command,
+        callback: Callable[[bool], None]
+    ) -> None:
+        # Skip sending commands in spectator mode
+        if (
+            self.network_controller and
+            self.network_controller.relay_spectator_mode
+        ):
+            logging.debug(f"Blocked command in spectator mode: {command}")
+            self._callback_queue.put((callback, (False,)))
+            return
+
+        if self.network_controller and self.network_controller.server:
+            # Wrap callback to defer execution to the main thread
+            def deferred_callback(result: bool) -> None:
+                self._callback_queue.put((callback, (result,)))
+
+            self.network_controller.server.send_command(command, deferred_callback)
+        else:
+            logging.error(f"Server is not set, cannot send command: {command}")
+            callback(False)
+
+    def send_latency_check(self) -> None:
+        # Skip latency checks in spectator mode
+        if (
+            self.network_controller and
+            self.network_controller.relay_spectator_mode
+        ):
+            return
+
+        if self.network_controller:
+            self.network_controller.send_latency_check()
 
     def process_callbacks(self) -> None:
         """Process pending callbacks on the main thread.
@@ -123,81 +142,46 @@ class NetworkCoordinator:
             except queue.Empty:
                 break
 
-    def send_command(
-        self,
-        command: Command,
-        callback: Callable[[bool], None]
-    ) -> None:
-        # Skip sending commands in spectator mode
-        if (
-            self.network_manager and
-            self.network_manager.relay_spectator_mode
-        ):
-            logging.debug(f"Blocked command in spectator mode: {command}")
-            self._callback_queue.put((callback, (False,)))
-            return
-
-        if self.network_manager and self.network_manager.server:
-            # Wrap callback to defer execution to the main thread
-            def deferred_callback(result: bool) -> None:
-                self._callback_queue.put((callback, (result,)))
-
-            self.network_manager.server.send_command(command, deferred_callback)
-        else:
-            logging.error(f"Server is not set, cannot send command: {command}")
-            callback(False)
-
-    def send_latency_check(self) -> None:
-        # Skip latency checks in spectator mode
-        if (
-            self.network_manager and
-            self.network_manager.relay_spectator_mode
-        ):
-            return
-
-        if self.network_manager:
-            self.network_manager.send_latency_check()
-
     def update_ttl(self, udp_ttl_ms: int) -> None:
-        if self.network_manager:
-            self.network_manager.update_ttl(udp_ttl_ms)
+        if self.network_controller:
+            self.network_controller.update_ttl(udp_ttl_ms)
 
     def get_data_queue_size(self) -> int:
-        if self.network_manager:
-            return self.network_manager.get_data_queue_size()
+        if self.network_controller:
+            return self.network_controller.get_data_queue_size()
 
         return 0
 
     def get_video_buffer_size(self) -> int:
         if (
-            self.network_manager and
-            self.network_manager.video_receiver
+            self.network_controller and
+            self.network_controller.video_receiver
         ):
-            return len(self.network_manager.video_receiver.frame_buffer)
+            return len(self.network_controller.video_receiver.frame_buffer)
 
         return 0
 
     def has_server_error(self) -> bool:
         return bool(
-            self.network_manager and
-            self.network_manager.server_error
+            self.network_controller and
+            self.network_controller.server_error
         )
 
     def is_control_connected(self) -> bool:
         return self.model.control_connected
 
-    def is_spectator_mode(self) -> bool:
+    def is_spectator(self) -> bool:
         return bool(
-            self.network_manager and
-            self.network_manager.relay_spectator_mode
+            self.network_controller and
+            self.network_controller.relay_spectator_mode
         )
 
     def shutdown(self) -> None:
-        if self.network_manager:
+        if self.network_controller:
             start = time.monotonic()
-            self.network_manager.shutdown()
+            self.network_controller.shutdown()
             delta = round(time.monotonic() - start)
-            logging.debug(f"Network manager shut down after {delta}s")
+            logging.debug(f"Network controller shut down after {delta}s")
 
     def _create_handlers(self) -> Dict[str, Any]:
         def update_connected(state: bool) -> None:

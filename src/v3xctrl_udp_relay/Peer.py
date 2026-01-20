@@ -6,7 +6,7 @@ from typing import Dict, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from v3xctrl_control.message import PeerAnnouncement, Message, PeerInfo, Error, Heartbeat
-from v3xctrl_helper.exceptions import UnauthorizedError, PeerRegistrationError
+from v3xctrl_helper.exceptions import UnauthorizedError, PeerRegistrationError, PeerRegistrationAborted
 from v3xctrl_helper import Address
 
 
@@ -139,9 +139,9 @@ class Peer:
             except Exception as e:
                 logging.debug(f"Error during {port_type} registration: {e}")
 
-            # Sleep a bit before trying again
-            time.sleep(self.ANNOUNCE_INTERVAL)
-            continue
+            # Sleep a bit before trying again, but check abort event periodically
+            if self._abort_event.wait(self.ANNOUNCE_INTERVAL):
+                break  # Abort was requested during sleep
 
         # If we reach here, registration was aborted
         raise InterruptedError(f"Registration aborted for {port_type}")
@@ -165,6 +165,13 @@ class Peer:
                     exceptions[port_type] = e
 
         if exceptions:
+            # Check if all failures were due to abort
+            all_aborted = all(
+                isinstance(exc, InterruptedError)
+                for exc in exceptions.values()
+            )
+            if all_aborted:
+                raise PeerRegistrationAborted()
             raise PeerRegistrationError(exceptions, results)
 
         return results
