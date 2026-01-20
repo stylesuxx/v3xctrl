@@ -11,9 +11,10 @@ fi
 
 usermod -aG render,video,dialout,systemd-journal,i2c,gpio $USER
 
-chown $USER:$USER "/etc/${NAME}"
-find "/etc/${NAME}" -maxdepth 1 -name '*.json' -exec chown $USER:$USER {} +
-chmod 640 "/etc/${NAME}/config.json"
+# Make sure user can write config dir and files (source of bind mount)
+chown $USER:$USER "/data/config"
+chown $USER:$USER "/data/config/config.json"
+chmod 640 "/data/config/config.json"
 
 # Grant capability to bind to privileged ports (port 80)
 setcap 'cap_net_bind_service=+ep' /opt/v3xctrl-python/bin/python3.11
