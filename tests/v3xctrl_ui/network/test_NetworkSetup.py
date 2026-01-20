@@ -101,10 +101,11 @@ class TestNetworkSetup(unittest.TestCase):
         self.mock_socket.socket.assert_called_once()
         mock_sock_instance.bind.assert_called_once_with(("0.0.0.0", 5000))
 
-        # Verify sendto was called 5 times
-        self.assertEqual(mock_sock_instance.sendto.call_count, 5)
+        # Verify sendto was called 3 times (retries = 3)
+        self.assertEqual(mock_sock_instance.sendto.call_count, 3)
         for call_args in mock_sock_instance.sendto.call_args_list:
-            self.assertEqual(call_args[0][0], b'SYN')
+            # Verify Heartbeat message is sent (msgpack encoded)
+            self.assertIsInstance(call_args[0][0], bytes)
             self.assertEqual(call_args[0][1], ("1.2.3.4", 1234))
 
         mock_sock_instance.close.assert_called_once()

@@ -67,7 +67,7 @@ class Receiver(ABC, threading.Thread):
     def __init__(
         self,
         port: int,
-        error_callback: Callable[[], None],
+        keep_alive: Callable[[], None],
         log_interval: int = 10,
         history_size: int = 100,
         max_frame_age_ms: int = 500,
@@ -77,7 +77,7 @@ class Receiver(ABC, threading.Thread):
         super().__init__()
 
         self.port = port
-        self.error_callback = error_callback
+        self.keep_alive = keep_alive
         self.log_interval = log_interval
         self.max_age_seconds = max_frame_age_ms / 1000
         self.target_fps = target_fps
@@ -196,7 +196,9 @@ class Receiver(ABC, threading.Thread):
         if log_data is not None:
             delta, length, target_buffer_size, frames_to_drop = log_data
             self.last_time = now
-            logging.debug(f"Delta: {delta}ms Buffer: {length}, Target: {target_buffer_size}, Dropping: {frames_to_drop}")
+            logging.debug(
+                f"Delta: {delta}ms Buffer: {length}, Target: {target_buffer_size}, Dropping: {frames_to_drop}"
+            )
 
         return result
 

@@ -15,11 +15,11 @@ from v3xctrl_ui.network.video.ReceiverPyAV import ReceiverPyAV
 class TestReceiverPyAVInit(unittest.TestCase):
 
     def test_initialization(self):
-        error_callback = Mock()
-        receiver = ReceiverPyAV(5600, error_callback)
+        keep_alive = Mock()
+        receiver = ReceiverPyAV(5600, keep_alive)
 
         self.assertEqual(receiver.port, 5600)
-        self.assertEqual(receiver.error_callback, error_callback)
+        self.assertEqual(receiver.keep_alive, keep_alive)
         self.assertTrue(str(receiver.sdp_path).endswith("rtp_5600.sdp"))
         self.assertIsNone(receiver.container)
         self.assertTrue(hasattr(receiver.container_lock, 'acquire'))
@@ -445,12 +445,67 @@ class TestReceiverPyAVMainLoop(unittest.TestCase):
 
             self.assertIsNone(self.receiver.frame)
 
+    def test_main_loop_calls_keep_alive_on_stream_end(self):
+        """Test that keep_alive is called when stream ends normally."""
+        mock_keep_alive = Mock()
+        self.receiver = ReceiverPyAV(5600, mock_keep_alive)
+        self.receiver.running = threading.Event()
+        self.receiver.running.set()
+
+        mock_container = Mock()
+        mock_stream = Mock(spec=av.VideoStream)
+        mock_stream.codec_context = Mock()
+        mock_stream.time_base = 1.0 / 90000
+        mock_container.streams.video = [mock_stream]
+
+        # Make demux return empty and stop immediately
+        def empty_demux(*args):
+            self.receiver.running.clear()
+            return []
+
+        mock_container.demux.side_effect = empty_demux
+
+        with patch('av.open', return_value=mock_container):
+            self.receiver._main_loop()
+
+            # Verify keep_alive was called after container closed
+            mock_keep_alive.assert_called_once()
+            mock_container.close.assert_called()
+
+    def test_main_loop_calls_keep_alive_on_stream_error(self):
+        """Test that keep_alive is called when stream fails with error."""
+        mock_keep_alive = Mock()
+        self.receiver = ReceiverPyAV(5600, mock_keep_alive)
+        self.receiver.running = threading.Event()
+        self.receiver.running.set()
+
+        mock_container = Mock()
+        mock_stream = Mock(spec=av.VideoStream)
+        mock_stream.codec_context = Mock()
+        mock_stream.time_base = 1.0 / 90000
+        mock_container.streams.video = [mock_stream]
+
+        # Make demux raise an AVError (simulates stream failure)
+        def error_demux(*args):
+            self.receiver.running.clear()
+            raise av.AVError(-1, "Stream decode error", "")
+
+        mock_container.demux.side_effect = error_demux
+
+        with patch('av.open', return_value=mock_container):
+            with patch('logging.warning'):
+                self.receiver._main_loop()
+
+                # Verify keep_alive was called after error
+                mock_keep_alive.assert_called_once()
+                mock_container.close.assert_called()
+
 
 class TestReceiverPyAVIntegration(unittest.TestCase):
 
     def test_full_lifecycle_with_mocked_av(self):
-        error_callback = Mock()
-        receiver = ReceiverPyAV(5600, error_callback)
+        keep_alive = Mock()
+        receiver = ReceiverPyAV(5600, keep_alive)
 
         mock_container = Mock()
         mock_stream = Mock(spec=av.VideoStream)
@@ -469,7 +524,7 @@ class TestReceiverPyAVIntegration(unittest.TestCase):
                         receiver.stop()
                         receiver.join()
 
-        error_callback.assert_not_called()
+        keep_alive.assert_not_called()
         mock_container.close.assert_called()
 
     def test_real_file_operations(self):

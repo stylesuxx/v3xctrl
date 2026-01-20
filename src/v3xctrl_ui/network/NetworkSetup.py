@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from v3xctrl_control import Server
+from v3xctrl_control.message import Heartbeat
 from v3xctrl_control.State import State
 from v3xctrl_helper.exceptions import PeerRegistrationError, PeerRegistrationAborted
 from v3xctrl_udp_relay.Peer import Peer
@@ -194,31 +195,38 @@ class NetworkSetup:
         """
         Create a keep-alive callback for relay connections.
 
+        This opens a new socket on the video port, so there must not be a socket
+        running on this port. Make sure to only call this function when PyAV or
+        whichever video receiver is in use does not have a socket connection
+        open.
+
         Args:
             video_address: Remote video address to send keep-alive packets to
 
         Returns:
-            Callable that sends keep-alive packets
+            Callable that sends keep-alive packets to video port
         """
         if not video_address:
             return lambda: None
 
         def keep_alive() -> None:
+            retries = 3
             sock = None
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 sock.bind(("0.0.0.0", self.video_port))
 
-                for i in range(5):
+                for i in range(retries):
                     try:
-                        sock.sendto(b'SYN', video_address)
+                        sock.sendto(Heartbeat().to_bytes(), video_address)
                         time.sleep(0.1)
                     except Exception as e:
-                        logging.warning(f"Poke {i+1}/5 failed: {e}")
+                        logging.warning(f"Poke {i+1}/{retries} failed: {e}")
 
             except Exception as e:
                 logging.error(f"Failed to poke peer: {e}", exc_info=True)
+
             finally:
                 if sock:
                     sock.close()
@@ -229,13 +237,13 @@ class NetworkSetup:
     # Step 2.b
     def setup_video_receiver(
         self,
-        error_callback: Callable[[], None]
+        keep_alive_callback: Callable[[], None]
     ) -> VideoReceiverSetupResult:
         """
         Setup video receiver.
 
         Args:
-            error_callback: Callback to invoke on video receiver error
+            keep_alive_callback: Callback to invoke when video stream ends/fails
 
         Returns:
             VideoReceiverSetupResult with receiver instance or error
@@ -244,7 +252,7 @@ class NetworkSetup:
             render_ratio = self.settings.get("video", {}).get("render_ratio", 0)
             video_receiver = VideoReceiver(
                 self.video_port,
-                error_callback,
+                keep_alive_callback,
                 render_ratio=render_ratio
             )
             video_receiver.start()

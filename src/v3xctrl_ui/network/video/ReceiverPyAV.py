@@ -28,7 +28,7 @@ class ReceiverPyAV(Receiver):
     def __init__(
         self,
         port: int,
-        error_callback: Callable[[], None],
+        keep_alive: Callable[[], None],
         log_interval: int = 10,
         history_size: int = 100,
         max_frame_age_ms: int = 500,
@@ -36,7 +36,7 @@ class ReceiverPyAV(Receiver):
     ) -> None:
         super().__init__(
             port,
-            error_callback,
+            keep_alive,
             log_interval,
             history_size,
             max_frame_age_ms,
@@ -157,6 +157,10 @@ class ReceiverPyAV(Receiver):
                     self.frame = None
 
                 self._close_container()
+
+                # Send keep-alive to maintain NAT hole when stream ends/fails
+                # This needs to happen after PyAV has freed the socket
+                self.keep_alive()
 
     def _cleanup(self) -> None:
         """Cleanup container and SDP file."""
