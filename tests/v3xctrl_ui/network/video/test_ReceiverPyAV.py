@@ -524,7 +524,8 @@ class TestReceiverPyAVIntegration(unittest.TestCase):
                         receiver.stop()
                         receiver.join()
 
-        keep_alive.assert_not_called()
+        # keep_alive is called in the finally block when stream ends
+        keep_alive.assert_called()
         mock_container.close.assert_called()
 
     def test_real_file_operations(self):
