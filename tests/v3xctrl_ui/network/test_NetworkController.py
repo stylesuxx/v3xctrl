@@ -2,7 +2,6 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from v3xctrl_ui.network.NetworkController import NetworkController
-from v3xctrl_helper.exceptions import PeerRegistrationError
 
 
 class TestNetworkController(unittest.TestCase):
@@ -36,10 +35,6 @@ class TestNetworkController(unittest.TestCase):
         self.peer_patcher = patch("v3xctrl_udp_relay.Peer.Peer")
         self.mock_peer_cls = self.peer_patcher.start()
 
-        self.get_ip_patcher = patch("v3xctrl_ui.network.NetworkController.get_external_ip")
-        self.mock_get_ip = self.get_ip_patcher.start()
-        self.mock_get_ip.return_value = "192.168.1.100"
-
         self.network_setup_patcher = patch("v3xctrl_ui.network.NetworkController.NetworkSetup")
         self.mock_network_setup_cls = self.network_setup_patcher.start()
         self.mock_network_setup = MagicMock()
@@ -55,32 +50,26 @@ class TestNetworkController(unittest.TestCase):
         self.server_patcher.stop()
         self.video_receiver_patcher.stop()
         self.peer_patcher.stop()
-        self.get_ip_patcher.stop()
         self.network_setup_patcher.stop()
         self.threading_patcher.stop()
 
     def test_initialization_relay_disabled(self):
-        """Test NetworkManager initialization with relay disabled."""
-        with patch('builtins.print') as mock_print:
-            nm = NetworkController(self.settings, self.handlers)
+        """Test NetworkController initialization with relay disabled."""
+        nm = NetworkController(self.settings, self.handlers)
 
-            self.assertEqual(nm.video_port, 5000)
-            self.assertEqual(nm.control_port, 6000)
-            self.assertEqual(nm.settings, self.settings)
-            self.assertEqual(nm.server_handlers, self.handlers)
+        self.assertEqual(nm.video_port, 5000)
+        self.assertEqual(nm.control_port, 6000)
+        self.assertEqual(nm.settings, self.settings)
+        self.assertEqual(nm.server_handlers, self.handlers)
 
-            # Initial state
-            self.assertIsNone(nm.video_receiver)
-            self.assertIsNone(nm.server)
-            self.assertIsNone(nm.server_error)
-            self.assertFalse(nm.relay_enable)
-
-            # Should print connection info
-            mock_print.assert_any_call("================================")
-            mock_print.assert_any_call("IP Address:   192.168.1.100")
+        # Initial state
+        self.assertIsNone(nm.video_receiver)
+        self.assertIsNone(nm.server)
+        self.assertIsNone(nm.server_error)
+        self.assertFalse(nm.relay_enable)
 
     def test_initialization_relay_enabled(self):
-        """Test NetworkManager initialization with relay enabled."""
+        """Test NetworkController initialization with relay enabled."""
         relay_settings = MagicMock()
         relay_settings.get.side_effect = lambda key, default=None: {
             "relay": {"enabled": True, "server": "relay.example.com:8080", "id": "test123"},
@@ -88,17 +77,13 @@ class TestNetworkController(unittest.TestCase):
             "udp_packet_ttl": 100
         }.get(key, default)
 
-        with patch('builtins.print') as mock_print:
-            nm = NetworkController(relay_settings, self.handlers)
+        nm = NetworkController(relay_settings, self.handlers)
 
-            # Relay should be configured
-            self.assertTrue(nm.relay_enable)
-            self.assertEqual(nm.relay_server, "relay.example.com")
-            self.assertEqual(nm.relay_port, 8080)
-            self.assertEqual(nm.relay_id, "test123")
-
-            # Should not print connection info when relay is enabled
-            mock_print.assert_not_called()
+        # Relay should be configured
+        self.assertTrue(nm.relay_enable)
+        self.assertEqual(nm.relay_server, "relay.example.com")
+        self.assertEqual(nm.relay_port, 8080)
+        self.assertEqual(nm.relay_id, "test123")
 
     def test_setup_relay_valid_port(self):
         """Test setup_relay with valid port in server string."""
@@ -185,15 +170,11 @@ class TestNetworkController(unittest.TestCase):
         nm = NetworkController(self.settings, self.handlers)
         nm.setup_relay("relay.example.com:8080", "testid")
 
-        # Mock Peer
-        mock_peer = MagicMock()
-
         # Mock NetworkSetup to return successful relay result
         mock_result = NetworkSetupResult(
             relay_result=RelaySetupResult(
                 success=True,
                 video_address=("1.2.3.4", 1234),
-                peer=mock_peer
             ),
             video_receiver_result=VideoReceiverSetupResult(
                 success=True,
@@ -220,8 +201,8 @@ class TestNetworkController(unittest.TestCase):
         self.assertEqual(relay_config['port'], 8080)
         self.assertEqual(relay_config['id'], "testid")
 
-        # Verify peer was stored
-        self.assertEqual(nm.peer, mock_peer)
+        # Verify setup instance was stored
+        self.assertEqual(nm._setup, self.mock_network_setup)
 
     def test_setup_ports_with_relay_registration_error(self):
         """Test setup_ports with peer registration error."""
@@ -400,17 +381,17 @@ class TestNetworkController(unittest.TestCase):
         # Mock components
         mock_server = MagicMock()
         mock_video_receiver = MagicMock()
-        mock_peer = MagicMock()
+        mock_setup = MagicMock()
         nm.server = mock_server
         nm.video_receiver = mock_video_receiver
-        nm.peer = mock_peer
+        nm._setup = mock_setup
 
         nm.shutdown()
 
         # Verify shutdown sequence
+        mock_setup.abort.assert_called_once()
         mock_server.stop.assert_called_once()
         mock_server.join.assert_called_once()
-        mock_peer.abort.assert_called_once()
         mock_video_receiver.stop.assert_called_once()
         mock_video_receiver.join.assert_called_once()
 
@@ -421,7 +402,7 @@ class TestNetworkController(unittest.TestCase):
         # No components
         nm.server = None
         nm.video_receiver = None
-        nm.peer = None
+        nm._setup = None
 
         # Should not raise exception
         nm.shutdown()
@@ -430,11 +411,11 @@ class TestNetworkController(unittest.TestCase):
         """Test shutdown when only some components exist."""
         nm = NetworkController(self.settings, self.handlers)
 
-        # Only server, no video receiver or peer
+        # Only server, no video receiver or setup
         mock_server = MagicMock()
         nm.server = mock_server
         nm.video_receiver = None
-        nm.peer = None
+        nm._setup = None
 
         nm.shutdown()
 
@@ -443,7 +424,7 @@ class TestNetworkController(unittest.TestCase):
         mock_server.join.assert_called_once()
 
     def test_initialization_relay_enabled_no_server(self):
-        """Test NetworkManager initialization with relay enabled but no server."""
+        """Test NetworkController initialization with relay enabled but no server."""
         relay_settings = MagicMock()
         relay_settings.get.side_effect = lambda key, default=None: {
             "relay": {"enabled": True, "id": "test123"},  # Missing server
@@ -451,16 +432,15 @@ class TestNetworkController(unittest.TestCase):
             "udp_packet_ttl": 100
         }.get(key, default)
 
-        with patch('builtins.print') as mock_print:
-            nm = NetworkController(relay_settings, self.handlers)
+        nm = NetworkController(relay_settings, self.handlers)
 
-            # Relay should not be configured due to missing server
-            self.assertFalse(nm.relay_enable)
-            self.assertIsNone(nm.relay_server)
-            self.assertIsNone(nm.relay_id)
+        # Relay should not be configured due to missing server
+        self.assertFalse(nm.relay_enable)
+        self.assertIsNone(nm.relay_server)
+        self.assertIsNone(nm.relay_id)
 
     def test_initialization_relay_enabled_no_id(self):
-        """Test NetworkManager initialization with relay enabled but no ID."""
+        """Test NetworkController initialization with relay enabled but no ID."""
         relay_settings = MagicMock()
         relay_settings.get.side_effect = lambda key, default=None: {
             "relay": {"enabled": True, "server": "relay.example.com:8080"},  # Missing ID
@@ -468,13 +448,12 @@ class TestNetworkController(unittest.TestCase):
             "udp_packet_ttl": 100
         }.get(key, default)
 
-        with patch('builtins.print') as mock_print:
-            nm = NetworkController(relay_settings, self.handlers)
+        nm = NetworkController(relay_settings, self.handlers)
 
-            # Relay should not be configured due to missing ID
-            self.assertFalse(nm.relay_enable)
-            self.assertIsNone(nm.relay_server)
-            self.assertIsNone(nm.relay_id)
+        # Relay should not be configured due to missing ID
+        self.assertFalse(nm.relay_enable)
+        self.assertIsNone(nm.relay_server)
+        self.assertIsNone(nm.relay_id)
 
     def test_setup_relay_empty_server(self):
         """Test setup_relay with empty server string."""

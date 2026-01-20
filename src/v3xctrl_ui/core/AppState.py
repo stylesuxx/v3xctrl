@@ -49,7 +49,7 @@ class AppState:
         # Network coordination
         self.network_coordinator = NetworkCoordinator(self.model, self.osd)
         self.network_coordinator.on_connection_change = self._on_connection_change
-        self.network_coordinator.create_network_manager(self.settings)
+        self.network_coordinator.network_controller = self.network_coordinator.create_network_controller(self.settings)
 
         # Timing
         self.timing_controller = TimingController(self.settings, self.model)
@@ -149,11 +149,11 @@ class AppState:
 
         self.osd.update_data_queue(data_left)
         self.osd.set_control(self.model.throttle, self.model.steering)
-        self.osd.set_spectator_mode(self.network_coordinator.is_spectator_mode())
+        self.osd.set_spectator_mode(self.network_coordinator.is_spectator())
 
         self.renderer.render_all(
             self,
-            self.network_coordinator.network_manager,
+            self.network_coordinator.network_controller,
             self.model.fullscreen,
             self.model.scale
         )
@@ -211,7 +211,7 @@ class AppState:
 
         streamer_enabled = (
             self.network_coordinator.is_control_connected() and
-            not self.network_coordinator.is_spectator_mode()
+            not self.network_coordinator.is_spectator()
         )
         menu.set_tab_enabled("Streamer", streamer_enabled)
 
@@ -258,12 +258,12 @@ class AppState:
         self.menu.update_dimensions(screen_size[0], screen_size[1])
 
     def _create_network_restart_thread(self, new_settings: Settings) -> threading.Thread:
-        return self.network_coordinator.restart_network_manager(new_settings)
+        return self.network_coordinator.restart_network_controller(new_settings)
 
     def _on_connection_change(self, connected: bool) -> None:
         streamer_enabled = (
             connected and
-            not self.network_coordinator.is_spectator_mode()
+            not self.network_coordinator.is_spectator()
         )
         self.event_controller.set_menu_tab_enabled("Streamer", streamer_enabled)
 

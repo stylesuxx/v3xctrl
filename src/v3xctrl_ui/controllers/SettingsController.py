@@ -63,7 +63,6 @@ class SettingsController:
             not self.settings_equal(new_settings, "ports") or
             self._needs_relay_restart(new_settings)
         ):
-            logging.info("Restarting network manager")
             self.model.pending_settings = new_settings
 
             if self.create_network_restart_thread:
@@ -89,7 +88,6 @@ class SettingsController:
                 self.apply_settings(self.model.pending_settings)
                 self.model.pending_settings = None
 
-            logging.info("Network manager restart complete")
             return True
 
         return False

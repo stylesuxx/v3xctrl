@@ -74,12 +74,12 @@ class TestAppState(unittest.TestCase):
             mock_coordinator_manager = MagicMock()
             mock_coordinator_manager.server = None
             mock_coordinator_manager.server_error = None
-            mock_coordinator.network_manager = mock_coordinator_manager
+            mock_coordinator.network_controller = mock_coordinator_manager
             mock_coordinator.get_data_queue_size.return_value = 0
             mock_coordinator.get_video_buffer_size.return_value = 0
             mock_coordinator.has_server_error.return_value = False
             mock_coordinator.is_control_connected.return_value = False
-            mock_coordinator.create_network_manager.return_value = mock_coordinator_manager
+            mock_coordinator.create_network_controller.return_value = mock_coordinator_manager
             mock_coordinator_cls.return_value = mock_coordinator
 
             # Let deepcopy work normally - no mocking needed
@@ -108,7 +108,7 @@ class TestAppState(unittest.TestCase):
 
         # NetworkCoordinator should be created with model and osd
         mock_coordinator_cls.assert_called_once()
-        mock_coordinator.create_network_manager.assert_called_once_with(self.settings)
+        mock_coordinator.create_network_controller.assert_called_once_with(self.settings)
 
         # Check NetworkManager.setup_ports was called
         mock_coordinator.setup_ports.assert_called_once()
@@ -224,7 +224,7 @@ class TestAppState(unittest.TestCase):
 
         mock_osd.update_data_queue.assert_called_with(5)
         mock_osd.set_control.assert_called_with(app.model.throttle, app.model.steering)
-        mock_renderer.render_all.assert_called_with(app, mock_coordinator.network_manager, False, 1.0)
+        mock_renderer.render_all.assert_called_with(app, mock_coordinator.network_controller, False, 1.0)
 
     def test_render_handles_server_error(
         self, mock_coordinator_cls, mock_renderer_cls,
@@ -401,7 +401,7 @@ class TestAppState(unittest.TestCase):
         )
 
         # Mock spectator mode
-        mock_coordinator.is_spectator_mode.return_value = True
+        mock_coordinator.is_spectator.return_value = True
         mock_coordinator.is_control_connected.return_value = True
 
         # Create menu
@@ -423,7 +423,7 @@ class TestAppState(unittest.TestCase):
         )
 
         # Mock connected and not spectator
-        mock_coordinator.is_spectator_mode.return_value = False
+        mock_coordinator.is_spectator.return_value = False
         mock_coordinator.is_control_connected.return_value = True
 
         # Create menu
@@ -445,7 +445,7 @@ class TestAppState(unittest.TestCase):
         )
 
         # Mock spectator mode
-        mock_coordinator.is_spectator_mode.return_value = True
+        mock_coordinator.is_spectator.return_value = True
 
         # Create a mock menu
         mock_menu = MagicMock()

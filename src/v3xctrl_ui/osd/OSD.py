@@ -45,7 +45,7 @@ class OSD:
         self.debug_buffer: Optional[str] = None
         self.loop_history: Optional[deque[float]] = None
         self.video_history: Optional[deque[float]] = None
-        self.is_spectator_mode: bool = False
+        self.is_spectator: bool = False
         self.throttle: float = 0.0
         self.steering: float = 0.0
 
@@ -113,7 +113,7 @@ class OSD:
         self.widget_settings = self.settings.get("widgets", {})
 
     def set_spectator_mode(self, is_spectator: bool) -> None:
-        self.is_spectator_mode = is_spectator
+        self.is_spectator = is_spectator
 
     def message_handler(self, message: Message) -> None:
         match message:
@@ -198,7 +198,7 @@ class OSD:
         """
 
         # In spectator mode, latency is not meaningful
-        if self.is_spectator_mode:
+        if self.is_spectator:
             self.debug_latency = "default"
             self.widgets_debug["debug_latency"].set_value("N/A")
 

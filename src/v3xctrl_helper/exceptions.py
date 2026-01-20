@@ -7,6 +7,11 @@ class UnauthorizedError(Exception):
     pass
 
 
+class PeerRegistrationAborted(Exception):
+    """Raised when peer registration is aborted intentionally."""
+    pass
+
+
 class PeerRegistrationError(Exception):
     def __init__(self, failures: Dict[str, Exception], successes: Dict[str, PeerInfo]):
         self.failures = failures
