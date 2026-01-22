@@ -6,7 +6,7 @@ from typing import Dict, List, Any
 
 from v3xctrl_ui.utils.colors import WHITE
 from v3xctrl_ui.utils.fonts import TEXT_FONT
-from v3xctrl_ui.utils.Settings import Settings
+from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.menu.tabs.Headline import Headline
 
 

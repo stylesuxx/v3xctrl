@@ -4,7 +4,7 @@ from typing import Dict, Any
 
 from v3xctrl_ui.utils.colors import DARK_GREY
 from v3xctrl_ui.utils.fonts import LABEL_FONT
-from v3xctrl_ui.controllers.input.GamepadController import GamepadController
+from v3xctrl_ui.core.controllers.input.GamepadController import GamepadController
 from v3xctrl_ui.menu.calibration.GamepadCalibrationWidget import GamepadCalibrationWidget
 
 

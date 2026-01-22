@@ -12,11 +12,14 @@ from v3xctrl_ui.utils.colors import BLACK, RED, WHITE
 from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT_24, BOLD_MONO_FONT_32
 from v3xctrl_ui.utils.helpers import get_external_ip
 from v3xctrl_ui.menu.Menu import Menu
-from v3xctrl_ui.utils.Settings import Settings
+from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.network.NetworkController import NetworkController
 
 
 class Renderer:
+    """
+    Rendering display content
+    """
     def __init__(self, size: Tuple[int, int], settings: Settings) -> None:
         self.video_width = size[0]
         self.video_height = size[1]
@@ -51,20 +54,20 @@ class Renderer:
         if frame is not None:
             self._render_video_frame(state.screen, frame)
         else:
-            self._render_no_video_signal(state.screen, network_controller.relay_status_message)
+            self._render_no_video_signal_screen(state.screen, network_controller.relay_status_message)
 
             if not state.model.control_connected:
-                self._render_no_control_signal(state.screen)
+                self._render_no_control_signal_screen(state.screen)
 
             if network_controller.relay_enable:
-                self._render_status(
+                self._render_relay_status_screen(
                     network_controller.relay_status_message.upper(),
                     (self.center_x - 6, self.center_y - 110),
                     state.screen
                 )
 
-        self._render_overlay_data(state, network_controller)
-        self._render_errors(state.screen, network_controller)
+        self._render_osd(state, network_controller)
+        self._render_error_text(state.screen, network_controller)
         self._render_menu(state.screen, state.menu)
 
         pygame.display.flip()
@@ -100,27 +103,46 @@ class Renderer:
 
         screen.blit(surface, (x, y))
 
-    def _render_status(
+    def _render_text(
         self,
-        msg: str,
-        offset: Tuple[int, int],
-        screen: pygame.Surface
-    ) -> None:
-        now = time.monotonic()
-        breath = math.sin(now * 3) * 0.5 + 0.5
-        alpha = int(50 + breath * 205)
+        screen: pygame.Surface,
+        lines: List[Tuple[str, Optional[str]]],
+        x: int,
+        y: int,
+    ):
+        key_x = x
+        base_y = y
+        line_height = 36
 
-        surface, rect = BOLD_MONO_FONT_32.render(msg, RED)
-        surface.set_alpha(alpha)
-        rect.center = offset
-        screen.blit(surface, rect)
+        max_label_width = 0
+        for i, (key, val) in enumerate(lines):
+            y = base_y + i * line_height
 
-    def _render_no_control_signal(self, screen: pygame.Surface) -> None:
+            label = f"{key}"
+            if val:
+                label += ":"
+
+            key_surf, key_rect = BOLD_MONO_FONT_24.render(label, WHITE)
+            key_rect.topleft = (key_x, y)
+            screen.blit(key_surf, key_rect)
+
+            if val and key_rect.width > max_label_width:
+                max_label_width = key_rect.width
+
+        val_x = x + max_label_width + 15
+        for i, (key, val) in enumerate(lines):
+            if val:
+                y = base_y + i * line_height
+                val_surf, val_rect = BOLD_MONO_FONT_24.render(val, WHITE)
+                val_rect.topleft = (val_x, y)
+                screen.blit(val_surf, val_rect)
+
+    def _render_no_control_signal_screen(self, screen: pygame.Surface) -> None:
         surface, rect = BOLD_MONO_FONT_32.render("NO CONTROL SIGNAL", RED)
         rect.center = (self.center_x - 6, self.center_y - 75)
         screen.blit(surface, rect)
 
-    def _render_no_video_signal(self, screen: pygame.Surface, relay_status_message: str) -> None:
+    def _render_no_video_signal_screen(self, screen: pygame.Surface, relay_status_message: str) -> None:
         """
         Render connection information depending on connection and signal states
 
@@ -149,6 +171,21 @@ class Renderer:
             else:
                 self._render_direct_connection_info(screen)
 
+    def _render_relay_status_screen(
+        self,
+        msg: str,
+        offset: Tuple[int, int],
+        screen: pygame.Surface
+    ) -> None:
+        now = time.monotonic()
+        breath = math.sin(now * 3) * 0.5 + 0.5
+        alpha = int(50 + breath * 205)
+
+        surface, rect = BOLD_MONO_FONT_32.render(msg, RED)
+        surface.set_alpha(alpha)
+        rect.center = offset
+        screen.blit(surface, rect)
+
     def _render_relay_connection_info(self, screen: pygame.Surface) -> None:
         """Video and control ports are fixed with the relay."""
         ports = self.settings.get("ports")
@@ -164,7 +201,7 @@ class Renderer:
             ("Video", str(ports['video'])),
             ("Control", str(ports['control'])),
         ]
-        self._render_lines(screen, data, 50, self.center_y + 10)
+        self._render_text(screen, data, 50, self.center_y + 10)
 
     def _render_direct_connection_info(self, screen: pygame.Surface) -> None:
         """Render IP and port information."""
@@ -180,43 +217,16 @@ class Renderer:
             ("Control", str(ports['control'])),
         ]
 
-        self._render_lines(screen, data, 50, self.center_y + 10)
+        self._render_text(screen, data, 50, self.center_y + 10)
 
-    def _render_lines(
-        self,
-        screen: pygame.Surface,
-        data: List[Tuple[str, Optional[str]]],
-        x: int,
-        y: int,
-    ):
-        key_x = x
-        base_y = y
-        line_height = 36
+    def _render_error_text(self, screen: pygame.Surface, network_manager: 'NetworkController') -> None:
+        """Render error messages on top of main UI."""
+        if network_manager.server_error:
+            surface, rect = BOLD_MONO_FONT_24.render(network_manager.server_error, RED)
+            rect.center = (self.center_x, 50)
+            screen.blit(surface, rect)
 
-        max_label_width = 0
-        for i, (key, val) in enumerate(data):
-            y = base_y + i * line_height
-
-            label = f"{key}"
-            if val:
-                label += ":"
-
-            key_surf, key_rect = BOLD_MONO_FONT_24.render(label, WHITE)
-            key_rect.topleft = (key_x, y)
-            screen.blit(key_surf, key_rect)
-
-            if val and key_rect.width > max_label_width:
-                max_label_width = key_rect.width
-
-        val_x = x + max_label_width + 15
-        for i, (key, val) in enumerate(data):
-            if val:
-                y = base_y + i * line_height
-                val_surf, val_rect = BOLD_MONO_FONT_24.render(val, WHITE)
-                val_rect.topleft = (val_x, y)
-                screen.blit(val_surf, val_rect)
-
-    def _render_overlay_data(
+    def _render_osd(
         self,
         state: 'AppState',
         network_manager: NetworkController
@@ -238,13 +248,6 @@ class Renderer:
             state.model.loop_history.copy(),
             video_history
         )
-
-    def _render_errors(self, screen: pygame.Surface, network_manager: 'NetworkController') -> None:
-        """Render error messages on top of main UI."""
-        if network_manager.server_error:
-            surface, rect = BOLD_MONO_FONT_24.render(network_manager.server_error, RED)
-            rect.center = (self.center_x, 50)
-            screen.blit(surface, rect)
 
     def _render_menu(self, screen: pygame.Surface, menu: Menu) -> None:
         """Render menu above everything else."""

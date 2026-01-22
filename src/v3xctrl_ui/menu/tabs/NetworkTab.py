@@ -11,7 +11,7 @@ from v3xctrl_ui.menu.input import (
   NumberInput,
   TextInput
 )
-from v3xctrl_ui.utils.Settings import Settings
+from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_helper import is_int
 
 from .Tab import Tab

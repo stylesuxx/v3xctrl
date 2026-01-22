@@ -6,7 +6,7 @@ import unittest
 import pygame
 from unittest.mock import patch
 
-from v3xctrl_ui.osd.WidgetGroupRenderer import (
+from v3xctrl_ui.osd.widgets.WidgetGroupRenderer import (
     render_widget_group,
     render_group,
     _render_individual_widgets,
@@ -14,7 +14,7 @@ from v3xctrl_ui.osd.WidgetGroupRenderer import (
     _calculate_dimensions,
     _draw_widgets_to_surface,
 )
-from v3xctrl_ui.osd.WidgetGroup import WidgetGroup
+from v3xctrl_ui.osd.widgets.WidgetGroup import WidgetGroup
 from v3xctrl_ui.osd.widgets import TextWidget
 
 
@@ -180,7 +180,7 @@ class TestWidgetGroupRenderer(unittest.TestCase):
         settings = {"display": True}
 
         with patch('pygame.display.get_window_size', return_value=(800, 600)):
-            with patch('v3xctrl_ui.osd.WidgetGroupRenderer.calculate_widget_position') as mock_calc:
+            with patch('v3xctrl_ui.osd.widgets.WidgetGroupRenderer.calculate_widget_position') as mock_calc:
                 mock_calc.return_value = (0, 0)
 
                 render_group(
@@ -198,7 +198,7 @@ class TestWidgetGroupRenderer(unittest.TestCase):
         settings = {"display": True, "align": "bottom-right", "offset": (10, 20)}
 
         with patch('pygame.display.get_window_size', return_value=(800, 600)):
-            with patch('v3xctrl_ui.osd.WidgetGroupRenderer.calculate_widget_position') as mock_calc:
+            with patch('v3xctrl_ui.osd.widgets.WidgetGroupRenderer.calculate_widget_position') as mock_calc:
                 mock_calc.return_value = (100, 200)
 
                 render_group(
@@ -216,7 +216,7 @@ class TestWidgetGroupRenderer(unittest.TestCase):
         settings = {"display": True}
 
         with patch('pygame.display.get_window_size', return_value=(800, 600)):
-            with patch('v3xctrl_ui.osd.WidgetGroupRenderer.round_corners') as mock_round:
+            with patch('v3xctrl_ui.osd.widgets.WidgetGroupRenderer.round_corners') as mock_round:
                 mock_surface = pygame.Surface((100, 50), pygame.SRCALPHA)
                 mock_round.return_value = mock_surface
 
@@ -235,7 +235,7 @@ class TestWidgetGroupRenderer(unittest.TestCase):
         settings = {"display": True}
 
         with patch('pygame.display.get_window_size', return_value=(800, 600)):
-            with patch('v3xctrl_ui.osd.WidgetGroupRenderer.round_corners') as mock_round:
+            with patch('v3xctrl_ui.osd.widgets.WidgetGroupRenderer.round_corners') as mock_round:
                 mock_surface = pygame.Surface((100, 50), pygame.SRCALPHA)
                 mock_round.return_value = mock_surface
 
@@ -259,7 +259,7 @@ class TestWidgetGroupRenderer(unittest.TestCase):
         }
 
         with patch('pygame.display.get_window_size', return_value=(800, 600)):
-            with patch('v3xctrl_ui.osd.WidgetGroupRenderer.calculate_widget_position') as mock_calc:
+            with patch('v3xctrl_ui.osd.widgets.WidgetGroupRenderer.calculate_widget_position') as mock_calc:
                 mock_calc.side_effect = [(10, 10), (780, 20)]
 
                 _render_individual_widgets(
@@ -295,7 +295,7 @@ class TestWidgetGroupRenderer(unittest.TestCase):
         )
 
         with patch('pygame.display.get_window_size', return_value=(800, 600)):
-            with patch('v3xctrl_ui.osd.WidgetGroupRenderer.render_group') as mock_render:
+            with patch('v3xctrl_ui.osd.widgets.WidgetGroupRenderer.render_group') as mock_render:
                 render_widget_group(
                     self.screen,
                     group,
@@ -325,7 +325,7 @@ class TestWidgetGroupRenderer(unittest.TestCase):
         )
 
         with patch('pygame.display.get_window_size', return_value=(800, 600)):
-            with patch('v3xctrl_ui.osd.WidgetGroupRenderer._render_individual_widgets') as mock_render:
+            with patch('v3xctrl_ui.osd.widgets.WidgetGroupRenderer._render_individual_widgets') as mock_render:
                 render_widget_group(
                     self.screen,
                     group,

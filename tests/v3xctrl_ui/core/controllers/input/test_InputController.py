@@ -1,12 +1,12 @@
 import unittest
 from unittest.mock import MagicMock, patch, call
 
-from v3xctrl_ui.controllers.input.InputController import InputController
+from v3xctrl_ui.core.controllers.input.InputController import InputController
 
 
-@patch("v3xctrl_ui.controllers.input.InputController.GamepadController")
-@patch("v3xctrl_ui.controllers.input.InputController.KeyAxisHandler")
-@patch("v3xctrl_ui.controllers.input.InputController.pygame")
+@patch("v3xctrl_ui.core.controllers.input.InputController.GamepadController")
+@patch("v3xctrl_ui.core.controllers.input.InputController.KeyAxisHandler")
+@patch("v3xctrl_ui.core.controllers.input.InputController.pygame")
 class TestInputController(unittest.TestCase):
     def setUp(self):
         self.settings = MagicMock()

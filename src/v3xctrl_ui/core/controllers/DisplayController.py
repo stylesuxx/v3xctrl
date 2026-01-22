@@ -8,7 +8,7 @@ from pathlib import Path
 import pygame
 
 if TYPE_CHECKING:
-    from v3xctrl_ui.core.ApplicationModel import ApplicationModel
+    from v3xctrl_ui.core.dataclasses import ApplicationModel
 
 
 class DisplayController:

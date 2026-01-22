@@ -6,17 +6,17 @@ from typing import Any, Optional
 
 import pygame
 
-from v3xctrl_ui.core.ApplicationModel import ApplicationModel
-from v3xctrl_ui.controllers.EventController import EventController
-from v3xctrl_ui.controllers.SettingsController import SettingsController
-from v3xctrl_ui.controllers.TimingController import TimingController
+from v3xctrl_ui.core.dataclasses import ApplicationModel
+from v3xctrl_ui.core.controllers.EventController import EventController
+from v3xctrl_ui.core.controllers.SettingsController import SettingsController
+from v3xctrl_ui.core.controllers.TimingController import TimingController
 from v3xctrl_ui.menu.Menu import Menu
 from v3xctrl_ui.osd.OSD import OSD
 from v3xctrl_ui.core.Renderer import Renderer
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext
-from v3xctrl_ui.utils.Settings import Settings
-from v3xctrl_ui.controllers.input.InputController import InputController
-from v3xctrl_ui.controllers.DisplayController import DisplayController
+from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.core.controllers.input.InputController import InputController
+from v3xctrl_ui.core.controllers.DisplayController import DisplayController
 from v3xctrl_ui.network.NetworkCoordinator import NetworkCoordinator
 
 

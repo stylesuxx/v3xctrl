@@ -3,11 +3,11 @@ from typing import Callable, Optional
 
 import pygame
 
-from v3xctrl_ui.controllers.input.GamepadController import GamepadController
+from v3xctrl_ui.core.controllers.input.GamepadController import GamepadController
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 from v3xctrl_ui.menu.Menu import Menu
-from v3xctrl_ui.utils.Commands import Commands
-from v3xctrl_ui.utils.Settings import Settings
+from v3xctrl_ui.network.Commands import Commands
+from v3xctrl_ui.core.Settings import Settings
 
 
 class EventController:

@@ -1,13 +1,13 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from v3xctrl_ui.utils.MemoryTracker import MemoryTracker
+from v3xctrl_ui.core.MemoryTracker import MemoryTracker
 
 
 class TestMemoryTracker(unittest.TestCase):
     def setUp(self):
         # Patch tracemalloc to avoid real snapshots
-        self.patcher_tm = patch("v3xctrl_ui.utils.MemoryTracker.tracemalloc")
+        self.patcher_tm = patch("v3xctrl_ui.core.MemoryTracker.tracemalloc")
         self.mock_tm = self.patcher_tm.start()
 
         # Fake snapshot with filter_traces and compare_to
@@ -18,7 +18,7 @@ class TestMemoryTracker(unittest.TestCase):
         self.mock_tm.take_snapshot.return_value = fake_snapshot
 
         # Patch time.sleep to immediately trigger stop
-        self.patcher_sleep = patch("v3xctrl_ui.utils.MemoryTracker.time.sleep", side_effect=lambda _: self.mt._stop_event.set())
+        self.patcher_sleep = patch("v3xctrl_ui.core.MemoryTracker.time.sleep", side_effect=lambda _: self.mt._stop_event.set())
         self.mock_sleep = self.patcher_sleep.start()
 
         self.mt = MemoryTracker(interval=1, top=2, enable_log=True)

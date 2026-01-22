@@ -8,10 +8,10 @@ from typing import Callable
 
 import av
 
-from v3xctrl_ui.network.VideoReceiver import VideoReceiver
+from v3xctrl_ui.network.video.Receiver import Receiver
 
 
-class VideoReceiverPyAV(VideoReceiver):
+class ReceiverPyAV(Receiver):
     """
     PyAV-based video receiver implementation.
 

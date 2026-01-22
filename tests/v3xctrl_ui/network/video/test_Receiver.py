@@ -5,11 +5,11 @@ from unittest.mock import Mock, patch
 
 import numpy as np
 
-from v3xctrl_ui.network.VideoReceiver import VideoReceiver
+from v3xctrl_ui.network.video.Receiver import Receiver
 
 
-class MockVideoReceiver(VideoReceiver):
-    """Mock implementation for testing the abstract VideoReceiver."""
+class MockReceiver(Receiver):
+    """Mock implementation for testing the abstract Receiver."""
 
     def __init__(self, port: int, error_callback, setup_fail=False, main_loop_fail=False, cleanup_fail=False):
         super().__init__(port, error_callback)
@@ -49,17 +49,17 @@ class MockVideoReceiver(VideoReceiver):
             raise RuntimeError("Cleanup failed")
 
 
-class TestVideoReceiver(unittest.TestCase):
+class TestReceiver(unittest.TestCase):
 
     def test_cannot_instantiate_abstract_class(self):
         """Abstract class should not be instantiable."""
         with self.assertRaises(TypeError):
-            VideoReceiver(5600, Mock())
+            Receiver(5600, Mock())
 
     def test_initialization(self):
         """Test proper initialization of all attributes."""
         error_callback = Mock()
-        receiver = MockVideoReceiver(5600, error_callback)
+        receiver = MockReceiver(5600, error_callback)
 
         self.assertEqual(receiver.port, 5600)
         self.assertEqual(receiver.error_callback, error_callback)
@@ -81,7 +81,7 @@ class TestVideoReceiver(unittest.TestCase):
 
     def test_update_frame_thread_safety(self):
         """Test _update_frame updates frame safely and increments counters."""
-        receiver = MockVideoReceiver(5600, Mock())
+        receiver = MockReceiver(5600, Mock())
         test_frame = np.ones((50, 50, 3), dtype=np.uint8)
 
         initial_time = time.monotonic()
@@ -97,7 +97,7 @@ class TestVideoReceiver(unittest.TestCase):
 
     def test_update_frame_multiple_calls(self):
         """Test multiple frame updates work correctly."""
-        receiver = MockVideoReceiver(5600, Mock())
+        receiver = MockReceiver(5600, Mock())
 
         for i in range(5):
             test_frame = np.full((10, 10, 3), i, dtype=np.uint8)
@@ -112,7 +112,7 @@ class TestVideoReceiver(unittest.TestCase):
 
     def test_history_deque_maxlen(self):
         """Test history deque respects maxlen of 100."""
-        receiver = MockVideoReceiver(5600, Mock())
+        receiver = MockReceiver(5600, Mock())
 
         for i in range(150):
             receiver._update_frame(np.zeros((10, 10, 3), dtype=np.uint8))
@@ -124,7 +124,7 @@ class TestVideoReceiver(unittest.TestCase):
     def test_successful_run_lifecycle(self):
         """Test normal start/stop lifecycle."""
         error_callback = Mock()
-        receiver = MockVideoReceiver(5600, error_callback)
+        receiver = MockReceiver(5600, error_callback)
 
         receiver.start()
         time.sleep(0.1)
@@ -139,7 +139,7 @@ class TestVideoReceiver(unittest.TestCase):
     def test_setup_failure_handling(self):
         """Test setup failure is handled gracefully."""
         with patch('logging.exception') as mock_log:
-            receiver = MockVideoReceiver(5600, Mock(), setup_fail=True)
+            receiver = MockReceiver(5600, Mock(), setup_fail=True)
 
             receiver.start()
             time.sleep(0.1)
@@ -153,7 +153,7 @@ class TestVideoReceiver(unittest.TestCase):
     def test_main_loop_failure_handling(self):
         """Test main loop failure is handled gracefully."""
         with patch('logging.exception') as mock_log:
-            receiver = MockVideoReceiver(5600, Mock(), main_loop_fail=True)
+            receiver = MockReceiver(5600, Mock(), main_loop_fail=True)
 
             receiver.start()
             time.sleep(0.1)
@@ -167,7 +167,7 @@ class TestVideoReceiver(unittest.TestCase):
     def test_cleanup_failure_in_run(self):
         """Test cleanup failure in run() finally block is handled."""
         with patch('logging.exception') as mock_log:
-            receiver = MockVideoReceiver(5600, Mock(), cleanup_fail=True)
+            receiver = MockReceiver(5600, Mock(), cleanup_fail=True)
 
             receiver.start()
             time.sleep(0.1)
@@ -178,7 +178,7 @@ class TestVideoReceiver(unittest.TestCase):
     def test_cleanup_failure_in_stop(self):
         """Test cleanup failure in stop() is handled."""
         with patch('logging.exception') as mock_log:
-            receiver = MockVideoReceiver(5600, Mock(), cleanup_fail=True)
+            receiver = MockReceiver(5600, Mock(), cleanup_fail=True)
 
             receiver.start()
             time.sleep(0.05)
@@ -188,7 +188,7 @@ class TestVideoReceiver(unittest.TestCase):
 
     def test_stop_without_start(self):
         """Test stop() can be called without start()."""
-        receiver = MockVideoReceiver(5600, Mock())
+        receiver = MockReceiver(5600, Mock())
 
         receiver.stop()
 
@@ -197,7 +197,7 @@ class TestVideoReceiver(unittest.TestCase):
 
     def test_stop_timeout_handling(self):
         """Test stop() respects timeout when thread doesn't join."""
-        class SlowReceiver(MockVideoReceiver):
+        class SlowReceiver(MockReceiver):
             def _main_loop(self):
                 time.sleep(10)
 
@@ -215,7 +215,7 @@ class TestVideoReceiver(unittest.TestCase):
     def test_log_stats_no_packets(self):
         """Test logging when no packets have been processed."""
         with patch('logging.info') as mock_log:
-            receiver = MockVideoReceiver(5600, Mock())
+            receiver = MockReceiver(5600, Mock())
             receiver.packet_count = 0
             receiver.last_log_time = time.monotonic() - 11.0
 
@@ -227,7 +227,7 @@ class TestVideoReceiver(unittest.TestCase):
     def test_log_stats_with_packets(self):
         """Test statistics logging with packet data."""
         with patch('logging.info') as mock_log:
-            receiver = MockVideoReceiver(5600, Mock())
+            receiver = MockReceiver(5600, Mock())
             receiver.log_interval = 0.01
             receiver.packet_count = 10
             receiver.decoded_frame_count = 7
@@ -239,7 +239,7 @@ class TestVideoReceiver(unittest.TestCase):
 
             mock_log.assert_called_once()
 
-            # NOTE: This test will fail due to syntax error in VideoReceiver._log_stats_if_needed
+            # NOTE: This test will fail due to syntax error in Receiver._log_stats_if_needed
             # The logging.info call has incorrect comma placement
 
             self.assertEqual(receiver.packet_count, 0)
@@ -250,7 +250,7 @@ class TestVideoReceiver(unittest.TestCase):
     def test_log_stats_interval_not_reached(self):
         """Test no logging when interval hasn't passed."""
         with patch('logging.info') as mock_log:
-            receiver = MockVideoReceiver(5600, Mock())
+            receiver = MockReceiver(5600, Mock())
             receiver.packet_count = 10
             receiver.last_log_time = time.monotonic() - 5.0
 
@@ -261,7 +261,7 @@ class TestVideoReceiver(unittest.TestCase):
     def test_log_stats_calculates_correct_drop_rate(self):
         """Test drop rate calculation includes both empty decodes and dropped old frames."""
         with patch('logging.info') as mock_log:
-            receiver = MockVideoReceiver(5600, Mock())
+            receiver = MockReceiver(5600, Mock())
             receiver.log_interval = 0.01
             receiver.packet_count = 100
             receiver.decoded_frame_count = 70
@@ -277,7 +277,7 @@ class TestVideoReceiver(unittest.TestCase):
     def test_log_stats_avg_fps_calculation(self):
         """Test average FPS calculation."""
         with patch('logging.info') as mock_log:
-            receiver = MockVideoReceiver(5600, Mock())
+            receiver = MockReceiver(5600, Mock())
             receiver.log_interval = 2.0
             receiver.packet_count = 60
             receiver.decoded_frame_count = 60
@@ -291,7 +291,7 @@ class TestVideoReceiver(unittest.TestCase):
     def test_log_stats_first_time_uses_interval(self):
         """Test first logging uses log_interval for time calculation."""
         with patch('logging.info') as mock_log:
-            receiver = MockVideoReceiver(5600, Mock())
+            receiver = MockReceiver(5600, Mock())
             receiver.log_interval = 5.0
             receiver.packet_count = 50
             receiver.decoded_frame_count = 50
@@ -303,8 +303,8 @@ class TestVideoReceiver(unittest.TestCase):
             mock_log.assert_called_once()
 
     def test_thread_inheritance(self):
-        """Test VideoReceiver properly inherits from threading.Thread."""
-        receiver = MockVideoReceiver(5600, Mock())
+        """Test Receiver properly inherits from threading.Thread."""
+        receiver = MockReceiver(5600, Mock())
         self.assertIsInstance(receiver, threading.Thread)
         self.assertTrue(hasattr(receiver, 'start'))
         self.assertTrue(hasattr(receiver, 'join'))
@@ -312,7 +312,7 @@ class TestVideoReceiver(unittest.TestCase):
 
     def test_abstract_methods_enforced(self):
         """Test that abstract methods must be implemented."""
-        class IncompleteReceiver(VideoReceiver):
+        class IncompleteReceiver(Receiver):
             def _setup(self):
                 pass
             # Missing _main_loop and _cleanup
@@ -322,7 +322,7 @@ class TestVideoReceiver(unittest.TestCase):
 
     def test_running_event_controls_lifecycle(self):
         """Test running event is properly set and cleared."""
-        receiver = MockVideoReceiver(5600, Mock())
+        receiver = MockReceiver(5600, Mock())
 
         self.assertFalse(receiver.running.is_set())
 
@@ -336,7 +336,7 @@ class TestVideoReceiver(unittest.TestCase):
     def test_error_callback_not_called(self):
         """Test that error_callback is never called (current implementation issue)."""
         error_callback = Mock()
-        receiver = MockVideoReceiver(5600, error_callback, main_loop_fail=True)
+        receiver = MockReceiver(5600, error_callback, main_loop_fail=True)
 
         receiver.start()
         time.sleep(0.1)

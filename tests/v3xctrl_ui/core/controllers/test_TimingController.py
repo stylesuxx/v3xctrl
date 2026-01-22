@@ -2,8 +2,8 @@
 import time
 import pytest
 
-from v3xctrl_ui.controllers.TimingController import TimingController
-from v3xctrl_ui.core.ApplicationModel import ApplicationModel
+from v3xctrl_ui.core.controllers.TimingController import TimingController
+from v3xctrl_ui.core.dataclasses import ApplicationModel
 
 
 class TestTimingControllerInitialization:

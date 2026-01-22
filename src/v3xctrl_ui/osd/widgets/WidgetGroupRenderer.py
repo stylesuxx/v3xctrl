@@ -4,7 +4,7 @@ import pygame
 from v3xctrl_ui.utils.helpers import calculate_widget_position, round_corners
 
 from v3xctrl_ui.osd.widgets import Widget
-from v3xctrl_ui.osd.WidgetGroup import WidgetGroup
+from v3xctrl_ui.osd.widgets.WidgetGroup import WidgetGroup
 
 
 def render_widget_group(

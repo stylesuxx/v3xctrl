@@ -9,14 +9,14 @@ from unittest.mock import Mock, call, mock_open, patch
 import av
 import numpy as np
 
-from v3xctrl_ui.network.VideoReceiverPyAV import VideoReceiverPyAV
+from v3xctrl_ui.network.video.ReceiverPyAV import ReceiverPyAV
 
 
-class TestVideoReceiverPyAVInit(unittest.TestCase):
+class TestReceiverPyAVInit(unittest.TestCase):
 
     def test_initialization(self):
         error_callback = Mock()
-        receiver = VideoReceiverPyAV(5600, error_callback)
+        receiver = ReceiverPyAV(5600, error_callback)
 
         self.assertEqual(receiver.port, 5600)
         self.assertEqual(receiver.error_callback, error_callback)
@@ -30,15 +30,15 @@ class TestVideoReceiverPyAVInit(unittest.TestCase):
 
     def test_thread_count_configuration(self):
         with patch('os.cpu_count', return_value=8):
-            receiver = VideoReceiverPyAV(5600, Mock())
+            receiver = ReceiverPyAV(5600, Mock())
             self.assertEqual(receiver.thread_count, "4")
 
         with patch('os.cpu_count', return_value=2):
-            receiver = VideoReceiverPyAV(5600, Mock())
+            receiver = ReceiverPyAV(5600, Mock())
             self.assertEqual(receiver.thread_count, "2")
 
         with patch('os.cpu_count', return_value=None):
-            receiver = VideoReceiverPyAV(5600, Mock())
+            receiver = ReceiverPyAV(5600, Mock())
             self.assertEqual(receiver.thread_count, "1")
 
     def test_container_options(self):
@@ -49,7 +49,7 @@ class TestVideoReceiverPyAVInit(unittest.TestCase):
 
         See commit 1bc366b for context on why these values are important.
         """
-        receiver = VideoReceiverPyAV(5600, Mock())
+        receiver = ReceiverPyAV(5600, Mock())
         expected_options = {
             "fflags": "nobuffer+flush_packets+discardcorrupt+nofillin",
             "protocol_whitelist": "file,udp,rtp",
@@ -68,7 +68,7 @@ class TestVideoReceiverPyAVInit(unittest.TestCase):
         Regression: This was accidentally removed in commit c74f1f3 (Dec 17, 2025)
         during refactoring, causing stream recovery failures.
         """
-        receiver = VideoReceiverPyAV(5600, Mock())
+        receiver = ReceiverPyAV(5600, Mock())
         self.assertIn("rw_timeout", receiver.container_options)
         self.assertEqual(receiver.container_options["rw_timeout"], "5000000")
 
@@ -78,7 +78,7 @@ class TestVideoReceiverPyAVInit(unittest.TestCase):
         Low analyzeduration (1) allows faster detection of new streams
         when the streamer restarts, compared to default high values.
         """
-        receiver = VideoReceiverPyAV(5600, Mock())
+        receiver = ReceiverPyAV(5600, Mock())
         self.assertEqual(receiver.container_options["analyzeduration"], "1")
 
     def test_container_options_has_small_probesize(self):
@@ -87,7 +87,7 @@ class TestVideoReceiverPyAVInit(unittest.TestCase):
         Small probesize (32) reduces the amount of data needed to identify
         the stream format, speeding up recovery on streamer restarts.
         """
-        receiver = VideoReceiverPyAV(5600, Mock())
+        receiver = ReceiverPyAV(5600, Mock())
         self.assertEqual(receiver.container_options["probesize"], "32")
 
     def test_container_options_has_nofillin_flag(self):
@@ -96,20 +96,20 @@ class TestVideoReceiverPyAVInit(unittest.TestCase):
         The nofillin flag prevents FFmpeg from trying to fill in missing
         frames, which can cause delays during stream reconnection.
         """
-        receiver = VideoReceiverPyAV(5600, Mock())
+        receiver = ReceiverPyAV(5600, Mock())
         self.assertIn("nofillin", receiver.container_options["fflags"])
 
     def test_codec_options(self):
-        receiver = VideoReceiverPyAV(5600, Mock())
+        receiver = ReceiverPyAV(5600, Mock())
         self.assertEqual(receiver.codec_options["flags"], "low_delay")
         self.assertEqual(receiver.codec_options["flags2"], "fast")
         self.assertIn("threads", receiver.codec_options)
 
 
-class TestVideoReceiverPyAVSdpFile(unittest.TestCase):
+class TestReceiverPyAVSdpFile(unittest.TestCase):
 
     def setUp(self):
-        self.receiver = VideoReceiverPyAV(5600, Mock())
+        self.receiver = ReceiverPyAV(5600, Mock())
 
     def test_write_sdp_creates_correct_content(self):
         with patch('builtins.open', mock_open()) as mock_file:
@@ -135,18 +135,18 @@ class TestVideoReceiverPyAVSdpFile(unittest.TestCase):
             mock_write_sdp.assert_called_once()
 
     def test_sdp_path_includes_port(self):
-        receiver1 = VideoReceiverPyAV(5600, Mock())
-        receiver2 = VideoReceiverPyAV(5601, Mock())
+        receiver1 = ReceiverPyAV(5600, Mock())
+        receiver2 = ReceiverPyAV(5601, Mock())
 
         self.assertIn("5600", str(receiver1.sdp_path))
         self.assertIn("5601", str(receiver2.sdp_path))
         self.assertNotEqual(receiver1.sdp_path, receiver2.sdp_path)
 
 
-class TestVideoReceiverPyAVCleanup(unittest.TestCase):
+class TestReceiverPyAVCleanup(unittest.TestCase):
 
     def setUp(self):
-        self.receiver = VideoReceiverPyAV(5600, Mock())
+        self.receiver = ReceiverPyAV(5600, Mock())
 
     def test_cleanup_closes_container(self):
         mock_container = Mock()
@@ -192,10 +192,10 @@ class TestVideoReceiverPyAVCleanup(unittest.TestCase):
             self.receiver._cleanup()  # Should not raise exception
 
 
-class TestVideoReceiverPyAVPacketDropping(unittest.TestCase):
+class TestReceiverPyAVPacketDropping(unittest.TestCase):
 
     def setUp(self):
-        self.receiver = VideoReceiverPyAV(5600, Mock())
+        self.receiver = ReceiverPyAV(5600, Mock())
         self.mock_stream = Mock(spec=av.VideoStream)
         self.mock_stream.time_base = 1.0 / 90000  # Typical H.264 time base
 
@@ -247,10 +247,10 @@ class TestVideoReceiverPyAVPacketDropping(unittest.TestCase):
         self.assertTrue(result)
 
 
-class TestVideoReceiverPyAVMainLoop(unittest.TestCase):
+class TestReceiverPyAVMainLoop(unittest.TestCase):
 
     def setUp(self):
-        self.receiver = VideoReceiverPyAV(5600, Mock())
+        self.receiver = ReceiverPyAV(5600, Mock())
         self.receiver.running = threading.Event()
         self.receiver.running.set()
 
@@ -446,11 +446,11 @@ class TestVideoReceiverPyAVMainLoop(unittest.TestCase):
             self.assertIsNone(self.receiver.frame)
 
 
-class TestVideoReceiverPyAVIntegration(unittest.TestCase):
+class TestReceiverPyAVIntegration(unittest.TestCase):
 
     def test_full_lifecycle_with_mocked_av(self):
         error_callback = Mock()
-        receiver = VideoReceiverPyAV(5600, error_callback)
+        receiver = ReceiverPyAV(5600, error_callback)
 
         mock_container = Mock()
         mock_stream = Mock(spec=av.VideoStream)
@@ -474,7 +474,7 @@ class TestVideoReceiverPyAVIntegration(unittest.TestCase):
 
     def test_real_file_operations(self):
         """Test with real file operations to ensure SDP writing works."""
-        receiver = VideoReceiverPyAV(5600, Mock())
+        receiver = ReceiverPyAV(5600, Mock())
 
         # Use a temporary directory we control
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -494,7 +494,7 @@ class TestVideoReceiverPyAVIntegration(unittest.TestCase):
 
     def test_thread_safety_container_operations(self):
         """Test thread safety of container operations."""
-        receiver = VideoReceiverPyAV(5600, Mock())
+        receiver = ReceiverPyAV(5600, Mock())
         errors = []
 
         def container_operations():
@@ -519,7 +519,7 @@ class TestVideoReceiverPyAVIntegration(unittest.TestCase):
 
     def test_stats_accumulation(self):
         """Test that statistics are properly accumulated."""
-        receiver = VideoReceiverPyAV(5600, Mock())
+        receiver = ReceiverPyAV(5600, Mock())
 
         # Simulate packet processing
         receiver.packet_count = 100

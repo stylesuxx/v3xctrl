@@ -6,8 +6,8 @@ from unittest.mock import MagicMock, patch
 
 import pygame
 
-from v3xctrl_ui.controllers.DisplayController import DisplayController
-from v3xctrl_ui.core.ApplicationModel import ApplicationModel
+from v3xctrl_ui.core.controllers.DisplayController import DisplayController
+from v3xctrl_ui.core.dataclasses import ApplicationModel
 
 
 class TestDisplayController(unittest.TestCase):
@@ -17,9 +17,9 @@ class TestDisplayController(unittest.TestCase):
         self.base_size = (800, 600)
         self.title = "Test App"
 
-    @patch("v3xctrl_ui.controllers.DisplayController.pygame.display.list_modes")
-    @patch("v3xctrl_ui.controllers.DisplayController.pygame.display.set_mode")
-    @patch("v3xctrl_ui.controllers.DisplayController.pygame.display.set_caption")
+    @patch("v3xctrl_ui.core.controllers.DisplayController.pygame.display.list_modes")
+    @patch("v3xctrl_ui.core.controllers.DisplayController.pygame.display.set_mode")
+    @patch("v3xctrl_ui.core.controllers.DisplayController.pygame.display.set_caption")
     def test_initialization_windowed(self, mock_caption, mock_set_mode, mock_list_modes):
         """Test DisplayManager initializes in windowed mode."""
         mock_screen = MagicMock()
@@ -44,9 +44,9 @@ class TestDisplayController(unittest.TestCase):
         self.assertEqual(self.model.scale, 1.0)
         self.assertFalse(self.model.fullscreen)
 
-    @patch("v3xctrl_ui.controllers.DisplayController.pygame.display.list_modes")
-    @patch("v3xctrl_ui.controllers.DisplayController.pygame.display.set_mode")
-    @patch("v3xctrl_ui.controllers.DisplayController.pygame.display.set_caption")
+    @patch("v3xctrl_ui.core.controllers.DisplayController.pygame.display.list_modes")
+    @patch("v3xctrl_ui.core.controllers.DisplayController.pygame.display.set_mode")
+    @patch("v3xctrl_ui.core.controllers.DisplayController.pygame.display.set_caption")
     def test_initialization_fullscreen(self, mock_caption, mock_set_mode, mock_list_modes):
         """Test DisplayManager initializes in fullscreen mode."""
         self.model.fullscreen = True
@@ -77,9 +77,9 @@ class TestDisplayController(unittest.TestCase):
         self.assertEqual(self.model.scale, expected_scale)
         self.assertTrue(self.model.fullscreen)
 
-    @patch("v3xctrl_ui.controllers.DisplayController.pygame.display.list_modes")
-    @patch("v3xctrl_ui.controllers.DisplayController.pygame.display.set_mode")
-    @patch("v3xctrl_ui.controllers.DisplayController.pygame.display.set_caption")
+    @patch("v3xctrl_ui.core.controllers.DisplayController.pygame.display.list_modes")
+    @patch("v3xctrl_ui.core.controllers.DisplayController.pygame.display.set_mode")
+    @patch("v3xctrl_ui.core.controllers.DisplayController.pygame.display.set_caption")
     def test_toggle_fullscreen(self, mock_caption, mock_set_mode, mock_list_modes):
         """Test toggling between windowed and fullscreen."""
         mock_screen = MagicMock()
@@ -103,9 +103,9 @@ class TestDisplayController(unittest.TestCase):
         self.assertFalse(self.model.fullscreen)
         self.assertEqual(mock_set_mode.call_count, 3)
 
-    @patch("v3xctrl_ui.controllers.DisplayController.pygame.display.list_modes")
-    @patch("v3xctrl_ui.controllers.DisplayController.pygame.display.set_mode")
-    @patch("v3xctrl_ui.controllers.DisplayController.pygame.display.set_caption")
+    @patch("v3xctrl_ui.core.controllers.DisplayController.pygame.display.list_modes")
+    @patch("v3xctrl_ui.core.controllers.DisplayController.pygame.display.set_mode")
+    @patch("v3xctrl_ui.core.controllers.DisplayController.pygame.display.set_caption")
     def test_set_fullscreen(self, mock_caption, mock_set_mode, mock_list_modes):
         """Test explicitly setting fullscreen mode."""
         mock_screen = MagicMock()
@@ -128,9 +128,9 @@ class TestDisplayController(unittest.TestCase):
         display_manager.set_fullscreen(False)
         self.assertEqual(mock_set_mode.call_count, initial_call_count)
 
-    @patch("v3xctrl_ui.controllers.DisplayController.pygame.display.list_modes")
-    @patch("v3xctrl_ui.controllers.DisplayController.pygame.display.set_mode")
-    @patch("v3xctrl_ui.controllers.DisplayController.pygame.display.set_caption")
+    @patch("v3xctrl_ui.core.controllers.DisplayController.pygame.display.list_modes")
+    @patch("v3xctrl_ui.core.controllers.DisplayController.pygame.display.set_mode")
+    @patch("v3xctrl_ui.core.controllers.DisplayController.pygame.display.set_caption")
     def test_get_methods(self, mock_caption, mock_set_mode, mock_list_modes):
         """Test getter methods."""
         mock_screen = MagicMock()
@@ -145,9 +145,9 @@ class TestDisplayController(unittest.TestCase):
         self.assertEqual(display_manager.get_base_size(), (800, 600))
         self.assertEqual(display_manager.get_scale(), 1.0)
 
-    @patch("v3xctrl_ui.controllers.DisplayController.pygame.display.list_modes")
-    @patch("v3xctrl_ui.controllers.DisplayController.pygame.display.set_mode")
-    @patch("v3xctrl_ui.controllers.DisplayController.pygame.display.set_caption")
+    @patch("v3xctrl_ui.core.controllers.DisplayController.pygame.display.list_modes")
+    @patch("v3xctrl_ui.core.controllers.DisplayController.pygame.display.set_mode")
+    @patch("v3xctrl_ui.core.controllers.DisplayController.pygame.display.set_caption")
     def test_scale_calculation(self, mock_caption, mock_set_mode, mock_list_modes):
         """Test that scale is calculated correctly for various resolutions."""
         self.model.fullscreen = True

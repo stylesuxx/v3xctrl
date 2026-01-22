@@ -6,8 +6,8 @@ import logging
 faulthandler.enable()
 
 from v3xctrl_ui.core.AppState import AppState
-from v3xctrl_ui.utils.MemoryTracker import MemoryTracker
-from v3xctrl_ui.utils.Settings import Settings
+from v3xctrl_ui.core.MemoryTracker import MemoryTracker
+from v3xctrl_ui.core.Settings import Settings
 
 parser = argparse.ArgumentParser(description="RC Streamer")
 parser.add_argument(

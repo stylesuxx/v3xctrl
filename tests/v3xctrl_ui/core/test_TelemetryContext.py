@@ -3,13 +3,13 @@ import unittest
 import threading
 import time
 
-from v3xctrl_ui.core.TelemetryContext import (
-    TelemetryContext,
+from v3xctrl_ui.core.TelemetryContext import TelemetryContext
+from v3xctrl_ui.core.dataclasses import (
     ServiceFlags,
     GstFlags,
     VideoCoreFlags,
     BatteryData,
-    SignalData
+    SignalData,
 )
 
 

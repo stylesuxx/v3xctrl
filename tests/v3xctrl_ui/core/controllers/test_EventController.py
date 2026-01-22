@@ -7,9 +7,9 @@ from unittest.mock import Mock, MagicMock, call
 import pygame
 import pytest
 
-from v3xctrl_ui.controllers.EventController import EventController
+from v3xctrl_ui.core.controllers.EventController import EventController
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext
-from v3xctrl_ui.utils.Settings import Settings
+from v3xctrl_ui.core.Settings import Settings
 
 
 @pytest.fixture

@@ -2,9 +2,9 @@ from typing import Dict, Tuple
 
 import pygame
 
-from v3xctrl_ui.controllers.input.GamepadController import GamepadController
-from v3xctrl_ui.controllers.input.KeyAxisHandler import KeyAxisHandler
-from v3xctrl_ui.utils.Settings import Settings
+from v3xctrl_ui.core.controllers.input.GamepadController import GamepadController
+from v3xctrl_ui.core.controllers.input.KeyAxisHandler import KeyAxisHandler
+from v3xctrl_ui.core.Settings import Settings
 
 
 class InputController:

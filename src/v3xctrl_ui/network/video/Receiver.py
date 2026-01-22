@@ -9,7 +9,7 @@ import numpy as np
 import numpy.typing as npt
 
 
-class VideoReceiver(ABC, threading.Thread):
+class Receiver(ABC, threading.Thread):
     """
     Abstract base class for video receivers.
 

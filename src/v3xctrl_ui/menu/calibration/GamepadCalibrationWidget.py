@@ -5,7 +5,7 @@ from typing import Callable, Dict, Optional
 
 from v3xctrl_ui.utils.colors import WHITE, GREY, TRANSPARENT_GREY
 from v3xctrl_ui.utils.fonts import MONO_FONT
-from v3xctrl_ui.controllers.input.GamepadController import GamepadController
+from v3xctrl_ui.core.controllers.input.GamepadController import GamepadController
 
 from v3xctrl_ui.menu.calibration.GamepadCalibrator import (
   GamepadCalibrator,
