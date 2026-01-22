@@ -8,6 +8,7 @@ from v3xctrl_ui.core.dataclasses import (
     ServiceFlags,
     GstFlags,
     VideoCoreFlags,
+    ThrottleFlags,
     BatteryData,
     SignalData,
 )
@@ -91,32 +92,36 @@ class TestVideoCoreFlags(unittest.TestCase):
     def test_from_byte_no_flags(self):
         """Test parsing byte with no flags."""
         flags = VideoCoreFlags.from_byte(0b00000000)
-        self.assertEqual(flags.current, 0)
-        self.assertEqual(flags.history, 0)
+        self.assertIsInstance(flags.current, ThrottleFlags)
+        self.assertIsInstance(flags.history, ThrottleFlags)
+        self.assertEqual(flags.current.to_nibble(), 0)
+        self.assertEqual(flags.history.to_nibble(), 0)
 
     def test_from_byte_current_only(self):
         """Test parsing byte with only current flags."""
         flags = VideoCoreFlags.from_byte(0b00001111)
-        self.assertEqual(flags.current, 0x0F)
-        self.assertEqual(flags.history, 0)
+        self.assertEqual(flags.current.to_nibble(), 0x0F)
+        self.assertEqual(flags.history.to_nibble(), 0)
 
     def test_from_byte_history_only(self):
         """Test parsing byte with only history flags."""
         flags = VideoCoreFlags.from_byte(0b11110000)
-        self.assertEqual(flags.current, 0)
-        self.assertEqual(flags.history, 0x0F)
+        self.assertEqual(flags.current.to_nibble(), 0)
+        self.assertEqual(flags.history.to_nibble(), 0x0F)
 
     def test_from_byte_both_flags(self):
         """Test parsing byte with both current and history flags."""
         flags = VideoCoreFlags.from_byte(0b10100101)
-        self.assertEqual(flags.current, 0x05)
-        self.assertEqual(flags.history, 0x0A)
+        self.assertEqual(flags.current.to_nibble(), 0x05)
+        self.assertEqual(flags.history.to_nibble(), 0x0A)
 
     def test_default_values(self):
         """Test default values."""
         flags = VideoCoreFlags()
-        self.assertEqual(flags.current, 0)
-        self.assertEqual(flags.history, 0)
+        self.assertIsInstance(flags.current, ThrottleFlags)
+        self.assertIsInstance(flags.history, ThrottleFlags)
+        self.assertEqual(flags.current.to_nibble(), 0)
+        self.assertEqual(flags.history.to_nibble(), 0)
 
 
 class TestBatteryData(unittest.TestCase):
@@ -187,8 +192,8 @@ class TestTelemetryContext(unittest.TestCase):
         self.assertFalse(gst.recording)
 
         vc = self.context.get_videocore()
-        self.assertEqual(vc.current, 0)
-        self.assertEqual(vc.history, 0)
+        self.assertEqual(vc.current.to_nibble(), 0)
+        self.assertEqual(vc.history.to_nibble(), 0)
 
         battery = self.context.get_battery()
         self.assertEqual(battery.icon, 0)
@@ -226,8 +231,8 @@ class TestTelemetryContext(unittest.TestCase):
         """Test updating VideoCore flags."""
         self.context.update_videocore(0b10100101)
         vc = self.context.get_videocore()
-        self.assertEqual(vc.current, 0x05)
-        self.assertEqual(vc.history, 0x0A)
+        self.assertEqual(vc.current.to_nibble(), 0x05)
+        self.assertEqual(vc.history.to_nibble(), 0x0A)
 
     def test_update_signal_quality(self):
         """Test updating signal quality."""
@@ -409,8 +414,8 @@ class TestTelemetryContextIntegration(unittest.TestCase):
         self.assertTrue(gst.recording)
 
         vc = context.get_videocore()
-        self.assertEqual(vc.current, 0x05)
-        self.assertEqual(vc.history, 0x0A)
+        self.assertEqual(vc.current.to_nibble(), 0x05)
+        self.assertEqual(vc.history.to_nibble(), 0x0A)
 
         signal = context.get_signal()
         self.assertEqual(signal.quality, {"rsrq": -10, "rsrp": -80})

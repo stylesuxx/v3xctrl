@@ -2,7 +2,8 @@
 import unittest
 from unittest.mock import patch
 
-from v3xctrl_telemetry.VideoCoreTelemetry import VideoCoreTelemetry, Flags
+from v3xctrl_telemetry.VideoCoreTelemetry import VideoCoreTelemetry
+from v3xctrl_telemetry.dataclasses import VideoCoreFlags, ThrottleFlags
 
 
 class TestVideoCoreTelemetry(unittest.TestCase):
@@ -18,15 +19,16 @@ class TestVideoCoreTelemetry(unittest.TestCase):
         self.subprocess_patcher.stop()
 
     def test_initialization(self):
-        """Test VideoCoreTelemetry initializes with Flags dataclasses."""
+        """Test VideoCoreTelemetry initializes with VideoCoreFlags dataclass."""
         telemetry = VideoCoreTelemetry()
 
-        assert isinstance(telemetry.current, Flags)
-        assert isinstance(telemetry.history, Flags)
-        assert telemetry.current.undervolt is False
-        assert telemetry.current.freq_capped is False
-        assert telemetry.current.throttled is False
-        assert telemetry.current.soft_temp_limit is False
+        assert isinstance(telemetry._state, VideoCoreFlags)
+        assert isinstance(telemetry._state.current, ThrottleFlags)
+        assert isinstance(telemetry._state.history, ThrottleFlags)
+        assert telemetry._state.current.undervolt is False
+        assert telemetry._state.current.freq_capped is False
+        assert telemetry._state.current.throttled is False
+        assert telemetry._state.current.soft_temp_limit is False
 
     def test_update_no_throttling(self):
         """Test update() with no throttling (0x0)."""
@@ -36,14 +38,14 @@ class TestVideoCoreTelemetry(unittest.TestCase):
         telemetry.update()
 
         # All flags should be False
-        assert telemetry.current.undervolt is False
-        assert telemetry.current.freq_capped is False
-        assert telemetry.current.throttled is False
-        assert telemetry.current.soft_temp_limit is False
-        assert telemetry.history.undervolt is False
-        assert telemetry.history.freq_capped is False
-        assert telemetry.history.throttled is False
-        assert telemetry.history.soft_temp_limit is False
+        assert telemetry._state.current.undervolt is False
+        assert telemetry._state.current.freq_capped is False
+        assert telemetry._state.current.throttled is False
+        assert telemetry._state.current.soft_temp_limit is False
+        assert telemetry._state.history.undervolt is False
+        assert telemetry._state.history.freq_capped is False
+        assert telemetry._state.history.throttled is False
+        assert telemetry._state.history.soft_temp_limit is False
 
     def test_update_current_undervolt(self):
         """Test update() with current undervolt (bit 0)."""
@@ -52,10 +54,10 @@ class TestVideoCoreTelemetry(unittest.TestCase):
         telemetry = VideoCoreTelemetry()
         telemetry.update()
 
-        assert telemetry.current.undervolt is True
-        assert telemetry.current.freq_capped is False
-        assert telemetry.current.throttled is False
-        assert telemetry.current.soft_temp_limit is False
+        assert telemetry._state.current.undervolt is True
+        assert telemetry._state.current.freq_capped is False
+        assert telemetry._state.current.throttled is False
+        assert telemetry._state.current.soft_temp_limit is False
 
     def test_update_current_freq_capped(self):
         """Test update() with current freq cap (bit 1)."""
@@ -64,10 +66,10 @@ class TestVideoCoreTelemetry(unittest.TestCase):
         telemetry = VideoCoreTelemetry()
         telemetry.update()
 
-        assert telemetry.current.undervolt is False
-        assert telemetry.current.freq_capped is True
-        assert telemetry.current.throttled is False
-        assert telemetry.current.soft_temp_limit is False
+        assert telemetry._state.current.undervolt is False
+        assert telemetry._state.current.freq_capped is True
+        assert telemetry._state.current.throttled is False
+        assert telemetry._state.current.soft_temp_limit is False
 
     def test_update_current_throttled(self):
         """Test update() with current throttling (bit 2)."""
@@ -76,10 +78,10 @@ class TestVideoCoreTelemetry(unittest.TestCase):
         telemetry = VideoCoreTelemetry()
         telemetry.update()
 
-        assert telemetry.current.undervolt is False
-        assert telemetry.current.freq_capped is False
-        assert telemetry.current.throttled is True
-        assert telemetry.current.soft_temp_limit is False
+        assert telemetry._state.current.undervolt is False
+        assert telemetry._state.current.freq_capped is False
+        assert telemetry._state.current.throttled is True
+        assert telemetry._state.current.soft_temp_limit is False
 
     def test_update_current_soft_temp_limit(self):
         """Test update() with current soft temp limit (bit 3)."""
@@ -88,10 +90,10 @@ class TestVideoCoreTelemetry(unittest.TestCase):
         telemetry = VideoCoreTelemetry()
         telemetry.update()
 
-        assert telemetry.current.undervolt is False
-        assert telemetry.current.freq_capped is False
-        assert telemetry.current.throttled is False
-        assert telemetry.current.soft_temp_limit is True
+        assert telemetry._state.current.undervolt is False
+        assert telemetry._state.current.freq_capped is False
+        assert telemetry._state.current.throttled is False
+        assert telemetry._state.current.soft_temp_limit is True
 
     def test_update_history_undervolt(self):
         """Test update() with historical undervolt (bit 16)."""
@@ -100,11 +102,11 @@ class TestVideoCoreTelemetry(unittest.TestCase):
         telemetry = VideoCoreTelemetry()
         telemetry.update()
 
-        assert telemetry.current.undervolt is False
-        assert telemetry.history.undervolt is True
-        assert telemetry.history.freq_capped is False
-        assert telemetry.history.throttled is False
-        assert telemetry.history.soft_temp_limit is False
+        assert telemetry._state.current.undervolt is False
+        assert telemetry._state.history.undervolt is True
+        assert telemetry._state.history.freq_capped is False
+        assert telemetry._state.history.throttled is False
+        assert telemetry._state.history.soft_temp_limit is False
 
     def test_update_history_freq_capped(self):
         """Test update() with historical freq cap (bit 17)."""
@@ -113,10 +115,10 @@ class TestVideoCoreTelemetry(unittest.TestCase):
         telemetry = VideoCoreTelemetry()
         telemetry.update()
 
-        assert telemetry.history.undervolt is False
-        assert telemetry.history.freq_capped is True
-        assert telemetry.history.throttled is False
-        assert telemetry.history.soft_temp_limit is False
+        assert telemetry._state.history.undervolt is False
+        assert telemetry._state.history.freq_capped is True
+        assert telemetry._state.history.throttled is False
+        assert telemetry._state.history.soft_temp_limit is False
 
     def test_update_history_throttled(self):
         """Test update() with historical throttling (bit 18)."""
@@ -125,10 +127,10 @@ class TestVideoCoreTelemetry(unittest.TestCase):
         telemetry = VideoCoreTelemetry()
         telemetry.update()
 
-        assert telemetry.history.undervolt is False
-        assert telemetry.history.freq_capped is False
-        assert telemetry.history.throttled is True
-        assert telemetry.history.soft_temp_limit is False
+        assert telemetry._state.history.undervolt is False
+        assert telemetry._state.history.freq_capped is False
+        assert telemetry._state.history.throttled is True
+        assert telemetry._state.history.soft_temp_limit is False
 
     def test_update_history_soft_temp_limit(self):
         """Test update() with historical soft temp limit (bit 19)."""
@@ -137,10 +139,10 @@ class TestVideoCoreTelemetry(unittest.TestCase):
         telemetry = VideoCoreTelemetry()
         telemetry.update()
 
-        assert telemetry.history.undervolt is False
-        assert telemetry.history.freq_capped is False
-        assert telemetry.history.throttled is False
-        assert telemetry.history.soft_temp_limit is True
+        assert telemetry._state.history.undervolt is False
+        assert telemetry._state.history.freq_capped is False
+        assert telemetry._state.history.throttled is False
+        assert telemetry._state.history.soft_temp_limit is True
 
     def test_update_combined_current_flags(self):
         """Test update() with multiple current flags set."""
@@ -150,10 +152,10 @@ class TestVideoCoreTelemetry(unittest.TestCase):
         telemetry = VideoCoreTelemetry()
         telemetry.update()
 
-        assert telemetry.current.undervolt is True
-        assert telemetry.current.freq_capped is False
-        assert telemetry.current.throttled is True
-        assert telemetry.current.soft_temp_limit is False
+        assert telemetry._state.current.undervolt is True
+        assert telemetry._state.current.freq_capped is False
+        assert telemetry._state.current.throttled is True
+        assert telemetry._state.current.soft_temp_limit is False
 
     def test_update_combined_history_flags(self):
         """Test update() with multiple historical flags set."""
@@ -163,10 +165,10 @@ class TestVideoCoreTelemetry(unittest.TestCase):
         telemetry = VideoCoreTelemetry()
         telemetry.update()
 
-        assert telemetry.history.undervolt is True
-        assert telemetry.history.freq_capped is False
-        assert telemetry.history.throttled is True
-        assert telemetry.history.soft_temp_limit is False
+        assert telemetry._state.history.undervolt is True
+        assert telemetry._state.history.freq_capped is False
+        assert telemetry._state.history.throttled is True
+        assert telemetry._state.history.soft_temp_limit is False
 
     def test_update_current_and_history(self):
         """Test update() with both current and historical flags."""
@@ -176,10 +178,10 @@ class TestVideoCoreTelemetry(unittest.TestCase):
         telemetry = VideoCoreTelemetry()
         telemetry.update()
 
-        assert telemetry.current.undervolt is True
-        assert telemetry.current.throttled is True
-        assert telemetry.history.undervolt is True
-        assert telemetry.history.throttled is True
+        assert telemetry._state.current.undervolt is True
+        assert telemetry._state.current.throttled is True
+        assert telemetry._state.history.undervolt is True
+        assert telemetry._state.history.throttled is True
 
     def test_update_invalid_output_raises_error(self):
         """Test update() raises RuntimeError on invalid vcgencmd output."""
@@ -233,32 +235,8 @@ class TestVideoCoreTelemetry(unittest.TestCase):
         byte = telemetry.get_byte()
         assert byte == 0x55  # 0101 0101
 
-    def test_get_current(self):
-        """Test get_current() returns current Flags object."""
-        self.mock_subprocess.check_output.return_value = "throttled=0x1"
-
-        telemetry = VideoCoreTelemetry()
-        telemetry.update()
-
-        current = telemetry.get_current()
-        assert current is telemetry.current
-        assert isinstance(current, Flags)
-        assert current.undervolt is True
-
-    def test_get_history(self):
-        """Test get_history() returns history Flags object."""
-        self.mock_subprocess.check_output.return_value = "throttled=0x10000"
-
-        telemetry = VideoCoreTelemetry()
-        telemetry.update()
-
-        history = telemetry.get_history()
-        assert history is telemetry.history
-        assert isinstance(history, Flags)
-        assert history.undervolt is True
-
-    def test_get_state_returns_dict(self):
-        """Test get_state() returns dict with current and history."""
+    def test_get_state_returns_videocore_flags(self):
+        """Test get_state() returns VideoCoreFlags with current and history."""
         self.mock_subprocess.check_output.return_value = "throttled=0x50005"
 
         telemetry = VideoCoreTelemetry()
@@ -266,11 +244,10 @@ class TestVideoCoreTelemetry(unittest.TestCase):
 
         state = telemetry.get_state()
 
-        assert isinstance(state, dict)
-        assert 'current' in state
-        assert 'history' in state
-        assert state['current'] is telemetry.current
-        assert state['history'] is telemetry.history
+        assert isinstance(state, VideoCoreFlags)
+        assert isinstance(state.current, ThrottleFlags)
+        assert isinstance(state.history, ThrottleFlags)
+        assert state is telemetry._state
 
     def test_run_vcgencmd_calls_subprocess(self):
         """Test _run_vcgencmd() calls subprocess correctly."""

@@ -5,6 +5,7 @@ from v3xctrl_ui.core.dataclasses import (
     ServiceFlags,
     GstFlags,
     VideoCoreFlags,
+    ThrottleFlags,
     BatteryData,
     SignalData,
 )
@@ -81,14 +82,27 @@ class TelemetryContext:
     def get_gst(self) -> GstFlags:
         """Get current GST flags (thread-safe)."""
         with self._lock:
-            return GstFlags(recording=self._gst.recording)
+            return GstFlags(
+                recording=self._gst.recording,
+                udp_overrun=self._gst.udp_overrun
+            )
 
     def get_videocore(self) -> VideoCoreFlags:
         """Get current VideoCore flags (thread-safe)."""
         with self._lock:
             return VideoCoreFlags(
-                current=self._videocore.current,
-                history=self._videocore.history
+                current=ThrottleFlags(
+                    undervolt=self._videocore.current.undervolt,
+                    freq_capped=self._videocore.current.freq_capped,
+                    throttled=self._videocore.current.throttled,
+                    soft_temp_limit=self._videocore.current.soft_temp_limit
+                ),
+                history=ThrottleFlags(
+                    undervolt=self._videocore.history.undervolt,
+                    freq_capped=self._videocore.history.freq_capped,
+                    throttled=self._videocore.history.throttled,
+                    soft_temp_limit=self._videocore.history.soft_temp_limit
+                )
             )
 
     def get_signal(self) -> SignalData:

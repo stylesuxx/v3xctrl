@@ -190,15 +190,8 @@ class Telemetry(threading.Thread):
         if self._gst:
             try:
                 self._gst.update()
-                state = self._gst.get_state()
-                byte_value = 0
-
-                if state.recording:
-                    byte_value |= (1 << 0)
-
                 with self._lock:
-                    self.payload.gst = byte_value
-
+                    self.payload.gst = self._gst.get_byte()
             except Exception as e:
                 logging.debug("Failed to update GST telemetry: %s", e)
                 with self._lock:

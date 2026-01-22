@@ -191,8 +191,6 @@ class TestTelemetry(unittest.TestCase):
         self.assertEqual(tel.payload.vc, 0)  # Should be reset to 0 on error
 
     def test_update_gst(self):
-        from v3xctrl_telemetry import Stats
-
         tel = Telemetry.__new__(Telemetry)
         tel._lock = threading.Lock()
         tel.payload = TelemetryPayload(
@@ -204,13 +202,11 @@ class TestTelemetry(unittest.TestCase):
         )
         tel._gst = MagicMock()
         tel._gst.update = MagicMock()
-        tel._gst.get_state.return_value = Stats(recording=True)
+        tel._gst.get_byte.return_value = 0x03  # recording + udp_overrun
         tel._update_gst()
-        self.assertEqual(tel.payload.gst, 0x01)  # bit 0 set for recording
+        self.assertEqual(tel.payload.gst, 0x03)
 
     def test_update_gst_not_recording(self):
-        from v3xctrl_telemetry import Stats
-
         tel = Telemetry.__new__(Telemetry)
         tel._lock = threading.Lock()
         tel.payload = TelemetryPayload(
@@ -222,9 +218,9 @@ class TestTelemetry(unittest.TestCase):
         )
         tel._gst = MagicMock()
         tel._gst.update = MagicMock()
-        tel._gst.get_state.return_value = Stats(recording=False)
+        tel._gst.get_byte.return_value = 0x00  # No flags set
         tel._update_gst()
-        self.assertEqual(tel.payload.gst, 0x00)  # Should be 0 when not recording
+        self.assertEqual(tel.payload.gst, 0x00)
 
     def test_update_gst_fail(self):
         tel = Telemetry.__new__(Telemetry)
