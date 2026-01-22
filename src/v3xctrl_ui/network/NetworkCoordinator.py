@@ -9,8 +9,8 @@ from v3xctrl_control import State
 from v3xctrl_control.message import Command, Control, Latency, Telemetry
 
 from v3xctrl_ui.network.NetworkController import NetworkController
-from v3xctrl_ui.utils.Settings import Settings
-from v3xctrl_ui.core.ApplicationModel import ApplicationModel
+from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.core.dataclasses import ApplicationModel
 from v3xctrl_ui.osd.OSD import OSD
 
 

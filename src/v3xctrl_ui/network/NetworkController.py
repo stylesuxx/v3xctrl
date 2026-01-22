@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional
 from v3xctrl_control import Server
 from v3xctrl_control.message import Latency
 
-from v3xctrl_ui.utils.Settings import Settings
+from v3xctrl_ui.core.Settings import Settings
 
 from v3xctrl_ui.network.NetworkSetup import NetworkSetup
 

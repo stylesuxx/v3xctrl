@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, patch
 
 import pygame
 
-from v3xctrl_ui.utils.Settings import Settings
+from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.osd.OSD import OSD
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 from v3xctrl_control.message import Latency, Telemetry

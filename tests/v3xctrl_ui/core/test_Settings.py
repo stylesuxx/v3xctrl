@@ -9,7 +9,7 @@ import unittest
 import pygame
 import tomli_w
 
-from v3xctrl_ui.utils.Settings import Settings
+from v3xctrl_ui.core.Settings import Settings
 
 
 class TestSettings(unittest.TestCase):

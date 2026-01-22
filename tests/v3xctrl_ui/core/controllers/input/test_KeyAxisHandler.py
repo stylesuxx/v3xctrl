@@ -1,5 +1,5 @@
 import unittest
-from v3xctrl_ui.controllers.input.KeyAxisHandler import KeyAxisHandler
+from v3xctrl_ui.core.controllers.input.KeyAxisHandler import KeyAxisHandler
 
 
 def mock_keys(pressed_indices, total=300):

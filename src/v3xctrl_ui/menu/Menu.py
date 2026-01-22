@@ -10,8 +10,8 @@ from v3xctrl_control.message import Command
 from v3xctrl_ui.utils.colors import WHITE, DARK_GREY, CHARCOAL, GREY, TRANSPARENT_BLACK
 from v3xctrl_ui.utils.fonts import MAIN_FONT
 from v3xctrl_ui.utils.i18n import t
-from v3xctrl_ui.controllers.input.GamepadController import GamepadController
-from v3xctrl_ui.utils.Settings import Settings
+from v3xctrl_ui.core.controllers.input.GamepadController import GamepadController
+from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 from v3xctrl_ui.menu.input import Button
 from v3xctrl_ui.menu.tabs import (

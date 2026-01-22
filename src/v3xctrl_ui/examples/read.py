@@ -1,7 +1,7 @@
 import pygame
 
 from v3xctrl_ui.utils.colors import DARK_GREY
-from v3xctrl_ui.controllers.input.GamepadController import GamepadController
+from v3xctrl_ui.core.controllers.input.GamepadController import GamepadController
 
 active_guid = "030003f05e0400008e02000010010000"
 calibrations = {

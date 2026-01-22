@@ -9,8 +9,8 @@ from v3xctrl_control.State import State
 from v3xctrl_helper.exceptions import PeerRegistrationError, PeerRegistrationAborted
 from v3xctrl_udp_relay.Peer import Peer
 
-from v3xctrl_ui.network.VideoReceiverPyAV import VideoReceiverPyAV as VideoReceiver
-from v3xctrl_ui.utils.Settings import Settings
+from v3xctrl_ui.network.video.ReceiverPyAV import ReceiverPyAV as VideoReceiver
+from v3xctrl_ui.core.Settings import Settings
 
 
 @dataclass

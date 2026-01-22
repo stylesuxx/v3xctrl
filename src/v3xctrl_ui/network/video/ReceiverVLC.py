@@ -10,10 +10,10 @@ from typing import Callable, Optional
 import numpy as np
 import vlc
 
-from v3xctrl_ui.network.VideoReceiver import VideoReceiver
+from v3xctrl_ui.network.video.Receiver import Receiver
 
 
-class VideoReceiverVLC(VideoReceiver):
+class ReceiverVLC(Receiver):
     """VLC-based video receiver using SDP file for RTP stream."""
 
     def __init__(self, port: int, error_callback: Callable[[], None]) -> None:

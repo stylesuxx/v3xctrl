@@ -7,10 +7,10 @@ from unittest.mock import MagicMock, patch
 
 import pygame
 
-from v3xctrl_ui.controllers.input.GamepadController import GamepadController
+from v3xctrl_ui.core.controllers.input.GamepadController import GamepadController
 
 
-@patch("v3xctrl_ui.controllers.input.GamepadController.pygame.joystick.init")
+@patch("v3xctrl_ui.core.controllers.input.GamepadController.pygame.joystick.init")
 class TestGamepadController(unittest.TestCase):
     def setUp(self):
         self.mgr = GamepadController()
@@ -50,7 +50,7 @@ class TestGamepadController(unittest.TestCase):
         self.assertAlmostEqual(self.mgr._remap(5, (0, 10), (0, 1)), 0.5)
         self.assertEqual(self.mgr._remap(5, (5, 5), (0, 1)), 0)
 
-    @patch("v3xctrl_ui.controllers.input.GamepadController.clamp", side_effect=lambda v, a, b: v)
+    @patch("v3xctrl_ui.core.controllers.input.GamepadController.clamp", side_effect=lambda v, a, b: v)
     def test_read_inputs_with_center_and_invert(self, mock_clamp, mock_js_init):
         js = MagicMock()
         js.get_init.return_value = True
@@ -71,7 +71,7 @@ class TestGamepadController(unittest.TestCase):
         self.assertIn("steering", values)
         self.assertLessEqual(values["steering"], 0)
 
-    @patch("v3xctrl_ui.controllers.input.GamepadController.clamp", side_effect=lambda v, a, b: v)
+    @patch("v3xctrl_ui.core.controllers.input.GamepadController.clamp", side_effect=lambda v, a, b: v)
     def test_read_inputs_without_center(self, mock_clamp, mock_js_init):
         js = MagicMock()
         js.get_init.return_value = True
@@ -94,7 +94,7 @@ class TestGamepadController(unittest.TestCase):
         self.mgr._active_gamepad = None
         self.assertIsNone(self.mgr.read_inputs())
 
-    @patch("v3xctrl_ui.controllers.input.GamepadController.pygame.error", new=Exception)
+    @patch("v3xctrl_ui.core.controllers.input.GamepadController.pygame.error", new=Exception)
     def test_read_inputs_handles_pygame_error(self, mock_js_init):
         js = MagicMock()
         js.get_init.return_value = True
@@ -111,9 +111,9 @@ class TestGamepadController(unittest.TestCase):
         self.mgr.stop()
         self.assertTrue(self.mgr._stop_event.is_set())
 
-    @patch("v3xctrl_ui.controllers.input.GamepadController.pygame.joystick.get_count", return_value=2)
-    @patch("v3xctrl_ui.controllers.input.GamepadController.pygame.joystick.Joystick")
-    @patch("v3xctrl_ui.controllers.input.GamepadController.pygame.time.wait")
+    @patch("v3xctrl_ui.core.controllers.input.GamepadController.pygame.joystick.get_count", return_value=2)
+    @patch("v3xctrl_ui.core.controllers.input.GamepadController.pygame.joystick.Joystick")
+    @patch("v3xctrl_ui.core.controllers.input.GamepadController.pygame.time.wait")
     def test_run_detects_new_gamepads(self, mock_wait, mock_joystick_cls, mock_get_count, mock_js_init):
         mock_js1 = MagicMock()
         mock_js1.get_init.return_value = False
@@ -140,9 +140,9 @@ class TestGamepadController(unittest.TestCase):
         self.assertIn("guid1", gamepads)
         self.assertIn("guid2", gamepads)
 
-    @patch("v3xctrl_ui.controllers.input.GamepadController.pygame.joystick.get_count", return_value=1)
-    @patch("v3xctrl_ui.controllers.input.GamepadController.pygame.joystick.Joystick")
-    @patch("v3xctrl_ui.controllers.input.GamepadController.pygame.time.wait")
+    @patch("v3xctrl_ui.core.controllers.input.GamepadController.pygame.joystick.get_count", return_value=1)
+    @patch("v3xctrl_ui.core.controllers.input.GamepadController.pygame.joystick.Joystick")
+    @patch("v3xctrl_ui.core.controllers.input.GamepadController.pygame.time.wait")
     def test_run_handles_pygame_error(self, mock_wait, mock_joystick_cls, mock_get_count, mock_js_init):
         mock_joystick_cls.side_effect = pygame.error("Joystick error")
 
@@ -161,9 +161,9 @@ class TestGamepadController(unittest.TestCase):
         # Observer should be called with empty dict since pygame.error occurred
         observer.assert_called_once_with({})
 
-    @patch("v3xctrl_ui.controllers.input.GamepadController.pygame.joystick.get_count", return_value=1)
-    @patch("v3xctrl_ui.controllers.input.GamepadController.pygame.joystick.Joystick")
-    @patch("v3xctrl_ui.controllers.input.GamepadController.pygame.time.wait")
+    @patch("v3xctrl_ui.core.controllers.input.GamepadController.pygame.joystick.get_count", return_value=1)
+    @patch("v3xctrl_ui.core.controllers.input.GamepadController.pygame.joystick.Joystick")
+    @patch("v3xctrl_ui.core.controllers.input.GamepadController.pygame.time.wait")
     def test_run_rebinds_active_gamepad(self, mock_wait, mock_joystick_cls, mock_get_count, mock_js_init):
         mock_js = MagicMock()
         mock_js.get_init.return_value = True
@@ -185,8 +185,8 @@ class TestGamepadController(unittest.TestCase):
         self.assertEqual(self.mgr._active_gamepad, mock_js)
         self.assertEqual(self.mgr._active_settings, {"axis": 0})
 
-    @patch("v3xctrl_ui.controllers.input.GamepadController.pygame.joystick.get_count", return_value=0)
-    @patch("v3xctrl_ui.controllers.input.GamepadController.pygame.time.wait")
+    @patch("v3xctrl_ui.core.controllers.input.GamepadController.pygame.joystick.get_count", return_value=0)
+    @patch("v3xctrl_ui.core.controllers.input.GamepadController.pygame.time.wait")
     def test_run_clears_active_when_gamepad_removed(self, mock_wait, mock_get_count, mock_js_init):
         # Set up initial state with active gamepad
         self.mgr._active_guid = "guid1"
@@ -203,9 +203,9 @@ class TestGamepadController(unittest.TestCase):
         self.assertIsNone(self.mgr._active_gamepad)
         self.assertIsNone(self.mgr._active_settings)
 
-    @patch("v3xctrl_ui.controllers.input.GamepadController.pygame.joystick.get_count", return_value=1)
-    @patch("v3xctrl_ui.controllers.input.GamepadController.pygame.joystick.Joystick")
-    @patch("v3xctrl_ui.controllers.input.GamepadController.pygame.time.wait")
+    @patch("v3xctrl_ui.core.controllers.input.GamepadController.pygame.joystick.get_count", return_value=1)
+    @patch("v3xctrl_ui.core.controllers.input.GamepadController.pygame.joystick.Joystick")
+    @patch("v3xctrl_ui.core.controllers.input.GamepadController.pygame.time.wait")
     def test_run_no_observer_call_when_no_changes(self, mock_wait, mock_joystick_cls, mock_get_count, mock_js_init):
         mock_js = MagicMock()
         mock_js.get_init.return_value = True
@@ -300,7 +300,7 @@ class TestGamepadController(unittest.TestCase):
         values = self.mgr.read_inputs()
         self.assertEqual(values, {})
 
-    @patch("v3xctrl_ui.controllers.input.GamepadController.clamp", side_effect=lambda v, a, b: v)
+    @patch("v3xctrl_ui.core.controllers.input.GamepadController.clamp", side_effect=lambda v, a, b: v)
     def test_read_inputs_with_invert_no_center(self, mock_clamp, mock_js_init):
         js = MagicMock()
         js.get_init.return_value = True

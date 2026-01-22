@@ -5,7 +5,7 @@ os.environ["SDL_VIDEODRIVER"] = "dummy"
 import unittest
 import pygame
 
-from v3xctrl_ui.osd.WidgetFactory import (
+from v3xctrl_ui.osd.widgets.WidgetFactory import (
     create_steering_widgets,
     create_battery_widgets,
     create_signal_widgets,

@@ -1,7 +1,7 @@
 import unittest
 
 from v3xctrl_control.message import Telemetry
-from v3xctrl_ui.osd.TelemetryParser import parse_telemetry, TelemetryData
+from v3xctrl_ui.core.TelemetryParser import parse_telemetry, TelemetryData
 
 
 class TestParseTelemetry(unittest.TestCase):

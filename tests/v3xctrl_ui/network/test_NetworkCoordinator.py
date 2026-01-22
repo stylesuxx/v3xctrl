@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 import threading
 
 from v3xctrl_ui.network.NetworkCoordinator import NetworkCoordinator
-from v3xctrl_ui.core.ApplicationModel import ApplicationModel
+from v3xctrl_ui.core.dataclasses import ApplicationModel
 from v3xctrl_control import State
 from v3xctrl_control.message import Command, Control, Latency, Telemetry
 

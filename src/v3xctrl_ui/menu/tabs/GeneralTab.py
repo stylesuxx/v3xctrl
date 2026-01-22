@@ -11,7 +11,7 @@ from v3xctrl_ui.menu.input import (
   Checkbox,
   NumberInput,
 )
-from v3xctrl_ui.utils.Settings import Settings
+from v3xctrl_ui.core.Settings import Settings
 
 from .Tab import Tab
 from .VerticalLayout import VerticalLayout

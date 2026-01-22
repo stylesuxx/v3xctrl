@@ -3,7 +3,7 @@ from collections import deque
 
 import pytest
 
-from v3xctrl_ui.core.ApplicationModel import ApplicationModel
+from v3xctrl_ui.core.dataclasses import ApplicationModel
 
 
 class TestApplicationModel:
