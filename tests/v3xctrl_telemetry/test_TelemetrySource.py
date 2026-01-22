@@ -14,11 +14,12 @@ from v3xctrl_telemetry import (
     BatteryTelemetry,
     BatteryState,
     ServiceTelemetry,
-    Services,
+    ServiceFlags,
     VideoCoreTelemetry,
-    Flags,
+    VideoCoreFlags,
+    ThrottleFlags,
     GstTelemetry,
-    Stats
+    GstFlags
 )
 
 
@@ -110,31 +111,29 @@ class TestGetStateMethods(unittest.TestCase):
         assert hasattr(state, 'cell_count')
 
     def test_service_get_state(self):
-        """Test ServiceTelemetry.get_state() returns Services."""
+        """Test ServiceTelemetry.get_state() returns ServiceFlags."""
         service = ServiceTelemetry()
         state = service.get_state()
 
-        assert isinstance(state, Services)
-        assert hasattr(state, 'v3xctrl_video')
-        assert hasattr(state, 'v3xctrl_debug')
+        assert isinstance(state, ServiceFlags)
+        assert hasattr(state, 'video')
+        assert hasattr(state, 'debug')
 
     def test_videocore_get_state(self):
-        """Test VideoCoreTelemetry.get_state() returns dict with Flags."""
+        """Test VideoCoreTelemetry.get_state() returns VideoCoreFlags."""
         videocore = VideoCoreTelemetry()
         state = videocore.get_state()
 
-        assert isinstance(state, dict)
-        assert 'current' in state
-        assert 'history' in state
-        assert isinstance(state['current'], Flags)
-        assert isinstance(state['history'], Flags)
+        assert isinstance(state, VideoCoreFlags)
+        assert isinstance(state.current, ThrottleFlags)
+        assert isinstance(state.history, ThrottleFlags)
 
     def test_gst_get_state(self):
-        """Test GstTelemetry.get_state() returns Stats."""
+        """Test GstTelemetry.get_state() returns GstFlags."""
         gst = GstTelemetry()
         state = gst.get_state()
 
-        assert isinstance(state, Stats)
+        assert isinstance(state, GstFlags)
         assert hasattr(state, 'recording')
 
     def test_battery_state_is_dataclass(self):

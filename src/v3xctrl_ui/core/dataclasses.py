@@ -3,6 +3,14 @@ from dataclasses import dataclass, field
 from collections import deque
 from typing import Dict, Optional, TYPE_CHECKING
 
+# Re-export telemetry dataclasses for backwards compatibility
+from v3xctrl_telemetry import (
+    ServiceFlags,
+    GstFlags,
+    VideoCoreFlags,
+    ThrottleFlags,
+)
+
 if TYPE_CHECKING:
     from v3xctrl_ui.core.Settings import Settings
 
@@ -31,51 +39,6 @@ class ApplicationModel:
 
     # Network
     pending_settings: Optional['Settings'] = None
-
-
-@dataclass
-class ServiceFlags:
-    """Service status flags from telemetry."""
-    video: bool = False
-    reverse_shell: bool = False
-    debug: bool = False
-
-    @classmethod
-    def from_byte(cls, byte: int) -> 'ServiceFlags':
-        """Parse service flags from byte value."""
-        return cls(
-            video=bool(byte & (1 << 0)),
-            reverse_shell=bool(byte & (1 << 1)),
-            debug=bool(byte & (1 << 2))
-        )
-
-
-@dataclass
-class GstFlags:
-    """GStreamer status flags from telemetry."""
-    recording: bool = False
-
-    @classmethod
-    def from_byte(cls, byte: int) -> 'GstFlags':
-        """Parse GST flags from byte value."""
-        return cls(
-            recording=bool(byte & (1 << 0))
-        )
-
-
-@dataclass
-class VideoCoreFlags:
-    """VideoCore throttling flags from telemetry."""
-    current: int = 0
-    history: int = 0
-
-    @classmethod
-    def from_byte(cls, byte: int) -> 'VideoCoreFlags':
-        """Parse VideoCore flags from byte value."""
-        return cls(
-            current=byte & 0x0F,
-            history=(byte >> 4) & 0x0F
-        )
 
 
 @dataclass

@@ -1,15 +1,19 @@
 from .INA import INA
 from .BatteryTelemetry import BatteryTelemetry, BatteryState
-from .VideoCoreTelemetry import VideoCoreTelemetry, Flags
-from .ServiceTelemetry import ServiceTelemetry, Services
-from .GstTelemetry import GstTelemetry, Stats
+from .VideoCoreTelemetry import VideoCoreTelemetry
+from .ServiceTelemetry import ServiceTelemetry
+from .GstTelemetry import GstTelemetry
 from .TelemetrySource import TelemetrySource
-from .Payload import (
+from .dataclasses import (
+    GstFlags,
+    ServiceFlags,
+    VideoCoreFlags,
+    ThrottleFlags,
     SignalInfo,
     CellInfo,
     LocationInfo,
     BatteryInfo,
-    TelemetryPayload
+    TelemetryPayload,
 )
 
 # Backwards compatibility
@@ -21,15 +25,16 @@ __all__ = [
   'BatteryState',
   'Battery',
   'VideoCoreTelemetry',
-  'Flags',
+  'VideoCoreFlags',
+  'ThrottleFlags',
   'ServiceTelemetry',
-  'Services',
+  'ServiceFlags',
   'SignalInfo',
   'CellInfo',
   'LocationInfo',
   'BatteryInfo',
   'TelemetryPayload',
   'GstTelemetry',
-  'Stats',
+  'GstFlags',
   'TelemetrySource',
 ]

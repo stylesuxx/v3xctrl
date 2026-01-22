@@ -2,7 +2,8 @@
 import unittest
 from unittest.mock import patch
 
-from v3xctrl_telemetry.ServiceTelemetry import ServiceTelemetry, Services
+from v3xctrl_telemetry.ServiceTelemetry import ServiceTelemetry
+from v3xctrl_telemetry.dataclasses import ServiceFlags
 
 
 class TestServiceTelemetry(unittest.TestCase):
@@ -18,13 +19,13 @@ class TestServiceTelemetry(unittest.TestCase):
         self.subprocess_patcher.stop()
 
     def test_initialization(self):
-        """Test ServiceTelemetry initializes with Services dataclass."""
+        """Test ServiceTelemetry initializes with ServiceFlags dataclass."""
         telemetry = ServiceTelemetry()
 
-        assert isinstance(telemetry.services, Services)
-        assert telemetry.services.v3xctrl_video is False
-        assert telemetry.services.v3xctrl_reverse_shell is False
-        assert telemetry.services.v3xctrl_debug is False
+        assert isinstance(telemetry._state, ServiceFlags)
+        assert telemetry._state.video is False
+        assert telemetry._state.reverse_shell is False
+        assert telemetry._state.debug is False
 
     def test_is_active_service_running(self):
         """Test _is_active returns True when service is active."""
@@ -53,9 +54,9 @@ class TestServiceTelemetry(unittest.TestCase):
         telemetry = ServiceTelemetry()
         telemetry.update()
 
-        assert telemetry.services.v3xctrl_video is True
-        assert telemetry.services.v3xctrl_reverse_shell is False
-        assert telemetry.services.v3xctrl_debug is False
+        assert telemetry._state.video is True
+        assert telemetry._state.reverse_shell is False
+        assert telemetry._state.debug is False
 
         # Should have been called three times (once for each service)
         assert self.mock_subprocess.call.call_count == 3
@@ -81,8 +82,8 @@ class TestServiceTelemetry(unittest.TestCase):
 
         state = telemetry.get_state()
 
-        assert state is telemetry.services
-        assert isinstance(state, Services)
+        assert state is telemetry._state
+        assert isinstance(state, ServiceFlags)
 
     def test_get_byte_no_services(self):
         """Test get_byte() returns 0x00 when no services active."""

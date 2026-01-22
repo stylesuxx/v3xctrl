@@ -1,17 +1,18 @@
-from dataclasses import dataclass, fields
 import subprocess
 
-
-@dataclass
-class Services:
-    v3xctrl_video: bool = False
-    v3xctrl_reverse_shell: bool = False
-    v3xctrl_debug: bool = False
+from v3xctrl_telemetry.dataclasses import ServiceFlags
 
 
 class ServiceTelemetry:
+    # Service name mapping: field name -> systemd service name
+    SERVICE_NAMES = {
+        'video': 'v3xctrl-video.service',
+        'reverse_shell': 'v3xctrl-reverse-shell.service',
+        'debug': 'v3xctrl-debug.service',
+    }
+
     def __init__(self):
-        self.services = Services()
+        self._state = ServiceFlags()
 
     def _is_active(self, service: str) -> bool:
         return subprocess.call(
@@ -21,28 +22,12 @@ class ServiceTelemetry:
         ) == 0
 
     def update(self) -> None:
-        for f in fields(self.services):
-            service_name = f.name.replace("_", "-") + ".service"
-            setattr(
-                self.services,
-                f.name,
-                self._is_active(service_name),
-            )
+        for field_name, service_name in self.SERVICE_NAMES.items():
+            setattr(self._state, field_name, self._is_active(service_name))
 
-    def get_state(self) -> Services:
-        return self.services
+    def get_state(self) -> ServiceFlags:
+        return self._state
 
     def get_byte(self) -> int:
-        """
-        Pack service states into a single byte.
-        Each service corresponds to a bit in field order:
-        - bit 0: v3xctrl_video
-        - bit 1: v3xctrl_reverse_shell
-        - bit 2: v3xctrl_debug
-        """
-        byte = 0
-        for i, field in enumerate(fields(self.services)):
-            if getattr(self.services, field.name):
-                byte |= (1 << i)
-
-        return byte & 0xFF
+        """Return flags packed as a byte for telemetry transmission."""
+        return self._state.to_byte()

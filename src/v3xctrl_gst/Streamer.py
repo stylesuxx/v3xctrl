@@ -41,6 +41,8 @@ class Streamer:
         self.last_camera_pts = None
         self.frame_count = 0
 
+        self.last_udp_overflow_time = 0
+
         default_settings: Dict[str, Any] = {
             'width': 1280,
             'height': 720,
@@ -317,6 +319,7 @@ class Streamer:
             'recording': self.recording_manager.is_recording,
             'qp_min': self.qp_manager.current_qp_min,
             'qp_max': self.qp_manager.qp_max,
+            'udp_overrun': (time.monotonic() - self.last_udp_overflow_time) < 5,
         }
 
     def start_recording(self) -> bool:
@@ -460,7 +463,7 @@ class Streamer:
         queue_udp.set_property("max-size-buffers", self.settings['sizebuffers_udp'])
         queue_udp.set_property("max-size-time", self.settings['buffertime_udp'])
         queue_udp.set_property("leaky", 2)  # Downstream
-        queue_udp.connect("overrun", self._on_queue_overrun)
+        queue_udp.connect("overrun", self._on_udp_queue_overrun)
         self.pipeline.add(queue_udp)
 
         payloader = Gst.ElementFactory.make("rtph264pay", "payloader")
@@ -521,6 +524,17 @@ class Streamer:
 
     def _on_queue_overrun(self, element):
         logging.warning(f"Queue '{element.get_name()}' overrun - dropping frames!")
+
+    def _on_udp_queue_overrun(self, _):
+        """
+        UDP queue overrun means that the frames can not be pushed out fast
+        enough - this is a limitation of the network!
+
+        Timestamp is set when this happens in order to show this via telemetry
+        to the viewer.
+        """
+        logging.error("UDP queue overrun - dropping frames!")
+        self.last_udp_overflow_time = time.monotonic()
 
     def _on_encoder_buffer(self, pad, info):
         buffer = info.get_buffer()
