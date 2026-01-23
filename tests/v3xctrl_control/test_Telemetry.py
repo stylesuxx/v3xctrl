@@ -103,7 +103,7 @@ class TestTelemetry(unittest.TestCase):
         tel._set_cell_unknown.assert_called_once()
 
     def test_update_battery(self):
-        from v3xctrl_telemetry import BatteryState
+        from v3xctrl_telemetry.BatteryTelemetry import BatteryState
 
         tel = Telemetry.__new__(Telemetry)
         tel._lock = threading.Lock()

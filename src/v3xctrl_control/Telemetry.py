@@ -12,16 +12,16 @@ import threading
 import time
 
 from v3xctrl_telemetry import (
-    BatteryTelemetry,
-    ServiceTelemetry,
-    VideoCoreTelemetry,
-    GstTelemetry,
     SignalInfo,
     CellInfo,
     LocationInfo,
     BatteryInfo,
     TelemetryPayload
 )
+from v3xctrl_telemetry.BatteryTelemetry import BatteryTelemetry
+from v3xctrl_telemetry.ServiceTelemetry import ServiceTelemetry
+from v3xctrl_telemetry.VideoCoreTelemetry import VideoCoreTelemetry
+from v3xctrl_telemetry.GstTelemetry import GstTelemetry
 
 T = TypeVar("T")
 

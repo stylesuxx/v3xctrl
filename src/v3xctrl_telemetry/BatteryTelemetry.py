@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from v3xctrl_telemetry import INA
+from v3xctrl_telemetry.INA import INA
 from v3xctrl_helper import clamp
 
 

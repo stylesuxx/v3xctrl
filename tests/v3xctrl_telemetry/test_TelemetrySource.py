@@ -10,17 +10,16 @@ sys.modules['gi.repository.Gst'] = MagicMock()
 sys.modules['gi.repository.GLib'] = MagicMock()
 
 from v3xctrl_telemetry import (
-    TelemetrySource,
-    BatteryTelemetry,
-    BatteryState,
-    ServiceTelemetry,
     ServiceFlags,
-    VideoCoreTelemetry,
     VideoCoreFlags,
     ThrottleFlags,
-    GstTelemetry,
-    GstFlags
+    GstFlags,
 )
+from v3xctrl_telemetry.TelemetrySource import TelemetrySource
+from v3xctrl_telemetry.BatteryTelemetry import BatteryTelemetry, BatteryState
+from v3xctrl_telemetry.ServiceTelemetry import ServiceTelemetry
+from v3xctrl_telemetry.VideoCoreTelemetry import VideoCoreTelemetry
+from v3xctrl_telemetry.GstTelemetry import GstTelemetry
 
 
 class TestTelemetrySourceProtocol(unittest.TestCase):
