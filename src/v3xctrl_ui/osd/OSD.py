@@ -24,7 +24,7 @@ from v3xctrl_ui.osd.widgets.WidgetGroupRenderer import render_widget_group
 from v3xctrl_ui.osd.widgets.WidgetGroup import WidgetGroup
 from v3xctrl_ui.osd.widgets import Widget
 
-from v3xctrl_ui.utils.colors import RED, WHITE
+from v3xctrl_ui.utils.colors import ORANGE, RED, WHITE
 from v3xctrl_ui.utils.helpers import get_fps
 from v3xctrl_ui.core.Settings import Settings
 
@@ -151,6 +151,13 @@ class OSD:
         self.video_history = video_history
 
         gst = self.telemetry_context.get_gst()
+
+        video_fps_widget = self.widgets_debug["debug_fps_video"]
+        if gst.udp_overrun:
+            video_fps_widget.set_status_icon("speed", ORANGE)
+        else:
+            video_fps_widget.clear_status_icon()
+
         rec_enabled_in_settings = self.widget_settings.get("rec", {}).get("display", True)
         render_settings = {
             **self.widget_settings,
