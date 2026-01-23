@@ -105,6 +105,12 @@ class Telemetry(threading.Thread):
                 self._modem = None
                 return False
 
+            sim_status = self._modem.get_sim_status()
+            if sim_status != "OK":
+                logging.info("No SIM card present (status: %s)", sim_status)
+                self._modem = None
+                return False
+
             logging.info("Modem initialized")
             return True
 
