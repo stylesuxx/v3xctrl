@@ -65,7 +65,7 @@ ARGS=(
 if [ -n "$video_record_path" ] && [ "$video_record_path" != "null" ]; then
   ARGS+=(--recording-dir "$video_record_path")
 
-  if [ "$video_record" = "true" ]; then
+  if [ "$video_record_autostart" = "true" ]; then
     ARGS+=(--autostart-recording)
   fi
 fi
