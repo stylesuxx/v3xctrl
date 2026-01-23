@@ -4,7 +4,8 @@ from collections import deque
 from typing import Dict, Optional, TYPE_CHECKING
 
 # Re-export telemetry dataclasses for backwards compatibility
-from v3xctrl_telemetry import (
+# Import directly from dataclasses module to avoid hardware dependencies (smbus3)
+from v3xctrl_telemetry.dataclasses import (
     ServiceFlags,
     GstFlags,
     VideoCoreFlags,
