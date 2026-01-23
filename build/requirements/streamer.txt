@@ -3,6 +3,6 @@ flask-smorest==0.46.1
 marshmallow==4.0.0
 msgpack==1.1.0
 atlib==0.5.2
-rpi-servo-pwm==0.1.4
+rpi-servo-pwm==1.0.1
 smbus3==0.5.5
 PyGObject==3.42.2

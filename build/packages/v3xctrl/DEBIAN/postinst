@@ -19,9 +19,6 @@ chmod 640 "/data/config/config.json"
 # Grant capability to bind to privileged ports (port 80)
 setcap 'cap_net_bind_service=+ep' /opt/v3xctrl-python/bin/python3.11
 
-# Update env exports
-v3xctrl-write-env
-
 if command -v systemctl >/dev/null 2>&1; then
   # Disable services that we do not need or are handled by other services
   systemctl disable \
@@ -50,8 +47,8 @@ if command -v systemctl >/dev/null 2>&1; then
   # place. Note: v3xctrl-service-manager is not restarted here because it has
   # runtime dependencies (wlan0, NetworkManager) that may not be available
   # during package installation. It will start properly on next boot.
-  systemctl restart \
-    etc-v3xctrl.mount \
-    v3xctrl-setup-env.service \
-    v3xctrl-config-server.service
+  # Restart sequentially to ensure mount is ready before env setup
+  systemctl restart etc-v3xctrl.mount
+  systemctl restart v3xctrl-setup-env.service
+  systemctl restart v3xctrl-config-server.service
 fi

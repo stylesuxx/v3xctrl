@@ -2,7 +2,8 @@
 Description=Setup env for all other services
 DefaultDependencies=no
 RequiresMountsFor=/data
-After=local-fs.target
+Requires=etc-v3xctrl.mount
+After=local-fs.target etc-v3xctrl.mount
 Before=multi-user.target
 
 [Service]
