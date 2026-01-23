@@ -6,7 +6,7 @@ from pygame import Surface
 
 from v3xctrl_ui.utils.colors import WHITE, GREEN
 from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT
-from v3xctrl_ui.utils.helpers import round_corners
+from v3xctrl_ui.utils.helpers import get_icon, round_corners
 from v3xctrl_ui.osd.widgets.Widget import Widget
 
 
@@ -55,6 +55,27 @@ class FpsWidget(Widget):
         self._cached_fps_surface: Surface | None = None
         self._cached_fps_rect = None
 
+        # Status icon state
+        self._status_icon: Surface | None = None
+        self._status_icon_padding = 2
+
+    def set_status_icon(
+        self,
+        icon_name: str,
+        color: Tuple[int, int, int] = (255, 255, 255)
+    ) -> None:
+        """Set a status icon to display in the bottom right corner.
+
+        Args:
+            icon_name: Material icon name to display.
+            color: RGB color tuple for the icon.
+        """
+        icon_size = int((self.graph_height - self._status_icon_padding * 2) * 0.7)
+        self._status_icon = get_icon(icon_name, size=icon_size, color=color)
+
+    def clear_status_icon(self) -> None:
+        self._status_icon = None
+
     def draw(self, screen: Surface, fps: float) -> None:
         self.history.append(fps)
         if len(self.history) < 2:
@@ -94,6 +115,12 @@ class FpsWidget(Widget):
 
         if len(graph_points) >= 2:
             pygame.draw.lines(self.surface, GREEN, False, graph_points, 2)
+
+        # Draw status icon in bottom right corner
+        if self._status_icon is not None:
+            icon_x = self.width - self._status_icon.get_width() - self._status_icon_padding
+            icon_y = self.height - self._status_icon.get_height() - self._status_icon_padding
+            self.surface.blit(self._status_icon, (icon_x, icon_y))
 
         rounded = round_corners(self.surface, 4)
         screen.blit(rounded, self.position)
