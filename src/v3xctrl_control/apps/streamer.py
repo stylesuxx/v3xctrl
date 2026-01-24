@@ -277,7 +277,7 @@ def command_handler(command: Command, address: Address) -> None:
             ])
 
         case "shutdown":
-            subprocess.Popen(["sudo", "shutdown", "now"])
+            subprocess.Popen(["sudo", "poweroff"])
 
         case "restart":
             subprocess.Popen(["sudo", "reboot", "-f"])

@@ -19,7 +19,7 @@ class Reboot(MethodView):
 class Shutdown(MethodView):
     @blueprint.response(200, description="Shutdown the system")
     def post(self) -> Dict[str, Any]:
-        subprocess.run(["sudo", "shutdown", "now"])
+        subprocess.run(["sudo", "poweroff"])
 
         return {"message": "Shutting down..."}
 
