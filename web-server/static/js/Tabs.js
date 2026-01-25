@@ -35,8 +35,8 @@ class Tabs {
       that.$menu.find('li').removeClass('active');
       $target.parent().addClass('active');
 
-      that.$panes.hide();
-      that.$container.find(target).show();
+      that.$panes.removeClass('active').hide();
+      that.$container.find(target).addClass('active').show();
 
       history.replaceState(null, null, target);
 
