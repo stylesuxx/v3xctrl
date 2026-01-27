@@ -59,7 +59,7 @@ class TelemetryContext:
             self._signal.cell = cell
 
     def update_battery(self, icon: int, voltage: str, average_voltage: str,
-                      percent: str, warning: bool) -> None:
+                      percent: str, current: str, warning: bool) -> None:
         """Update battery data."""
         with self._lock:
             self._battery = BatteryData(
@@ -67,6 +67,7 @@ class TelemetryContext:
                 voltage=voltage,
                 average_voltage=average_voltage,
                 percent=percent,
+                current=current,
                 warning=warning
             )
 
@@ -122,6 +123,7 @@ class TelemetryContext:
                 voltage=self._battery.voltage,
                 average_voltage=self._battery.average_voltage,
                 percent=self._battery.percent,
+                current=self._battery.current,
                 warning=self._battery.warning
             )
 

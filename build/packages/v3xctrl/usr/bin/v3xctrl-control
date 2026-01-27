@@ -32,4 +32,6 @@ v3xctrl-python -m v3xctrl_control.apps.streamer "${network_server_direct_host}" 
   --battery-max-voltage "${control_telemetry_battery_maxVoltage}" \
   --battery-warn-voltage "${control_telemetry_battery_warnVoltage}" \
   --battery-i2c-address "${control_telemetry_battery_i2cAddress}" \
+  --battery-shunt-mohms "${control_telemetry_battery_shuntResistance}" \
+  --battery-max-current "${control_telemetry_battery_maxExpectedCurrent}" \
   ${ARGS}

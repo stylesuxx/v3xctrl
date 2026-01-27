@@ -60,6 +60,11 @@ class OsdTab(Tab):
             checked=self.widgets.get("battery_percent", {}).get("display", False),
             on_change=lambda value: self._on_widget_toggle("battery_percent", value)
         )
+        self.battery_current_checkbox = Checkbox(
+            label=t("Show Battery current"), font=LABEL_FONT,
+            checked=self.widgets.get("battery_current", {}).get("display", False),
+            on_change=lambda value: self._on_widget_toggle("battery_current", value)
+        )
         self.signal_quality_checkbox = Checkbox(
             label=t("Show Signal quality"), font=LABEL_FONT,
             checked=self.widgets.get("signal_quality", {}).get("display", False),
@@ -89,6 +94,7 @@ class OsdTab(Tab):
             self.battery_voltage_checkbox,
             self.battery_average_voltage_checkbox,
             self.battery_percent_checkbox,
+            self.battery_current_checkbox,
             self.signal_quality_checkbox,
             self.signal_band_checkbox,
             self.signal_cell_checkbox,
