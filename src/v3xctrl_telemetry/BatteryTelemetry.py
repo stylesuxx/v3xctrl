@@ -11,6 +11,7 @@ class BatteryState:
     percentage: int = 100
     warning: bool = False
     cell_count: int = 1
+    current: int = 0
 
 
 class BatteryTelemetry:
@@ -20,9 +21,12 @@ class BatteryTelemetry:
         max_cell_voltage: int = 4200,
         warn_cell_voltage: int = 3700,
         address: int = 0x40,
-        bus: int = 1
+        bus: int = 1,
+        r_shunt_mohms: int = 100,
+        max_expected_current_A: float = 0.8
     ) -> None:
-        self._sensor = INA(address, bus)
+        r_shunt_ohms = r_shunt_mohms / 1000
+        self._sensor = INA(address, bus, r_shunt_ohms, max_expected_current_A)
         self.min_cell_voltage = min_cell_voltage
         self.max_cell_voltage = max_cell_voltage
         self.warn_cell_voltage = warn_cell_voltage
@@ -32,7 +36,8 @@ class BatteryTelemetry:
             average_voltage=0,
             percentage=100,
             warning=False,
-            cell_count=self._guess_cell_count()
+            cell_count=self._guess_cell_count(),
+            current=0
         )
 
     def _guess_cell_count(self) -> int:
@@ -49,6 +54,7 @@ class BatteryTelemetry:
         """Update battery telemetry from INA sensor."""
         self._state.voltage = self._sensor.get_bus_voltage()
         self._state.average_voltage = round(self._state.voltage / self._state.cell_count)
+        self._state.current = int(self._sensor.get_current() / 1000)  # uA to mA
 
         # Calculate percentage
         min_voltage = self.min_cell_voltage * self._state.cell_count

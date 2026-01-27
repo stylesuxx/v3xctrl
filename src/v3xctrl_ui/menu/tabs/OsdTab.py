@@ -20,6 +20,7 @@ CHECKBOX_CONFIG: List[Tuple[str, str]] = [
     ("battery_voltage", "Show Battery voltage indicator"),
     ("battery_average_voltage", "Show average cell voltage indicator"),
     ("battery_percent", "Show Battery percent indicator"),
+    ("battery_current", "Show Battery current"),
     ("signal_quality", "Show Signal quality"),
     ("signal_band", "Show Signal band"),
     ("signal_cell", "Show Signal cell (CAUTION: This potentially exposes your location)"),

@@ -21,6 +21,7 @@ class TestOsdTab(unittest.TestCase):
                 "battery_voltage": {"display": False},
                 "battery_average_voltage": {"display": True},
                 "battery_percent": {"display": False},
+                "battery_current": {"display": False},
                 "signal_quality": {"display": True},
                 "signal_band": {"display": False},
                 "signal_cell": {"display": True}
@@ -36,6 +37,7 @@ class TestOsdTab(unittest.TestCase):
         self.assertFalse(self.tab.checkboxes["battery_voltage"].checked)
         self.assertTrue(self.tab.checkboxes["battery_average_voltage"].checked)
         self.assertFalse(self.tab.checkboxes["battery_percent"].checked)
+        self.assertFalse(self.tab.checkboxes["battery_current"].checked)
         self.assertTrue(self.tab.checkboxes["signal_quality"].checked)
         self.assertFalse(self.tab.checkboxes["signal_band"].checked)
         self.assertTrue(self.tab.checkboxes["signal_cell"].checked)
@@ -58,6 +60,9 @@ class TestOsdTab(unittest.TestCase):
 
         self.tab.checkboxes["battery_percent"].set_checked(True)
         self.assertTrue(self.tab.widgets["battery_percent"]["display"])
+
+        self.tab.checkboxes["battery_current"].set_checked(True)
+        self.assertTrue(self.tab.widgets["battery_current"]["display"])
 
         self.tab.checkboxes["signal_quality"].set_checked(False)
         self.assertFalse(self.tab.widgets["signal_quality"]["display"])
