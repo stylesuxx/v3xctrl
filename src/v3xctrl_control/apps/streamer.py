@@ -81,6 +81,10 @@ parser.add_argument("--battery-warn-voltage", type=int, default=3700,
                     help="Warning cell voltage in mV (default: 3700)")
 parser.add_argument("--battery-i2c-address", type=lambda x: int(x, 0), default=0x40,
                     help="I2C address of battery sensor (default: 0x40)")
+parser.add_argument("--battery-shunt-mohms", type=int, default=100,
+                    help="Shunt resistor value in milliohms (default: 100)")
+parser.add_argument("--battery-max-current", type=float, default=0.8,
+                    help="Maximum expected current in Amperes (default: 0.8)")
 
 
 args = parser.parse_args()
@@ -162,7 +166,9 @@ telemetry = TelemetryHandler(
     battery_min_voltage=args.battery_min_voltage,
     battery_max_voltage=args.battery_max_voltage,
     battery_warn_voltage=args.battery_warn_voltage,
-    battery_i2c_address=args.battery_i2c_address
+    battery_i2c_address=args.battery_i2c_address,
+    battery_shunt_mohms=args.battery_shunt_mohms,
+    battery_max_current=args.battery_max_current
 )
 telemetry.start()
 

@@ -134,6 +134,7 @@ class TestBatteryData(unittest.TestCase):
         self.assertEqual(battery.voltage, "0.00V")
         self.assertEqual(battery.average_voltage, "0.00V")
         self.assertEqual(battery.percent, "0%")
+        self.assertEqual(battery.current, "0mA")
         self.assertFalse(battery.warning)
 
     def test_custom_values(self):
@@ -143,12 +144,14 @@ class TestBatteryData(unittest.TestCase):
             voltage="12.34V",
             average_voltage="12.30V",
             percent="75%",
+            current="500mA",
             warning=True
         )
         self.assertEqual(battery.icon, 75)
         self.assertEqual(battery.voltage, "12.34V")
         self.assertEqual(battery.average_voltage, "12.30V")
         self.assertEqual(battery.percent, "75%")
+        self.assertEqual(battery.current, "500mA")
         self.assertTrue(battery.warning)
 
 
@@ -259,6 +262,7 @@ class TestTelemetryContext(unittest.TestCase):
             voltage="12.34V",
             average_voltage="12.30V",
             percent="75%",
+            current="500mA",
             warning=True
         )
         battery = self.context.get_battery()
@@ -266,6 +270,7 @@ class TestTelemetryContext(unittest.TestCase):
         self.assertEqual(battery.voltage, "12.34V")
         self.assertEqual(battery.average_voltage, "12.30V")
         self.assertEqual(battery.percent, "75%")
+        self.assertEqual(battery.current, "500mA")
         self.assertTrue(battery.warning)
 
     def test_reset(self):
@@ -273,7 +278,7 @@ class TestTelemetryContext(unittest.TestCase):
         # Set some values
         self.context.update_services(0b00000111)
         self.context.update_gst(0b00000001)
-        self.context.update_battery(75, "12.34V", "12.30V", "75%", True)
+        self.context.update_battery(75, "12.34V", "12.30V", "75%", "500mA", True)
         self.context.update_signal_band("BAND 7")
 
         # Reset
@@ -333,7 +338,7 @@ class TestTelemetryContext(unittest.TestCase):
 
         def update_battery():
             for i in range(100):
-                self.context.update_battery(i, f"{i}.00V", f"{i}.00V", f"{i}%", False)
+                self.context.update_battery(i, f"{i}.00V", f"{i}.00V", f"{i}%", f"{i}mA", False)
                 time.sleep(0.001)
 
         # Start multiple threads
@@ -369,7 +374,7 @@ class TestTelemetryContext(unittest.TestCase):
             for i in range(50):
                 self.context.update_services(i % 2)
                 self.context.update_gst(i % 2)
-                self.context.update_battery(i, f"{i}.00V", f"{i}.00V", f"{i}%", False)
+                self.context.update_battery(i, f"{i}.00V", f"{i}.00V", f"{i}%", f"{i}mA", False)
                 time.sleep(0.001)
 
         # Start reader and writer threads
@@ -404,7 +409,7 @@ class TestTelemetryContextIntegration(unittest.TestCase):
         context.update_signal_quality(-10, -80)
         context.update_signal_band("BAND 7")
         context.update_signal_cell("123:45")
-        context.update_battery(75, "12.34V", "12.30V", "75%", False)
+        context.update_battery(75, "12.34V", "12.30V", "75%", "500mA", False)
 
         # Verify all updates
         services = context.get_services()
@@ -426,6 +431,7 @@ class TestTelemetryContextIntegration(unittest.TestCase):
         self.assertEqual(battery.icon, 75)
         self.assertEqual(battery.voltage, "12.34V")
         self.assertEqual(battery.percent, "75%")
+        self.assertEqual(battery.current, "500mA")
         self.assertFalse(battery.warning)
 
     def test_simulated_osd_and_menu_access(self):

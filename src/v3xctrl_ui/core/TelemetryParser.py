@@ -13,6 +13,7 @@ class TelemetryData:
     battery_voltage: str = "0.00V"
     battery_average_voltage: str = "0.00V"
     battery_percent: str = "0%"
+    battery_current: str = "0mA"
     battery_warning: bool = False
     recording: bool = False
     service_video: bool = False
@@ -46,12 +47,17 @@ def parse_telemetry(message: Telemetry) -> TelemetryData:
     battery_voltage = values["bat"]["vol"] / 1000
     battery_average_voltage = values["bat"]["avg"] / 1000
     battery_percentage = values["bat"]["pct"]
+    battery_current_ma = values["bat"].get("cur", 0)
 
     data.battery_icon = battery_percentage
     data.battery_voltage = f"{battery_voltage:.2f}V"
     data.battery_average_voltage = f"{battery_average_voltage:.2f}V"
     data.battery_percent = f"{battery_percentage}%"
     data.battery_warning = values["bat"]["wrn"]
+
+    data.battery_current = f"{battery_current_ma}mA"
+    if battery_current_ma >= 1000:
+        data.battery_current = f"{battery_current_ma / 1000:.2f}A"
 
     # GStreamer - bit 0 = recording
     gst = values.get("gst", 0)

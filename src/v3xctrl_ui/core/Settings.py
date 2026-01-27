@@ -116,6 +116,9 @@ class Settings:
             "battery_percent": {
                 "display": True
             },
+            "battery_current": {
+                "display": False
+            },
             "rec": {
                 "display": True,
                 "align": "bottom-right",
