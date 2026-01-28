@@ -11,8 +11,8 @@ from v3xctrl_ui.network.video.Receiver import Receiver
 class MockReceiver(Receiver):
     """Mock implementation for testing the abstract Receiver."""
 
-    def __init__(self, port: int, error_callback, setup_fail=False, main_loop_fail=False, cleanup_fail=False):
-        super().__init__(port, error_callback)
+    def __init__(self, port: int, keep_alive, setup_fail=False, main_loop_fail=False, cleanup_fail=False):
+        super().__init__(port, keep_alive)
         self.setup_called = False
         self.main_loop_called = False
         self.cleanup_called = False
@@ -58,11 +58,11 @@ class TestReceiver(unittest.TestCase):
 
     def test_initialization(self):
         """Test proper initialization of all attributes."""
-        error_callback = Mock()
-        receiver = MockReceiver(5600, error_callback)
+        keep_alive = Mock()
+        receiver = MockReceiver(5600, keep_alive)
 
         self.assertEqual(receiver.port, 5600)
-        self.assertEqual(receiver.error_callback, error_callback)
+        self.assertEqual(receiver.keep_alive, keep_alive)
         self.assertIsNone(receiver.frame)
         self.assertEqual(receiver.packet_count, 0)
         self.assertEqual(receiver.decoded_frame_count, 0)
@@ -123,8 +123,8 @@ class TestReceiver(unittest.TestCase):
 
     def test_successful_run_lifecycle(self):
         """Test normal start/stop lifecycle."""
-        error_callback = Mock()
-        receiver = MockReceiver(5600, error_callback)
+        keep_alive = Mock()
+        receiver = MockReceiver(5600, keep_alive)
 
         receiver.start()
         time.sleep(0.1)
@@ -333,17 +333,17 @@ class TestReceiver(unittest.TestCase):
         receiver.stop()
         self.assertFalse(receiver.running.is_set())
 
-    def test_error_callback_not_called(self):
-        """Test that error_callback is never called (current implementation issue)."""
-        error_callback = Mock()
-        receiver = MockReceiver(5600, error_callback, main_loop_fail=True)
+    def test_keep_alive_not_called(self):
+        """Test that keep_alive is never called (current implementation issue)."""
+        keep_alive = Mock()
+        receiver = MockReceiver(5600, keep_alive, main_loop_fail=True)
 
         receiver.start()
         time.sleep(0.1)
         receiver.stop()
 
-        # NOTE: This demonstrates that error_callback is not used in current implementation
-        error_callback.assert_not_called()
+        # NOTE: This demonstrates that keep_alive is not used in current implementation
+        keep_alive.assert_not_called()
 
 
 if __name__ == "__main__":
