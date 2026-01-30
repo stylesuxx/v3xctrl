@@ -282,6 +282,37 @@ class TestPeer(unittest.TestCase):
         self.peer.abort()
         self.assertTrue(self.peer._abort_event.is_set())
 
+    def test_setup_bind_failure_sets_finalized_event(self):
+        """When _bind_socket raises OSError, _finalized_event must still be set
+        so that abort() does not deadlock."""
+        with patch.object(
+            self.peer, "_bind_socket",
+            side_effect=OSError(98, "Address already in use")
+        ):
+            with self.assertRaises(OSError):
+                self.peer.setup("viewer", {"video": 5000, "control": 6000})
+
+        self.assertTrue(self.peer._finalized_event.is_set())
+
+    def test_setup_bind_failure_cleans_up_already_bound_sockets(self):
+        """When the second _bind_socket call fails, the first socket must
+        still be closed via _finalize_sockets."""
+        first_sock = MagicMock(spec=socket.socket)
+        call_count = 0
+
+        def bind_side_effect(name, port):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                return first_sock
+            raise OSError(98, "Address already in use")
+
+        with patch.object(self.peer, "_bind_socket", side_effect=bind_side_effect):
+            with self.assertRaises(OSError):
+                self.peer.setup("viewer", {"video": 5000, "control": 6000})
+
+        first_sock.close.assert_called_once()
+
 
 if __name__ == '__main__':
     unittest.main()

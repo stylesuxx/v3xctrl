@@ -1,3 +1,4 @@
+import errno
 import logging
 import socket
 import time
@@ -187,6 +188,17 @@ class NetworkSetup:
                 error_message="Peer registration failed - check server and ID!",
             )
 
+        except OSError as e:
+            error_msg = (
+                "Port already in use"
+                if e.errno == errno.EADDRINUSE
+                else "Network error"
+            )
+            return RelaySetupResult(
+                success=False,
+                error_message=error_msg,
+            )
+
     # Step 2.a
     def create_keep_alive_callback(
         self,
@@ -310,8 +322,8 @@ class NetworkSetup:
         except OSError as e:
             error_msg = (
                 "Control port already in use"
-                if e.errno == 98
-                else f"Server error: {str(e)}"
+                if e.errno == errno.EADDRINUSE
+                else "Server error"
             )
 
             return ServerSetupResult(

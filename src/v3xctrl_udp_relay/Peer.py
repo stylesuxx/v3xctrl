@@ -31,15 +31,14 @@ class Peer:
         self._finalized_event.clear()
 
         sockets: Dict[str, socket.socket] = {}
-        for port_type, port in ports.items():
-            upper_pt = port_type.upper()
-            sock = self._bind_socket(upper_pt, port)
-            sockets[port_type] = sock
-
         try:
+            for port_type, port in ports.items():
+                upper_pt = port_type.upper()
+                sock = self._bind_socket(upper_pt, port)
+                sockets[port_type] = sock
+
             peer_info_map = self._register_all(sockets, role)
         finally:
-            # Close all sockets except the one kept for heartbeat
             self._finalize_sockets(sockets)
 
         return {
