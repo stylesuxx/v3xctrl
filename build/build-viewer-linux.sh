@@ -43,12 +43,52 @@ Exec=v3xctrl
 Icon=v3xctrl
 Type=Application
 Categories=Utility;
+StartupWMClass=v3xctrl
 EOF
 
 cat > "${APPDIR}/AppRun" <<'EOF'
 #!/bin/bash
 SELF=$(readlink -f "$0")
 HERE=${SELF%/*}
+
+# --- Self-integration ---
+if [ -n "$APPIMAGE" ]; then
+    DESKTOP_DIR="$HOME/.local/share/applications"
+    ICON_DIR="$HOME/.local/share/icons/hicolor/256x256/apps"
+    DESKTOP_FILE="$DESKTOP_DIR/v3xctrl.desktop"
+
+    # Handle --remove-appimage-desktop-integration
+    if [ "$1" = "--remove-appimage-desktop-integration" ]; then
+        rm -f "$DESKTOP_FILE" "$ICON_DIR/v3xctrl.png"
+        command -v update-desktop-database &>/dev/null && \
+            update-desktop-database "$DESKTOP_DIR" 2>/dev/null || true
+        echo "Desktop integration removed."
+        exit 0
+    fi
+
+    # Install or update if Exec path doesn't match current AppImage location
+    if [ ! -f "$DESKTOP_FILE" ] || ! grep -qF "Exec=\"$APPIMAGE\"" "$DESKTOP_FILE"; then
+        mkdir -p "$DESKTOP_DIR" "$ICON_DIR"
+
+        ICON_FILE="$ICON_DIR/v3xctrl.png"
+        cp "${HERE}/v3xctrl.png" "$ICON_FILE"
+
+        cat > "$DESKTOP_FILE" <<EOFDESKTOP
+[Desktop Entry]
+Name=V3XCTRL
+Exec="$APPIMAGE"
+Icon=$ICON_FILE
+Type=Application
+Categories=Utility;
+StartupWMClass=v3xctrl
+EOFDESKTOP
+
+        command -v update-desktop-database &>/dev/null && \
+            update-desktop-database "$DESKTOP_DIR" 2>/dev/null || true
+    fi
+fi
+
+export SDL_VIDEO_WAYLAND_WMCLASS=v3xctrl
 exec "${HERE}/usr/bin/v3xctrl/V3XCTRL" "$@"
 EOF
 chmod +x "${APPDIR}/AppRun"
