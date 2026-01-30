@@ -1,3 +1,4 @@
+import errno
 import logging
 import socket
 import time
@@ -190,8 +191,8 @@ class NetworkSetup:
         except OSError as e:
             error_msg = (
                 "Port already in use"
-                if e.errno == 98
-                else f"Network error: {e}"
+                if e.errno == errno.EADDRINUSE
+                else "Network error"
             )
             return RelaySetupResult(
                 success=False,
@@ -321,8 +322,8 @@ class NetworkSetup:
         except OSError as e:
             error_msg = (
                 "Control port already in use"
-                if e.errno == 98
-                else f"Server error: {str(e)}"
+                if e.errno == errno.EADDRINUSE
+                else "Server error"
             )
 
             return ServerSetupResult(

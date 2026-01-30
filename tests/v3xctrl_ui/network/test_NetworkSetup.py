@@ -1,3 +1,4 @@
+import errno
 import unittest
 from unittest.mock import MagicMock, patch, call
 
@@ -190,8 +191,7 @@ class TestNetworkSetup(unittest.TestCase):
         """Test server setup when port is already in use."""
         setup = NetworkSetup(self.settings)
 
-        # Mock server to raise OSError with errno 98 (port in use)
-        self.mock_server_cls.side_effect = OSError(98, "Address already in use")
+        self.mock_server_cls.side_effect = OSError(errno.EADDRINUSE, "Address already in use")
 
         message_handlers = []
         state_handlers = []
@@ -207,8 +207,7 @@ class TestNetworkSetup(unittest.TestCase):
         """Test server setup with other OSError."""
         setup = NetworkSetup(self.settings)
 
-        # Mock server to raise OSError with different errno
-        self.mock_server_cls.side_effect = OSError(99, "Some other error")
+        self.mock_server_cls.side_effect = OSError(errno.ECONNREFUSED, "Connection refused")
 
         message_handlers = []
         state_handlers = []
@@ -218,7 +217,7 @@ class TestNetworkSetup(unittest.TestCase):
         # Verify error result
         self.assertFalse(result.success)
         self.assertIsNone(result.server)
-        self.assertIn("Server error", result.error_message)
+        self.assertEqual(result.error_message, "Server error")
 
     def test_orchestrate_setup_no_relay(self):
         """Test complete setup orchestration without relay."""
@@ -322,8 +321,7 @@ class TestNetworkSetup(unittest.TestCase):
         """Test setup orchestration when some steps fail."""
         setup = NetworkSetup(self.settings)
 
-        # Mock server error
-        self.mock_server_cls.side_effect = OSError(98, "Address already in use")
+        self.mock_server_cls.side_effect = OSError(errno.EADDRINUSE, "Address already in use")
 
         # Mock successful video receiver
         mock_receiver = MagicMock()
@@ -377,28 +375,28 @@ class TestNetworkSetup(unittest.TestCase):
         setup = NetworkSetup(self.settings)
 
         mock_peer = MagicMock()
-        mock_peer.setup.side_effect = OSError(98, "Address already in use")
+        mock_peer.setup.side_effect = OSError(errno.EADDRINUSE, "Address already in use")
         self.mock_peer_cls.return_value = mock_peer
 
         result = setup.setup_relay("relay.example.com", 8080, "test123")
 
         self.assertFalse(result.success)
         self.assertIsNone(result.video_address)
-        self.assertIn("Port already in use", result.error_message)
+        self.assertEqual(result.error_message, "Port already in use")
 
     def test_setup_relay_other_os_error(self):
         """Test relay setup with a non-EADDRINUSE OSError."""
         setup = NetworkSetup(self.settings)
 
         mock_peer = MagicMock()
-        mock_peer.setup.side_effect = OSError(101, "Network is unreachable")
+        mock_peer.setup.side_effect = OSError(errno.ECONNREFUSED, "Connection refused")
         self.mock_peer_cls.return_value = mock_peer
 
         result = setup.setup_relay("relay.example.com", 8080, "test123")
 
         self.assertFalse(result.success)
         self.assertIsNone(result.video_address)
-        self.assertIn("Network error", result.error_message)
+        self.assertEqual(result.error_message, "Network error")
 
     def test_orchestrate_setup_relay_failure_returns_early(self):
         """Test that orchestrate_setup returns early when relay fails."""
