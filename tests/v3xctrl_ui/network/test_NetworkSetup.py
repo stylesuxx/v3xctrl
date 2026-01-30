@@ -372,6 +372,34 @@ class TestNetworkSetup(unittest.TestCase):
         )
         self.assertTrue(result.has_errors)
 
+    def test_setup_relay_port_in_use_error(self):
+        """Test relay setup when port is already in use."""
+        setup = NetworkSetup(self.settings)
+
+        mock_peer = MagicMock()
+        mock_peer.setup.side_effect = OSError(98, "Address already in use")
+        self.mock_peer_cls.return_value = mock_peer
+
+        result = setup.setup_relay("relay.example.com", 8080, "test123")
+
+        self.assertFalse(result.success)
+        self.assertIsNone(result.video_address)
+        self.assertIn("Port already in use", result.error_message)
+
+    def test_setup_relay_other_os_error(self):
+        """Test relay setup with a non-EADDRINUSE OSError."""
+        setup = NetworkSetup(self.settings)
+
+        mock_peer = MagicMock()
+        mock_peer.setup.side_effect = OSError(101, "Network is unreachable")
+        self.mock_peer_cls.return_value = mock_peer
+
+        result = setup.setup_relay("relay.example.com", 8080, "test123")
+
+        self.assertFalse(result.success)
+        self.assertIsNone(result.video_address)
+        self.assertIn("Network error", result.error_message)
+
     def test_orchestrate_setup_relay_failure_returns_early(self):
         """Test that orchestrate_setup returns early when relay fails."""
         setup = NetworkSetup(self.settings)

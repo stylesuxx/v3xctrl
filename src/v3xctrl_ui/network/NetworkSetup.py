@@ -187,6 +187,17 @@ class NetworkSetup:
                 error_message="Peer registration failed - check server and ID!",
             )
 
+        except OSError as e:
+            error_msg = (
+                "Port already in use"
+                if e.errno == 98
+                else f"Network error: {e}"
+            )
+            return RelaySetupResult(
+                success=False,
+                error_message=error_msg,
+            )
+
     # Step 2.a
     def create_keep_alive_callback(
         self,
