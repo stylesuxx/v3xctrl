@@ -5,17 +5,6 @@ set -e
 ENV_PATH="/run/v3xctrl.env"
 source "${ENV_PATH}"
 
-# Stop video & control service
-if [ "$video_autostart" = "true" ]; then
-  echo "Stopping video service..."
-  systemctl stop v3xctrl-video
-fi
-
-if [ "$control_autostart" = "true" ]; then
-  echo "Stopping control service..."
-  systemctl stop v3xctrl-control
-fi
-
 if [ "$network_modem_limitBands" = "true" ]; then
   echo "Limiting bands..."
   v3xctrl-set-bands $network_modem_allowedBands
