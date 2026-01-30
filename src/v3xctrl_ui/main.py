@@ -2,8 +2,10 @@ import argparse
 from datetime import datetime
 import faulthandler
 import logging
+import sys
 
-faulthandler.enable()
+if sys.stderr is not None:
+    faulthandler.enable()
 
 from v3xctrl_ui.core.AppState import AppState
 from v3xctrl_ui.core.MemoryTracker import MemoryTracker
