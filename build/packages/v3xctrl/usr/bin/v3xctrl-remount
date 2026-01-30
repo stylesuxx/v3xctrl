@@ -149,56 +149,21 @@ update_fstab_boot_mount() {
 
   if [[ "$mode" == "ro" ]]; then
     echo "[${NAME}] Setting ${BOOT_MOUNT} to read-only in fstab..."
-
-    # Use awk to properly modify the 4th field (mount options)
-    local awk_script='
-      /^[^#]/ && $2 == "'"${BOOT_MOUNT}"'" {
-        # Remove any existing ro/rw from options
-        gsub(/,ro\>|,rw\>|\<ro,|\<rw,|\<ro\>|\<rw\>/, "", $4)
-        # Add ro to options
-        if ($4 ~ /,$/) {
-          $4 = $4 "ro"
-        } else if ($4 == "") {
-          $4 = "ro"
-        } else {
-          $4 = $4 ",ro"
-        }
-      }
-      { print }
-    '
-
-    if mountpoint -q /media/root-ro 2>/dev/null; then
-      overlayroot-chroot bash -c "awk '${awk_script}' /etc/fstab > /etc/fstab.tmp && mv /etc/fstab.tmp /etc/fstab"
-    else
-      awk "${awk_script}" /etc/fstab > /etc/fstab.tmp && mv /etc/fstab.tmp /etc/fstab
-    fi
-
+    local mount_opts="defaults,ro"
   else
     echo "[${NAME}] Setting ${BOOT_MOUNT} to read-write in fstab..."
+    local mount_opts="defaults,rw"
+  fi
 
-    # Use awk to properly modify the 4th field (mount options)
-    local awk_script='
-      /^[^#]/ && $2 == "'"${BOOT_MOUNT}"'" {
-        # Remove ro and replace with rw, or just remove ro
-        gsub(/,ro\>|,rw\>|\<ro,|\<rw,|\<ro\>|\<rw\>/, "", $4)
-        if ($4 == "") {
-          $4 = "defaults"
-        } else if ($4 !~ /rw/) {
-          if ($4 ~ /,$/) {
-            $4 = $4 "rw"
-          } else {
-            $4 = $4 ",rw"
-          }
-        }
-      }
-      { print }
-    '
+  local awk_script='
+    /^[^#]/ && $2 == "'"${BOOT_MOUNT}"'" { $4 = "'"${mount_opts}"'" }
+    { print }
+  '
 
-    if mountpoint -q /media/root-ro 2>/dev/null; then
-      overlayroot-chroot bash -c "awk '${awk_script}' /etc/fstab > /etc/fstab.tmp && mv /etc/fstab.tmp /etc/fstab"
-    else
-      awk "${awk_script}" /etc/fstab > /etc/fstab.tmp && mv /etc/fstab.tmp /etc/fstab
-    fi
+  if mountpoint -q /media/root-ro 2>/dev/null; then
+    overlayroot-chroot bash -c "awk '${awk_script}' /etc/fstab > /etc/fstab.tmp && mv /etc/fstab.tmp /etc/fstab"
+  else
+    awk "${awk_script}" /etc/fstab > /etc/fstab.tmp && mv /etc/fstab.tmp /etc/fstab
   fi
 }
 
