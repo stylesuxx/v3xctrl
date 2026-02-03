@@ -12,7 +12,7 @@
     },
     "iFrame": {
       "period": 15,
-      "autoAdjust": false,
+      "autoAdjust": true,
       "maxBytes": 25600
     },
     "camera": {

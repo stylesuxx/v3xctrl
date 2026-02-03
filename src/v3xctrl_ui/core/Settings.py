@@ -50,7 +50,7 @@ class Settings:
         },
         "widgets": {
             "debug": {
-                "display": True,
+                "display": False,
                 "align": "top-left",
                 "offset": [10, 10],
                 "padding": 5
