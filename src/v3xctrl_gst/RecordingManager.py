@@ -56,6 +56,10 @@ class RecordingManager:
             logging.error("Recording directory not configured")
             return False
 
+        # Set flag early so telemetry reflects the change immediately
+        # while the pipeline is being built. Reverted on failure.
+        self._is_recording = True
+
         os.makedirs(self._recording_dir, exist_ok=True)
 
         timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
@@ -64,6 +68,7 @@ class RecordingManager:
         queue_rec = Gst.ElementFactory.make("queue", "queue_rec")
         if not queue_rec:
             logging.error("Failed to create recording queue")
+            self._is_recording = False
             return False
 
         queue_rec.set_property("max-size-buffers", self._sizebuffers)
@@ -74,16 +79,19 @@ class RecordingManager:
         parser = Gst.ElementFactory.make("h264parse", "parser")
         if not parser:
             logging.error("Failed to create h264parse")
+            self._is_recording = False
             return False
 
         muxer = Gst.ElementFactory.make("mpegtsmux", "muxer")
         if not muxer:
             logging.error("Failed to create mpegtsmux")
+            self._is_recording = False
             return False
 
         filesink = Gst.ElementFactory.make("filesink", "filesink")
         if not filesink:
             logging.error("Failed to create filesink")
+            self._is_recording = False
             return False
 
         filesink.set_property("location", filename)
@@ -137,7 +145,6 @@ class RecordingManager:
         muxer.sync_state_with_parent()
         filesink.sync_state_with_parent()
 
-        self._is_recording = True
         logging.info(f"Recording started: {filename}")
 
         return True
@@ -160,6 +167,10 @@ class RecordingManager:
         if not self._tee_pad:
             logging.error("Tee pad not available for recording stop")
             return False
+
+        # Set flag early so telemetry reflects the change immediately
+        # while the pipeline is being torn down.
+        self._is_recording = False
 
         self._stop_complete = threading.Event()
 
@@ -236,7 +247,6 @@ class RecordingManager:
         logging.info(f"Recording stopped: {filename}")
 
         self._elements = {}
-        self._is_recording = False
 
         if self._stop_complete:
             self._stop_complete.set()
@@ -266,10 +276,11 @@ class RecordingManager:
         logging.warning(f"Recording stopped (forced): {filename}")
 
         self._elements = {}
-        self._is_recording = False
 
     def _cleanup(self) -> None:
         """Clean up recording elements if setup fails."""
+        self._is_recording = False
+
         if self._tee_pad:
             self._tee.release_request_pad(self._tee_pad)
             self._tee_pad = None
