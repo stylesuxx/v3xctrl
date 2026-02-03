@@ -1,4 +1,5 @@
 """Event handling controller for pygame events."""
+import logging
 from typing import Callable, Optional
 
 import pygame
@@ -60,16 +61,16 @@ class EventController:
                         # Only process custom keyboard controls when not in menu
                         match event.key:
                             case self.trim_increase_key:
-                                self.send_command(Commands.trim_increase(), lambda success: None)
+                                self.send_command(Commands.trim_increase(), self._on_command_ack)
 
                             case self.trim_decrease_key:
-                                self.send_command(Commands.trim_decrease(), lambda success: None)
+                                self.send_command(Commands.trim_decrease(), self._on_command_ack)
 
                             case self.rec_toggle_key:
                                 if self.telemetry_context.get_gst().recording:
-                                    self.send_command(Commands.recording_stop(), lambda success: None)
+                                    self.send_command(Commands.recording_stop(), self._on_command_ack)
                                 else:
-                                    self.send_command(Commands.recording_start(), lambda success: None)
+                                    self.send_command(Commands.recording_start(), self._on_command_ack)
 
             elif event.type == pygame.JOYBUTTONUP and not self.menu.visible:
                 # Only process gamepad button controls when not in menu
@@ -79,16 +80,16 @@ class EventController:
                     rec_toggle_btn = self.gamepad_controller.get_button_mapping("rec_toggle")
 
                     if trim_increase_btn is not None and event.button == trim_increase_btn:
-                        self.send_command(Commands.trim_increase(), lambda success: None)
+                        self.send_command(Commands.trim_increase(), self._on_command_ack)
 
                     elif trim_decrease_btn is not None and event.button == trim_decrease_btn:
-                        self.send_command(Commands.trim_decrease(), lambda success: None)
+                        self.send_command(Commands.trim_decrease(), self._on_command_ack)
 
                     elif rec_toggle_btn is not None and event.button == rec_toggle_btn:
                         if self.telemetry_context.get_gst().recording:
-                            self.send_command(Commands.recording_stop(), lambda success: None)
+                            self.send_command(Commands.recording_stop(), self._on_command_ack)
                         else:
-                            self.send_command(Commands.recording_start(), lambda success: None)
+                            self.send_command(Commands.recording_start(), self._on_command_ack)
 
             if self.menu.visible:
                 self.menu.handle_event(event)
@@ -101,6 +102,9 @@ class EventController:
 
     def set_menu_tab_enabled(self, tab_name: str, enabled: bool) -> None:
         self.menu.set_tab_enabled(tab_name, enabled)
+
+    def _on_command_ack(self, success: bool) -> None:
+        logging.info(f"Received command ack: {success}")
 
     def _load_keyboard_controls(self) -> None:
         keyboard_controls = self.settings.get("controls", {}).get("keyboard", {})

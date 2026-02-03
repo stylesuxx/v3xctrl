@@ -3,6 +3,7 @@
 import os
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
+import logging
 from unittest.mock import Mock, MagicMock, call
 import pygame
 import pytest
@@ -342,3 +343,70 @@ class TestEventControllerIntegration:
         mock_menu.set_tab_enabled.assert_called_with("Streamer", False)
 
         assert mock_menu.set_tab_enabled.call_count == 2
+
+
+class TestCommandAckCallback:
+    """Test command ACK callback logging."""
+
+    @pytest.fixture
+    def controller(self, mock_settings, mock_telemetry):
+        mock_menu = Mock(visible=False, is_loading=False)
+        return EventController(
+            on_quit=Mock(),
+            on_toggle_fullscreen=Mock(),
+            menu=mock_menu,
+            on_menu_exit=Mock(),
+            send_command=Mock(),
+            settings=mock_settings,
+            telemetry_context=mock_telemetry
+        )
+
+    def test_on_command_ack_logs_success(self, controller, caplog):
+        with caplog.at_level(logging.INFO):
+            controller._on_command_ack(True)
+
+        assert "Received command ack: True" in caplog.text
+
+    def test_on_command_ack_logs_failure(self, controller, caplog):
+        with caplog.at_level(logging.INFO):
+            controller._on_command_ack(False)
+
+        assert "Received command ack: False" in caplog.text
+
+    def test_keyboard_command_uses_ack_callback(
+        self, controller, mock_telemetry, monkeypatch
+    ):
+        mock_gst = Mock(recording=False)
+        mock_telemetry.get_gst.return_value = mock_gst
+
+        rec_event = Mock()
+        rec_event.type = pygame.KEYUP
+        rec_event.key = pygame.K_r
+        monkeypatch.setattr('pygame.event.get', Mock(return_value=[rec_event]))
+
+        controller.handle_events()
+
+        controller.send_command.assert_called_once()
+        _, callback = controller.send_command.call_args[0]
+        assert callback == controller._on_command_ack
+
+    def test_gamepad_command_uses_ack_callback(
+        self, controller, mock_telemetry, monkeypatch
+    ):
+        mock_gst = Mock(recording=False)
+        mock_telemetry.get_gst.return_value = mock_gst
+
+        gamepad = Mock()
+        gamepad.get_button_mapping.return_value = 5
+        controller.gamepad_controller = gamepad
+
+        btn_event = Mock()
+        btn_event.type = pygame.JOYBUTTONUP
+        btn_event.button = 5
+        monkeypatch.setattr('pygame.event.get', Mock(return_value=[btn_event]))
+
+        controller.handle_events()
+
+        controller.send_command.assert_called_once()
+        _, callback = controller.send_command.call_args[0]
+        assert callback == controller._on_command_ack
