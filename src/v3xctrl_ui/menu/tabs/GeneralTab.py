@@ -39,7 +39,7 @@ class GeneralTab(Tab):
         )
 
         self.show_connection_info_checkbox = Checkbox(
-            label=t("Show connection info"), font=LABEL_FONT,
+            label=t("Show connection info (CAUTION: This potentially exposes your location)"), font=LABEL_FONT,
             checked=self.show_connection_info,
             on_change=self._on_show_connection_info_change
         )
