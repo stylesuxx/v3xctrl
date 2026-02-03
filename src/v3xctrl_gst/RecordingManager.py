@@ -111,10 +111,38 @@ class RecordingManager:
         self._pipeline.add(muxer)
         self._pipeline.add(filesink)
 
+        # Link the internal chain first, before connecting to the tee.
+        # This ensures all elements are linked and in PLAYING state before
+        # data starts flowing, preventing FPS dips on the main pipeline.
+        if not queue_rec.link(parser):
+            logging.error("Failed to link queue_rec to parser")
+            self._cleanup()
+
+            return False
+
+        if not parser.link(muxer):
+            logging.error("Failed to link parser to muxer")
+            self._cleanup()
+
+            return False
+
+        if not muxer.link(filesink):
+            logging.error("Failed to link muxer to filesink")
+            self._cleanup()
+
+            return False
+
+        queue_rec.sync_state_with_parent()
+        parser.sync_state_with_parent()
+        muxer.sync_state_with_parent()
+        filesink.sync_state_with_parent()
+
+        # Connect to tee last, when the branch is fully ready to receive data.
         tee_src_pad = self._tee.request_pad_simple("src_%u")
         if not tee_src_pad:
             logging.error("Failed to request pad from tee")
             self._cleanup()
+
             return False
 
         self._tee_pad = tee_src_pad
@@ -123,27 +151,8 @@ class RecordingManager:
         if tee_src_pad.link(queue_sink_pad) != Gst.PadLinkReturn.OK:
             logging.error("Failed to link tee to queue_rec")
             self._cleanup()
-            return False
 
-        if not queue_rec.link(parser):
-            logging.error("Failed to link queue_rec to parser")
-            self._cleanup()
             return False
-
-        if not parser.link(muxer):
-            logging.error("Failed to link parser to muxer")
-            self._cleanup()
-            return False
-
-        if not muxer.link(filesink):
-            logging.error("Failed to link muxer to filesink")
-            self._cleanup()
-            return False
-
-        queue_rec.sync_state_with_parent()
-        parser.sync_state_with_parent()
-        muxer.sync_state_with_parent()
-        filesink.sync_state_with_parent()
 
         logging.info(f"Recording started: {filename}")
 
