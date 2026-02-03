@@ -418,7 +418,7 @@
               "title": "Enable auto adjusting I Frame size",
               "type": "boolean",
               "format": "checkbox",
-              "default": false,
+              "default": true,
               "description": "This automatically adjusts the compression quality (QP) of I-frames to keep them under a specified size limit. It trades off I-frame quality to prevent bandwidth spikes when reference frames are transmitted."
             },
             "maxBytes": {
