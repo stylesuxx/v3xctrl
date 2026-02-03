@@ -6,15 +6,18 @@ via a tee element.
 """
 import logging
 import os
+import threading
 from datetime import datetime
 from typing import Callable, Dict, Optional, Any
 
 import gi
 gi.require_version('Gst', '1.0')
-from gi.repository import Gst
+from gi.repository import Gst, GLib
 
 
 class RecordingManager:
+    STOP_TIMEOUT = 5.0
+
     def __init__(
         self,
         pipeline: Gst.Pipeline,
@@ -32,6 +35,7 @@ class RecordingManager:
         self._is_recording = False
         self._elements: Dict[str, Any] = {}
         self._tee_pad: Optional[Gst.Pad] = None
+        self._stop_complete: Optional[threading.Event] = None
 
     @property
     def is_recording(self) -> bool:
@@ -142,6 +146,10 @@ class RecordingManager:
         """
         Dynamically stop recording by removing the recording branch from the pipeline.
 
+        Uses a blocking pad probe on the tee's src pad to ensure no buffer is
+        in-flight when the branch is torn down. This prevents the tee from
+        blocking the main pipeline (including the UDP video branch).
+
         Returns:
             True if recording stopped successfully, False otherwise
         """
@@ -149,35 +157,79 @@ class RecordingManager:
             logging.warning("Recording is not active")
             return False
 
-        # Send EOS to the recording queue to flush all buffers
-        queue_rec = self._elements.get('queue')
-        if queue_rec:
-            queue_rec_pad = queue_rec.get_static_pad("sink")
-            if queue_rec_pad:
-                queue_rec_pad.send_event(Gst.Event.new_eos())
+        if not self._tee_pad:
+            logging.error("Tee pad not available for recording stop")
+            return False
 
-        # Set recording elements to NULL state
-        # This blocks until EOS is processed and all buffers are flushed
+        self._stop_complete = threading.Event()
+
+        self._tee_pad.add_probe(
+            Gst.PadProbeType.BLOCK_DOWNSTREAM,
+            self._on_tee_pad_blocked
+        )
+
+        if not self._stop_complete.wait(timeout=self.STOP_TIMEOUT):
+            logging.error("Recording stop timed out, forcing teardown")
+            self._force_teardown()
+
+        return True
+
+    def _on_tee_pad_blocked(self, pad, info):
+        """
+        Probe callback invoked on the streaming thread when the tee's src pad
+        is blocked. No buffer is in-flight to the recording branch, so it is
+        safe to unlink and send EOS.
+        """
+        # Unlink from tee — the main pipeline can continue pushing to other
+        # branches (UDP) without being affected by the recording teardown.
+        queue_sink_pad = self._elements['queue'].get_static_pad("sink")
+        if queue_sink_pad:
+            pad.unlink(queue_sink_pad)
+
+        self._tee.release_request_pad(pad)
+        self._tee_pad = None
+
+        # Send EOS to flush remaining buffered data through the recording
+        # branch so the muxer can finalize the file properly.
+        if queue_sink_pad:
+            queue_sink_pad.send_event(Gst.Event.new_eos())
+
+        # Listen for EOS on filesink to know when flushing is complete
+        filesink = self._elements.get('filesink')
+        if filesink:
+            filesink_pad = filesink.get_static_pad("sink")
+            if filesink_pad:
+                filesink_pad.add_probe(
+                    Gst.PadProbeType.EVENT_DOWNSTREAM,
+                    self._on_recording_eos
+                )
+            else:
+                GLib.idle_add(self._teardown)
+        else:
+            GLib.idle_add(self._teardown)
+
+        return Gst.PadProbeReturn.REMOVE
+
+    def _on_recording_eos(self, pad, info):
+        """
+        Probe callback invoked when an event reaches the filesink's sink pad.
+        When EOS arrives, the muxer has finalized the file and we can safely
+        tear down the recording elements.
+        """
+        event = info.get_event()
+        if event.type != Gst.EventType.EOS:
+            return Gst.PadProbeReturn.PASS
+
+        GLib.idle_add(self._teardown)
+        return Gst.PadProbeReturn.REMOVE
+
+    def _teardown(self):
+        """Remove recording elements from the pipeline. Runs on main thread."""
         for name, element in self._elements.items():
             if name == 'filename':
                 continue
             if isinstance(element, Gst.Element):
                 element.set_state(Gst.State.NULL)
-
-        # Unlink and release the tee pad
-        if self._tee_pad:
-            queue_sink_pad = self._elements['queue'].get_static_pad("sink")
-            if queue_sink_pad:
-                self._tee_pad.unlink(queue_sink_pad)
-
-            self._tee.release_request_pad(self._tee_pad)
-            self._tee_pad = None
-
-        # Remove elements from pipeline
-        for name, element in self._elements.items():
-            if name == 'filename':
-                continue
-            if isinstance(element, Gst.Element):
                 self._pipeline.remove(element)
 
         filename = self._elements.get('filename', 'unknown')
@@ -186,7 +238,35 @@ class RecordingManager:
         self._elements = {}
         self._is_recording = False
 
-        return True
+        if self._stop_complete:
+            self._stop_complete.set()
+
+        return False
+
+    def _force_teardown(self):
+        """Fallback teardown when the probe-based approach times out."""
+        if self._tee_pad:
+            queue = self._elements.get('queue')
+            if queue:
+                queue_sink_pad = queue.get_static_pad("sink")
+                if queue_sink_pad:
+                    self._tee_pad.unlink(queue_sink_pad)
+            self._tee.release_request_pad(self._tee_pad)
+            self._tee_pad = None
+
+        for name, element in self._elements.items():
+            if name == 'filename':
+                continue
+            if isinstance(element, Gst.Element):
+                element.set_state(Gst.State.NULL)
+                if element.get_parent():
+                    self._pipeline.remove(element)
+
+        filename = self._elements.get('filename', 'unknown')
+        logging.warning(f"Recording stopped (forced): {filename}")
+
+        self._elements = {}
+        self._is_recording = False
 
     def _cleanup(self) -> None:
         """Clean up recording elements if setup fails."""
