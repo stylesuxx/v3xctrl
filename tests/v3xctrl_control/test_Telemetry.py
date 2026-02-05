@@ -1,6 +1,6 @@
 import sys
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 import threading
 import time
 
@@ -271,6 +271,8 @@ class TestTelemetry(unittest.TestCase):
         tel._running = threading.Event()
         tel._interval = 0.01
         tel._modem = MagicMock()
+        tel._sim_absent = False
+        tel._sim_recheck_counter = 0
         tel._update_signal = MagicMock()
         tel._update_cell = MagicMock()
         tel._update_battery = MagicMock()
@@ -285,6 +287,92 @@ class TestTelemetry(unittest.TestCase):
         t.join()
         tel._update_signal.assert_called()
         tel._update_cell.assert_called()
+        tel._update_battery.assert_called()
+
+    def test_modem_available_when_modem_exists(self):
+        tel = Telemetry.__new__(Telemetry)
+        tel._modem = MagicMock()
+        tel._sim_absent = False
+        tel._sim_recheck_counter = 0
+        self.assertTrue(tel._modem_available())
+
+    def test_modem_available_retries_when_no_sim_flag(self):
+        tel = Telemetry.__new__(Telemetry)
+        tel._modem = None
+        tel._sim_absent = False
+        tel._sim_recheck_counter = 0
+        tel._init_modem = MagicMock(return_value=True)
+        self.assertTrue(tel._modem_available())
+        tel._init_modem.assert_called_once()
+
+    def test_modem_available_skips_when_sim_absent(self):
+        tel = Telemetry.__new__(Telemetry)
+        tel._modem = None
+        tel._sim_absent = True
+        tel._sim_recheck_counter = 0
+        tel._init_modem = MagicMock()
+        self.assertFalse(tel._modem_available())
+        tel._init_modem.assert_not_called()
+        self.assertEqual(tel._sim_recheck_counter, 1)
+
+    def test_modem_available_rechecks_after_interval(self):
+        tel = Telemetry.__new__(Telemetry)
+        tel._modem = None
+        tel._sim_absent = True
+        tel._sim_recheck_counter = Telemetry._SIM_RECHECK_INTERVAL - 1
+        tel._init_modem = MagicMock(return_value=False)
+        self.assertFalse(tel._modem_available())
+        tel._init_modem.assert_called_once()
+        self.assertEqual(tel._sim_recheck_counter, 0)
+
+    def test_init_modem_sets_sim_absent_flag(self):
+        tel = Telemetry.__new__(Telemetry)
+        tel._modem_path = "/dev/ttyACM0"
+        tel._sim_absent = False
+        mock_modem = MagicMock()
+        mock_modem.get_sim_status.return_value = "ERROR"
+        mock_modem.__bool__ = lambda self: True
+        with patch("src.v3xctrl_control.Telemetry.AIR780EU", return_value=mock_modem):
+            result = tel._init_modem()
+        self.assertFalse(result)
+        self.assertTrue(tel._sim_absent)
+        self.assertIsNone(tel._modem)
+
+    def test_init_modem_clears_sim_absent_on_success(self):
+        tel = Telemetry.__new__(Telemetry)
+        tel._modem_path = "/dev/ttyACM0"
+        tel._sim_absent = True
+        mock_modem = MagicMock()
+        mock_modem.get_sim_status.return_value = "OK"
+        mock_modem.__bool__ = lambda self: True
+        with patch("src.v3xctrl_control.Telemetry.AIR780EU", return_value=mock_modem):
+            result = tel._init_modem()
+        self.assertTrue(result)
+        self.assertFalse(tel._sim_absent)
+
+    def test_run_skips_modem_updates_when_unavailable(self):
+        tel = Telemetry.__new__(Telemetry)
+        tel._lock = threading.Lock()
+        tel._running = threading.Event()
+        tel._interval = 0.01
+        tel._modem = None
+        tel._sim_absent = True
+        tel._sim_recheck_counter = 0
+        tel._init_modem = MagicMock(return_value=False)
+        tel._update_signal = MagicMock()
+        tel._update_cell = MagicMock()
+        tel._update_battery = MagicMock()
+        tel._update_services = MagicMock()
+        tel._update_videocore = MagicMock()
+        tel._update_gst = MagicMock()
+        tel.run = Telemetry.run.__get__(tel)
+        t = threading.Thread(target=tel.run)
+        t.start()
+        time.sleep(0.05)
+        tel.stop()
+        t.join()
+        tel._update_signal.assert_not_called()
+        tel._update_cell.assert_not_called()
         tel._update_battery.assert_called()
 
 
