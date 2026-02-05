@@ -1,0 +1,46 @@
+{
+    "imager": {
+        "latest_version": "2.0.0",
+        "url": "https://www.raspberrypi.com/software/",
+        "devices": [
+            {
+                "name": "Raspberry Pi Zero 2 W",
+                "tags": [
+                    "pi3-64bit",
+                    "pi3-32bit"
+                ],
+                "icon": "https://downloads.raspberrypi.com/imager/icons/RPi_Zero_2_W.png",
+                "description": "Raspberry Pi Zero 2 W",
+                "matching_type": "inclusive"
+            }
+        ]
+    },
+    "os_list": [
+        {
+            "name": "v3xctrl (Build)",
+            "description": "Local Build",
+            "icon": "https://v3xctrl.com/rpi-imager/icon.png",
+            "url": "file://path/to/repo/v3xctrl/build/tmp/v3xctrl.img.xz",
+            "init_format": "cloudinit-rpi",
+            "capabilities": [
+                "rpi_connect"
+            ],
+            "devices": [
+                "pi3-64bit"
+            ]
+        },
+        {
+            "name": "v3xctrl (Download)",
+            "description": "Downloaded Build",
+            "icon": "https://v3xctrl.com/rpi-imager/icon.png",
+            "url": "file://home/$USER/Downloads/v3xctrl-raspios.img.xz",
+            "init_format": "cloudinit-rpi",
+            "capabilities": [
+                "rpi_connect"
+            ],
+            "devices": [
+                "pi3-64bit"
+            ]
+        }
+    ]
+}
