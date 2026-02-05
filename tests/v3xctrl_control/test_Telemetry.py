@@ -332,7 +332,7 @@ class TestTelemetry(unittest.TestCase):
         mock_modem = MagicMock()
         mock_modem.get_sim_status.return_value = "ERROR"
         mock_modem.__bool__ = lambda self: True
-        with patch("v3xctrl_control.Telemetry.AIR780EU", return_value=mock_modem):
+        with patch("src.v3xctrl_control.Telemetry.AIR780EU", return_value=mock_modem):
             result = tel._init_modem()
         self.assertFalse(result)
         self.assertTrue(tel._sim_absent)
@@ -345,7 +345,7 @@ class TestTelemetry(unittest.TestCase):
         mock_modem = MagicMock()
         mock_modem.get_sim_status.return_value = "OK"
         mock_modem.__bool__ = lambda self: True
-        with patch("v3xctrl_control.Telemetry.AIR780EU", return_value=mock_modem):
+        with patch("src.v3xctrl_control.Telemetry.AIR780EU", return_value=mock_modem):
             result = tel._init_modem()
         self.assertTrue(result)
         self.assertFalse(tel._sim_absent)
