@@ -27,6 +27,8 @@ T = TypeVar("T")
 
 
 class Telemetry(threading.Thread):
+    _SIM_RECHECK_INTERVAL = 30
+
     def __init__(
         self,
         modem_path: str,
@@ -54,6 +56,8 @@ class Telemetry(threading.Thread):
         self._lock = threading.Lock()
 
         self._modem: Optional[AIR780EU] = None
+        self._sim_absent = False
+        self._sim_recheck_counter = 0
         self._init_modem()
 
         self._battery = self._init_component(
@@ -76,8 +80,10 @@ class Telemetry(threading.Thread):
     def run(self) -> None:
         self._running.set()
         while self._running.is_set():
-            self._update_signal()
-            self._update_cell()
+            if self._modem_available():
+                self._update_signal()
+                self._update_cell()
+
             self._update_battery()
             self._update_services()
             self._update_videocore()
@@ -96,6 +102,18 @@ class Telemetry(threading.Thread):
             logging.warning("Failed to initialize %s telemetry: %s", name, e)
             return None
 
+    def _modem_available(self) -> bool:
+        if self._modem:
+            return True
+
+        if self._sim_absent:
+            self._sim_recheck_counter += 1
+            if self._sim_recheck_counter < self._SIM_RECHECK_INTERVAL:
+                return False
+            self._sim_recheck_counter = 0
+
+        return self._init_modem()
+
     def _init_modem(self) -> bool:
         try:
             self._modem = AIR780EU(self._modem_path)
@@ -109,8 +127,10 @@ class Telemetry(threading.Thread):
             if sim_status != "OK":
                 logging.info("No SIM card present (status: %s)", sim_status)
                 self._modem = None
+                self._sim_absent = True
                 return False
 
+            self._sim_absent = False
             logging.info("Modem initialized")
             return True
 
@@ -130,35 +150,27 @@ class Telemetry(threading.Thread):
             self.payload.cell.band = "?"
 
     def _update_signal(self) -> None:
-        if not self._modem:
-            self._init_modem()
-
-        if self._modem:
-            try:
-                signal_quality = self._modem.get_signal_quality()
-                with self._lock:
-                    self.payload.sig.rsrq = signal_quality.rsrq
-                    self.payload.sig.rsrp = signal_quality.rsrp
-            except Exception as e:
-                self._set_signal_unknown()
-                logging.debug("Failed to fetch signal information: %s", e)
-                self._modem = None
+        try:
+            signal_quality = self._modem.get_signal_quality()
+            with self._lock:
+                self.payload.sig.rsrq = signal_quality.rsrq
+                self.payload.sig.rsrp = signal_quality.rsrp
+        except Exception as e:
+            self._set_signal_unknown()
+            logging.debug("Failed to fetch signal information: %s", e)
+            self._modem = None
 
     def _update_cell(self) -> None:
-        if not self._modem:
-            self._init_modem()
-
-        if self._modem:
-            try:
-                band = self._modem.get_active_band()
-                id = self._modem.get_cell_location()[3]
-                with self._lock:
-                    self.payload.cell.id = id
-                    self.payload.cell.band = band
-            except Exception as e:
-                self._set_cell_unknown()
-                logging.debug("Failed to fetch cell information: %s", e)
-                self._modem = None
+        try:
+            band = self._modem.get_active_band()
+            id = self._modem.get_cell_location()[3]
+            with self._lock:
+                self.payload.cell.id = id
+                self.payload.cell.band = band
+        except Exception as e:
+            self._set_cell_unknown()
+            logging.debug("Failed to fetch cell information: %s", e)
+            self._modem = None
 
     def _update_battery(self) -> None:
         if self._battery:
