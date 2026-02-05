@@ -9,6 +9,7 @@ CTRL-C will exit the client cleanly
 """
 import argparse
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from rpi_servo_pwm import HardwarePWM
 import signal
 import subprocess
@@ -18,6 +19,7 @@ import traceback
 import types
 
 from v3xctrl_control import Client, State
+from v3xctrl_gst import ControlClient
 from v3xctrl_control.Telemetry import Telemetry as TelemetryHandler
 from v3xctrl_control.message import (
   Command,
@@ -164,6 +166,9 @@ telemetry = TelemetryHandler(
 )
 telemetry.start()
 
+video_control = ControlClient()
+executor = ThreadPoolExecutor(max_workers=2)
+
 
 def map_range(
     value: float,
@@ -232,15 +237,15 @@ def latency_handler(message: Latency, address: Address) -> None:
 
 def command_handler(command: Command, address: Address) -> None:
     """
-    Commands are executed with Popen to run in the background, so we do not know
-    (nor do we care) if they finish successfully.
+    Commands are executed in the background, so we do not know (nor do we care)
+    if they finish successfully.
     """
     command_id = command.get_command_id()
     if command_id in received_command_ids:
         return
 
     received_command_ids.add(command_id)
-    logging.debug(f"Received command: {command}")
+    logging.info(f"Received command: {command}")
 
     cmd = command.get_command()
     match cmd:
@@ -253,7 +258,7 @@ def command_handler(command: Command, address: Address) -> None:
         case "recording":
             parameters = command.get_parameters()
             action: str = parameters["action"]
-            subprocess.Popen(["v3xctrl-video-control", "recording", action])
+            executor.submit(video_control.recording, action)
 
         case "trim":
             global steering_trim, steering_center
@@ -363,6 +368,7 @@ except Exception as e:
     traceback.print_exc()
 
 finally:
+    executor.shutdown(wait=False)
 
     client.stop()
     telemetry.stop()
