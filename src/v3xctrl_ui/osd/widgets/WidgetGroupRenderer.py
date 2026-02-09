@@ -67,7 +67,7 @@ def render_group(
         composed, visible_widgets, get_widget_value, padding
     )
 
-    screen_width, screen_height = pygame.display.get_window_size()
+    screen_width, screen_height = screen.get_size()
     position = calculate_widget_position(
         align, composed.get_width(), composed.get_height(),
         screen_width, screen_height, offset
@@ -93,7 +93,7 @@ def _render_individual_widgets(
         if settings.get("display", False):
             align = settings.get("align", "top-left")
             offset = settings.get("offset", (0, 0))
-            screen_width, screen_height = pygame.display.get_window_size()
+            screen_width, screen_height = screen.get_size()
             position = calculate_widget_position(
                 align, widget.width, widget.height,
                 screen_width, screen_height, offset

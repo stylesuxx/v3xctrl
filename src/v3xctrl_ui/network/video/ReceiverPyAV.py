@@ -157,6 +157,7 @@ class ReceiverPyAV(Receiver):
             finally:
                 with self.frame_lock:
                     self.frame = None
+                    self.frame_buffer.clear()
 
                 self._close_container()
 
