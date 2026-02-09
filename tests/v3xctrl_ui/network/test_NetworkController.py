@@ -27,7 +27,7 @@ class TestNetworkController(unittest.TestCase):
         self.mock_server = MagicMock()
         self.mock_server_cls.return_value = self.mock_server
 
-        self.video_receiver_patcher = patch("v3xctrl_ui.network.NetworkSetup.VideoReceiver")
+        self.video_receiver_patcher = patch("v3xctrl_ui.network.NetworkSetup.ReceiverPyAV")
         self.mock_video_receiver_cls = self.video_receiver_patcher.start()
         self.mock_video_receiver = MagicMock()
         self.mock_video_receiver_cls.return_value = self.mock_video_receiver

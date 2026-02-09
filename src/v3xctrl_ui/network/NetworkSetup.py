@@ -11,7 +11,9 @@ from v3xctrl_control.State import State
 from v3xctrl_helper.exceptions import PeerRegistrationError, PeerRegistrationAborted
 from v3xctrl_udp_relay.Peer import Peer
 
-from v3xctrl_ui.network.video.ReceiverPyAV import ReceiverPyAV as VideoReceiver
+from v3xctrl_ui.network.video.Receiver import Receiver
+from v3xctrl_ui.network.video.ReceiverPyAV import ReceiverPyAV
+from v3xctrl_ui.network.video.ReceiverGst import ReceiverGst
 from v3xctrl_ui.core.Settings import Settings
 
 
@@ -27,7 +29,7 @@ class RelaySetupResult:
 class VideoReceiverSetupResult:
     """Result of video receiver setup."""
     success: bool
-    video_receiver: Optional[VideoReceiver] = None
+    video_receiver: Optional[Receiver] = None
     error: Optional[Exception] = None
 
 
@@ -261,12 +263,21 @@ class NetworkSetup:
             VideoReceiverSetupResult with receiver instance or error
         """
         try:
-            render_ratio = self.settings.get("video", {}).get("render_ratio", 0)
-            video_receiver = VideoReceiver(
-                self.video_port,
-                keep_alive_callback,
-                render_ratio=render_ratio
-            )
+            match receiver_type:
+                case "gst":
+                    video_receiver: Receiver = ReceiverGst(
+                        self.video_port,
+                        keep_alive_callback,
+                        render_ratio=render_ratio
+                    )
+                case _:
+                    video_receiver = ReceiverPyAV(
+                        self.video_port,
+                        keep_alive_callback,
+                        render_ratio=render_ratio
+                    )
+
+            logging.info(f"Using {receiver_type} video receiver")
 
             # Enable timing when DEBUG level is set
             if logging.getLogger().isEnabledFor(logging.DEBUG):

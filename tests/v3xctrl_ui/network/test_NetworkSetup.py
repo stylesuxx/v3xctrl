@@ -30,7 +30,7 @@ class TestNetworkSetup(unittest.TestCase):
         self.server_patcher = patch("v3xctrl_ui.network.NetworkSetup.Server")
         self.mock_server_cls = self.server_patcher.start()
 
-        self.video_receiver_patcher = patch("v3xctrl_ui.network.NetworkSetup.VideoReceiver")
+        self.video_receiver_patcher = patch("v3xctrl_ui.network.NetworkSetup.ReceiverPyAV")
         self.mock_video_receiver_cls = self.video_receiver_patcher.start()
 
         self.socket_patcher = patch("v3xctrl_ui.network.NetworkSetup.socket")

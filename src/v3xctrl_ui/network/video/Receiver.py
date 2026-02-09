@@ -72,7 +72,8 @@ class Receiver(ABC, threading.Thread):
         history_size: int = 100,
         max_frame_age_ms: int = 500,
         frame_ratio: int = 100,
-        target_fps: int = 30
+        target_fps: int = 30,
+        timeout_seconds: float = 5.0
     ) -> None:
         super().__init__()
 
@@ -81,6 +82,7 @@ class Receiver(ABC, threading.Thread):
         self.log_interval = log_interval
         self.max_age_seconds = max_frame_age_ms / 1000
         self.target_fps = target_fps
+        self.timeout_seconds = timeout_seconds
 
         # How much of the frame_buffer should be rendered 0..100
         # 100 Render only latest frame
