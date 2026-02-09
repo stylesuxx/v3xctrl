@@ -43,6 +43,29 @@ class Streamer:
 
         self.last_udp_overflow_time = 0
 
+        # Pipeline timing measurement
+        self.timing_enabled = False
+        self.timing_data: Dict[int, Dict[str, float]] = {}
+        self.timing_stats = {
+            'capture': [],
+            'capsfilter': [],
+            'encode': [],
+            'package': [],
+            'total': [],
+        }
+        self.timing_log_interval = 1.0
+        self.timing_last_log = 0.0
+        self.timing_debug = {
+            'source_probe': 0,
+            'capsfilter_probe': 0,
+            'capsfilter_miss': 0,
+            'encoder_probe': 0,
+            'encoder_miss': 0,
+            'udp_probe': 0,
+            'udp_miss': 0,
+            'incomplete': 0,
+        }
+
         default_settings: Dict[str, Any] = {
             'width': 1280,
             'height': 720,
@@ -90,11 +113,17 @@ class Streamer:
             # Sensor mode control
             'sensor_mode_width': 0,
             'sensor_mode_height': 0,
+
+            # Pipeline timing
+            'timing_enabled': False,
         }
 
         self.settings: Dict[str, Any] = default_settings.copy()
         if settings:
             self.settings.update(settings)
+
+        if self.settings['timing_enabled']:
+            self.enable_timing(True)
 
         logging.debug(self.settings)
 
@@ -322,6 +351,29 @@ class Streamer:
             'udp_overrun': (time.monotonic() - self.last_udp_overflow_time) < 5,
         }
 
+    def enable_timing(self, enabled: bool = True) -> None:
+        self.timing_enabled = enabled
+        if enabled:
+            self.timing_data.clear()
+            self.timing_stats = {
+                'capture': [],
+                'capsfilter': [],
+                'encode': [],
+                'package': [],
+                'total': [],
+            }
+            self.timing_debug = {
+                'source_probe': 0,
+                'capsfilter_probe': 0,
+                'capsfilter_miss': 0,
+                'encoder_probe': 0,
+                'encoder_miss': 0,
+                'udp_probe': 0,
+                'udp_miss': 0,
+                'incomplete': 0,
+            }
+            self.timing_last_log = time.monotonic()
+
     def start_recording(self) -> bool:
         return self.recording_manager.start()
 
@@ -390,6 +442,11 @@ class Streamer:
         )
         input_caps_filter.set_property("caps", input_caps)
         self.pipeline.add(input_caps_filter)
+
+        # Add probe on source output to measure camera/ISP latency
+        if self.timing_enabled:
+            source_pad = source_output.get_static_pad("src")
+            source_pad.add_probe(Gst.PadProbeType.BUFFER, self._on_source_buffer)
 
         # Add probe to measure camera jitter
         camera_pad = input_caps_filter.get_static_pad("src")
@@ -476,6 +533,11 @@ class Streamer:
         payloader.set_property("mtu", self.settings['mtu'])
         self.pipeline.add(payloader)
 
+        # Add probe to measure total pipeline latency (before UDP send)
+        if self.timing_enabled:
+            payloader_pad = payloader.get_static_pad("src")
+            payloader_pad.add_probe(Gst.PadProbeType.BUFFER, self._on_udp_buffer)
+
         udpsink = Gst.ElementFactory.make("udpsink", "udpsink")
         if not udpsink:
             logging.error("Failed to create udpsink")
@@ -558,10 +620,38 @@ class Streamer:
         self.last_buffer_pts = pts
         self.frame_count += 1
 
+        # Record encoder timing
+        if self.timing_enabled:
+            self.timing_debug['encoder_probe'] += 1
+            if pts in self.timing_data:
+                self.timing_data[pts]['encoder'] = time.monotonic()
+            else:
+                self.timing_debug['encoder_miss'] += 1
+
+        return Gst.PadProbeReturn.OK
+
+    def _on_source_buffer(self, pad, info):
+        """Track source output timing - measures camera + ISP latency."""
+        buffer = info.get_buffer()
+        pts = buffer.pts
+        now = time.monotonic()
+
+        self.timing_debug['source_probe'] += 1
+
+        # Estimate capture latency by comparing PTS to pipeline running time
+        # PTS is when the frame was captured, running_time is current pipeline time
+        running_time = self.pipeline.get_clock().get_time() - self.pipeline.get_base_time()
+        capture_delay = (running_time - pts) / Gst.MSECOND  # Convert to ms
+
+        self.timing_data[pts] = {
+            'source': now,
+            'capture_delay': capture_delay,
+        }
+
         return Gst.PadProbeReturn.OK
 
     def _on_camera_buffer(self, pad, info):
-        """Track camera frame timing"""
+        """Track capsfilter output timing"""
         buffer = info.get_buffer()
         pts = buffer.pts
 
@@ -574,4 +664,104 @@ class Streamer:
                 logging.warning(f"CAMERA jitter: {jitter:.2f}ms (expected {expected*1000:.2f}ms, got {delta*1000:.2f}ms)")
 
         self.last_camera_pts = pts
+
+        # Record capsfilter output time
+        if self.timing_enabled:
+            self.timing_debug['capsfilter_probe'] += 1
+            if pts in self.timing_data:
+                self.timing_data[pts]['capsfilter'] = time.monotonic()
+            else:
+                self.timing_debug['capsfilter_miss'] += 1
+
         return Gst.PadProbeReturn.OK
+
+    def _on_udp_buffer(self, pad, info):
+        """Track UDP output timing and calculate pipeline latency."""
+        buffer = info.get_buffer()
+        pts = buffer.pts
+
+        if pts not in self.timing_data:
+            self.timing_debug['udp_miss'] += 1
+            return Gst.PadProbeReturn.OK
+
+        timing = self.timing_data[pts]
+        self.timing_debug['udp_probe'] += 1
+
+        # Only process if all stages have been recorded
+        if 'source' not in timing or 'capsfilter' not in timing or 'encoder' not in timing:
+            self.timing_debug['incomplete'] += 1
+            return Gst.PadProbeReturn.OK
+
+        # All stages complete - pop entry and calculate stats
+        now = time.monotonic()
+        self.timing_data.pop(pts)
+
+        capture_time = timing.get('capture_delay', 0)
+        capsfilter_time = (timing['capsfilter'] - timing['source']) * 1000
+        encode_time = (timing['encoder'] - timing['capsfilter']) * 1000
+        package_time = (now - timing['encoder']) * 1000
+        total_time = (now - timing['capsfilter']) * 1000
+
+        self.timing_stats['capture'].append(capture_time)
+        self.timing_stats['capsfilter'].append(capsfilter_time)
+        self.timing_stats['encode'].append(encode_time)
+        self.timing_stats['package'].append(package_time)
+        self.timing_stats['total'].append(total_time)
+
+        # Log periodically (time-based)
+        now = time.monotonic()
+        if now - self.timing_last_log >= self.timing_log_interval:
+            self._log_timing_stats()
+            self.timing_last_log = now
+
+        # Clean up old entries (in case of dropped frames)
+        # Keep more entries to account for pipeline latency and RTP fragmentation
+        if len(self.timing_data) > 100:
+            oldest_pts = min(self.timing_data.keys())
+            del self.timing_data[oldest_pts]
+
+        return Gst.PadProbeReturn.OK
+
+    def _log_timing_stats(self) -> None:
+        """Log timing statistics."""
+        if not self.timing_stats['total']:
+            return
+
+        def stats(data):
+            if not data:
+                return 0, 0, 0
+            return min(data), sum(data) / len(data), max(data)
+
+        cap_min, cap_avg, cap_max = stats(self.timing_stats['capture'])
+        enc_min, enc_avg, enc_max = stats(self.timing_stats['encode'])
+        pkg_min, pkg_avg, pkg_max = stats(self.timing_stats['package'])
+        tot_min, tot_avg, tot_max = stats(self.timing_stats['total'])
+
+        # Total streamer latency = capture + encode + package
+        total_avg = cap_avg + enc_avg + pkg_avg
+
+        logging.debug(
+            f"[TIMING] capture: {cap_avg:.1f}ms | "
+            f"encode: {enc_avg:.1f}ms | "
+            f"package: {pkg_avg:.1f}ms | "
+            f"total: {total_avg:.1f}ms"
+        )
+
+        # Reset stats after logging
+        self.timing_debug = {
+            'source_probe': 0,
+            'capsfilter_probe': 0,
+            'capsfilter_miss': 0,
+            'encoder_probe': 0,
+            'encoder_miss': 0,
+            'udp_probe': 0,
+            'udp_miss': 0,
+            'incomplete': 0,
+        }
+        self.timing_stats = {
+            'capture': [],
+            'capsfilter': [],
+            'encode': [],
+            'package': [],
+            'total': [],
+        }

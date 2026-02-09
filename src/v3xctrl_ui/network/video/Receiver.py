@@ -100,6 +100,15 @@ class Receiver(ABC, threading.Thread):
         self.max_frame_buffer_size = 300
         self.frame_buffer: Deque[npt.NDArray[np.uint8]] = deque(maxlen=self.max_frame_buffer_size)
 
+        # End-to-end timing (decode to display)
+        self.timing_enabled = False
+        self.frame_timestamps: Deque[float] = deque(maxlen=self.max_frame_buffer_size)
+        self.last_displayed_decode_time: Optional[float] = None
+        self.decode_durations: Deque[float] = deque(maxlen=self.max_frame_buffer_size)
+        self.timing_decode_samples: Deque[float] = deque(maxlen=100)
+        self.timing_buffer_samples: Deque[float] = deque(maxlen=100)
+        self.timing_log_interval = 30
+
         self.packet_count = 0
         self.decoded_frame_count = 0
         self.rendered_frame_count = 0
@@ -156,6 +165,7 @@ class Receiver(ABC, threading.Thread):
     def get_frame(self) -> Optional[npt.NDArray[np.uint8]]:
         now = time.monotonic()
         log_data = None
+        decode_duration = None
 
         with self.frame_lock:
             length = len(self.frame_buffer)
@@ -167,9 +177,24 @@ class Receiver(ABC, threading.Thread):
                     # Render oldest (maximum smoothness)
                     self.frame = self.frame_buffer.popleft()
 
+                    if self.timing_enabled:
+                        if self.frame_timestamps:
+                            self.last_displayed_decode_time = self.frame_timestamps.popleft()
+                        if self.decode_durations:
+                            decode_duration = self.decode_durations.popleft()
+
                 elif self.frame_ratio == 0:
                     # Render newest (minimum latency)
                     self.frame = self.frame_buffer.pop()
+
+                    if self.timing_enabled:
+                        if self.frame_timestamps:
+                            self.last_displayed_decode_time = self.frame_timestamps.pop()
+                            self.frame_timestamps.clear()
+
+                        if self.decode_durations:
+                            decode_duration = self.decode_durations.pop()
+                            self.decode_durations.clear()
 
                     self.dropped_burst_frames += len(self.frame_buffer)
                     self.frame_buffer.clear()
@@ -187,7 +212,32 @@ class Receiver(ABC, threading.Thread):
                     for _ in range(frames_to_drop):
                         self.frame_buffer.popleft()
 
+                        if self.timing_enabled:
+                            if self.frame_timestamps:
+                                self.frame_timestamps.popleft()
+
+                            if self.decode_durations:
+                                self.decode_durations.popleft()
+
                     self.frame = self.frame_buffer.popleft()
+
+                    if self.timing_enabled:
+                        if self.frame_timestamps:
+                            self.last_displayed_decode_time = self.frame_timestamps.popleft()
+
+                        if self.decode_durations:
+                            decode_duration = self.decode_durations.popleft()
+
+                # Track timing
+                if self.timing_enabled and self.last_displayed_decode_time is not None:
+                    buffer_wait = now - self.last_displayed_decode_time
+                    self.timing_buffer_samples.append(buffer_wait)
+
+                    if decode_duration is not None:
+                        self.timing_decode_samples.append(decode_duration)
+
+                    if len(self.timing_buffer_samples) >= self.timing_log_interval:
+                        self._log_timing_stats()
 
                 self.rendered_frame_count += 1
 
@@ -202,13 +252,61 @@ class Receiver(ABC, threading.Thread):
 
         return result
 
-    def _update_frame(self, new_frame: npt.NDArray[np.uint8]) -> None:
+    def _update_frame(
+        self,
+        new_frame: npt.NDArray[np.uint8],
+        decode_duration: float = 0.0
+    ) -> None:
         """Append new frame to frame buffer"""
+        now = time.monotonic()
+
         with self.frame_lock:
             self.frame_buffer.append(new_frame)
-            self.frame_receive_history.append(time.monotonic())
+            self.frame_receive_history.append(now)
+
+            if self.timing_enabled:
+                self.frame_timestamps.append(now)
+                self.decode_durations.append(decode_duration)
 
         self.decoded_frame_count += 1
+
+    def enable_timing(self, enabled: bool = True) -> None:
+        self.timing_enabled = enabled
+        if enabled:
+            self.timing_decode_samples.clear()
+            self.timing_buffer_samples.clear()
+            logging.debug("Viewer timing enabled")
+
+    def _log_timing_stats(self) -> None:
+        if not self.timing_buffer_samples:
+            return
+
+        def stats(samples: list) -> tuple[float, float, float]:
+            if not samples:
+                return 0.0, 0.0, 0.0
+            return min(samples), sum(samples) / len(samples), max(samples)
+
+        decode_samples = list(self.timing_decode_samples)
+        buffer_samples = list(self.timing_buffer_samples)
+
+        dec_min, dec_avg, dec_max = stats(decode_samples)
+        buf_min, buf_avg, buf_max = stats(buffer_samples)
+
+        # Convert to ms for display
+        dec_avg_ms = dec_avg * 1000
+        buf_avg_ms = buf_avg * 1000
+        buf_min_ms = buf_min * 1000
+        buf_max_ms = buf_max * 1000
+        total_avg_ms = dec_avg_ms + buf_avg_ms
+
+        logging.debug(
+            f"[TIMING] decode: {dec_avg_ms:.1f}ms | "
+            f"buffer: {buf_avg_ms:.1f}ms ({buf_min_ms:.1f}-{buf_max_ms:.1f}) | "
+            f"total: {total_avg_ms:.1f}ms"
+        )
+
+        self.timing_decode_samples.clear()
+        self.timing_buffer_samples.clear()
 
     def _calculate_jitter_stats(self) -> tuple[float, float]:
         """Calculate max and average jitter from frame receive history.

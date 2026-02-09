@@ -36,7 +36,10 @@ def main() -> None:
     parser.add_argument('--analogue-gain', type=int, default=1, help='Analogue gain(default: 1)')
     parser.add_argument('--exposure-time-mode', type=int, default=0, help='Exposure time mode (default: 0 - auto)')
     parser.add_argument('--exposure-time', type=int, default=32000, help='Exposure time in us (default: 32000000)')
-    parser.add_argument('--autostart-recording', action='store_true', default=False, help='Automatically start recording (requires recording-dir to be set)')
+    parser.add_argument(
+        '--autostart-recording', action='store_true', default=False,
+        help='Automatically start recording (requires recording-dir to be set)'
+    )
     parser.add_argument('--sensor-mode', type=str, default="0x0", help='Path to src file (dafault: 0x0; automatic)')
     parser.add_argument('--brightness', type=float, default=0.0, help='Brightness (default: 0)')
     parser.add_argument('--contrast', type=float, default=1.0, help='Contrast (default: 1.0)')
@@ -89,6 +92,7 @@ def main() -> None:
         'contrast': args.contrast,
         'saturation': args.saturation,
         'sharpness': args.sharpness,
+        'timing_enabled': level == logging.DEBUG,
     }
 
     streamer: Streamer = Streamer(args.host, args.port, args.bind_port, settings)

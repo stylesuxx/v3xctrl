@@ -267,6 +267,11 @@ class NetworkSetup:
                 keep_alive_callback,
                 render_ratio=render_ratio
             )
+
+            # Enable timing when DEBUG level is set
+            if logging.getLogger().isEnabledFor(logging.DEBUG):
+                video_receiver.enable_timing(True)
+
             video_receiver.start()
 
             return VideoReceiverSetupResult(

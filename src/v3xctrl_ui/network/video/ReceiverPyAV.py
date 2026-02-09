@@ -136,11 +136,13 @@ class ReceiverPyAV(Receiver):
 
                     self.consecutive_old_frames = 0
 
+                    decode_start = time.monotonic()
                     decoded_frames = list(packet.decode())
                     if decoded_frames:
+                        decode_duration = (time.monotonic() - decode_start) / len(decoded_frames)
                         for frame in decoded_frames:
                             rgb_frame = frame.to_ndarray(format="rgb24")
-                            self._update_frame(rgb_frame)
+                            self._update_frame(rgb_frame, decode_duration)
                     else:
                         self.dropped_empty_frames += 1
 
