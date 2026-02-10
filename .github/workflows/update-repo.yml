@@ -3,6 +3,9 @@ name: Update Debian Repository
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   update-repo:
     name: Update Debian Repository
@@ -14,6 +17,7 @@ jobs:
         with:
           ref: gh-pages
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Get latest release info
         id: release
