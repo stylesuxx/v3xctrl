@@ -1,0 +1,141 @@
+name: Update Debian Repository
+
+on:
+  workflow_dispatch:
+
+jobs:
+  update-repo:
+    name: Update Debian Repository
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 0
+
+      - name: Get latest release info
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASE_JSON=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+            https://api.github.com/repos/${{ github.repository }}/releases/latest)
+
+          VERSION=$(echo "$RELEASE_JSON" | jq -r '.tag_name')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Latest release version: $VERSION"
+
+      - name: Download v3xctrl.deb from release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ASSET_ID=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+            https://api.github.com/repos/${{ github.repository }}/releases/latest \
+            | jq '.assets[] | select(.name == "v3xctrl.deb") | .id')
+
+          if [ -z "$ASSET_ID" ]; then
+            echo "Error: v3xctrl.deb not found in latest release."
+            exit 1
+          fi
+
+          curl -L -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/octet-stream" \
+            https://api.github.com/repos/${{ github.repository }}/releases/assets/$ASSET_ID \
+            -o pool/main/v3xctrl_${{ steps.release.outputs.version }}_arm64.deb
+
+      - name: Download v3xctrl-python.deb from release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ASSET_ID=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+            https://api.github.com/repos/${{ github.repository }}/releases/latest \
+            | jq '.assets[] | select(.name == "v3xctrl-python.deb") | .id')
+
+          if [ -z "$ASSET_ID" ]; then
+            echo "Error: v3xctrl-python.deb not found in latest release."
+            exit 1
+          fi
+
+          curl -L -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/octet-stream" \
+            https://api.github.com/repos/${{ github.repository }}/releases/assets/$ASSET_ID \
+            -o pool/main/v3xctrl-python_${{ steps.release.outputs.version }}_arm64.deb
+
+      - name: Generate Packages file
+        run: |
+          cd ${{ github.workspace }}
+          dpkg-scanpackages --arch arm64 pool/ > dists/trixie/main/binary-arm64/Packages
+          gzip -k -f dists/trixie/main/binary-arm64/Packages
+
+      - name: Generate Release file
+        run: |
+          cd dists/trixie
+
+          cat > Release << EOF
+          Origin: V3XCTRL
+          Label: V3XCTRL Repository
+          Suite: trixie
+          Codename: trixie
+          Version: ${{ steps.release.outputs.version }}
+          Architectures: arm64
+          Components: main
+          Description: V3XCTRL Debian Repository
+          Date: $(date -Ru)
+          EOF
+
+          # Add checksums
+          echo "MD5Sum:" >> Release
+          for f in main/binary-arm64/Packages main/binary-arm64/Packages.gz; do
+            if [ -f "$f" ]; then
+              echo " $(md5sum $f | cut -d' ' -f1) $(wc -c < $f) $f" >> Release
+            fi
+          done
+
+          echo "SHA256:" >> Release
+          for f in main/binary-arm64/Packages main/binary-arm64/Packages.gz; do
+            if [ -f "$f" ]; then
+              echo " $(sha256sum $f | cut -d' ' -f1) $(wc -c < $f) $f" >> Release
+            fi
+          done
+
+      - name: Import GPG key
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+          echo "allow-preset-passphrase" >> ~/.gnupg/gpg-agent.conf
+          gpg-connect-agent reloadagent /bye
+
+      - name: Sign Release file
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          cd dists/trixie
+
+          # Get the key ID
+          KEY_ID=$(gpg --list-secret-keys --keyid-format=long | grep sec | head -1 | awk '{print $2}' | cut -d'/' -f2)
+
+          # Sign Release file
+          echo "$GPG_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
+            --armor --detach-sign -o Release.gpg Release
+
+          echo "$GPG_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
+            --armor --clearsign -o InRelease Release
+
+      - name: Export public key
+        run: |
+          KEY_ID=$(gpg --list-secret-keys --keyid-format=long | grep sec | head -1 | awk '{print $2}' | cut -d'/' -f2)
+          gpg --armor --export $KEY_ID > public.key
+
+      - name: Remove .gitkeep files
+        run: |
+          find . -name ".gitkeep" -delete
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+          git commit -m "Update repository to ${{ steps.release.outputs.version }}" || echo "No changes to commit"
+          git push
