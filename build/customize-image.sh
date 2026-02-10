@@ -6,12 +6,23 @@ if [[ $EUID -ne 0 ]]; then
   exit 1
 fi
 
+# Parse flags
+USE_LOCAL_DEBS=false
+POSITIONAL_ARGS=()
+while [[ "$#" -gt 0 ]]; do
+  case $1 in
+    --local|-l) USE_LOCAL_DEBS=true ;;
+    *) POSITIONAL_ARGS+=("$1") ;;
+  esac
+  shift
+done
+
 # Accept arguments: MOUNT_DIR INPUT_IMG DEB_DIR OUTPUT_IMG
 # If not provided, use defaults for local builds
-MOUNT_DIR_ARG="${1:-}"
-INPUT_IMG="${2:-}"
-DEB_DIR_ARG="${3:-}"
-OUTPUT_IMG="${4:-}"
+MOUNT_DIR_ARG="${POSITIONAL_ARGS[0]:-}"
+INPUT_IMG="${POSITIONAL_ARGS[1]:-}"
+DEB_DIR_ARG="${POSITIONAL_ARGS[2]:-}"
+OUTPUT_IMG="${POSITIONAL_ARGS[3]:-}"
 
 USER="v3xctrl"
 NAME="v3xctrl"
@@ -109,15 +120,20 @@ mount -t devpts devpts "$MOUNT_DIR/dev/pts"
 echo "[HOST] Copying qemu-aarch64-static for chroot emulation"
 cp /usr/bin/qemu-aarch64-static "$MOUNT_DIR/usr/bin/"
 
-echo "[HOST] Copying .deb files into image"
-cp "$DEB_DIR"/v3xctrl-python.deb "$MOUNT_DIR/tmp/"
-cp "$DEB_DIR"/v3xctrl.deb "$MOUNT_DIR/tmp/"
-
 ### CHROOT START ###
 echo "[HOST] Entering chroot to install packages and configure serial login"
 cp "./build/chroot/customize-image.sh" "${MOUNT_DIR}"
 chmod +x "${MOUNT_DIR}/customize-image.sh"
-chroot "$MOUNT_DIR" "/customize-image.sh"
+
+CHROOT_ARGS=""
+if [ "$USE_LOCAL_DEBS" = true ]; then
+  echo "[HOST] Copying local .deb files into image"
+  cp "$DEB_DIR"/v3xctrl-python.deb "$MOUNT_DIR/tmp/"
+  cp "$DEB_DIR"/v3xctrl.deb "$MOUNT_DIR/tmp/"
+  CHROOT_ARGS="--local"
+fi
+
+chroot "$MOUNT_DIR" "/customize-image.sh" $CHROOT_ARGS
 rm "${MOUNT_DIR}/customize-image.sh"
 ### CHROOT END   ###
 
