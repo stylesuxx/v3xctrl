@@ -1,0 +1,34 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+Origin: V3XCTRL
+Label: V3XCTRL Repository
+Suite: trixie
+Codename: trixie
+Version: v1.0.0-RC1
+Architectures: arm64
+Components: main
+Description: V3XCTRL Debian Repository
+Date: Tue, 10 Feb 2026 21:38:37 +0000
+MD5Sum:
+ 1a11190c7d77f8b2a5f66e197a96ada8 1361 main/binary-arm64/Packages
+ a82e73053ff02aa0938c7890e6de8cc3 733 main/binary-arm64/Packages.gz
+SHA256:
+ efc9f132a05c4f97888072f758e7968aabdf4a74d7cda706d09cba897d24e1e3 1361 main/binary-arm64/Packages
+ 6a7385016b96219c4a2c5653023d7681d6b2649488de5eae5fdee1a2a427bb2d 733 main/binary-arm64/Packages.gz
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAEBCgAdFiEE/nSuSRMaijQxDWwzGxD2hnfu7FcFAmmLpV8ACgkQGxD2hnfu
+7FfH1Q/9GI3zRDittnVWAAlghk2bq3pUCN3p69tgZf3v43XSPCkDqSWFebawlyIs
+jixZvkJZ0FaFR50uLx+oFYWKijVEdYv6GSQsnGtZVkZUFo37mVRnZhmCWIoSSNHw
+/Aznnuon+Q7cS6rkTsE5vwX+RA8vVsY750kh4oU9avQk3dLkopGbQRIgOzb/+x0P
+u5FfVZF4c0h99bx8j5+bmTFRH/LkJsitPyGGjKvhvSrjLB2uEPZt110Z7NECvfM7
+coEnMNptxOGQB4jceq9DGt9P4aAewAm52eOqg6HyUU8I6xVtmnWABJNJ6HhCdJih
+jTrz6hm4gryr9XRmqgtjtLQ6a8eEajtLQm/YcS5511CEOEbSBl7xSzl9C7Za3xS+
+VVtS3eGz4OqhzRPr4+7cuEHIPhBKscEAgwiW62Hsk3gvaRWF7YtXAhRo3+AJipk7
+MHsoM/Vyu7iDUA0LSABHyYFS/7Aiz5BBWH99actwQTo+vkXprq9qIqiNLD/WamxZ
+6TIiiKLGLAiI9yAphJJ+bF8AXg/rueogg6zGzNJ94YCZuuk1qpdgIxQnbCNm/tnB
+Bapr4WDB5ph2OhK+feCrOYCHsKelJEjGX+3U9crUsTE6OCua8UWCrBDW3S/FVKVK
+p5w7jEhAfrUAkx4AjWEu/8Tyz/YoLYxC0sO81gRHucG7l25w4fM=
+=TEXh
+-----END PGP SIGNATURE-----
