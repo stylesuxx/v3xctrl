@@ -14,6 +14,7 @@ pyinstaller --noconfirm --onedir --windowed \
     --icon="${SRC_DIR}/v3xctrl_ui/assets/images/logo.ico" \
     --add-data "${SRC_DIR}/v3xctrl_ui/assets:assets" \
     --collect-data material_icons \
+    --exclude-module gi \
     --distpath "${BUILD_DIR}/dist" \
     --workpath "${BUILD_DIR}/build" \
     --specpath "${BUILD_DIR}" \
