@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>V3XCTRL Repository</title>
+    <style>
+        body { font-family: monospace; max-width: 800px; margin: 50px auto; padding: 20px; }
+        pre { background: #f4f4f4; padding: 15px; overflow-x: auto; }
+        code { background: #f4f4f4; padding: 2px 6px; }
+    </style>
+</head>
+<body>
+    <h1>V3XCTRL Debian Repository</h1>
+    <p>This is the official Debian package repository for V3XCTRL.</p>
+
+    <h2>Setup</h2>
+    <pre>
+# Import the signing key
+curl -fsSL https://repo.v3xctrl.com/public.key | sudo gpg --dearmor -o /usr/share/keyrings/v3xctrl.gpg
+
+# Add the repository
+echo "deb [signed-by=/usr/share/keyrings/v3xctrl.gpg arch=arm64] https://repo.v3xctrl.com trixie main" | sudo tee /etc/apt/sources.list.d/v3xctrl.list
+
+# Update and install
+sudo apt update
+sudo apt install v3xctrl
+    </pre>
+
+    <h2>Packages</h2>
+    <ul>
+        <li><code>v3xctrl</code> - RC client and web interface</li>
+        <li><code>v3xctrl-python</code> - Python runtime for V3XCTRL</li>
+    </ul>
+
+    <h2>Links</h2>
+    <ul>
+        <li><a href="https://github.com/stylesuxx/v3xctrl">GitHub Repository</a></li>
+        <li><a href="public.key">GPG Public Key</a></li>
+    </ul>
+</body>
+</html>
