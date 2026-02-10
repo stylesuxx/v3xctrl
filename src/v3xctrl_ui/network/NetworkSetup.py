@@ -3,7 +3,7 @@ import logging
 import socket
 import time
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type
 
 from v3xctrl_control import Server
 from v3xctrl_control.message import Heartbeat
@@ -13,8 +13,20 @@ from v3xctrl_udp_relay.Peer import Peer
 
 from v3xctrl_ui.network.video.Receiver import Receiver
 from v3xctrl_ui.network.video.ReceiverPyAV import ReceiverPyAV
-from v3xctrl_ui.network.video.ReceiverGst import ReceiverGst
 from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.utils.gstreamer import is_gstreamer_available
+
+# GStreamer receiver is loaded lazily if available
+_ReceiverGst: Optional[Type[Receiver]] = None
+
+
+def _get_gstreamer_receiver() -> Optional[Type[Receiver]]:
+    """Get the GStreamer receiver class, loading it lazily."""
+    global _ReceiverGst
+    if _ReceiverGst is None and is_gstreamer_available():
+        from v3xctrl_ui.network.video.ReceiverGst import ReceiverGst
+        _ReceiverGst = ReceiverGst
+    return _ReceiverGst
 
 
 @dataclass
@@ -265,7 +277,10 @@ class NetworkSetup:
         try:
             match receiver_type:
                 case "gst":
-                    video_receiver: Receiver = ReceiverGst(
+                    gst_receiver = _get_gstreamer_receiver()
+                    if not gst_receiver:
+                        raise RuntimeError("GStreamer receiver requested but not available")
+                    video_receiver: Receiver = gst_receiver(
                         self.video_port,
                         keep_alive_callback,
                         render_ratio=render_ratio
