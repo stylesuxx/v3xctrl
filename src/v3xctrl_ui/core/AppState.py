@@ -194,7 +194,7 @@ class AppState:
         # Refresh menu tabs to update widget states (e.g., fullscreen checkbox)
         if self.menu.visible:
             for tab in self.menu.tabs:
-                tab.view.refresh_from_settings()
+                tab.view.apply_settings()
 
     def _create_menu(self) -> Menu:
         """Callback to create a new menu instance."""
