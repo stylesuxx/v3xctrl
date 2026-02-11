@@ -136,12 +136,61 @@ class TestParseTelemetry(unittest.TestCase):
         self.assertEqual(data.battery_voltage, "0.00V")
         self.assertEqual(data.battery_average_voltage, "0.00V")
         self.assertEqual(data.battery_percent, "0%")
+        self.assertEqual(data.battery_current, "0mA")
         self.assertFalse(data.battery_warning)
         self.assertFalse(data.recording)
         self.assertFalse(data.service_video)
         self.assertFalse(data.service_debug)
         self.assertEqual(data.vc_current_flags, 0)
         self.assertEqual(data.vc_history_flags, 0)
+
+    def test_parse_telemetry_battery_current_milliamps(self):
+        """Test battery current parsing for values under 1000mA."""
+        telemetry = Telemetry({
+            "sig": {"rsrq": -10, "rsrp": -90},
+            "cell": {"band": 3, "id": 0x0100},
+            "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False, "cur": 500}
+        })
+
+        data = parse_telemetry(telemetry)
+
+        self.assertEqual(data.battery_current, "500mA")
+
+    def test_parse_telemetry_battery_current_amps(self):
+        """Test battery current parsing for values >= 1000mA (displayed as A)."""
+        telemetry = Telemetry({
+            "sig": {"rsrq": -10, "rsrp": -90},
+            "cell": {"band": 3, "id": 0x0100},
+            "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False, "cur": 2500}
+        })
+
+        data = parse_telemetry(telemetry)
+
+        self.assertEqual(data.battery_current, "2.50A")
+
+    def test_parse_telemetry_battery_current_exactly_1000(self):
+        """Test battery current parsing at exactly 1000mA threshold."""
+        telemetry = Telemetry({
+            "sig": {"rsrq": -10, "rsrp": -90},
+            "cell": {"band": 3, "id": 0x0100},
+            "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False, "cur": 1000}
+        })
+
+        data = parse_telemetry(telemetry)
+
+        self.assertEqual(data.battery_current, "1.00A")
+
+    def test_parse_telemetry_battery_current_missing(self):
+        """Test battery current defaults to 0mA when not in telemetry."""
+        telemetry = Telemetry({
+            "sig": {"rsrq": -10, "rsrp": -90},
+            "cell": {"band": 3, "id": 0x0100},
+            "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False}
+        })
+
+        data = parse_telemetry(telemetry)
+
+        self.assertEqual(data.battery_current, "0mA")
 
 
 if __name__ == "__main__":

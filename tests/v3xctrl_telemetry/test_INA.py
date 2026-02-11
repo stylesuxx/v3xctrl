@@ -35,6 +35,22 @@ class TestINA(unittest.TestCase):
         assert ina.address == 0x41
         self.mock_smbus_class.assert_called_once_with(0)
 
+    def test_initialization_with_shunt_and_max_current(self):
+        """Test INA initializes with custom shunt and max current."""
+        ina = INA(address=0x40, bus=1, r_shunt_ohms=0.005, max_expected_current_A=16)
+
+        # Should have called calibration during init with these values
+        expected_lsb = (16 / 32767) * 1e6  # ~488 µA
+        assert abs(ina.current_LSB - expected_lsb) < 1
+
+    def test_initialization_default_shunt_and_current(self):
+        """Test INA uses correct default shunt (100mΩ) and max current (0.8A)."""
+        ina = INA()
+
+        # Default shunt is 0.1 ohms (100mΩ), max current is 0.8A
+        expected_lsb = (0.8 / 32767) * 1e6  # ~24.4 µA
+        assert abs(ina.current_LSB - expected_lsb) < 0.1
+
     def test_byte_swapping(self):
         """Test byte swapping for little-endian format."""
         ina = INA()

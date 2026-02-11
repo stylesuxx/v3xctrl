@@ -141,6 +141,7 @@ class BatteryInfo:
     avg: int = 0
     pct: int = 0
     wrn: bool = False
+    cur: int = 0  # current in mA
 
 
 @dataclass

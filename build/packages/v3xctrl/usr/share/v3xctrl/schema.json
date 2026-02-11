@@ -881,6 +881,22 @@
                   "required": true,
                   "default": 4200,
                   "description": "Maximum voltage per cell in millivolts (used to calculate battery percentage)"
+                },
+                "shuntResistance": {
+                  "title": "Shunt Resistance (mΩ)",
+                  "propertyOrder": 50,
+                  "type": "integer",
+                  "required": true,
+                  "default": 100,
+                  "description": "Shunt resistor value in milliohms for current measurement"
+                },
+                "maxExpectedCurrent": {
+                  "title": "Max Expected Current (A)",
+                  "propertyOrder": 60,
+                  "type": "number",
+                  "required": true,
+                  "default": 0.8,
+                  "description": "Maximum expected current in Amperes (affects measurement resolution)"
                 }
               }
             }

@@ -24,21 +24,29 @@ class INA:
     - INA231
     """
 
-    def __init__(self, address: int = 0x40, bus: int = 1) -> None:
+    def __init__(
+        self,
+        address: int = 0x40,
+        bus: int = 1,
+        r_shunt_ohms: float = 0.1,
+        max_expected_current_A: float = 0.8
+    ) -> None:
         """
         Initalize the INA object.
 
         Default address is 0x40. Can be verified with:
         > sudo i2cdetect -y 1
 
-        Sets the calibration to the default value (1000). If you use a different
-        shunt then default, call set_calibration with the appropriate
-        calibration value.
+        Args:
+            address: I2C address of the INA chip
+            bus: I2C bus number
+            r_shunt_ohms: Shunt resistor value in ohms (default 100mΩ)
+            max_expected_current_A: Maximum expected current for calibration
         """
         self.address = address
         self.bus = SMBus(bus)
 
-        self.set_calibration()
+        self.set_calibration(r_shunt_ohms, max_expected_current_A)
 
     def _swap_bytes(self, value: int) -> int:
         # INA chips return registers in little-endian format
@@ -57,16 +65,16 @@ class INA:
 
     def set_calibration(
         self,
-        r_shunt_ohms: float = 0.01,
-        max_expected_current_A: float = 3.2
+        r_shunt_ohms: float = 0.1,
+        max_expected_current_A: float = 0.8
     ) -> None:
         """
         Set calibration register based on shunt resistor and expected max
         current.
 
         Defaults:
-        - r_shunt_ohms: 0.01 Ω (10 mΩ)
-        - max_expected_current_A: 3.2 A
+        - r_shunt_ohms: 0.1 Ω (100 mΩ)
+        - max_expected_current_A: 0.8 A
 
         This sets:
         - current_LSB: scaled to max current with 15-bit margin

@@ -55,11 +55,12 @@ class TestWidgetFactory(unittest.TestCase):
         widgets = create_battery_widgets()
 
         self.assertIsInstance(widgets, dict)
-        self.assertEqual(len(widgets), 4)
+        self.assertEqual(len(widgets), 5)
         self.assertIn("battery_icon", widgets)
         self.assertIn("battery_voltage", widgets)
         self.assertIn("battery_average_voltage", widgets)
         self.assertIn("battery_percent", widgets)
+        self.assertIn("battery_current", widgets)
 
     def test_create_battery_widgets_creates_icon_widget(self):
         widgets = create_battery_widgets()
@@ -73,10 +74,12 @@ class TestWidgetFactory(unittest.TestCase):
         voltage_widget = widgets["battery_voltage"]
         avg_voltage_widget = widgets["battery_average_voltage"]
         percent_widget = widgets["battery_percent"]
+        current_widget = widgets["battery_current"]
 
         self.assertIsInstance(voltage_widget, TextWidget)
         self.assertIsInstance(avg_voltage_widget, TextWidget)
         self.assertIsInstance(percent_widget, TextWidget)
+        self.assertIsInstance(current_widget, TextWidget)
 
     def test_create_battery_widgets_sets_right_alignment(self):
         widgets = create_battery_widgets()
@@ -85,10 +88,12 @@ class TestWidgetFactory(unittest.TestCase):
         voltage_widget = widgets["battery_voltage"]
         avg_voltage_widget = widgets["battery_average_voltage"]
         percent_widget = widgets["battery_percent"]
+        current_widget = widgets["battery_current"]
 
         self.assertEqual(voltage_widget.alignment, Alignment.RIGHT)
         self.assertEqual(avg_voltage_widget.alignment, Alignment.RIGHT)
         self.assertEqual(percent_widget.alignment, Alignment.RIGHT)
+        self.assertEqual(current_widget.alignment, Alignment.RIGHT)
 
     def test_create_signal_widgets_returns_dict(self):
         widgets = create_signal_widgets()

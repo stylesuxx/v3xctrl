@@ -240,6 +240,7 @@ class OSD:
             voltage=data.battery_voltage,
             average_voltage=data.battery_average_voltage,
             percent=data.battery_percent,
+            current=data.battery_current,
             warning=data.battery_warning
         )
 
@@ -248,8 +249,9 @@ class OSD:
         self.telemetry_context.update_videocore(values.get("vc", 0))
 
         color = RED if data.battery_warning else WHITE
-        for widget_name in ["battery_voltage", "battery_average_voltage", "battery_percent"]:
-            self.widgets_battery[widget_name].set_text_color(color)
+        for widget_name in ["battery_voltage", "battery_average_voltage", "battery_percent", "battery_current"]:
+            if widget_name in self.widgets_battery:
+                self.widgets_battery[widget_name].set_text_color(color)
 
         logging.debug(f"Received telemetry message: {message.get_values()}")
 
@@ -263,6 +265,7 @@ class OSD:
             "battery_voltage": battery.voltage,
             "battery_average_voltage": battery.average_voltage,
             "battery_percent": battery.percent,
+            "battery_current": battery.current,
         }
 
         return mapping.get(name)

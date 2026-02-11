@@ -49,6 +49,7 @@ class BatteryData:
     voltage: str = "0.00V"
     average_voltage: str = "0.00V"
     percent: str = "0%"
+    current: str = "0mA"
     warning: bool = False
 
 
