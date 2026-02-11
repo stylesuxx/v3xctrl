@@ -52,10 +52,10 @@ class Tab(ABC):
         for headline in self.headlines.values():
             headline.render(self.width, self.padding)
 
-    def refresh_from_settings(self) -> None:
+    def apply_settings(self) -> None:
         """
-        Refresh widget values from current settings.
-        Called when menu is shown to ensure widgets reflect external changes (e.g., F11 fullscreen toggle).
+        Apply current settings values to widgets.
+        Called during initialization and when menu is shown.
         Override this method in subclasses to update widget states.
         """
         pass

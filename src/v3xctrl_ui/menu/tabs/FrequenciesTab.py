@@ -24,8 +24,6 @@ class FrequenciesTab(Tab):
     ) -> None:
         super().__init__(settings, width, height, padding, y_offset)
 
-        self.timing = self.settings.get("timing", {})
-
         label_width = 170
         input_width = 75
 
@@ -56,10 +54,6 @@ class FrequenciesTab(Tab):
             on_change=lambda v: self._on_rate_change("latency_check_hz", v)
         )
 
-        self.video_input.value = str(self.timing.get("main_loop_fps", ""))
-        self.control_input.value = str(self.timing.get("control_update_hz", ""))
-        self.latency_input.value = str(self.timing.get("latency_check_hz", ""))
-
         self.elements = [
             self.video_input,
             self.control_input,
@@ -72,6 +66,8 @@ class FrequenciesTab(Tab):
         for element in self.elements:
             self.frequency_layout.add(element)
 
+        self.apply_settings()
+
     def draw(self, surface: Surface) -> None:
         _ = self._draw_frequency_section(surface, 0)
 
@@ -79,6 +75,13 @@ class FrequenciesTab(Tab):
         return {
             "timing": self.timing
         }
+
+    def apply_settings(self) -> None:
+        self.timing = self.settings.get("timing", {})
+
+        self.video_input.value = str(self.timing.get("main_loop_fps", ""))
+        self.control_input.value = str(self.timing.get("control_update_hz", ""))
+        self.latency_input.value = str(self.timing.get("latency_check_hz", ""))
 
     def _on_rate_change(self, name: str, value: str) -> None:
         if is_int(value):

@@ -789,16 +789,16 @@ class TestMenu(unittest.TestCase):
             telemetry_context=self.telemetry_context
         )
 
-        # Mock refresh_from_settings on all tab views
+        # Mock apply_settings on all tab views
         for tab in menu.tabs:
-            tab.view.refresh_from_settings = MagicMock()
+            tab.view.apply_settings = MagicMock()
 
         # Show menu
         menu.show()
 
-        # Verify refresh_from_settings was called on all tabs
+        # Verify apply_settings was called on all tabs
         for tab in menu.tabs:
-            tab.view.refresh_from_settings.assert_called_once()
+            tab.view.apply_settings.assert_called_once()
 
     def test_update_settings_reference(self, mock_button_class, mock_pygame):
         """Test that update_settings_reference updates settings for menu and all tabs"""

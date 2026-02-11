@@ -99,7 +99,7 @@ class TestGeneralTab(unittest.TestCase):
         }.get(key, default)
 
         # Call refresh
-        self.tab.refresh_from_settings()
+        self.tab.apply_settings()
 
         # Verify internal state is updated
         assert self.tab.video["fullscreen"] is True

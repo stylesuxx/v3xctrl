@@ -28,19 +28,16 @@ class GeneralTab(Tab):
     ) -> None:
         super().__init__(settings, width, height, padding, y_offset)
 
-        self.video = self.settings.get("video", {})
-        self.show_connection_info = self.settings.get("show_connection_info", False)
-
         # General widgets
         self.fullscreen_enabled_checkbox = Checkbox(
             label=t("Fullscreen"), font=LABEL_FONT,
-            checked=self.video.get("fullscreen", False),
+            checked=False,
             on_change=self._on_fullscreen_enable_change
         )
 
         self.show_connection_info_checkbox = Checkbox(
             label=t("Show connection info (CAUTION: This potentially exposes your location)"), font=LABEL_FONT,
-            checked=self.show_connection_info,
+            checked=False,
             on_change=self._on_show_connection_info_change
         )
 
@@ -50,7 +47,6 @@ class GeneralTab(Tab):
             font=LABEL_FONT, mono_font=MONO_FONT,
             on_change=lambda value: self._on_render_ratio_change(value)
         )
-        self.render_ratio_input.value = str(self.video.get("render_ratio", 0))
 
         self.general_widgets: List[BaseInput | BaseWidget] = [
             self.fullscreen_enabled_checkbox,
@@ -66,6 +62,8 @@ class GeneralTab(Tab):
         for element in self.elements:
             self.general_layout.add(element)
 
+        self.apply_settings()
+
     def draw(self, surface: Surface) -> None:
         _ = self._draw_general_section(surface, 0)
 
@@ -75,7 +73,7 @@ class GeneralTab(Tab):
             "video": self.video,
         }
 
-    def refresh_from_settings(self) -> None:
+    def apply_settings(self) -> None:
         self.video = self.settings.get("video", {})
         self.show_connection_info = self.settings.get("show_connection_info", False)
 

@@ -51,6 +51,7 @@ class EventController:
                         elif not self.menu.is_loading:
                             # When exiting via [ESC], do the same thing we would do
                             # when using the "Back" button from the menu
+                            self.settings.load()
                             self.on_menu_exit()
 
                     case pygame.K_F11:
