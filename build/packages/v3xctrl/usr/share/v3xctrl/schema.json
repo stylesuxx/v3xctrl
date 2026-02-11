@@ -371,6 +371,28 @@
           "default": 1800000,
           "description": "Stay below values your modem supports (based on category). If latency increases, reduce this value. The default is very conservative, you can most likely increase this value."
         },
+        "h264Profile": {
+          "propertyOrder": 65,
+          "title": "H.264 Profile",
+          "type": "string",
+          "required": true,
+          "enum": [
+            "constrained-baseline",
+            "baseline",
+            "main",
+            "high"
+          ],
+          "options": {
+            "enum_titles": [
+              "Constrained Baseline (Lower latency)",
+              "Baseline",
+              "Main",
+              "High (Better quality)"
+            ]
+          },
+          "default": "high",
+          "description": "H.264 encoding profile. Constrained Baseline has lower encoding latency, High has better compression efficiency."
+        },
         "record": {
           "propertyOrder": 70,
           "type": "object",

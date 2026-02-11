@@ -44,6 +44,7 @@ ARGS=(
   --height "$video_height"
   --framerate "$video_framerate"
   --bitrate "$video_bitrate"
+  --h264-profile "$video_h264Profile"
   --i-frame-period "$video_iFrame_period"
   --qp-minimum "$video_qp_min"
   --qp-maximum "$video_qp_max"

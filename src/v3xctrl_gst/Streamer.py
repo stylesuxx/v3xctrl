@@ -70,13 +70,13 @@ class Streamer:
             'width': 1280,
             'height': 720,
             'framerate': 30,
-            'buffertime': 150000000,
-            'sizebuffers': 5,
+            'buffertime': 50000000,
+            'sizebuffers': 2,
             'recording_dir': None,
             'recording': False,
             'test_pattern': False,
-            'buffertime_udp': 150000000,
-            'sizebuffers_udp': 5,
+            'buffertime_udp': 50000000,
+            'sizebuffers_udp': 2,
             'sizebuffers_write': 30,
             'mtu': 1400,
             'file_src': None,
@@ -85,6 +85,7 @@ class Streamer:
             'h264_profile': "high",
             'h264_level': "4.1",
             'capture_io_mode': 4,
+            'output_io_mode': 4,
 
             # via extra-controls
             'bitrate_mode': 1,  # 0 VBR, 1: CBR
@@ -486,6 +487,7 @@ class Streamer:
 
         encoder.set_property("extra-controls", Gst.Structure.from_string(encoder_controls)[0])
         encoder.set_property("capture-io-mode", self.settings['capture_io_mode'])
+        encoder.set_property("output-io-mode", self.settings['output_io_mode'])
         self.pipeline.add(encoder)
 
         encoder_caps_filter = Gst.ElementFactory.make("capsfilter", "encoder_caps")
@@ -528,6 +530,7 @@ class Streamer:
             logging.error("Failed to create rtph264pay")
             return False
 
+        payloader.set_property("aggregate-mode", 1)  # zero-latency
         payloader.set_property("config-interval", 1)
         payloader.set_property("pt", 96)
         payloader.set_property("mtu", self.settings['mtu'])
