@@ -32,7 +32,8 @@
     "qp": {
       "min": 20,
       "max": 51
-    }
+    },
+    "h264Profile": "high"
   },
   "control": {
     "autostart": true,
