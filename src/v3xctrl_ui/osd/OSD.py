@@ -19,6 +19,7 @@ from v3xctrl_ui.osd.widgets.WidgetFactory import (
     create_signal_widgets,
     create_debug_widgets,
     create_rec_widget,
+    create_clock_widget,
 )
 from v3xctrl_ui.osd.widgets.WidgetGroupRenderer import render_widget_group
 from v3xctrl_ui.osd.widgets.WidgetGroup import WidgetGroup
@@ -54,12 +55,14 @@ class OSD:
         self.widgets_battery: Dict[str, Widget] = {}
         self.widgets_rec: Dict[str, Widget] = {}
         self.widgets_steering: Dict[str, Widget] = {}
+        self.widgets_clock: Dict[str, Widget] = {}
 
         self._init_widgets_debug()
         self._init_widgets_signal()
         self._init_widgets_battery()
         self._init_widgets_rec()
         self._init_widgets_steering()
+        self._init_widgets_clock()
 
         self.reset()
 
@@ -93,6 +96,12 @@ class OSD:
                 name="rec",
                 widgets=self.widgets_rec,
                 get_value=self._get_rec_value,
+                use_composition=False
+            ),
+            WidgetGroup.create(
+                name="clock",
+                widgets=self.widgets_clock,
+                get_value=self._get_clock_value,
                 use_composition=False
             ),
         ]
@@ -198,6 +207,9 @@ class OSD:
     def _init_widgets_rec(self) -> None:
         self.widgets_rec = create_rec_widget()
 
+    def _init_widgets_clock(self) -> None:
+        self.widgets_clock = create_clock_widget()
+
     def _latency_update(self, message: Latency) -> None:
         """
         NOTE: We rely on the streamer and viewer to have the same timezone set
@@ -284,3 +296,7 @@ class OSD:
     def _get_rec_value(self, name: str):
         gst = self.telemetry_context.get_gst()
         return gst.recording
+
+    def _get_clock_value(self, name: str):
+        # ClockWidget gets its own time internally
+        return None

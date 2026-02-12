@@ -10,6 +10,7 @@ from v3xctrl_ui.osd.widgets import (
     Widget,
     BatteryIconWidget,
     Alignment,
+    ClockWidget,
     FpsWidget,
     HorizontalIndicatorWidget,
     RecWidget,
@@ -103,4 +104,13 @@ def create_rec_widget() -> Dict[str, Widget]:
 
     return {
         "rec": rec_widget
+    }
+
+
+def create_clock_widget() -> Dict[str, Widget]:
+    position = (0, 0)
+    clock_widget = ClockWidget(position)
+
+    return {
+        "clock": clock_widget
     }

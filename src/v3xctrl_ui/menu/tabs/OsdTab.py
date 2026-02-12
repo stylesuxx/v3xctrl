@@ -80,6 +80,11 @@ class OsdTab(Tab):
             checked=self.widgets.get("rec", {}).get("display", False),
             on_change=lambda value: self._on_widget_toggle("rec", value)
         )
+        self.clock_checkbox = Checkbox(
+            label=t("Show Clock (for latency measurement)"), font=LABEL_FONT,
+            checked=self.widgets.get("clock", {}).get("display", False),
+            on_change=lambda value: self._on_widget_toggle("clock", value)
+        )
 
         self.osd_widgets = [
             self.debug_checkbox,
@@ -93,6 +98,7 @@ class OsdTab(Tab):
             self.signal_band_checkbox,
             self.signal_cell_checkbox,
             self.rec_checkbox,
+            self.clock_checkbox,
         ]
 
         self.elements = self.osd_widgets
