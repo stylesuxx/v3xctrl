@@ -274,6 +274,10 @@ class NetworkSetup:
         Returns:
             VideoReceiverSetupResult with receiver instance or error
         """
+        video_settings = self.settings.get("video", {})
+        render_ratio = video_settings.get("render_ratio", 0)
+        receiver_type = video_settings.get("receiver", "pyav")
+
         try:
             match receiver_type:
                 case "gst":
