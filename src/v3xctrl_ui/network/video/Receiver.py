@@ -302,7 +302,7 @@ class Receiver(ABC, threading.Thread):
         total_avg_ms = dec_avg_ms + buf_avg_ms
 
         logging.debug(
-            f"[TIMING] decode: {dec_avg_ms:.1f}ms | "
+            f"[TIMING] pipeline: {dec_avg_ms:.1f}ms | "
             f"buffer: {buf_avg_ms:.1f}ms ({buf_min_ms:.1f}-{buf_max_ms:.1f}) | "
             f"total: {total_avg_ms:.1f}ms"
         )

@@ -1,5 +1,4 @@
 import logging
-import threading
 import time
 from typing import Callable, Optional
 
@@ -51,6 +50,16 @@ class ReceiverGst(Receiver):
 
         self.last_frame_time: float = 0.0
 
+        # Pipeline timing via pad probes (only used when timing_enabled)
+        # Track first packet arrival per PTS (for receive timing)
+        self._receive_start_times: Optional[dict[int, float]] = None
+        # Track decoder entry time per PTS (for decode timing)
+        self._decode_start_times: Optional[dict[int, float]] = None
+        # Store calculated receive durations to pass through pipeline
+        self._receive_durations: Optional[dict[int, float]] = None
+        # Collect receive timing samples for logging
+        self._timing_receive_samples: Optional[list[float]] = None
+
         # Cached frame dimensions and pre-allocated buffer
         self._cached_width: int = 0
         self._cached_height: int = 0
@@ -59,6 +68,36 @@ class ReceiverGst(Receiver):
     def _setup(self) -> None:
         """Setup GStreamer pipeline."""
         pass
+
+    def _on_receive_probe(
+        self, pad: Gst.Pad, info: Gst.PadProbeInfo
+    ) -> Gst.PadProbeReturn:
+        """Record timestamp when FIRST packet of each frame arrives."""
+        buffer = info.get_buffer()
+        if buffer and buffer.pts != Gst.CLOCK_TIME_NONE:
+            pts = buffer.pts
+            # Only record first packet for each PTS (frame)
+            if pts not in self._receive_start_times:
+                self._receive_start_times[pts] = time.monotonic()
+        return Gst.PadProbeReturn.OK
+
+    def _on_decoder_entry_probe(
+        self, pad: Gst.Pad, info: Gst.PadProbeInfo
+    ) -> Gst.PadProbeReturn:
+        """Record when complete frame enters decoder, calculate receive time."""
+        buffer = info.get_buffer()
+        if buffer and buffer.pts != Gst.CLOCK_TIME_NONE:
+            pts = buffer.pts
+            now = time.monotonic()
+
+            # Calculate receive duration (first packet → decoder entry)
+            receive_start = self._receive_start_times.pop(pts, None)
+            if receive_start is not None:
+                self._receive_durations[pts] = now - receive_start
+
+            # Record decoder entry time for decode duration
+            self._decode_start_times[pts] = now
+        return Gst.PadProbeReturn.OK
 
     def _build_pipeline(self) -> bool:
         """Build and configure the GStreamer pipeline dynamically."""
@@ -174,6 +213,27 @@ class ReceiverGst(Receiver):
             logging.error("Failed to link capsfilter to appsink")
             return False
 
+        # Add pipeline timing probes when timing is enabled
+        if self.timing_enabled:
+            self._receive_start_times = {}
+            self._decode_start_times = {}
+            self._receive_durations = {}
+            self._timing_receive_samples = []
+
+            # Probe at jitterbuffer input - first packet arrival
+            jitter_sink = jitterbuffer.get_static_pad("sink")
+            if jitter_sink:
+                jitter_sink.add_probe(
+                    Gst.PadProbeType.BUFFER, self._on_receive_probe
+                )
+
+            # Probe at decoder input - complete frame ready for decode
+            decoder_sink = decoder.get_static_pad("sink")
+            if decoder_sink:
+                decoder_sink.add_probe(
+                    Gst.PadProbeType.BUFFER, self._on_decoder_entry_probe
+                )
+
         # Setup bus message handling
         bus = self.pipeline.get_bus()
         bus.add_signal_watch()
@@ -232,7 +292,21 @@ class ReceiverGst(Receiver):
             frame = np.frombuffer(mapinfo.data, dtype=np.uint8).reshape(
                 self._cached_height, self._cached_width, 3
             ).copy()
-            self._update_frame(frame)
+
+            # Calculate timing if enabled
+            decode_duration = 0.0
+            if self.timing_enabled and self._decode_start_times is not None:
+                # Get decode duration (decoder entry → appsink)
+                decode_start = self._decode_start_times.pop(pts, None)
+                if decode_start is not None:
+                    decode_duration = time.monotonic() - decode_start
+
+                # Collect receive duration sample for logging
+                receive_duration = self._receive_durations.pop(pts, None)
+                if receive_duration is not None:
+                    self._timing_receive_samples.append(receive_duration)
+
+            self._update_frame(frame, decode_duration)
 
         finally:
             buffer.unmap(mapinfo)
@@ -359,6 +433,55 @@ class ReceiverGst(Receiver):
             self.loop.quit()
 
         self.loop = None
+
+        # Clear timing data
+        if self._receive_start_times is not None:
+            self._receive_start_times.clear()
+        if self._decode_start_times is not None:
+            self._decode_start_times.clear()
+        if self._receive_durations is not None:
+            self._receive_durations.clear()
+        if self._timing_receive_samples is not None:
+            self._timing_receive_samples.clear()
+
+    def _log_timing_stats(self) -> None:
+        """Override to include receive timing in GST receiver."""
+        if not self.timing_buffer_samples:
+            return
+
+        def stats(samples: list) -> tuple[float, float, float]:
+            if not samples:
+                return 0.0, 0.0, 0.0
+            return min(samples), sum(samples) / len(samples), max(samples)
+
+        decode_samples = list(self.timing_decode_samples)
+        buffer_samples = list(self.timing_buffer_samples)
+        receive_samples = list(self._timing_receive_samples) if self._timing_receive_samples else []
+
+        rec_min, rec_avg, rec_max = stats(receive_samples)
+        dec_min, dec_avg, dec_max = stats(decode_samples)
+        buf_min, buf_avg, buf_max = stats(buffer_samples)
+
+        # Convert to ms for display (receive/decode/buffer are in seconds)
+        rec_avg_ms = rec_avg * 1000
+        dec_avg_ms = dec_avg * 1000
+        buf_avg_ms = buf_avg * 1000
+        buf_min_ms = buf_min * 1000
+        buf_max_ms = buf_max * 1000
+        total_avg_ms = rec_avg_ms + dec_avg_ms + buf_avg_ms
+
+        logging.debug(
+            f"[TIMING] "
+            f"receive: {rec_avg_ms:.1f}ms | "
+            f"decode: {dec_avg_ms:.1f}ms | "
+            f"buffer: {buf_avg_ms:.1f}ms ({buf_min_ms:.1f}-{buf_max_ms:.1f}) | "
+            f"total: {total_avg_ms:.1f}ms"
+        )
+
+        self.timing_decode_samples.clear()
+        self.timing_buffer_samples.clear()
+        if self._timing_receive_samples:
+            self._timing_receive_samples.clear()
 
     def _cleanup(self) -> None:
         """Cleanup resources."""
