@@ -213,11 +213,12 @@ class OSD:
 
         now = time.time()
         timestamp = message.timestamp
-        diff_ms = round((now - timestamp) * 1000)
+        # RTT/2 for one-way network latency estimate
+        diff_ms = round((now - timestamp) * 1000 / 2)
 
-        if diff_ms <= 80:
+        if diff_ms <= 40:
             self.debug_latency = "green"
-        elif diff_ms <= 150:
+        elif diff_ms <= 75:
             self.debug_latency = "yellow"
         else:
             self.debug_latency = "red"
