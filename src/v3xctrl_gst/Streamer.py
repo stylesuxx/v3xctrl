@@ -51,7 +51,6 @@ class Streamer:
             'capsfilter': [],
             'encode': [],
             'package': [],
-            'total': [],
         }
         self.timing_log_interval = 1.0
         self.timing_last_log = 0.0
@@ -634,15 +633,20 @@ class Streamer:
         return Gst.PadProbeReturn.OK
 
     def _on_source_buffer(self, pad, info):
-        """Track source output timing - measures camera + ISP latency."""
+        """Track source output timing - estimates camera + ISP latency.
+
+        Capture delay is estimated by comparing PTS to pipeline running time.
+        This includes ISP processing and any internal buffering, but does NOT
+        fully capture exposure time - PTS may be stamped at start, middle, or
+        end of exposure depending on the camera driver. For videotestsrc this
+        will be ~0 since there's no real camera delay.
+        """
         buffer = info.get_buffer()
         pts = buffer.pts
         now = time.monotonic()
 
         self.timing_debug['source_probe'] += 1
 
-        # Estimate capture latency by comparing PTS to pipeline running time
-        # PTS is when the frame was captured, running_time is current pipeline time
         running_time = self.pipeline.get_clock().get_time() - self.pipeline.get_base_time()
         capture_delay = (running_time - pts) / Gst.MSECOND  # Convert to ms
 
@@ -703,13 +707,11 @@ class Streamer:
         capsfilter_time = (timing['capsfilter'] - timing['source']) * 1000
         encode_time = (timing['encoder'] - timing['capsfilter']) * 1000
         package_time = (now - timing['encoder']) * 1000
-        total_time = (now - timing['capsfilter']) * 1000
 
         self.timing_stats['capture'].append(capture_time)
         self.timing_stats['capsfilter'].append(capsfilter_time)
         self.timing_stats['encode'].append(encode_time)
         self.timing_stats['package'].append(package_time)
-        self.timing_stats['total'].append(total_time)
 
         # Log periodically (time-based)
         now = time.monotonic()
@@ -727,7 +729,7 @@ class Streamer:
 
     def _log_timing_stats(self) -> None:
         """Log timing statistics."""
-        if not self.timing_stats['total']:
+        if not self.timing_stats['capture']:
             return
 
         def stats(data):
@@ -738,9 +740,7 @@ class Streamer:
         cap_min, cap_avg, cap_max = stats(self.timing_stats['capture'])
         enc_min, enc_avg, enc_max = stats(self.timing_stats['encode'])
         pkg_min, pkg_avg, pkg_max = stats(self.timing_stats['package'])
-        tot_min, tot_avg, tot_max = stats(self.timing_stats['total'])
 
-        # Total streamer latency = capture + encode + package
         total_avg = cap_avg + enc_avg + pkg_avg
 
         logging.debug(
@@ -766,5 +766,4 @@ class Streamer:
             'capsfilter': [],
             'encode': [],
             'package': [],
-            'total': [],
         }
