@@ -120,6 +120,11 @@ class Settings:
                 "align": "bottom-right",
                 "offset": [10, 10]
             },
+            "clock": {
+                "display": False,
+                "align": "bottom-right",
+                "offset": [0, 0]
+            },
         },
         "settings": {
             "title": f"V3XCTRL {__version__}",

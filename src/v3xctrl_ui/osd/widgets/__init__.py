@@ -1,4 +1,5 @@
 from .BatteryIconWidget import BatteryIconWidget
+from .ClockWidget import ClockWidget
 from .FpsWidget import FpsWidget
 from .HorizontalIndicatorWidget import HorizontalIndicatorWidget
 from .RecWidget import RecWidget
@@ -11,6 +12,7 @@ from .Widget import Widget
 
 __all__ = [
   "BatteryIconWidget",
+  "ClockWidget",
   "FpsWidget",
   "HorizontalIndicatorWidget",
   "RecWidget",
