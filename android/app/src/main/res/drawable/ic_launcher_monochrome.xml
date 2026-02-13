@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Stylized "3" shape from v3xctrl logo, scaled and centered -->
+    <!-- Original path scaled from 1600x1600 to 108x108, centered in 72dp safe zone -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M26.5,75.8 L34.9,61.8 L65.4,61.7 L73.2,53.4 L60.5,53.3 L48.0,53.2 C47.8,53.3 55.0,41.7 55.0,41.7 L64.5,41.6 L74.0,41.5 L66.5,33.6 L49.5,33.4 L58.2,19.4 L75.2,19.4 L98.6,47.3 L74.0,76.0 Z" />
+</vector>
