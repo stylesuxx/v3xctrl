@@ -1,0 +1,96 @@
+<resources>
+    <string name="app_name">v3xctrl</string>
+
+    <!-- Menu items -->
+    <string name="menu">Menu</string>
+    <string name="menu_general">General</string>
+    <string name="menu_network">Network</string>
+    <string name="menu_frequencies">Frequencies</string>
+    <string name="menu_osd">OSD</string>
+    <string name="menu_control">Control</string>
+    <string name="menu_input">Input</string>
+    <string name="menu_streamer">Streamer</string>
+
+    <!-- Main screen -->
+    <string name="app_description">Companion app for v3xctrl - an open-source platform for remote-controlled vehicles with low-latency video streaming and telemetry.</string>
+    <string name="app_link">v3xctrl.com</string>
+    <string name="app_url">https://v3xctrl.com</string>
+    <string name="start_viewer">Start Viewer</string>
+    <string name="configure_network_message">Please configure Relay URL and Session ID in Network settings</string>
+
+    <!-- Network screen -->
+    <string name="network_title">Network</string>
+    <string name="relay_section">Relay</string>
+    <string name="relay_url">URL</string>
+    <string name="session_id">Session ID</string>
+    <string name="spectator">Spectator</string>
+    <string name="spectator_desc">Joining as spectator will allow you to watch a running session</string>
+
+    <!-- Frequencies screen -->
+    <string name="frequencies_title">Frequencies</string>
+    <string name="control_section">Control</string>
+    <string name="control_hz">Control rate</string>
+    <string name="control_hz_description">Control message rate in Hz (1-100). Higher values provide more responsive control but use more bandwidth.</string>
+
+    <!-- Control screen -->
+    <string name="control_title">Control</string>
+    <string name="control_mode_section">Control Mode</string>
+    <string name="control_mode_label">Mode</string>
+    <string name="control_mode_touch_desc">Use touch gestures in landscape mode. Left side: vertical drag for throttle. Right side: horizontal drag for steering.</string>
+    <string name="control_mode_motion_desc">Use phone orientation in landscape mode. Tilt left/right like a steering wheel to steer. Tilt forward to accelerate, backward to reverse. Press Zero to calibrate.</string>
+    <string name="control_mode_gamepad_desc">Use a USB or Bluetooth game controller. Left stick horizontal for steering, vertical for throttle. Works with any standard HID gamepad.</string>
+    <string name="control_scale_section">Output Scale</string>
+    <string name="control_forward_scale">Forward</string>
+    <string name="control_backward_scale">Backward</string>
+    <string name="control_steering_scale">Steering</string>
+    <string name="control_motion_section">Motion Settings</string>
+    <string name="control_motion_steering_deg">Steering angle</string>
+    <string name="control_motion_forward_deg">Forward angle</string>
+    <string name="control_motion_backward_deg">Backward angle</string>
+    <string name="control_gamepad_device">Controller</string>
+    <string name="control_select_gamepad">Select a controller</string>
+    <string name="control_no_gamepads">No gamepads detected</string>
+    <string name="control_calibrate">Calibrate</string>
+    <string name="control_calibrate_steering">Move the steering axis through its full range. Hold right, then press OK.</string>
+    <string name="control_calibrate_throttle">Move the throttle axis through its full range. Hold forward, then press OK.</string>
+    <string name="control_calibrate_reverse">Move the reverse axis through its full range. Hold in reverse, then press OK.</string>
+    <string name="control_gamepad_steering">Steering</string>
+    <string name="control_gamepad_throttle">Throttle</string>
+
+    <!-- OSD screen -->
+    <string name="osd_title">OSD</string>
+    <string name="osd_widgets_section">Widgets</string>
+    <string name="osd_pipeline_timer">Pipeline Timer</string>
+    <string name="osd_pipeline_timer_desc">Show elapsed time since pipeline started (HH:MM:SS.mmm) in landscape mode</string>
+
+    <!-- Viewer screen -->
+    <string name="viewer_title">Viewer</string>
+    <string name="rotate_hint">Rotate for fullscreen and controls</string>
+
+    <!-- Control buttons -->
+    <string name="btn_reboot">Reboot</string>
+    <string name="btn_shutdown">Shutdown</string>
+    <string name="btn_disconnect">Disconnect</string>
+    <string name="btn_trim_plus">Trim +</string>
+    <string name="btn_trim_minus">Trim -</string>
+    <string name="btn_start_video">Start Video</string>
+    <string name="btn_stop_video">Stop Video</string>
+    <string name="btn_start_recording">Start Rec</string>
+    <string name="btn_stop_recording">Stop Rec</string>
+    <string name="btn_zero">Zero</string>
+    <string name="btn_pause">Pause</string>
+    <string name="btn_resume">Resume</string>
+    <string name="controls_section">Controls</string>
+    <string name="connection_lost">Connection lost</string>
+
+    <!-- Connection -->
+    <string name="establishing_connection">Establishing Connection…</string>
+    <string name="abort">Abort</string>
+    <string name="ok">OK</string>
+    <string name="connection_unauthorized">Session ID not authorized</string>
+    <string name="connection_timeout">Connection timeout</string>
+    <string name="connection_failed">Failed to establish connection</string>
+
+    <!-- Common -->
+    <string name="back">Back</string>
+</resources>
