@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -123,6 +124,27 @@ fun PortraitViewer(
                 )
             }
 
+            // Status messages (centered, stacked)
+            if (showVideoBlank || viewerState.isControlTimedOut) {
+                Column(
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    if (showVideoBlank) {
+                        Text(
+                            text = stringResource(R.string.no_video_signal),
+                            color = Color.Gray
+                        )
+                    }
+                    if (viewerState.isControlTimedOut) {
+                        Text(
+                            text = stringResource(R.string.no_control_signal),
+                            color = Color.Gray
+                        )
+                    }
+                }
+            }
+
             // Recording indicator (bottom-right)
             if (viewerState.isRecording) {
                 RecordingIndicator(
@@ -183,6 +205,8 @@ private fun ControlButtons(
     onCommand: (Command) -> Unit,
     onDisconnect: () -> Unit
 ) {
+    val controlEnabled = !viewerState.isControlTimedOut
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -198,6 +222,7 @@ private fun ControlButtons(
             if (viewerState.isVideoRunning) {
                 OutlinedButton(
                     onClick = { onCommand(Commands.videoStop()) },
+                    enabled = controlEnabled,
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = Color.Red
                     ),
@@ -208,6 +233,7 @@ private fun ControlButtons(
             } else {
                 Button(
                     onClick = { onCommand(Commands.videoStart()) },
+                    enabled = controlEnabled,
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(stringResource(R.string.btn_start_video))
@@ -218,6 +244,7 @@ private fun ControlButtons(
             if (viewerState.isRecording) {
                 OutlinedButton(
                     onClick = { onCommand(Commands.recordingStop()) },
+                    enabled = controlEnabled,
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = Color.Red
                     ),
@@ -228,7 +255,7 @@ private fun ControlButtons(
             } else {
                 Button(
                     onClick = { onCommand(Commands.recordingStart()) },
-                    enabled = viewerState.isVideoRunning,
+                    enabled = controlEnabled && viewerState.isVideoRunning,
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(stringResource(R.string.btn_start_recording))
@@ -245,6 +272,7 @@ private fun ControlButtons(
         ) {
             OutlinedButton(
                 onClick = { onCommand(Commands.trimDecrease()) },
+                enabled = controlEnabled,
                 colors = ButtonDefaults.outlinedButtonColors(
                     contentColor = Color.White
                 ),
@@ -255,6 +283,7 @@ private fun ControlButtons(
 
             OutlinedButton(
                 onClick = { onCommand(Commands.trimIncrease()) },
+                enabled = controlEnabled,
                 colors = ButtonDefaults.outlinedButtonColors(
                     contentColor = Color.White
                 ),
@@ -273,6 +302,7 @@ private fun ControlButtons(
         ) {
             OutlinedButton(
                 onClick = { onCommand(Commands.shutdown()) },
+                enabled = controlEnabled,
                 colors = ButtonDefaults.outlinedButtonColors(
                     contentColor = Color.Red
                 ),
@@ -283,6 +313,7 @@ private fun ControlButtons(
 
             OutlinedButton(
                 onClick = { onCommand(Commands.restart()) },
+                enabled = controlEnabled,
                 colors = ButtonDefaults.outlinedButtonColors(
                     contentColor = Color.Yellow
                 ),
@@ -297,6 +328,7 @@ private fun ControlButtons(
         // Row 4: Disconnect (100% width)
         OutlinedButton(
             onClick = onDisconnect,
+            enabled = controlEnabled,
             colors = ButtonDefaults.outlinedButtonColors(
                 contentColor = Color.Gray
             ),

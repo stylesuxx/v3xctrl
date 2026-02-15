@@ -86,6 +86,8 @@
     <string name="btn_resume">Resume</string>
     <string name="controls_section">Controls</string>
     <string name="connection_lost">Connection lost</string>
+    <string name="no_video_signal">No video signal</string>
+    <string name="no_control_signal">No control signal</string>
 
     <!-- Connection -->
     <string name="establishing_connection">Establishing Connection…</string>

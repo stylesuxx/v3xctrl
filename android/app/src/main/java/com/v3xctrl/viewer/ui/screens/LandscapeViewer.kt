@@ -54,6 +54,29 @@ fun LandscapeViewer(
             modifier = Modifier.fillMaxSize()
         )
 
+        // Status messages (top-center, stacked)
+        if (showVideoBlank || viewerState.isControlTimedOut) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .offset(y = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                if (showVideoBlank) {
+                    Text(
+                        text = stringResource(R.string.no_video_signal),
+                        color = Color.Gray
+                    )
+                }
+                if (viewerState.isControlTimedOut) {
+                    Text(
+                        text = stringResource(R.string.no_control_signal),
+                        color = Color.Gray
+                    )
+                }
+            }
+        }
+
         // Pipeline timer (bottom-right)
         if (showPipelineTimer) {
             PipelineTimer(

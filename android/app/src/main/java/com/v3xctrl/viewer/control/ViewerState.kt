@@ -34,16 +34,25 @@ class ViewerState {
     var latencyMs by mutableStateOf<Long?>(null)
     var latencyStatus by mutableStateOf(LatencyStatus.UNKNOWN)
 
+    var isControlTimedOut by mutableStateOf(false)
+
     fun onControlMessageReceived() {
         lastMessageTimeMs = System.currentTimeMillis()
+        isControlTimedOut = false
     }
 
-    fun isConnectionTimedOut(): Boolean {
-        if (lastMessageTimeMs == 0L) {
-            return false
+    /**
+     * Check whether control messages have stopped arriving.
+     * Updates isControlTimedOut reactive state. Returns the current value.
+     */
+    fun checkControlTimeout(): Boolean {
+        if (lastMessageTimeMs != 0L &&
+            System.currentTimeMillis() - lastMessageTimeMs > connectionTimeoutMs
+        ) {
+            isControlTimedOut = true
+            latencyStatus = LatencyStatus.UNKNOWN
         }
-
-        return System.currentTimeMillis() - lastMessageTimeMs > connectionTimeoutMs
+        return isControlTimedOut
     }
 
     /**

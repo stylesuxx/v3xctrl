@@ -151,16 +151,11 @@ fun ViewerScreen(
         controlState.reset()
     }
 
-    // Connection timeout check
+    // Poll control channel timeout
     LaunchedEffect(Unit) {
         while (true) {
             delay(1000)
-            if (viewerState.isConnectionTimedOut()) {
-                // Connection lost - return to main screen
-                GstViewer.stop()
-                onBack()
-                break
-            }
+            viewerState.checkControlTimeout()
         }
     }
 
@@ -347,9 +342,6 @@ fun VideoSurface(
     )
 
     if (showVideoBlank) {
-        Box(
-            modifier = modifier
-                .background(Color.Black)
-        )
+        Box(modifier = modifier.background(Color.Black))
     }
 }
