@@ -5,6 +5,9 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.v3xctrl.viewer.control.ControlState
 
 /**
@@ -40,6 +43,10 @@ class MotionController(
     @Volatile private var zeroRoll: Float = 0f
     @Volatile private var isCalibrated = false
 
+    /** True until the user presses Zero for the first time. Controls output 0 while true. */
+    var needsZero by mutableStateOf(true)
+        private set
+
     fun start() {
         rotationSensor?.let {
             sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME)
@@ -55,11 +62,17 @@ class MotionController(
      * Calibrate the current phone orientation as neutral (zero point).
      */
     fun zero() {
+        needsZero = false
         isCalibrated = false
     }
 
     override fun onSensorChanged(event: SensorEvent) {
-        if (event.sensor.type != Sensor.TYPE_GAME_ROTATION_VECTOR) return
+        if (
+            event.sensor.type != Sensor.TYPE_GAME_ROTATION_VECTOR  ||
+            needsZero
+        ) {
+            return
+        }
 
         SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values)
 

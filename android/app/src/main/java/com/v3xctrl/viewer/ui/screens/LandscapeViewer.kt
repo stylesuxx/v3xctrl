@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
@@ -16,7 +18,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.v3xctrl.viewer.R
 import com.v3xctrl.viewer.control.ControlState
 import com.v3xctrl.viewer.control.ViewerState
@@ -76,6 +80,30 @@ fun LandscapeViewer(
         if (!spectatorMode) {
             when {
                 isMotionMode -> {
+                    // Calibration overlay shown until first Zero press
+                    if (motionController?.needsZero == true) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.7f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = stringResource(R.string.motion_zero_overlay),
+                                color = Color.White,
+                                fontSize = 18.sp,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier
+                                    .padding(horizontal = 48.dp)
+                                    .background(
+                                        Color.DarkGray.copy(alpha = 0.8f),
+                                        RoundedCornerShape(12.dp)
+                                    )
+                                    .padding(24.dp)
+                            )
+                        }
+                    }
+
                     // Motion control buttons (bottom-left, stacked)
                     Column(
                         modifier = Modifier

@@ -78,6 +78,7 @@
     <string name="btn_start_recording">Start Rec</string>
     <string name="btn_stop_recording">Stop Rec</string>
     <string name="btn_zero">Zero</string>
+    <string name="motion_zero_overlay">Hold your phone in the desired neutral position, then press Zero to set it as the center point and start controlling.</string>
     <string name="btn_pause">Pause</string>
     <string name="btn_resume">Resume</string>
     <string name="controls_section">Controls</string>
