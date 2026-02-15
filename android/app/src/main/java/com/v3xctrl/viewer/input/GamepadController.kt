@@ -18,6 +18,9 @@ class GamepadController(
     private val throttleSign: Int = -1,
     private val reverseAxis: Int = MotionEvent.AXIS_Y,
     private val reverseSign: Int = 1,
+    private val steeringInvert: Boolean = false,
+    private val throttleInvert: Boolean = false,
+    private val reverseInvert: Boolean = false,
     private val deadZone: Float = 0.1f
 ) {
 
@@ -26,15 +29,19 @@ class GamepadController(
             event.action == MotionEvent.ACTION_MOVE &&
             (deviceId == null || event.deviceId == deviceId)
         ) {
-            val rawSteering = (event.getAxisValue(steeringAxis) * steeringSign)
+            val steeringMul = steeringSign * (if (steeringInvert) -1 else 1)
+            val throttleMul = throttleSign * (if (throttleInvert) -1 else 1)
+            val reverseMul = reverseSign * (if (reverseInvert) -1 else 1)
+
+            val rawSteering = (event.getAxisValue(steeringAxis) * steeringMul)
                 .coerceIn(-1f, 1f)
 
             val rawThrottle = if (throttleAxis == reverseAxis) {
-                (event.getAxisValue(throttleAxis) * throttleSign).coerceIn(-1f, 1f)
+                (event.getAxisValue(throttleAxis) * throttleMul).coerceIn(-1f, 1f)
             } else {
-                val forward = (event.getAxisValue(throttleAxis) * throttleSign)
+                val forward = (event.getAxisValue(throttleAxis) * throttleMul)
                     .coerceAtLeast(0f)
-                val backward = (event.getAxisValue(reverseAxis) * reverseSign)
+                val backward = (event.getAxisValue(reverseAxis) * reverseMul)
                     .coerceAtLeast(0f)
                 (forward - backward).coerceIn(-1f, 1f)
             }

@@ -41,7 +41,10 @@ data class ControlSettings(
     val gamepadThrottleAxis: Int = 1,
     val gamepadThrottleSign: Int = -1,
     val gamepadReverseAxis: Int = 1,
-    val gamepadReverseSign: Int = 1
+    val gamepadReverseSign: Int = 1,
+    val gamepadSteeringInvert: Boolean = false,
+    val gamepadThrottleInvert: Boolean = false,
+    val gamepadReverseInvert: Boolean = false
 )
 
 class SettingsDataStore(private val context: Context) {
@@ -66,6 +69,9 @@ class SettingsDataStore(private val context: Context) {
         private val GAMEPAD_THROTTLE_SIGN = intPreferencesKey("gamepad_throttle_sign")
         private val GAMEPAD_REVERSE_AXIS = intPreferencesKey("gamepad_reverse_axis")
         private val GAMEPAD_REVERSE_SIGN = intPreferencesKey("gamepad_reverse_sign")
+        private val GAMEPAD_STEERING_INVERT = booleanPreferencesKey("gamepad_steering_invert")
+        private val GAMEPAD_THROTTLE_INVERT = booleanPreferencesKey("gamepad_throttle_invert")
+        private val GAMEPAD_REVERSE_INVERT = booleanPreferencesKey("gamepad_reverse_invert")
     }
 
     val networkSettings: Flow<NetworkSettings> = context.dataStore.data.map { prefs ->
@@ -107,7 +113,10 @@ class SettingsDataStore(private val context: Context) {
             gamepadThrottleAxis = prefs[GAMEPAD_THROTTLE_AXIS] ?: defaults.gamepadThrottleAxis,
             gamepadThrottleSign = prefs[GAMEPAD_THROTTLE_SIGN] ?: defaults.gamepadThrottleSign,
             gamepadReverseAxis = prefs[GAMEPAD_REVERSE_AXIS] ?: defaults.gamepadReverseAxis,
-            gamepadReverseSign = prefs[GAMEPAD_REVERSE_SIGN] ?: defaults.gamepadReverseSign
+            gamepadReverseSign = prefs[GAMEPAD_REVERSE_SIGN] ?: defaults.gamepadReverseSign,
+            gamepadSteeringInvert = prefs[GAMEPAD_STEERING_INVERT] ?: defaults.gamepadSteeringInvert,
+            gamepadThrottleInvert = prefs[GAMEPAD_THROTTLE_INVERT] ?: defaults.gamepadThrottleInvert,
+            gamepadReverseInvert = prefs[GAMEPAD_REVERSE_INVERT] ?: defaults.gamepadReverseInvert
         )
     }
 
@@ -147,6 +156,9 @@ class SettingsDataStore(private val context: Context) {
             prefs[GAMEPAD_THROTTLE_SIGN] = settings.gamepadThrottleSign
             prefs[GAMEPAD_REVERSE_AXIS] = settings.gamepadReverseAxis
             prefs[GAMEPAD_REVERSE_SIGN] = settings.gamepadReverseSign
+            prefs[GAMEPAD_STEERING_INVERT] = settings.gamepadSteeringInvert
+            prefs[GAMEPAD_THROTTLE_INVERT] = settings.gamepadThrottleInvert
+            prefs[GAMEPAD_REVERSE_INVERT] = settings.gamepadReverseInvert
         }
     }
 }

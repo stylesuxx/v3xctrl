@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
@@ -239,7 +240,8 @@ fun ControlScreen(
 
                         // Live display state
                         val liveSteering = remember { mutableFloatStateOf(0f) }
-                        val liveThrottle = remember { mutableFloatStateOf(0f) }
+                        val liveForward = remember { mutableFloatStateOf(0f) }
+                        val liveReverse = remember { mutableFloatStateOf(0f) }
 
                         // Keep current settings in State for the listener
                         val curSettings = rememberUpdatedState(settings)
@@ -275,18 +277,23 @@ fun ControlScreen(
                                     } else {
                                         // Live display
                                         val s = curSettings.value
-                                        val sRaw = event.getAxisValue(s.gamepadSteeringAxis) * s.gamepadSteeringSign
-                                        val tRaw = if (s.gamepadThrottleAxis == s.gamepadReverseAxis) {
-                                            event.getAxisValue(s.gamepadThrottleAxis) * s.gamepadThrottleSign
+                                        val steeringMul = s.gamepadSteeringSign * (if (s.gamepadSteeringInvert) -1 else 1)
+                                        val throttleMul = s.gamepadThrottleSign * (if (s.gamepadThrottleInvert) -1 else 1)
+                                        val reverseMul = s.gamepadReverseSign * (if (s.gamepadReverseInvert) -1 else 1)
+
+                                        liveSteering.floatValue = (event.getAxisValue(s.gamepadSteeringAxis) * steeringMul)
+                                            .coerceIn(-1f, 1f)
+
+                                        if (s.gamepadThrottleAxis == s.gamepadReverseAxis) {
+                                            val combined = event.getAxisValue(s.gamepadThrottleAxis) * throttleMul
+                                            liveForward.floatValue = combined.coerceIn(0f, 1f)
+                                            liveReverse.floatValue = (-combined).coerceIn(0f, 1f)
                                         } else {
-                                            val forward = (event.getAxisValue(s.gamepadThrottleAxis) * s.gamepadThrottleSign)
-                                                .coerceAtLeast(0f)
-                                            val backward = (event.getAxisValue(s.gamepadReverseAxis) * s.gamepadReverseSign)
-                                                .coerceAtLeast(0f)
-                                            forward - backward
+                                            liveForward.floatValue = (event.getAxisValue(s.gamepadThrottleAxis) * throttleMul)
+                                                .coerceIn(0f, 1f)
+                                            liveReverse.floatValue = (event.getAxisValue(s.gamepadReverseAxis) * reverseMul)
+                                                .coerceIn(0f, 1f)
                                         }
-                                        liveSteering.floatValue = sRaw.coerceIn(-1f, 1f)
-                                        liveThrottle.floatValue = tRaw.coerceIn(-1f, 1f)
                                     }
                                     true
                                 } else {
@@ -424,15 +431,34 @@ fun ControlScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // Live axis indicators
+                        // Live axis indicators with invert checkboxes
                         AxisIndicator(
                             label = stringResource(R.string.control_gamepad_steering),
                             value = liveSteering.floatValue
                         )
+                        InvertRow(
+                            checked = settings.gamepadSteeringInvert,
+                            onCheckedChange = { onSettingsChange(settings.copy(gamepadSteeringInvert = it)) }
+                        )
 
                         AxisIndicator(
-                            label = stringResource(R.string.control_gamepad_throttle),
-                            value = liveThrottle.floatValue
+                            label = stringResource(R.string.control_gamepad_forward),
+                            value = liveForward.floatValue,
+                            centered = false
+                        )
+                        InvertRow(
+                            checked = settings.gamepadThrottleInvert,
+                            onCheckedChange = { onSettingsChange(settings.copy(gamepadThrottleInvert = it)) }
+                        )
+
+                        AxisIndicator(
+                            label = stringResource(R.string.control_gamepad_reverse),
+                            value = liveReverse.floatValue,
+                            centered = false
+                        )
+                        InvertRow(
+                            checked = settings.gamepadReverseInvert,
+                            onCheckedChange = { onSettingsChange(settings.copy(gamepadReverseInvert = it)) }
                         )
                     }
                 }
@@ -515,6 +541,7 @@ fun ControlScreen(
 private fun AxisIndicator(
     label: String,
     value: Float,
+    centered: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
@@ -541,7 +568,6 @@ private fun AxisIndicator(
         ) {
             val w = size.width
             val h = size.height
-            val centerX = w / 2f
 
             // Background track
             drawRoundRect(
@@ -549,38 +575,81 @@ private fun AxisIndicator(
                 cornerRadius = CornerRadius(4f, 4f)
             )
 
-            // Center line
-            drawLine(
-                color = centerColor,
-                start = Offset(centerX, 0f),
-                end = Offset(centerX, h),
-                strokeWidth = 1f
-            )
+            if (centered) {
+                val centerX = w / 2f
 
-            // Value bar from center
-            val valueX = ((value + 1f) / 2f) * w
-            if (value != 0f) {
-                drawRect(
-                    color = primaryColor.copy(alpha = 0.4f),
-                    topLeft = Offset(minOf(centerX, valueX), 2f),
-                    size = Size(abs(valueX - centerX), h - 4f)
+                // Center line
+                drawLine(
+                    color = centerColor,
+                    start = Offset(centerX, 0f),
+                    end = Offset(centerX, h),
+                    strokeWidth = 1f
+                )
+
+                // Value bar from center
+                val valueX = ((value + 1f) / 2f) * w
+                if (value != 0f) {
+                    drawRect(
+                        color = primaryColor.copy(alpha = 0.4f),
+                        topLeft = Offset(minOf(centerX, valueX), 2f),
+                        size = Size(abs(valueX - centerX), h - 4f)
+                    )
+                }
+
+                // Value marker
+                drawLine(
+                    color = primaryColor,
+                    start = Offset(valueX, 0f),
+                    end = Offset(valueX, h),
+                    strokeWidth = 3f
+                )
+            } else {
+                // Unipolar: fill from left
+                val valueX = value.coerceIn(0f, 1f) * w
+                if (value > 0f) {
+                    drawRect(
+                        color = primaryColor.copy(alpha = 0.4f),
+                        topLeft = Offset(0f, 2f),
+                        size = Size(valueX, h - 4f)
+                    )
+                }
+
+                // Value marker
+                drawLine(
+                    color = primaryColor,
+                    start = Offset(valueX, 0f),
+                    end = Offset(valueX, h),
+                    strokeWidth = 3f
                 )
             }
-
-            // Value marker
-            drawLine(
-                color = primaryColor,
-                start = Offset(valueX, 0f),
-                end = Offset(valueX, h),
-                strokeWidth = 3f
-            )
         }
 
         Text(
-            text = "%+.2f".format(value),
+            text = if (centered) "%+.2f".format(value) else "%.2f".format(value),
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.width(48.dp),
             textAlign = TextAlign.End
+        )
+    }
+}
+
+@Composable
+private fun InvertRow(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.padding(start = 72.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Checkbox(
+            checked = checked,
+            onCheckedChange = onCheckedChange
+        )
+        Text(
+            text = stringResource(R.string.control_invert),
+            style = MaterialTheme.typography.bodySmall
         )
     }
 }

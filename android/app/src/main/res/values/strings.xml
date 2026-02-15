@@ -56,6 +56,9 @@
     <string name="control_calibrate_reverse">Move the reverse axis through its full range. Hold in reverse, then press OK.</string>
     <string name="control_gamepad_steering">Steering</string>
     <string name="control_gamepad_throttle">Throttle</string>
+    <string name="control_gamepad_forward">Forward</string>
+    <string name="control_gamepad_reverse">Reverse</string>
+    <string name="control_invert">Invert</string>
 
     <!-- OSD screen -->
     <string name="osd_title">OSD</string>

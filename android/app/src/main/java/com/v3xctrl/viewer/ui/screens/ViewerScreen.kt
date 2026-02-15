@@ -112,7 +112,7 @@ fun ViewerScreen(
     }
 
     // Start/stop gamepad controller based on mode and orientation
-    DisposableEffect(isGamepadMode, isLandscape, controlSettings.gamepadDeviceName, controlSettings.gamepadSteeringAxis, controlSettings.gamepadSteeringSign, controlSettings.gamepadThrottleAxis, controlSettings.gamepadThrottleSign, controlSettings.gamepadReverseAxis, controlSettings.gamepadReverseSign) {
+    DisposableEffect(isGamepadMode, isLandscape, controlSettings.gamepadDeviceName, controlSettings.gamepadSteeringAxis, controlSettings.gamepadSteeringSign, controlSettings.gamepadThrottleAxis, controlSettings.gamepadThrottleSign, controlSettings.gamepadReverseAxis, controlSettings.gamepadReverseSign, controlSettings.gamepadSteeringInvert, controlSettings.gamepadThrottleInvert, controlSettings.gamepadReverseInvert) {
         val activity = context as? MainActivity
         if (isGamepadMode && isLandscape) {
             val selectedDeviceId = if (controlSettings.gamepadDeviceName.isNotEmpty()) {
@@ -133,7 +133,10 @@ fun ViewerScreen(
                 throttleAxis = controlSettings.gamepadThrottleAxis,
                 throttleSign = controlSettings.gamepadThrottleSign,
                 reverseAxis = controlSettings.gamepadReverseAxis,
-                reverseSign = controlSettings.gamepadReverseSign
+                reverseSign = controlSettings.gamepadReverseSign,
+                steeringInvert = controlSettings.gamepadSteeringInvert,
+                throttleInvert = controlSettings.gamepadThrottleInvert,
+                reverseInvert = controlSettings.gamepadReverseInvert
             )
             activity?.onGamepadMotionEvent = { controller.handleMotionEvent(it) }
         }
