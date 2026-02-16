@@ -46,7 +46,7 @@ sleep 5
 udevadm settle
 
 log "Forcing filesystem check on $PART..."
-e2fsck -fy "$PART"
+e2fsck -fy "$PART" || [ $? -le 2 ]
 
 log "Resizing filesystem on $PART..."
 resize2fs "$PART"

@@ -1,0 +1,81 @@
+name: Build Android APK
+
+on:
+  push:
+    paths:
+      - 'android/**'
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Git branch to build'
+        required: true
+        default: 'master'
+
+env:
+  GST_VERSION: "1.28.0"
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install Android NDK
+        run: echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;25.2.9519653"
+
+      - name: Cache GStreamer SDK
+        uses: actions/cache@v4
+        id: gst-cache
+        with:
+          path: ~/android-gst
+          key: gstreamer-android-${{ env.GST_VERSION }}
+
+      - name: Download GStreamer SDK
+        if: steps.gst-cache.outputs.cache-hit != 'true'
+        run: |
+          wget -q --tries=3 --waitretry=5 "https://gstreamer.freedesktop.org/data/pkg/android/${GST_VERSION}/gstreamer-1.0-android-universal-${GST_VERSION}.tar.xz"
+          mkdir -p ~/android-gst
+          tar xf "gstreamer-1.0-android-universal-${GST_VERSION}.tar.xz" -C ~/android-gst
+          rm "gstreamer-1.0-android-universal-${GST_VERSION}.tar.xz"
+
+          # The tarball may extract into a subdirectory — flatten if needed
+          if [ ! -d ~/android-gst/arm64 ]; then
+            subdir=$(ls -d ~/android-gst/*/ | head -1)
+            mv "$subdir"*/ ~/android-gst/ 2>/dev/null || true
+          fi
+
+      - name: Configure local.properties
+        working-directory: android
+        run: |
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          echo "gst.dir=$HOME/android-gst" >> local.properties
+
+      - name: Build Debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: V3XCTRL-Android-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+
+  call-cleanup:
+    name: Cleanup old workflow runs
+    needs: build-android
+    uses: ./.github/workflows/cleanup-old-runs.yml
+    with:
+      branch: ${{ github.event.inputs.branch }}
+      keep_run_id: ${{ github.run_id }}
+      workflow_name: ${{ github.workflow }}
+    secrets:
+      GH_PAT: ${{ secrets.GH_PAT }}
