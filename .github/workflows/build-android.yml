@@ -1,6 +1,9 @@
 name: Build Android APK
 
 on:
+  push:
+    paths:
+      - 'android/**'
   workflow_dispatch:
     inputs:
       branch:

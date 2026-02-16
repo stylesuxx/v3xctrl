@@ -2,6 +2,7 @@ package com.v3xctrl.viewer
 
 import android.view.MotionEvent
 import android.content.pm.ActivityInfo
+import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -68,6 +69,16 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Force dark mode at the configuration level before anything renders,
+        // so Compose and system UI both start in dark mode on all devices
+        val config = resources.configuration
+        val currentNightMode = config.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        if (currentNightMode != Configuration.UI_MODE_NIGHT_YES) {
+            config.uiMode = (config.uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or
+                Configuration.UI_MODE_NIGHT_YES
+            @Suppress("DEPRECATION")
+            resources.updateConfiguration(config, resources.displayMetrics)
+        }
         super.onCreate(savedInstanceState)
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
