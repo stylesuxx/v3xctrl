@@ -42,7 +42,7 @@ jobs:
       - name: Download GStreamer SDK
         if: steps.gst-cache.outputs.cache-hit != 'true'
         run: |
-          wget -q "https://gstreamer.freedesktop.org/data/pkg/android/${GST_VERSION}/gstreamer-1.0-android-universal-${GST_VERSION}.tar.xz"
+          wget -q --tries=3 --waitretry=5 "https://gstreamer.freedesktop.org/data/pkg/android/${GST_VERSION}/gstreamer-1.0-android-universal-${GST_VERSION}.tar.xz"
           mkdir -p ~/android-gst
           tar xf "gstreamer-1.0-android-universal-${GST_VERSION}.tar.xz" -C ~/android-gst
           rm "gstreamer-1.0-android-universal-${GST_VERSION}.tar.xz"
