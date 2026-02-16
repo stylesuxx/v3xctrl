@@ -13,3 +13,4 @@ __pycache__
 /web-server/configs
 /.pytest_cache
 *.toml
+!android/gradle/libs.versions.toml
