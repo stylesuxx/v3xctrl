@@ -2,9 +2,7 @@
   "video": {
     "autostart": false,
     "testSource": true,
-    "height": 720,
-    "width": 1280,
-    "framerate": 30,
+    "resolution": "1280x720@30",
     "bitrate": 1800000,
     "record": {
       "autostart": false,
