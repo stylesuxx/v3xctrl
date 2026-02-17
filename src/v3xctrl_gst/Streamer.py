@@ -536,8 +536,10 @@ class Streamer:
         self.pipeline.add(payloader)
 
         # Add probe to measure total pipeline latency (before UDP send)
+        # Use sink pad: rtph264pay uses gst_pad_push_list() on src,
+        # which is not caught by BUFFER probes.
         if self.timing_enabled:
-            payloader_pad = payloader.get_static_pad("src")
+            payloader_pad = payloader.get_static_pad("sink")
             payloader_pad.add_probe(Gst.PadProbeType.BUFFER, self._on_udp_buffer)
 
         udpsink = Gst.ElementFactory.make("udpsink", "udpsink")
@@ -742,12 +744,15 @@ class Streamer:
         pkg_min, pkg_avg, pkg_max = stats(self.timing_stats['package'])
 
         total_avg = cap_avg + enc_avg + pkg_avg
+        frame_count = len(self.timing_stats['capture'])
+        interval = time.monotonic() - self.timing_last_log
+        fps = frame_count / interval if interval > 0 else 0
 
         logging.debug(
             f"[TIMING] capture: {cap_avg:.1f}ms | "
             f"encode: {enc_avg:.1f}ms | "
-            f"package: {pkg_avg:.1f}ms | "
-            f"total: {total_avg:.1f}ms"
+            f"total: {total_avg:.1f}ms | "
+            f"fps: {fps:.1f} ({frame_count} frames)"
         )
 
         # Reset stats after logging
