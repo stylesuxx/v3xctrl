@@ -16,6 +16,7 @@ enum class LatencyStatus(val color: Color) {
 // Telemetry bit flags
 private const val SVC_VIDEO_BIT = 0x01
 private const val GST_RECORDING_BIT = 0x01
+private const val GST_UDP_OVERRUN_BIT = 0x02
 
 /**
  * Observable state for the viewer UI.
@@ -46,6 +47,9 @@ class ViewerState {
     var signalRsrq by mutableStateOf<Int?>(null)
     var signalBand by mutableStateOf<String?>(null)
     var signalCellId by mutableStateOf<Int?>(null)
+
+    // Frame drop status
+    var isUdpOverrun by mutableStateOf(false)
 
     var isControlTimedOut by mutableStateOf(false)
 
@@ -99,6 +103,7 @@ class ViewerState {
         // Parse gst (gstreamer) flags
         val gst = (values["gst"] as? Number)?.toInt() ?: 0
         isRecording = (gst and GST_RECORDING_BIT) != 0
+        isUdpOverrun = (gst and GST_UDP_OVERRUN_BIT) != 0
 
         // Parse battery telemetry
         val bat = values["bat"] as? Map<String, Any>

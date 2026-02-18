@@ -28,6 +28,7 @@ import com.v3xctrl.viewer.data.OsdSettings
 import com.v3xctrl.viewer.input.MotionController
 import com.v3xctrl.viewer.ui.components.TouchControls
 import com.v3xctrl.viewer.ui.widgets.BatteryWidget
+import com.v3xctrl.viewer.ui.widgets.FrameDropIndicator
 import com.v3xctrl.viewer.ui.widgets.PipelineTimer
 import com.v3xctrl.viewer.ui.widgets.RecordingIndicator
 import com.v3xctrl.viewer.ui.widgets.SignalStrengthWidget
@@ -79,61 +80,73 @@ fun LandscapeViewer(
             }
         }
 
-        // Signal strength widget (top-left)
-        if (osdSettings.showSignal && !viewerState.isControlTimedOut) {
-            SignalStrengthWidget(
-                rsrp = viewerState.signalRsrp,
-                rsrq = viewerState.signalRsrq,
-                band = viewerState.signalBand,
-                cellId = viewerState.signalCellId,
-                showIcon = osdSettings.showSignalIcon,
-                showBand = osdSettings.showSignalBand,
-                showCellId = osdSettings.showSignalCellId,
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .offset(x = 12.dp, y = 12.dp)
-            )
-        }
+        // Telemetry widgets (hidden when control signal is lost)
+        if (!viewerState.isControlTimedOut) {
+            // Frame drop indicator (top-center)
+            if (osdSettings.showFrameDrops && viewerState.isUdpOverrun) {
+                FrameDropIndicator(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .offset(y = 12.dp)
+                )
+            }
 
-        // Battery widget (top-right)
-        if (osdSettings.showBattery && !viewerState.isControlTimedOut) {
-            BatteryWidget(
-                voltageMillivolts = viewerState.batteryVoltage,
-                avgVoltageMillivolts = viewerState.batteryAvgVoltage,
-                percent = viewerState.batteryPercent,
-                currentMilliamps = viewerState.batteryCurrent,
-                warning = viewerState.batteryWarning,
-                showIcon = osdSettings.showBatteryIcon,
-                showVoltage = osdSettings.showBatteryVoltage,
-                showCellVoltage = osdSettings.showBatteryCellVoltage,
-                showPercent = osdSettings.showBatteryPercent,
-                showCurrent = osdSettings.showBatteryCurrent,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .offset(x = (-12).dp, y = 12.dp)
-            )
-        }
+            // Signal strength widget (top-left)
+            if (osdSettings.showSignal) {
+                SignalStrengthWidget(
+                    rsrp = viewerState.signalRsrp,
+                    rsrq = viewerState.signalRsrq,
+                    band = viewerState.signalBand,
+                    cellId = viewerState.signalCellId,
+                    showIcon = osdSettings.showSignalIcon,
+                    showBand = osdSettings.showSignalBand,
+                    showCellId = osdSettings.showSignalCellId,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .offset(x = 12.dp, y = 12.dp)
+                )
+            }
 
-        // Pipeline timer (bottom-right)
-        if (osdSettings.showPipelineTimer) {
-            PipelineTimer(
-                startTimeMs = pipelineStartTime,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .offset(x = (-12).dp, y = (-12).dp)
-            )
-        }
+            // Battery widget (top-right)
+            if (osdSettings.showBattery) {
+                BatteryWidget(
+                    voltageMillivolts = viewerState.batteryVoltage,
+                    avgVoltageMillivolts = viewerState.batteryAvgVoltage,
+                    percent = viewerState.batteryPercent,
+                    currentMilliamps = viewerState.batteryCurrent,
+                    warning = viewerState.batteryWarning,
+                    showIcon = osdSettings.showBatteryIcon,
+                    showVoltage = osdSettings.showBatteryVoltage,
+                    showCellVoltage = osdSettings.showBatteryCellVoltage,
+                    showPercent = osdSettings.showBatteryPercent,
+                    showCurrent = osdSettings.showBatteryCurrent,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .offset(x = (-12).dp, y = 12.dp)
+                )
+            }
 
-        // Recording indicator (bottom-right, offset left if timer is showing)
-        if (viewerState.isRecording) {
-            RecordingIndicator(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .offset(
-                        x = if (osdSettings.showPipelineTimer) (-140).dp else (-12).dp,
-                        y = (-12).dp
-                    )
-            )
+            // Pipeline timer (bottom-right)
+            if (osdSettings.showPipelineTimer) {
+                PipelineTimer(
+                    startTimeMs = pipelineStartTime,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .offset(x = (-12).dp, y = (-12).dp)
+                )
+            }
+
+            // Recording indicator (bottom-right, offset left if timer is showing)
+            if (viewerState.isRecording) {
+                RecordingIndicator(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .offset(
+                            x = if (osdSettings.showPipelineTimer) (-140).dp else (-12).dp,
+                            y = (-12).dp
+                        )
+                )
+            }
         }
 
         // Control overlay (hidden in spectator mode)
