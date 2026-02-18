@@ -34,6 +34,13 @@ class ViewerState {
     var latencyMs by mutableStateOf<Long?>(null)
     var latencyStatus by mutableStateOf(LatencyStatus.UNKNOWN)
 
+    // Battery telemetry
+    var batteryVoltage by mutableStateOf<Int?>(null)
+    var batteryAvgVoltage by mutableStateOf<Int?>(null)
+    var batteryPercent by mutableStateOf<Int?>(null)
+    var batteryWarning by mutableStateOf(false)
+    var batteryCurrent by mutableStateOf<Int?>(null)
+
     var isControlTimedOut by mutableStateOf(false)
 
     fun onControlMessageReceived() {
@@ -75,8 +82,9 @@ class ViewerState {
 
     /**
      * Update state from telemetry values.
-     * Parses byte-packed flags from svc and gst fields.
+     * Parses byte-packed flags from svc and gst fields, and battery data from bat map.
      */
+    @Suppress("UNCHECKED_CAST")
     fun updateFromTelemetry(values: Map<String, Any>) {
         // Parse svc (service) flags
         val svc = (values["svc"] as? Number)?.toInt() ?: 0
@@ -85,5 +93,15 @@ class ViewerState {
         // Parse gst (gstreamer) flags
         val gst = (values["gst"] as? Number)?.toInt() ?: 0
         isRecording = (gst and GST_RECORDING_BIT) != 0
+
+        // Parse battery telemetry
+        val bat = values["bat"] as? Map<String, Any>
+        if (bat != null) {
+            batteryVoltage = (bat["vol"] as? Number)?.toInt()
+            batteryAvgVoltage = (bat["avg"] as? Number)?.toInt()
+            batteryPercent = (bat["pct"] as? Number)?.toInt()
+            batteryWarning = (bat["wrn"] as? Number)?.toInt() == 1
+            batteryCurrent = (bat["cur"] as? Number)?.toInt()
+        }
     }
 }

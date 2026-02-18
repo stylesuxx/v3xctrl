@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -39,7 +40,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.v3xctrl.viewer.R
 import com.v3xctrl.viewer.control.UDPReceiver
 import com.v3xctrl.viewer.control.ViewerState
@@ -121,6 +125,25 @@ fun PortraitViewer(
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .offset(x = 12.dp, y = 12.dp)
+                )
+            }
+
+            // Total voltage (top-right corner)
+            viewerState.batteryVoltage?.let { mv ->
+                Text(
+                    text = "%.2fV".format(mv / 1000.0),
+                    color = if (viewerState.batteryWarning) Color.Red else Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    fontFamily = FontFamily.Monospace,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .offset(x = (-12).dp, y = 12.dp)
+                        .background(
+                            Color.Black.copy(alpha = 0.6f),
+                            RoundedCornerShape(5.dp)
+                        )
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
                 )
             }
 

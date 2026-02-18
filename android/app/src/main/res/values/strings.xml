@@ -65,6 +65,13 @@
     <string name="osd_widgets_section">Widgets</string>
     <string name="osd_pipeline_timer">Pipeline Timer</string>
     <string name="osd_pipeline_timer_desc">Show elapsed time since pipeline started (HH:MM:SS.mmm) in landscape mode</string>
+    <string name="osd_battery">Battery</string>
+    <string name="osd_battery_desc">Show battery widget in landscape mode</string>
+    <string name="osd_battery_icon">Icon</string>
+    <string name="osd_battery_voltage">Total Voltage</string>
+    <string name="osd_battery_cell_voltage">Cell Voltage</string>
+    <string name="osd_battery_percent">Percentage</string>
+    <string name="osd_battery_current">Current</string>
 
     <!-- Viewer screen -->
     <string name="viewer_title">Viewer</string>
