@@ -3,7 +3,7 @@ import logging
 import socket
 import time
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type
 
 from v3xctrl_control import Server
 from v3xctrl_control.message import Heartbeat
@@ -11,8 +11,22 @@ from v3xctrl_control.State import State
 from v3xctrl_helper.exceptions import PeerRegistrationError, PeerRegistrationAborted
 from v3xctrl_udp_relay.Peer import Peer
 
-from v3xctrl_ui.network.video.ReceiverPyAV import ReceiverPyAV as VideoReceiver
+from v3xctrl_ui.network.video.Receiver import Receiver
+from v3xctrl_ui.network.video.ReceiverPyAV import ReceiverPyAV
 from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.utils.gstreamer import is_gstreamer_available
+
+# GStreamer receiver is loaded lazily if available
+_ReceiverGst: Optional[Type[Receiver]] = None
+
+
+def _get_gstreamer_receiver() -> Optional[Type[Receiver]]:
+    """Get the GStreamer receiver class, loading it lazily."""
+    global _ReceiverGst
+    if _ReceiverGst is None and is_gstreamer_available():
+        from v3xctrl_ui.network.video.ReceiverGst import ReceiverGst
+        _ReceiverGst = ReceiverGst
+    return _ReceiverGst
 
 
 @dataclass
@@ -27,7 +41,7 @@ class RelaySetupResult:
 class VideoReceiverSetupResult:
     """Result of video receiver setup."""
     success: bool
-    video_receiver: Optional[VideoReceiver] = None
+    video_receiver: Optional[Receiver] = None
     error: Optional[Exception] = None
 
 
@@ -260,13 +274,34 @@ class NetworkSetup:
         Returns:
             VideoReceiverSetupResult with receiver instance or error
         """
+        video_settings = self.settings.get("video", {})
+        render_ratio = video_settings.get("render_ratio", 0)
+        receiver_type = video_settings.get("receiver", "pyav")
+
         try:
-            render_ratio = self.settings.get("video", {}).get("render_ratio", 0)
-            video_receiver = VideoReceiver(
-                self.video_port,
-                keep_alive_callback,
-                render_ratio=render_ratio
-            )
+            match receiver_type:
+                case "gst":
+                    gst_receiver = _get_gstreamer_receiver()
+                    if not gst_receiver:
+                        raise RuntimeError("GStreamer receiver requested but not available")
+                    video_receiver: Receiver = gst_receiver(
+                        self.video_port,
+                        keep_alive_callback,
+                        render_ratio=render_ratio
+                    )
+                case _:
+                    video_receiver = ReceiverPyAV(
+                        self.video_port,
+                        keep_alive_callback,
+                        render_ratio=render_ratio
+                    )
+
+            logging.info(f"Using {receiver_type} video receiver")
+
+            # Enable timing when DEBUG level is set
+            if logging.getLogger().isEnabledFor(logging.DEBUG):
+                video_receiver.enable_timing(True)
+
             video_receiver.start()
 
             return VideoReceiverSetupResult(

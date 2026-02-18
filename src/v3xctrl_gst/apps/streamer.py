@@ -20,6 +20,7 @@ def main() -> None:
     parser.add_argument('--height', type=int, default=720, help='Video height (default: 720)')
     parser.add_argument('--framerate', type=int, default=30, help='Framerate (default: 30)')
     parser.add_argument('--bitrate', type=int, default=1800000, help='Bitrate (default: 1800000)')
+    parser.add_argument('--h264-profile', type=str, default='high', help='H.264 profile (default: high)')
     parser.add_argument('--buffertime', type=int, default=150000000, help='Buffer time in ns (default: 150000000)')
     parser.add_argument('--sizebuffers', type=int, default=5, help='Size of buffers (default: 5)')
     parser.add_argument('--recording-dir', type=str, default='', help='Directory to save recording')
@@ -36,7 +37,10 @@ def main() -> None:
     parser.add_argument('--analogue-gain', type=int, default=1, help='Analogue gain(default: 1)')
     parser.add_argument('--exposure-time-mode', type=int, default=0, help='Exposure time mode (default: 0 - auto)')
     parser.add_argument('--exposure-time', type=int, default=32000, help='Exposure time in us (default: 32000000)')
-    parser.add_argument('--autostart-recording', action='store_true', default=False, help='Automatically start recording (requires recording-dir to be set)')
+    parser.add_argument(
+        '--autostart-recording', action='store_true', default=False,
+        help='Automatically start recording (requires recording-dir to be set)'
+    )
     parser.add_argument('--sensor-mode', type=str, default="0x0", help='Path to src file (dafault: 0x0; automatic)')
     parser.add_argument('--brightness', type=float, default=0.0, help='Brightness (default: 0)')
     parser.add_argument('--contrast', type=float, default=1.0, help='Contrast (default: 1.0)')
@@ -66,6 +70,7 @@ def main() -> None:
         'height': args.height,
         'framerate': args.framerate,
         'bitrate': args.bitrate,
+        'h264_profile': args.h264_profile,
         'buffertime': args.buffertime,
         'sizebuffers': args.sizebuffers,
         'recording_dir': args.recording_dir,
@@ -89,6 +94,7 @@ def main() -> None:
         'contrast': args.contrast,
         'saturation': args.saturation,
         'sharpness': args.sharpness,
+        'timing_enabled': level == logging.DEBUG,
     }
 
     streamer: Streamer = Streamer(args.host, args.port, args.bind_port, settings)

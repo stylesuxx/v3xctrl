@@ -36,6 +36,8 @@ class Telemetry(threading.Thread):
         battery_max_voltage: int = 4200,
         battery_warn_voltage: int = 3700,
         battery_i2c_address: int = 0x40,
+        battery_shunt_mohms: int = 100,
+        battery_max_current: float = 0.8,
         interval: float = 1.0
     ) -> None:
         super().__init__(daemon=True)
@@ -66,7 +68,9 @@ class Telemetry(threading.Thread):
                 battery_min_voltage,
                 battery_max_voltage,
                 battery_warn_voltage,
-                battery_i2c_address
+                battery_i2c_address,
+                r_shunt_mohms=battery_shunt_mohms,
+                max_expected_current_A=battery_max_current
             )
         )
         self._services = self._init_component("service", ServiceTelemetry)
@@ -181,6 +185,7 @@ class Telemetry(threading.Thread):
                 self.payload.bat.avg = state.average_voltage
                 self.payload.bat.pct = state.percentage
                 self.payload.bat.wrn = state.warning
+                self.payload.bat.cur = state.current
 
     def _update_services(self) -> None:
         if self._services:

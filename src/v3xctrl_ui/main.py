@@ -55,6 +55,11 @@ logging.basicConfig(
     handlers=handlers
 )
 
+# Check GStreamer availability and inform user
+from v3xctrl_ui.utils.gstreamer import is_gstreamer_available
+if is_gstreamer_available():
+    print("GStreamer receiver available. Set video.receiver = \"gst\" in settings to use it.")
+
 mem_tracker = None
 if args.mem_profile:
     mem_tracker = MemoryTracker(interval=10, top=5)

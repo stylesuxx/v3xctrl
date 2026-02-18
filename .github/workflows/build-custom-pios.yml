@@ -51,30 +51,9 @@ jobs:
         path: image/raspios-arm64-lite.img.xz
         key: raspios-arm64-lite.img.xz
 
-    - name: Download .deb files from latest release
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        REPO: ${{ github.repository }}
-      run: |
-        mkdir -p debs
-        for FILE in v3xctrl-python.deb v3xctrl.deb; do
-          url=$(curl -s -H "Authorization: token $GH_TOKEN" \
-              https://api.github.com/repos/${REPO}/releases/latest \
-              | jq -r ".assets[] | select(.name == \"${FILE}\") | .url")
-
-          if [ -z "$url" ]; then
-            echo "Error: $FILE not found in latest release"
-            exit 1
-          fi
-
-          curl -L -H "Authorization: token $GH_TOKEN" \
-               -H "Accept: application/octet-stream" "$url" \
-               -o "debs/$FILE"
-        done
-
     - name: Customize PiOS image
       run: |
-        sudo ./build/customize-image.sh mnt image/raspios-arm64-lite.img.xz debs image/v3xctrl-raspios.img.xz
+        sudo ./build/customize-image.sh mnt image/raspios-arm64-lite.img.xz "" image/v3xctrl-raspios.img.xz
 
     - name: Upload final image
       uses: actions/upload-artifact@v4

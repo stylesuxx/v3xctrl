@@ -34,7 +34,7 @@ jobs:
           echo "Keeping current run ID: ${{ inputs.keep_run_id }}"
 
           WORKFLOW_ID=$(gh api -X GET "/repos/${{ github.repository }}/actions/workflows" \
-            --jq ".workflows[] | select(.name==\"${{ inputs.workflow_name }}\") | .id")
+            --jq "first(.workflows[] | select(.name==\"${{ inputs.workflow_name }}\")) | .id")
 
           gh api -X GET "/repos/${{ github.repository }}/actions/workflows/$WORKFLOW_ID/runs?branch=${{ inputs.branch }}&per_page=100" \
             > runs.json

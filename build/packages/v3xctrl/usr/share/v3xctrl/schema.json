@@ -282,26 +282,23 @@
           "default": true,
           "description": "Use test image instead of camera - great for debugging, disable once you made sure video transmission is working"
         },
-        "width": {
+        "resolution": {
           "propertyOrder": 30,
-          "title": "Width",
-          "description": "This setting must also be adjusted in the viewer to match",
-          "type": "integer",
-          "default": 1280
-        },
-        "height": {
-          "propertyOrder": 40,
-          "title": "Height",
-          "description": "This setting must also be adjusted in the viewer to match",
-          "type": "integer",
-          "default": 720
-        },
-        "framerate": {
-          "propertyOrder": 50,
-          "title": "FPS",
-          "description": "This setting must also be adjusted in the viewer to match",
-          "type": "integer",
-          "default": 30
+          "title": "Resolution",
+          "type": "string",
+          "required": true,
+          "enum": [
+            "1280x720@30",
+            "1280x720@60"
+          ],
+          "options": {
+            "enum_titles": [
+              "720p @ 30 FPS",
+              "720p @ 60 FPS"
+            ]
+          },
+          "default": "1280x720@30",
+          "description": "Video resolution and frame rate. Higher framerates might require active cooling and won't support HDR and forcing wide FOV. Also your camera has to support those higher framerates."
         },
         "bitrate": {
           "propertyOrder": 60,
@@ -370,6 +367,28 @@
           },
           "default": 1800000,
           "description": "Stay below values your modem supports (based on category). If latency increases, reduce this value. The default is very conservative, you can most likely increase this value."
+        },
+        "h264Profile": {
+          "propertyOrder": 65,
+          "title": "H.264 Profile",
+          "type": "string",
+          "required": true,
+          "enum": [
+            "constrained-baseline",
+            "baseline",
+            "main",
+            "high"
+          ],
+          "options": {
+            "enum_titles": [
+              "Constrained Baseline (Lower latency)",
+              "Baseline",
+              "Main",
+              "High (Better quality)"
+            ]
+          },
+          "default": "high",
+          "description": "H.264 encoding profile. Constrained Baseline has lower encoding latency, High has better compression efficiency."
         },
         "record": {
           "propertyOrder": 70,
@@ -881,6 +900,22 @@
                   "required": true,
                   "default": 4200,
                   "description": "Maximum voltage per cell in millivolts (used to calculate battery percentage)"
+                },
+                "shuntResistance": {
+                  "title": "Shunt Resistance (mΩ)",
+                  "propertyOrder": 50,
+                  "type": "integer",
+                  "required": true,
+                  "default": 100,
+                  "description": "Shunt resistor value in milliohms for current measurement"
+                },
+                "maxExpectedCurrent": {
+                  "title": "Max Expected Current (A)",
+                  "propertyOrder": 60,
+                  "type": "number",
+                  "required": true,
+                  "default": 0.8,
+                  "description": "Maximum expected current in Amperes (affects measurement resolution)"
                 }
               }
             }

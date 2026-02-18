@@ -19,6 +19,7 @@ from v3xctrl_ui.osd.widgets.WidgetFactory import (
     create_signal_widgets,
     create_debug_widgets,
     create_rec_widget,
+    create_clock_widget,
 )
 from v3xctrl_ui.osd.widgets.WidgetGroupRenderer import render_widget_group
 from v3xctrl_ui.osd.widgets.WidgetGroup import WidgetGroup
@@ -54,12 +55,14 @@ class OSD:
         self.widgets_battery: Dict[str, Widget] = {}
         self.widgets_rec: Dict[str, Widget] = {}
         self.widgets_steering: Dict[str, Widget] = {}
+        self.widgets_clock: Dict[str, Widget] = {}
 
         self._init_widgets_debug()
         self._init_widgets_signal()
         self._init_widgets_battery()
         self._init_widgets_rec()
         self._init_widgets_steering()
+        self._init_widgets_clock()
 
         self.reset()
 
@@ -93,6 +96,12 @@ class OSD:
                 name="rec",
                 widgets=self.widgets_rec,
                 get_value=self._get_rec_value,
+                use_composition=False
+            ),
+            WidgetGroup.create(
+                name="clock",
+                widgets=self.widgets_clock,
+                get_value=self._get_clock_value,
                 use_composition=False
             ),
         ]
@@ -198,6 +207,9 @@ class OSD:
     def _init_widgets_rec(self) -> None:
         self.widgets_rec = create_rec_widget()
 
+    def _init_widgets_clock(self) -> None:
+        self.widgets_clock = create_clock_widget()
+
     def _latency_update(self, message: Latency) -> None:
         """
         NOTE: We rely on the streamer and viewer to have the same timezone set
@@ -213,11 +225,12 @@ class OSD:
 
         now = time.time()
         timestamp = message.timestamp
-        diff_ms = round((now - timestamp) * 1000)
+        # RTT/2 for one-way network latency estimate
+        diff_ms = round((now - timestamp) * 1000 / 2)
 
-        if diff_ms <= 80:
+        if diff_ms <= 40:
             self.debug_latency = "green"
-        elif diff_ms <= 150:
+        elif diff_ms <= 75:
             self.debug_latency = "yellow"
         else:
             self.debug_latency = "red"
@@ -240,6 +253,7 @@ class OSD:
             voltage=data.battery_voltage,
             average_voltage=data.battery_average_voltage,
             percent=data.battery_percent,
+            current=data.battery_current,
             warning=data.battery_warning
         )
 
@@ -248,8 +262,9 @@ class OSD:
         self.telemetry_context.update_videocore(values.get("vc", 0))
 
         color = RED if data.battery_warning else WHITE
-        for widget_name in ["battery_voltage", "battery_average_voltage", "battery_percent"]:
-            self.widgets_battery[widget_name].set_text_color(color)
+        for widget_name in ["battery_voltage", "battery_average_voltage", "battery_percent", "battery_current"]:
+            if widget_name in self.widgets_battery:
+                self.widgets_battery[widget_name].set_text_color(color)
 
         logging.debug(f"Received telemetry message: {message.get_values()}")
 
@@ -263,6 +278,7 @@ class OSD:
             "battery_voltage": battery.voltage,
             "battery_average_voltage": battery.average_voltage,
             "battery_percent": battery.percent,
+            "battery_current": battery.current,
         }
 
         return mapping.get(name)
@@ -283,3 +299,7 @@ class OSD:
     def _get_rec_value(self, name: str):
         gst = self.telemetry_context.get_gst()
         return gst.recording
+
+    def _get_clock_value(self, name: str):
+        # ClockWidget gets its own time internally
+        return None

@@ -36,6 +36,9 @@ if [ -e "$SUBDEV_0" ]; then
   fi
 fi
 
+# Parse resolution string (e.g. "1280x720@30" -> width=1280, height=720, framerate=30)
+IFS='x@' read -r video_width video_height video_framerate <<< "$video_resolution"
+
 ARGS=(
   "$network_server_direct_host"
   "$network_server_ports_video"
@@ -44,6 +47,7 @@ ARGS=(
   --height "$video_height"
   --framerate "$video_framerate"
   --bitrate "$video_bitrate"
+  --h264-profile "$video_h264Profile"
   --i-frame-period "$video_iFrame_period"
   --qp-minimum "$video_qp_min"
   --qp-maximum "$video_qp_max"

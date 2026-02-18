@@ -68,6 +68,8 @@ class InputTab(Tab):
         self.input_layout = VerticalLayout()
         self.input_layout.add(self.calibration_widget)
 
+        self.apply_settings()
+
     def draw(self, surface: Surface) -> None:
         y = self._draw_keyboard_section(surface, 0)
         y = self._draw_input_section(surface, y)
@@ -79,6 +81,13 @@ class InputTab(Tab):
             },
             "calibrations": self.gamepad_manager.get_calibrations()
         }
+
+    def apply_settings(self) -> None:
+        keyboard_controls = self.settings.get("controls", {}).get("keyboard", {})
+
+        for widget in self.key_widgets:
+            if widget.control_name in keyboard_controls:
+                widget.key_code = keyboard_controls[widget.control_name]
 
     def _on_active_toggle(self, active: bool) -> None:
         self.on_active_toggle(active)

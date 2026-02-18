@@ -10,6 +10,7 @@ from v3xctrl_ui.osd.widgets import (
     Widget,
     BatteryIconWidget,
     Alignment,
+    ClockWidget,
     FpsWidget,
     HorizontalIndicatorWidget,
     RecWidget,
@@ -49,10 +50,12 @@ def create_battery_widgets() -> Dict[str, Widget]:
     battery_voltage_widget = TextWidget(position, 70)
     battery_average_voltage_widget = TextWidget(position, 70)
     battery_percent_widget = TextWidget(position, 70)
+    battery_current_widget = TextWidget(position, 70)
 
     battery_voltage_widget.set_alignment(Alignment.RIGHT)
     battery_average_voltage_widget.set_alignment(Alignment.RIGHT)
     battery_percent_widget.set_alignment(Alignment.RIGHT)
+    battery_current_widget.set_alignment(Alignment.RIGHT)
 
     battery_icon_widget = BatteryIconWidget(position, 70)
 
@@ -60,7 +63,8 @@ def create_battery_widgets() -> Dict[str, Widget]:
         "battery_icon": battery_icon_widget,
         "battery_voltage": battery_voltage_widget,
         "battery_average_voltage": battery_average_voltage_widget,
-        "battery_percent": battery_percent_widget
+        "battery_percent": battery_percent_widget,
+        "battery_current": battery_current_widget
     }
 
 
@@ -103,4 +107,13 @@ def create_rec_widget() -> Dict[str, Widget]:
 
     return {
         "rec": rec_widget
+    }
+
+
+def create_clock_widget() -> Dict[str, Widget]:
+    position = (0, 0)
+    clock_widget = ClockWidget(position)
+
+    return {
+        "clock": clock_widget
     }

@@ -97,9 +97,10 @@ class CameraSourceBuilder(SourceBuilder):
         if not queue_camera:
             raise RuntimeError("Failed to create camera queue")
 
-        queue_camera.set_property("max-size-buffers", 0)
+        queue_camera.set_property("max-size-buffers", 1)
         queue_camera.set_property("max-size-time", 0)
         queue_camera.set_property("max-size-bytes", 0)
+        queue_camera.set_property("leaky", 2)  # downstream
         pipeline.add(queue_camera)
 
         # Create raw stream elements
@@ -115,9 +116,10 @@ class CameraSourceBuilder(SourceBuilder):
         raw_caps = Gst.Caps.from_string(raw_caps_str)
         raw_caps_filter.set_property("caps", raw_caps)
 
-        queue_raw.set_property("max-size-buffers", 0)
+        queue_raw.set_property("max-size-buffers", 1)
         queue_raw.set_property("max-size-time", 0)
         queue_raw.set_property("max-size-bytes", 0)
+        queue_raw.set_property("leaky", 2)  # downstream
 
         fakesink_raw.set_property("sync", False)
         fakesink_raw.set_property("async", False)

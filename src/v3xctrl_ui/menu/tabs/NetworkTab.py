@@ -29,10 +29,6 @@ class NetworkTab(Tab):
     ) -> None:
         super().__init__(settings, width, height, padding, y_offset)
 
-        self.ports = self.settings.get("ports", {})
-        self.relay = self.settings.get("relay", {})
-        self.udp_packet_ttl = self.settings.get("udp_packet_ttl", 100)
-
         # Port widgets
         self.video_input = NumberInput(
             t("Video"), label_width=90, input_width=75, min_val=1, max_val=65535,
@@ -44,8 +40,6 @@ class NetworkTab(Tab):
             font=LABEL_FONT, mono_font=MONO_FONT,
             on_change=lambda value: self._on_port_change("control", value)
         )
-        self.video_input.value = str(self.ports.get("video", ""))
-        self.control_input.value = str(self.ports.get("control", ""))
 
         # Relay server widgets
         self.relay_server_input = TextInput(
@@ -60,24 +54,21 @@ class NetworkTab(Tab):
         )
         self.relay_enabled_checkbox = Checkbox(
             label=t("Use UDP Relay"), font=LABEL_FONT,
-            checked=self.relay.get("enabled", False),
+            checked=False,
             on_change=self._on_relay_enable_change
         )
         self.relay_spectator_checkbox = Checkbox(
             label=t("Spectator Mode"), font=LABEL_FONT,
-            checked=self.relay.get("spectator_mode", False),
+            checked=False,
             on_change=self._on_relay_spectator_change
         )
-        self.relay_server_input.value = self.relay.get("server", "")
-        self.relay_id_input.value = self.relay.get("id", "")
 
-        # Miscellanious widgets
+        # Miscellaneous widgets
         self.udp_packet_ttl_input = NumberInput(
             t("UDP packet TTL"), label_width=180, input_width=75, min_val=1, max_val=5000,
             font=LABEL_FONT, mono_font=MONO_FONT,
             on_change=lambda value: self._on_udp_packet_ttl_change(value)
         )
-        self.udp_packet_ttl_input.value = str(self.udp_packet_ttl)
 
         self.port_widgets: List[BaseInput] = [
             self.video_input,
@@ -111,6 +102,8 @@ class NetworkTab(Tab):
         for element in self.misc_widgets:
             self.misc_layout.add(element)
 
+        self.apply_settings()
+
     def draw(self, surface: Surface) -> None:
         y = self._draw_port_section(surface, 0)
         y_col1 = self._draw_relay_section(surface, y)
@@ -123,6 +116,24 @@ class NetworkTab(Tab):
             "ports": self.ports,
             "relay": self.relay,
         }
+
+    def apply_settings(self) -> None:
+        self.ports = self.settings.get("ports", {})
+        self.relay = self.settings.get("relay", {})
+        self.udp_packet_ttl = self.settings.get("udp_packet_ttl", 100)
+
+        # Port inputs
+        self.video_input.value = str(self.ports.get("video", ""))
+        self.control_input.value = str(self.ports.get("control", ""))
+
+        # Relay inputs
+        self.relay_server_input.value = self.relay.get("server", "")
+        self.relay_id_input.value = self.relay.get("id", "")
+        self.relay_enabled_checkbox.checked = self.relay.get("enabled", False)
+        self.relay_spectator_checkbox.checked = self.relay.get("spectator_mode", False)
+
+        # Misc inputs
+        self.udp_packet_ttl_input.value = str(self.udp_packet_ttl)
 
     def _on_port_change(self, name: str, value: str) -> None:
         if is_int(value):

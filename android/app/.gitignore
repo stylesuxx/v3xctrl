@@ -1,0 +1,21 @@
+/build
+
+# CMake build outputs
+/.cxx/
+
+# NDK build outputs (from app level)
+/libs/
+/obj/
+/gst-android-build/
+
+# NDK build outputs (from jni level)
+src/main/jni/libs/
+src/main/jni/obj/
+src/main/jni/gst-android-build/
+src/main/jni/src/
+
+# Pre-built native libraries (built from jni source)
+src/main/jniLibs/
+
+# Old CMake setup (not used)
+src/main/cpp/

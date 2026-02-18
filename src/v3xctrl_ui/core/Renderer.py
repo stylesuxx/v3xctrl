@@ -51,6 +51,7 @@ class Renderer:
         self.center_y = screen_size[1] // 2
 
         frame = self._get_video_frame(network_controller)
+
         if frame is not None:
             self._render_video_frame(state.screen, frame)
         else:

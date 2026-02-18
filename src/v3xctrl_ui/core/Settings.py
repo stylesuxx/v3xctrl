@@ -39,6 +39,7 @@ class Settings:
             "height": 720,
             "fullscreen": False,
             "render_ratio": 0,
+            "receiver": "pyav",
         },
         "udp_packet_ttl": 100,
         "debug": True,
@@ -115,10 +116,18 @@ class Settings:
             "battery_percent": {
                 "display": True
             },
+            "battery_current": {
+                "display": False
+            },
             "rec": {
                 "display": True,
                 "align": "bottom-right",
                 "offset": [10, 10]
+            },
+            "clock": {
+                "display": False,
+                "align": "bottom-right",
+                "offset": [0, 0]
             },
         },
         "settings": {

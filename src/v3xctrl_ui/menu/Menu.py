@@ -204,7 +204,7 @@ class Menu:
 
         # Refresh all tabs to reflect current settings (e.g., after F11 fullscreen toggle)
         for tab in self.tabs:
-            tab.view.refresh_from_settings()
+            tab.view.apply_settings()
 
     def hide(self) -> None:
         """Hide the menu and reset to initial state."""
@@ -366,6 +366,8 @@ class Menu:
             self.settings.save()
 
     def _exit_button_callback(self) -> None:
+        self.settings.load()
+
         self.active_tab = self.tabs[0].name
         self.callback()
 
