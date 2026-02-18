@@ -72,6 +72,11 @@
     <string name="osd_battery_cell_voltage">Cell Voltage</string>
     <string name="osd_battery_percent">Percentage</string>
     <string name="osd_battery_current">Current</string>
+    <string name="osd_signal">Signal</string>
+    <string name="osd_signal_desc">Show signal strength widget in landscape mode</string>
+    <string name="osd_signal_icon">Icon</string>
+    <string name="osd_signal_band">Band</string>
+    <string name="osd_signal_cell_id">Cell ID</string>
 
     <!-- Viewer screen -->
     <string name="viewer_title">Viewer</string>

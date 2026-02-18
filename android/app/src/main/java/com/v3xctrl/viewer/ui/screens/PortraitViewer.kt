@@ -50,8 +50,10 @@ import com.v3xctrl.viewer.control.ViewerState
 import com.v3xctrl.viewer.messages.Command
 import com.v3xctrl.viewer.messages.Commands
 import com.v3xctrl.viewer.ui.components.AppMenu
+import com.v3xctrl.viewer.data.OsdSettings
 import com.v3xctrl.viewer.ui.widgets.LatencyIndicator
 import com.v3xctrl.viewer.ui.widgets.RecordingIndicator
+import com.v3xctrl.viewer.ui.widgets.SignalStrengthWidget
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,6 +63,7 @@ fun PortraitViewer(
     viewerState: ViewerState,
     udpReceiver: UDPReceiver?,
     spectatorMode: Boolean,
+    osdSettings: OsdSettings = OsdSettings(),
     onBack: () -> Unit,
     onNavigateToNetwork: () -> Unit,
     onNavigateToFrequencies: () -> Unit,
@@ -118,18 +121,34 @@ fun PortraitViewer(
                 modifier = Modifier.fillMaxSize()
             )
 
-            // Connection status indicator dot (top-left corner)
-            if (viewerState.isControlConnected) {
-                LatencyIndicator(
-                    latencyStatus = viewerState.latencyStatus,
+            // Signal widget (top-left)
+            if (osdSettings.showSignal && !viewerState.isControlTimedOut) {
+                SignalStrengthWidget(
+                    rsrp = viewerState.signalRsrp,
+                    rsrq = viewerState.signalRsrq,
+                    band = null,
+                    cellId = null,
+                    showIcon = true,
+                    showBand = false,
+                    showCellId = false,
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .offset(x = 12.dp, y = 12.dp)
                 )
             }
 
+            // Latency indicator (bottom-left)
+            if (viewerState.isControlConnected) {
+                LatencyIndicator(
+                    latencyStatus = viewerState.latencyStatus,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .offset(x = 12.dp, y = (-12).dp)
+                )
+            }
+
             // Total voltage (top-right corner)
-            viewerState.batteryVoltage?.let { mv ->
+            if (!viewerState.isControlTimedOut) viewerState.batteryVoltage?.let { mv ->
                 Text(
                     text = "%.2fV".format(mv / 1000.0),
                     color = if (viewerState.batteryWarning) Color.Red else Color.White,
