@@ -51,6 +51,7 @@ import com.v3xctrl.viewer.messages.Command
 import com.v3xctrl.viewer.messages.Commands
 import com.v3xctrl.viewer.ui.components.AppMenu
 import com.v3xctrl.viewer.data.OsdSettings
+import com.v3xctrl.viewer.ui.widgets.FrameDropIndicator
 import com.v3xctrl.viewer.ui.widgets.LatencyIndicator
 import com.v3xctrl.viewer.ui.widgets.RecordingIndicator
 import com.v3xctrl.viewer.ui.widgets.SignalStrengthWidget
@@ -120,6 +121,15 @@ fun PortraitViewer(
                 showVideoBlank = showVideoBlank,
                 modifier = Modifier.fillMaxSize()
             )
+
+            // Frame drop indicator (top-center, always shown in portrait)
+            if (viewerState.isUdpOverrun && !viewerState.isControlTimedOut) {
+                FrameDropIndicator(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .offset(y = 12.dp)
+                )
+            }
 
             // Signal widget (top-left)
             if (osdSettings.showSignal && !viewerState.isControlTimedOut) {

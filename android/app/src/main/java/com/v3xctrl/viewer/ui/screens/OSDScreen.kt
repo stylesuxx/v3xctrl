@@ -163,6 +163,33 @@ fun OSDScreen(
                 )
             }
 
+            // Frame Drops toggle
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onSettingsChange(settings.copy(showFrameDrops = !settings.showFrameDrops)) }
+                    .padding(vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.osd_frame_drops),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+
+                    Text(
+                        text = stringResource(R.string.osd_frame_drops_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Switch(
+                    checked = settings.showFrameDrops,
+                    onCheckedChange = { onSettingsChange(settings.copy(showFrameDrops = it)) }
+                )
+            }
+
             // Pipeline Timer toggle
             Row(
                 modifier = Modifier

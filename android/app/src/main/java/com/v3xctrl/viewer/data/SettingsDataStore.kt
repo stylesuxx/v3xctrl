@@ -34,7 +34,8 @@ data class OsdSettings(
     val showSignal: Boolean = true,
     val showSignalIcon: Boolean = true,
     val showSignalBand: Boolean = false,
-    val showSignalCellId: Boolean = false
+    val showSignalCellId: Boolean = false,
+    val showFrameDrops: Boolean = true
 )
 
 data class ControlSettings(
@@ -77,6 +78,8 @@ class SettingsDataStore(private val context: Context) {
         private val SHOW_SIGNAL_ICON = booleanPreferencesKey("show_signal_icon")
         private val SHOW_SIGNAL_BAND = booleanPreferencesKey("show_signal_band")
         private val SHOW_SIGNAL_CELL_ID = booleanPreferencesKey("show_signal_cell_id")
+
+        private val SHOW_FRAME_DROPS = booleanPreferencesKey("show_frame_drops")
 
         private val CONTROL_HZ = intPreferencesKey("control_hz")
         private val CONTROL_MODE = stringPreferencesKey("control_mode")
@@ -129,7 +132,8 @@ class SettingsDataStore(private val context: Context) {
             showSignal = prefs[SHOW_SIGNAL] ?: defaults.showSignal,
             showSignalIcon = prefs[SHOW_SIGNAL_ICON] ?: defaults.showSignalIcon,
             showSignalBand = prefs[SHOW_SIGNAL_BAND] ?: defaults.showSignalBand,
-            showSignalCellId = prefs[SHOW_SIGNAL_CELL_ID] ?: defaults.showSignalCellId
+            showSignalCellId = prefs[SHOW_SIGNAL_CELL_ID] ?: defaults.showSignalCellId,
+            showFrameDrops = prefs[SHOW_FRAME_DROPS] ?: defaults.showFrameDrops
         )
     }
 
@@ -183,6 +187,7 @@ class SettingsDataStore(private val context: Context) {
             prefs[SHOW_SIGNAL_ICON] = settings.showSignalIcon
             prefs[SHOW_SIGNAL_BAND] = settings.showSignalBand
             prefs[SHOW_SIGNAL_CELL_ID] = settings.showSignalCellId
+            prefs[SHOW_FRAME_DROPS] = settings.showFrameDrops
         }
     }
 
