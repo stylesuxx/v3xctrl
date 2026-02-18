@@ -24,7 +24,13 @@ data class FrequencySettings(
 )
 
 data class OsdSettings(
-    val showPipelineTimer: Boolean = false
+    val showPipelineTimer: Boolean = false,
+    val showBattery: Boolean = true,
+    val showBatteryIcon: Boolean = true,
+    val showBatteryVoltage: Boolean = true,
+    val showBatteryCellVoltage: Boolean = true,
+    val showBatteryPercent: Boolean = true,
+    val showBatteryCurrent: Boolean = true
 )
 
 data class ControlSettings(
@@ -55,6 +61,12 @@ class SettingsDataStore(private val context: Context) {
         private val SPECTATOR_MODE = booleanPreferencesKey("spectator_mode")
         private val CONTROL_HZ = intPreferencesKey("control_hz")
         private val SHOW_PIPELINE_TIMER = booleanPreferencesKey("show_pipeline_timer")
+        private val SHOW_BATTERY = booleanPreferencesKey("show_battery")
+        private val SHOW_BATTERY_ICON = booleanPreferencesKey("show_battery_icon")
+        private val SHOW_BATTERY_VOLTAGE = booleanPreferencesKey("show_battery_voltage")
+        private val SHOW_BATTERY_CELL_VOLTAGE = booleanPreferencesKey("show_battery_cell_voltage")
+        private val SHOW_BATTERY_PERCENT = booleanPreferencesKey("show_battery_percent")
+        private val SHOW_BATTERY_CURRENT = booleanPreferencesKey("show_battery_current")
         private val CONTROL_MODE = stringPreferencesKey("control_mode")
         private val FORWARD_SCALE = intPreferencesKey("forward_scale")
         private val BACKWARD_SCALE = intPreferencesKey("backward_scale")
@@ -93,7 +105,13 @@ class SettingsDataStore(private val context: Context) {
     val osdSettings: Flow<OsdSettings> = context.dataStore.data.map { prefs ->
         val defaults = OsdSettings()
         OsdSettings(
-            showPipelineTimer = prefs[SHOW_PIPELINE_TIMER] ?: defaults.showPipelineTimer
+            showPipelineTimer = prefs[SHOW_PIPELINE_TIMER] ?: defaults.showPipelineTimer,
+            showBattery = prefs[SHOW_BATTERY] ?: defaults.showBattery,
+            showBatteryIcon = prefs[SHOW_BATTERY_ICON] ?: defaults.showBatteryIcon,
+            showBatteryVoltage = prefs[SHOW_BATTERY_VOLTAGE] ?: defaults.showBatteryVoltage,
+            showBatteryCellVoltage = prefs[SHOW_BATTERY_CELL_VOLTAGE] ?: defaults.showBatteryCellVoltage,
+            showBatteryPercent = prefs[SHOW_BATTERY_PERCENT] ?: defaults.showBatteryPercent,
+            showBatteryCurrent = prefs[SHOW_BATTERY_CURRENT] ?: defaults.showBatteryCurrent
         )
     }
 
@@ -137,6 +155,12 @@ class SettingsDataStore(private val context: Context) {
     suspend fun updateOsdSettings(settings: OsdSettings) {
         context.dataStore.edit { prefs ->
             prefs[SHOW_PIPELINE_TIMER] = settings.showPipelineTimer
+            prefs[SHOW_BATTERY] = settings.showBattery
+            prefs[SHOW_BATTERY_ICON] = settings.showBatteryIcon
+            prefs[SHOW_BATTERY_VOLTAGE] = settings.showBatteryVoltage
+            prefs[SHOW_BATTERY_CELL_VOLTAGE] = settings.showBatteryCellVoltage
+            prefs[SHOW_BATTERY_PERCENT] = settings.showBatteryPercent
+            prefs[SHOW_BATTERY_CURRENT] = settings.showBatteryCurrent
         }
     }
 

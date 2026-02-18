@@ -30,6 +30,7 @@ import com.v3xctrl.viewer.MainActivity
 import com.v3xctrl.viewer.GstViewer
 import com.v3xctrl.viewer.control.ControlState
 import com.v3xctrl.viewer.data.ControlSettings
+import com.v3xctrl.viewer.data.OsdSettings
 import com.v3xctrl.viewer.input.GamepadController
 import com.v3xctrl.viewer.input.MotionController
 import com.v3xctrl.viewer.control.UDPReceiver
@@ -55,7 +56,7 @@ data class ConnectionInfo(
 fun ViewerScreen(
     connection: ConnectionInfo,
     controlHz: Int = 30,
-    showPipelineTimer: Boolean = false,
+    osdSettings: OsdSettings = OsdSettings(),
     spectatorMode: Boolean = false,
     controlSettings: ControlSettings = ControlSettings(),
     onBack: () -> Unit,
@@ -306,8 +307,8 @@ fun ViewerScreen(
             isMotionMode = isMotionMode,
             isGamepadMode = isGamepadMode,
             spectatorMode = spectatorMode,
-            showPipelineTimer = showPipelineTimer,
             pipelineStartTime = pipelineStartTime,
+            osdSettings = osdSettings,
             modifier = modifier
         )
     } else {

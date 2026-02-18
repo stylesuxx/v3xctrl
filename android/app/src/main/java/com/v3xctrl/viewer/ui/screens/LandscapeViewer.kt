@@ -24,8 +24,10 @@ import androidx.compose.ui.unit.sp
 import com.v3xctrl.viewer.R
 import com.v3xctrl.viewer.control.ControlState
 import com.v3xctrl.viewer.control.ViewerState
+import com.v3xctrl.viewer.data.OsdSettings
 import com.v3xctrl.viewer.input.MotionController
 import com.v3xctrl.viewer.ui.components.TouchControls
+import com.v3xctrl.viewer.ui.widgets.BatteryWidget
 import com.v3xctrl.viewer.ui.widgets.PipelineTimer
 import com.v3xctrl.viewer.ui.widgets.RecordingIndicator
 
@@ -39,8 +41,8 @@ fun LandscapeViewer(
     isMotionMode: Boolean,
     isGamepadMode: Boolean,
     spectatorMode: Boolean,
-    showPipelineTimer: Boolean,
     pipelineStartTime: Long,
+    osdSettings: OsdSettings = OsdSettings(),
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -77,8 +79,27 @@ fun LandscapeViewer(
             }
         }
 
+        // Battery widget (top-right)
+        if (osdSettings.showBattery) {
+            BatteryWidget(
+                voltageMillivolts = viewerState.batteryVoltage,
+                avgVoltageMillivolts = viewerState.batteryAvgVoltage,
+                percent = viewerState.batteryPercent,
+                currentMilliamps = viewerState.batteryCurrent,
+                warning = viewerState.batteryWarning,
+                showIcon = osdSettings.showBatteryIcon,
+                showVoltage = osdSettings.showBatteryVoltage,
+                showCellVoltage = osdSettings.showBatteryCellVoltage,
+                showPercent = osdSettings.showBatteryPercent,
+                showCurrent = osdSettings.showBatteryCurrent,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = (-12).dp, y = 12.dp)
+            )
+        }
+
         // Pipeline timer (bottom-right)
-        if (showPipelineTimer) {
+        if (osdSettings.showPipelineTimer) {
             PipelineTimer(
                 startTimeMs = pipelineStartTime,
                 modifier = Modifier
@@ -93,7 +114,7 @@ fun LandscapeViewer(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .offset(
-                        x = if (showPipelineTimer) (-140).dp else (-12).dp,
+                        x = if (osdSettings.showPipelineTimer) (-140).dp else (-12).dp,
                         y = (-12).dp
                     )
             )
