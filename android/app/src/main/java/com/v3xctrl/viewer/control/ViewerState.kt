@@ -41,6 +41,12 @@ class ViewerState {
     var batteryWarning by mutableStateOf(false)
     var batteryCurrent by mutableStateOf<Int?>(null)
 
+    // Signal telemetry
+    var signalRsrp by mutableStateOf<Int?>(null)
+    var signalRsrq by mutableStateOf<Int?>(null)
+    var signalBand by mutableStateOf<String?>(null)
+    var signalCellId by mutableStateOf<Int?>(null)
+
     var isControlTimedOut by mutableStateOf(false)
 
     fun onControlMessageReceived() {
@@ -102,6 +108,20 @@ class ViewerState {
             batteryPercent = (bat["pct"] as? Number)?.toInt()
             batteryWarning = (bat["wrn"] as? Number)?.toInt() == 1
             batteryCurrent = (bat["cur"] as? Number)?.toInt()
+        }
+
+        // Parse signal telemetry
+        val sig = values["sig"] as? Map<String, Any>
+        if (sig != null) {
+            signalRsrp = (sig["rsrp"] as? Number)?.toInt()
+            signalRsrq = (sig["rsrq"] as? Number)?.toInt()
+        }
+
+        val cell = values["cell"] as? Map<String, Any>
+        if (cell != null) {
+            signalBand = (cell["band"] as? Number)?.toString()
+                ?: (cell["band"] as? String)
+            signalCellId = (cell["id"] as? Number)?.toInt()
         }
     }
 }

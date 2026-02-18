@@ -84,34 +84,82 @@ fun OSDScreen(
 
             // Battery sub-toggles (only interactive when battery is enabled)
             if (settings.showBattery) {
-                BatterySubToggle(
+                SubToggle(
                     label = stringResource(R.string.osd_battery_icon),
                     checked = settings.showBatteryIcon,
                     onCheckedChange = { onSettingsChange(settings.copy(showBatteryIcon = it)) }
                 )
 
-                BatterySubToggle(
+                SubToggle(
                     label = stringResource(R.string.osd_battery_voltage),
                     checked = settings.showBatteryVoltage,
                     onCheckedChange = { onSettingsChange(settings.copy(showBatteryVoltage = it)) }
                 )
 
-                BatterySubToggle(
+                SubToggle(
                     label = stringResource(R.string.osd_battery_cell_voltage),
                     checked = settings.showBatteryCellVoltage,
                     onCheckedChange = { onSettingsChange(settings.copy(showBatteryCellVoltage = it)) }
                 )
 
-                BatterySubToggle(
+                SubToggle(
                     label = stringResource(R.string.osd_battery_percent),
                     checked = settings.showBatteryPercent,
                     onCheckedChange = { onSettingsChange(settings.copy(showBatteryPercent = it)) }
                 )
 
-                BatterySubToggle(
+                SubToggle(
                     label = stringResource(R.string.osd_battery_current),
                     checked = settings.showBatteryCurrent,
                     onCheckedChange = { onSettingsChange(settings.copy(showBatteryCurrent = it)) }
+                )
+            }
+
+            // Signal main toggle
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onSettingsChange(settings.copy(showSignal = !settings.showSignal)) }
+                    .padding(vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.osd_signal),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+
+                    Text(
+                        text = stringResource(R.string.osd_signal_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Switch(
+                    checked = settings.showSignal,
+                    onCheckedChange = { onSettingsChange(settings.copy(showSignal = it)) }
+                )
+            }
+
+            // Signal sub-toggles
+            if (settings.showSignal) {
+                SubToggle(
+                    label = stringResource(R.string.osd_signal_icon),
+                    checked = settings.showSignalIcon,
+                    onCheckedChange = { onSettingsChange(settings.copy(showSignalIcon = it)) }
+                )
+
+                SubToggle(
+                    label = stringResource(R.string.osd_signal_band),
+                    checked = settings.showSignalBand,
+                    onCheckedChange = { onSettingsChange(settings.copy(showSignalBand = it)) }
+                )
+
+                SubToggle(
+                    label = stringResource(R.string.osd_signal_cell_id),
+                    checked = settings.showSignalCellId,
+                    onCheckedChange = { onSettingsChange(settings.copy(showSignalCellId = it)) }
                 )
             }
 
@@ -146,7 +194,7 @@ fun OSDScreen(
 }
 
 @Composable
-private fun BatterySubToggle(
+private fun SubToggle(
     label: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit

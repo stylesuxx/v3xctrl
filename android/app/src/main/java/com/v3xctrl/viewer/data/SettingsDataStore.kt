@@ -30,7 +30,11 @@ data class OsdSettings(
     val showBatteryVoltage: Boolean = true,
     val showBatteryCellVoltage: Boolean = true,
     val showBatteryPercent: Boolean = true,
-    val showBatteryCurrent: Boolean = true
+    val showBatteryCurrent: Boolean = true,
+    val showSignal: Boolean = true,
+    val showSignalIcon: Boolean = true,
+    val showSignalBand: Boolean = false,
+    val showSignalCellId: Boolean = false
 )
 
 data class ControlSettings(
@@ -59,21 +63,31 @@ class SettingsDataStore(private val context: Context) {
         private val RELAY_URL = stringPreferencesKey("relay_url")
         private val SESSION_ID = stringPreferencesKey("session_id")
         private val SPECTATOR_MODE = booleanPreferencesKey("spectator_mode")
-        private val CONTROL_HZ = intPreferencesKey("control_hz")
+
         private val SHOW_PIPELINE_TIMER = booleanPreferencesKey("show_pipeline_timer")
+
         private val SHOW_BATTERY = booleanPreferencesKey("show_battery")
         private val SHOW_BATTERY_ICON = booleanPreferencesKey("show_battery_icon")
         private val SHOW_BATTERY_VOLTAGE = booleanPreferencesKey("show_battery_voltage")
         private val SHOW_BATTERY_CELL_VOLTAGE = booleanPreferencesKey("show_battery_cell_voltage")
         private val SHOW_BATTERY_PERCENT = booleanPreferencesKey("show_battery_percent")
         private val SHOW_BATTERY_CURRENT = booleanPreferencesKey("show_battery_current")
+
+        private val SHOW_SIGNAL = booleanPreferencesKey("show_signal")
+        private val SHOW_SIGNAL_ICON = booleanPreferencesKey("show_signal_icon")
+        private val SHOW_SIGNAL_BAND = booleanPreferencesKey("show_signal_band")
+        private val SHOW_SIGNAL_CELL_ID = booleanPreferencesKey("show_signal_cell_id")
+
+        private val CONTROL_HZ = intPreferencesKey("control_hz")
         private val CONTROL_MODE = stringPreferencesKey("control_mode")
         private val FORWARD_SCALE = intPreferencesKey("forward_scale")
         private val BACKWARD_SCALE = intPreferencesKey("backward_scale")
         private val STEERING_SCALE = intPreferencesKey("steering_scale")
+
         private val MOTION_STEERING_DEG = intPreferencesKey("motion_steering_deg")
         private val MOTION_FORWARD_DEG = intPreferencesKey("motion_forward_deg")
         private val MOTION_BACKWARD_DEG = intPreferencesKey("motion_backward_deg")
+
         private val GAMEPAD_DEVICE_NAME = stringPreferencesKey("gamepad_device_name")
         private val GAMEPAD_STEERING_AXIS = intPreferencesKey("gamepad_steering_axis")
         private val GAMEPAD_STEERING_SIGN = intPreferencesKey("gamepad_steering_sign")
@@ -111,7 +125,11 @@ class SettingsDataStore(private val context: Context) {
             showBatteryVoltage = prefs[SHOW_BATTERY_VOLTAGE] ?: defaults.showBatteryVoltage,
             showBatteryCellVoltage = prefs[SHOW_BATTERY_CELL_VOLTAGE] ?: defaults.showBatteryCellVoltage,
             showBatteryPercent = prefs[SHOW_BATTERY_PERCENT] ?: defaults.showBatteryPercent,
-            showBatteryCurrent = prefs[SHOW_BATTERY_CURRENT] ?: defaults.showBatteryCurrent
+            showBatteryCurrent = prefs[SHOW_BATTERY_CURRENT] ?: defaults.showBatteryCurrent,
+            showSignal = prefs[SHOW_SIGNAL] ?: defaults.showSignal,
+            showSignalIcon = prefs[SHOW_SIGNAL_ICON] ?: defaults.showSignalIcon,
+            showSignalBand = prefs[SHOW_SIGNAL_BAND] ?: defaults.showSignalBand,
+            showSignalCellId = prefs[SHOW_SIGNAL_CELL_ID] ?: defaults.showSignalCellId
         )
     }
 
@@ -161,6 +179,10 @@ class SettingsDataStore(private val context: Context) {
             prefs[SHOW_BATTERY_CELL_VOLTAGE] = settings.showBatteryCellVoltage
             prefs[SHOW_BATTERY_PERCENT] = settings.showBatteryPercent
             prefs[SHOW_BATTERY_CURRENT] = settings.showBatteryCurrent
+            prefs[SHOW_SIGNAL] = settings.showSignal
+            prefs[SHOW_SIGNAL_ICON] = settings.showSignalIcon
+            prefs[SHOW_SIGNAL_BAND] = settings.showSignalBand
+            prefs[SHOW_SIGNAL_CELL_ID] = settings.showSignalCellId
         }
     }
 
