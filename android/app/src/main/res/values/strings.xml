@@ -77,6 +77,8 @@
     <string name="osd_signal_icon">Icon</string>
     <string name="osd_signal_band">Band</string>
     <string name="osd_signal_cell_id">Cell ID</string>
+    <string name="osd_frame_drops">Frame Drops</string>
+    <string name="osd_frame_drops_desc">Show warning icon when frames are being dropped</string>
 
     <!-- Viewer screen -->
     <string name="viewer_title">Viewer</string>
