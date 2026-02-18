@@ -122,29 +122,60 @@ fun PortraitViewer(
                 modifier = Modifier.fillMaxSize()
             )
 
-            // Frame drop indicator (top-center, always shown in portrait)
-            if (viewerState.isUdpOverrun && !viewerState.isControlTimedOut) {
-                FrameDropIndicator(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .offset(y = 12.dp)
-                )
-            }
+            // Telemetry widgets (hidden when control signal is lost)
+            if (!viewerState.isControlTimedOut) {
+                // Frame drop indicator (top-center, always shown in portrait)
+                if (viewerState.isUdpOverrun) {
+                    FrameDropIndicator(
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .offset(y = 12.dp)
+                    )
+                }
 
-            // Signal widget (top-left)
-            if (osdSettings.showSignal && !viewerState.isControlTimedOut) {
-                SignalStrengthWidget(
-                    rsrp = viewerState.signalRsrp,
-                    rsrq = viewerState.signalRsrq,
-                    band = null,
-                    cellId = null,
-                    showIcon = true,
-                    showBand = false,
-                    showCellId = false,
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .offset(x = 12.dp, y = 12.dp)
-                )
+                // Signal widget (top-left)
+                if (osdSettings.showSignal) {
+                    SignalStrengthWidget(
+                        rsrp = viewerState.signalRsrp,
+                        rsrq = viewerState.signalRsrq,
+                        band = viewerState.signalBand,
+                        cellId = viewerState.signalCellId,
+                        showIcon = osdSettings.showSignalIcon,
+                        showBand = osdSettings.showSignalBand,
+                        showCellId = osdSettings.showSignalCellId,
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .offset(x = 12.dp, y = 12.dp)
+                    )
+                }
+
+                // Total voltage (top-right corner)
+                viewerState.batteryVoltage?.let { mv ->
+                    Text(
+                        text = "%.2fV".format(mv / 1000.0),
+                        color = if (viewerState.batteryWarning) Color.Red else Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        fontFamily = FontFamily.Monospace,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .offset(x = (-12).dp, y = 12.dp)
+                            .background(
+                                Color.Black.copy(alpha = 0.6f),
+                                RoundedCornerShape(5.dp)
+                            )
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+
+                // Recording indicator (bottom-right)
+                if (viewerState.isRecording) {
+                    RecordingIndicator(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .offset(x = (-12).dp, y = (-12).dp)
+                    )
+                }
             }
 
             // Latency indicator (bottom-left)
@@ -154,25 +185,6 @@ fun PortraitViewer(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .offset(x = 12.dp, y = (-12).dp)
-                )
-            }
-
-            // Total voltage (top-right corner)
-            if (!viewerState.isControlTimedOut) viewerState.batteryVoltage?.let { mv ->
-                Text(
-                    text = "%.2fV".format(mv / 1000.0),
-                    color = if (viewerState.batteryWarning) Color.Red else Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    fontFamily = FontFamily.Monospace,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .offset(x = (-12).dp, y = 12.dp)
-                        .background(
-                            Color.Black.copy(alpha = 0.6f),
-                            RoundedCornerShape(5.dp)
-                        )
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
                 )
             }
 
@@ -195,15 +207,6 @@ fun PortraitViewer(
                         )
                     }
                 }
-            }
-
-            // Recording indicator (bottom-right)
-            if (viewerState.isRecording) {
-                RecordingIndicator(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .offset(x = (-12).dp, y = (-12).dp)
-                )
             }
         }
 

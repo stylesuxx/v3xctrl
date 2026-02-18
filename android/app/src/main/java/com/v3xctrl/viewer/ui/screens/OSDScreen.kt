@@ -56,31 +56,12 @@ fun OSDScreen(
                 .padding(16.dp)
         ) {
             // Battery main toggle
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onSettingsChange(settings.copy(showBattery = !settings.showBattery)) }
-                    .padding(vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.osd_battery),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-
-                    Text(
-                        text = stringResource(R.string.osd_battery_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                Switch(
-                    checked = settings.showBattery,
-                    onCheckedChange = { onSettingsChange(settings.copy(showBattery = it)) }
-                )
-            }
+            MainToggle(
+                title = stringResource(R.string.osd_battery),
+                description = stringResource(R.string.osd_battery_desc),
+                checked = settings.showBattery,
+                onCheckedChange = { onSettingsChange(settings.copy(showBattery = it)) }
+            )
 
             // Battery sub-toggles (only interactive when battery is enabled)
             if (settings.showBattery) {
@@ -116,31 +97,12 @@ fun OSDScreen(
             }
 
             // Signal main toggle
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onSettingsChange(settings.copy(showSignal = !settings.showSignal)) }
-                    .padding(vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.osd_signal),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-
-                    Text(
-                        text = stringResource(R.string.osd_signal_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                Switch(
-                    checked = settings.showSignal,
-                    onCheckedChange = { onSettingsChange(settings.copy(showSignal = it)) }
-                )
-            }
+            MainToggle(
+                title = stringResource(R.string.osd_signal),
+                description = stringResource(R.string.osd_signal_desc),
+                checked = settings.showSignal,
+                onCheckedChange = { onSettingsChange(settings.copy(showSignal = it)) }
+            )
 
             // Signal sub-toggles
             if (settings.showSignal) {
@@ -164,59 +126,55 @@ fun OSDScreen(
             }
 
             // Frame Drops toggle
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onSettingsChange(settings.copy(showFrameDrops = !settings.showFrameDrops)) }
-                    .padding(vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.osd_frame_drops),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-
-                    Text(
-                        text = stringResource(R.string.osd_frame_drops_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                Switch(
-                    checked = settings.showFrameDrops,
-                    onCheckedChange = { onSettingsChange(settings.copy(showFrameDrops = it)) }
-                )
-            }
+            MainToggle(
+                title = stringResource(R.string.osd_frame_drops),
+                description = stringResource(R.string.osd_frame_drops_desc),
+                checked = settings.showFrameDrops,
+                onCheckedChange = { onSettingsChange(settings.copy(showFrameDrops = it)) }
+            )
 
             // Pipeline Timer toggle
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onSettingsChange(settings.copy(showPipelineTimer = !settings.showPipelineTimer)) }
-                    .padding(vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.osd_pipeline_timer),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-
-                    Text(
-                        text = stringResource(R.string.osd_pipeline_timer_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                Switch(
-                    checked = settings.showPipelineTimer,
-                    onCheckedChange = { onSettingsChange(settings.copy(showPipelineTimer = it)) }
-                )
-            }
+            MainToggle(
+                title = stringResource(R.string.osd_pipeline_timer),
+                description = stringResource(R.string.osd_pipeline_timer_desc),
+                checked = settings.showPipelineTimer,
+                onCheckedChange = { onSettingsChange(settings.copy(showPipelineTimer = it)) }
+            )
         }
+    }
+}
+
+@Composable
+private fun MainToggle(
+    title: String,
+    description: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) }
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge
+            )
+
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange
+        )
     }
 }
 
