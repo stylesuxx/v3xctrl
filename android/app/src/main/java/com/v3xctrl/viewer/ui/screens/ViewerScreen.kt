@@ -318,6 +318,7 @@ fun ViewerScreen(
             viewerState = viewerState,
             udpReceiver = udpReceiver,
             spectatorMode = spectatorMode,
+            osdSettings = osdSettings,
             onBack = {
                 GstViewer.stop()
                 onBack()

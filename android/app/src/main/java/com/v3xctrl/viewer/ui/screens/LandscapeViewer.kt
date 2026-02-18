@@ -30,6 +30,7 @@ import com.v3xctrl.viewer.ui.components.TouchControls
 import com.v3xctrl.viewer.ui.widgets.BatteryWidget
 import com.v3xctrl.viewer.ui.widgets.PipelineTimer
 import com.v3xctrl.viewer.ui.widgets.RecordingIndicator
+import com.v3xctrl.viewer.ui.widgets.SignalStrengthWidget
 
 @Composable
 fun LandscapeViewer(
@@ -56,12 +57,11 @@ fun LandscapeViewer(
             modifier = Modifier.fillMaxSize()
         )
 
-        // Status messages (top-center, stacked)
+        // Status messages (center, stacked)
         if (showVideoBlank || viewerState.isControlTimedOut) {
             Column(
                 modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .offset(y = 12.dp),
+                    .align(Alignment.Center),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 if (showVideoBlank) {
@@ -79,8 +79,24 @@ fun LandscapeViewer(
             }
         }
 
+        // Signal strength widget (top-left)
+        if (osdSettings.showSignal && !viewerState.isControlTimedOut) {
+            SignalStrengthWidget(
+                rsrp = viewerState.signalRsrp,
+                rsrq = viewerState.signalRsrq,
+                band = viewerState.signalBand,
+                cellId = viewerState.signalCellId,
+                showIcon = osdSettings.showSignalIcon,
+                showBand = osdSettings.showSignalBand,
+                showCellId = osdSettings.showSignalCellId,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .offset(x = 12.dp, y = 12.dp)
+            )
+        }
+
         // Battery widget (top-right)
-        if (osdSettings.showBattery) {
+        if (osdSettings.showBattery && !viewerState.isControlTimedOut) {
             BatteryWidget(
                 voltageMillivolts = viewerState.batteryVoltage,
                 avgVoltageMillivolts = viewerState.batteryAvgVoltage,
