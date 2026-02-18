@@ -218,7 +218,7 @@ class MainActivity : ComponentActivity() {
                                 sessionId = networkSettings.sessionId
                             ),
                             controlHz = frequencySettings.controlHz,
-                            showPipelineTimer = osdSettings.showPipelineTimer,
+                            osdSettings = osdSettings,
                             spectatorMode = networkSettings.spectatorMode,
                             controlSettings = controlSettings,
                             onBack = { navigateBack() },
