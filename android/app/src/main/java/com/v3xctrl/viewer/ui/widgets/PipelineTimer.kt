@@ -1,9 +1,6 @@
 package com.v3xctrl.viewer.ui.widgets
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -41,13 +38,9 @@ fun PipelineTimer(
     val elapsedMs = currentTimeMs - startTimeMs
     val formattedTime = formatElapsedTime(elapsedMs)
 
-    Box(
-        modifier = modifier
-            .background(
-                color = Color.Black.copy(alpha = 0.6f),
-                shape = RoundedCornerShape(5.dp)
-            )
-            .padding(horizontal = 8.dp, vertical = 4.dp)
+    OSDWidgetContainer(
+        modifier = modifier,
+        padding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
     ) {
         Text(
             text = formattedTime,
