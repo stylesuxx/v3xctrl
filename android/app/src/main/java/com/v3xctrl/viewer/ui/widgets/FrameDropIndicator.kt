@@ -1,11 +1,8 @@
 package com.v3xctrl.viewer.ui.widgets
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,13 +24,9 @@ private val WarningOrange = Color(0xFFFFA500)
 fun FrameDropIndicator(
     modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = modifier
-            .background(
-                color = Color.Black.copy(alpha = 0.6f),
-                shape = RoundedCornerShape(5.dp)
-            )
-            .padding(6.dp),
+    OSDWidgetContainer(
+        modifier = modifier,
+        padding = PaddingValues(6.dp),
         contentAlignment = Alignment.Center
     ) {
         Canvas(modifier = Modifier.size(20.dp)) {

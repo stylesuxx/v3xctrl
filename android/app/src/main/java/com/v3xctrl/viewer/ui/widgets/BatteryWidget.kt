@@ -1,12 +1,8 @@
 package com.v3xctrl.viewer.ui.widgets
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -70,14 +66,7 @@ fun BatteryWidget(
 
     if (!showIcon && !hasText) return
 
-    Box(
-        modifier = modifier
-            .background(
-                color = Color.Black.copy(alpha = 0.6f),
-                shape = RoundedCornerShape(5.dp)
-            )
-            .padding(horizontal = 8.dp, vertical = 6.dp)
-    ) {
+    OSDWidgetContainer(modifier = modifier) {
         Column(horizontalAlignment = Alignment.End) {
             // Battery icon on top
             if (showIcon) {
