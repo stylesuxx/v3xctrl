@@ -74,7 +74,7 @@ jobs:
     needs: build-android
     uses: ./.github/workflows/cleanup-old-runs.yml
     with:
-      branch: ${{ github.event.inputs.branch }}
+      branch: ${{ github.event.inputs.branch || github.ref_name }}
       keep_run_id: ${{ github.run_id }}
       workflow_name: ${{ github.workflow }}
     secrets:
