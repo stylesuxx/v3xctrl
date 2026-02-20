@@ -101,3 +101,29 @@ class SessionStore:
             row = cur.fetchone()
 
             return row[0] if row else None
+
+    def delete(self, discord_user_id: str) -> bool:
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "DELETE FROM allowed_sessions WHERE discord_user_id = ?",
+                (discord_user_id,)
+            )
+            conn.commit()
+
+            return cur.rowcount > 0
+
+    def get_testdrive_by_user(self, user_id: str) -> tuple[str, str, str] | None:
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT id, spectator_id, discord_user_id FROM allowed_sessions
+                WHERE discord_user_id LIKE ? || ':%'
+                   OR discord_user_id LIKE '%:' || ?
+                """,
+                (user_id, user_id)
+            )
+            row = cur.fetchone()
+
+            return (row[0], row[1], row[2]) if row else None
