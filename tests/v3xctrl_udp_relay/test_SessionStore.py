@@ -127,5 +127,44 @@ class TestSessionStore(unittest.TestCase):
         self.assertIsNone(retrieved_session_id)
 
 
+    def test_delete_existing_session(self):
+        self.store.create("42", "tester")
+        self.assertTrue(self.store.delete("42"))
+        self.assertIsNone(self.store.get("42"))
+
+    def test_delete_nonexistent_session(self):
+        self.assertFalse(self.store.delete("nonexistent"))
+
+    def test_get_testdrive_by_user_as_guest(self):
+        guest_id = "111"
+        host_id = "222"
+        composed_key = f"{guest_id}:{host_id}"
+
+        session_id, spectator_id = self.store.create(composed_key, "guest:host")
+        result = self.store.get_testdrive_by_user(guest_id)
+
+        self.assertIsNotNone(result)
+        self.assertEqual(result, (session_id, spectator_id, composed_key))
+
+    def test_get_testdrive_by_user_as_host(self):
+        guest_id = "111"
+        host_id = "222"
+        composed_key = f"{guest_id}:{host_id}"
+
+        session_id, spectator_id = self.store.create(composed_key, "guest:host")
+        result = self.store.get_testdrive_by_user(host_id)
+
+        self.assertIsNotNone(result)
+        self.assertEqual(result, (session_id, spectator_id, composed_key))
+
+    def test_get_testdrive_by_user_no_match(self):
+        self.store.create("111:222", "guest:host")
+        self.assertIsNone(self.store.get_testdrive_by_user("333"))
+
+    def test_get_testdrive_by_user_does_not_match_regular_sessions(self):
+        self.store.create("12345", "regular_user")
+        self.assertIsNone(self.store.get_testdrive_by_user("12345"))
+
+
 if __name__ == "__main__":
     unittest.main()
