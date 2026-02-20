@@ -577,5 +577,169 @@ class TestBot(unittest.TestCase):
         asyncio.run(async_test())
 
 
+    def test_init_with_testdrive_channel_id(self):
+        with patch('v3xctrl_udp_relay.discord_bot.Bot.SessionStore') as mock_ss, \
+             patch('v3xctrl_udp_relay.discord_bot.Bot.TestdriveHandler') as mock_td:
+            mock_ss.return_value = MagicMock()
+            mock_td_instance = MagicMock()
+            mock_td.return_value = mock_td_instance
+
+            bot = Bot(
+                db_path="test.db",
+                token="test_token",
+                channel_id=123456789,
+                testdrive_channel_id=987654321,
+                relay_client=self.mock_relay_client
+            )
+
+            self.assertEqual(bot.testdrive_channel_id, 987654321)
+            self.assertEqual(bot.testdrive_handler, mock_td_instance)
+            mock_td.assert_called_once_with(mock_ss.return_value, 987654321)
+
+    def test_init_without_testdrive_channel_id(self):
+        self.assertIsNone(self.bot.testdrive_channel_id)
+        self.assertIsNone(self.bot.testdrive_handler)
+
+    def test_on_message_deletes_in_testdrive_channel(self):
+        async def async_test():
+            with patch('v3xctrl_udp_relay.discord_bot.Bot.SessionStore') as mock_ss, \
+                 patch('v3xctrl_udp_relay.discord_bot.Bot.TestdriveHandler'):
+                mock_ss.return_value = MagicMock()
+                bot = Bot(
+                    db_path="test.db",
+                    token="test_token",
+                    channel_id=123456789,
+                    testdrive_channel_id=987654321,
+                    relay_client=self.mock_relay_client
+                )
+
+            mock_message = AsyncMock(spec=discord.Message)
+            mock_message.channel = MagicMock()
+            mock_message.channel.id = 987654321
+            mock_message.author = MagicMock()
+
+            with patch.object(type(bot), 'user', MagicMock(), create=True):
+                await bot.on_message(mock_message)
+
+            mock_message.delete.assert_called_once()
+
+        asyncio.run(async_test())
+
+    def test_on_message_ignores_other_channels_with_testdrive(self):
+        async def async_test():
+            with patch('v3xctrl_udp_relay.discord_bot.Bot.SessionStore') as mock_ss, \
+                 patch('v3xctrl_udp_relay.discord_bot.Bot.TestdriveHandler'):
+                mock_ss.return_value = MagicMock()
+                bot = Bot(
+                    db_path="test.db",
+                    token="test_token",
+                    channel_id=123456789,
+                    testdrive_channel_id=987654321,
+                    relay_client=self.mock_relay_client
+                )
+
+            mock_message = AsyncMock(spec=discord.Message)
+            mock_message.channel = MagicMock()
+            mock_message.channel.id = 111111111
+            mock_message.author = MagicMock()
+
+            await bot.on_message(mock_message)
+
+            mock_message.delete.assert_not_called()
+
+        asyncio.run(async_test())
+
+    def test_on_interaction_routes_to_testdrive_handler(self):
+        async def async_test():
+            mock_td_handler = AsyncMock()
+
+            with patch('v3xctrl_udp_relay.discord_bot.Bot.SessionStore') as mock_ss, \
+                 patch('v3xctrl_udp_relay.discord_bot.Bot.TestdriveHandler') as mock_td:
+                mock_ss.return_value = MagicMock()
+                mock_td.return_value = mock_td_handler
+                bot = Bot(
+                    db_path="test.db",
+                    token="test_token",
+                    channel_id=123456789,
+                    testdrive_channel_id=987654321,
+                    relay_client=self.mock_relay_client
+                )
+
+            mock_interaction = AsyncMock(spec=discord.Interaction)
+            mock_interaction.type = discord.InteractionType.component
+
+            await bot.on_interaction(mock_interaction)
+
+            mock_td_handler.handle_interaction.assert_called_once_with(mock_interaction)
+
+        asyncio.run(async_test())
+
+    def test_on_interaction_ignores_slash_commands(self):
+        async def async_test():
+            mock_td_handler = AsyncMock()
+
+            with patch('v3xctrl_udp_relay.discord_bot.Bot.SessionStore') as mock_ss, \
+                 patch('v3xctrl_udp_relay.discord_bot.Bot.TestdriveHandler') as mock_td:
+                mock_ss.return_value = MagicMock()
+                mock_td.return_value = mock_td_handler
+                bot = Bot(
+                    db_path="test.db",
+                    token="test_token",
+                    channel_id=123456789,
+                    testdrive_channel_id=987654321,
+                    relay_client=self.mock_relay_client
+                )
+
+            mock_interaction = AsyncMock(spec=discord.Interaction)
+            mock_interaction.type = discord.InteractionType.application_command
+
+            await bot.on_interaction(mock_interaction)
+
+            mock_td_handler.handle_interaction.assert_not_called()
+
+        asyncio.run(async_test())
+
+    def test_on_interaction_ignores_when_no_testdrive_handler(self):
+        async def async_test():
+            mock_interaction = AsyncMock(spec=discord.Interaction)
+            mock_interaction.type = discord.InteractionType.component
+
+            # self.bot has no testdrive handler (default setUp)
+            await self.bot.on_interaction(mock_interaction)
+
+        asyncio.run(async_test())
+
+    def test_on_ready_posts_testdrive_message(self):
+        async def async_test():
+            mock_td_handler = AsyncMock()
+
+            with patch('v3xctrl_udp_relay.discord_bot.Bot.SessionStore') as mock_ss, \
+                 patch('v3xctrl_udp_relay.discord_bot.Bot.TestdriveHandler') as mock_td:
+                mock_ss.return_value = MagicMock()
+                mock_td.return_value = mock_td_handler
+                bot = Bot(
+                    db_path="test.db",
+                    token="test_token",
+                    channel_id=123456789,
+                    testdrive_channel_id=987654321,
+                    relay_client=self.mock_relay_client
+                )
+
+            mock_channel = MagicMock(spec=discord.TextChannel)
+            mock_user = MagicMock()
+            mock_user.__str__ = MagicMock(return_value="TestBot#1234")
+
+            with patch.object(type(bot), 'user', mock_user, create=True), \
+                 patch.object(bot, 'get_channel') as mock_get_channel, \
+                 patch.object(bot, '_announce_presence'):
+
+                mock_get_channel.return_value = mock_channel
+                await bot._announce_testdrive()
+
+            mock_td_handler.post_persistent_message.assert_called_once_with(mock_channel)
+
+        asyncio.run(async_test())
+
+
 if __name__ == '__main__':
     unittest.main()

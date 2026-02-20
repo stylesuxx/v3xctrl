@@ -9,6 +9,8 @@ def main() -> None:
     parser.add_argument("token", help="Discord bot token")
     parser.add_argument("channel_id", type=int,
                         help="Discord channel ID where bot commands can be used (required)")
+    parser.add_argument("--testdrive-channel-id", type=int, default=None,
+                        help="Discord channel ID for test drive requests (optional)")
     parser.add_argument("--db", "--db-path", dest="db_path", default="relay.db",
                         help="Path to SQLite database (default: relay.db)")
     parser.add_argument("--log", default="ERROR",
@@ -26,7 +28,8 @@ def main() -> None:
         format="%(asctime)s - %(levelname)s - %(message)s"
     )
 
-    bot = Bot(args.db_path, args.token, args.channel_id)
+    bot = Bot(args.db_path, args.token, args.channel_id,
+              testdrive_channel_id=args.testdrive_channel_id)
     bot.run_bot()
 
 

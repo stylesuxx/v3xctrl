@@ -8,6 +8,7 @@ from discord import app_commands
 
 from v3xctrl_udp_relay.SessionStore import SessionStore
 from v3xctrl_udp_relay.discord_bot.RelayClient import RelayClient
+from v3xctrl_udp_relay.discord_bot.testdrive import TestdriveHandler
 
 
 class Bot(discord.Client):
@@ -16,12 +17,18 @@ class Bot(discord.Client):
         db_path: str,
         token: str,
         channel_id: int,
+        testdrive_channel_id: int | None = None,
         relay_client: RelayClient | None = None
     ) -> None:
         self.token = token
         self.store = SessionStore(db_path)
         self.relay_client = relay_client or RelayClient()
         self.channel_id = channel_id
+        self.testdrive_channel_id = testdrive_channel_id
+
+        self.testdrive_handler: TestdriveHandler | None = None
+        if testdrive_channel_id is not None:
+            self.testdrive_handler = TestdriveHandler(self.store, testdrive_channel_id)
 
         intents = discord.Intents.default()
         intents.message_content = True  # Required to read message content for auto-deletion
@@ -53,11 +60,15 @@ class Bot(discord.Client):
     async def on_ready(self) -> None:
         logging.info(f"Bot connected as {self.user}")
         await self._announce_presence()
+        await self._announce_testdrive()
 
     async def on_message(self, message: discord.Message) -> None:
-        """Delete any non-bot messages in the designated channel"""
-        # Only monitor the designated channel
-        if message.channel.id != self.channel_id:
+        """Delete any non-bot messages in the designated channels"""
+        monitored_channels = {self.channel_id}
+        if self.testdrive_channel_id:
+            monitored_channels.add(self.testdrive_channel_id)
+
+        if message.channel.id not in monitored_channels:
             return
 
         # Don't delete bot's own messages
@@ -67,9 +78,18 @@ class Bot(discord.Client):
         try:
             await message.delete()
         except discord.Forbidden:
-            logging.error(f"Cannot delete messages in channel {self.channel_id} - missing permissions")
+            logging.error(f"Cannot delete messages in channel {message.channel.id} - missing permissions")
         except Exception as e:
-            logging.error(f"Failed to delete message in channel {self.channel_id}: {e}")
+            logging.error(f"Failed to delete message in channel {message.channel.id}: {e}")
+
+    async def on_interaction(self, interaction: discord.Interaction) -> None:
+        """Route component interactions (buttons) to testdrive handler"""
+        if interaction.type == discord.InteractionType.application_command:
+            return
+
+        if interaction.type == discord.InteractionType.component:
+            if self.testdrive_handler:
+                await self.testdrive_handler.handle_interaction(interaction)
 
     async def _announce_presence(self) -> None:
         announcement = (
@@ -94,6 +114,18 @@ class Bot(discord.Client):
                 logging.error(f"Failed to announce in channel {self.channel_id}: {e}")
         else:
             logging.error(f"Announcement channel {self.channel_id} not found or not a text channel")
+
+    async def _announce_testdrive(self) -> None:
+        if not self.testdrive_handler or not self.testdrive_channel_id:
+            return
+
+        channel = self.get_channel(self.testdrive_channel_id)
+        if channel and isinstance(channel, discord.TextChannel):
+            await self.testdrive_handler.post_persistent_message(channel)
+        else:
+            logging.error(
+                f"Testdrive channel {self.testdrive_channel_id} not found or not a text channel"
+            )
 
     def _is_correct_channel(self, interaction: discord.Interaction) -> bool:
         return interaction.channel_id == self.channel_id
