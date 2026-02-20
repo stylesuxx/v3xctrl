@@ -16,8 +16,7 @@ chown $USER:$USER "/data/config"
 chown $USER:$USER "/data/config/config.json"
 chmod 640 "/data/config/config.json"
 
-# Grant capability to bind to privileged ports (port 80)
-setcap 'cap_net_bind_service=+ep' /opt/v3xctrl-python/bin/python3.11
+setcap -r /opt/v3xctrl-python/bin/python3.11 2>/dev/null || true
 
 if command -v systemctl >/dev/null 2>&1; then
   # Disable services that we do not need or are handled by other services
