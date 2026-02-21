@@ -2,6 +2,7 @@ package com.v3xctrl.viewer.ui.screens
 
 import android.app.Activity
 import android.content.pm.ActivityInfo
+import android.widget.Toast
 import android.content.res.Configuration
 import android.view.InputDevice
 import android.view.SurfaceHolder
@@ -35,6 +36,7 @@ import com.v3xctrl.viewer.input.GamepadController
 import com.v3xctrl.viewer.input.MotionController
 import com.v3xctrl.viewer.control.UDPReceiver
 import com.v3xctrl.viewer.control.ViewerState
+import com.v3xctrl.viewer.R
 import com.v3xctrl.viewer.messages.Heartbeat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -157,6 +159,19 @@ fun ViewerScreen(
         while (true) {
             delay(1000)
             viewerState.checkControlTimeout()
+        }
+    }
+
+    // Show toast when GStreamer pipeline restarts after error/EOS
+    LaunchedEffect(Unit) {
+        var lastCount = GstViewer.restartCount
+        while (true) {
+            delay(2000)
+            val count = GstViewer.restartCount
+            if (count > lastCount) {
+                lastCount = count
+                Toast.makeText(context, R.string.pipeline_restarted, Toast.LENGTH_SHORT).show()
+            }
         }
     }
 

@@ -101,6 +101,7 @@
     <string name="controls_section">Controls</string>
     <string name="connection_lost">Connection lost</string>
     <string name="no_video_signal">No video signal</string>
+    <string name="pipeline_restarted">Video pipeline restarted</string>
     <string name="no_control_signal">No control signal</string>
 
     <!-- Connection -->
