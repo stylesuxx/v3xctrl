@@ -21,6 +21,10 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -54,6 +58,9 @@ fun NetworkScreen(
             )
         }
     ) { innerPadding ->
+        var relayUrlText by remember { mutableStateOf(settings.relayUrl) }
+        var sessionIdText by remember { mutableStateOf(settings.sessionId) }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -68,8 +75,11 @@ fun NetworkScreen(
             )
 
             OutlinedTextField(
-                value = settings.relayUrl,
-                onValueChange = { onSettingsChange(settings.copy(relayUrl = it)) },
+                value = relayUrlText,
+                onValueChange = {
+                    relayUrlText = it
+                    onSettingsChange(settings.copy(relayUrl = it))
+                },
                 label = { Text(stringResource(R.string.relay_url)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
@@ -78,8 +88,11 @@ fun NetworkScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedTextField(
-                value = settings.sessionId,
-                onValueChange = { onSettingsChange(settings.copy(sessionId = it)) },
+                value = sessionIdText,
+                onValueChange = {
+                    sessionIdText = it
+                    onSettingsChange(settings.copy(sessionId = it))
+                },
                 label = { Text(stringResource(R.string.session_id)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true

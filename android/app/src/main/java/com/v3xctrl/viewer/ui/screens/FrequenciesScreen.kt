@@ -21,6 +21,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -54,6 +58,8 @@ fun FrequenciesScreen(
             )
         }
     ) { innerPadding ->
+        var controlHzText by remember { mutableStateOf(settings.controlHz.toString()) }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -64,11 +70,14 @@ fun FrequenciesScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedTextField(
-                value = settings.controlHz.toString(),
+                value = controlHzText,
                 onValueChange = { input ->
                     val filtered = input.filter { c -> c.isDigit() }
-                    val value = filtered.toIntOrNull() ?: 0
-                    onSettingsChange(settings.copy(controlHz = value.coerceIn(1, 100)))
+                    controlHzText = filtered
+                    val value = filtered.toIntOrNull()
+                    if (value != null) {
+                        onSettingsChange(settings.copy(controlHz = value.coerceIn(1, 100)))
+                    }
                 },
                 label = { Text(stringResource(R.string.control_hz)) },
                 suffix = { Text("Hz") },
