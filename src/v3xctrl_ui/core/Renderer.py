@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, Tuple, List
+from typing import TYPE_CHECKING, Callable, Optional, Tuple, List
 import time
 import math
 
@@ -9,9 +9,10 @@ import pygame
 if TYPE_CHECKING:
     from v3xctrl_ui.core.AppState import AppState
 from v3xctrl_ui.utils.colors import BLACK, RED, WHITE
-from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT_24, BOLD_MONO_FONT_32
+from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT_24, BOLD_MONO_FONT_32, BOLD_MONO_FONT_48
 from v3xctrl_ui.utils.helpers import get_external_ip
 from v3xctrl_ui.menu.Menu import Menu
+from v3xctrl_ui.menu.input.Button import Button
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.network.NetworkController import NetworkController
 
@@ -35,6 +36,22 @@ class Renderer:
         self.center_x = 0
         self.center_y = 0
 
+        # Connect screen button (created once, repositioned on render)
+        self._connect_button = Button(
+            label="CONNECT",
+            font=BOLD_MONO_FONT_48,
+            callback=lambda: None,
+            width=300,
+            height=90,
+        )
+
+    @property
+    def connect_button(self) -> Button:
+        return self._connect_button
+
+    def set_connect_callback(self, callback: Callable[[], None]) -> None:
+        self._connect_button.callback = callback
+
     def render_all(
         self,
         state: 'AppState',
@@ -49,6 +66,12 @@ class Renderer:
         screen_size = state.screen.get_size()
         self.center_x = screen_size[0] // 2
         self.center_y = screen_size[1] // 2
+
+        if not state.model.user_connected:
+            self._render_connect_screen(state.screen)
+            self._render_menu(state.screen, state.menu)
+            pygame.display.flip()
+            return
 
         frame = self._get_video_frame(network_controller)
 
@@ -137,6 +160,16 @@ class Renderer:
                 val_surf, val_rect = BOLD_MONO_FONT_24.render(val, WHITE)
                 val_rect.topleft = (val_x, y)
                 screen.blit(val_surf, val_rect)
+
+    def _render_connect_screen(self, screen: pygame.Surface) -> None:
+        """Render a black screen with only the centered Connect button."""
+        screen.fill(BLACK)
+        btn_w, btn_h = self._connect_button.get_size()
+        self._connect_button.set_position(
+            self.center_x - btn_w // 2,
+            self.center_y - btn_h // 2,
+        )
+        self._connect_button.draw(screen)
 
     def _render_no_control_signal_screen(self, screen: pygame.Surface) -> None:
         surface, rect = BOLD_MONO_FONT_32.render("NO CONTROL SIGNAL", RED)

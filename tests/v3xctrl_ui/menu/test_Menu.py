@@ -980,5 +980,138 @@ class TestMenu(unittest.TestCase):
         self.assertIsNone(menu._result_start_time)
 
 
+    def test_collect_hover_widgets_flat(self, mock_button_class, mock_pygame):
+        """Test _collect_hover_widgets with flat elements (no children)"""
+        self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
+            callback=self.mock_callback,
+            callback_quit=self.mock_callback_quit,
+            telemetry_context=self.telemetry_context
+        )
+
+        widget_a = MagicMock()
+        widget_b = MagicMock()
+        del widget_a.hover_children
+        del widget_b.hover_children
+
+        result = menu._collect_hover_widgets([widget_a, widget_b])
+        self.assertEqual(result, [widget_a, widget_b])
+
+    def test_collect_hover_widgets_nested(self, mock_button_class, mock_pygame):
+        """Test _collect_hover_widgets recurses into hover_children"""
+        self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
+            callback=self.mock_callback,
+            callback_quit=self.mock_callback_quit,
+            telemetry_context=self.telemetry_context
+        )
+
+        child = MagicMock()
+        del child.hover_children
+
+        parent = MagicMock()
+        parent.hover_children = [child]
+
+        result = menu._collect_hover_widgets([parent])
+        self.assertIn(parent, result)
+        self.assertIn(child, result)
+
+    def test_update_cursor_disabled_button_shows_no(self, mock_button_class, mock_pygame):
+        """Test _update_cursor shows NO cursor for disabled hovered button"""
+        mock_pygame_module, _ = self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
+            callback=self.mock_callback,
+            callback_quit=self.mock_callback_quit,
+            telemetry_context=self.telemetry_context
+        )
+
+        menu.save_button.hovered = True
+        menu.save_button.disabled = True
+        menu.save_button.HOVER_CURSOR = mock_pygame_module.SYSTEM_CURSOR_HAND
+
+        menu._update_cursor(None)
+
+        mock_pygame_module.mouse.set_cursor.assert_called_with(
+            mock_pygame_module.SYSTEM_CURSOR_NO
+        )
+
+    def test_update_cursor_tab_bar_enabled(self, mock_button_class, mock_pygame):
+        """Test _update_cursor shows HAND cursor for enabled tab"""
+        mock_pygame_module, _ = self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
+            callback=self.mock_callback,
+            callback_quit=self.mock_callback_quit,
+            telemetry_context=self.telemetry_context
+        )
+
+        # Ensure no footer button is hovered
+        menu.quit_button.hovered = False
+        menu.save_button.hovered = False
+        menu.exit_button.hovered = False
+
+        # Make first tab's rect report collidepoint=True
+        menu.tabs[0].rect.collidepoint.return_value = True
+        mock_pygame_module.mouse.get_pos.return_value = (50, 30)
+
+        menu._update_cursor(None)
+
+        mock_pygame_module.mouse.set_cursor.assert_called_with(
+            mock_pygame_module.SYSTEM_CURSOR_HAND
+        )
+
+    def test_update_cursor_tab_bar_disabled_tabs(self, mock_button_class, mock_pygame):
+        """Test _update_cursor shows NO cursor when tabs are disabled"""
+        mock_pygame_module, _ = self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
+            callback=self.mock_callback,
+            callback_quit=self.mock_callback_quit,
+            telemetry_context=self.telemetry_context
+        )
+
+        menu.quit_button.hovered = False
+        menu.save_button.hovered = False
+        menu.exit_button.hovered = False
+        menu.disable_tabs = True
+
+        menu.tabs[0].rect.collidepoint.return_value = True
+        mock_pygame_module.mouse.get_pos.return_value = (50, 30)
+
+        menu._update_cursor(None)
+
+        mock_pygame_module.mouse.set_cursor.assert_called_with(
+            mock_pygame_module.SYSTEM_CURSOR_NO
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -39,6 +39,7 @@ class ApplicationModel:
     running: bool = True
 
     # Network
+    user_connected: bool = False
     pending_settings: Optional['Settings'] = None
 
 

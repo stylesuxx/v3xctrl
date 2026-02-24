@@ -45,6 +45,7 @@ class AppState:
 
         self.osd = OSD(settings, self.telemetry_context)
         self.renderer = Renderer(self.size, self.settings)
+        self.renderer.set_connect_callback(self.connect)
 
         # Network coordination
         self.network_coordinator = NetworkCoordinator(self.model, self.osd)
@@ -70,12 +71,12 @@ class AppState:
             send_command=self.network_coordinator.send_command,
             settings=settings,
             telemetry_context=self.telemetry_context,
-            gamepad_controller=self.input_controller.gamepad_controller
+            gamepad_controller=self.input_controller.gamepad_controller,
+            connect_button=self.renderer.connect_button,
+            model=self.model,
         )
 
         self._setup_signal_handling()
-
-        self.network_coordinator.setup_ports()
 
         start_time = time.monotonic()
         self.model.last_control_update = start_time
@@ -88,6 +89,14 @@ class AppState:
     @property
     def screen(self) -> pygame.Surface:
         return self.display_controller.get_screen()
+
+    def connect(self) -> None:
+        """Initiate network connection. Called when user clicks Connect."""
+        if self.model.user_connected:
+            return
+
+        self.model.user_connected = True
+        self.network_coordinator.setup_ports()
 
     def update_settings(self, new_settings: Optional[Settings] = None) -> None:
         """
@@ -104,7 +113,12 @@ class AppState:
     def update(self) -> None:
         self.network_coordinator.process_callbacks()
         self.settings_controller.check_network_restart_complete()
-        self.display_controller.update_cursor_visibility(self.menu.visible)
+        self.display_controller.update_cursor_visibility(
+            self.menu.visible or not self.model.user_connected
+        )
+
+        if not self.model.user_connected:
+            return
 
         now = time.monotonic()
         self.model.loop_history.append(now)
@@ -139,17 +153,18 @@ class AppState:
         return self.event_controller.handle_events()
 
     def render(self) -> None:
-        # Update OSD with network data
-        data_left = self.network_coordinator.get_data_queue_size()
-        if self.network_coordinator.has_server_error():
-            self.osd.update_debug_status("fail")
+        if self.model.user_connected:
+            # Update OSD with network data
+            data_left = self.network_coordinator.get_data_queue_size()
+            if self.network_coordinator.has_server_error():
+                self.osd.update_debug_status("fail")
 
-        buffer_size = self.network_coordinator.get_video_buffer_size()
-        self.osd.update_buffer_queue(buffer_size)
+            buffer_size = self.network_coordinator.get_video_buffer_size()
+            self.osd.update_buffer_queue(buffer_size)
 
-        self.osd.update_data_queue(data_left)
-        self.osd.set_control(self.model.throttle, self.model.steering)
-        self.osd.set_spectator_mode(self.network_coordinator.is_spectator())
+            self.osd.update_data_queue(data_left)
+            self.osd.set_control(self.model.throttle, self.model.steering)
+            self.osd.set_spectator_mode(self.network_coordinator.is_spectator())
 
         self.renderer.render_all(
             self,

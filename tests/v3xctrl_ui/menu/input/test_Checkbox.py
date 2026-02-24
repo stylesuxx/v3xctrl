@@ -345,5 +345,33 @@ class TestCheckbox(unittest.TestCase):
         self.assertEqual(self.change_called_with, [True])
 
 
+    def test_hover_cursor_class_attribute(self):
+        self.assertEqual(Checkbox.HOVER_CURSOR, pygame.SYSTEM_CURSOR_HAND)
+
+    def test_hover_tracking_inside(self):
+        checkbox = Checkbox("Hover", font=self.font, checked=False, on_change=self.on_change)
+        checkbox.set_position(50, 50)
+
+        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {'pos': (60, 60)})
+        self.assertTrue(checkbox.handle_event(motion_event))
+        self.assertTrue(checkbox.hovered)
+
+    def test_hover_tracking_outside(self):
+        checkbox = Checkbox("Hover", font=self.font, checked=False, on_change=self.on_change)
+        checkbox.set_position(50, 50)
+
+        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {'pos': (300, 300)})
+        self.assertFalse(checkbox.handle_event(motion_event))
+        self.assertFalse(checkbox.hovered)
+
+    def test_disabled_checkbox_still_tracks_hover(self):
+        checkbox = Checkbox("Hover", font=self.font, checked=False, on_change=self.on_change)
+        checkbox.disabled = True
+
+        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {'pos': checkbox.box_rect.center})
+        self.assertTrue(checkbox.handle_event(motion_event))
+        self.assertTrue(checkbox.hovered)
+
+
 if __name__ == '__main__':
     unittest.main()
