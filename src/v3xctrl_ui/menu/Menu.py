@@ -157,6 +157,9 @@ class Menu:
         if tab:
             tab.view.handle_event(event)
 
+        if event.type == pygame.MOUSEMOTION:
+            self._update_cursor(tab)
+
     def draw(self, surface: Surface) -> None:
         surface.blit(self.background, (0, 0))
 
@@ -212,6 +215,7 @@ class Menu:
 
         self.active_tab = self.tabs[0].name
         self.tab_bar_dirty = True
+        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
 
     def update_settings_reference(self, settings: Settings) -> None:
         """Update settings reference for menu and all tabs."""
@@ -353,6 +357,46 @@ class Menu:
             self.save_button.enable()
             self.exit_button.enable()
             self.quit_button.enable()
+
+    def _update_cursor(self, tab: Optional[TabEntry]) -> None:
+        """Set mouse cursor based on which widget is hovered."""
+        for btn in (self.quit_button, self.save_button, self.exit_button):
+            if btn.hovered and btn.HOVER_CURSOR is not None:
+                if btn.disabled:
+                    pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_NO)
+                else:
+                    pygame.mouse.set_cursor(btn.HOVER_CURSOR)
+                return
+
+        # Check tab bar
+        for entry in self.tabs:
+            if entry.rect.collidepoint(pygame.mouse.get_pos()):
+                if self.disable_tabs or not entry.enabled:
+                    pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_NO)
+                else:
+                    pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+                return
+
+        if tab:
+            for widget in self._collect_hover_widgets(tab.view.elements):
+                if widget.hovered and getattr(widget, 'HOVER_CURSOR', None) is not None:
+                    if getattr(widget, 'disabled', False):
+                        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_NO)
+                    else:
+                        pygame.mouse.set_cursor(widget.HOVER_CURSOR)
+                    return
+
+        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+
+    def _collect_hover_widgets(self, elements) -> list:
+        """Recursively collect all widgets that can affect cursor state."""
+        result = []
+        for element in elements:
+            result.append(element)
+            children = getattr(element, 'hover_children', [])
+            if children:
+                result.extend(self._collect_hover_widgets(children))
+        return result
 
     def _get_active_tab(self) -> TabEntry:
         return next((t for t in self.tabs if t.name == self.active_tab), None)

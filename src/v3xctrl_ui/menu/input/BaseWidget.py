@@ -1,9 +1,13 @@
 from abc import ABC, abstractmethod
+from typing import Optional
+
 import pygame
 from pygame import Surface
 
 
 class BaseWidget(ABC):
+    HOVER_CURSOR: Optional[int] = None
+
     def __init__(self) -> None:
         self.x = 0
         self.y = 0
@@ -11,6 +15,7 @@ class BaseWidget(ABC):
         self.visible = True
         self.focused = False
         self.disabled = False
+        self.hovered = False
 
     @abstractmethod
     def handle_event(self, event: pygame.event.Event) -> bool:

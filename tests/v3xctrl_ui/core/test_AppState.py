@@ -110,8 +110,8 @@ class TestAppState(unittest.TestCase):
         mock_coordinator_cls.assert_called_once()
         mock_coordinator.create_network_controller.assert_called_once_with(self.settings)
 
-        # Check NetworkManager.setup_ports was called
-        mock_coordinator.setup_ports.assert_called_once()
+        # setup_ports is NOT called during init — only when user clicks Connect
+        mock_coordinator.setup_ports.assert_not_called()
 
     def test_initialization_sets_timing_intervals(
         self, mock_coordinator_cls, mock_renderer_cls,
@@ -127,9 +127,10 @@ class TestAppState(unittest.TestCase):
         self.assertEqual(app.model.latency_interval, 1.0 / 1)
         self.assertEqual(app.timing_controller.main_loop_fps, 60)
 
+    @patch("pygame.mouse.set_cursor")
     @patch("v3xctrl_ui.core.AppState.pygame.display.set_mode")
     def test_update_settings_updates_all_components(
-        self, mock_set_mode,
+        self, mock_set_mode, mock_set_cursor,
         mock_coordinator_cls, mock_renderer_cls,
         mock_osd_cls, mock_input_cls, mock_display_cls
     ):
@@ -174,6 +175,8 @@ class TestAppState(unittest.TestCase):
             mock_input_cls, mock_display_cls
         )
 
+        app.model.user_connected = True
+
         import time
         now = time.monotonic()
 
@@ -217,6 +220,7 @@ class TestAppState(unittest.TestCase):
             mock_input_cls, mock_display_cls
         )
 
+        app.model.user_connected = True
         mock_coordinator.get_data_queue_size.return_value = 5
         mock_coordinator.has_server_error.return_value = False
 
@@ -235,6 +239,7 @@ class TestAppState(unittest.TestCase):
             mock_input_cls, mock_display_cls
         )
 
+        app.model.user_connected = True
         mock_coordinator.has_server_error.return_value = True
         app.render()
 
@@ -296,9 +301,10 @@ class TestAppState(unittest.TestCase):
         self.assertTrue(app.handle_events())
         mock_menu.handle_event.assert_called_once_with(some_event)
 
+    @patch("pygame.mouse.set_cursor")
     @patch("v3xctrl_ui.core.AppState.pygame.display.set_mode")
     def test_timing_intervals_calculation(
-        self, mock_set_mode,
+        self, mock_set_mode, mock_set_cursor,
         mock_coordinator_cls, mock_renderer_cls,
         mock_osd_cls, mock_input_cls, mock_display_cls
     ):
@@ -483,7 +489,8 @@ class TestAppState(unittest.TestCase):
         self.assertEqual(app.model.loop_history.maxlen, 300)
         self.assertEqual(len(app.model.loop_history), 0)
 
-        # Update should add to history
+        # Update should add to history (requires user_connected)
+        app.model.user_connected = True
         app.update()
         self.assertEqual(len(app.model.loop_history), 1)
 
@@ -501,6 +508,8 @@ class TestAppState(unittest.TestCase):
 
         # Make read_inputs raise an exception
         mock_input.read_inputs.side_effect = Exception("Input error")
+
+        app.model.user_connected = True
 
         import time
         app.model.last_control_update = time.monotonic() - 1.0
