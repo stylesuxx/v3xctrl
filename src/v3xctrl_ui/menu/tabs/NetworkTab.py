@@ -4,12 +4,16 @@ from pygame import Surface
 
 from v3xctrl_ui.utils.fonts import LABEL_FONT, MONO_FONT
 from v3xctrl_ui.utils.i18n import t
+import pygame
+
 from v3xctrl_ui.menu.input import (
   BaseInput,
   BaseWidget,
+  Button,
   Checkbox,
   NumberInput,
-  TextInput
+  TextInput,
+  WidgetRow
 )
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_helper import is_int
@@ -52,6 +56,14 @@ class NetworkTab(Tab):
             font=LABEL_FONT, mono_font=MONO_FONT,
             on_change=self._on_relay_id_change
         )
+        self.paste_id_button = Button(
+            label=t("Paste ID"),
+            font=LABEL_FONT,
+            callback=self._on_paste_id,
+            height=self.relay_id_input.input_height
+        )
+        self.relay_id_row = WidgetRow([self.relay_id_input, self.paste_id_button])
+
         self.relay_enabled_checkbox = Checkbox(
             label=t("Use UDP Relay"), font=LABEL_FONT,
             checked=False,
@@ -76,7 +88,7 @@ class NetworkTab(Tab):
         ]
         self.relay_widgets: List[BaseInput | BaseWidget] = [
             self.relay_server_input,
-            self.relay_id_input,
+            self.relay_id_row,
             self.relay_enabled_checkbox,
             self.relay_spectator_checkbox
         ]
@@ -151,6 +163,14 @@ class NetworkTab(Tab):
 
     def _on_relay_id_change(self, value: str) -> None:
         self.relay["id"] = value
+
+    def _on_paste_id(self) -> None:
+        if pygame.scrap.get_init():
+            pasted = self.relay_id_input._get_clipboard_text()
+            if pasted:
+                self.relay_id_input.value = pasted
+                self.relay_id_input.cursor_pos = len(pasted)
+                self._on_relay_id_change(pasted)
 
     def _on_relay_spectator_change(self, value: bool) -> None:
         self.relay["spectator_mode"] = value

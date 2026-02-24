@@ -7,6 +7,7 @@ from .KeyMappingWidget import KeyMappingWidget
 from .NumberInput import NumberInput
 from .Select import Select
 from .TextInput import TextInput
+from .WidgetRow import WidgetRow
 
 __all__ = [
   "BaseInput",
@@ -18,4 +19,5 @@ __all__ = [
   "NumberInput",
   "Select",
   "TextInput",
+  "WidgetRow",
 ]
