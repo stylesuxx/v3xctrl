@@ -13,6 +13,17 @@ from v3xctrl_ui.menu.calibration.GamepadCalibrator import GamepadCalibrator
 from v3xctrl_ui.menu.calibration.defs import CalibrationStage, CalibratorState
 
 
+class MockClock:
+    def __init__(self):
+        self.time = 0.0
+
+    def __call__(self):
+        return self.time
+
+    def advance(self, seconds: float):
+        self.time += seconds
+
+
 class TestGamepadCalibrationWidgetIntegration(unittest.TestCase):
     """Integration tests for GamepadCalibrationWidget with real calibrator"""
 
@@ -23,6 +34,7 @@ class TestGamepadCalibrationWidgetIntegration(unittest.TestCase):
         pygame.freetype.init()
 
         self.font = pygame.freetype.Font(None, 16)
+        self.clock = MockClock()
 
         # Mock GamepadManager
         self.mock_manager = Mock()
@@ -56,6 +68,7 @@ class TestGamepadCalibrationWidgetIntegration(unittest.TestCase):
         self.widget._on_gamepads_changed(gamepads)
 
         self._click_calibrate_button()
+        self.widget.calibrator._clock = self.clock
 
         self.assertIsInstance(self.widget.calibrator, GamepadCalibrator)
         self.assertEqual(self.widget.calibrator.state, CalibratorState.ACTIVE)
@@ -69,6 +82,7 @@ class TestGamepadCalibrationWidgetIntegration(unittest.TestCase):
 
         self._click_calibrate_button()
         calibrator = self.widget.calibrator
+        calibrator._clock = self.clock
         dialog = self.widget.dialog
 
         # Initially dialog should not be visible
@@ -97,6 +111,7 @@ class TestGamepadCalibrationWidgetIntegration(unittest.TestCase):
 
         self._click_calibrate_button()
         calibrator = self.widget.calibrator
+        calibrator._clock = self.clock
 
         # Simulate complete calibration workflow
         # 1. Steering detection and range calibration
@@ -139,7 +154,7 @@ class TestGamepadCalibrationWidgetIntegration(unittest.TestCase):
         self.widget.invert_axes["throttle"] = False
 
         # Create a completed calibrator with settings
-        calibrator = GamepadCalibrator()
+        calibrator = GamepadCalibrator(clock=self.clock)
         calibrator.state = CalibratorState.COMPLETE
         calibrator.axes["steering"].axis = 0
         calibrator.axes["steering"].max_values = [-1.0, 1.0, 0.5, -0.8]
@@ -194,28 +209,23 @@ class TestGamepadCalibrationWidgetIntegration(unittest.TestCase):
         # Simulate axis movement for detection
         moved_axes = baseline.copy()
         moved_axes[axis_index] = 0.5
-        for _ in range(GamepadCalibrator.FRAME_CONFIRMATION_COUNT + 1):
-            calibrator.update(moved_axes)
+        calibrator.update(moved_axes)
+        self.clock.advance(GamepadCalibrator.DETECTION_TIME)
+        calibrator.update(moved_axes)
 
-        # Simulate range calibration with stable periods
+        # Simulate range calibration with varied values
         test_values = [0.0, -1.0, 1.0, 0.5, -0.8, 0.8]
         for value in test_values:
             axes = baseline.copy()
             axes[axis_index] = value
             calibrator.update(axes)
 
-        # Add stable frames at both extremes
-        # Stable at max
-        max_axes = baseline.copy()
-        max_axes[axis_index] = 1.0
-        for _ in range(GamepadCalibrator.STABLE_FRAME_COUNT + 1):
-            calibrator.update(max_axes)
-
-        # Stable at min
-        min_axes = baseline.copy()
-        min_axes[axis_index] = -1.0
-        for _ in range(GamepadCalibrator.STABLE_FRAME_COUNT + 1):
-            calibrator.update(min_axes)
+        # Stabilize at final value to trigger completion
+        stable_axes = baseline.copy()
+        stable_axes[axis_index] = 0.8
+        calibrator.update(stable_axes)
+        self.clock.advance(GamepadCalibrator.STABLE_TIME)
+        calibrator.update(stable_axes)
 
         # If this is the final stage (brake), complete automatically
         if auto_complete and hasattr(calibrator, '_complete'):
@@ -223,10 +233,19 @@ class TestGamepadCalibrationWidgetIntegration(unittest.TestCase):
 
     def _simulate_steering_center_detection(self, calibrator):
         """Helper method to simulate steering center detection"""
-        center_axes = [0.0] * 4  # Assuming steering is on axis 0
+        center_axes = [0.0] * 4
 
-        # Simulate stable center position
-        for _ in range(GamepadCalibrator.STABLE_FRAME_COUNT + GamepadCalibrator.IDLE_SAMPLE_COUNT + 1):
+        # First frame sets idle_last
+        calibrator.update(center_axes)
+
+        # Second frame starts idle_stable_since
+        calibrator.update(center_axes)
+
+        # Advance past STABLE_TIME to start collecting samples
+        self.clock.advance(GamepadCalibrator.STABLE_TIME)
+
+        # Collect IDLE_SAMPLE_COUNT samples
+        for _ in range(GamepadCalibrator.IDLE_SAMPLE_COUNT):
             calibrator.update(center_axes)
 
     def _click_calibrate_button(self):
