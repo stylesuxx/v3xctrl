@@ -1,14 +1,18 @@
 """Event handling controller for pygame events."""
 import logging
-from typing import Callable, Optional
+from typing import TYPE_CHECKING, Callable, Optional
 
 import pygame
 
 from v3xctrl_ui.core.controllers.input.GamepadController import GamepadController
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 from v3xctrl_ui.menu.Menu import Menu
+from v3xctrl_ui.menu.input.Button import Button
 from v3xctrl_ui.network.Commands import Commands
 from v3xctrl_ui.core.Settings import Settings
+
+if TYPE_CHECKING:
+    from v3xctrl_ui.core.dataclasses import ApplicationModel
 
 
 class EventController:
@@ -21,7 +25,9 @@ class EventController:
         send_command: Callable,
         settings: Settings,
         telemetry_context: TelemetryContext,
-        gamepad_controller: Optional[GamepadController] = None
+        gamepad_controller: Optional[GamepadController] = None,
+        connect_button: Optional[Button] = None,
+        model: Optional['ApplicationModel'] = None,
     ):
         self.on_quit = on_quit
         self.on_toggle_fullscreen = on_toggle_fullscreen
@@ -31,6 +37,8 @@ class EventController:
         self.settings = settings
         self.telemetry_context = telemetry_context
         self.gamepad_controller = gamepad_controller
+        self.connect_button = connect_button
+        self.model = model
 
         self._load_keyboard_controls()
 
@@ -58,8 +66,8 @@ class EventController:
                         # [F11] - Toggle Fullscreen
                         self.on_toggle_fullscreen()
 
-                    case _ if not self.menu.visible:
-                        # Only process custom keyboard controls when not in menu
+                    case _ if not self.menu.visible and self._is_connected():
+                        # Only process custom keyboard controls when connected and not in menu
                         match event.key:
                             case self.trim_increase_key:
                                 self.send_command(Commands.trim_increase(), self._on_command_ack)
@@ -73,8 +81,8 @@ class EventController:
                                 else:
                                     self.send_command(Commands.recording_start(), self._on_command_ack)
 
-            elif event.type == pygame.JOYBUTTONUP and not self.menu.visible:
-                # Only process gamepad button controls when not in menu
+            elif event.type == pygame.JOYBUTTONUP and not self.menu.visible and self._is_connected():
+                # Only process gamepad button controls when connected and not in menu
                 if self.gamepad_controller:
                     trim_increase_btn = self.gamepad_controller.get_button_mapping("trim_increase")
                     trim_decrease_btn = self.gamepad_controller.get_button_mapping("trim_decrease")
@@ -92,6 +100,14 @@ class EventController:
                         else:
                             self.send_command(Commands.recording_start(), self._on_command_ack)
 
+            # Route events to connect button when on connect screen
+            if (
+                self.connect_button is not None
+                and not self._is_connected()
+                and not self.menu.visible
+            ):
+                self.connect_button.handle_event(event)
+
             if self.menu.visible:
                 self.menu.handle_event(event)
 
@@ -106,6 +122,9 @@ class EventController:
 
     def _on_command_ack(self, success: bool) -> None:
         logging.info(f"Received command ack: {success}")
+
+    def _is_connected(self) -> bool:
+        return self.model is not None and self.model.user_connected
 
     def _load_keyboard_controls(self) -> None:
         keyboard_controls = self.settings.get("controls", {}).get("keyboard", {})

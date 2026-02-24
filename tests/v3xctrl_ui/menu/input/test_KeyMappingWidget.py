@@ -89,5 +89,23 @@ class TestKeyMappingWidget(unittest.TestCase):
         self.assertTrue(self.widget.remap_button.disabled)
 
 
+    def test_hover_children_contains_remap_button(self):
+        self.assertEqual(self.widget.hover_children, [self.widget.remap_button])
+
+    def test_remap_button_hover_tracked(self):
+        """MOUSEMOTION over remap button sets button.hovered for cursor management"""
+        pos = self.widget.remap_button.rect.center
+        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {'pos': pos})
+        self.widget.handle_event(motion_event)
+
+        self.assertTrue(self.widget.remap_button.hovered)
+
+    def test_remap_button_hover_outside(self):
+        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {'pos': (0, 0)})
+        self.widget.handle_event(motion_event)
+
+        self.assertFalse(self.widget.remap_button.hovered)
+
+
 if __name__ == "__main__":
     unittest.main()

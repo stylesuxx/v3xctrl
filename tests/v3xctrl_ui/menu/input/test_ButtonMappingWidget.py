@@ -164,5 +164,26 @@ class TestButtonMappingWidget(unittest.TestCase):
         self.assertEqual(self.widget.reset_button.rect.x, expected_reset_x)
 
 
+    def test_hover_children_contains_both_buttons(self):
+        children = self.widget.hover_children
+        self.assertEqual(len(children), 2)
+        self.assertIn(self.widget.remap_button, children)
+        self.assertIn(self.widget.reset_button, children)
+
+    def test_remap_button_hover_tracked(self):
+        pos = self.widget.remap_button.rect.center
+        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {'pos': pos})
+        self.widget.handle_event(motion_event)
+
+        self.assertTrue(self.widget.remap_button.hovered)
+
+    def test_reset_button_hover_tracked(self):
+        pos = self.widget.reset_button.rect.center
+        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {'pos': pos})
+        self.widget.handle_event(motion_event)
+
+        self.assertTrue(self.widget.reset_button.hovered)
+
+
 if __name__ == "__main__":
     unittest.main()

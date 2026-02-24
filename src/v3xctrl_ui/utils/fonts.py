@@ -30,6 +30,7 @@ BOLD_MONO_FONT = _load_font("RussoOne-Regular.ttf", 15)
 BOLD_MONO_FONT_14 = _load_font("RussoOne-Regular.ttf", 14)
 BOLD_MONO_FONT_24 = _load_font("RussoOne-Regular.ttf", 24)
 BOLD_MONO_FONT_32 = _load_font("RussoOne-Regular.ttf", 32)
+BOLD_MONO_FONT_48 = _load_font("RussoOne-Regular.ttf", 48)
 
 # Roboto fonts
 MAIN_FONT = _load_font("Roboto-Bold.ttf", 30)

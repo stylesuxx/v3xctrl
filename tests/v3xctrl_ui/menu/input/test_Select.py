@@ -162,8 +162,12 @@ class TestSelect(unittest.TestCase):
         })
         self.assertFalse(self.select.handle_event(click_event))
 
+    def test_handle_event_with_empty_options_still_tracks_hover(self):
+        self.select.set_options([])
+
         motion_event = Event(MOUSEMOTION, {"pos": self.select.rect.center})
-        self.assertFalse(self.select.handle_event(motion_event))
+        self.assertTrue(self.select.handle_event(motion_event))
+        self.assertTrue(self.select.hovered)
 
     def test_handle_event_when_disabled(self):
         self.select.disable()
@@ -174,8 +178,12 @@ class TestSelect(unittest.TestCase):
         })
         self.assertFalse(self.select.handle_event(click_event))
 
+    def test_handle_event_when_disabled_still_tracks_hover(self):
+        self.select.disable()
+
         motion_event = Event(MOUSEMOTION, {"pos": self.select.rect.center})
-        self.assertFalse(self.select.handle_event(motion_event))
+        self.assertTrue(self.select.handle_event(motion_event))
+        self.assertTrue(self.select.hovered)
 
     def test_handle_event_non_left_click(self):
         right_click = Event(MOUSEBUTTONDOWN, {"pos": self.select.rect.center, "button": 3})
@@ -199,7 +207,9 @@ class TestSelect(unittest.TestCase):
     def test_motion_when_not_expanded(self):
         self.select.expanded = False
         motion_event = Event(MOUSEMOTION, {"pos": self.select.rect.center})
-        self.assertFalse(self.select.handle_event(motion_event))
+        self.assertTrue(self.select.handle_event(motion_event))
+        self.assertTrue(self.select.hovered)
+        self.assertEqual(self.select.hover_index, -1)
 
     def test_set_options_with_negative_index(self):
         self.select.set_options(["Option1", "Option2"], selected_index=-1)
@@ -320,6 +330,33 @@ class TestSelect(unittest.TestCase):
         })
         self.select.handle_event(bottom_edge)
         self.assertEqual(self.select.hover_index, last_idx)
+
+
+    def test_hover_cursor_class_attribute(self):
+        self.assertEqual(Select.HOVER_CURSOR, pygame.SYSTEM_CURSOR_HAND)
+
+    def test_hover_tracking_on_rect(self):
+        motion_event = Event(MOUSEMOTION, {"pos": self.select.rect.center})
+        self.assertTrue(self.select.handle_event(motion_event))
+        self.assertTrue(self.select.hovered)
+
+    def test_hover_tracking_outside_rect(self):
+        motion_event = Event(MOUSEMOTION, {"pos": (0, 0)})
+        self.assertFalse(self.select.handle_event(motion_event))
+        self.assertFalse(self.select.hovered)
+
+    def test_hover_no_rect(self):
+        """Select without set_position has no rect — hover should be False"""
+        new_select = Select(
+            label="Test",
+            label_width=100,
+            length=200,
+            font=self.font,
+            callback=lambda x: None
+        )
+        motion_event = Event(MOUSEMOTION, {"pos": (50, 50)})
+        self.assertFalse(new_select.handle_event(motion_event))
+        self.assertFalse(new_select.hovered)
 
 
 if __name__ == "__main__":
