@@ -561,12 +561,16 @@ class Streamer:
         # which is not caught by BUFFER probes.
         if self.timer.enabled:
             payloader_pad = payloader.get_static_pad("sink")
-            payloader_pad.add_probe(Gst.PadProbeType.BUFFER, self._on_udp_buffer)
+            payloader_pad.add_probe(Gst.PadProbeType.BUFFER, self._on_payloader_in)
 
         udpsink = Gst.ElementFactory.make("udpsink", "udpsink")
         if not udpsink:
             logger.error("Failed to create udpsink")
             return False
+
+        if self.timing_enabled:
+            udpsink_pad = udpsink.get_static_pad("sink")
+            udpsink_pad.add_probe(Gst.PadProbeType.BUFFER_LIST, self._on_udpsink_buffer_list)
 
         udpsink.set_property("host", self.host)
         udpsink.set_property("port", self.port)
@@ -699,3 +703,115 @@ class Streamer:
         self.timer.on_udp_buffer(buffer.pts)
 
         return Gst.PadProbeReturn.OK
+
+    def _on_payloader_in(self, pad, info):
+        """Track payloader input timing."""
+        buffer = info.get_buffer()
+        pts = buffer.pts
+
+        if pts not in self.timing_data:
+            self.timing_debug['udp_miss'] += 1
+            return Gst.PadProbeReturn.OK
+
+        timing = self.timing_data[pts]
+        self.timing_debug['udp_probe'] += 1
+
+        if 'source' not in timing or 'capsfilter' not in timing or 'encoder' not in timing:
+            self.timing_debug['incomplete'] += 1
+            return Gst.PadProbeReturn.OK
+
+        timing['payloader_in'] = time.monotonic()
+
+        return Gst.PadProbeReturn.OK
+
+    def _on_udpsink_buffer_list(self, pad, info):
+        """Track udpsink input timing and calculate pipeline latency."""
+        buffer_list = info.get_buffer_list()
+        if buffer_list.length() == 0:
+            return Gst.PadProbeReturn.OK
+
+        pts = buffer_list.get(0).pts
+
+        if pts not in self.timing_data:
+            return Gst.PadProbeReturn.OK
+
+        timing = self.timing_data[pts]
+
+        if 'payloader_in' not in timing:
+            return Gst.PadProbeReturn.OK
+
+        now = time.monotonic()
+        self.timing_data.pop(pts)
+
+        capture_time = timing.get('capture_delay', 0)
+        capsfilter_time = (timing['capsfilter'] - timing['source']) * 1000
+        encode_time = (timing['encoder'] - timing['capsfilter']) * 1000
+        package_time = (timing['payloader_in'] - timing['encoder']) * 1000
+        payloader_time = (now - timing['payloader_in']) * 1000
+
+        self.timing_stats['capture'].append(capture_time)
+        self.timing_stats['capsfilter'].append(capsfilter_time)
+        self.timing_stats['encode'].append(encode_time)
+        self.timing_stats['package'].append(package_time)
+        self.timing_stats['payloader'].append(payloader_time)
+
+        # Log periodically (time-based)
+        now = time.monotonic()
+        if now - self.timing_last_log >= self.timing_log_interval:
+            self._log_timing_stats()
+            self.timing_last_log = now
+
+        # Clean up old entries (in case of dropped frames)
+        if len(self.timing_data) > 100:
+            oldest_pts = min(self.timing_data.keys())
+            del self.timing_data[oldest_pts]
+
+        return Gst.PadProbeReturn.OK
+
+    def _log_timing_stats(self) -> None:
+        """Log timing statistics."""
+        if not self.timing_stats['capture']:
+            return
+
+        def stats(data):
+            if not data:
+                return 0, 0, 0
+            return min(data), sum(data) / len(data), max(data)
+
+        cap_min, cap_avg, cap_max = stats(self.timing_stats['capture'])
+        enc_min, enc_avg, enc_max = stats(self.timing_stats['encode'])
+        pkg_min, pkg_avg, pkg_max = stats(self.timing_stats['package'])
+        pay_min, pay_avg, pay_max = stats(self.timing_stats['payloader'])
+
+        total_avg = cap_avg + enc_avg + pkg_avg + pay_avg
+        frame_count = len(self.timing_stats['capture'])
+        interval = time.monotonic() - self.timing_last_log
+        fps = frame_count / interval if interval > 0 else 0
+
+        logging.debug(
+            f"[TIMING] capture: {cap_avg:.1f}ms | "
+            f"encode: {enc_avg:.1f}ms | "
+            f"package: {pkg_avg:.1f}ms | "
+            f"payloader: {pay_avg:.1f}ms | "
+            f"total: {total_avg:.1f}ms | "
+            f"fps: {fps:.1f} ({frame_count} frames)"
+        )
+
+        # Reset stats after logging
+        self.timing_debug = {
+            'source_probe': 0,
+            'capsfilter_probe': 0,
+            'capsfilter_miss': 0,
+            'encoder_probe': 0,
+            'encoder_miss': 0,
+            'udp_probe': 0,
+            'udp_miss': 0,
+            'incomplete': 0,
+        }
+        self.timing_stats = {
+            'capture': [],
+            'capsfilter': [],
+            'encode': [],
+            'package': [],
+            'payloader': [],
+        }
