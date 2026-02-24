@@ -20,16 +20,16 @@ class CalibratorState(Enum):
 class AxisCalibrationData:
     axis: Optional[int] = None
     baseline: Optional[List[float]] = None
-    detection_frames: int = 0
+    detection_start: Optional[float] = None
 
     max_values: List[float] = field(default_factory=list[float])
 
     max_last: Optional[float] = None
-    max_stable: int = 0
+    max_stable_since: Optional[float] = None
 
     min_last: Optional[float] = None
-    min_stable: int = 0
+    min_stable_since: Optional[float] = None
 
     idle_last: Optional[float] = None
-    idle_stable: int = 0
+    idle_stable_since: Optional[float] = None
     idle_samples: List[float] = field(default_factory=list[float])

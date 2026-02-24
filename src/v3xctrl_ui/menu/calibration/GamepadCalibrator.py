@@ -1,4 +1,5 @@
 import logging
+import time
 
 from typing import Optional, Callable, List, Dict, Tuple
 
@@ -10,8 +11,8 @@ from v3xctrl_ui.menu.calibration.CalibrationSteps import CalibrationSteps
 
 class GamepadCalibrator:
     AXIS_MOVEMENT_THRESHOLD = 0.3
-    FRAME_CONFIRMATION_COUNT = 15
-    STABLE_FRAME_COUNT = 60
+    DETECTION_TIME = 0.5
+    STABLE_TIME = 1.5
     IDLE_SAMPLE_COUNT = 10
 
     STEP_LABELS: Dict[CalibrationStage, str] = {
@@ -25,11 +26,13 @@ class GamepadCalibrator:
         self,
         on_start: Optional[Callable[[], None]] = None,
         on_done: Optional[Callable[[], None]] = None,
-        dialog: Optional[DialogBox] = None
+        dialog: Optional[DialogBox] = None,
+        clock: Optional[Callable[[], float]] = None
     ) -> None:
         self.on_start = on_start
         self.on_done = on_done
         self.dialog = dialog
+        self._clock = clock or time.monotonic
 
         self.stage: Optional[CalibrationStage] = None
         self.state: CalibratorState = CalibratorState.PAUSE
@@ -118,6 +121,7 @@ class GamepadCalibrator:
                                 on_complete: Optional[Callable[[], None]] = None) -> None:
         axis_data = self.axes[name]
         excluded_indices = [self.axes[e].axis for e in exclude if self.axes[e].axis is not None]
+        now = self._clock()
 
         if axis_data.axis is None:
             if axis_data.baseline is None:
@@ -129,12 +133,13 @@ class GamepadCalibrator:
                 ]
                 axis = max(range(len(diffs)), key=lambda i: diffs[i])
                 if diffs[axis] > self.AXIS_MOVEMENT_THRESHOLD:
-                    axis_data.detection_frames += 1
-                    if axis_data.detection_frames >= self.FRAME_CONFIRMATION_COUNT:
+                    if axis_data.detection_start is None:
+                        axis_data.detection_start = now
+                    elif now - axis_data.detection_start >= self.DETECTION_TIME:
                         axis_data.axis = axis
                         logging.info(f"{name.capitalize()} axis identified: {axis}")
                 else:
-                    axis_data.detection_frames = 0
+                    axis_data.detection_start = None
         else:
             i = axis_data.axis
             axis_data.max_values.append(axes[i])
@@ -144,29 +149,27 @@ class GamepadCalibrator:
             # Track max stability
             if axis_data.max_last is None:
                 axis_data.max_last = current_max
-                axis_data.max_stable = 0
-            if current_max > axis_data.max_last + 0.01:
+                axis_data.max_stable_since = now
+            elif current_max > axis_data.max_last + 0.01:
                 axis_data.max_last = current_max
-                axis_data.max_stable = 0
-            else:
-                axis_data.max_stable += 1
+                axis_data.max_stable_since = now
 
             # Track min stability
             if axis_data.min_last is None:
                 axis_data.min_last = current_min
-                axis_data.min_stable = 0
-            if current_min < axis_data.min_last - 0.01:
+                axis_data.min_stable_since = now
+            elif current_min < axis_data.min_last - 0.01:
                 axis_data.min_last = current_min
-                axis_data.min_stable = 0
-            else:
-                axis_data.min_stable += 1
+                axis_data.min_stable_since = now
+
+            min_val = min(axis_data.max_values)
+            max_val = max(axis_data.max_values)
 
             if (
-                axis_data.min_stable >= self.STABLE_FRAME_COUNT and
-                axis_data.max_stable >= self.STABLE_FRAME_COUNT
+                max_val - min_val >= self.AXIS_MOVEMENT_THRESHOLD and
+                now - axis_data.min_stable_since >= self.STABLE_TIME and
+                now - axis_data.max_stable_since >= self.STABLE_TIME
             ):
-                min_val = min(axis_data.max_values)
-                max_val = max(axis_data.max_values)
                 logging.info(f"{name.capitalize()} axis min/max: {min_val:.2f}/{max_val:.2f}")
 
                 if on_complete:
@@ -179,19 +182,22 @@ class GamepadCalibrator:
         axis_data = self.axes[name]
         i = axis_data.axis
         value = axes[i]
+        now = self._clock()
+
         if axis_data.idle_last is None:
             axis_data.idle_last = value
         else:
             if abs(value - axis_data.idle_last) < 0.05:
-                axis_data.idle_stable += 1
-                if axis_data.idle_stable >= self.STABLE_FRAME_COUNT:
+                if axis_data.idle_stable_since is None:
+                    axis_data.idle_stable_since = now
+                elif now - axis_data.idle_stable_since >= self.STABLE_TIME:
                     axis_data.idle_samples.append(value)
                     if len(axis_data.idle_samples) >= self.IDLE_SAMPLE_COUNT:
                         avg = sum(axis_data.idle_samples) / len(axis_data.idle_samples)
                         logging.info(f"{name.capitalize()} axis idle: {avg:.2f}")
                         self._queue_next_stage_with_dialog(next_stage)
             else:
-                axis_data.idle_stable = 0
+                axis_data.idle_stable_since = None
             axis_data.idle_last = value
 
     def _complete(self) -> None:
