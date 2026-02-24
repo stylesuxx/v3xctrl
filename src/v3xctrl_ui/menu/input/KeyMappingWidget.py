@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, List
 
 import pygame
 from pygame import Surface
@@ -10,6 +10,10 @@ from v3xctrl_ui.utils.colors import WHITE
 
 class KeyMappingWidget(BaseWidget):
     FONT_COLOR = WHITE
+
+    @property
+    def hover_children(self) -> List[BaseWidget]:
+        return [self.remap_button]
 
     def __init__(
         self,

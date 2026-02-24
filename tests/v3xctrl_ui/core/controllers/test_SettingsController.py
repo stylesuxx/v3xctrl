@@ -83,6 +83,7 @@ class TestUpdateSettings:
             "relay": {}
         }
         model = ApplicationModel()
+        model.user_connected = True
         manager = SettingsController(old_settings, model)
 
         # Setup restart thread factory
@@ -109,6 +110,7 @@ class TestUpdateSettings:
             "relay": {"enabled": True, "id": "test-session"}  # Changed relay
         }
         model = ApplicationModel()
+        model.user_connected = True
         manager = SettingsController(old_settings, model)
 
         restart_thread = Mock(spec=threading.Thread)
@@ -373,6 +375,7 @@ class TestSettingsManagerIntegration:
             "ports": {"video": 6666}
         }
         model = ApplicationModel()
+        model.user_connected = True
         manager = SettingsController(initial_settings, model)
 
         # Simulate restart thread

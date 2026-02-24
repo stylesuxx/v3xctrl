@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Callable, List, Optional
 
 import pygame
 from pygame import Surface
@@ -15,6 +15,10 @@ class ButtonMappingWidget(BaseWidget):
     PADDING = 10
     WIDTH = 260
     BAR_HEIGHT = 30  # Match GamepadCalibrationWidget.BAR_HEIGHT for alignment
+
+    @property
+    def hover_children(self) -> List[BaseWidget]:
+        return [self.remap_button, self.reset_button]
 
     def __init__(
         self,

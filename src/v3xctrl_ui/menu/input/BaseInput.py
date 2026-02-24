@@ -16,6 +16,8 @@ from .BaseWidget import BaseWidget
 
 
 class BaseInput(BaseWidget):
+    HOVER_CURSOR = pygame.SYSTEM_CURSOR_IBEAM
+
     LABEL_COLOR = GAINSBORO
     INPUT_BG_COLOR = WHITE
     TEXT_COLOR = BLACK
@@ -87,6 +89,10 @@ class BaseInput(BaseWidget):
         return self.value
 
     def handle_event(self, event: pygame.event.Event) -> bool:
+        if event.type == pygame.MOUSEMOTION:
+            self.hovered = self.input_rect.collidepoint(event.pos)
+            return self.hovered
+
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if self.input_rect.collidepoint(event.pos):
                 self.focused = True
