@@ -6,16 +6,29 @@ from v3xctrl_ui.menu.calibration.defs import CalibrationStage, CalibratorState, 
 from v3xctrl_ui.menu.DialogBox import DialogBox
 
 
+class MockClock:
+    def __init__(self):
+        self.time = 0.0
+
+    def __call__(self):
+        return self.time
+
+    def advance(self, seconds: float):
+        self.time += seconds
+
+
 class TestGamepadCalibrator(unittest.TestCase):
     def setUp(self):
         self.mock_on_start = MagicMock()
         self.mock_on_done = MagicMock()
         self.mock_dialog = MagicMock(spec=DialogBox)
+        self.clock = MockClock()
 
         self.calibrator = GamepadCalibrator(
             on_start=self.mock_on_start,
             on_done=self.mock_on_done,
-            dialog=self.mock_dialog
+            dialog=self.mock_dialog,
+            clock=self.clock
         )
 
     def test_initialization(self):
@@ -52,7 +65,7 @@ class TestGamepadCalibrator(unittest.TestCase):
         self.assertEqual(self.calibrator.stage, CalibrationStage.STEERING)
 
     def test_start_without_callback(self):
-        calibrator = GamepadCalibrator()
+        calibrator = GamepadCalibrator(clock=self.clock)
 
         calibrator.start()
 
@@ -94,7 +107,7 @@ class TestGamepadCalibrator(unittest.TestCase):
         self.assertEqual(self.calibrator.state, CalibratorState.PAUSE)
 
     def test_queue_next_stage_without_dialog(self):
-        calibrator = GamepadCalibrator()
+        calibrator = GamepadCalibrator(clock=self.clock)
         next_stage = CalibrationStage.THROTTLE
 
         initial_waiting = calibrator.waiting_for_user
@@ -147,9 +160,12 @@ class TestGamepadCalibrator(unittest.TestCase):
         axis_data = self.calibrator.axes["steering"]
         axis_data.baseline = [0.0, 0.0, 0.0]
 
-        for _ in range(GamepadCalibrator.FRAME_CONFIRMATION_COUNT):
-            axes = [0.5, 0.0, 0.0]
-            self.calibrator._detect_and_record_axis("steering", axes)
+        axes = [0.5, 0.0, 0.0]
+        self.calibrator._detect_and_record_axis("steering", axes)
+        self.assertIsNone(axis_data.axis)
+
+        self.clock.advance(GamepadCalibrator.DETECTION_TIME)
+        self.calibrator._detect_and_record_axis("steering", axes)
 
         self.assertEqual(axis_data.axis, 0)
         mock_logging.assert_called_with("Steering axis identified: 0")
@@ -162,26 +178,26 @@ class TestGamepadCalibrator(unittest.TestCase):
         self.calibrator._detect_and_record_axis("steering", axes)
 
         self.assertIsNone(axis_data.axis)
-        self.assertEqual(axis_data.detection_frames, 0)
+        self.assertIsNone(axis_data.detection_start)
 
     @patch('logging.info')
     def test_detect_and_record_axis_recording_values(self, mock_logging):
         axis_data = self.calibrator.axes["steering"]
         axis_data.axis = 0
-        # Pre-set the stability tracking to near the threshold
         axis_data.max_last = 0.8
-        axis_data.max_stable = GamepadCalibrator.STABLE_FRAME_COUNT - 1
-        axis_data.min_last = 0.8
-        axis_data.min_stable = GamepadCalibrator.STABLE_FRAME_COUNT - 1
+        axis_data.max_stable_since = 0.0
+        axis_data.min_last = -0.8
+        axis_data.min_stable_since = 0.0
+        axis_data.max_values = [-0.8, 0.5]
 
-        # This call should trigger the stable condition and log the message
+        self.clock.advance(GamepadCalibrator.STABLE_TIME)
+
         axes = [0.8, 0.0, 0.0]
         self.calibrator._detect_and_record_axis(
             "steering", axes, next_stage=CalibrationStage.STEERING_CENTER
         )
 
-        self.assertGreater(len(axis_data.max_values), 0)
-        mock_logging.assert_called_with("Steering axis min/max: 0.80/0.80")
+        mock_logging.assert_called_with("Steering axis min/max: -0.80/0.80")
 
     def test_detect_and_record_axis_with_exclusions(self):
         self.calibrator.axes["steering"].axis = 0
@@ -189,9 +205,11 @@ class TestGamepadCalibrator(unittest.TestCase):
         throttle_data = self.calibrator.axes["throttle"]
         throttle_data.baseline = [0.0, 0.0, 0.0]
 
-        for _ in range(GamepadCalibrator.FRAME_CONFIRMATION_COUNT):
-            axes = [0.0, 0.5, 0.0]
-            self.calibrator._detect_and_record_axis("throttle", axes, exclude=["steering"])
+        axes = [0.0, 0.5, 0.0]
+        self.calibrator._detect_and_record_axis("throttle", axes, exclude=["steering"])
+
+        self.clock.advance(GamepadCalibrator.DETECTION_TIME)
+        self.calibrator._detect_and_record_axis("throttle", axes, exclude=["steering"])
 
         self.assertEqual(throttle_data.axis, 1)
 
@@ -209,11 +227,11 @@ class TestGamepadCalibrator(unittest.TestCase):
         axis_data = self.calibrator.axes["steering"]
         axis_data.axis = 0
         axis_data.idle_last = 0.2
-        # Set up to be one frame away from having enough samples
-        axis_data.idle_stable = GamepadCalibrator.STABLE_FRAME_COUNT
+        axis_data.idle_stable_since = 0.0
         axis_data.idle_samples = [0.2] * (GamepadCalibrator.IDLE_SAMPLE_COUNT - 1)
 
-        # This should add the final sample and trigger the completion
+        self.clock.advance(GamepadCalibrator.STABLE_TIME)
+
         axes = [0.2, 0.0, 0.0]
         self.calibrator._record_center_idle("steering", axes, CalibrationStage.THROTTLE)
 
@@ -224,12 +242,12 @@ class TestGamepadCalibrator(unittest.TestCase):
         axis_data = self.calibrator.axes["steering"]
         axis_data.axis = 0
         axis_data.idle_last = 0.2
-        axis_data.idle_stable = 30
+        axis_data.idle_stable_since = 0.0
 
         axes = [0.4, 0.0, 0.0]
         self.calibrator._record_center_idle("steering", axes, CalibrationStage.THROTTLE)
 
-        self.assertEqual(axis_data.idle_stable, 0)
+        self.assertIsNone(axis_data.idle_stable_since)
         self.assertEqual(axis_data.idle_last, 0.4)
 
     def test_complete(self):
@@ -241,7 +259,7 @@ class TestGamepadCalibrator(unittest.TestCase):
         self.mock_on_done.assert_called_once()
 
     def test_complete_without_callback(self):
-        calibrator = GamepadCalibrator()
+        calibrator = GamepadCalibrator(clock=self.clock)
 
         calibrator._complete()
 
@@ -340,7 +358,7 @@ class TestGamepadCalibrator(unittest.TestCase):
         self.assertEqual(self.calibrator.stage, CalibrationStage.STEERING)
 
         with patch.object(self.calibrator, '_detect_and_record_axis') as mock_detect, \
-             patch.object(self.calibrator, '_record_center_idle') as mock_record_idle:
+             patch.object(self.calibrator, '_record_center_idle'):
 
             def steering_complete(*args, **kwargs):
                 self.calibrator._queue_next_stage_with_dialog(CalibrationStage.STEERING_CENTER)
@@ -357,19 +375,40 @@ class TestGamepadCalibrator(unittest.TestCase):
             self.assertEqual(self.calibrator.stage, CalibrationStage.STEERING_CENTER)
             self.assertEqual(self.calibrator.state, CalibratorState.ACTIVE)
 
-    def test_axis_detection_frame_counting(self):
+    def test_axis_detection_requires_sustained_movement(self):
         axis_data = self.calibrator.axes["steering"]
         axis_data.baseline = [0.0, 0.0, 0.0]
 
-        for _ in range(GamepadCalibrator.FRAME_CONFIRMATION_COUNT - 1):
-            axes = [0.5, 0.0, 0.0]
-            self.calibrator._detect_and_record_axis("steering", axes)
-
+        # Movement detected but not long enough
+        axes = [0.5, 0.0, 0.0]
+        self.calibrator._detect_and_record_axis("steering", axes)
         self.assertIsNone(axis_data.axis)
-        self.assertEqual(axis_data.detection_frames, GamepadCalibrator.FRAME_CONFIRMATION_COUNT - 1)
+        self.assertIsNotNone(axis_data.detection_start)
 
+        # Advance time but not enough
+        self.clock.advance(GamepadCalibrator.DETECTION_TIME - 0.1)
+        self.calibrator._detect_and_record_axis("steering", axes)
+        self.assertIsNone(axis_data.axis)
+
+        # Advance past threshold
+        self.clock.advance(0.1)
         self.calibrator._detect_and_record_axis("steering", axes)
         self.assertEqual(axis_data.axis, 0)
+
+    def test_axis_detection_resets_on_no_movement(self):
+        axis_data = self.calibrator.axes["steering"]
+        axis_data.baseline = [0.0, 0.0, 0.0]
+
+        # Start detection
+        axes = [0.5, 0.0, 0.0]
+        self.calibrator._detect_and_record_axis("steering", axes)
+        self.assertIsNotNone(axis_data.detection_start)
+
+        # Movement stops - resets detection
+        axes = [0.0, 0.0, 0.0]
+        self.clock.advance(0.1)
+        self.calibrator._detect_and_record_axis("steering", axes)
+        self.assertIsNone(axis_data.detection_start)
 
     def test_max_value_stability_tracking(self):
         axis_data = self.calibrator.axes["steering"]
@@ -379,12 +418,12 @@ class TestGamepadCalibrator(unittest.TestCase):
         self.calibrator._detect_and_record_axis("steering", axes)
 
         self.assertEqual(axis_data.max_last, 0.5)
-        self.assertEqual(axis_data.max_stable, 1)
+        self.assertIsNotNone(axis_data.max_stable_since)
 
-        axes = [0.5, 0.0, 0.0]
+        # Same value - still stable
+        self.clock.advance(0.1)
         self.calibrator._detect_and_record_axis("steering", axes)
-
-        self.assertEqual(axis_data.max_stable, 2)
+        self.assertEqual(axis_data.max_last, 0.5)
 
     def test_get_steps_with_no_active_stage(self):
         self.calibrator.stage = None
@@ -415,20 +454,21 @@ class TestGamepadCalibrator(unittest.TestCase):
         self.calibrator._detect_and_record_axis("steering", axes)
 
         self.assertEqual(axis_data.max_last, 0.5)
-        self.assertEqual(axis_data.max_stable, 1)
+        self.assertIsNotNone(axis_data.max_stable_since)
 
     def test_detect_and_record_axis_significant_increase(self):
         axis_data = self.calibrator.axes["steering"]
         axis_data.axis = 0
         axis_data.max_last = 0.3
-        axis_data.max_stable = 5
+        axis_data.max_stable_since = 0.0
         axis_data.max_values = [0.1, 0.2, 0.3]
 
+        self.clock.advance(1.0)
         axes = [0.8, 0.0, 0.0]
         self.calibrator._detect_and_record_axis("steering", axes)
 
         self.assertEqual(axis_data.max_last, 0.8)
-        self.assertEqual(axis_data.max_stable, 0)
+        self.assertEqual(axis_data.max_stable_since, self.clock.time)
 
     def test_record_center_idle_none_initial(self):
         axis_data = self.calibrator.axes["steering"]
@@ -439,7 +479,7 @@ class TestGamepadCalibrator(unittest.TestCase):
         self.calibrator._record_center_idle("steering", axes, CalibrationStage.THROTTLE)
 
         self.assertEqual(axis_data.idle_last, 0.2)
-        self.assertEqual(axis_data.idle_stable, 0)
+        self.assertIsNone(axis_data.idle_stable_since)
 
     def test_update_with_none_stage(self):
         self.calibrator.state = CalibratorState.ACTIVE
@@ -451,15 +491,17 @@ class TestGamepadCalibrator(unittest.TestCase):
     def test_detect_and_record_axis_on_complete_callback(self):
         axis_data = self.calibrator.axes["brake"]
         axis_data.axis = 2
-        # Set stability counters to one less than threshold
-        axis_data.max_stable = GamepadCalibrator.STABLE_FRAME_COUNT - 1
-        axis_data.min_stable = GamepadCalibrator.STABLE_FRAME_COUNT - 1
-        axis_data.max_last = 0.5
-        axis_data.min_last = 0.5
+        axis_data.max_stable_since = 0.0
+        axis_data.min_stable_since = 0.0
+        axis_data.max_last = 0.9
+        axis_data.min_last = 0.0
+        axis_data.max_values = [0.0, 0.9]
+
+        self.clock.advance(GamepadCalibrator.STABLE_TIME)
 
         mock_complete = MagicMock()
 
-        axes = [0.0, 0.0, 0.5]  # Same value as max_last/min_last to maintain stability
+        axes = [0.0, 0.0, 0.5]
         self.calibrator._detect_and_record_axis("brake", axes, on_complete=mock_complete)
 
         mock_complete.assert_called_once()
@@ -467,12 +509,13 @@ class TestGamepadCalibrator(unittest.TestCase):
     def test_detect_and_record_axis_next_stage_callback(self):
         axis_data = self.calibrator.axes["steering"]
         axis_data.axis = 0
+        axis_data.max_stable_since = 0.0
+        axis_data.min_stable_since = 0.0
+        axis_data.max_last = 0.8
+        axis_data.min_last = -0.8
+        axis_data.max_values = [-0.8, 0.8]
 
-        # Set stability counters to one less than threshold
-        axis_data.max_stable = GamepadCalibrator.STABLE_FRAME_COUNT - 1
-        axis_data.min_stable = GamepadCalibrator.STABLE_FRAME_COUNT - 1
-        axis_data.max_last = 0.5
-        axis_data.min_last = 0.5
+        self.clock.advance(GamepadCalibrator.STABLE_TIME)
 
         with patch.object(self.calibrator, '_queue_next_stage_with_dialog') as mock_queue:
             axes = [0.5, 0.0, 0.0]
@@ -483,7 +526,7 @@ class TestGamepadCalibrator(unittest.TestCase):
     def test_detect_and_record_axis_no_callback_or_next_stage(self):
         axis_data = self.calibrator.axes["steering"]
         axis_data.axis = 0
-        axis_data.max_stable = GamepadCalibrator.STABLE_FRAME_COUNT
+        axis_data.max_stable_since = 0.0
         axis_data.max_values = [0.1, 0.9]
 
         axes = [0.5, 0.0, 0.0]
@@ -493,8 +536,10 @@ class TestGamepadCalibrator(unittest.TestCase):
         axis_data = self.calibrator.axes["steering"]
         axis_data.axis = 0
         axis_data.idle_last = 0.2
-        axis_data.idle_stable = GamepadCalibrator.STABLE_FRAME_COUNT
+        axis_data.idle_stable_since = 0.0
         axis_data.idle_samples = [0.21, 0.22]
+
+        self.clock.advance(GamepadCalibrator.STABLE_TIME)
 
         axes = [0.2, 0.0, 0.0]
         self.calibrator._record_center_idle("steering", axes, CalibrationStage.THROTTLE)
@@ -507,6 +552,55 @@ class TestGamepadCalibrator(unittest.TestCase):
 
         axes = [0.5, 0.0, 0.0]
         self.calibrator.update(axes)
+
+    def test_stable_time_not_reached_does_not_complete(self):
+        """Min/max stability must persist for STABLE_TIME before completing."""
+        axis_data = self.calibrator.axes["steering"]
+        axis_data.axis = 0
+        axis_data.max_stable_since = 0.0
+        axis_data.min_stable_since = 0.0
+        axis_data.max_last = 0.8
+        axis_data.min_last = -0.8
+        axis_data.max_values = [-0.8, 0.8]
+
+        self.clock.advance(GamepadCalibrator.STABLE_TIME - 0.1)
+
+        with patch.object(self.calibrator, '_queue_next_stage_with_dialog') as mock_queue:
+            axes = [0.5, 0.0, 0.0]
+            self.calibrator._detect_and_record_axis("steering", axes, next_stage=CalibrationStage.STEERING_CENTER)
+            mock_queue.assert_not_called()
+
+    def test_idle_stable_time_not_reached_does_not_sample(self):
+        """Idle stability must persist for STABLE_TIME before collecting samples."""
+        axis_data = self.calibrator.axes["steering"]
+        axis_data.axis = 0
+        axis_data.idle_last = 0.2
+        axis_data.idle_stable_since = 0.0
+
+        self.clock.advance(GamepadCalibrator.STABLE_TIME - 0.1)
+
+        axes = [0.2, 0.0, 0.0]
+        self.calibrator._record_center_idle("steering", axes, CalibrationStage.THROTTLE)
+
+        self.assertEqual(len(axis_data.idle_samples), 0)
+
+    def test_does_not_complete_when_range_too_small(self):
+        """Stage must not complete when the range is below AXIS_MOVEMENT_THRESHOLD."""
+        axis_data = self.calibrator.axes["steering"]
+        axis_data.axis = 0
+        axis_data.max_stable_since = 0.0
+        axis_data.min_stable_since = 0.0
+        axis_data.max_last = 0.81
+        axis_data.min_last = 0.79
+        axis_data.max_values = [0.79, 0.81]
+
+        self.clock.advance(GamepadCalibrator.STABLE_TIME)
+
+        with patch.object(self.calibrator, '_queue_next_stage_with_dialog') as mock_queue:
+            axes = [0.8, 0.0, 0.0]
+            self.calibrator._detect_and_record_axis("steering", axes, next_stage=CalibrationStage.STEERING_CENTER)
+
+            mock_queue.assert_not_called()
 
 
 if __name__ == '__main__':
