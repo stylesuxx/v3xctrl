@@ -127,10 +127,9 @@ class TestButton(unittest.TestCase):
 
         self.assertFalse(self.button.focused)
 
-    def test_disabled_button_ignores_events(self):
+    def test_disabled_button_ignores_click_events(self):
         self.button.disable()
 
-        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {'pos': (75, 70)})
         down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
             'pos': (75, 70),
             'button': 1
@@ -140,13 +139,22 @@ class TestButton(unittest.TestCase):
             'button': 1
         })
 
-        self.assertFalse(self.button.handle_event(motion_event))
         self.assertFalse(self.button.handle_event(down_event))
         self.assertFalse(self.button.handle_event(up_event))
 
-        self.assertFalse(self.button.hovered)
         self.assertFalse(self.button.focused)
         self.callback.assert_not_called()
+
+    def test_disabled_button_still_tracks_hover(self):
+        self.button.disable()
+
+        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {'pos': (75, 70)})
+        self.assertTrue(self.button.handle_event(motion_event))
+        self.assertTrue(self.button.hovered)
+
+        motion_outside = pygame.event.Event(pygame.MOUSEMOTION, {'pos': (10, 10)})
+        self.assertFalse(self.button.handle_event(motion_outside))
+        self.assertFalse(self.button.hovered)
 
     def test_enable_disable_toggle(self):
         self.assertFalse(self.button.disabled)
@@ -429,6 +437,20 @@ class TestButton(unittest.TestCase):
         leave_event = pygame.event.Event(pygame.MOUSEMOTION, {'pos': (10, 10)})
         self.button.handle_event(leave_event)
         self.assertEqual(self.button._current_state, 'normal')
+
+
+    def test_hover_cursor_class_attribute(self):
+        self.assertEqual(Button.HOVER_CURSOR, pygame.SYSTEM_CURSOR_HAND)
+
+    def test_disabled_button_state_on_hover(self):
+        """Hovering a disabled button should set 'disabled' state, not 'hover'"""
+        self.button.disable()
+
+        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {'pos': (75, 70)})
+        self.button.handle_event(motion_event)
+
+        self.assertTrue(self.button.hovered)
+        self.assertEqual(self.button._current_state, 'disabled')
 
 
 if __name__ == "__main__":

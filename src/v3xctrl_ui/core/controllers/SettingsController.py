@@ -58,6 +58,11 @@ class SettingsController:
             if self.on_display_update:
                 self.on_display_update(fullscreen_new)
 
+        # Skip network restart if user hasn't connected yet
+        if not self.model.user_connected:
+            self.apply_settings(new_settings)
+            return True
+
         # Check if network manager needs to be restarted
         if (
             not self.settings_equal(new_settings, "ports") or

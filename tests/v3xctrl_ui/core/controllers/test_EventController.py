@@ -351,6 +351,7 @@ class TestCommandAckCallback:
     @pytest.fixture
     def controller(self, mock_settings, mock_telemetry):
         mock_menu = Mock(visible=False, is_loading=False)
+        mock_model = Mock(user_connected=True)
         return EventController(
             on_quit=Mock(),
             on_toggle_fullscreen=Mock(),
@@ -358,7 +359,8 @@ class TestCommandAckCallback:
             on_menu_exit=Mock(),
             send_command=Mock(),
             settings=mock_settings,
-            telemetry_context=mock_telemetry
+            telemetry_context=mock_telemetry,
+            model=mock_model,
         )
 
     def test_on_command_ack_logs_success(self, controller, caplog):
