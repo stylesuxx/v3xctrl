@@ -108,6 +108,12 @@ class EventController:
             ):
                 self.connect_button.handle_event(event)
 
+                if event.type == pygame.MOUSEMOTION:
+                    if self.connect_button.hovered:
+                        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+                    else:
+                        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+
             if self.menu.visible:
                 self.menu.handle_event(event)
 

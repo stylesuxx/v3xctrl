@@ -10,6 +10,8 @@ from v3xctrl_ui.utils.helpers import get_icon
 
 
 class Checkbox(BaseWidget):
+    HOVER_CURSOR = pygame.SYSTEM_CURSOR_HAND
+
     LABEL_COLOR = GAINSBORO
     BG_COLOR = WHITE
     CHECK_COLOR = MID_GREY
@@ -44,6 +46,12 @@ class Checkbox(BaseWidget):
         self._render_checkbox_states()
 
     def handle_event(self, event: pygame.event.Event) -> bool:
+        if event.type == pygame.MOUSEMOTION:
+            full_width, full_height = self.get_size()
+            click_rect = Rect(self.x, self.y, full_width, full_height)
+            self.hovered = click_rect.collidepoint(event.pos)
+            return self.hovered
+
         if self.disabled:
             return False
 

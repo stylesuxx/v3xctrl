@@ -77,6 +77,14 @@ class GamepadCalibrationWidget(BaseWidget):
         # When gamepads change, trigger handler
         self.manager.add_observer(self._on_gamepads_changed)
 
+    @property
+    def hover_children(self) -> list:
+        children = [self.controller_select, self.calibrate_button]
+        children.extend(self.invert_checkboxes.values())
+        children.extend(self.deadband_inputs.values())
+        children.extend(self.button_mapping_widgets.values())
+        return children
+
     def handle_event(self, event: pygame.event.Event) -> bool:
         if self.dialog.visible:
             return self.dialog.handle_event(event)

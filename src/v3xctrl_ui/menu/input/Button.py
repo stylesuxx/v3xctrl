@@ -17,6 +17,8 @@ from v3xctrl_ui.utils.colors import (
 
 
 class Button(BaseWidget):
+    HOVER_CURSOR = pygame.SYSTEM_CURSOR_HAND
+
     FONT_COLOR = WHITE
     FONT_COLOR_DISABLED = LIGHT_GREY
 
@@ -91,9 +93,6 @@ class Button(BaseWidget):
         self._update_state()
 
     def handle_event(self, event: pygame.event.Event) -> bool:
-        if self.disabled:
-            return False
-
         if event.type == pygame.MOUSEMOTION:
             was_hovered = self.hovered
             self.hovered = self.rect.collidepoint(event.pos)
@@ -102,6 +101,9 @@ class Button(BaseWidget):
                 self._update_state()
 
             return self.hovered
+
+        if self.disabled:
+            return False
 
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if self.rect.collidepoint(event.pos):

@@ -10,6 +10,8 @@ from .BaseWidget import BaseWidget
 
 
 class Select(BaseWidget):
+    HOVER_CURSOR = pygame.SYSTEM_CURSOR_HAND
+
     FONT_COLOR = WHITE
     FONT_COLOR_DISABLED = LIGHT_GREY
 
@@ -82,6 +84,17 @@ class Select(BaseWidget):
         self._update_option_rects()
 
     def handle_event(self, event: pygame.event.Event) -> bool:
+        if event.type == pygame.MOUSEMOTION:
+            if self.rect:
+                self.hovered = self.rect.collidepoint(event.pos)
+            if self.expanded:
+                self.hover_index = -1
+                for i, opt_rect in enumerate(self.option_rects):
+                    if opt_rect.collidepoint(event.pos):
+                        self.hover_index = i
+                        break
+            return self.hovered
+
         if self.disabled or not self.options:
             return False
 
@@ -101,13 +114,6 @@ class Select(BaseWidget):
                 else:
                     self.expanded = False
                     return False
-
-        elif event.type == pygame.MOUSEMOTION and self.expanded:
-            self.hover_index = -1
-            for i, opt_rect in enumerate(self.option_rects):
-                if opt_rect.collidepoint(event.pos):
-                    self.hover_index = i
-                    break
 
         return False
 
