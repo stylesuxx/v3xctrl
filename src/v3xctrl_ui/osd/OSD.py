@@ -269,8 +269,6 @@ class OSD:
 
         self.widgets_gps["gps_fix"].set_text_color(fix_color)
 
-        logger.debug(f"Received telemetry message: {message.get_values()}")
-
     def _get_steering_value(self, name: str):
         return getattr(self, name)
 
