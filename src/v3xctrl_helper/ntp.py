@@ -1,5 +1,4 @@
 import logging
-import ntplib
 import shutil
 import subprocess
 import threading
@@ -31,6 +30,7 @@ def get_ntp_offset_chrony() -> int:
 def get_ntp_offset_ntplib() -> int:
     """Returns offset in microseconds."""
     try:
+        import ntplib
         client = ntplib.NTPClient()
         response = client.request("pool.ntp.org", version=3, timeout=5)
         return int(response.offset * 1_000_000)

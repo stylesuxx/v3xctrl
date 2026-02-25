@@ -17,6 +17,8 @@ from v3xctrl_gst.PipelineTimer import PipelineTimer  # noqa: E402
 from v3xctrl_gst.QPManager import QPManager  # noqa: E402
 from v3xctrl_gst.RecordingManager import RecordingManager  # noqa: E402
 from v3xctrl_gst.SourceRegistry import SourceRegistry  # noqa: E402
+from v3xctrl_gst.SEIInjector import SEIInjector  # noqa: E402
+from v3xctrl_helper import NTPClock  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -118,6 +120,13 @@ class Streamer:
         self.bus: Gst.Bus | None = None
 
         Gst.init(None)
+
+        self.ntp_clock: Optional[NTPClock] = None
+        self.sei_injector: Optional[SEIInjector] = None
+        if self.timing_enabled:
+            self.ntp_clock = NTPClock()
+            self.sei_injector = SEIInjector(self.ntp_clock)
+
         self.control_server = ControlServer(self, control_socket)
 
     def start(self) -> None:
@@ -173,6 +182,9 @@ class Streamer:
 
         if self.control_server:
             self.control_server.stop()
+
+        if self.ntp_clock:
+            self.ntp_clock.stop()
 
         if self.pipeline:
             self.pipeline.send_event(Gst.Event.new_eos())
@@ -510,6 +522,10 @@ class Streamer:
         encoder.set_property("output-io-mode", self.settings["output_io_mode"])
         self.pipeline.add(encoder)
 
+        if self.timing_enabled:
+            encoder_sink_pad = encoder.get_static_pad("sink")
+            encoder_sink_pad.add_probe(Gst.PadProbeType.BUFFER, self.sei_injector.on_pre_encode)
+
         encoder_caps_filter = Gst.ElementFactory.make("capsfilter", "encoder_caps")
         if not encoder_caps_filter:
             logger.error("Failed to create encoder capsfilter")
@@ -518,6 +534,9 @@ class Streamer:
         # Add probe to measure encoder jitter
         encoder_pad = encoder_caps_filter.get_static_pad("src")
         encoder_pad.add_probe(Gst.PadProbeType.BUFFER, self._on_encoder_buffer)
+
+        if self.timing_enabled:
+            encoder_pad.add_probe(Gst.PadProbeType.BUFFER, self.sei_injector.on_post_encode)
 
         encoder_caps = Gst.Caps.from_string(
             f"video/x-h264,"
