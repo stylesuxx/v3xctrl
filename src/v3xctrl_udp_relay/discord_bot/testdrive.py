@@ -23,8 +23,14 @@ class TestdriveHandler:
         announcement = (
             "## Test Drive\n\n"
             "Want to take the RC car for a spin? Click the button below to request a test drive!\n\n"
+            "### Before You Request\n"
+            "Please make sure you have everything set up **before** requesting a test drive:\n"
+            "1. [Download and install the viewer](<https://github.com/stylesuxx/v3xctrl/wiki/Viewer>)\n"
+            "2. [Set up and calibrate your controller](<https://github.com/stylesuxx/v3xctrl/wiki/Controller-Setup>)\n\n"
             "> **Note:** A host needs to accept your request, which may take some time "
-            "due to timezone differences."
+            "due to timezone differences and availability. "
+            "This is a hobby project and we do this in our spare time, so please be patient. "
+            "Things might not always go perfectly - but that's part of the fun!"
         )
 
         try:
