@@ -10,8 +10,12 @@ import numpy as np  # noqa: E402
 from gi.repository import GLib, Gst, GstApp  # noqa: E402
 
 from v3xctrl_ui.network.video.Receiver import Receiver  # noqa: E402
+from v3xctrl_helper import NTPClock, parse_sei_nal
 
 logger = logging.getLogger(__name__)
+
+# Dismiss e2e measurement if either NTP offset exceeds this (100ms)
+_MAX_NTP_OFFSET_US = 100_000
 
 
 class ReceiverGst(Receiver):
@@ -55,6 +59,11 @@ class ReceiverGst(Receiver):
         # Collect receive timing samples for logging
         self._timing_receive_samples: list[float] | None = None
 
+        # SEI-based end-to-end latency (only used when timing_enabled)
+        self._ntp_clock: Optional[NTPClock] = None
+        self._sei_timestamps: Optional[dict[int, tuple[int, int]]] = None
+        self._timing_e2e_samples: Optional[list[float]] = None
+
         # Cached frame dimensions and pre-allocated buffer
         self._cached_width: int = 0
         self._cached_height: int = 0
@@ -88,6 +97,24 @@ class ReceiverGst(Receiver):
 
             # Record decoder entry time for decode duration
             self._decode_start_times[pts] = now
+        return Gst.PadProbeReturn.OK
+
+    def _on_sei_extract_probe(
+        self, pad: Gst.Pad, info: Gst.PadProbeInfo
+    ) -> Gst.PadProbeReturn:
+        """Extract SEI timestamp from H.264 data after depayloading."""
+        buffer = info.get_buffer()
+        if buffer and buffer.pts != Gst.CLOCK_TIME_NONE:
+            ok, map_info = buffer.map(Gst.MapFlags.READ)
+            if ok:
+                data = bytes(map_info.data)
+                buffer.unmap(map_info)
+                result = parse_sei_nal(data)
+                if result is not None:
+                    # Cap dict size to prevent leaks from dropped frames
+                    if len(self._sei_timestamps) > 300:
+                        self._sei_timestamps.clear()
+                    self._sei_timestamps[buffer.pts] = result
         return Gst.PadProbeReturn.OK
 
     def _build_pipeline(self) -> bool:
@@ -216,6 +243,18 @@ class ReceiverGst(Receiver):
             if decoder_sink:
                 decoder_sink.add_probe(Gst.PadProbeType.BUFFER, self._on_decoder_entry_probe)
 
+            # SEI extraction for e2e latency (probe depay output = Annex B)
+            if self._ntp_clock is None:
+                self._ntp_clock = NTPClock(poll_interval=30.0)
+            self._sei_timestamps = {}
+            self._timing_e2e_samples = []
+
+            depay_src = depay.get_static_pad("src")
+            if depay_src:
+                depay_src.add_probe(
+                    Gst.PadProbeType.BUFFER, self._on_sei_extract_probe
+                )
+
         # Setup bus message handling
         bus = self.pipeline.get_bus()
         bus.add_signal_watch()
@@ -241,6 +280,9 @@ class ReceiverGst(Receiver):
         if self._should_drop_by_age(pts):
             self.dropped_old_frames += 1
             self.consecutive_old_frames += 1
+
+            if self._sei_timestamps is not None:
+                self._sei_timestamps.pop(pts, None)
 
             if self.consecutive_old_frames > self.max_consecutive_old_frames:
                 logger.warning(f"Dropped {self.consecutive_old_frames} consecutive old frames")
@@ -282,6 +324,21 @@ class ReceiverGst(Receiver):
                 receive_duration = self._receive_durations.pop(pts, None)
                 if receive_duration is not None:
                     self._timing_receive_samples.append(receive_duration)
+
+                # Calculate e2e latency from SEI timestamp + NTP correction
+                if self._sei_timestamps is not None and self._ntp_clock is not None:
+                    sei_data = self._sei_timestamps.pop(pts, None)
+                    if sei_data is not None:
+                        capture_us, capture_offset_us = sei_data
+                        viewer_us, viewer_offset_us = self._ntp_clock.get_time()
+
+                        if (abs(capture_offset_us) <= _MAX_NTP_OFFSET_US
+                                and abs(viewer_offset_us) <= _MAX_NTP_OFFSET_US):
+                            corrected_capture = capture_us + capture_offset_us
+                            corrected_viewer = viewer_us + viewer_offset_us
+                            e2e_us = corrected_viewer - corrected_capture
+                            if e2e_us >= 0:
+                                self._timing_e2e_samples.append(e2e_us / 1_000_000)
 
             self._update_frame(frame, decode_duration)
 
@@ -418,9 +475,13 @@ class ReceiverGst(Receiver):
             self._receive_durations.clear()
         if self._timing_receive_samples is not None:
             self._timing_receive_samples.clear()
+        if self._sei_timestamps is not None:
+            self._sei_timestamps.clear()
+        if self._timing_e2e_samples is not None:
+            self._timing_e2e_samples.clear()
 
     def _log_timing_stats(self) -> None:
-        """Override to include receive timing in GST receiver."""
+        """Override to include receive timing and e2e latency in GST receiver."""
         if not self.timing_buffer_samples:
             return
 
@@ -432,19 +493,17 @@ class ReceiverGst(Receiver):
         decode_samples = list(self.timing_decode_samples)
         buffer_samples = list(self.timing_buffer_samples)
         receive_samples = list(self._timing_receive_samples) if self._timing_receive_samples else []
+        e2e_samples = list(self._timing_e2e_samples) if self._timing_e2e_samples else []
 
         _rec_min, rec_avg, _rec_max = stats(receive_samples)
         _dec_min, dec_avg, _dec_max = stats(decode_samples)
         buf_min, buf_avg, buf_max = stats(buffer_samples)
+        e2e_min, e2e_avg, e2e_max = stats(e2e_samples)
 
-        # Convert to ms for display (receive/decode/buffer are in seconds)
-        rec_avg_ms = rec_avg * 1000
-        dec_avg_ms = dec_avg * 1000
-        buf_avg_ms = buf_avg * 1000
-        buf_min_ms = buf_min * 1000
-        buf_max_ms = buf_max * 1000
-        total_avg_ms = rec_avg_ms + dec_avg_ms + buf_avg_ms
+        def fmt(label: str, mn: float, avg: float, mx: float) -> str:
+            return f"{label}: {avg * 1000:.1f}ms ({mn * 1000:.1f}-{mx * 1000:.1f})"
 
+<<<<<<< HEAD
         logger.debug(
             f"[TIMING] "
             f"receive: {rec_avg_ms:.1f}ms | "
@@ -452,12 +511,32 @@ class ReceiverGst(Receiver):
             f"buffer: {buf_avg_ms:.1f}ms ({buf_min_ms:.1f}-{buf_max_ms:.1f}) | "
             f"total: {total_avg_ms:.1f}ms"
         )
+=======
+        total_avg_ms = (rec_avg + dec_avg + buf_avg) * 1000
+
+        parts = [
+            fmt("receive", rec_min, rec_avg, rec_max),
+            fmt("decode", dec_min, dec_avg, dec_max),
+            fmt("buffer", buf_min, buf_avg, buf_max),
+            f"total: {total_avg_ms:.1f}ms",
+        ]
+
+        if e2e_samples:
+            parts.append(fmt("e2e", e2e_min, e2e_avg, e2e_max))
+
+        logging.debug(f"[TIMING] {' | '.join(parts)}")
+>>>>>>> c5be3202 (Solved mem leak)
 
         self.timing_decode_samples.clear()
         self.timing_buffer_samples.clear()
         if self._timing_receive_samples:
             self._timing_receive_samples.clear()
+        if self._timing_e2e_samples:
+            self._timing_e2e_samples.clear()
 
     def _cleanup(self) -> None:
         """Cleanup resources."""
         self._stop_pipeline()
+        if self._ntp_clock is not None:
+            self._ntp_clock.stop()
+            self._ntp_clock = None

@@ -780,10 +780,10 @@ class Streamer:
             self._log_timing_stats()
             self.timing_last_log = now
 
-        # Clean up old entries (in case of dropped frames)
-        if len(self.timing_data) > 100:
-            oldest_pts = min(self.timing_data.keys())
-            del self.timing_data[oldest_pts]
+        # Purge entries older than current PTS (dropped frames)
+        stale = [k for k in self.timing_data if k < pts]
+        for k in stale:
+            del self.timing_data[k]
 
         return Gst.PadProbeReturn.OK
 
