@@ -57,7 +57,7 @@ jobs:
         run: |
           cd src
 
-          "$PY" -m PyInstaller --noconfirm --onedir --windowed \
+          "$PY" -m PyInstaller --noconfirm --onedir --console \
             --icon=v3xctrl_ui/assets/images/logo.ico \
             --add-data "v3xctrl_ui/assets;assets" \
             --collect-data material_icons \
