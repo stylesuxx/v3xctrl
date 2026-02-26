@@ -334,6 +334,12 @@ class ReceiverGst(Receiver):
 
                         if (abs(capture_offset_us) <= _MAX_NTP_OFFSET_US
                                 and abs(viewer_offset_us) <= _MAX_NTP_OFFSET_US):
+                            if abs(capture_offset_us) > 2000 or abs(viewer_offset_us) > 2000:
+                                logging.debug(
+                                    f"[SEI] NTP offset high: "
+                                    f"capture={capture_offset_us}us "
+                                    f"viewer={viewer_offset_us}us"
+                                )
                             corrected_capture = capture_us + capture_offset_us
                             corrected_viewer = viewer_us + viewer_offset_us
                             e2e_us = corrected_viewer - corrected_capture
