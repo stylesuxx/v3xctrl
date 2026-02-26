@@ -10,6 +10,9 @@ from v3xctrl_helper import NTPClock, build_sei_nal
 # ctypes setup to work around Python GI binding ref leak in Gst.Pad.chain().
 # Instead of chain(), we replace the buffer pointer directly in GstPadProbeInfo.data
 # (the ctypes equivalent of C macro GST_PAD_PROBE_INFO_DATA(info) = new_buf).
+#
+# TODO: GStreamer >= 1.28 exposes PadProbeInfo.set_buffer() in Python bindings,
+# which makes all of the ctypes machinery below unnecessary.
 _libgst = ctypes.CDLL('libgstreamer-1.0.so.0')
 _gst_mini_object_ref = _libgst.gst_mini_object_ref
 _gst_mini_object_ref.restype = ctypes.c_void_p
