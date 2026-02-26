@@ -68,6 +68,10 @@
       "maxVoltage": 4200,
       "shuntResistance": 50,
       "maxExpectedCurrent": 10
+    },
+    "gps": {
+      "path": "/dev/serial0",
+      "baudrate": 115200
     }
   },
   "viewer": {

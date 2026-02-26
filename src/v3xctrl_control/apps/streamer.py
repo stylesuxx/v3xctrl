@@ -98,6 +98,12 @@ parser.add_argument(
 parser.add_argument(
     "--battery-max-current", type=float, default=0.8, help="Maximum expected current in Amperes (default: 0.8)"
 )
+parser.add_argument(
+    "--gps-path", type=str, default="/dev/serial0", help="Path to GPS UART device (default: /dev/serial0)"
+)
+parser.add_argument(
+    "--gps-baudrate", type=int, default=115200, help="Target GPS baud rate after module configuration (default: 115200)"
+)
 
 
 args = parser.parse_args()
@@ -179,6 +185,8 @@ telemetry = TelemetryHandler(
     battery_i2c_address=args.battery_i2c_address,
     battery_shunt_mohms=args.battery_shunt_mohms,
     battery_max_current=args.battery_max_current,
+    gps_path=args.gps_path,
+    gps_baudrate=args.gps_baudrate,
 )
 telemetry.start()
 
