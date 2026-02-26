@@ -10,6 +10,8 @@ from typing import Dict, Optional, Tuple, Any, List
 from v3xctrl_helper import Address
 from v3xctrl_control.message import (
     Message,
+    ConnectionTest,
+    ConnectionTestAck,
     PeerAnnouncement,
 )
 
@@ -208,6 +210,23 @@ class UDPRelayServer(threading.Thread):
             self.relay.cleanup_expired_mappings()
             time.sleep(self.CLEANUP_INTERVAL)
 
+    def _handle_connection_test(self, data: bytes, addr: Address) -> None:
+        """Validate session/spectator ID and reply with ConnectionTestAck."""
+        try:
+            msg = Message.from_bytes(data)
+            if not isinstance(msg, ConnectionTest):
+                return
+
+            if msg.spectator:
+                valid = self.relay.store.get_session_id_from_spectator_id(msg.id) is not None
+            else:
+                valid = self.relay.store.exists(msg.id)
+
+            ack = ConnectionTestAck(v=valid)
+            self.sock.sendto(ack.to_bytes(), addr)
+        except Exception as e:
+            logging.error(f"Error handling connection test from {addr}: {e}", exc_info=True)
+
     def _handle_packet(self, data: bytes, addr: Address) -> None:
         """
         Main priority is to forward packets as quickly as possible and handle
@@ -222,6 +241,10 @@ class UDPRelayServer(threading.Thread):
                         return
                 except Exception:
                     return
+
+            if data.startswith(b'\x83\xa1t\xaeConnectionTest'):
+                self._handle_connection_test(data, addr)
+                return
 
             # Try to forward the packet. If no mapping exists, update spectator heartbeat
             forwarded = self.relay.forward_packet(data, addr)

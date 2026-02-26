@@ -1,12 +1,20 @@
 import logging
 import socket
-import time
 import threading
 from typing import Dict, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from v3xctrl_control.message import PeerAnnouncement, Message, PeerInfo, Error, Heartbeat
-from v3xctrl_helper.exceptions import UnauthorizedError, PeerRegistrationError, PeerRegistrationAborted
+from v3xctrl_control.message import (
+    Error,
+    Message,
+    PeerAnnouncement,
+    PeerInfo,
+)
+from v3xctrl_helper.exceptions import (
+  UnauthorizedError,
+  PeerRegistrationError,
+  PeerRegistrationAborted,
+)
 from v3xctrl_helper import Address
 
 
