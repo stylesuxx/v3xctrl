@@ -1,8 +1,9 @@
-from typing import Dict, List, Any
+from typing import Callable, Dict, List, Any, Optional, Tuple
 
 from pygame import Surface
 
-from v3xctrl_ui.utils.fonts import LABEL_FONT, MONO_FONT
+from v3xctrl_ui.utils.colors import GREEN, RED
+from v3xctrl_ui.utils.fonts import LABEL_FONT, MONO_FONT, TEXT_FONT
 from v3xctrl_ui.utils.i18n import t
 import pygame
 
@@ -23,15 +24,20 @@ from .VerticalLayout import VerticalLayout
 
 
 class NetworkTab(Tab):
+
     def __init__(
         self,
         settings: Settings,
         width: int,
         height: int,
         padding: int,
-        y_offset: int
+        y_offset: int,
+        on_test_relay: Optional[Callable] = None
     ) -> None:
         super().__init__(settings, width, height, padding, y_offset)
+
+        self._on_test_relay_callback = on_test_relay
+        self._test_status: Optional[Tuple[bool, str]] = None
 
         # Port widgets
         self.video_input = NumberInput(
@@ -62,7 +68,15 @@ class NetworkTab(Tab):
             callback=self._on_paste_id,
             height=self.relay_id_input.input_height
         )
-        self.relay_id_row = WidgetRow([self.relay_id_input, self.paste_id_button])
+        self.test_relay_button = Button(
+            label=t("Test"),
+            font=LABEL_FONT,
+            callback=self._on_test_relay,
+            height=self.relay_id_input.input_height
+        )
+        self.relay_id_row = WidgetRow([
+            self.relay_id_input, self.paste_id_button, self.test_relay_button
+        ])
 
         self.relay_enabled_checkbox = Checkbox(
             label=t("Use UDP Relay"), font=LABEL_FONT,
@@ -130,6 +144,7 @@ class NetworkTab(Tab):
         }
 
     def apply_settings(self) -> None:
+        self._test_status = None
         self.ports = self.settings.get("ports", {})
         self.relay = self.settings.get("relay", {})
         self.udp_packet_ttl = self.settings.get("udp_packet_ttl", 100)
@@ -172,6 +187,34 @@ class NetworkTab(Tab):
                 self.relay_id_input.cursor_pos = len(pasted)
                 self._on_relay_id_change(pasted)
 
+    def _on_test_relay(self) -> None:
+        if not self._on_test_relay_callback:
+            return
+
+        server = self.relay_server_input.value
+        session_id = self.relay_id_input.value
+        spectator_mode = self.relay_spectator_checkbox.checked
+
+        if not server or not session_id:
+            self._test_status = (False, t("Server and ID are required"))
+            return
+
+        # Parse host:port
+        relay_port = 8888
+        if ':' in server:
+            host, port_str = server.rsplit(':', 1)
+            if is_int(port_str):
+                relay_port = int(port_str)
+                server = host
+
+        self._on_test_relay_callback(
+            server, relay_port, session_id, spectator_mode,
+            self._set_test_status
+        )
+
+    def _set_test_status(self, success: bool, message: str) -> None:
+        self._test_status = (success, message)
+
     def _on_relay_spectator_change(self, value: bool) -> None:
         self.relay["spectator_mode"] = value
 
@@ -185,7 +228,20 @@ class NetworkTab(Tab):
         y += self.y_section_padding
         y += self._draw_headline(surface, "udp_relay", y)
 
-        return self.relay_layout.draw(surface, y)
+        y = self.relay_layout.draw(surface, y)
+
+        # Draw test status message
+        if self._test_status is not None:
+            success, message = self._test_status
+            color = GREEN if success else RED
+            text_surface, text_rect = TEXT_FONT.render(message, color)
+            btn = self.test_relay_button
+            text_x = btn.x + btn.width + 10
+            text_y = btn.y + (btn.height - text_rect.height) // 2
+            text_rect.topleft = (text_x, text_y)
+            surface.blit(text_surface, text_rect)
+
+        return y
 
     def _draw_misc_section(self, surface: Surface, y: int) -> int:
         y += self.y_section_padding

@@ -1,4 +1,5 @@
 import math
+import threading
 import time
 
 import pygame
@@ -6,6 +7,7 @@ from pygame import Surface, event
 from typing import Callable, NamedTuple, Dict, Optional
 
 from v3xctrl_control.message import Command
+from v3xctrl_udp_relay.helper import test_relay_connection
 
 from v3xctrl_ui.utils.colors import WHITE, DARK_GREY, CHARCOAL, GREY, TRANSPARENT_BLACK
 from v3xctrl_ui.utils.fonts import MAIN_FONT
@@ -307,9 +309,26 @@ class Menu:
                 width=self.width,
                 height=self.height,
                 padding=self.padding,
-                y_offset=self.tab_height
+                y_offset=self.tab_height,
+                on_test_relay=self._on_test_relay
             ),
         }
+
+    def _on_test_relay(
+        self,
+        server: str,
+        port: int,
+        session_id: str,
+        spectator: bool,
+        result_callback: Callable[[bool, str], None]
+    ) -> None:
+        """Run relay connection test with loading overlay."""
+        def run_test() -> None:
+            success, message = test_relay_connection(server, port, session_id, spectator)
+            self._pending_result = (success, lambda s: result_callback(s, message))
+
+        self.show_loading(t("Testing relay connection..."))
+        threading.Thread(target=run_test, daemon=True).start()
 
     def _on_send_command(self, command: Command, callback: Callable[[bool], None]) -> None:
         # Wrap callback so we can handle loading screen updates

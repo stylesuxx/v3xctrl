@@ -11,6 +11,8 @@ from .Latency import Latency
 from .Error import Error
 from .PeerAnnouncement import PeerAnnouncement
 from .PeerInfo import PeerInfo
+from .ConnectionTest import ConnectionTest
+from .ConnectionTestAck import ConnectionTestAck
 
 __all__ = [
   "Message",
@@ -26,4 +28,6 @@ __all__ = [
   "Error",
   "PeerAnnouncement",
   "PeerInfo",
+  "ConnectionTest",
+  "ConnectionTestAck",
 ]

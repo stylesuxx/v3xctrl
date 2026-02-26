@@ -6,7 +6,9 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from v3xctrl_control.message import PeerAnnouncement
+from v3xctrl_control.message import (
+    PeerAnnouncement, ConnectionTest, ConnectionTestAck, Message,
+)
 from v3xctrl_udp_relay.custom_types import Role, PortType
 from v3xctrl_udp_relay.UDPRelayServer import UDPRelayServer
 from v3xctrl_udp_relay.custom_types import Session
@@ -56,6 +58,7 @@ class TestUDPRelayServerIntegration(unittest.TestCase):
             cur.execute('''
                 CREATE TABLE IF NOT EXISTS allowed_sessions (
                     id TEXT PRIMARY KEY,
+                    spectator_id TEXT NOT NULL UNIQUE,
                     discord_user_id TEXT NOT NULL UNIQUE,
                     discord_username TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -63,12 +66,12 @@ class TestUDPRelayServerIntegration(unittest.TestCase):
             ''')
             # Insert test sessions
             cur.execute(
-                "INSERT INTO allowed_sessions (id, discord_user_id, discord_username) VALUES (?, ?, ?)",
-                ("test_session_1", "user123", "testuser")
+                "INSERT INTO allowed_sessions (id, spectator_id, discord_user_id, discord_username) VALUES (?, ?, ?, ?)",
+                ("test_session_1", "spectator_1", "user123", "testuser")
             )
             cur.execute(
-                "INSERT INTO allowed_sessions (id, discord_user_id, discord_username) VALUES (?, ?, ?)",
-                ("test_session_2", "user456", "testuser2")
+                "INSERT INTO allowed_sessions (id, spectator_id, discord_user_id, discord_username) VALUES (?, ?, ?, ?)",
+                ("test_session_2", "spectator_2", "user456", "testuser2")
             )
             conn.commit()
 
@@ -556,6 +559,168 @@ class TestUDPRelayServerIntegration(unittest.TestCase):
                 cleanup_calls = [call for call in mock_thread.call_args_list
                                if call[1]['target'] == server._cleanup_expired_entries]
                 self.assertEqual(len(cleanup_calls), 1)
+
+        server.shutdown()
+
+    @patch('socket.socket')
+    def test_connection_test_valid_session(self, mock_socket_class):
+        mock_udp_socket = Mock()
+        mock_command_socket = Mock()
+
+        def socket_side_effect(family, sock_type):
+            if family == socket.AF_INET and sock_type == socket.SOCK_DGRAM:
+                return mock_udp_socket
+            elif family == socket.AF_UNIX and sock_type == socket.SOCK_STREAM:
+                return mock_command_socket
+            return Mock()
+
+        mock_socket_class.side_effect = socket_side_effect
+
+        server = UDPRelayServer(
+            self.server_ip, self.server_port, self.db_path,
+            self.command_socket_path
+        )
+
+        test_msg = ConnectionTest(i="test_session_1", s=False)
+        client_addr = ("192.168.1.100", 54321)
+
+        server._handle_connection_test(test_msg.to_bytes(), client_addr)
+
+        mock_udp_socket.sendto.assert_called_once()
+        sent_data, sent_addr = mock_udp_socket.sendto.call_args[0]
+        self.assertEqual(sent_addr, client_addr)
+
+        ack = Message.from_bytes(sent_data)
+        self.assertIsInstance(ack, ConnectionTestAck)
+        self.assertTrue(ack.valid)
+
+        server.shutdown()
+
+    @patch('socket.socket')
+    def test_connection_test_invalid_session(self, mock_socket_class):
+        mock_udp_socket = Mock()
+        mock_command_socket = Mock()
+
+        def socket_side_effect(family, sock_type):
+            if family == socket.AF_INET and sock_type == socket.SOCK_DGRAM:
+                return mock_udp_socket
+            elif family == socket.AF_UNIX and sock_type == socket.SOCK_STREAM:
+                return mock_command_socket
+            return Mock()
+
+        mock_socket_class.side_effect = socket_side_effect
+
+        server = UDPRelayServer(
+            self.server_ip, self.server_port, self.db_path,
+            self.command_socket_path
+        )
+
+        test_msg = ConnectionTest(i="nonexistent_session", s=False)
+        client_addr = ("192.168.1.100", 54321)
+
+        server._handle_connection_test(test_msg.to_bytes(), client_addr)
+
+        mock_udp_socket.sendto.assert_called_once()
+        sent_data, _ = mock_udp_socket.sendto.call_args[0]
+
+        ack = Message.from_bytes(sent_data)
+        self.assertIsInstance(ack, ConnectionTestAck)
+        self.assertFalse(ack.valid)
+
+        server.shutdown()
+
+    @patch('socket.socket')
+    def test_connection_test_valid_spectator(self, mock_socket_class):
+        mock_udp_socket = Mock()
+        mock_command_socket = Mock()
+
+        def socket_side_effect(family, sock_type):
+            if family == socket.AF_INET and sock_type == socket.SOCK_DGRAM:
+                return mock_udp_socket
+            elif family == socket.AF_UNIX and sock_type == socket.SOCK_STREAM:
+                return mock_command_socket
+            return Mock()
+
+        mock_socket_class.side_effect = socket_side_effect
+
+        server = UDPRelayServer(
+            self.server_ip, self.server_port, self.db_path,
+            self.command_socket_path
+        )
+
+        test_msg = ConnectionTest(i="spectator_1", s=True)
+        client_addr = ("192.168.1.100", 54321)
+
+        server._handle_connection_test(test_msg.to_bytes(), client_addr)
+
+        mock_udp_socket.sendto.assert_called_once()
+        sent_data, _ = mock_udp_socket.sendto.call_args[0]
+
+        ack = Message.from_bytes(sent_data)
+        self.assertIsInstance(ack, ConnectionTestAck)
+        self.assertTrue(ack.valid)
+
+        server.shutdown()
+
+    @patch('socket.socket')
+    def test_connection_test_invalid_spectator(self, mock_socket_class):
+        mock_udp_socket = Mock()
+        mock_command_socket = Mock()
+
+        def socket_side_effect(family, sock_type):
+            if family == socket.AF_INET and sock_type == socket.SOCK_DGRAM:
+                return mock_udp_socket
+            elif family == socket.AF_UNIX and sock_type == socket.SOCK_STREAM:
+                return mock_command_socket
+            return Mock()
+
+        mock_socket_class.side_effect = socket_side_effect
+
+        server = UDPRelayServer(
+            self.server_ip, self.server_port, self.db_path,
+            self.command_socket_path
+        )
+
+        test_msg = ConnectionTest(i="nonexistent_spectator", s=True)
+        client_addr = ("192.168.1.100", 54321)
+
+        server._handle_connection_test(test_msg.to_bytes(), client_addr)
+
+        mock_udp_socket.sendto.assert_called_once()
+        sent_data, _ = mock_udp_socket.sendto.call_args[0]
+
+        ack = Message.from_bytes(sent_data)
+        self.assertIsInstance(ack, ConnectionTestAck)
+        self.assertFalse(ack.valid)
+
+        server.shutdown()
+
+    @patch('socket.socket')
+    def test_connection_test_packet_detection(self, mock_socket_class):
+        """Verify _handle_packet routes ConnectionTest via prefix detection."""
+        mock_udp_socket = Mock()
+        mock_command_socket = Mock()
+
+        def socket_side_effect(family, sock_type):
+            if family == socket.AF_INET and sock_type == socket.SOCK_DGRAM:
+                return mock_udp_socket
+            elif family == socket.AF_UNIX and sock_type == socket.SOCK_STREAM:
+                return mock_command_socket
+            return Mock()
+
+        mock_socket_class.side_effect = socket_side_effect
+
+        server = UDPRelayServer(
+            self.server_ip, self.server_port, self.db_path,
+            self.command_socket_path
+        )
+
+        test_msg = ConnectionTest(i="test_session_1", s=False)
+        client_addr = ("192.168.1.100", 54321)
+
+        with patch.object(server, '_handle_connection_test') as mock_handler:
+            server._handle_packet(test_msg.to_bytes(), client_addr)
+            mock_handler.assert_called_once_with(test_msg.to_bytes(), client_addr)
 
         server.shutdown()
 
