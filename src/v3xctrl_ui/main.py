@@ -4,6 +4,14 @@ import faulthandler
 import logging
 import sys
 
+# On Windows in windowed mode, stdout/stderr are None.
+# Attach to the parent console so output works when launched from a terminal.
+if sys.platform == "win32" and sys.stdout is None:
+    import ctypes
+    if ctypes.windll.kernel32.AttachConsole(-1):
+        sys.stdout = open("CONOUT$", "w")
+        sys.stderr = open("CONOUT$", "w")
+
 if sys.stderr is not None:
     faulthandler.enable()
 
