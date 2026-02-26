@@ -184,6 +184,89 @@ class TestButtonMappingWidget(unittest.TestCase):
 
         self.assertTrue(self.widget.reset_button.hovered)
 
+    def test_hat_assignment_after_remap(self):
+        self.widget._on_remap_click()
+
+        event = pygame.event.Event(pygame.JOYHATMOTION, {'hat': 0, 'value': (0, 1)})
+        result = self.widget.handle_event(event)
+
+        self.assertTrue(result)
+        self.assertEqual(self.widget.button_number, {"hat": 0, "value": [0, 1]})
+        self.assertFalse(self.widget.waiting_for_button)
+        self.on_button_change.assert_called_once_with({"hat": 0, "value": [0, 1]})
+        self.on_remap_toggle.assert_called_with(False)
+        self.assertFalse(self.widget.reset_button.disabled)
+
+    def test_hat_release_ignored_during_remap(self):
+        self.widget._on_remap_click()
+
+        event = pygame.event.Event(pygame.JOYHATMOTION, {'hat': 0, 'value': (0, 0)})
+        result = self.widget.handle_event(event)
+
+        self.assertFalse(result)
+        self.assertTrue(self.widget.waiting_for_button)
+        self.on_button_change.assert_not_called()
+
+    def test_initialization_with_hat_mapping(self):
+        hat_mapping = {"hat": 0, "value": [0, 1]}
+        widget = ButtonMappingWidget(
+            control_name="trim_increase",
+            button_number=hat_mapping,
+            font=self.font,
+            on_button_change=self.on_button_change,
+            on_remap_toggle=self.on_remap_toggle
+        )
+        widget.set_position(10, 20)
+
+        self.assertEqual(widget.button_number, hat_mapping)
+        self.assertFalse(widget.reset_button.disabled)
+
+    def test_draw_with_hat_mapping(self):
+        self.widget.button_number = {"hat": 0, "value": [0, 1]}
+        surface = pygame.Surface((600, 100))
+        try:
+            self.widget.draw(surface)
+        except Exception as e:
+            self.fail(f"Draw should not raise exception with hat mapping: {e}")
+
+    def test_reset_clears_hat_mapping(self):
+        self.widget.button_number = {"hat": 0, "value": [0, 1]}
+        self.widget._on_reset_click()
+
+        self.assertIsNone(self.widget.button_number)
+        self.on_button_change.assert_called_once_with(None)
+        self.assertTrue(self.widget.reset_button.disabled)
+
+
+class TestFormatMapping(unittest.TestCase):
+    def test_format_none(self):
+        from v3xctrl_ui.menu.input.ButtonMappingWidget import format_mapping
+        self.assertEqual(format_mapping(None), "N/A")
+
+    def test_format_button(self):
+        from v3xctrl_ui.menu.input.ButtonMappingWidget import format_mapping
+        self.assertEqual(format_mapping(5), "Button 5")
+
+    def test_format_hat_up(self):
+        from v3xctrl_ui.menu.input.ButtonMappingWidget import format_mapping
+        self.assertEqual(format_mapping({"hat": 0, "value": [0, 1]}), "Hat 0 Up")
+
+    def test_format_hat_down(self):
+        from v3xctrl_ui.menu.input.ButtonMappingWidget import format_mapping
+        self.assertEqual(format_mapping({"hat": 0, "value": [0, -1]}), "Hat 0 Down")
+
+    def test_format_hat_left(self):
+        from v3xctrl_ui.menu.input.ButtonMappingWidget import format_mapping
+        self.assertEqual(format_mapping({"hat": 0, "value": [-1, 0]}), "Hat 0 Left")
+
+    def test_format_hat_right(self):
+        from v3xctrl_ui.menu.input.ButtonMappingWidget import format_mapping
+        self.assertEqual(format_mapping({"hat": 0, "value": [1, 0]}), "Hat 0 Right")
+
+    def test_format_hat_diagonal(self):
+        from v3xctrl_ui.menu.input.ButtonMappingWidget import format_mapping
+        self.assertEqual(format_mapping({"hat": 0, "value": [1, 1]}), "Hat 0 Up-Right")
+
 
 if __name__ == "__main__":
     unittest.main()
