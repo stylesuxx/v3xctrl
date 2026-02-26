@@ -315,6 +315,42 @@ class TestMenu(unittest.TestCase):
         # Tab bar should be marked dirty
         self.assertTrue(menu.tab_bar_dirty)
 
+    def test_handle_event_tab_click_does_not_forward_to_tab_view(self, mock_button_class, mock_pygame):
+        """Test that clicking a tab does not forward the click event to the new tab's view."""
+        self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
+            callback=self.mock_callback,
+            callback_quit=self.mock_callback_quit,
+            telemetry_context=self.telemetry_context
+        )
+
+        mock_event = MagicMock()
+        mock_event.type = mock_pygame.MOUSEBUTTONDOWN
+        mock_event.button = 1
+        mock_event.pos = (100, 30)
+
+        for tab in menu.tabs:
+            tab.rect.collidepoint.return_value = False
+        menu.tabs[1].rect.collidepoint.return_value = True
+
+        # Replace the target tab's view with a mock to track handle_event calls
+        mock_view = MagicMock()
+        menu.tabs[1] = menu.tabs[1]._replace(view=mock_view)
+
+        menu.handle_event(mock_event)
+
+        # Tab should have changed
+        self.assertEqual(menu.active_tab, menu.tabs[1].name)
+
+        # The new tab's view should NOT have received the click event
+        mock_view.handle_event.assert_not_called()
+
     def test_handle_event_tab_click_disabled(self, mock_button_class, mock_pygame):
         self._setup_mocks(mock_button_class, mock_pygame)
 

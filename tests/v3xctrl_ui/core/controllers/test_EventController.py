@@ -412,3 +412,93 @@ class TestCommandAckCallback:
         controller.send_command.assert_called_once()
         _, callback = controller.send_command.call_args[0]
         assert callback == controller._on_command_ack
+
+
+class TestGamepadHatMapping:
+    """Test hat mapping support in EventController."""
+
+    @pytest.fixture
+    def controller(self, mock_settings, mock_telemetry):
+        mock_menu = Mock(visible=False, is_loading=False)
+        mock_model = Mock(user_connected=True)
+        gamepad = Mock()
+        controller = EventController(
+            on_quit=Mock(),
+            on_toggle_fullscreen=Mock(),
+            menu=mock_menu,
+            on_menu_exit=Mock(),
+            send_command=Mock(),
+            settings=mock_settings,
+            telemetry_context=mock_telemetry,
+            gamepad_controller=gamepad,
+            model=mock_model,
+        )
+        return controller
+
+    def test_match_gamepad_mapping_button(self, controller):
+        controller.gamepad_controller.get_button_mapping.side_effect = (
+            lambda name: 5 if name == "trim_increase" else None
+        )
+
+        event = Mock()
+        event.type = pygame.JOYBUTTONUP
+        event.button = 5
+
+        result = controller._match_gamepad_mapping(event)
+        assert result == "trim_increase"
+
+    def test_match_gamepad_mapping_hat(self, controller):
+        hat_mapping = {"hat": 0, "value": [0, 1]}
+        controller.gamepad_controller.get_button_mapping.side_effect = (
+            lambda name: hat_mapping if name == "trim_increase" else None
+        )
+
+        event = Mock()
+        event.type = pygame.JOYHATMOTION
+        event.hat = 0
+        event.value = (0, 1)
+
+        result = controller._match_gamepad_mapping(event)
+        assert result == "trim_increase"
+
+    def test_match_gamepad_mapping_hat_wrong_direction(self, controller):
+        hat_mapping = {"hat": 0, "value": [0, 1]}
+        controller.gamepad_controller.get_button_mapping.side_effect = (
+            lambda name: hat_mapping if name == "trim_increase" else None
+        )
+
+        event = Mock()
+        event.type = pygame.JOYHATMOTION
+        event.hat = 0
+        event.value = (0, -1)  # Down instead of Up
+
+        result = controller._match_gamepad_mapping(event)
+        assert result is None
+
+    def test_match_gamepad_mapping_no_match(self, controller):
+        controller.gamepad_controller.get_button_mapping.return_value = None
+
+        event = Mock()
+        event.type = pygame.JOYBUTTONUP
+        event.button = 99
+
+        result = controller._match_gamepad_mapping(event)
+        assert result is None
+
+    def test_hat_trim_increase_sends_command(
+        self, controller, mock_telemetry, monkeypatch
+    ):
+        hat_mapping = {"hat": 0, "value": [0, 1]}
+        controller.gamepad_controller.get_button_mapping.side_effect = (
+            lambda name: hat_mapping if name == "trim_increase" else None
+        )
+
+        event = Mock()
+        event.type = pygame.JOYHATMOTION
+        event.hat = 0
+        event.value = (0, 1)
+        monkeypatch.setattr('pygame.event.get', Mock(return_value=[event]))
+
+        controller.handle_events()
+
+        controller.send_command.assert_called_once()

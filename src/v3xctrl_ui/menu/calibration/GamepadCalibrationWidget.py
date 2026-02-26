@@ -1,7 +1,7 @@
 import pygame
 from pygame import Surface
 from pygame.freetype import Font
-from typing import Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 from v3xctrl_ui.utils.colors import WHITE, GREY, TRANSPARENT_GREY
 from v3xctrl_ui.utils.fonts import MONO_FONT
@@ -53,7 +53,7 @@ class GamepadCalibrationWidget(BaseWidget):
         self.calibrator: Optional[GamepadCalibrator] = None
         self.invert_axes: Dict[str, bool] = {k: False for k in ["steering", "throttle", "brake"]}
         self.deadband_values: Dict[str, int] = {k: 0 for k in ["steering", "throttle", "brake"]}
-        self.button_mappings: Dict[str, Optional[int]] = {
+        self.button_mappings: Dict[str, Any] = {
             "trim_increase": None,
             "trim_decrease": None,
             "rec_toggle": None
@@ -157,7 +157,7 @@ class GamepadCalibrationWidget(BaseWidget):
         except ValueError:
             pass
 
-    def update_button_mapping(self, key: str, button: Optional[int]) -> None:
+    def update_button_mapping(self, key: str, button: Any) -> None:
         self.button_mappings[key] = button
 
         js = self.gamepads.get(self.selected_guid)
