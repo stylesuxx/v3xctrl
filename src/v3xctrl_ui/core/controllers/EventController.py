@@ -81,24 +81,17 @@ class EventController:
                                 else:
                                     self.send_command(Commands.recording_start(), self._on_command_ack)
 
-            elif event.type == pygame.JOYBUTTONUP and not self.menu.visible and self._is_connected():
-                # Only process gamepad button controls when connected and not in menu
-                if self.gamepad_controller:
-                    trim_increase_btn = self.gamepad_controller.get_button_mapping("trim_increase")
-                    trim_decrease_btn = self.gamepad_controller.get_button_mapping("trim_decrease")
-                    rec_toggle_btn = self.gamepad_controller.get_button_mapping("rec_toggle")
-
-                    if trim_increase_btn is not None and event.button == trim_increase_btn:
-                        self.send_command(Commands.trim_increase(), self._on_command_ack)
-
-                    elif trim_decrease_btn is not None and event.button == trim_decrease_btn:
-                        self.send_command(Commands.trim_decrease(), self._on_command_ack)
-
-                    elif rec_toggle_btn is not None and event.button == rec_toggle_btn:
-                        if self.telemetry_context.get_gst().recording:
-                            self.send_command(Commands.recording_stop(), self._on_command_ack)
-                        else:
-                            self.send_command(Commands.recording_start(), self._on_command_ack)
+            elif not self.menu.visible and self._is_connected() and self.gamepad_controller:
+                action = self._match_gamepad_mapping(event)
+                if action == "trim_increase":
+                    self.send_command(Commands.trim_increase(), self._on_command_ack)
+                elif action == "trim_decrease":
+                    self.send_command(Commands.trim_decrease(), self._on_command_ack)
+                elif action == "rec_toggle":
+                    if self.telemetry_context.get_gst().recording:
+                        self.send_command(Commands.recording_stop(), self._on_command_ack)
+                    else:
+                        self.send_command(Commands.recording_start(), self._on_command_ack)
 
             # Route events to connect button when on connect screen
             if (
@@ -131,6 +124,23 @@ class EventController:
 
     def _is_connected(self) -> bool:
         return self.model is not None and self.model.user_connected
+
+    def _match_gamepad_mapping(self, event: pygame.event.Event) -> Optional[str]:
+        """Check if a pygame event matches any gamepad button/hat mapping."""
+        for name in ("trim_increase", "trim_decrease", "rec_toggle"):
+            mapping = self.gamepad_controller.get_button_mapping(name)
+            if mapping is None:
+                continue
+
+            if isinstance(mapping, int) and event.type == pygame.JOYBUTTONUP:
+                if event.button == mapping:
+                    return name
+
+            elif isinstance(mapping, dict) and event.type == pygame.JOYHATMOTION:
+                if event.hat == mapping["hat"] and list(event.value) == mapping["value"]:
+                    return name
+
+        return None
 
     def _load_keyboard_controls(self) -> None:
         keyboard_controls = self.settings.get("controls", {}).get("keyboard", {})

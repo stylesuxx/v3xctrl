@@ -192,7 +192,7 @@ class GamepadController(threading.Thread):
 
         return values
 
-    def get_button_mapping(self, button_name: str) -> Optional[int]:
+    def get_button_mapping(self, button_name: str) -> Optional[Any]:
         with self._lock:
             settings = self._active_settings
 

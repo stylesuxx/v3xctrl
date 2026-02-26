@@ -151,6 +151,7 @@ class Menu:
                     if entry.rect.collidepoint(event.pos) and entry.enabled:
                         self.active_tab = entry.name
                         self.tab_bar_dirty = True
+                        return
 
         # Pass event to active tab
         tab = self._get_active_tab()
