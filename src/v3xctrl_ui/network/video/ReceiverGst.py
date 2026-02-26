@@ -14,8 +14,8 @@ from v3xctrl_helper import NTPClock, parse_sei_nal
 
 logger = logging.getLogger(__name__)
 
-# Dismiss e2e measurement if either NTP offset exceeds this (100ms)
-_MAX_NTP_OFFSET_US = 100_000
+# Dismiss e2e measurement if either NTP offset exceeds this (1ms)
+_MAX_NTP_OFFSET_US = 1000
 
 
 class ReceiverGst(Receiver):
@@ -334,17 +334,17 @@ class ReceiverGst(Receiver):
 
                         if (abs(capture_offset_us) <= _MAX_NTP_OFFSET_US
                                 and abs(viewer_offset_us) <= _MAX_NTP_OFFSET_US):
-                            if abs(capture_offset_us) > 2000 or abs(viewer_offset_us) > 2000:
-                                logging.debug(
-                                    f"[SEI] NTP offset high: "
-                                    f"capture={capture_offset_us}us "
-                                    f"viewer={viewer_offset_us}us"
-                                )
                             corrected_capture = capture_us + capture_offset_us
                             corrected_viewer = viewer_us + viewer_offset_us
                             e2e_us = corrected_viewer - corrected_capture
                             if e2e_us >= 0:
                                 self._timing_e2e_samples.append(e2e_us / 1_000_000)
+                        else:
+                            logging.debug(
+                                f"[SEI] NTP offset too high, skipping e2e: "
+                                f"capture={capture_offset_us}us "
+                                f"viewer={viewer_offset_us}us"
+                            )
 
             self._update_frame(frame, decode_duration)
 
