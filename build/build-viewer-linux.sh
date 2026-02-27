@@ -6,8 +6,13 @@ BUILD_DIR="${REPO_ROOT}/build/tmp/viewer-linux"
 OUTPUT_DIR="${REPO_ROOT}/build/tmp"
 SRC_DIR="${REPO_ROOT}/src"
 
+VERSION="${VERSION:-$(git -C "${REPO_ROOT}" rev-parse --short HEAD)}"
+
 rm -rf "${BUILD_DIR}"
 mkdir -p "${BUILD_DIR}" "${OUTPUT_DIR}"
+
+# Generate version file for the build
+echo "VERSION = \"${VERSION}\"" > "${SRC_DIR}/v3xctrl_ui/_version.py"
 
 # Build executable with PyInstaller
 pyinstaller --noconfirm --onedir --windowed \
@@ -97,6 +102,6 @@ chmod +x "${APPDIR}/AppRun"
 cp "${APPDIR}/usr/share/applications/v3xctrl.desktop" "${APPDIR}/"
 
 # Build AppImage
-ARCH=x86_64 "${APPIMAGETOOL}" "${APPDIR}" "${OUTPUT_DIR}/v3xctrl-viewer-linux.AppImage"
+ARCH=x86_64 "${APPIMAGETOOL}" "${APPDIR}" "${OUTPUT_DIR}/v3xctrl-viewer-linux-${VERSION}.AppImage"
 
-echo "AppImage created: ${OUTPUT_DIR}/v3xctrl-viewer-linux.AppImage"
+echo "AppImage created: ${OUTPUT_DIR}/v3xctrl-viewer-linux-${VERSION}.AppImage"

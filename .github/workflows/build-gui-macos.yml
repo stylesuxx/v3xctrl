@@ -7,6 +7,10 @@ on:
         description: 'Git branch to build'
         required: true
         default: 'master'
+      version:
+        description: 'Version string (leave empty for git hash)'
+        required: false
+        default: ''
 
 jobs:
   build-macos:
@@ -14,6 +18,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Resolve version
+        run: |
+          if [ -z "${{ inputs.version }}" ]; then
+            echo "VERSION=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_ENV
+          else
+            echo "VERSION=${{ inputs.version }}" >> $GITHUB_ENV
+          fi
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -25,6 +37,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r ./build/requirements/viewer.txt pyinstaller
 
+      - name: Generate version file
+        run: |
+          echo "VERSION = \"${VERSION}\"" > src/v3xctrl_ui/_version.py
+
       - name: Build executable with PyInstaller
         run: |
           cd src/v3xctrl_ui
@@ -34,14 +50,13 @@ jobs:
         shell: bash
         run: |
           cd src/v3xctrl_ui/dist
-          SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          mv V3XCTRL V3XCTRL-$SHA
+          mv V3XCTRL v3xctrl-viewer-macos-$VERSION
 
       - name: Upload executable
         uses: actions/upload-artifact@v4
         with:
-          name: V3XCTRL-macOS
-          path: src/v3xctrl_ui/distV3XCTRL-*
+          name: v3xctrl-viewer-macos-${{ env.VERSION }}
+          path: src/v3xctrl_ui/dist/v3xctrl-viewer-macos-*
 
   call-cleanup:
     name: Cleanup old workflow runs

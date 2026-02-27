@@ -7,13 +7,26 @@ on:
         description: 'Git branch to build'
         required: true
         default: 'master'
+      version:
+        description: 'Version string (leave empty for git hash)'
+        required: false
+        default: ''
 
 jobs:
   build-linux:
     runs-on: ubuntu-22.04  # Use Ubuntu 22.04 for better glibc compatibility (glibc 2.35)
 
+    env:
+      VERSION: ${{ inputs.version || format('{0}', github.sha) }}
+
     steps:
       - uses: actions/checkout@v4
+
+      - name: Resolve version
+        run: |
+          if [ -z "${{ inputs.version }}" ]; then
+            echo "VERSION=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_ENV
+          fi
 
       - name: Install Python 3.11 from Deadsnakes
         run: |
@@ -32,13 +45,13 @@ jobs:
       - name: Build AppImage
         run: |
           source venv/bin/activate
-          ./build/build-viewer-linux.sh
+          VERSION="${VERSION}" ./build/build-viewer-linux.sh
 
       - name: Upload AppImage
         uses: actions/upload-artifact@v4
         with:
-          name: V3XCTRL-Linux-AppImage
-          path: build/tmp/v3xctrl-viewer-linux.AppImage
+          name: v3xctrl-viewer-linux-${{ env.VERSION }}
+          path: build/tmp/v3xctrl-viewer-linux-*.AppImage
 
   call-cleanup:
     name: Cleanup old workflow runs

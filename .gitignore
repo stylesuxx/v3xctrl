@@ -5,6 +5,7 @@
 pyvenv.cfg
 config.yml
 __pycache__
+_version.py
 *.db
 *.deb
 /build/v3xctrl-client/usr/share
