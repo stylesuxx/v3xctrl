@@ -1,16 +1,10 @@
 from flask.views import MethodView
 from flask import Response
 from flask_smorest import Blueprint
-from marshmallow import Schema, fields
 import subprocess
-from typing import Dict, Any, Tuple
+from typing import Tuple
 
 from routes.response import success
-
-
-class ServiceNameSchema(Schema):
-    name = fields.Str(required=True)
-
 
 blueprint = Blueprint('service', 'service', url_prefix='/service', description='Systemd service control')
 
@@ -86,45 +80,37 @@ class GetService(MethodView):
             })
 
 
-@blueprint.route('/start')
+@blueprint.route('/<name>/start')
 class StartService(MethodView):
-    @blueprint.arguments(ServiceNameSchema, location="json")
     @blueprint.response(200)
-    def post(self, args: Dict[str, Any]) -> Tuple[Response, int]:
-        name = str(args['name'])
+    def post(self, name: str) -> Tuple[Response, int]:
         subprocess.run(["sudo", "systemctl", "start", name])
 
         return success({"message": f"Started service: {name}"})
 
 
-@blueprint.route('/stop')
+@blueprint.route('/<name>/stop')
 class StopService(MethodView):
-    @blueprint.arguments(ServiceNameSchema, location="json")
     @blueprint.response(200)
-    def post(self, args: Dict[str, Any]) -> Tuple[Response, int]:
-        name = str(args['name'])
+    def post(self, name: str) -> Tuple[Response, int]:
         subprocess.run(["sudo", "systemctl", "stop", name])
 
         return success({"message": f"Stopped service: {name}"})
 
 
-@blueprint.route('/restart')
+@blueprint.route('/<name>/restart')
 class RestartService(MethodView):
-    @blueprint.arguments(ServiceNameSchema, location="json")
     @blueprint.response(200)
-    def post(self, args: Dict[str, Any]) -> Tuple[Response, int]:
-        name = str(args['name'])
+    def post(self, name: str) -> Tuple[Response, int]:
         subprocess.run(["sudo", "systemctl", "restart", name])
 
         return success({"message": f"Restarted service: {name}"})
 
 
-@blueprint.route('/log')
-class LogService(MethodView):
-    @blueprint.arguments(ServiceNameSchema, location="json")
+@blueprint.route('/<name>/log')
+class ServiceLog(MethodView):
     @blueprint.response(200)
-    def post(self, args: Dict[str, Any]) -> Tuple[Response, int]:
-        name = str(args['name'])
+    def get(self, name: str) -> Tuple[Response, int]:
         output = subprocess.check_output(
             ["journalctl", "-n", "50", "--no-page", "-u", name],
             stderr=subprocess.DEVNULL

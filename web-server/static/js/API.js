@@ -76,25 +76,25 @@ class API {
   }
 
   static async startService(name) {
-    const json = await this.#post('/service/start', { name });
+    const json = await this.#post(`/service/${name}/start`);
 
     return json;
   }
 
   static async stopService(name) {
-    const json = await this.#post('/service/stop', { name });
+    const json = await this.#post(`/service/${name}/stop`);
 
     return json;
   }
 
   static async restartService(name) {
-    const json = await this.#post('/service/restart', { name });
+    const json = await this.#post(`/service/${name}/restart`);
 
     return json;
   }
 
   static async getServiceLog(name) {
-    const json = await this.#post('/service/log', { name });
+    const json = await this.#get(`/service/${name}/log`);
 
     return json.log;
   }
