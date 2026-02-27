@@ -37,44 +37,25 @@ class CameraSettings(MethodView):
             return error("Unexpected error", str(e))
 
 
-@blueprint.route('/setting', methods=['POST'])
+@blueprint.route('/settings/<name>')
 class CameraSetting(MethodView):
-    @blueprint.response(200)
-    def post(self) -> Tuple[Response, int]:
-        """
-        Set a camera setting via v3xctrl-video-control.
-
-        Expected JSON payload:
-        {
-            "name": "brightness|contrast|saturation|sharpness|lens-position|analogue-gain|exposure-time",
-            "value": <number>
-        }
-        """
+    @blueprint.response(200, description="Set a camera setting via v3xctrl-video-control")
+    def put(self, name: str) -> Tuple[Response, int]:
         try:
             data = request.get_json()
 
-            if not data:
-                return error("No data provided", status=400)
+            if not data or 'value' not in data:
+                return error("'value' is required", status=400)
 
-            setting_name = data.get('name')
-            value = data.get('value')
-
-            if not setting_name or value is None:
-                return error("Both 'name' and 'value' are required", status=400)
+            value = data['value']
 
             output = subprocess.check_output(
-                [
-                    "v3xctrl-video-control",
-                    "set",
-                    "camera",
-                    setting_name,
-                    str(value)
-                ],
+                ["v3xctrl-video-control", "set", "camera", name, str(value)],
                 stderr=subprocess.STDOUT
             ).decode().strip()
 
             return success({
-                "setting": setting_name,
+                "setting": name,
                 "value": value,
                 "output": output
             })
