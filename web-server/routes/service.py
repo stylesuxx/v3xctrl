@@ -56,6 +56,33 @@ class ListServices(MethodView):
         return data
 
 
+@blueprint.route('/<name>')
+class GetService(MethodView):
+    @blueprint.response(200, description="Get status of a single systemd service")
+    def get(self, name: str) -> Dict[str, Any]:
+        try:
+            output = subprocess.check_output(
+                ["systemctl", "show", name, "--property=Type,ActiveState,Result"],
+                stderr=subprocess.DEVNULL
+            ).decode().strip()
+
+            props = dict(line.split('=', 1) for line in output.splitlines())
+            return {
+                "name": name,
+                "type": props.get("Type", ""),
+                "state": props.get("ActiveState", ""),
+                "result": props.get("Result", ""),
+            }
+
+        except subprocess.CalledProcessError:
+            return {
+                "name": name,
+                "type": "unknown",
+                "state": "unknown",
+                "result": "error",
+            }
+
+
 @blueprint.route('/start')
 class StartService(MethodView):
     @blueprint.arguments(ServiceNameSchema, location="json")

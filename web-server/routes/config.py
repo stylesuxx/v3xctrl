@@ -11,6 +11,24 @@ from typing import Dict, Any
 blueprint = Blueprint('config', 'config', url_prefix='/config', description='Configuration management')
 
 
+@blueprint.route('/')
+class GetConfig(MethodView):
+    @blueprint.response(200, description="Return current configuration")
+    def get(self) -> Dict[str, Any]:
+        config_path: str = str(current_app.config['CONFIG_PATH'])
+        with open(config_path) as f:
+            return json.load(f)
+
+
+@blueprint.route('/schema')
+class GetSchema(MethodView):
+    @blueprint.response(200, description="Return configuration JSON schema")
+    def get(self) -> Dict[str, Any]:
+        schema_path: str = str(current_app.config['SCHEMA_PATH'])
+        with open(schema_path) as f:
+            return json.load(f)
+
+
 @blueprint.route('/save')
 class SaveConfig(MethodView):
     @blueprint.response(200, description="Save configuration and regenerate environment file")

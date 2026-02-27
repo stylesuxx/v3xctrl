@@ -1,10 +1,39 @@
 from flask_smorest import Blueprint
 from flask import jsonify, Response, request
 from flask.views import MethodView
+import json
 import subprocess
 from typing import Tuple
 
 blueprint = Blueprint('camera', 'camera', url_prefix='/camera', description='Camera control endpoints')
+
+
+@blueprint.route('/settings')
+class CameraSettings(MethodView):
+    @blueprint.response(200, description="Get current camera settings from the running pipeline")
+    def get(self) -> Response | Tuple[Response, int]:
+        """
+        Query live camera settings via v3xctrl-video-control.
+        Requires the video pipeline to be running.
+        """
+        try:
+            output = subprocess.check_output(
+                ["v3xctrl-video-control", "list", "camera"],
+                stderr=subprocess.STDOUT
+            ).decode().strip()
+
+            return jsonify(json.loads(output))
+
+        except subprocess.CalledProcessError as e:
+            return (jsonify({
+                "error": "Failed to get camera settings",
+                "details": e.output.decode().strip() if e.output else "No output"
+            }), 500)
+        except Exception as e:
+            return (jsonify({
+                "error": "Unexpected error",
+                "details": str(e)
+            }), 500)
 
 
 @blueprint.route('/setting', methods=['POST'])
