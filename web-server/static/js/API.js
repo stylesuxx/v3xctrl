@@ -118,7 +118,7 @@ class API {
   }
 
   static async setPwm(channel, value) {
-    const json = await this.#post('/gpio/set-pwm', { channel, value});
+    const json = await this.#put(`/gpio/${channel}/pwm`, { value });
 
     return json;
   }
