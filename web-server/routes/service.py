@@ -4,7 +4,7 @@ from flask_smorest import Blueprint
 import subprocess
 from typing import Tuple
 
-from routes.response import success
+from routes.response import success, error
 
 blueprint = Blueprint('service', 'service', url_prefix='/service', description='Systemd service control')
 
@@ -84,27 +84,36 @@ class GetService(MethodView):
 class StartService(MethodView):
     @blueprint.response(200)
     def post(self, name: str) -> Tuple[Response, int]:
-        subprocess.run(["sudo", "systemctl", "start", name])
-
-        return success({"message": f"Started service: {name}"})
+        try:
+            subprocess.run(["sudo", "systemctl", "start", name],
+                           check=True, capture_output=True, text=True)
+            return success({"message": f"Started service: {name}"})
+        except subprocess.CalledProcessError as e:
+            return error(f"Failed to start service: {name}", e.stderr.strip())
 
 
 @blueprint.route('/<name>/stop')
 class StopService(MethodView):
     @blueprint.response(200)
     def post(self, name: str) -> Tuple[Response, int]:
-        subprocess.run(["sudo", "systemctl", "stop", name])
-
-        return success({"message": f"Stopped service: {name}"})
+        try:
+            subprocess.run(["sudo", "systemctl", "stop", name],
+                           check=True, capture_output=True, text=True)
+            return success({"message": f"Stopped service: {name}"})
+        except subprocess.CalledProcessError as e:
+            return error(f"Failed to stop service: {name}", e.stderr.strip())
 
 
 @blueprint.route('/<name>/restart')
 class RestartService(MethodView):
     @blueprint.response(200)
     def post(self, name: str) -> Tuple[Response, int]:
-        subprocess.run(["sudo", "systemctl", "restart", name])
-
-        return success({"message": f"Restarted service: {name}"})
+        try:
+            subprocess.run(["sudo", "systemctl", "restart", name],
+                           check=True, capture_output=True, text=True)
+            return success({"message": f"Restarted service: {name}"})
+        except subprocess.CalledProcessError as e:
+            return error(f"Failed to restart service: {name}", e.stderr.strip())
 
 
 @blueprint.route('/<name>/log')

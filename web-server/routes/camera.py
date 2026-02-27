@@ -39,6 +39,24 @@ class CameraSettings(MethodView):
 
 @blueprint.route('/settings/<name>')
 class CameraSetting(MethodView):
+    @blueprint.response(200, description="Get a single camera setting from the running pipeline")
+    def get(self, name: str) -> Tuple[Response, int]:
+        try:
+            output = subprocess.check_output(
+                ["v3xctrl-video-control", "get", "camera", name],
+                stderr=subprocess.STDOUT
+            ).decode().strip()
+
+            return success(json.loads(output))
+
+        except subprocess.CalledProcessError as e:
+            return error(
+                f"Failed to get camera setting '{name}'",
+                e.output.decode().strip() if e.output else "No output"
+            )
+        except Exception as e:
+            return error("Unexpected error", str(e))
+
     @blueprint.response(200, description="Set a camera setting via v3xctrl-video-control")
     def put(self, name: str) -> Tuple[Response, int]:
         try:

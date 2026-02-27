@@ -100,7 +100,7 @@ class API {
   }
 
   static async getModemInfo() {
-    const json = await this.#get('/modem/info');
+    const json = await this.#get('/modem');
 
     return json;
   }

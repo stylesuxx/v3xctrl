@@ -10,7 +10,7 @@ from routes.response import success, error
 blueprint = Blueprint('modem', 'modem', url_prefix='/modem', description='Modem control endpoints')
 
 
-@blueprint.route('/info')
+@blueprint.route('/')
 class ModemInfo(MethodView):
     @blueprint.response(200)
     def get(self) -> Tuple[Response, int]:
