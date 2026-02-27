@@ -8,8 +8,6 @@ from platformdirs import user_config_dir
 
 import pygame
 
-from v3xctrl_ui import __version__
-
 
 class Settings:
     DEFAULTS: Dict[str, Any] = {
@@ -131,7 +129,6 @@ class Settings:
             },
         },
         "settings": {
-            "title": f"V3XCTRL {__version__}",
             "throttle": {
                 "step": 0.1,
                 "friction": 0.2,

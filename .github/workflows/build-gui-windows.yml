@@ -7,6 +7,10 @@ on:
         description: 'Git branch to build'
         required: true
         default: 'master'
+      version:
+        description: 'Version string (leave empty for git hash)'
+        required: false
+        default: ''
 
 jobs:
   build-windows:
@@ -14,6 +18,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+
+      - name: Resolve version
+        shell: bash
+        run: |
+          if [ -z "${{ inputs.version }}" ]; then
+            echo "VERSION=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_ENV
+          else
+            echo "VERSION=${{ inputs.version }}" >> $GITHUB_ENV
+          fi
 
       - name: Set up Python 3.11
         id: setup-python
@@ -45,6 +58,11 @@ jobs:
           "$PY" -m pip install --upgrade pip
           "$PY" -m pip install -r ./build/requirements/viewer.txt pyinstaller
 
+      - name: Generate version file
+        shell: bash
+        run: |
+          echo "VERSION = \"${VERSION}\"" > src/v3xctrl_ui/_version.py
+
       - name: Verify installations
         shell: bash
         run: |
@@ -68,19 +86,14 @@ jobs:
         shell: bash
         run: |
           cd src/dist
-          SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-
-          # Rename the directory to include the SHA
-          mv V3XCTRL V3XCTRL-$SHA
-
-          # Create a zip file
-          powershell Compress-Archive -Path V3XCTRL-$SHA -DestinationPath V3XCTRL-$SHA-windows.zip
+          mv V3XCTRL v3xctrl-viewer-windows-$VERSION
+          powershell Compress-Archive -Path v3xctrl-viewer-windows-$VERSION -DestinationPath v3xctrl-viewer-windows-$VERSION.zip
 
       - name: Upload executable
         uses: actions/upload-artifact@v4
         with:
-          name: V3XCTRL-Windows
-          path: src/dist/V3XCTRL-*-windows.zip
+          name: v3xctrl-viewer-windows-${{ env.VERSION }}
+          path: src/dist/v3xctrl-viewer-windows-*.zip
 
   call-cleanup:
     name: Cleanup old workflow runs

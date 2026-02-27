@@ -37,7 +37,8 @@ class AppState:
         self.video_port = ports.get("video", 16384)
         self.control_port = ports.get("control", 16386)
 
-        self.title = settings.get("settings").get("title")
+        from v3xctrl_ui import __version__
+        self.title = f"V3XCTRL ({__version__})"
 
         self.input_controller = InputController(settings)
 
