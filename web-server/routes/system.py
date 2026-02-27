@@ -6,7 +6,7 @@ from typing import Tuple
 
 from routes.response import success
 
-blueprint = Blueprint('streamer', 'streamer', url_prefix='/streamer', description='System control endpoints')
+blueprint = Blueprint('system', 'system', url_prefix='/system', description='System control endpoints')
 
 
 @blueprint.route('/reboot')

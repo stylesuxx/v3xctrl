@@ -34,19 +34,19 @@ class API {
   }
 
   static async getDmesg() {
-    const json = await this.#get('/streamer/dmesg');
+    const json = await this.#get('/system/dmesg');
 
     return json.log;
   }
 
   static async reboot() {
-    const json = await this.#post('/streamer/reboot');
+    const json = await this.#post('/system/reboot');
 
     return json;
   }
 
   static async shutdown() {
-    const json = await this.#post('/streamer/shutdown');
+    const json = await this.#post('/system/shutdown');
 
     return json;
   }
@@ -88,7 +88,7 @@ class API {
   }
 
   static async getVersionInfo() {
-    const json = await this.#get('/streamer/version');
+    const json = await this.#get('/system/version');
 
     return json;
   }
