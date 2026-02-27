@@ -14,6 +14,10 @@ val localProperties = Properties().apply {
 }
 val gstDir = localProperties.getProperty("gst.dir") ?: "/home/chris/android-gst"
 
+val appVersion: String = project.findProperty("version")?.toString()?.takeIf { it.isNotEmpty() }
+    ?: providers.exec { commandLine("git", "rev-parse", "--short", "HEAD") }
+        .standardOutput.asText.get().trim().ifEmpty { "dev" }
+
 android {
     namespace = "com.v3xctrl.viewer"
     compileSdk = 36
@@ -24,7 +28,9 @@ android {
         minSdk = 24
         targetSdk = 36
         versionCode = 1
-        versionName = "1.0"
+        versionName = appVersion
+
+        buildConfigField("String", "APP_VERSION", "\"$appVersion\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -51,6 +57,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

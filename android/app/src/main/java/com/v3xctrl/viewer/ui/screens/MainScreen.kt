@@ -45,6 +45,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.v3xctrl.viewer.ConnectionState
+import com.v3xctrl.viewer.BuildConfig
 import com.v3xctrl.viewer.R
 import com.v3xctrl.viewer.ui.components.AppMenu
 import com.v3xctrl.viewer.ui.theme.V3xctrlTheme
@@ -131,6 +132,12 @@ fun MainScreen(
                 modifier = Modifier
                     .fillMaxWidth(0.6f)
                     .aspectRatio(981.6f / 627.8f)
+            )
+
+            Text(
+                text = BuildConfig.APP_VERSION,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(24.dp))

@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build V3XCTRL GUI Executable (Android)
 
 on:
   push:
@@ -10,6 +10,10 @@ on:
         description: 'Git branch to build'
         required: true
         default: 'master'
+      version:
+        description: 'Version string (leave empty for git hash)'
+        required: false
+        default: ''
 
 env:
   GST_VERSION: "1.28.0"
@@ -22,6 +26,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.branch }}
+
+      - name: Resolve version
+        run: |
+          if [ -z "${{ inputs.version }}" ]; then
+            echo "VERSION=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_ENV
+          else
+            echo "VERSION=${{ inputs.version }}" >> $GITHUB_ENV
+          fi
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -61,13 +73,16 @@ jobs:
 
       - name: Build Debug APK
         working-directory: android
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleDebug -Pversion="${VERSION}"
+
+      - name: Rename APK
+        run: mv android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/v3xctrl-viewer-android-${VERSION}.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: V3XCTRL-Android-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: v3xctrl-viewer-android-${{ env.VERSION }}
+          path: android/app/build/outputs/apk/debug/v3xctrl-viewer-android-*.apk
 
   call-cleanup:
     name: Cleanup old workflow runs
