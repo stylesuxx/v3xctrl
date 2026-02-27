@@ -1,8 +1,11 @@
 from flask.views import MethodView
+from flask import Response
 from flask_smorest import Blueprint
 from marshmallow import Schema, fields
 import subprocess
-from typing import Dict, Any
+from typing import Dict, Any, Tuple
+
+from routes.response import success
 
 
 class ServiceNameSchema(Schema):
@@ -26,8 +29,8 @@ SERVICES = [
 @blueprint.route('/')
 class ListServices(MethodView):
     @blueprint.response(200, description="List all monitored systemd services with state info")
-    def get(self) -> Dict[str, Any]:
-        data: Dict[str, Any] = {"services": []}
+    def get(self) -> Tuple[Response, int]:
+        services = []
 
         for service in SERVICES:
             try:
@@ -46,20 +49,20 @@ class ListServices(MethodView):
                 active_state = "unknown"
                 result = "error"
 
-            data["services"].append({
+            services.append({
                 "name": service,
                 "type": service_type,
                 "state": active_state,
                 "result": result
             })
 
-        return data
+        return success({"services": services})
 
 
 @blueprint.route('/<name>')
 class GetService(MethodView):
     @blueprint.response(200, description="Get status of a single systemd service")
-    def get(self, name: str) -> Dict[str, Any]:
+    def get(self, name: str) -> Tuple[Response, int]:
         try:
             output = subprocess.check_output(
                 ["systemctl", "show", name, "--property=Type,ActiveState,Result"],
@@ -67,64 +70,64 @@ class GetService(MethodView):
             ).decode().strip()
 
             props = dict(line.split('=', 1) for line in output.splitlines())
-            return {
+            return success({
                 "name": name,
                 "type": props.get("Type", ""),
                 "state": props.get("ActiveState", ""),
                 "result": props.get("Result", ""),
-            }
+            })
 
         except subprocess.CalledProcessError:
-            return {
+            return success({
                 "name": name,
                 "type": "unknown",
                 "state": "unknown",
                 "result": "error",
-            }
+            })
 
 
 @blueprint.route('/start')
 class StartService(MethodView):
     @blueprint.arguments(ServiceNameSchema, location="json")
     @blueprint.response(200)
-    def post(self, args: Dict[str, Any]) -> Dict[str, Any]:
+    def post(self, args: Dict[str, Any]) -> Tuple[Response, int]:
         name = str(args['name'])
         subprocess.run(["sudo", "systemctl", "start", name])
 
-        return {"message": f"Started service: {name}"}
+        return success({"message": f"Started service: {name}"})
 
 
 @blueprint.route('/stop')
 class StopService(MethodView):
     @blueprint.arguments(ServiceNameSchema, location="json")
     @blueprint.response(200)
-    def post(self, args: Dict[str, Any]) -> Dict[str, Any]:
+    def post(self, args: Dict[str, Any]) -> Tuple[Response, int]:
         name = str(args['name'])
         subprocess.run(["sudo", "systemctl", "stop", name])
 
-        return {"message": f"Stopped service: {name}"}
+        return success({"message": f"Stopped service: {name}"})
 
 
 @blueprint.route('/restart')
 class RestartService(MethodView):
     @blueprint.arguments(ServiceNameSchema, location="json")
     @blueprint.response(200)
-    def post(self, args: Dict[str, Any]) -> Dict[str, Any]:
+    def post(self, args: Dict[str, Any]) -> Tuple[Response, int]:
         name = str(args['name'])
         subprocess.run(["sudo", "systemctl", "restart", name])
 
-        return {"message": f"Restarted service: {name}"}
+        return success({"message": f"Restarted service: {name}"})
 
 
 @blueprint.route('/log')
 class LogService(MethodView):
     @blueprint.arguments(ServiceNameSchema, location="json")
     @blueprint.response(200)
-    def post(self, args: Dict[str, Any]) -> Dict[str, Any]:
+    def post(self, args: Dict[str, Any]) -> Tuple[Response, int]:
         name = str(args['name'])
         output = subprocess.check_output(
             ["journalctl", "-n", "50", "--no-page", "-u", name],
             stderr=subprocess.DEVNULL
         ).decode().strip()
 
-        return {"log": output}
+        return success({"log": output})

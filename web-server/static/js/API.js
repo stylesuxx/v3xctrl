@@ -6,11 +6,13 @@
 class API {
   static async #get(path) {
     const response = await fetch(path);
-    if(!response.ok) {
-      throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+    const json = await response.json();
+
+    if (!response.ok) {
+      throw new Error(json.error?.message || `HTTP ${response.status} - ${response.statusText}`);
     }
 
-    return await response.json();
+    return json.data;
   }
 
   static async #post(path, data = {}) {
@@ -22,11 +24,13 @@ class API {
       body: JSON.stringify(data)
     });
 
+    const json = await response.json();
+
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+      throw new Error(json.error?.message || `HTTP ${response.status} - ${response.statusText}`);
     }
 
-    return await response.json();
+    return json.data;
   }
 
   static async getDmesg() {

@@ -1,12 +1,14 @@
 from flask_smorest import Blueprint
 from flask.views import MethodView
-from flask import request, current_app
+from flask import request, current_app, Response
 import subprocess
 import json
 import os
 import shutil
 from pathlib import Path
-from typing import Dict, Any
+from typing import Tuple
+
+from routes.response import success, error
 
 blueprint = Blueprint('config', 'config', url_prefix='/config', description='Configuration management')
 
@@ -14,29 +16,29 @@ blueprint = Blueprint('config', 'config', url_prefix='/config', description='Con
 @blueprint.route('/')
 class GetConfig(MethodView):
     @blueprint.response(200, description="Return current configuration")
-    def get(self) -> Dict[str, Any]:
+    def get(self) -> Tuple[Response, int]:
         config_path: str = str(current_app.config['CONFIG_PATH'])
         with open(config_path) as f:
-            return json.load(f)
+            return success(json.load(f))
 
 
 @blueprint.route('/schema')
 class GetSchema(MethodView):
     @blueprint.response(200, description="Return configuration JSON schema")
-    def get(self) -> Dict[str, Any]:
+    def get(self) -> Tuple[Response, int]:
         schema_path: str = str(current_app.config['SCHEMA_PATH'])
         with open(schema_path) as f:
-            return json.load(f)
+            return success(json.load(f))
 
 
 @blueprint.route('/save')
 class SaveConfig(MethodView):
     @blueprint.response(200, description="Save configuration and regenerate environment file")
-    def post(self) -> Dict[str, Any]:
+    def post(self) -> Tuple[Response, int]:
         data = request.json
 
         if data is None:
-            return {"error": "No JSON data provided"}, 400
+            return error("No JSON data provided", status=400)
 
         config_path: str = str(current_app.config['CONFIG_PATH'])
         config_path_obj = Path(config_path)
@@ -65,15 +67,12 @@ class SaveConfig(MethodView):
             )
 
             if result.returncode != 0:
-                return {
-                    "error": "Environment regeneration failed",
-                    "details": result.stderr
-                }, 500
+                return error("Environment regeneration failed", result.stderr)
 
-            return {"message": "Saved!"}
+            return success({"message": "Saved!"})
 
         except subprocess.TimeoutExpired:
-            return {"error": "Environment regeneration timed out"}, 500
+            return error("Environment regeneration timed out")
 
         except Exception as e:
             # If something went wrong, try to restore from backup
@@ -83,7 +82,7 @@ class SaveConfig(MethodView):
                 except Exception:
                     pass
 
-            return {"error": f"Failed to save configuration: {str(e)}"}, 500
+            return error(f"Failed to save configuration: {str(e)}")
 
         finally:
             if temp_path.exists():

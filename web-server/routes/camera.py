@@ -1,9 +1,13 @@
 from flask_smorest import Blueprint
-from flask import jsonify, Response, request
+from flask import request
 from flask.views import MethodView
 import json
 import subprocess
 from typing import Tuple
+
+from flask import Response
+
+from routes.response import success, error
 
 blueprint = Blueprint('camera', 'camera', url_prefix='/camera', description='Camera control endpoints')
 
@@ -11,7 +15,7 @@ blueprint = Blueprint('camera', 'camera', url_prefix='/camera', description='Cam
 @blueprint.route('/settings')
 class CameraSettings(MethodView):
     @blueprint.response(200, description="Get current camera settings from the running pipeline")
-    def get(self) -> Response | Tuple[Response, int]:
+    def get(self) -> Tuple[Response, int]:
         """
         Query live camera settings via v3xctrl-video-control.
         Requires the video pipeline to be running.
@@ -22,24 +26,21 @@ class CameraSettings(MethodView):
                 stderr=subprocess.STDOUT
             ).decode().strip()
 
-            return jsonify(json.loads(output))
+            return success(json.loads(output))
 
         except subprocess.CalledProcessError as e:
-            return (jsonify({
-                "error": "Failed to get camera settings",
-                "details": e.output.decode().strip() if e.output else "No output"
-            }), 500)
+            return error(
+                "Failed to get camera settings",
+                e.output.decode().strip() if e.output else "No output"
+            )
         except Exception as e:
-            return (jsonify({
-                "error": "Unexpected error",
-                "details": str(e)
-            }), 500)
+            return error("Unexpected error", str(e))
 
 
 @blueprint.route('/setting', methods=['POST'])
 class CameraSetting(MethodView):
     @blueprint.response(200)
-    def post(self) -> Response | Tuple[Response, int]:
+    def post(self) -> Tuple[Response, int]:
         """
         Set a camera setting via v3xctrl-video-control.
 
@@ -53,17 +54,13 @@ class CameraSetting(MethodView):
             data = request.get_json()
 
             if not data:
-                return (jsonify({
-                    "error": "No data provided"
-                }), 400)
+                return error("No data provided", status=400)
 
             setting_name = data.get('name')
             value = data.get('value')
 
             if not setting_name or value is None:
-                return (jsonify({
-                    "error": "Both 'name' and 'value' are required"
-                }), 400)
+                return error("Both 'name' and 'value' are required", status=400)
 
             output = subprocess.check_output(
                 [
@@ -76,20 +73,16 @@ class CameraSetting(MethodView):
                 stderr=subprocess.STDOUT
             ).decode().strip()
 
-            return jsonify({
-                "success": True,
+            return success({
                 "setting": setting_name,
                 "value": value,
                 "output": output
             })
 
         except subprocess.CalledProcessError as e:
-            return (jsonify({
-                "error": "Setting camera property failed",
-                "details": e.output.decode().strip() if e.output else "No output"
-            }), 500)
+            return error(
+                "Setting camera property failed",
+                e.output.decode().strip() if e.output else "No output"
+            )
         except Exception as e:
-            return (jsonify({
-                "error": "Unexpected error",
-                "details": str(e)
-            }), 500)
+            return error("Unexpected error", str(e))
