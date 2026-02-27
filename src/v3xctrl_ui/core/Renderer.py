@@ -1,6 +1,9 @@
 from typing import TYPE_CHECKING, Callable, Optional, Tuple, List
+import logging
 import time
 import math
+import sys
+from pathlib import Path
 
 import numpy as np
 import numpy.typing as npt
@@ -9,7 +12,7 @@ import pygame
 if TYPE_CHECKING:
     from v3xctrl_ui.core.AppState import AppState
 from v3xctrl_ui.utils.colors import BLACK, RED, WHITE
-from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT_24, BOLD_MONO_FONT_32, BOLD_MONO_FONT_48
+from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT_24, BOLD_MONO_FONT_32, BOLD_MONO_FONT_48, TEXT_FONT
 from v3xctrl_ui.utils.helpers import get_external_ip
 from v3xctrl_ui.menu.Menu import Menu
 from v3xctrl_ui.menu.input.Button import Button
@@ -43,7 +46,12 @@ class Renderer:
             callback=lambda: None,
             width=300,
             height=90,
+            border_radius=45,
         )
+
+        # Splash logo (loaded lazily after display is initialized)
+        self._splash_logo: Optional[pygame.Surface] = None
+        self._splash_logo_loaded = False
 
     @property
     def connect_button(self) -> Button:
@@ -161,15 +169,79 @@ class Renderer:
                 val_rect.topleft = (val_x, y)
                 screen.blit(val_surf, val_rect)
 
+    def _get_splash_logo(self) -> Optional[pygame.Surface]:
+        if not self._splash_logo_loaded:
+            self._splash_logo_loaded = True
+            if getattr(sys, 'frozen', False):
+                base_path = Path(sys._MEIPASS)
+            else:
+                base_path = Path(__file__).parent.parent
+
+            logo_path = base_path / "assets" / "images" / "v3xctrl_logo.png"
+            try:
+                self._splash_logo = pygame.image.load(str(logo_path)).convert_alpha()
+            except Exception as e:
+                logging.warning(f"Failed to load splash logo: {e}")
+        return self._splash_logo
+
     def _render_connect_screen(self, screen: pygame.Surface) -> None:
-        """Render a black screen with only the centered Connect button."""
+        """Render splash screen with logo, connect button, and ESC hint."""
         screen.fill(BLACK)
+
         btn_w, btn_h = self._connect_button.get_size()
-        self._connect_button.set_position(
-            self.center_x - btn_w // 2,
-            self.center_y - btn_h // 2,
-        )
+        spacing = 48
+
+        # Scale logo to ~40% of screen width
+        splash_logo = self._get_splash_logo()
+        logo_h = 0
+        if splash_logo is not None:
+            target_w = int(screen.get_width() * 0.4)
+            orig_w, orig_h = splash_logo.get_size()
+            scale = target_w / orig_w
+            target_h = int(orig_h * scale)
+            logo = pygame.transform.smoothscale(splash_logo, (target_w, target_h))
+            logo_h = target_h
+        else:
+            logo = None
+
+        # Render hint text to measure it
+        hint_surf, hint_rect = TEXT_FONT.render("Press [ESC] to enter the menu at any time", WHITE)
+
+        # Calculate total height and starting y to center the group
+        total_h = logo_h + spacing + btn_h + spacing + hint_rect.height
+        start_y = self.center_y - total_h // 2
+        y = start_y
+
+        # Logo
+        if logo is not None:
+            screen.blit(logo, (self.center_x - logo.get_width() // 2, y))
+            y += logo_h + spacing
+
+        # Breathing glow behind connect button — bright at center, fades to black
+        breath = math.sin(time.monotonic() * 2) * 0.5 + 0.5
+        glow_expand = int(breath * 6)
+        glow_pad = 50 + glow_expand
+        glow_w = btn_w + glow_pad * 2
+        glow_h = btn_h + glow_pad * 2
+        glow_surf = pygame.Surface((glow_w, glow_h), pygame.SRCALPHA)
+        layers = 30
+        for i in range(layers):
+            t = (layers - 1 - i) / (layers - 1)
+            w = int(btn_w + (glow_w - btn_w) * t)
+            h = int(btn_h + (glow_h - btn_h) * t)
+            alpha = int((1 - t) ** 4.5 * breath * 55)
+            radius = min(w, h) // 2
+            r = pygame.Rect((glow_w - w) // 2, (glow_h - h) // 2, w, h)
+            pygame.draw.rect(glow_surf, (255, 255, 255, alpha), r, border_radius=radius)
+        screen.blit(glow_surf, (self.center_x - glow_w // 2, y + btn_h // 2 - glow_h // 2))
+
+        # Connect button
+        self._connect_button.set_position(self.center_x - btn_w // 2, y)
         self._connect_button.draw(screen)
+        y += btn_h + spacing
+
+        # ESC hint
+        screen.blit(hint_surf, (self.center_x - hint_rect.width // 2, y))
 
     def _render_no_control_signal_screen(self, screen: pygame.Surface) -> None:
         surface, rect = BOLD_MONO_FONT_32.render("NO CONTROL SIGNAL", RED)

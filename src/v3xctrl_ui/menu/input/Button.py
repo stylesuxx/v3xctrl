@@ -39,13 +39,15 @@ class Button(BaseWidget):
         font: Font,
         callback: Callable[[], None],
         width: Optional[int] = None,
-        height: Optional[int] = None
+        height: Optional[int] = None,
+        border_radius: int = BORDER_RADIUS,
     ) -> None:
         super().__init__()
 
         self.label = label
         self.font = font
         self.callback = callback
+        self._border_radius = border_radius
 
         _, temp_rect = self.font.render(self.label)
 
@@ -168,7 +170,7 @@ class Button(BaseWidget):
                 temp_surface,
                 bg_color,
                 temp_surface.get_rect(),
-                border_radius=self.BORDER_RADIUS * self.ANTI_ALIAS_SCALE
+                border_radius=self._border_radius * self.ANTI_ALIAS_SCALE
             )
 
             # Border
@@ -177,7 +179,7 @@ class Button(BaseWidget):
                 self.BORDER_COLOR,
                 temp_surface.get_rect(),
                 width=self.BORDER_WIDTH * self.ANTI_ALIAS_SCALE,
-                border_radius=self.BORDER_RADIUS * self.ANTI_ALIAS_SCALE
+                border_radius=self._border_radius * self.ANTI_ALIAS_SCALE
             )
 
             # Smoothscale down (expensive operation)
