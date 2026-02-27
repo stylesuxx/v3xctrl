@@ -14,27 +14,15 @@ blueprint = Blueprint('config', 'config', url_prefix='/config', description='Con
 
 
 @blueprint.route('/')
-class GetConfig(MethodView):
+class Config(MethodView):
     @blueprint.response(200, description="Return current configuration")
     def get(self) -> Tuple[Response, int]:
         config_path: str = str(current_app.config['CONFIG_PATH'])
         with open(config_path) as f:
             return success(json.load(f))
 
-
-@blueprint.route('/schema')
-class GetSchema(MethodView):
-    @blueprint.response(200, description="Return configuration JSON schema")
-    def get(self) -> Tuple[Response, int]:
-        schema_path: str = str(current_app.config['SCHEMA_PATH'])
-        with open(schema_path) as f:
-            return success(json.load(f))
-
-
-@blueprint.route('/save')
-class SaveConfig(MethodView):
     @blueprint.response(200, description="Save configuration and regenerate environment file")
-    def post(self) -> Tuple[Response, int]:
+    def put(self) -> Tuple[Response, int]:
         data = request.json
 
         if data is None:
@@ -90,3 +78,12 @@ class SaveConfig(MethodView):
                     temp_path.unlink()
                 except Exception:
                     pass
+
+
+@blueprint.route('/schema')
+class ConfigSchema(MethodView):
+    @blueprint.response(200, description="Return configuration JSON schema")
+    def get(self) -> Tuple[Response, int]:
+        schema_path: str = str(current_app.config['SCHEMA_PATH'])
+        with open(schema_path) as f:
+            return success(json.load(f))

@@ -33,6 +33,24 @@ class API {
     return json.data;
   }
 
+  static async #put(path, data = {}) {
+    const response = await fetch(path, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
+
+    const json = await response.json();
+
+    if (!response.ok) {
+      throw new Error(json.error?.message || `HTTP ${response.status} - ${response.statusText}`);
+    }
+
+    return json.data;
+  }
+
   static async getDmesg() {
     const json = await this.#get('/system/dmesg');
 
@@ -106,7 +124,7 @@ class API {
   }
 
   static async setConfig(data) {
-    const json = await this.#post('/config/save', data);
+    const json = await this.#put('/config', data);
 
     return json;
   }
