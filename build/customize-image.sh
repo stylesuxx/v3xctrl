@@ -76,8 +76,8 @@ e2fsck -fy "${LOOP_DEV}p2"
 
 echo "[HOST] Adding third partition to prevent root expansion on first boot"
 losetup -d "$LOOP_DEV"
-truncate -s +32MiB "$IMG_WORK"
-parted -s "$IMG_WORK" -- mkpart primary ext4 -32MiB 100%
+truncate -s +64MiB "$IMG_WORK"
+parted -s "$IMG_WORK" -- mkpart primary f2fs -64MiB 100%
 LOOP_DEV=$(losetup -fP --show "$IMG_WORK")
 partprobe "$LOOP_DEV"
 blockdev --rereadpt "$LOOP_DEV" || true
@@ -91,8 +91,7 @@ if [ ! -b "${LOOP_DEV}p3" ]; then
 fi
 
 echo "[HOST] Formatting /data partition at full partition size"
-mkfs.ext4 -F "${LOOP_DEV}p3"
-e2fsck -fy "${LOOP_DEV}p3"
+mkfs.f2fs -f "${LOOP_DEV}p3"
 
 echo "[HOST] Checking and mounting partitions"
 for i in 1 2 3; do

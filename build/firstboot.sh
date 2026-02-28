@@ -45,20 +45,17 @@ partprobe /dev/mmcblk0
 sleep 5
 udevadm settle
 
-log "Forcing filesystem check on $PART..."
-e2fsck -fy "$PART" || [ $? -le 2 ]
-
 log "Resizing filesystem on $PART..."
-resize2fs "$PART"
+resize.f2fs "$PART"
 
-log "Final filesystem check on $PART..."
-e2fsck -fy "$PART"
+log "Checking filesystem on $PART..."
+fsck.f2fs -f "$PART"
 
 if ! grep -q "${TARGET}[[:space:]]" /etc/fstab; then
   log "Updating /etc/fstab with /data and mounting..."
   PARTUUID=$(blkid -s PARTUUID -o value "${PART}")
   tee -a "/etc/fstab" > /dev/null <<EOF
-PARTUUID=${PARTUUID} ${TARGET} ext4 defaults,noatime,nodiratime 0 2
+PARTUUID=${PARTUUID} ${TARGET} f2fs defaults,noatime,nodiratime 0 0
 EOF
 fi
 
