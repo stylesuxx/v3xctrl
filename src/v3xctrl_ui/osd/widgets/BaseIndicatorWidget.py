@@ -33,6 +33,7 @@ class BaseIndicatorWidget(Widget):
         self.color_fn = color_fn
         self.bg_alpha = bg_alpha
         self.padding = padding
+        self.inverted = False
 
     @abstractmethod
     def draw(self, screen: Surface, value: float) -> None:

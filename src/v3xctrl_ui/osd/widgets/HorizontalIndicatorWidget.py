@@ -26,6 +26,9 @@ class HorizontalIndicatorWidget(BaseIndicatorWidget):
         center_x = self.position[0] + self.width // 2
         y = self.position[1] + (self.height - self.bar_height) // 2
 
+        if self.inverted:
+            value = -value
+
         value = clamp(value, -1.0, 1.0)
         color = self.color_fn(value) if self.color_fn else WHITE
 
