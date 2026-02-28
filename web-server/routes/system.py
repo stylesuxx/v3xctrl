@@ -1,6 +1,7 @@
 from flask_smorest import Blueprint
 from flask import Response
 from flask.views import MethodView
+import socket
 import subprocess
 from typing import Tuple
 
@@ -39,9 +40,9 @@ class Dmesg(MethodView):
         return success({"log": output})
 
 
-@blueprint.route("/version")
-class Version(MethodView):
-    @blueprint.response(200, description="Return package versions")
+@blueprint.route("/info")
+class Info(MethodView):
+    @blueprint.response(200, description="Return system info including hostname and package versions")
     def get(self) -> Tuple[Response, int]:
         packages = [
             "v3xctrl",
@@ -63,4 +64,7 @@ class Version(MethodView):
             except subprocess.CalledProcessError:
                 versions[package] = None
 
-        return success(versions)
+        return success({
+            "hostname": socket.gethostname(),
+            "packages": versions,
+        })

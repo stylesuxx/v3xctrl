@@ -106,7 +106,7 @@ class API {
   }
 
   static async getVersionInfo() {
-    const json = await this.#get('/system/version');
+    const json = await this.#get('/system/info');
 
     return json;
   }
