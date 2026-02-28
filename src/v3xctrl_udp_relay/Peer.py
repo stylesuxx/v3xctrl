@@ -114,7 +114,7 @@ class Peer:
 
                 read_count = 0
                 while read_count < self.MAX_READ_COUNT:
-                    data, _ = sock.recvfrom(1024)
+                    data, addr = sock.recvfrom(1024)
                     if data:
                         try:
                             response = Message.from_bytes(data)
@@ -129,6 +129,8 @@ class Peer:
 
                                 logging.error(f"Response Error: {error}")
                                 raise UnauthorizedError()
+
+                            logging.info(f"{port_type}: got {response.type} from {addr} (read {read_count + 1}/{self.MAX_READ_COUNT})")
 
                         except ValueError as e:
                             logging.debug(f"Data could not be parsed: {e}")
