@@ -22,6 +22,9 @@ class VerticalIndicatorWidget(BaseIndicatorWidget):
         assert self.range_mode in ("symmetric", "positive"), f"Invalid range_mode: {self.range_mode}"
 
     def draw(self, screen: Surface, value: float) -> None:
+        if self.inverted:
+            value = -value
+
         value = clamp(value, -1.0, 1.0)
         color = self.color_fn(value) if self.color_fn else WHITE
 

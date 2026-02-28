@@ -167,6 +167,12 @@ class AppState:
             self.osd.set_control(self.model.throttle, self.model.steering)
             self.osd.set_spectator_mode(self.network_coordinator.is_spectator())
 
+            inversion = self.input_controller.gamepad_controller.get_axis_inversion()
+            self.osd.set_axis_inversion(
+                steering=inversion.get("steering", False),
+                throttle=inversion.get("throttle", False),
+            )
+
         self.renderer.render_all(
             self,
             self.network_coordinator.network_controller,

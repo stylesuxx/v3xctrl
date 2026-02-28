@@ -141,6 +141,10 @@ class OSD:
         self.throttle = throttle
         self.steering = steering
 
+    def set_axis_inversion(self, steering: bool, throttle: bool) -> None:
+        self.widgets_steering["steering"].inverted = steering
+        self.widgets_steering["throttle"].inverted = throttle
+
     def update_data_queue(self, data_left: int) -> None:
         self.widgets_debug["debug_data"].set_value(data_left)
 

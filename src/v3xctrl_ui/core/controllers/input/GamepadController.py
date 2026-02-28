@@ -126,6 +126,20 @@ class GamepadController(threading.Thread):
     def get_active(self) -> Optional[str]:
         return self._active_guid
 
+    def get_axis_inversion(self) -> Dict[str, bool]:
+        with self._lock:
+            settings = self._active_settings
+
+        if not settings:
+            return {}
+
+        result: Dict[str, bool] = {}
+        for key, cfg in settings.items():
+            if key != "buttons":
+                result[key] = cfg.get("invert", False)
+
+        return result
+
     def set_active(self, guid: str) -> None:
         with self._lock:
             self._set_active_unlocked(guid)
