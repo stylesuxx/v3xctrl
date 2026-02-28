@@ -24,6 +24,8 @@ class MotionController(
     steeringDeg: Float = 45f,
     forwardDeg: Float = 45f,
     backwardDeg: Float = 45f,
+    private val steeringInvert: Boolean = false,
+    private val throttleInvert: Boolean = false,
     private val deadZone: Float = 0.1f
 ) : SensorEventListener {
 
@@ -112,8 +114,11 @@ class MotionController(
         // Steering: left/right tilt
         val rawSteering = (deltaRoll / steeringRad).coerceIn(-1f, 1f)
 
-        controlState.throttle = applyDeadZone(rawThrottle, deadZone)
-        controlState.steering = applyDeadZone(rawSteering, deadZone)
+        val steeringMul = if (steeringInvert) -1f else 1f
+        val throttleMul = if (throttleInvert) -1f else 1f
+
+        controlState.throttle = applyDeadZone(rawThrottle * throttleMul, deadZone)
+        controlState.steering = applyDeadZone(rawSteering * steeringMul, deadZone)
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {

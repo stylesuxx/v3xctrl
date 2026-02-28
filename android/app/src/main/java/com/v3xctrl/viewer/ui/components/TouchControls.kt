@@ -29,6 +29,8 @@ import com.v3xctrl.viewer.input.applyDeadZone
 fun TouchControls(
     controlState: ControlState,
     modifier: Modifier = Modifier,
+    steeringInvert: Boolean = false,
+    throttleInvert: Boolean = false,
     deadZone: Float = 0.1f,
     maxDragPx: Float = 200f
 ) {
@@ -75,7 +77,8 @@ fun TouchControls(
                                             leftTouch = leftTouch?.copy(currentPosition = change.position)
                                             leftTouch?.let { touch ->
                                                 val deltaY = touch.startPosition.y - touch.currentPosition.y
-                                                val normalized = (deltaY / maxDrag).coerceIn(-1f, 1f)
+                                                val throttleMul = if (throttleInvert) -1f else 1f
+                                                val normalized = (deltaY / maxDrag * throttleMul).coerceIn(-1f, 1f)
                                                 controlState.throttle = applyDeadZone(normalized, deadZone)
                                             }
                                         }
@@ -84,7 +87,8 @@ fun TouchControls(
                                             rightTouch = rightTouch?.copy(currentPosition = change.position)
                                             rightTouch?.let { touch ->
                                                 val deltaX = touch.currentPosition.x - touch.startPosition.x
-                                                val normalized = (deltaX / maxDrag).coerceIn(-1f, 1f)
+                                                val steeringMul = if (steeringInvert) -1f else 1f
+                                                val normalized = (deltaX / maxDrag * steeringMul).coerceIn(-1f, 1f)
                                                 controlState.steering = applyDeadZone(normalized, deadZone)
                                             }
                                         }

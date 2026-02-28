@@ -163,6 +163,36 @@ fun ControlScreen(
                 modifier = Modifier.padding(top = 8.dp)
             )
 
+            // -- Touch invert checkboxes --
+            if (settings.controlMode == "touch") {
+                Spacer(modifier = Modifier.height(12.dp))
+                InvertRow(
+                    label = "${stringResource(R.string.control_invert)} ${stringResource(R.string.control_steering_scale).lowercase()}",
+                    checked = settings.touchSteeringInvert,
+                    onCheckedChange = { onSettingsChange(settings.copy(touchSteeringInvert = it)) }
+                )
+                InvertRow(
+                    label = "${stringResource(R.string.control_invert)} ${stringResource(R.string.control_gamepad_throttle).lowercase()}",
+                    checked = settings.touchThrottleInvert,
+                    onCheckedChange = { onSettingsChange(settings.copy(touchThrottleInvert = it)) }
+                )
+            }
+
+            // -- Motion invert checkboxes --
+            if (settings.controlMode == "motion") {
+                Spacer(modifier = Modifier.height(12.dp))
+                InvertRow(
+                    label = "${stringResource(R.string.control_invert)} ${stringResource(R.string.control_steering_scale).lowercase()}",
+                    checked = settings.motionSteeringInvert,
+                    onCheckedChange = { onSettingsChange(settings.copy(motionSteeringInvert = it)) }
+                )
+                InvertRow(
+                    label = "${stringResource(R.string.control_invert)} ${stringResource(R.string.control_gamepad_throttle).lowercase()}",
+                    checked = settings.motionThrottleInvert,
+                    onCheckedChange = { onSettingsChange(settings.copy(motionThrottleInvert = it)) }
+                )
+            }
+
             // -- Gamepad device selector, calibration, and live display --
             if (settings.controlMode == "gamepad") {
                 Spacer(modifier = Modifier.height(16.dp))
@@ -637,6 +667,7 @@ private fun AxisIndicator(
 private fun InvertRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
+    label: String? = null,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -648,7 +679,7 @@ private fun InvertRow(
             onCheckedChange = onCheckedChange
         )
         Text(
-            text = stringResource(R.string.control_invert),
+            text = label ?: stringResource(R.string.control_invert),
             style = MaterialTheme.typography.bodySmall
         )
     }
