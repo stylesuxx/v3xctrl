@@ -154,6 +154,9 @@ echo "[HOST] Copying files to boot partition..."
 cp "./build/firstboot.sh" "$MOUNT_DIR/boot/firstboot.sh"
 chmod +x "$MOUNT_DIR/boot/firstboot.sh"
 
+echo "[HOST] Adding noatime,nodiratime to all fstab entries..."
+sed -i '/^[^#]/ s/\bdefaults\b/defaults,noatime,nodiratime/' "$MOUNT_DIR/etc/fstab"
+
 echo '[HOST] Setting default hostname...'
 echo $NAME > "$MOUNT_DIR/etc/hostname"
 sed -i 's/127.0.1.1.*/127.0.1.1\tv3xctrl/' "$MOUNT_DIR/etc/hosts"

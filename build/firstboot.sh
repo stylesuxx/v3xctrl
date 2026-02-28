@@ -58,7 +58,7 @@ if ! grep -q "${TARGET}[[:space:]]" /etc/fstab; then
   log "Updating /etc/fstab with /data and mounting..."
   PARTUUID=$(blkid -s PARTUUID -o value "${PART}")
   tee -a "/etc/fstab" > /dev/null <<EOF
-PARTUUID=${PARTUUID} ${TARGET} ext4 defaults 0 2
+PARTUUID=${PARTUUID} ${TARGET} ext4 defaults,noatime,nodiratime 0 2
 EOF
 fi
 
