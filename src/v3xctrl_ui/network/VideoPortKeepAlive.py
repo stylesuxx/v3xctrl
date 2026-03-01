@@ -49,8 +49,11 @@ class VideoPortKeepAlive(threading.Thread):
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.bind(("0.0.0.0", self.video_port))
             sock.sendto(Heartbeat().to_bytes(), self.relay_address)
-        except Exception:
-            pass
+        except Exception as e:
+            logging.debug(
+                f"Video port keep-alive heartbeat skipped on port "
+                f"{self.video_port}: {e}"
+            )
         finally:
             if sock:
                 sock.close()

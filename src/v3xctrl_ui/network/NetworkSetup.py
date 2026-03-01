@@ -152,7 +152,9 @@ class NetworkSetup:
 
         # Step 2: Create keep-alive callback and setup video receiver
         keep_alive_callback = self.create_keep_alive_callback(video_address)
-        video_result = self.setup_video_receiver(keep_alive_callback)
+        video_result = self.setup_video_receiver(
+            keep_alive_callback, video_address
+        )
         result.video_receiver_result = video_result
 
         # Step 3: Setup control server
@@ -275,13 +277,15 @@ class NetworkSetup:
     # Step 2.b
     def setup_video_receiver(
         self,
-        keep_alive_callback: Callable[[], None]
+        keep_alive_callback: Callable[[], None],
+        video_address: Optional[Tuple[str, int]] = None,
     ) -> VideoReceiverSetupResult:
         """
         Setup video receiver.
 
         Args:
             keep_alive_callback: Callback to invoke when video stream ends/fails
+            video_address: Relay video address for NAT keepalive
 
         Returns:
             VideoReceiverSetupResult with receiver instance or error
@@ -299,13 +303,14 @@ class NetworkSetup:
                     video_receiver: Receiver = gst_receiver(
                         self.video_port,
                         keep_alive_callback,
-                        render_ratio=render_ratio
+                        render_ratio=render_ratio,
                     )
                 case _:
                     video_receiver = ReceiverPyAV(
                         self.video_port,
                         keep_alive_callback,
-                        render_ratio=render_ratio
+                        render_ratio=render_ratio,
+                        relay_address=video_address,
                     )
 
             logging.info(f"Using {receiver_type} video receiver")
