@@ -13,6 +13,7 @@ from v3xctrl_udp_relay.Peer import Peer
 
 from v3xctrl_ui.network.video.Receiver import Receiver
 from v3xctrl_ui.network.video.ReceiverPyAV import ReceiverPyAV
+from v3xctrl_ui.network.VideoPortKeepAlive import VideoPortKeepAlive
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.utils.gstreamer import is_gstreamer_available
 
@@ -59,6 +60,7 @@ class NetworkSetupResult:
     relay_result: Optional[RelaySetupResult] = None
     video_receiver_result: Optional[VideoReceiverSetupResult] = None
     server_result: Optional[ServerSetupResult] = None
+    video_keep_alive: Optional[VideoPortKeepAlive] = None
 
     @property
     def has_errors(self) -> bool:
@@ -137,6 +139,16 @@ class NetworkSetup:
                 return result
 
             video_address = relay_result.video_address
+
+        # Start periodic video port keep-alive for relay connections
+        if video_address:
+            keep_alive_thread = VideoPortKeepAlive(
+                video_port=self.video_port,
+                relay_host=video_address[0],
+                relay_port=video_address[1],
+            )
+            keep_alive_thread.start()
+            result.video_keep_alive = keep_alive_thread
 
         # Step 2: Create keep-alive callback and setup video receiver
         keep_alive_callback = self.create_keep_alive_callback(video_address)

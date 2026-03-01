@@ -24,6 +24,7 @@ class NetworkController:
 
         # Network state
         self.video_receiver = None
+        self.video_keep_alive = None
         self.server: Optional[Server] = None
         self.server_error = None
 
@@ -108,6 +109,9 @@ class NetworkController:
             delta = round(time.monotonic() - start)
             logging.debug(f"Server shut down after {delta}s")
 
+        if self.video_keep_alive:
+            self.video_keep_alive.stop()
+
         if self.video_receiver:
             start = time.monotonic()
             self.video_receiver.stop()
@@ -155,6 +159,9 @@ class NetworkController:
         if result.relay_result:
             if not result.relay_result.success:
                 self.relay_status_message = result.relay_result.error_message
+
+        if result.video_keep_alive:
+            self.video_keep_alive = result.video_keep_alive
 
         if result.video_receiver_result and result.video_receiver_result.success:
             self.video_receiver = result.video_receiver_result.video_receiver
