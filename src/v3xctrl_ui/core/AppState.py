@@ -255,6 +255,8 @@ class AppState:
         self.menu.update_settings_reference(settings)
 
     def _on_network_update(self, settings: Settings) -> None:
+        if not self.model.user_connected:
+            self.network_coordinator.network_controller = self.network_coordinator.create_network_controller(settings)
         self._update_network_settings()
 
     def _on_input_update(self, settings: Settings) -> None:
