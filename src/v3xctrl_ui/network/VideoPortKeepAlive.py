@@ -36,34 +36,39 @@ class VideoPortKeepAlive(threading.Thread):
     def stop(self) -> None:
         self._running.clear()
 
-    def run(self) -> None:
-        self._running.set()
-        sock = None
+    def _send_heartbeat(self) -> None:
+        """Create a transient socket to send one heartbeat.
 
+        The socket is opened and closed each time so it does not hold
+        the video port permanently — ffmpeg (PyAV) needs exclusive
+        access to the port while its container is open.
+        """
+        sock = None
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.bind(("0.0.0.0", self.video_port))
-            logging.info(
-                f"Video port keep-alive started on port {self.video_port}"
-            )
-
-            while self._running.is_set():
-                try:
-                    sock.sendto(Heartbeat().to_bytes(), self.relay_address)
-                except Exception:
-                    pass
-
-                # Use short sleeps so stop() is responsive
-                interval = INTERVAL_STREAMING_S
-                waited = 0.0
-                while waited < interval and self._running.is_set():
-                    time.sleep(min(1.0, interval - waited))
-                    waited += 1.0
-
-        except Exception as e:
-            logging.warning(f"Video port keep-alive failed: {e}")
-
+            sock.sendto(Heartbeat().to_bytes(), self.relay_address)
+        except Exception:
+            pass
         finally:
             if sock:
                 sock.close()
+
+    def run(self) -> None:
+        self._running.set()
+        logging.info(
+            f"Video port keep-alive started on port {self.video_port}"
+        )
+
+        while self._running.is_set():
+            self._send_heartbeat()
+
+            # Use short sleeps so stop() is responsive
+            interval = INTERVAL_STREAMING_S
+            waited = 0.0
+            while waited < interval and self._running.is_set():
+                time.sleep(min(1.0, interval - waited))
+                waited += 1.0
+
+        logging.info("Video port keep-alive stopped")
