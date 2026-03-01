@@ -1,4 +1,5 @@
 import logging
+import select
 import socket
 import threading
 from typing import Dict, Optional
@@ -77,6 +78,13 @@ class Peer:
 
         self._finalized_event.wait()
 
+    def _flush_socket(self, sock: socket.socket) -> None:
+        while select.select([sock], [], [], 0)[0]:
+            try:
+                sock.recvfrom(65535)
+            except (socket.error, OSError):
+                break
+
     def _bind_socket(self, name: str, port: int = 0) -> socket.socket:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.bind(('0.0.0.0', port))
@@ -109,6 +117,7 @@ class Peer:
 
         while not self._abort_event.is_set():
             try:
+                self._flush_socket(sock)
                 sock.sendto(announcement.to_bytes(), (self.server, self.port))
                 logging.debug(f"Sent {port_type} announcement to {self.server}:{self.port} from {sock.getsockname()}")
 
