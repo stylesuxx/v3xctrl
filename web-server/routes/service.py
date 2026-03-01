@@ -1,13 +1,10 @@
 from flask.views import MethodView
+from flask import Response
 from flask_smorest import Blueprint
-from marshmallow import Schema, fields
 import subprocess
-from typing import Dict, Any
+from typing import Tuple
 
-
-class ServiceNameSchema(Schema):
-    name = fields.Str(required=True)
-
+from routes.response import success, error
 
 blueprint = Blueprint('service', 'service', url_prefix='/service', description='Systemd service control')
 
@@ -26,8 +23,8 @@ SERVICES = [
 @blueprint.route('/')
 class ListServices(MethodView):
     @blueprint.response(200, description="List all monitored systemd services with state info")
-    def get(self) -> Dict[str, Any]:
-        data: Dict[str, Any] = {"services": []}
+    def get(self) -> Tuple[Response, int]:
+        services = []
 
         for service in SERVICES:
             try:
@@ -46,58 +43,86 @@ class ListServices(MethodView):
                 active_state = "unknown"
                 result = "error"
 
-            data["services"].append({
+            services.append({
                 "name": service,
                 "type": service_type,
                 "state": active_state,
                 "result": result
             })
 
-        return data
+        return success({"services": services})
 
 
-@blueprint.route('/start')
+@blueprint.route('/<name>')
+class GetService(MethodView):
+    @blueprint.response(200, description="Get status of a single systemd service")
+    def get(self, name: str) -> Tuple[Response, int]:
+        try:
+            output = subprocess.check_output(
+                ["systemctl", "show", name, "--property=Type,ActiveState,Result"],
+                stderr=subprocess.DEVNULL
+            ).decode().strip()
+
+            props = dict(line.split('=', 1) for line in output.splitlines())
+            return success({
+                "name": name,
+                "type": props.get("Type", ""),
+                "state": props.get("ActiveState", ""),
+                "result": props.get("Result", ""),
+            })
+
+        except subprocess.CalledProcessError:
+            return success({
+                "name": name,
+                "type": "unknown",
+                "state": "unknown",
+                "result": "error",
+            })
+
+
+@blueprint.route('/<name>/start')
 class StartService(MethodView):
-    @blueprint.arguments(ServiceNameSchema, location="json")
     @blueprint.response(200)
-    def post(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        name = str(args['name'])
-        subprocess.run(["sudo", "systemctl", "start", name])
+    def post(self, name: str) -> Tuple[Response, int]:
+        try:
+            subprocess.run(["sudo", "systemctl", "start", name],
+                           check=True, capture_output=True, text=True)
+            return success({"message": f"Started service: {name}"})
+        except subprocess.CalledProcessError as e:
+            return error(f"Failed to start service: {name}", e.stderr.strip())
 
-        return {"message": f"Started service: {name}"}
 
-
-@blueprint.route('/stop')
+@blueprint.route('/<name>/stop')
 class StopService(MethodView):
-    @blueprint.arguments(ServiceNameSchema, location="json")
     @blueprint.response(200)
-    def post(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        name = str(args['name'])
-        subprocess.run(["sudo", "systemctl", "stop", name])
+    def post(self, name: str) -> Tuple[Response, int]:
+        try:
+            subprocess.run(["sudo", "systemctl", "stop", name],
+                           check=True, capture_output=True, text=True)
+            return success({"message": f"Stopped service: {name}"})
+        except subprocess.CalledProcessError as e:
+            return error(f"Failed to stop service: {name}", e.stderr.strip())
 
-        return {"message": f"Stopped service: {name}"}
 
-
-@blueprint.route('/restart')
+@blueprint.route('/<name>/restart')
 class RestartService(MethodView):
-    @blueprint.arguments(ServiceNameSchema, location="json")
     @blueprint.response(200)
-    def post(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        name = str(args['name'])
-        subprocess.run(["sudo", "systemctl", "restart", name])
+    def post(self, name: str) -> Tuple[Response, int]:
+        try:
+            subprocess.run(["sudo", "systemctl", "restart", name],
+                           check=True, capture_output=True, text=True)
+            return success({"message": f"Restarted service: {name}"})
+        except subprocess.CalledProcessError as e:
+            return error(f"Failed to restart service: {name}", e.stderr.strip())
 
-        return {"message": f"Restarted service: {name}"}
 
-
-@blueprint.route('/log')
-class LogService(MethodView):
-    @blueprint.arguments(ServiceNameSchema, location="json")
+@blueprint.route('/<name>/log')
+class ServiceLog(MethodView):
     @blueprint.response(200)
-    def post(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        name = str(args['name'])
+    def get(self, name: str) -> Tuple[Response, int]:
         output = subprocess.check_output(
             ["journalctl", "-n", "50", "--no-page", "-u", name],
             stderr=subprocess.DEVNULL
         ).decode().strip()
 
-        return {"log": output}
+        return success({"log": output})

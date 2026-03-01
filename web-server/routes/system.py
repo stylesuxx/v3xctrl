@@ -1,45 +1,49 @@
 from flask_smorest import Blueprint
+from flask import Response
 from flask.views import MethodView
+import socket
 import subprocess
-from typing import Dict, Any
+from typing import Tuple
 
-blueprint = Blueprint('streamer', 'streamer', url_prefix='/streamer', description='System control endpoints')
+from routes.response import success
+
+blueprint = Blueprint('system', 'system', url_prefix='/system', description='System control endpoints')
 
 
 @blueprint.route('/reboot')
 class Reboot(MethodView):
     @blueprint.response(200, description="Force reboot the system")
-    def post(self) -> Dict[str, Any]:
+    def post(self) -> Tuple[Response, int]:
         subprocess.run(["sudo", "reboot", "-f"])
 
-        return {"message": "Rebooting..."}
+        return success({"message": "Rebooting..."})
 
 
 @blueprint.route('/shutdown')
 class Shutdown(MethodView):
     @blueprint.response(200, description="Shutdown the system")
-    def post(self) -> Dict[str, Any]:
+    def post(self) -> Tuple[Response, int]:
         subprocess.run(["sudo", "poweroff"])
 
-        return {"message": "Shutting down..."}
+        return success({"message": "Shutting down..."})
 
 
 @blueprint.route('/dmesg')
 class Dmesg(MethodView):
     @blueprint.response(200, description="Return output of dmesg")
-    def get(self) -> Dict[str, Any]:
+    def get(self) -> Tuple[Response, int]:
         output = subprocess.check_output(
             ["dmesg"],
             stderr=subprocess.DEVNULL
         ).decode().strip()
 
-        return {"log": output}
+        return success({"log": output})
 
 
-@blueprint.route("/version")
-class Version(MethodView):
-    @blueprint.response(200, description="Return package versions")
-    def get(self) -> Dict[str, Any]:
+@blueprint.route("/info")
+class Info(MethodView):
+    @blueprint.response(200, description="Return system info including hostname and package versions")
+    def get(self) -> Tuple[Response, int]:
         packages = [
             "v3xctrl",
             "v3xctrl-python",
@@ -60,4 +64,7 @@ class Version(MethodView):
             except subprocess.CalledProcessError:
                 versions[package] = None
 
-        return versions
+        return success({
+            "hostname": socket.gethostname(),
+            "packages": versions,
+        })

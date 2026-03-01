@@ -488,6 +488,12 @@ class Tabs {
     const info = await API.getVersionInfo();
     const $content = this.tabs.version.find('p');
 
+    const $container = $("<div />");
+
+    if (info.hostname) {
+      $container.append(`<p><strong>Hostname:</strong> ${info.hostname}</p>`);
+    }
+
     const $table = $("<table />", {
       class: "table"
     });
@@ -502,10 +508,11 @@ class Tabs {
     const $tbody = $("<tbody />");
     $table.append($tbody);
 
-    const keys = Object.keys(info);
+    const packages = info.packages || {};
+    const keys = Object.keys(packages);
     for(var i = 0; i < keys.length; i += 1) {
       const name = keys[i];
-      const version = info[name];
+      const version = packages[name];
 
       $row = $("<tr />");
       $row.append(`<td>${name}</td>`);
@@ -513,7 +520,8 @@ class Tabs {
       $tbody.append($row);
     }
 
-    $content.html($table);
+    $container.append($table);
+    $content.html($container);
   }
 
   async renderCamera() {
