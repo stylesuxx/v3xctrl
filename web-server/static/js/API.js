@@ -6,11 +6,13 @@
 class API {
   static async #get(path) {
     const response = await fetch(path);
-    if(!response.ok) {
-      throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+    const json = await response.json();
+
+    if (!response.ok) {
+      throw new Error(json.error?.message || `HTTP ${response.status} - ${response.statusText}`);
     }
 
-    return await response.json();
+    return json.data;
   }
 
   static async #post(path, data = {}) {
@@ -22,27 +24,47 @@ class API {
       body: JSON.stringify(data)
     });
 
+    const json = await response.json();
+
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+      throw new Error(json.error?.message || `HTTP ${response.status} - ${response.statusText}`);
     }
 
-    return await response.json();
+    return json.data;
+  }
+
+  static async #put(path, data = {}) {
+    const response = await fetch(path, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
+
+    const json = await response.json();
+
+    if (!response.ok) {
+      throw new Error(json.error?.message || `HTTP ${response.status} - ${response.statusText}`);
+    }
+
+    return json.data;
   }
 
   static async getDmesg() {
-    const json = await this.#get('/streamer/dmesg');
+    const json = await this.#get('/system/dmesg');
 
     return json.log;
   }
 
   static async reboot() {
-    const json = await this.#post('/streamer/reboot');
+    const json = await this.#post('/system/reboot');
 
     return json;
   }
 
   static async shutdown() {
-    const json = await this.#post('/streamer/shutdown');
+    const json = await this.#post('/system/shutdown');
 
     return json;
   }
@@ -54,37 +76,37 @@ class API {
   }
 
   static async startService(name) {
-    const json = await this.#post('/service/start', { name });
+    const json = await this.#post(`/service/${name}/start`);
 
     return json;
   }
 
   static async stopService(name) {
-    const json = await this.#post('/service/stop', { name });
+    const json = await this.#post(`/service/${name}/stop`);
 
     return json;
   }
 
   static async restartService(name) {
-    const json = await this.#post('/service/restart', { name });
+    const json = await this.#post(`/service/${name}/restart`);
 
     return json;
   }
 
   static async getServiceLog(name) {
-    const json = await this.#post('/service/log', { name });
+    const json = await this.#get(`/service/${name}/log`);
 
     return json.log;
   }
 
   static async getModemInfo() {
-    const json = await this.#get('/modem/info');
+    const json = await this.#get('/modem');
 
     return json;
   }
 
   static async getVersionInfo() {
-    const json = await this.#get('/streamer/version');
+    const json = await this.#get('/system/info');
 
     return json;
   }
@@ -96,19 +118,19 @@ class API {
   }
 
   static async setPwm(channel, value) {
-    const json = await this.#post('/gpio/set-pwm', { channel, value});
+    const json = await this.#put(`/gpio/${channel}/pwm`, { value });
 
     return json;
   }
 
   static async setConfig(data) {
-    const json = await this.#post('/config/save', data);
+    const json = await this.#put('/config', data);
 
     return json;
   }
 
   static async setCameraSetting(name, value) {
-    const json = await this.#post('/camera/setting', { name, value });
+    const json = await this.#put(`/camera/settings/${name}`, { value });
 
     return json;
   }
