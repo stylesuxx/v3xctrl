@@ -4,6 +4,7 @@
     "testSource": true,
     "resolution": "1280x720@30",
     "bitrate": 1800000,
+    "mtu": 1400,
     "record": {
       "autostart": false,
       "path": "/data/recordings"

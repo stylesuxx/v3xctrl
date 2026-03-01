@@ -368,6 +368,14 @@
           "default": 1800000,
           "description": "Stay below values your modem supports (based on category). If latency increases, reduce this value. The default is very conservative, you can most likely increase this value."
         },
+        "mtu": {
+          "propertyOrder": 61,
+          "title": "MTU",
+          "type": "integer",
+          "default": 1400,
+          "minimum": 200,
+          "description": "Maximum Transmission Unit for RTP packets in bytes. Lower values may help on lossy networks, higher values improve efficiency. Default is 1400 to account for UDP/IP overhead."
+        },
         "h264Profile": {
           "propertyOrder": 65,
           "title": "H.264 Profile",
