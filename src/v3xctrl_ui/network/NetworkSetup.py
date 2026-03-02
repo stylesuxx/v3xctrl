@@ -13,6 +13,7 @@ from v3xctrl_udp_relay.Peer import Peer
 
 from v3xctrl_ui.network.video.Receiver import Receiver
 from v3xctrl_ui.network.video.ReceiverPyAV import ReceiverPyAV
+from v3xctrl_ui.network.VideoPortKeepAlive import VideoPortKeepAlive
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.utils.gstreamer import is_gstreamer_available
 
@@ -59,6 +60,7 @@ class NetworkSetupResult:
     relay_result: Optional[RelaySetupResult] = None
     video_receiver_result: Optional[VideoReceiverSetupResult] = None
     server_result: Optional[ServerSetupResult] = None
+    video_keep_alive: Optional[VideoPortKeepAlive] = None
 
     @property
     def has_errors(self) -> bool:
@@ -138,9 +140,21 @@ class NetworkSetup:
 
             video_address = relay_result.video_address
 
+        # Start periodic video port keep-alive for relay connections
+        if video_address:
+            keep_alive_thread = VideoPortKeepAlive(
+                video_port=self.video_port,
+                relay_host=video_address[0],
+                relay_port=video_address[1],
+            )
+            keep_alive_thread.start()
+            result.video_keep_alive = keep_alive_thread
+
         # Step 2: Create keep-alive callback and setup video receiver
         keep_alive_callback = self.create_keep_alive_callback(video_address)
-        video_result = self.setup_video_receiver(keep_alive_callback)
+        video_result = self.setup_video_receiver(
+            keep_alive_callback, video_address
+        )
         result.video_receiver_result = video_result
 
         # Step 3: Setup control server
@@ -263,13 +277,15 @@ class NetworkSetup:
     # Step 2.b
     def setup_video_receiver(
         self,
-        keep_alive_callback: Callable[[], None]
+        keep_alive_callback: Callable[[], None],
+        video_address: Optional[Tuple[str, int]] = None,
     ) -> VideoReceiverSetupResult:
         """
         Setup video receiver.
 
         Args:
             keep_alive_callback: Callback to invoke when video stream ends/fails
+            video_address: Relay video address for NAT keepalive
 
         Returns:
             VideoReceiverSetupResult with receiver instance or error
@@ -287,13 +303,14 @@ class NetworkSetup:
                     video_receiver: Receiver = gst_receiver(
                         self.video_port,
                         keep_alive_callback,
-                        render_ratio=render_ratio
+                        render_ratio=render_ratio,
                     )
                 case _:
                     video_receiver = ReceiverPyAV(
                         self.video_port,
                         keep_alive_callback,
-                        render_ratio=render_ratio
+                        render_ratio=render_ratio,
+                        relay_address=video_address,
                     )
 
             logging.info(f"Using {receiver_type} video receiver")

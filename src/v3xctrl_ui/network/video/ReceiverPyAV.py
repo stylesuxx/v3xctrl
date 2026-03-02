@@ -4,11 +4,12 @@ from pathlib import Path
 import tempfile
 import threading
 import time
-from typing import Callable
+from typing import Callable, Optional, Tuple
 
 import av
 
 from v3xctrl_ui.network.video.Receiver import Receiver
+from v3xctrl_ui.network.video.UdpVideoProxy import UdpVideoProxy
 
 
 class ReceiverPyAV(Receiver):
@@ -33,6 +34,7 @@ class ReceiverPyAV(Receiver):
         history_size: int = 100,
         max_frame_age_ms: int = 500,
         render_ratio: int = 0,
+        relay_address: Optional[Tuple[str, int]] = None
     ) -> None:
         super().__init__(
             port,
@@ -42,6 +44,9 @@ class ReceiverPyAV(Receiver):
             max_frame_age_ms,
             render_ratio
         )
+
+        self.relay_address = relay_address
+        self._proxy: Optional[UdpVideoProxy] = None
 
         self.container = None
         self.sdp_path = Path(tempfile.gettempdir()) / f"rtp_{self.port}.sdp"
@@ -67,7 +72,21 @@ class ReceiverPyAV(Receiver):
         }
 
     def _setup(self) -> None:
-        """Setup SDP file."""
+        """Setup UDP proxy (if relay) and SDP file."""
+        if self.relay_address:
+            self._proxy = UdpVideoProxy(self.port, self.relay_address)
+            if self._proxy.start_proxy():
+                logging.info(
+                    f"UDP video proxy active: :{self.port} -> "
+                    f"localhost:{self._proxy.local_port}"
+                )
+            else:
+                logging.warning(
+                    "UDP video proxy failed to start, "
+                    "falling back to direct port"
+                )
+                self._proxy = None
+
         self._write_sdp()
 
     def _close_container(self) -> None:
@@ -161,13 +180,20 @@ class ReceiverPyAV(Receiver):
 
                 self._close_container()
 
-                # Send keep-alive to maintain NAT hole when stream ends/fails
-                # This needs to happen after PyAV has freed the socket
-                self.keep_alive()
+                # Send keep-alive to maintain NAT hole when stream ends/fails.
+                # When the proxy is active it handles heartbeats continuously,
+                # so the transient-socket callback is not needed.
+                if not self._proxy:
+                    self.keep_alive()
 
     def _cleanup(self) -> None:
-        """Cleanup container and SDP file."""
+        """Cleanup container, proxy, and SDP file."""
         self._close_container()
+
+        if self._proxy:
+            self._proxy.stop()
+            self._proxy.join(timeout=2.0)
+            self._proxy = None
 
         try:
             if self.sdp_path.exists():
@@ -177,13 +203,20 @@ class ReceiverPyAV(Receiver):
 
     def _write_sdp(self) -> None:
         """Write SDP file for RTP stream."""
+        if self._proxy:
+            listen_port = self._proxy.local_port
+            listen_addr = "127.0.0.1"
+        else:
+            listen_port = self.port
+            listen_addr = "0.0.0.0"
+
         sdp_text = f"""\
 v=0
 o=- 0 0 IN IP4 127.0.0.1
 s=RTP Stream
-c=IN IP4 0.0.0.0
+c=IN IP4 {listen_addr}
 t=0 0
-m=video {self.port} RTP/AVP 96
+m=video {listen_port} RTP/AVP 96
 a=rtpmap:96 H264/90000
 a=rtcp-fb:96 nack
 a=rtcp-fb:96 nack pli

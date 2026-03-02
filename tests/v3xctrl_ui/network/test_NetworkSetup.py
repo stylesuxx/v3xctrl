@@ -142,7 +142,8 @@ class TestNetworkSetup(unittest.TestCase):
         self.mock_video_receiver_cls.assert_called_once_with(
             5000,
             error_callback,
-            render_ratio=0
+            render_ratio=0,
+            relay_address=None,
         )
         mock_receiver.start.assert_called_once()
 

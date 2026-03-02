@@ -2,6 +2,7 @@ package com.v3xctrl.viewer.ui.screens
 
 import android.app.Activity
 import android.content.pm.ActivityInfo
+import android.widget.Toast
 import android.content.res.Configuration
 import android.view.InputDevice
 import android.view.SurfaceHolder
@@ -34,15 +35,14 @@ import com.v3xctrl.viewer.data.OsdSettings
 import com.v3xctrl.viewer.input.GamepadController
 import com.v3xctrl.viewer.input.MotionController
 import com.v3xctrl.viewer.control.UDPReceiver
+import com.v3xctrl.viewer.control.VideoPortKeepAlive
 import com.v3xctrl.viewer.control.ViewerState
-import com.v3xctrl.viewer.messages.Heartbeat
+import com.v3xctrl.viewer.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
-import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
-import java.net.InetSocketAddress
 
 data class ConnectionInfo(
     val videoPort: Int,
@@ -160,6 +160,19 @@ fun ViewerScreen(
         }
     }
 
+    // Show toast when GStreamer pipeline restarts after error/EOS
+    LaunchedEffect(Unit) {
+        var lastCount = GstViewer.restartCount
+        while (true) {
+            delay(2000)
+            val count = GstViewer.restartCount
+            if (count > lastCount) {
+                lastCount = count
+                Toast.makeText(context, R.string.pipeline_restarted, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     // Video blank timeout - blank video after 5 seconds of video service stopped
     LaunchedEffect(viewerState.isVideoRunning) {
         if (!viewerState.isVideoRunning) {
@@ -210,8 +223,9 @@ fun ViewerScreen(
         }
     }
 
-    // Video port keep-alive: send Heartbeat to relay to maintain NAT hole
-    // when video service is not running, so the relay can forward video once started
+    // Video port keep-alive: send Heartbeat to relay to maintain NAT hole.
+    // Sent frequently when video is not running (hole punch) and at a lower
+    // rate during active streaming (prevent NAT mapping expiry).
     LaunchedEffect(connection.videoPort, connection.relayHost, connection.relayPort) {
         withContext(Dispatchers.IO) {
             val relayAddress = try {
@@ -220,24 +234,23 @@ fun ViewerScreen(
                 return@withContext
             }
 
+            val keepAlive = VideoPortKeepAlive(
+                videoPort = connection.videoPort,
+                relayAddress = relayAddress,
+                relayPort = connection.relayPort
+            )
+
             var keepAliveSocket: DatagramSocket? = null
             try {
-                keepAliveSocket = DatagramSocket(null).apply {
-                    reuseAddress = true
-                    bind(InetSocketAddress(connection.videoPort))
-                }
+                keepAliveSocket = keepAlive.createSocket()
 
                 while (true) {
-                    if (!viewerState.isVideoRunning) {
-                        try {
-                            val data = Heartbeat().toBytes()
-                            val packet = DatagramPacket(data, data.size, relayAddress, connection.relayPort)
-                            keepAliveSocket.send(packet)
-                        } catch (_: Exception) {
-                            // Ignore send errors
-                        }
+                    try {
+                        keepAlive.sendHeartbeat(keepAliveSocket)
+                    } catch (_: Exception) {
+                        // Ignore send errors
                     }
-                    delay(1000)
+                    delay(keepAlive.getIntervalMs(viewerState.isVideoRunning))
                 }
             } catch (_: Exception) {
                 // Socket bind may fail if SO_REUSEADDR isn't supported
