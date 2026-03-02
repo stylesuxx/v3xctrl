@@ -20,6 +20,7 @@ def main() -> None:
     parser.add_argument('--height', type=int, default=720, help='Video height (default: 720)')
     parser.add_argument('--framerate', type=int, default=30, help='Framerate (default: 30)')
     parser.add_argument('--bitrate', type=int, default=1800000, help='Bitrate (default: 1800000)')
+    parser.add_argument('--mtu', type=int, default=1400, help='RTP MTU in bytes (default: 1400)')
     parser.add_argument('--h264-profile', type=str, default='high', help='H.264 profile (default: high)')
     parser.add_argument('--buffertime', type=int, default=150000000, help='Buffer time in ns (default: 150000000)')
     parser.add_argument('--sizebuffers', type=int, default=5, help='Size of buffers (default: 5)')
@@ -70,6 +71,7 @@ def main() -> None:
         'height': args.height,
         'framerate': args.framerate,
         'bitrate': args.bitrate,
+        'mtu': args.mtu,
         'h264_profile': args.h264_profile,
         'buffertime': args.buffertime,
         'sizebuffers': args.sizebuffers,
