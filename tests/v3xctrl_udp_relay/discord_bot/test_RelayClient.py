@@ -9,16 +9,16 @@ from v3xctrl_udp_relay.discord_bot.RelayClient import RelayClient
 class TestRelayClient(unittest.TestCase):
     def setUp(self):
         self.client = RelayClient()
-        self.custom_client = RelayClient("/custom/socket/path")
+        self.custom_client = RelayClient(port=9999)
 
     def test_init_default_values(self):
         client = RelayClient()
-        self.assertEqual(client.socket_path, "/tmp/udp_relay_command.sock")
+        self.assertEqual(client.socket_path, "/tmp/udp_relay_command_8888.sock")
         self.assertEqual(client.timeout, 5.0)
 
-    def test_init_custom_values(self):
-        client = RelayClient("/custom/path")
-        self.assertEqual(client.socket_path, "/custom/path")
+    def test_init_custom_port(self):
+        client = RelayClient(port=9999)
+        self.assertEqual(client.socket_path, "/tmp/udp_relay_command_9999.sock")
         self.assertEqual(client.timeout, 5.0)
 
     def test_get_stats_calls_send_command(self):
@@ -38,7 +38,7 @@ class TestRelayClient(unittest.TestCase):
 
         mock_socket_class.assert_called_once_with(socket.AF_UNIX, socket.SOCK_STREAM)
         mock_sock.settimeout.assert_called_once_with(5.0)
-        mock_sock.connect.assert_called_once_with("/tmp/udp_relay_command.sock")
+        mock_sock.connect.assert_called_once_with("/tmp/udp_relay_command_8888.sock")
         mock_sock.send.assert_called_once_with(b"test_command")
         mock_sock.recv.assert_called_once_with(4096)
         mock_sock.close.assert_called_once()
@@ -53,7 +53,7 @@ class TestRelayClient(unittest.TestCase):
 
         self.custom_client.send_command(b"command")
 
-        mock_sock.connect.assert_called_once_with("/custom/socket/path")
+        mock_sock.connect.assert_called_once_with("/tmp/udp_relay_command_9999.sock")
 
     @patch('v3xctrl_udp_relay.discord_bot.RelayClient.socket.socket')
     @patch('logging.error')
