@@ -45,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.v3xctrl.viewer.R
+import com.v3xctrl.viewer.GstViewer
 import com.v3xctrl.viewer.control.UDPReceiver
 import com.v3xctrl.viewer.control.ViewerState
 import com.v3xctrl.viewer.messages.Command
@@ -70,6 +71,7 @@ fun PortraitViewer(
     onNavigateToFrequencies: () -> Unit,
     onNavigateToOSD: () -> Unit,
     onNavigateToControl: () -> Unit,
+    pipelineStats: GstViewer.PipelineStats? = null,
     modifier: Modifier = Modifier
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
@@ -119,6 +121,7 @@ fun PortraitViewer(
             VideoSurface(
                 surfaceView = surfaceView,
                 showVideoBlank = showVideoBlank,
+                pipelineStats = pipelineStats,
                 modifier = Modifier.fillMaxSize()
             )
 

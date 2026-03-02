@@ -22,6 +22,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.v3xctrl.viewer.R
+import com.v3xctrl.viewer.GstViewer
 import com.v3xctrl.viewer.control.ControlState
 import com.v3xctrl.viewer.control.ViewerState
 import com.v3xctrl.viewer.data.OsdSettings
@@ -45,6 +46,7 @@ fun LandscapeViewer(
     spectatorMode: Boolean,
     pipelineStartTime: Long,
     osdSettings: OsdSettings = OsdSettings(),
+    pipelineStats: GstViewer.PipelineStats? = null,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -55,6 +57,7 @@ fun LandscapeViewer(
         VideoSurface(
             surfaceView = surfaceView,
             showVideoBlank = showVideoBlank,
+            pipelineStats = pipelineStats,
             modifier = Modifier.fillMaxSize()
         )
 

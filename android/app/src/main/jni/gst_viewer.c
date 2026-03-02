@@ -5,6 +5,8 @@
 #include <android/native_window_jni.h>
 #include <gst/gst.h>
 #include <gst/video/videooverlay.h>
+#include <gst/net/gstnetaddressmeta.h>
+#include <gio/gio.h>
 
 #define LOG_TAG "GstViewer"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
@@ -21,6 +23,42 @@ typedef struct {
 } GstViewerData;
 
 static GstViewerData gst_data = {0};
+
+/* Diagnostic counters (accessed from pad probe + JNI) */
+static volatile gint64 stats_udpsrc_packets = 0;
+static volatile gint64 stats_udpsrc_bytes = 0;
+static gchar stats_last_source[64] = {0};
+static GMutex stats_mutex;
+
+static GstPadProbeReturn
+udpsrc_probe_cb(GstPad *pad, GstPadProbeInfo *info, gpointer user_data) {
+    GstBuffer *buf = GST_PAD_PROBE_INFO_BUFFER(info);
+    if (!buf) return GST_PAD_PROBE_OK;
+
+    g_atomic_int_add((volatile gint *)&stats_udpsrc_packets, 1);
+    g_atomic_int_add((volatile gint *)&stats_udpsrc_bytes,
+                     (gint)gst_buffer_get_size(buf));
+
+    GstNetAddressMeta *meta = gst_buffer_get_net_address_meta(buf);
+    if (meta && meta->addr) {
+        GInetSocketAddress *inet_addr =
+            G_INET_SOCKET_ADDRESS(meta->addr);
+        if (inet_addr) {
+            GInetAddress *ip = g_inet_socket_address_get_address(inet_addr);
+            guint16 port = g_inet_socket_address_get_port(inet_addr);
+            gchar *ip_str = g_inet_address_to_string(ip);
+
+            g_mutex_lock(&stats_mutex);
+            g_snprintf(stats_last_source, sizeof(stats_last_source),
+                       "%s:%u", ip_str, port);
+            g_mutex_unlock(&stats_mutex);
+
+            g_free(ip_str);
+        }
+    }
+
+    return GST_PAD_PROBE_OK;
+}
 
 static void on_error(GstBus *bus, GstMessage *msg, gpointer data) {
     GError *err;
@@ -71,6 +109,7 @@ Java_com_v3xctrl_viewer_GstViewer_nativeInit(JNIEnv *env, jclass clazz) {
     setenv("GST_GL_API", "gles2", 1);
 
     gst_init(NULL, NULL);
+    g_mutex_init(&stats_mutex);
     gst_data.initialized = TRUE;
     LOGI("GStreamer initialized successfully");
 }
@@ -86,6 +125,13 @@ Java_com_v3xctrl_viewer_GstViewer_nativeStartPipeline(JNIEnv *env, jclass clazz,
         LOGI("Pipeline already running");
         return;
     }
+
+    /* Reset diagnostic counters */
+    stats_udpsrc_packets = 0;
+    stats_udpsrc_bytes = 0;
+    g_mutex_lock(&stats_mutex);
+    stats_last_source[0] = '\0';
+    g_mutex_unlock(&stats_mutex);
 
     // Get native window from surface
     gst_data.native_window = ANativeWindow_fromSurface(env, surface);
@@ -111,7 +157,7 @@ Java_com_v3xctrl_viewer_GstViewer_nativeStartPipeline(JNIEnv *env, jclass clazz,
     } else {
         // RTP H264 receiver pipeline with software decoder
         pipeline_str = g_strdup_printf(
-            "udpsrc port=%d caps=\"application/x-rtp,media=video,encoding-name=H264,payload=96,clock-rate=90000\" ! "
+            "udpsrc name=src port=%d caps=\"application/x-rtp,media=video,encoding-name=H264,payload=96,clock-rate=90000\" ! "
             "rtpjitterbuffer latency=0 drop-on-latency=true ! "
             "rtph264depay ! "
             "h264parse ! "
@@ -136,6 +182,20 @@ Java_com_v3xctrl_viewer_GstViewer_nativeStartPipeline(JNIEnv *env, jclass clazz,
         ANativeWindow_release(gst_data.native_window);
         gst_data.native_window = NULL;
         return;
+    }
+
+    /* Attach pad probe to udpsrc for diagnostics */
+    if (port != 0) {
+        GstElement *udpsrc = gst_bin_get_by_name(GST_BIN(gst_data.pipeline), "src");
+        if (udpsrc) {
+            GstPad *srcpad = gst_element_get_static_pad(udpsrc, "src");
+            if (srcpad) {
+                gst_pad_add_probe(srcpad, GST_PAD_PROBE_TYPE_BUFFER,
+                                  udpsrc_probe_cb, NULL, NULL);
+                gst_object_unref(srcpad);
+            }
+            gst_object_unref(udpsrc);
+        }
     }
 
     // Get video sink and set native window
@@ -223,6 +283,62 @@ Java_com_v3xctrl_viewer_GstViewer_nativeStopPipeline(JNIEnv *env, jclass clazz) 
 
     gst_data.video_port = 0;
     LOGI("Pipeline stopped");
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_v3xctrl_viewer_GstViewer_nativeGetStats(JNIEnv *env, jclass clazz) {
+    gchar source_copy[64];
+
+    g_mutex_lock(&stats_mutex);
+    g_strlcpy(source_copy, stats_last_source, sizeof(source_copy));
+    g_mutex_unlock(&stats_mutex);
+
+    /* Pipeline state */
+    const gchar *state_str = "NULL";
+    gint local_port = gst_data.video_port;
+    if (gst_data.pipeline) {
+        GstState current = GST_STATE_NULL;
+        gst_element_get_state(gst_data.pipeline, &current, NULL, 0);
+        state_str = gst_element_state_get_name(current);
+    }
+
+    /* RTP jitterbuffer stats */
+    gint64 jb_pushed = -1, jb_lost = -1, jb_late = -1;
+    if (gst_data.pipeline) {
+        GstElement *jb = gst_bin_get_by_name(GST_BIN(gst_data.pipeline),
+                                              "rtpjitterbuffer0");
+        if (jb) {
+            GstStructure *jb_stats = NULL;
+            g_object_get(jb, "stats", &jb_stats, NULL);
+            if (jb_stats) {
+                guint64 val;
+                if (gst_structure_get_uint64(jb_stats, "num-pushed", &val))
+                    jb_pushed = (gint64)val;
+                if (gst_structure_get_uint64(jb_stats, "num-lost", &val))
+                    jb_lost = (gint64)val;
+                if (gst_structure_get_uint64(jb_stats, "num-late", &val))
+                    jb_late = (gint64)val;
+                gst_structure_free(jb_stats);
+            }
+            gst_object_unref(jb);
+        }
+    }
+
+    gchar *stats = g_strdup_printf(
+        "%lld|%lld|%s|%s|%d|%lld|%lld|%lld",
+        (long long)stats_udpsrc_packets,
+        (long long)stats_udpsrc_bytes,
+        source_copy,
+        state_str,
+        local_port,
+        (long long)jb_pushed,
+        (long long)jb_lost,
+        (long long)jb_late
+    );
+
+    jstring result = (*env)->NewStringUTF(env, stats);
+    g_free(stats);
+    return result;
 }
 
 JNIEXPORT void JNICALL

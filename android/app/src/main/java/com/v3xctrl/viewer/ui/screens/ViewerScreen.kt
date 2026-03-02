@@ -13,6 +13,9 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -21,8 +24,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
@@ -210,6 +216,17 @@ fun ViewerScreen(
         }
     }
 
+    // Pipeline diagnostics (polled every second)
+    var pipelineStats by remember { mutableStateOf(GstViewer.PipelineStats(0, 0, null, "?", 0, -1, -1, -1)) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1000)
+            try {
+                pipelineStats = GstViewer.getStats()
+            } catch (_: Exception) {}
+        }
+    }
+
     // Video port keep-alive: send Heartbeat to relay to maintain NAT hole
     // when video service is not running, so the relay can forward video once started
     LaunchedEffect(connection.videoPort, connection.relayHost, connection.relayPort) {
@@ -309,6 +326,7 @@ fun ViewerScreen(
             spectatorMode = spectatorMode,
             pipelineStartTime = pipelineStartTime,
             osdSettings = osdSettings,
+            pipelineStats = pipelineStats,
             modifier = modifier
         )
     } else {
@@ -327,6 +345,7 @@ fun ViewerScreen(
             onNavigateToFrequencies = onNavigateToFrequencies,
             onNavigateToOSD = onNavigateToOSD,
             onNavigateToControl = onNavigateToControl,
+            pipelineStats = pipelineStats,
             modifier = modifier
         )
     }
@@ -336,14 +355,38 @@ fun ViewerScreen(
 fun VideoSurface(
     surfaceView: SurfaceView,
     showVideoBlank: Boolean,
+    pipelineStats: GstViewer.PipelineStats? = null,
     modifier: Modifier = Modifier
 ) {
-    AndroidView(
-        factory = { surfaceView },
-        modifier = modifier
-    )
+    Box(modifier = modifier) {
+        AndroidView(
+            factory = { surfaceView },
+            modifier = Modifier.fillMaxSize()
+        )
 
-    if (showVideoBlank) {
-        Box(modifier = modifier.background(Color.Black))
+        if (showVideoBlank) {
+            Box(modifier = Modifier.fillMaxSize().background(Color.Black))
+        }
+
+        if (pipelineStats != null) {
+            val kb = pipelineStats.bytes / 1024
+            val jbInfo = if (pipelineStats.jbPushed >= 0)
+                "jb: ${pipelineStats.jbPushed} ok, ${pipelineStats.jbLost} lost, ${pipelineStats.jbLate} late"
+            else
+                "jb: n/a"
+            Text(
+                text = "${pipelineStats.pipelineState} port=${pipelineStats.localPort}\n" +
+                       "udpsrc: ${pipelineStats.packets} pkts, ${kb} KB\n" +
+                       jbInfo,
+                color = Color.Yellow,
+                fontSize = 11.sp,
+                lineHeight = 14.sp,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 4.dp)
+                    .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(4.dp))
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
+            )
+        }
     }
 }
