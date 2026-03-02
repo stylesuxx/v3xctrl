@@ -16,7 +16,7 @@ class TestUDPRelayServerUnitTests(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp()
         self.db_path = os.path.join(self.temp_dir, 'test.db')
-        self.command_socket_path = os.path.join(self.temp_dir, 'test_command.sock')
+        # command_socket_path is now derived from port automatically
 
         # Initialize test database
         self._init_test_db()
@@ -69,7 +69,6 @@ class TestUDPRelayServerUnitTests(unittest.TestCase):
             self.server_ip,
             self.server_port,
             self.db_path,
-            self.command_socket_path
         )
 
         # Test shutdown with socket errors - should not raise exceptions
@@ -99,7 +98,6 @@ class TestUDPRelayServerUnitTests(unittest.TestCase):
             self.server_ip,
             self.server_port,
             self.db_path,
-            self.command_socket_path
         )
 
         # Remove command_sock to test the hasattr branch
@@ -130,7 +128,6 @@ class TestUDPRelayServerUnitTests(unittest.TestCase):
             self.server_ip,
             self.server_port,
             self.db_path,
-            self.command_socket_path
         )
 
         # Mock running to be False to exit loop
@@ -161,7 +158,6 @@ class TestUDPRelayServerUnitTests(unittest.TestCase):
             self.server_ip,
             self.server_port,
             self.db_path,
-            self.command_socket_path
         )
 
         # Set running to False after one iteration
@@ -206,7 +202,6 @@ class TestUDPRelayServerUnitTests(unittest.TestCase):
             self.server_ip,
             self.server_port,
             self.db_path,
-            self.command_socket_path
         )
 
         with patch('logging.error') as mock_error:
@@ -236,7 +231,6 @@ class TestUDPRelayServerUnitTests(unittest.TestCase):
             self.server_ip,
             self.server_port,
             self.db_path,
-            self.command_socket_path
         )
 
         # Clear any existing sessions
@@ -264,7 +258,6 @@ class TestUDPRelayServerUnitTests(unittest.TestCase):
             self.server_ip,
             self.server_port,
             self.db_path,
-            self.command_socket_path
         )
 
         # Create a session with addresses but no mappings
@@ -304,7 +297,6 @@ class TestUDPRelayServerUnitTests(unittest.TestCase):
             self.server_ip,
             self.server_port,
             self.db_path,
-            self.command_socket_path
         )
 
         # Create mock peer announcement for unknown session
@@ -340,7 +332,6 @@ class TestUDPRelayServerUnitTests(unittest.TestCase):
             self.server_ip,
             self.server_port,
             self.db_path,
-            self.command_socket_path
         )
 
         # Test peer announcement data that causes Message.from_bytes to fail
@@ -373,7 +364,6 @@ class TestUDPRelayServerUnitTests(unittest.TestCase):
             self.server_ip,
             self.server_port,
             self.db_path,
-            self.command_socket_path
         )
 
         # Mock forward_packet to raise an exception
@@ -406,7 +396,6 @@ class TestUDPRelayServerUnitTests(unittest.TestCase):
             self.server_ip,
             self.server_port,
             self.db_path,
-            self.command_socket_path
         )
 
         # Test peer announcement data that parses but isn't a PeerAnnouncement
