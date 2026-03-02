@@ -26,18 +26,19 @@ class UDPRelayServer(threading.Thread):
     CLEANUP_INTERVAL = 10
     RECEIVE_BUFFER = 2048
 
+    COMMAND_SOCKET_TEMPLATE = "/tmp/udp_relay_command_{port}.sock"
+
     def __init__(
             self,
             ip: str,
             port: int,
             db_path: str,
-            command_socket_path: str = "/tmp/udp_relay_command.sock"
     ) -> None:
         super().__init__(daemon=True, name="UDPRelayServer")
 
         self.ip = ip
         self.port = port
-        self.command_socket_path = command_socket_path
+        self.command_socket_path = self.COMMAND_SOCKET_TEMPLATE.format(port=port)
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

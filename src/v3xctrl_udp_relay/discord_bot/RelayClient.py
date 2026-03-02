@@ -5,8 +5,10 @@ from typing import Any
 
 
 class RelayClient:
-    def __init__(self, socket_path: str = "/tmp/udp_relay_command.sock") -> None:
-        self.socket_path = socket_path
+    COMMAND_SOCKET_TEMPLATE = "/tmp/udp_relay_command_{port}.sock"
+
+    def __init__(self, port: int = 8888) -> None:
+        self.socket_path = self.COMMAND_SOCKET_TEMPLATE.format(port=port)
         self.timeout = 5.0
 
     def get_stats(self) -> dict[str, Any]:

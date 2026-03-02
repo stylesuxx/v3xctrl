@@ -19,7 +19,7 @@ class TestUDPRelayServerIntegration(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp()
         self.db_path = os.path.join(self.temp_dir, 'test.db')
-        self.command_socket_path = os.path.join(self.temp_dir, 'test_command.sock')
+        # command_socket_path is now derived from port automatically
 
         # Initialize test database
         self._init_test_db()
@@ -94,13 +94,13 @@ class TestUDPRelayServerIntegration(unittest.TestCase):
             self.server_ip,
             self.server_port,
             self.db_path,
-            self.command_socket_path
         )
 
         # Verify socket setup
         mock_udp_socket.setsockopt.assert_called_with(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         mock_udp_socket.bind.assert_called_with(('0.0.0.0', self.server_port))
-        mock_command_socket.bind.assert_called_with(self.command_socket_path)
+        expected_socket_path = f"/tmp/udp_relay_command_{self.server_port}.sock"
+        mock_command_socket.bind.assert_called_with(expected_socket_path)
         mock_command_socket.listen.assert_called_with(5)
 
         # Test shutdown
@@ -126,7 +126,6 @@ class TestUDPRelayServerIntegration(unittest.TestCase):
             self.server_ip,
             self.server_port,
             self.db_path,
-            self.command_socket_path
         )
 
         peer_announcement = self._build_announce("test_session_1", Role.STREAMER, PortType.VIDEO)
@@ -155,7 +154,6 @@ class TestUDPRelayServerIntegration(unittest.TestCase):
             self.server_ip,
             self.server_port,
             self.db_path,
-            self.command_socket_path
         )
 
         peer_announcement = self._build_announce("unknown_session", Role.STREAMER, PortType.VIDEO)
@@ -186,7 +184,6 @@ class TestUDPRelayServerIntegration(unittest.TestCase):
             self.server_ip,
             self.server_port,
             self.db_path,
-            self.command_socket_path
         )
 
         streamer_video_announcement = self._build_announce("test_session_1", Role.STREAMER, PortType.VIDEO)
@@ -222,7 +219,6 @@ class TestUDPRelayServerIntegration(unittest.TestCase):
             self.server_ip,
             self.server_port,
             self.db_path,
-            self.command_socket_path
         )
 
         # Set up complete session - need both roles with both port types
@@ -279,7 +275,6 @@ class TestUDPRelayServerIntegration(unittest.TestCase):
             self.server_ip,
             self.server_port,
             self.db_path,
-            self.command_socket_path
         )
 
         # Set up complete session with all required ports
@@ -340,7 +335,6 @@ class TestUDPRelayServerIntegration(unittest.TestCase):
             self.server_ip,
             self.server_port,
             self.db_path,
-            self.command_socket_path
         )
 
         # Test unknown command
@@ -372,7 +366,6 @@ class TestUDPRelayServerIntegration(unittest.TestCase):
             self.server_ip,
             self.server_port,
             self.db_path,
-            self.command_socket_path
         )
 
         # Invalid role: not Role enum
@@ -402,7 +395,6 @@ class TestUDPRelayServerIntegration(unittest.TestCase):
             self.server_ip,
             self.server_port,
             self.db_path,
-            self.command_socket_path
         )
 
         # Test peer announcement packet detection
@@ -455,7 +447,6 @@ class TestUDPRelayServerIntegration(unittest.TestCase):
             self.server_ip,
             self.server_port,
             self.db_path,
-            self.command_socket_path
         )
 
         # Create peers dict manually
@@ -497,7 +488,6 @@ class TestUDPRelayServerIntegration(unittest.TestCase):
             self.server_ip,
             self.server_port,
             self.db_path,
-            self.command_socket_path
         )
 
         # Create a mock session with roles
@@ -543,7 +533,6 @@ class TestUDPRelayServerIntegration(unittest.TestCase):
             self.server_ip,
             self.server_port,
             self.db_path,
-            self.command_socket_path
         )
 
         # Mock the cleanup method to verify it's called
@@ -578,7 +567,6 @@ class TestUDPRelayServerIntegration(unittest.TestCase):
 
         server = UDPRelayServer(
             self.server_ip, self.server_port, self.db_path,
-            self.command_socket_path
         )
 
         test_msg = ConnectionTest(i="test_session_1", s=False)
@@ -612,7 +600,6 @@ class TestUDPRelayServerIntegration(unittest.TestCase):
 
         server = UDPRelayServer(
             self.server_ip, self.server_port, self.db_path,
-            self.command_socket_path
         )
 
         test_msg = ConnectionTest(i="nonexistent_session", s=False)
@@ -645,7 +632,6 @@ class TestUDPRelayServerIntegration(unittest.TestCase):
 
         server = UDPRelayServer(
             self.server_ip, self.server_port, self.db_path,
-            self.command_socket_path
         )
 
         test_msg = ConnectionTest(i="spectator_1", s=True)
@@ -678,7 +664,6 @@ class TestUDPRelayServerIntegration(unittest.TestCase):
 
         server = UDPRelayServer(
             self.server_ip, self.server_port, self.db_path,
-            self.command_socket_path
         )
 
         test_msg = ConnectionTest(i="nonexistent_spectator", s=True)
@@ -712,7 +697,6 @@ class TestUDPRelayServerIntegration(unittest.TestCase):
 
         server = UDPRelayServer(
             self.server_ip, self.server_port, self.db_path,
-            self.command_socket_path
         )
 
         test_msg = ConnectionTest(i="test_session_1", s=False)
