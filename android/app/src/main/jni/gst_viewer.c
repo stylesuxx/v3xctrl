@@ -1,5 +1,6 @@
 #include <jni.h>
 #include <stdlib.h>
+#include <pthread.h>
 #include <android/log.h>
 #include <android/native_window.h>
 #include <android/native_window_jni.h>
@@ -10,6 +11,11 @@
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
+#define LOGW(...) __android_log_print(ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__)
+
+#define MAX_RESTARTS 5
+#define RESTART_WINDOW_US (30 * G_USEC_PER_SEC)
+#define STATS_INTERVAL_SECS 5
 
 typedef struct {
     GstElement *pipeline;
@@ -18,26 +24,158 @@ typedef struct {
     ANativeWindow *native_window;
     gboolean initialized;
     gint video_port;
+    pthread_t thread;
+    gboolean thread_active;
 } GstViewerData;
 
 static GstViewerData gst_data = {0};
+
+// Pipeline auto-restart rate limiting
+static gint restart_count = 0;
+static gint64 restart_window_start = 0;
+
+// Per-element buffer counters for diagnosing where data stops flowing
+static volatile gint count_udpsrc = 0;
+static volatile gint count_jitterbuffer = 0;
+static volatile gint count_depay = 0;
+static volatile gint count_decoder = 0;
+static volatile gint count_sink = 0;
+
+static GstPadProbeReturn count_udpsrc_cb(GstPad *pad, GstPadProbeInfo *info, gpointer user_data) {
+    count_udpsrc++;
+    return GST_PAD_PROBE_OK;
+}
+
+static GstPadProbeReturn count_jitterbuffer_cb(GstPad *pad, GstPadProbeInfo *info, gpointer user_data) {
+    count_jitterbuffer++;
+    return GST_PAD_PROBE_OK;
+}
+
+static GstPadProbeReturn count_depay_cb(GstPad *pad, GstPadProbeInfo *info, gpointer user_data) {
+    count_depay++;
+    return GST_PAD_PROBE_OK;
+}
+
+static GstPadProbeReturn count_decoder_cb(GstPad *pad, GstPadProbeInfo *info, gpointer user_data) {
+    count_decoder++;
+    return GST_PAD_PROBE_OK;
+}
+
+static GstPadProbeReturn count_sink_cb(GstPad *pad, GstPadProbeInfo *info, gpointer user_data) {
+    count_sink++;
+    return GST_PAD_PROBE_OK;
+}
+
+// Periodic stats logging — shows buffer counts per element to identify where data stops
+static gboolean log_stats_cb(gpointer user_data) {
+    if (!gst_data.pipeline) return G_SOURCE_REMOVE;
+
+    LOGI("Pipeline stats: udpsrc=%d jbuf=%d depay=%d dec=%d sink=%d",
+         count_udpsrc, count_jitterbuffer, count_depay, count_decoder, count_sink);
+
+    return G_SOURCE_CONTINUE;
+}
+
+static void add_src_pad_probe(const gchar *element_name, GstPadProbeCallback cb) {
+    GstElement *el = gst_bin_get_by_name(GST_BIN(gst_data.pipeline), element_name);
+    if (el) {
+        GstPad *pad = gst_element_get_static_pad(el, "src");
+        if (pad) {
+            gst_pad_add_probe(pad, GST_PAD_PROBE_TYPE_BUFFER, cb, NULL, NULL);
+            gst_object_unref(pad);
+        }
+        gst_object_unref(el);
+    } else {
+        LOGW("Could not find element '%s' for pad probe", element_name);
+    }
+}
+
+static gboolean restart_pipeline_cb(gpointer user_data) {
+    if (!gst_data.pipeline) {
+        return G_SOURCE_REMOVE;
+    }
+
+    // Rate limit: max MAX_RESTARTS in RESTART_WINDOW_US
+    gint64 now = g_get_monotonic_time();
+    if (now - restart_window_start > RESTART_WINDOW_US) {
+        restart_count = 0;
+        restart_window_start = now;
+    }
+    restart_count++;
+
+    if (restart_count > MAX_RESTARTS) {
+        LOGE("Too many pipeline restarts (%d in 30s), giving up", MAX_RESTARTS);
+        g_main_loop_quit(gst_data.main_loop);
+        return G_SOURCE_REMOVE;
+    }
+
+    LOGI("Restarting pipeline (attempt %d/%d)", restart_count, MAX_RESTARTS);
+    gst_element_set_state(gst_data.pipeline, GST_STATE_NULL);
+
+    // Re-apply native window handle after NULL state
+    if (gst_data.video_sink && gst_data.native_window) {
+        gst_video_overlay_set_window_handle(
+            GST_VIDEO_OVERLAY(gst_data.video_sink),
+            (guintptr)gst_data.native_window
+        );
+    }
+
+    GstStateChangeReturn ret = gst_element_set_state(gst_data.pipeline, GST_STATE_PLAYING);
+    if (ret == GST_STATE_CHANGE_FAILURE) {
+        LOGE("Failed to restart pipeline");
+        g_main_loop_quit(gst_data.main_loop);
+    }
+
+    return G_SOURCE_REMOVE;
+}
 
 static void on_error(GstBus *bus, GstMessage *msg, gpointer data) {
     GError *err;
     gchar *debug_info;
     gst_message_parse_error(msg, &err, &debug_info);
-    LOGE("Error: %s", err->message);
+    LOGE("Error from %s: %s", GST_OBJECT_NAME(msg->src), err->message);
     if (debug_info) {
         LOGD("Debug info: %s", debug_info);
     }
     g_clear_error(&err);
     g_free(debug_info);
-    g_main_loop_quit(gst_data.main_loop);
+
+    LOGI("Pipeline stats at error: udpsrc=%d jbuf=%d depay=%d dec=%d sink=%d",
+         count_udpsrc, count_jitterbuffer, count_depay, count_decoder, count_sink);
+
+    // Schedule pipeline restart instead of quitting
+    g_idle_add(restart_pipeline_cb, NULL);
+}
+
+static void on_warning(GstBus *bus, GstMessage *msg, gpointer data) {
+    GError *err;
+    gchar *debug_info;
+    gst_message_parse_warning(msg, &err, &debug_info);
+    LOGW("Warning from %s: %s", GST_OBJECT_NAME(msg->src), err->message);
+    if (debug_info) {
+        LOGD("Debug info: %s", debug_info);
+    }
+    g_clear_error(&err);
+    g_free(debug_info);
 }
 
 static void on_eos(GstBus *bus, GstMessage *msg, gpointer data) {
-    LOGI("End of stream");
-    g_main_loop_quit(gst_data.main_loop);
+    LOGI("End of stream, restarting pipeline");
+    g_idle_add(restart_pipeline_cb, NULL);
+}
+
+static void on_qos(GstBus *bus, GstMessage *msg, gpointer data) {
+    gboolean live;
+    guint64 running_time, stream_time, timestamp, duration;
+    gint64 jitter;
+    gdouble proportion;
+    gint quality;
+
+    gst_message_parse_qos(msg, &live, &running_time, &stream_time, &timestamp, &duration);
+    gst_message_parse_qos_values(msg, &jitter, &proportion, &quality);
+
+    LOGW("QoS from %s: jitter=%" G_GINT64_FORMAT "us proportion=%.2f quality=%d",
+         GST_OBJECT_NAME(msg->src), jitter, proportion, quality);
 }
 
 static void on_state_changed(GstBus *bus, GstMessage *msg, gpointer data) {
@@ -109,13 +247,13 @@ Java_com_v3xctrl_viewer_GstViewer_nativeStartPipeline(JNIEnv *env, jclass clazz,
             "glimagesink name=videosink"
         );
     } else {
-        // RTP H264 receiver pipeline with software decoder
+        // RTP H264 receiver pipeline — elements named for diagnostic pad probes
         pipeline_str = g_strdup_printf(
-            "udpsrc port=%d caps=\"application/x-rtp,media=video,encoding-name=H264,payload=96,clock-rate=90000\" ! "
-            "rtpjitterbuffer latency=0 drop-on-latency=true ! "
-            "rtph264depay ! "
-            "h264parse ! "
-            "avdec_h264 ! "
+            "udpsrc name=src port=%d caps=\"application/x-rtp,media=video,encoding-name=H264,payload=96,clock-rate=90000\" ! "
+            "rtpjitterbuffer name=jbuf latency=0 drop-on-latency=true ! "
+            "rtph264depay name=depay ! "
+            "h264parse name=parse ! "
+            "avdec_h264 name=dec ! "
             "videoconvert ! "
             "glimagesink name=videosink sync=false",
             port
@@ -147,16 +285,48 @@ Java_com_v3xctrl_viewer_GstViewer_nativeStartPipeline(JNIEnv *env, jclass clazz,
         );
     }
 
+    // Add per-element pad probes for pipeline diagnostics
+    count_udpsrc = 0;
+    count_jitterbuffer = 0;
+    count_depay = 0;
+    count_decoder = 0;
+    count_sink = 0;
+
+    if (port != 0) {
+        add_src_pad_probe("src", count_udpsrc_cb);
+        add_src_pad_probe("jbuf", count_jitterbuffer_cb);
+        add_src_pad_probe("depay", count_depay_cb);
+        add_src_pad_probe("dec", count_decoder_cb);
+    }
+
+    // Probe on sink pad of video sink (counts frames actually rendered)
+    if (gst_data.video_sink) {
+        GstPad *sink_pad = gst_element_get_static_pad(gst_data.video_sink, "sink");
+        if (sink_pad) {
+            gst_pad_add_probe(sink_pad, GST_PAD_PROBE_TYPE_BUFFER, count_sink_cb, NULL, NULL);
+            gst_object_unref(sink_pad);
+        }
+    }
+
     // Set up bus watch
     GstBus *bus = gst_element_get_bus(gst_data.pipeline);
     gst_bus_add_signal_watch(bus);
     g_signal_connect(bus, "message::error", G_CALLBACK(on_error), NULL);
+    g_signal_connect(bus, "message::warning", G_CALLBACK(on_warning), NULL);
     g_signal_connect(bus, "message::eos", G_CALLBACK(on_eos), NULL);
+    g_signal_connect(bus, "message::qos", G_CALLBACK(on_qos), NULL);
     g_signal_connect(bus, "message::state-changed", G_CALLBACK(on_state_changed), NULL);
     gst_object_unref(bus);
 
     // Create main loop
     gst_data.main_loop = g_main_loop_new(NULL, FALSE);
+
+    // Periodic stats logging
+    g_timeout_add_seconds(STATS_INTERVAL_SECS, log_stats_cb, NULL);
+
+    // Reset restart counter for new pipeline
+    restart_count = 0;
+    restart_window_start = 0;
 
     // Start playing
     GstStateChangeReturn ret = gst_element_set_state(gst_data.pipeline, GST_STATE_PLAYING);
@@ -186,10 +356,9 @@ Java_com_v3xctrl_viewer_GstViewer_nativeStartPipeline(JNIEnv *env, jclass clazz,
 
     LOGI("Pipeline started successfully, waiting for video on port %d", port);
 
-    // Run main loop in a separate thread
-    pthread_t thread;
-    pthread_create(&thread, NULL, gst_main_loop_thread, NULL);
-    pthread_detach(thread);
+    // Run main loop in a separate thread (joinable, not detached)
+    gst_data.thread_active = TRUE;
+    pthread_create(&gst_data.thread, NULL, gst_main_loop_thread, NULL);
 }
 
 JNIEXPORT void JNICALL
@@ -198,6 +367,12 @@ Java_com_v3xctrl_viewer_GstViewer_nativeStopPipeline(JNIEnv *env, jclass clazz) 
 
     if (gst_data.main_loop) {
         g_main_loop_quit(gst_data.main_loop);
+    }
+
+    // Wait for main loop thread to exit before cleanup
+    if (gst_data.thread_active) {
+        pthread_join(gst_data.thread, NULL);
+        gst_data.thread_active = FALSE;
     }
 
     if (gst_data.pipeline) {
@@ -222,7 +397,38 @@ Java_com_v3xctrl_viewer_GstViewer_nativeStopPipeline(JNIEnv *env, jclass clazz) 
     }
 
     gst_data.video_port = 0;
+    restart_count = 0;
     LOGI("Pipeline stopped");
+}
+
+JNIEXPORT jint JNICALL
+Java_com_v3xctrl_viewer_GstViewer_nativeGetRestartCount(JNIEnv *env, jclass clazz) {
+    return restart_count;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_v3xctrl_viewer_GstViewer_nativeGetFrameCount(JNIEnv *env, jclass clazz) {
+    return count_sink;
+}
+
+JNIEXPORT void JNICALL
+Java_com_v3xctrl_viewer_GstViewer_nativeRestartPipeline(JNIEnv *env, jclass clazz) {
+    if (!gst_data.pipeline || !gst_data.main_loop) return;
+
+    LOGI("Manual pipeline restart requested");
+    LOGI("Pipeline stats at restart: udpsrc=%d jbuf=%d depay=%d dec=%d sink=%d",
+         count_udpsrc, count_jitterbuffer, count_depay, count_decoder, count_sink);
+
+    gst_element_set_state(gst_data.pipeline, GST_STATE_NULL);
+
+    if (gst_data.video_sink && gst_data.native_window) {
+        gst_video_overlay_set_window_handle(
+            GST_VIDEO_OVERLAY(gst_data.video_sink),
+            (guintptr)gst_data.native_window
+        );
+    }
+
+    gst_element_set_state(gst_data.pipeline, GST_STATE_PLAYING);
 }
 
 JNIEXPORT void JNICALL

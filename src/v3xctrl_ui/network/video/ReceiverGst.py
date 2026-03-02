@@ -27,7 +27,7 @@ class ReceiverGst(Receiver):
         log_interval: int = 10,
         history_size: int = 100,
         max_frame_age_ms: int = 500,
-        render_ratio: int = 0,
+        render_ratio: int = 0
     ) -> None:
         super().__init__(
             port,
