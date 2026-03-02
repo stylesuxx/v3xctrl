@@ -12,6 +12,7 @@ from v3xctrl_control.message import (
 )
 from v3xctrl_udp_relay.SessionStore import SessionStore
 from v3xctrl_udp_relay.Role import Role
+from v3xctrl_udp_relay.ForwardTarget import ForwardTarget, UdpTarget, TcpTarget
 from v3xctrl_udp_relay.custom_types import (
     PortType,
     Session,
@@ -69,11 +70,30 @@ class PacketRelay:
         self.mappings: Dict[Address, tuple[Address, float]] = {}
         self.sessions: Dict[str, Session] = {}
 
+        # Address -> TcpTarget for peers that registered via TCP
+        self.tcp_targets: Dict[Address, TcpTarget] = {}
+
         # General lock, when execution is not hot path
         self.lock = threading.Lock()
 
         # Only lock mappings when absolutely necessary
         self.mapping_lock = threading.Lock()
+
+    def register_tcp_peer(self, msg: PeerAnnouncement, addr: Address, target: TcpTarget) -> None:
+        with self.mapping_lock:
+            self.tcp_targets[addr] = target
+        self.register_peer(msg, addr)
+
+    def unregister_tcp_peer(self, addr: Address) -> None:
+        with self.mapping_lock:
+            self.tcp_targets.pop(addr, None)
+
+    def _get_target(self, addr: Address) -> ForwardTarget:
+        tcp_target = self.tcp_targets.get(addr)
+        if tcp_target and tcp_target.is_alive():
+            return tcp_target
+
+        return UdpTarget(self.sock, addr)
 
     def register_peer(
         self,
@@ -97,7 +117,7 @@ class PacketRelay:
                         logging.info(f"Ignoring announcement for unknown session '{sid}' from {addr}")
                         try:
                             error_msg = Error(str(403))
-                            self.sock.sendto(error_msg.to_bytes(), addr)
+                            self._get_target(addr).send(error_msg.to_bytes())
                         except Exception as e:
                             logging.error(f"Failed to send error message to {addr}: {e}", exc_info=True)
 
@@ -109,7 +129,7 @@ class PacketRelay:
                         logging.info(f"Ignoring spectator announcement for unknown spectator ID '{sid}' from {addr}")
                         try:
                             error_msg = Error(str(403))
-                            self.sock.sendto(error_msg.to_bytes(), addr)
+                            self._get_target(addr).send(error_msg.to_bytes())
                         except Exception as e:
                             logging.error(f"Failed to send error message to {addr}: {e}", exc_info=True)
                         return
@@ -191,7 +211,7 @@ class PacketRelay:
 
         # Send to all targets (viewer + spectators for streamer, or just streamer for viewer)
         for target in targets:
-            self.sock.sendto(data, target)
+            self._get_target(target).send(data)
 
         return True
 
@@ -207,6 +227,11 @@ class PacketRelay:
            completely
         """
         now = time.time()
+
+        with self.mapping_lock:
+            dead = [a for a, t in self.tcp_targets.items() if not t.is_alive()]
+            for a in dead:
+                del self.tcp_targets[a]
 
         with self.lock:
             expired_roles: Dict[str, List[Role]] = {}
@@ -304,10 +329,9 @@ class PacketRelay:
         peers = session.roles
         try:
             peer_info = PeerInfo(ip=self.ip, video_port=self.port, control_port=self.port)
-            for role, role_peers in peers.items():
-                for port_type, peer in role_peers.items():
-                    self.sock.sendto(peer_info.to_bytes(), peer.addr)
-                    logging.info(f"{session.id}: Sent PeerInfo to {role.name}:{port_type.name} at {peer.addr}")
+            for role_peers in peers.values():
+                for peer in role_peers.values():
+                    self._get_target(peer.addr).send(peer_info.to_bytes())
 
         except Exception as e:
             logging.error(f"Error sending PeerInfo: {e}", exc_info=True)
@@ -316,7 +340,8 @@ class PacketRelay:
         """Send peer info to a specific spectator address."""
         try:
             peer_info = PeerInfo(ip=self.ip, video_port=self.port, control_port=self.port)
-            self.sock.sendto(peer_info.to_bytes(), spectator_addr)
+            self._get_target(spectator_addr).send(peer_info.to_bytes())
+
         except Exception as e:
             logging.error(f"Error sending PeerInfo to spectator {spectator_addr}: {e}", exc_info=True)
 

@@ -7,6 +7,7 @@ from v3xctrl_control import Server
 from v3xctrl_control.message import Latency
 
 from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_tcp.TcpTunnel import TcpTunnel
 from v3xctrl_ui.network.TcpServer import TcpServer
 from v3xctrl_ui.network.NetworkSetup import NetworkSetup
 
@@ -28,6 +29,8 @@ class NetworkController:
         self.server: Optional[Server] = None
         self.server_error = None
         self.tcp_server: Optional[TcpServer] = None
+        self.tcp_video_tunnel: Optional[TcpTunnel] = None
+        self.tcp_control_tunnel: Optional[TcpTunnel] = None
 
         # Relay state
         self.relay_status_message = "Waiting for streamer..."
@@ -124,6 +127,11 @@ class NetworkController:
             self.tcp_server.stop()
             logging.debug("TCP server shut down")
 
+        if self.tcp_video_tunnel:
+            self.tcp_video_tunnel.stop()
+        if self.tcp_control_tunnel:
+            self.tcp_control_tunnel.stop()
+
     def _setup_relay_if_enabled(self) -> None:
         relay = self.settings.get("relay", {})
         if relay.get("enabled", False):
@@ -163,6 +171,10 @@ class NetworkController:
 
         if result.tcp_server:
             self.tcp_server = result.tcp_server
+        if result.tcp_video_tunnel:
+            self.tcp_video_tunnel = result.tcp_video_tunnel
+        if result.tcp_control_tunnel:
+            self.tcp_control_tunnel = result.tcp_control_tunnel
 
         if result.relay_result:
             if not result.relay_result.success:
