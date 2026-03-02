@@ -14,6 +14,7 @@ from v3xctrl_udp_relay.Peer import Peer
 from v3xctrl_ui.network.video.Receiver import Receiver
 from v3xctrl_ui.network.video.ReceiverPyAV import ReceiverPyAV
 from v3xctrl_ui.network.VideoPortKeepAlive import VideoPortKeepAlive
+from v3xctrl_ui.network.TcpServer import TcpServer
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.utils.gstreamer import is_gstreamer_available
 
@@ -61,6 +62,7 @@ class NetworkSetupResult:
     video_receiver_result: Optional[VideoReceiverSetupResult] = None
     server_result: Optional[ServerSetupResult] = None
     video_keep_alive: Optional[VideoPortKeepAlive] = None
+    tcp_server: Optional[TcpServer] = None
 
     @property
     def has_errors(self) -> bool:
@@ -96,6 +98,7 @@ class NetworkSetup:
         self.ports = settings.get("ports", {})
         self.video_port = self.ports.get("video")
         self.control_port = self.ports.get("control")
+        self.transport = settings.get("transport", "udp")
         self._peer: Optional[Peer] = None
 
     def abort(self) -> None:
@@ -149,6 +152,12 @@ class NetworkSetup:
             )
             keep_alive_thread.start()
             result.video_keep_alive = keep_alive_thread
+
+        # Start TCP server for direct TCP mode
+        if self.transport == "tcp" and not relay_config:
+            result.tcp_server = TcpServer(self.video_port, self.control_port)
+            result.tcp_server.start()
+            logging.info("TCP server started for direct mode")
 
         # Step 2: Create keep-alive callback and setup video receiver
         keep_alive_callback = self.create_keep_alive_callback(video_address)

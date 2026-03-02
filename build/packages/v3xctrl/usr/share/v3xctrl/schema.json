@@ -58,6 +58,24 @@
               "default": "direct",
               "description": "Choose how the client connects to the server."
             },
+            "transport": {
+              "propertyOrder": 15,
+              "title": "Transport",
+              "type": "string",
+              "enum": [
+                "udp",
+                "tcp"
+              ],
+              "options": {
+                "enum_titles": [
+                  "UDP (default)",
+                  "TCP"
+                ]
+              },
+              "required": true,
+              "default": "udp",
+              "description": "Transport protocol. Try TCP if video doesn't work over mobile (some carriers drop high-bandwidth UDP)."
+            },
             "direct": {
               "propertyOrder": 20,
               "title": "Direct Connection",

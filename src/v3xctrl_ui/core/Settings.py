@@ -28,6 +28,7 @@ class Settings:
             "id": "test123",
             "spectator_mode": False
         },
+        "transport": "udp",
         "ports": {
             "video": 16384,
             "control": 16386,

@@ -65,6 +65,7 @@ ARGS=(
   --saturation "$video_camera_saturation"
   --sharpness "$video_camera_sharpness"
   --log "${development_logLevel}"
+  --transport "$network_server_transport"
 )
 
 if [ -n "$video_record_path" ] && [ "$video_record_path" != "null" ]; then

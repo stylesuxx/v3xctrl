@@ -7,7 +7,7 @@ from v3xctrl_control import Server
 from v3xctrl_control.message import Latency
 
 from v3xctrl_ui.core.Settings import Settings
-
+from v3xctrl_ui.network.TcpServer import TcpServer
 from v3xctrl_ui.network.NetworkSetup import NetworkSetup
 
 
@@ -27,6 +27,7 @@ class NetworkController:
         self.video_keep_alive = None
         self.server: Optional[Server] = None
         self.server_error = None
+        self.tcp_server: Optional[TcpServer] = None
 
         # Relay state
         self.relay_status_message = "Waiting for streamer..."
@@ -119,6 +120,10 @@ class NetworkController:
             delta = round(time.monotonic() - start)
             logging.debug(f"Video Receiver shut down after {delta}s")
 
+        if self.tcp_server:
+            self.tcp_server.stop()
+            logging.debug("TCP server shut down")
+
     def _setup_relay_if_enabled(self) -> None:
         relay = self.settings.get("relay", {})
         if relay.get("enabled", False):
@@ -155,6 +160,9 @@ class NetworkController:
             relay_config,
             self.server_handlers,
         )
+
+        if result.tcp_server:
+            self.tcp_server = result.tcp_server
 
         if result.relay_result:
             if not result.relay_result.success:

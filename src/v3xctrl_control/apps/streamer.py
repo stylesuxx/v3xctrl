@@ -29,6 +29,7 @@ from v3xctrl_control.message import (
 )
 
 from v3xctrl_helper import clamp, Address
+from v3xctrl_tcp.TcpTunnel import TcpTunnel
 
 parser = argparse.ArgumentParser(description="Test connection performance.")
 parser.add_argument("host", help="The target IP address")
@@ -66,7 +67,9 @@ parser.add_argument("--pwm-channel-steering", type=int, default=1,
 parser.add_argument("--modem-path", type=str, default="/dev/ttyACM0",
                     help="Path to modem device (default: /dev/ttyACM0)")
 parser.add_argument("--log", default="ERROR",
-                    help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). (default: ERROR")
+                    help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). (default: ERROR)")
+parser.add_argument("--transport", type=str, default="udp", choices=["udp", "tcp"],
+                    help="Transport protocol (default: udp)")
 parser.add_argument("--failsafe-ms", type=int, default=500,
                     help="Timeout in milliseconds to trigger failsafe (default: 500)")
 parser.add_argument("--failsafe-throttle", type=int, default=1500,
@@ -342,7 +345,33 @@ def cleanup_pwm() -> None:
     pwm_steering.close()
 
 
-client = Client(HOST, PORT, BIND_PORT, failsafe_ms)
+tcp_tunnel = None
+if args.transport == 'tcp':
+    tcp_tunnel = TcpTunnel(
+        remote_host=HOST,
+        remote_port=PORT,
+        local_component_port=BIND_PORT,
+        bidirectional=True,
+    )
+    tcp_tunnel.start()
+    ephemeral_port = tcp_tunnel.wait_for_port()
+    if ephemeral_port is None:
+        logging.error("Failed to allocate TCP tunnel port")
+        sys.exit(1)
+    HOST = "127.0.0.1"
+    PORT = ephemeral_port
+    logging.info(
+        f"TCP tunnel: control -> 127.0.0.1:{ephemeral_port} "
+        f"-> TCP -> {args.host}:{args.port}"
+    )
+
+# In default UDP mode, mind to external interface, in TCP mode, bind to local
+# interface to which TCP proxy will forward the packages
+bind_address = "0.0.0.0"
+if args.transport == 'tcp':
+    bind_address = "127.0.0.1"
+
+client = Client(HOST, PORT, BIND_PORT, failsafe_ms, bind_address=bind_address)
 
 # Subscribe to messages received from the server
 client.subscribe(Control, control_handler)
@@ -378,6 +407,9 @@ finally:
 
     client.stop()
     telemetry.stop()
+
+    if tcp_tunnel:
+        tcp_tunnel.stop()
 
     client.join()
     telemetry.join()
