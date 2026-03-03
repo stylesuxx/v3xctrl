@@ -22,7 +22,8 @@ class TestPeer(unittest.TestCase):
         pi = MagicMock(spec=PeerInfo)
         with (
             patch.object(PeerAnnouncement, "to_bytes", return_value=b"ann"), \
-            patch.object(Message, "from_bytes", return_value=pi)
+            patch.object(Message, "from_bytes", return_value=pi), \
+            patch.object(self.peer, "_flush_socket")
         ):
             mock_sock.recvfrom.return_value = (b"data", ("server", 1234))
             self.assertEqual(self.peer._register_with_relay(mock_sock, "video", "client"), pi)
@@ -34,7 +35,8 @@ class TestPeer(unittest.TestCase):
 
         with (
             patch.object(PeerAnnouncement, "to_bytes", return_value=b"ann"), \
-            patch.object(Message, "from_bytes", return_value=err)
+            patch.object(Message, "from_bytes", return_value=err), \
+            patch.object(self.peer, "_flush_socket")
         ):
             mock_sock.recvfrom.return_value = (b"data", ("server", 1234))
 
@@ -135,6 +137,7 @@ class TestPeer(unittest.TestCase):
         mock_sock.recvfrom.side_effect = side_effect
 
         with patch.object(PeerAnnouncement, "to_bytes", return_value=b"ann"), \
+             patch.object(self.peer, "_flush_socket"), \
              patch("time.sleep", return_value=None):
 
             with self.assertRaises(InterruptedError) as cm:
@@ -163,6 +166,7 @@ class TestPeer(unittest.TestCase):
         mock_sock.recvfrom.side_effect = timeout_then_abort
 
         with patch.object(PeerAnnouncement, "to_bytes", return_value=b"ann"), \
+             patch.object(self.peer, "_flush_socket"), \
              patch("time.sleep", return_value=None):
 
             with self.assertRaises(InterruptedError) as cm:
@@ -190,6 +194,7 @@ class TestPeer(unittest.TestCase):
         mock_sock.recvfrom.side_effect = exception_then_abort
 
         with patch.object(PeerAnnouncement, "to_bytes", return_value=b"ann"), \
+            patch.object(self.peer, "_flush_socket"), \
             patch("time.sleep", return_value=None):
 
             # Should raise InterruptedError when abort event is set

@@ -1,5 +1,7 @@
 import logging
+import select
 import socket
+import time
 import threading
 from typing import Dict, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -21,7 +23,6 @@ from v3xctrl_helper import Address
 class Peer:
     SOCKET_TIMEOUT = 1
     ANNOUNCE_INTERVAL = 1
-    MAX_READ_COUNT = 3
 
     def __init__(self, server: str, port: int, session_id: str) -> None:
         self.server = server
@@ -77,6 +78,13 @@ class Peer:
 
         self._finalized_event.wait()
 
+    def _flush_socket(self, sock: socket.socket) -> None:
+        while select.select([sock], [], [], 0)[0]:
+            try:
+                sock.recvfrom(65535)
+            except (socket.error, OSError):
+                break
+
     def _bind_socket(self, name: str, port: int = 0) -> socket.socket:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.bind(('0.0.0.0', port))
@@ -90,14 +98,12 @@ class Peer:
         role: str
     ) -> PeerInfo:
         """
-        When re-connecting we need to catch the PeerInfo.
+        Register with the relay and wait for PeerInfo response.
 
-        The relay is still forwarding video and control messages though, so we
-        need to make sure we don't fail when we get one of those during setup.
-
-        To comensate for this, we attempt to read a couple of times after
-        sending the initial request, this gives us a chance to catch the
-        PeerInfo message somewhere in-between.
+        The relay may be forwarding traffic from an existing session, so the
+        socket buffer can fill up with non-PeerInfo messages. We flush the
+        buffer before each announcement and read continuously to find PeerInfo
+        among incoming traffic.
 
         This runs until one of three states occurs:
         1. abort is called externally
@@ -106,34 +112,35 @@ class Peer:
         """
         announcement = PeerAnnouncement(r=role, i=self.session_id, p=port_type)
         sock.settimeout(self.SOCKET_TIMEOUT)
+        last_announce = 0.0
 
         while not self._abort_event.is_set():
-            try:
+            now = time.time()
+            if now - last_announce >= self.ANNOUNCE_INTERVAL:
+                self._flush_socket(sock)
                 sock.sendto(announcement.to_bytes(), (self.server, self.port))
                 logging.debug(f"Sent {port_type} announcement to {self.server}:{self.port} from {sock.getsockname()}")
+                last_announce = now
 
-                read_count = 0
-                while read_count < self.MAX_READ_COUNT:
-                    data, _ = sock.recvfrom(1024)
-                    if data:
-                        try:
-                            response = Message.from_bytes(data)
+            try:
+                data, addr = sock.recvfrom(1024)
+                if data:
+                    try:
+                        response = Message.from_bytes(data)
 
-                            if isinstance(response, PeerInfo):
-                                logging.info(f"Received PeerInfo for {port_type}: {response}")
-                                return response
+                        if isinstance(response, PeerInfo):
+                            logging.info(f"Received PeerInfo for {port_type}: {response}")
+                            return response
 
-                            if isinstance(response, Error):
-                                error = response.get_error()
-                                self._abort_event.set()
+                        if isinstance(response, Error):
+                            error = response.get_error()
+                            self._abort_event.set()
 
-                                logging.error(f"Response Error: {error}")
-                                raise UnauthorizedError()
+                            logging.error(f"Response Error: {error}")
+                            raise UnauthorizedError()
 
-                        except ValueError as e:
-                            logging.debug(f"Data could not be parsed: {e}")
-
-                    read_count += 1
+                    except ValueError as e:
+                        logging.debug(f"Data could not be parsed: {e}")
 
             except socket.timeout:
                 # Implicit sleep through socket timeout
@@ -146,11 +153,6 @@ class Peer:
             except Exception as e:
                 logging.debug(f"Error during {port_type} registration: {e}")
 
-            # Sleep a bit before trying again, but check abort event periodically
-            if self._abort_event.wait(self.ANNOUNCE_INTERVAL):
-                break  # Abort was requested during sleep
-
-        # If we reach here, registration was aborted
         raise InterruptedError(f"Registration aborted for {port_type}")
 
     def _register_all(self, sockets: Dict[str, socket.socket], role: str) -> Dict[str, PeerInfo]:

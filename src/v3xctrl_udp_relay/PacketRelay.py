@@ -304,9 +304,10 @@ class PacketRelay:
         peers = session.roles
         try:
             peer_info = PeerInfo(ip=self.ip, video_port=self.port, control_port=self.port)
-            for role_peers in peers.values():
-                for peer in role_peers.values():
+            for role, role_peers in peers.items():
+                for port_type, peer in role_peers.items():
                     self.sock.sendto(peer_info.to_bytes(), peer.addr)
+                    logging.info(f"{session.id}: Sent PeerInfo to {role.name}:{port_type.name} at {peer.addr}")
 
         except Exception as e:
             logging.error(f"Error sending PeerInfo: {e}", exc_info=True)
