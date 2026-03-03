@@ -97,6 +97,7 @@ class AppState:
             return
 
         self.model.user_connected = True
+        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
         self.network_coordinator.setup_ports()
 
     def update_settings(self, new_settings: Optional[Settings] = None) -> None:
