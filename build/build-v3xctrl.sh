@@ -34,8 +34,10 @@ BASE_PATH="${DEST_DIR}/usr/share/$NAME"
 PYTHON_REQUIREMENTS="${BUILD_DIR}/requirements/streamer.txt"
 PYTHON_LIB_PATH="${DEST_DIR}/opt/v3xctrl-venv/lib/python3.11/site-packages/"
 
-WEB_LIB_PATH="${PYTHON_LIB_PATH}/v3xctrl_web/static/libs/"
-WEB_IMAGE_PATH="${PYTHON_LIB_PATH}/v3xctrl_web/static/images/"
+WEB_DIST_PATH="${PYTHON_LIB_PATH}/v3xctrl_web/dist"
+
+NVM_VERSION="v0.40.3"
+NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
 
 # Clean up previous build (only relevant when re-building on dev setup)
 # In workflows we start with a clean environment anyway
@@ -63,16 +65,20 @@ cp -r "${ROOT_DIR}/src/v3xctrl_telemetry" "${PYTHON_LIB_PATH}"
 cp -r "${ROOT_DIR}/src/v3xctrl_self_test" "${PYTHON_LIB_PATH}"
 cp -r "${ROOT_DIR}/src/v3xctrl_web" "${PYTHON_LIB_PATH}"
 
-# Copy web server static assets
-mkdir -p "${WEB_LIB_PATH}"
-mkdir -p "${WEB_IMAGE_PATH}"
-cp -r "${ROOT_DIR}/branding/favicon.ico" "${WEB_IMAGE_PATH}"
-
 if [ "$SKIP_DEPS" = false ]; then
-  # Fetch static files for the web server
-  curl -o "${WEB_LIB_PATH}/jsoneditor.min.js" "https://raw.githubusercontent.com/jdorn/json-editor/master/dist/jsoneditor.min.js"
-  curl -o "${WEB_LIB_PATH}/jquery.min.js" "https://code.jquery.com/jquery-3.6.0.min.js"
-  curl -o "${WEB_LIB_PATH}/bootstrap3.min.css" "https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css"
+  # Install nvm and Node.js LTS
+  if [ ! -s "${NVM_DIR}/nvm.sh" ]; then
+    curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" | bash
+  fi
+  . "${NVM_DIR}/nvm.sh"
+  nvm install --lts
+  COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack enable
+
+  (
+    cd "${ROOT_DIR}/client"
+    yarn cache clean
+    yarn install
+  )
 
   # Install python dependencies
   v3xctrl-pip install \
@@ -80,6 +86,21 @@ if [ "$SKIP_DEPS" = false ]; then
     --target "${PYTHON_LIB_PATH}" \
     -r "${PYTHON_REQUIREMENTS}"
 fi
+
+# Source nvm for node/yarn availability (needed even with --skip-deps)
+. "${NVM_DIR}/nvm.sh"
+
+# Build the React client in embedded mode and copy into package
+(cd "${ROOT_DIR}/client" && VITE_EMBEDDED=true yarn build)
+mkdir -p "${WEB_DIST_PATH}"
+cp -r "${ROOT_DIR}/client/dist/"* "${WEB_DIST_PATH}/"
+
+# Copy swagger-ui files from node_modules into the dist
+SWAGGER_UI_SRC="${ROOT_DIR}/client/node_modules/swagger-ui-dist"
+mkdir -p "${WEB_DIST_PATH}/swagger-ui"
+cp "${SWAGGER_UI_SRC}/swagger-ui-bundle.js" "${WEB_DIST_PATH}/swagger-ui/"
+cp "${SWAGGER_UI_SRC}/swagger-ui-standalone-preset.js" "${WEB_DIST_PATH}/swagger-ui/"
+cp "${SWAGGER_UI_SRC}/swagger-ui.css" "${WEB_DIST_PATH}/swagger-ui/"
 
 # Remove cache dirs
 find "${PYTHON_LIB_PATH}" -name '__pycache__' -type d -exec rm -rf {} +

@@ -134,6 +134,39 @@ class TestCommandValidation(unittest.TestCase):
         command.validate()
 
 
+class TestCommandFromRawStrings(unittest.TestCase):
+    def test_action_string_converted_to_enum(self):
+        command = Command(action="set", element="camera", property="brightness", value=0.5)
+        self.assertIsInstance(command.action, ActionType)
+        self.assertEqual(command.action, ActionType.SET)
+
+    def test_all_action_strings_converted(self):
+        for action_type in ActionType:
+            command = Command(action=action_type.value)
+            self.assertIsInstance(command.action, ActionType)
+            self.assertEqual(command.action, action_type)
+
+    def test_invalid_action_string_raises(self):
+        with self.assertRaises(CommandValidationError):
+            Command(action="invalid")
+
+    def test_recording_value_string_converted_to_enum(self):
+        command = Command(action="recording", value="start")
+        self.assertIsInstance(command.value, RecordingAction)
+        self.assertEqual(command.value, RecordingAction.START)
+
+    def test_non_recording_value_not_converted(self):
+        command = Command(action="set", element="camera", property="brightness", value=0.5)
+        self.assertEqual(command.value, 0.5)
+
+    def test_from_dict_like_json(self):
+        data = {"action": "set", "element": "camera", "property": "brightness", "value": 0.5}
+        command = Command(**data)
+        command.validate()
+        self.assertIsInstance(command.action, ActionType)
+        self.assertEqual(command.value, 0.5)
+
+
 class TestCommandDataclass(unittest.TestCase):
     def test_default_values(self):
         command = Command(action=ActionType.STOP)

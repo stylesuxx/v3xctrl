@@ -1,0 +1,162 @@
+{
+  "nav": {
+    "brand": "v3xctrl",
+    "restart": "Restart",
+    "shutdown": "Shutdown",
+    "discord": "Join us on Discord!",
+    "disconnect": "Disconnect"
+  },
+  "tabs": {
+    "configEditor": "Config Editor",
+    "services": "Services",
+    "calibration": "Calibration",
+    "camera": "Camera",
+    "dmesg": "DMESG",
+    "modem": "Modem",
+    "info": "Info"
+  },
+  "discovery": {
+    "title": "Connect to Streamer",
+    "subtitle": "Scan your network to find v3xctrl streamers",
+    "subnetLabel": "Subnet base",
+    "subnetPlaceholder": "e.g. 192.168.1",
+    "scanButton": "Scan Network",
+    "scanning": "Scanning...",
+    "progress": "{{current}} / 254",
+    "noDevices": "No streamers found",
+    "found": "Found {{count}} streamer(s)",
+    "lastConnected": "Last connected",
+    "connect": "Connect",
+    "connectTo": "Connect to {{ip}}",
+    "commonSubnets": "Common subnets",
+    "manualEntry": "Or enter streamer address directly",
+    "manualPlaceholder": "e.g. 192.168.1.100 or v3xctrl.local",
+    "connecting": "Connecting...",
+    "unreachable": "Could not reach streamer at {{url}}",
+    "browserWarning": "Your browser does not support local network access from HTTPS. Please use a Chromium-based browser (Chrome, Edge, Opera) or access this page directly from your streamer.",
+    "reconnecting": "Reconnecting to streamer..."
+  },
+  "config": {
+    "saveButton": "Save",
+    "saving": "Saving configuration...",
+    "saved": "Configuration saved!",
+    "error": "Failed to save configuration",
+    "loading": "Loading configuration...",
+    "saveAndRestart": "Save and restart",
+    "saveAndRestartService": "Save and restart {{service}}",
+    "serviceRestarted": "{{service}} restarted",
+    "restartingService": "Restarting {{service}}...",
+    "restartError": "Failed to restart {{service}}"
+  },
+  "services": {
+    "loading": "Loading services...",
+    "noServices": "No service info available.",
+    "columns": {
+      "service": "Service",
+      "type": "Type",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "failed": "Failed",
+      "ran": "Ran",
+      "running": "Running"
+    },
+    "actions": {
+      "start": "Start",
+      "stop": "Stop",
+      "restart": "Restart",
+      "showLogs": "Show logs",
+      "hideLogs": "Hide logs"
+    },
+    "refresh": "Refresh"
+  },
+  "calibration": {
+    "serviceWarning": "Calibration cannot be run while control service is running. Stop the control service first!",
+    "steeringTitle": "Steering",
+    "throttleTitle": "Throttle",
+    "steeringNote": "Set min value first: Decrease until the servo makes clicking noises (or your preferred maximum is reached) and then increase one or two steps back. Do the same for the max value, just in the other direction. Once min and max are set, trim until steering is straight.",
+    "throttleNote": "Check the order of operation for calibrating your ESC. Usually it involves sending throttle min (Reverse), max (Forward) and idle (neutral). You will most likely not need to adjust min and max, but rather send those 3 throttle values in a specific order (according to your ESCs manual). You might need to send min or max value even before plugging in the ESC.",
+    "steeringMin": "Steering Min",
+    "steeringMax": "Steering Max",
+    "steeringTrim": "Steering Trim",
+    "throttleMin": "Throttle Min (Reverse)",
+    "throttleMax": "Throttle Max (Forward)",
+    "throttleNeutral": "Throttle Neutral",
+    "send": "Send",
+    "saveCalibration": "Save calibration"
+  },
+  "camera": {
+    "serviceWarning": "Camera settings cannot be applied while video service is stopped. Start the video service first!",
+    "note": "In live mode, some values need to be applied multiple times before they stick.",
+    "brightness": "Brightness",
+    "contrast": "Contrast",
+    "saturation": "Saturation",
+    "sharpness": "Sharpness",
+    "lensPosition": "Lens Position",
+    "analogueGain": "Analogue Gain",
+    "exposureTime": "Exposure Time (\u00b5s)",
+    "lensNote": "This setting will only update when autofocus is disabled in camera settings!",
+    "gainNote": "This setting will only update when \"Gain Control\" is set to manual in camera settings!",
+    "exposureNote": "This setting will only update when \"Exposure Control\" is set to manual in camera settings!",
+    "set": "Set",
+    "saveSettings": "Save camera settings"
+  },
+  "dmesg": {
+    "refresh": "Refresh",
+    "loading": "Loading kernel messages..."
+  },
+  "modem": {
+    "serviceWarning": "Modem info cannot be shown while control service is running. Stop the control service first!",
+    "fetching": "Fetching modem info...",
+    "fetchingSlow": "Fetching modem info - this can take up to a minute...",
+    "reset": "Reset",
+    "resetting": "Resetting modem...",
+    "refresh": "Refresh",
+    "resetComplete": "Modem reset complete",
+    "fields": {
+      "version": "Version",
+      "simStatus": "SIM Status",
+      "allowedBands": "Allowed Bands",
+      "activeBand": "Active Band",
+      "carrier": "Carrier",
+      "context": "Context {{id}}",
+      "address": "Address {{id}}"
+    }
+  },
+  "info": {
+    "fetching": "Fetching info...",
+    "hostname": "Hostname",
+    "columns": {
+      "package": "Package",
+      "version": "Version"
+    }
+  },
+  "system": {
+    "rebooting": "Rebooting",
+    "rebootingMsg": "Rebooting...",
+    "seconds": "{{count}} seconds",
+    "shuttingDown": "Shutting down",
+    "shuttingDownMsg": "Shutting down...",
+    "shutdownComplete": "Shutdown complete",
+    "safeToTurnOff": "It is safe to turn off now.",
+    "waitingForReconnect": "Waiting for streamer to come back online...",
+    "reconnectFailed": "Reconnect failed",
+    "reconnectFailedMsg": "Could not reconnect to streamer within 90 seconds."
+  },
+  "errors": {
+    "connectionFailed": "Failed to connect to streamer",
+    "requestFailed": "Request failed",
+    "timeout": "Request timed out",
+    "fetchFailed": "Failed to load data from streamer",
+    "retry": "Retry"
+  },
+  "footer": {
+    "youtube": "YouTube",
+    "discord": "Discord",
+    "instagram": "Instagram",
+    "github": "Report an issue"
+  }
+}

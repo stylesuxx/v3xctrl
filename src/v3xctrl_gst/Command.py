@@ -1,3 +1,4 @@
+import contextlib
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
@@ -33,6 +34,17 @@ class Command:
     value: Any | None = None
     properties: dict[str, Any] | None = None
 
+    def __post_init__(self) -> None:
+        if not isinstance(self.action, ActionType):
+            try:
+                self.action = ActionType(self.action)
+            except ValueError as err:
+                raise CommandValidationError(f"Unknown action: {self.action}") from err
+
+        if self.action == ActionType.RECORDING and isinstance(self.value, str):
+            with contextlib.suppress(ValueError):
+                self.value = RecordingAction(self.value)
+
     def validate(self) -> None:
         """
         Validate command structure.
@@ -40,7 +52,7 @@ class Command:
         Raises:
             CommandValidationError: If command is invalid
         """
-        if self.action not in ActionType:
+        if not isinstance(self.action, ActionType):
             raise CommandValidationError(f"Unknown action: {self.action}")
 
         if self.action == ActionType.STOP or self.action == ActionType.STATS:

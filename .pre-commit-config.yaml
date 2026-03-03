@@ -5,3 +5,11 @@ repos:
       - id: ruff-check
         args: [--fix]
       - id: ruff-format
+  - repo: local
+    hooks:
+      - id: eslint
+        name: eslint
+        entry: bash -c 'cd client && npx eslint --max-warnings=0'
+        language: system
+        files: ^client/.*\.(js|jsx)$
+        pass_filenames: false

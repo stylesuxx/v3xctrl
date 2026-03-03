@@ -30,7 +30,10 @@ def sample_config():
 
 @pytest.fixture()
 def sample_modems():
-    return [{"name": "quectel", "path": "/dev/ttyUSB2"}]
+    return {
+        "generic": {"validBands": [1, 3, 7, 20], "hasGps": False},
+        "test-modem": {"validBands": [1, 3], "hasGps": True},
+    }
 
 
 @pytest.fixture()
