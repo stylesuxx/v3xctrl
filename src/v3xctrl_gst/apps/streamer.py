@@ -2,6 +2,7 @@ import argparse
 import logging
 from typing import Dict, Any
 
+from v3xctrl_control.message import PeerAnnouncement
 from v3xctrl_gst.Streamer import Streamer
 from v3xctrl_tcp import Transport
 from v3xctrl_tcp.TcpTunnel import TcpTunnel
@@ -58,6 +59,10 @@ def main() -> None:
         '--transport', type=str, default='udp', choices=['udp', 'tcp'],
         help='Transport protocol (default: udp)'
     )
+    parser.add_argument(
+        '--relay-session-id', type=str, default=None,
+        help='Relay session ID (enables relay TCP mode with PeerAnnouncement handshake)'
+    )
 
     args = parser.parse_args()
 
@@ -110,11 +115,18 @@ def main() -> None:
     video_port = args.port
 
     if args.transport == Transport.TCP:
+        handshake = None
+        if args.relay_session_id:
+            handshake = PeerAnnouncement(
+                r="streamer", i=args.relay_session_id, p="video"
+            ).to_bytes()
+
         tcp_tunnel = TcpTunnel(
             remote_host=args.host,
             remote_port=args.port,
             local_component_port=0,
             bidirectional=False,
+            handshake=handshake,
         )
         tcp_tunnel.start()
         ephemeral_port = tcp_tunnel.wait_for_port()

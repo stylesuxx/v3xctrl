@@ -84,6 +84,10 @@ if [ "$video_testSource" = "true" ]; then
   ARGS+=(--test-pattern)
 fi
 
+if [ "$network_server_mode" = "relay" ] && [ "$network_server_transport" = "tcp" ]; then
+  ARGS+=(--relay-session-id "$network_server_relay_sessionId")
+fi
+
 if [ -n "$FILE_SRC" ]; then
   ARGS+=(--file-src "$FILE_SRC")
 fi

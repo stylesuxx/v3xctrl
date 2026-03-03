@@ -24,6 +24,7 @@ from v3xctrl_control.Telemetry import Telemetry as TelemetryHandler
 from v3xctrl_control.message import (
   Command,
   Control,
+  PeerAnnouncement,
   Telemetry,
   Latency,
 )
@@ -71,6 +72,8 @@ parser.add_argument("--log", default="ERROR",
                     help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). (default: ERROR)")
 parser.add_argument("--transport", type=str, default="udp", choices=["udp", "tcp"],
                     help="Transport protocol (default: udp)")
+parser.add_argument("--relay-session-id", type=str, default=None,
+                    help="Relay session ID (enables relay TCP mode with PeerAnnouncement handshake)")
 parser.add_argument("--failsafe-ms", type=int, default=500,
                     help="Timeout in milliseconds to trigger failsafe (default: 500)")
 parser.add_argument("--failsafe-throttle", type=int, default=1500,
@@ -348,11 +351,18 @@ def cleanup_pwm() -> None:
 
 tcp_tunnel = None
 if args.transport == Transport.TCP:
+    handshake = None
+    if args.relay_session_id:
+        handshake = PeerAnnouncement(
+            r="streamer", i=args.relay_session_id, p="control"
+        ).to_bytes()
+
     tcp_tunnel = TcpTunnel(
         remote_host=HOST,
         remote_port=PORT,
         local_component_port=BIND_PORT,
         bidirectional=True,
+        handshake=handshake,
     )
     tcp_tunnel.start()
     ephemeral_port = tcp_tunnel.wait_for_port()

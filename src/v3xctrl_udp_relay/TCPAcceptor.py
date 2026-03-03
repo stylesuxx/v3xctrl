@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from v3xctrl_control.message import Message, PeerAnnouncement
 from v3xctrl_tcp.framing import recv_message
 from v3xctrl_udp_relay.ForwardTarget import TcpTarget
+from v3xctrl_udp_relay.Role import Role
 from v3xctrl_udp_relay.custom_types import PortType
 
 if TYPE_CHECKING:
@@ -91,11 +92,15 @@ class TCPAcceptor:
             # Register with relay (sends PeerInfo response via TcpTarget)
             self.relay.register_tcp_peer(msg, addr, target)
 
-            # Behavior depends on port type
+            # Behavior depends on port type and role
             if port_type == PortType.VIDEO:
-                self._monitor_disconnect(tcp_sock)
+                role = Role(msg.get_role())
+                if role == Role.STREAMER:
+                    self._read_and_forward_loop(tcp_sock, addr)
+                else:
+                    self._monitor_disconnect(tcp_sock)
             elif port_type == PortType.CONTROL:
-                self._control_read_loop(tcp_sock, addr)
+                self._read_and_forward_loop(tcp_sock, addr)
 
         except Exception:
             logger.error(f"TCPAcceptor: error handling {addr}", exc_info=True)
@@ -124,8 +129,8 @@ class TCPAcceptor:
             except (OSError, ValueError):
                 break
 
-    def _control_read_loop(self, tcp_sock: socket.socket, addr: tuple) -> None:
-        """Control connections: read viewer's outbound messages and forward via relay."""
+    def _read_and_forward_loop(self, tcp_sock: socket.socket, addr: tuple) -> None:
+        """Read framed messages from a TCP peer and forward via relay."""
         try:
             while not self.stop_event.is_set():
                 data = recv_message(tcp_sock)

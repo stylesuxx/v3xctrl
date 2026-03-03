@@ -6,7 +6,11 @@ source "${ENV_PATH}"
 
 ARGS=""
 if [ "$control_steering_invert" = "true" ]; then
-  ARGS+="--steering-invert"
+  ARGS+="--steering-invert "
+fi
+
+if [ "$network_server_mode" = "relay" ] && [ "$network_server_transport" = "tcp" ]; then
+  ARGS+="--relay-session-id ${network_server_relay_sessionId} "
 fi
 
 v3xctrl-python -m v3xctrl_control.apps.streamer "${network_server_direct_host}" "${network_server_ports_control}" "${network_server_ports_control_bind}" \
