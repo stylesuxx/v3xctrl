@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import Mock, patch, MagicMock
 
 from v3xctrl_control.message import PeerAnnouncement
+from v3xctrl_tcp import Transport
 from v3xctrl_udp_relay.PacketRelay import PacketRelay
 from v3xctrl_udp_relay.ForwardTarget import TcpTarget, UdpTarget
 from v3xctrl_udp_relay.SessionStore import SessionStore
@@ -129,6 +130,129 @@ class TestPacketRelayTcp(unittest.TestCase):
 
         self.assertNotIn(dead_addr, self.relay.tcp_targets)
         self.assertIn(alive_addr, self.relay.tcp_targets)
+
+    def test_streamer_tcp_viewer_udp_forwarding(self):
+        """Phase 4: streamer registers via TCP, viewer via UDP, data flows correctly."""
+        streamer_video = ("10.0.0.1", 50000)
+        streamer_control = ("10.0.0.1", 50002)
+        viewer_video = ("10.0.0.2", 50001)
+        viewer_control = ("10.0.0.2", 50003)
+
+        # Register streamer via TCP
+        streamer_video_target = Mock(spec=TcpTarget)
+        streamer_video_target.is_alive.return_value = True
+        streamer_control_target = Mock(spec=TcpTarget)
+        streamer_control_target.is_alive.return_value = True
+
+        self.mock_store.exists.return_value = True
+
+        self.relay.register_tcp_peer(
+            PeerAnnouncement(r="streamer", i="sid1", p="video"),
+            streamer_video, streamer_video_target
+        )
+        self.relay.register_tcp_peer(
+            PeerAnnouncement(r="streamer", i="sid1", p="control"),
+            streamer_control, streamer_control_target
+        )
+
+        # Register viewer via UDP
+        self.relay.register_peer(
+            PeerAnnouncement(r="viewer", i="sid1", p="video"),
+            viewer_video
+        )
+        self.relay.register_peer(
+            PeerAnnouncement(r="viewer", i="sid1", p="control"),
+            viewer_control
+        )
+
+        # Forward video from streamer -> should reach viewer via UDP
+        result = self.relay.forward_packet(b"video_data", streamer_video)
+        self.assertTrue(result)
+        self.mock_sock.sendto.assert_called_with(b"video_data", viewer_video)
+
+        # Forward control from viewer -> should reach streamer via TCP
+        self.mock_sock.sendto.reset_mock()
+        result = self.relay.forward_packet(b"control_cmd", viewer_control)
+        self.assertTrue(result)
+        streamer_control_target.send.assert_called_with(b"control_cmd")
+        self.mock_sock.sendto.assert_not_called()
+
+    def test_streamer_tcp_viewer_tcp_forwarding(self):
+        """Phase 4: both streamer and viewer on TCP, relay bridges TCP↔TCP."""
+        streamer_video = ("10.0.0.1", 50000)
+        streamer_control = ("10.0.0.1", 50002)
+        viewer_video = ("10.0.0.2", 50001)
+        viewer_control = ("10.0.0.2", 50003)
+
+        self.mock_store.exists.return_value = True
+
+        # Register streamer via TCP
+        streamer_video_target = Mock(spec=TcpTarget)
+        streamer_video_target.is_alive.return_value = True
+        streamer_control_target = Mock(spec=TcpTarget)
+        streamer_control_target.is_alive.return_value = True
+
+        self.relay.register_tcp_peer(
+            PeerAnnouncement(r="streamer", i="sid1", p="video"),
+            streamer_video, streamer_video_target
+        )
+        self.relay.register_tcp_peer(
+            PeerAnnouncement(r="streamer", i="sid1", p="control"),
+            streamer_control, streamer_control_target
+        )
+
+        # Register viewer via TCP
+        viewer_video_target = Mock(spec=TcpTarget)
+        viewer_video_target.is_alive.return_value = True
+        viewer_control_target = Mock(spec=TcpTarget)
+        viewer_control_target.is_alive.return_value = True
+
+        self.relay.register_tcp_peer(
+            PeerAnnouncement(r="viewer", i="sid1", p="video"),
+            viewer_video, viewer_video_target
+        )
+        self.relay.register_tcp_peer(
+            PeerAnnouncement(r="viewer", i="sid1", p="control"),
+            viewer_control, viewer_control_target
+        )
+
+        # Forward video from streamer -> viewer via TCP
+        result = self.relay.forward_packet(b"video_data", streamer_video)
+        self.assertTrue(result)
+        viewer_video_target.send.assert_called_with(b"video_data")
+        self.mock_sock.sendto.assert_not_called()
+
+        # Forward control from viewer -> streamer via TCP
+        result = self.relay.forward_packet(b"control_cmd", viewer_control)
+        self.assertTrue(result)
+        streamer_control_target.send.assert_called_with(b"control_cmd")
+
+    def test_peer_transport_tracked_on_register(self):
+        """Phase 4: transport is recorded on PeerEntry after registration."""
+        tcp_addr = ("10.0.0.1", 50000)
+        udp_addr = ("10.0.0.2", 50001)
+
+        self.mock_store.exists.return_value = True
+
+        # TCP registration
+        tcp_target = Mock(spec=TcpTarget)
+        self.relay.register_tcp_peer(
+            PeerAnnouncement(r="streamer", i="sid1", p="video"),
+            tcp_addr, tcp_target
+        )
+
+        session = self.relay.sessions["sid1"]
+        entry = session.roles[Role.STREAMER][PortType.VIDEO]
+        self.assertEqual(entry.transport, Transport.TCP)
+
+        # UDP registration
+        self.relay.register_peer(
+            PeerAnnouncement(r="viewer", i="sid1", p="video"),
+            udp_addr
+        )
+
+        entry = session.roles[Role.VIEWER][PortType.VIDEO]
+        self.assertEqual(entry.transport, Transport.UDP)
 
 
 if __name__ == "__main__":

@@ -106,6 +106,57 @@ class TestTCPAcceptor(unittest.TestCase):
         finally:
             sock.close()
 
+    def test_streamer_video_forwards_data(self):
+        """Phase 4: streamer video connections read data and forward via relay."""
+        sock = self._connect()
+        try:
+            handshake = PeerAnnouncement(r="streamer", i="sid1", p="video").to_bytes()
+            send_message(sock, handshake)
+
+            # Read PeerInfo response
+            response = recv_message(sock)
+            self.assertIsNotNone(response)
+
+            # Send video data — should be forwarded (not just monitored for disconnect)
+            send_message(sock, b"rtp_video_frame_1")
+            send_message(sock, b"rtp_video_frame_2")
+            time.sleep(0.2)
+
+            self.assertEqual(self.relay.forward_packet.call_count, 2)
+            calls = [c[0][0] for c in self.relay.forward_packet.call_args_list]
+            self.assertEqual(calls, [b"rtp_video_frame_1", b"rtp_video_frame_2"])
+        finally:
+            sock.close()
+
+    def test_viewer_video_does_not_forward(self):
+        """Phase 4: viewer video connections only monitor for disconnect, not forward."""
+        sock = self._connect()
+        try:
+            handshake = PeerAnnouncement(r="viewer", i="sid1", p="video").to_bytes()
+            send_message(sock, handshake)
+
+            response = recv_message(sock)
+            self.assertIsNotNone(response)
+
+            time.sleep(0.2)
+            # Viewer video should NOT call forward_packet
+            self.relay.forward_packet.assert_not_called()
+        finally:
+            sock.close()
+
+    def test_streamer_video_disconnect_unregisters(self):
+        """Phase 4: streamer video disconnect triggers unregister."""
+        sock = self._connect()
+        handshake = PeerAnnouncement(r="streamer", i="sid1", p="video").to_bytes()
+        send_message(sock, handshake)
+        recv_message(sock)  # PeerInfo response
+
+        time.sleep(0.1)
+        sock.close()
+        time.sleep(0.5)
+
+        self.relay.unregister_tcp_peer.assert_called_once()
+
 
 if __name__ == "__main__":
     unittest.main()
