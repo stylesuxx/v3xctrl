@@ -11,12 +11,13 @@ UDP proxy model:
 - Inbound: TCP data -> proxy sends from E to localhost:local_component_port
 - Responses: component replies to localhost:E -> proxy reads -> forwards over TCP
 """
+from __future__ import annotations
+
 import logging
 import select
 import socket
 import threading
 import time
-from typing import Optional
 
 from v3xctrl_tcp.framing import recv_message, send_message
 
@@ -36,7 +37,7 @@ class TcpTunnel:
         remote_port: int,
         local_component_port: int,
         bidirectional: bool = True,
-        handshake: Optional[bytes] = None,
+        handshake: bytes | None = None,
     ) -> None:
         self.remote_host = remote_host
         self.remote_port = remote_port
@@ -45,16 +46,16 @@ class TcpTunnel:
         self.handshake = handshake
 
         self._stop_event = threading.Event()
-        self._ephemeral_port: Optional[int] = None
+        self._ephemeral_port: int | None = None
         self._port_ready = threading.Event()
         self._threads: list[threading.Thread] = []
 
     @property
-    def ephemeral_port(self) -> Optional[int]:
+    def ephemeral_port(self) -> int | None:
         """The UDP ephemeral port local components should send to."""
         return self._ephemeral_port
 
-    def wait_for_port(self, timeout: float = 5.0) -> Optional[int]:
+    def wait_for_port(self, timeout: float = 5.0) -> int | None:
         """Block until the ephemeral port is allocated. Returns the port."""
         self._port_ready.wait(timeout=timeout)
         return self._ephemeral_port
@@ -116,7 +117,7 @@ class TcpTunnel:
         finally:
             udp_sock.close()
 
-    def _connect_with_retry(self) -> Optional[socket.socket]:
+    def _connect_with_retry(self) -> socket.socket | None:
         """Try to connect TCP with backoff. Returns socket or None if stopped."""
         attempt = 0
         first_attempt_time = time.monotonic()
@@ -185,7 +186,7 @@ class TcpTunnel:
         udp_sock: socket.socket,
     ) -> None:
         """Bridge traffic between TCP and local UDP until disconnect."""
-        inbound_thread: Optional[threading.Thread] = None
+        inbound_thread: threading.Thread | None = None
 
         if self.bidirectional:
             # Inbound: TCP -> UDP to localhost:local_component_port

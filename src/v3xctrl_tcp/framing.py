@@ -7,9 +7,10 @@ Each message is framed as:
 Max payload size is 65535 bytes (fits in !H).
 """
 
+from __future__ import annotations
+
 import struct
 from socket import socket
-from typing import Optional
 
 HEADER_FORMAT = "!H"
 HEADER_SIZE = struct.calcsize(HEADER_FORMAT)
@@ -31,7 +32,7 @@ def send_message(sock: socket, data: bytes) -> bool:
         return False
 
 
-def _recv_exact(sock: socket, n: int) -> Optional[bytes]:
+def _recv_exact(sock: socket, n: int) -> bytes | None:
     """Read exactly n bytes from socket. Returns None on disconnect."""
     buf = bytearray()
     while len(buf) < n:
@@ -44,7 +45,7 @@ def _recv_exact(sock: socket, n: int) -> Optional[bytes]:
     return bytes(buf)
 
 
-def recv_message(sock: socket) -> Optional[bytes]:
+def recv_message(sock: socket) -> bytes | None:
     """Read a length-prefixed message. Returns None on disconnect."""
     header = _recv_exact(sock, HEADER_SIZE)
     if header is None:

@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 from enum import Enum
 import time
-from typing import Optional
 
 from v3xctrl_helper import Address
 from v3xctrl_tcp import Transport
@@ -86,7 +87,7 @@ class Session:
         self.addresses.add(addr)
         return spectator.register_port(port_type, addr)
 
-    def remove_spectator_by_address(self, addr: Address) -> Optional[set[Address]]:
+    def remove_spectator_by_address(self, addr: Address) -> set[Address] | None:
         for i, spectator in enumerate(self.spectators):
             if addr in spectator.get_addresses():
                 spectator_addresses = spectator.get_addresses().copy()
