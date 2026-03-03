@@ -32,6 +32,7 @@ import com.v3xctrl.viewer.GstViewer
 import com.v3xctrl.viewer.control.ControlState
 import com.v3xctrl.viewer.data.ControlSettings
 import com.v3xctrl.viewer.data.OsdSettings
+import com.v3xctrl.viewer.data.Transport
 import com.v3xctrl.viewer.input.GamepadController
 import com.v3xctrl.viewer.input.MotionController
 import com.v3xctrl.viewer.control.UDPReceiver
@@ -49,7 +50,8 @@ data class ConnectionInfo(
     val controlPort: Int,
     val relayHost: String,
     val relayPort: Int,
-    val sessionId: String
+    val sessionId: String,
+    val transport: Transport = Transport.UDP
 )
 
 @Composable
@@ -224,44 +226,45 @@ fun ViewerScreen(
     }
 
     // Video port keep-alive: send Heartbeat to relay to maintain NAT hole.
-    // Sent frequently when video is not running (hole punch) and at a lower
-    // rate during active streaming (prevent NAT mapping expiry).
-    LaunchedEffect(connection.videoPort, connection.relayHost, connection.relayPort) {
-        withContext(Dispatchers.IO) {
-            val relayAddress = try {
-                InetAddress.getByName(connection.relayHost)
-            } catch (e: Exception) {
-                return@withContext
-            }
-
-            val keepAlive = VideoPortKeepAlive(
-                videoPort = connection.videoPort,
-                relayAddress = relayAddress,
-                relayPort = connection.relayPort
-            )
-
-            var keepAliveSocket: DatagramSocket? = null
-            try {
-                keepAliveSocket = keepAlive.createSocket()
-
-                while (true) {
-                    try {
-                        keepAlive.sendHeartbeat(keepAliveSocket)
-                    } catch (_: Exception) {
-                        // Ignore send errors
-                    }
-                    delay(keepAlive.getIntervalMs(viewerState.isVideoRunning))
+    // Only needed in UDP mode, TCP maintains the connection.
+    if (connection.transport == Transport.UDP) {
+        LaunchedEffect(connection.videoPort, connection.relayHost, connection.relayPort) {
+            withContext(Dispatchers.IO) {
+                val relayAddress = try {
+                    InetAddress.getByName(connection.relayHost)
+                } catch (e: Exception) {
+                    return@withContext
                 }
-            } catch (_: Exception) {
-                // Socket bind may fail if SO_REUSEADDR isn't supported
-            } finally {
-                keepAliveSocket?.close()
+
+                val keepAlive = VideoPortKeepAlive(
+                    videoPort = connection.videoPort,
+                    relayAddress = relayAddress,
+                    relayPort = connection.relayPort
+                )
+
+                var keepAliveSocket: DatagramSocket? = null
+                try {
+                    keepAliveSocket = keepAlive.createSocket()
+
+                    while (true) {
+                        try {
+                            keepAlive.sendHeartbeat(keepAliveSocket)
+                        } catch (_: Exception) {
+                            // Ignore send errors
+                        }
+                        delay(keepAlive.getIntervalMs(viewerState.isVideoRunning))
+                    }
+                } catch (_: Exception) {
+                    // Socket bind may fail if SO_REUSEADDR isn't supported
+                } finally {
+                    keepAliveSocket?.close()
+                }
             }
         }
     }
 
     // Start control channel receiver
-    DisposableEffect(connection.controlPort, connection.relayHost, connection.relayPort, connection.sessionId, controlHz, spectatorMode, controlSettings.forwardScale, controlSettings.backwardScale, controlSettings.steeringScale) {
+    DisposableEffect(connection.controlPort, connection.relayHost, connection.relayPort, connection.sessionId, controlHz, spectatorMode, controlSettings.forwardScale, controlSettings.backwardScale, controlSettings.steeringScale, connection.transport) {
         val receiver = UDPReceiver(
             port = connection.controlPort,
             relayHost = connection.relayHost,
@@ -274,7 +277,8 @@ fun ViewerScreen(
             spectatorMode = spectatorMode,
             forwardScale = controlSettings.forwardScale / 100f,
             backwardScale = controlSettings.backwardScale / 100f,
-            steeringScale = controlSettings.steeringScale / 100f
+            steeringScale = controlSettings.steeringScale / 100f,
+            transport = connection.transport
         )
         receiver.start()
         udpReceiver = receiver

@@ -22,6 +22,11 @@ import com.v3xctrl.viewer.data.FrequencySettings
 import com.v3xctrl.viewer.data.NetworkSettings
 import com.v3xctrl.viewer.data.OsdSettings
 import com.v3xctrl.viewer.data.SettingsDataStore
+import com.v3xctrl.viewer.data.Transport
+import com.v3xctrl.viewer.messages.PeerAnnouncement
+import com.v3xctrl.viewer.messages.PortType
+import com.v3xctrl.viewer.messages.Role
+import com.v3xctrl.viewer.network.tcp.TcpTunnel
 import com.v3xctrl.viewer.relay.ConnectionResult
 import com.v3xctrl.viewer.relay.RelayConnection
 import com.v3xctrl.viewer.ui.screens.ControlScreen
@@ -32,9 +37,12 @@ import com.v3xctrl.viewer.ui.screens.OSDScreen
 import com.v3xctrl.viewer.ui.screens.ConnectionInfo
 import com.v3xctrl.viewer.ui.screens.ViewerScreen
 import com.v3xctrl.viewer.ui.theme.V3xctrlTheme
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.net.DatagramSocket
 
 sealed class ConnectionState {
     object Idle : ConnectionState()
@@ -123,48 +131,129 @@ class MainActivity : ComponentActivity() {
                 var dynamicVideoPort by remember { mutableStateOf(0) }
                 var dynamicControlPort by remember { mutableStateOf(0) }
 
+                // TCP tunnels (only used when transport == "tcp")
+                var videoTunnel by remember { mutableStateOf<TcpTunnel?>(null) }
+                var controlTunnel by remember { mutableStateOf<TcpTunnel?>(null) }
+
+                fun stopTunnels() {
+                    videoTunnel?.stop()
+                    controlTunnel?.stop()
+                    videoTunnel = null
+                    controlTunnel = null
+                }
+
                 fun startConnection() {
                     val (host, port) = parseRelayUrl(networkSettings.relayUrl)
+                    val transport = networkSettings.transport
                     connectionState = ConnectionState.Connecting
 
-                    val connection = RelayConnection(
-                        relayHost = host,
-                        relayPort = port,
-                        sessionId = networkSettings.sessionId,
-                        spectatorMode = networkSettings.spectatorMode
-                    )
-                    relayConnection = connection
+                    if (transport == Transport.TCP) {
+                        // TCP relay mode: skip RelayConnection, use TcpTunnels
+                        connectionJob = scope.launch {
+                            val startTime = System.currentTimeMillis()
 
-                    connectionJob = scope.launch {
-                        val startTime = System.currentTimeMillis()
-                        val result = connection.connect()
-                        // Show connecting state for at least 1.5 seconds
-                        val elapsed = System.currentTimeMillis() - startTime
-                        if (elapsed < 1500) delay(1500 - elapsed)
-                        when (result) {
-                            is ConnectionResult.Success -> {
-                                dynamicVideoPort = result.videoPort
-                                dynamicControlPort = result.controlPort
+                            try {
+                                // Allocate two ephemeral ports
+                                val (vPort, cPort) = withContext(Dispatchers.IO) {
+                                    val vs = DatagramSocket(0)
+                                    val cs = DatagramSocket(0)
+                                    val vp = vs.localPort
+                                    val cp = cs.localPort
+                                    vs.close()
+                                    cs.close()
+                                    Pair(vp, cp)
+                                }
+
+                                val role = if (networkSettings.spectatorMode) Role.SPECTATOR else Role.VIEWER
+
+                                val vTunnel = TcpTunnel(
+                                    remoteHost = host,
+                                    remotePort = port,
+                                    localComponentPort = vPort,
+                                    bidirectional = true,
+                                    handshake = PeerAnnouncement(
+                                        role = role,
+                                        sessionId = networkSettings.sessionId,
+                                        portType = PortType.VIDEO
+                                    ).toBytes()
+                                )
+
+                                val cTunnel = TcpTunnel(
+                                    remoteHost = host,
+                                    remotePort = port,
+                                    localComponentPort = cPort,
+                                    bidirectional = true,
+                                    handshake = PeerAnnouncement(
+                                        role = role,
+                                        sessionId = networkSettings.sessionId,
+                                        portType = PortType.CONTROL
+                                    ).toBytes()
+                                )
+
+                                vTunnel.start()
+                                cTunnel.start()
+
+                                videoTunnel = vTunnel
+                                controlTunnel = cTunnel
+                                dynamicVideoPort = vPort
+                                dynamicControlPort = cPort
+
+                                // Show connecting state for at least 1.5 seconds
+                                val elapsed = System.currentTimeMillis() - startTime
+                                if (elapsed < 1500) delay(1500 - elapsed)
+
                                 connectionState = ConnectionState.Idle
                                 navigateTo(Screen.Viewer)
-                            }
-                            is ConnectionResult.Unauthorized -> {
-                                connectionState = ConnectionState.Error(result.message)
-                            }
-                            is ConnectionResult.Error -> {
-                                connectionState = ConnectionState.Error(result.message)
-                            }
-                            is ConnectionResult.Cancelled -> {
-                                connectionState = ConnectionState.Idle
+                            } catch (e: Exception) {
+                                val elapsed = System.currentTimeMillis() - startTime
+                                if (elapsed < 1500) delay(1500 - elapsed)
+                                stopTunnels()
+                                connectionState = ConnectionState.Error(
+                                    e.message ?: "TCP connection failed"
+                                )
                             }
                         }
-                        relayConnection = null
+                    } else {
+                        val connection = RelayConnection(
+                            relayHost = host,
+                            relayPort = port,
+                            sessionId = networkSettings.sessionId,
+                            spectatorMode = networkSettings.spectatorMode
+                        )
+                        relayConnection = connection
+
+                        connectionJob = scope.launch {
+                            val startTime = System.currentTimeMillis()
+                            val result = connection.connect()
+                            // Show connecting state for at least 1.5 seconds
+                            val elapsed = System.currentTimeMillis() - startTime
+                            if (elapsed < 1500) delay(1500 - elapsed)
+                            when (result) {
+                                is ConnectionResult.Success -> {
+                                    dynamicVideoPort = result.videoPort
+                                    dynamicControlPort = result.controlPort
+                                    connectionState = ConnectionState.Idle
+                                    navigateTo(Screen.Viewer)
+                                }
+                                is ConnectionResult.Unauthorized -> {
+                                    connectionState = ConnectionState.Error(result.message)
+                                }
+                                is ConnectionResult.Error -> {
+                                    connectionState = ConnectionState.Error(result.message)
+                                }
+                                is ConnectionResult.Cancelled -> {
+                                    connectionState = ConnectionState.Idle
+                                }
+                            }
+                            relayConnection = null
+                        }
                     }
                 }
 
                 fun abortConnection() {
                     relayConnection?.cancel()
                     connectionJob?.cancel()
+                    stopTunnels()
                     connectionState = ConnectionState.Idle
                     relayConnection = null
                     connectionJob = null
@@ -215,13 +304,17 @@ class MainActivity : ComponentActivity() {
                                 controlPort = dynamicControlPort,
                                 relayHost = relayHost,
                                 relayPort = relayPort,
-                                sessionId = networkSettings.sessionId
+                                sessionId = networkSettings.sessionId,
+                                transport = networkSettings.transport
                             ),
                             controlHz = frequencySettings.controlHz,
                             osdSettings = osdSettings,
                             spectatorMode = networkSettings.spectatorMode,
                             controlSettings = controlSettings,
-                            onBack = { navigateBack() },
+                            onBack = {
+                                stopTunnels()
+                                navigateBack()
+                            },
                             onNavigateToNetwork = { navigateTo(Screen.Network) },
                             onNavigateToFrequencies = { navigateTo(Screen.Frequencies) },
                             onNavigateToOSD = { navigateTo(Screen.OSD) },

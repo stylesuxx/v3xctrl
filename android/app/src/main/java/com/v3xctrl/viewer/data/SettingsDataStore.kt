@@ -13,10 +13,24 @@ import kotlinx.coroutines.flow.map
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
+enum class Transport {
+    UDP, TCP;
+
+    companion object {
+        fun fromString(value: String): Transport {
+            return when (value.lowercase()) {
+                "tcp" -> TCP
+                else -> UDP
+            }
+        }
+    }
+}
+
 data class NetworkSettings(
     val relayUrl: String = "relay.v3xctrl.com:8888",
     val sessionId: String = "",
-    val spectatorMode: Boolean = false
+    val spectatorMode: Boolean = false,
+    val transport: Transport = Transport.UDP
 )
 
 data class FrequencySettings(
@@ -64,6 +78,7 @@ class SettingsDataStore(private val context: Context) {
         private val RELAY_URL = stringPreferencesKey("relay_url")
         private val SESSION_ID = stringPreferencesKey("session_id")
         private val SPECTATOR_MODE = booleanPreferencesKey("spectator_mode")
+        private val TRANSPORT = stringPreferencesKey("transport")
 
         private val SHOW_PIPELINE_TIMER = booleanPreferencesKey("show_pipeline_timer")
 
@@ -108,7 +123,8 @@ class SettingsDataStore(private val context: Context) {
         NetworkSettings(
             relayUrl = prefs[RELAY_URL] ?: defaults.relayUrl,
             sessionId = prefs[SESSION_ID] ?: defaults.sessionId,
-            spectatorMode = prefs[SPECTATOR_MODE] ?: defaults.spectatorMode
+            spectatorMode = prefs[SPECTATOR_MODE] ?: defaults.spectatorMode,
+            transport = Transport.fromString(prefs[TRANSPORT] ?: defaults.transport.name)
         )
     }
 
@@ -165,6 +181,7 @@ class SettingsDataStore(private val context: Context) {
             prefs[RELAY_URL] = settings.relayUrl
             prefs[SESSION_ID] = settings.sessionId
             prefs[SPECTATOR_MODE] = settings.spectatorMode
+            prefs[TRANSPORT] = settings.transport.name.lowercase()
         }
     }
 

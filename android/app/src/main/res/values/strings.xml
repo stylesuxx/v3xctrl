@@ -25,6 +25,10 @@
     <string name="session_id">Session ID</string>
     <string name="spectator">Spectator</string>
     <string name="spectator_desc">Joining as spectator will allow you to watch a running session</string>
+    <string name="transport">Transport</string>
+    <string name="transport_desc">Try TCP if video doesn\'t work on mobile data</string>
+    <string name="transport_udp">UDP</string>
+    <string name="transport_tcp">TCP</string>
 
     <!-- Frequencies screen -->
     <string name="frequencies_title">Frequencies</string>
