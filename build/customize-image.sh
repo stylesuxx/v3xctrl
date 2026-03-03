@@ -76,8 +76,8 @@ e2fsck -fy "${LOOP_DEV}p2"
 
 echo "[HOST] Adding third partition to prevent root expansion on first boot"
 losetup -d "$LOOP_DEV"
-truncate -s +32MiB "$IMG_WORK"
-parted -s "$IMG_WORK" -- mkpart primary ext4 -32MiB 100%
+truncate -s +64MiB "$IMG_WORK"
+parted -s "$IMG_WORK" -- mkpart primary f2fs -64MiB 100%
 LOOP_DEV=$(losetup -fP --show "$IMG_WORK")
 partprobe "$LOOP_DEV"
 blockdev --rereadpt "$LOOP_DEV" || true
@@ -91,8 +91,7 @@ if [ ! -b "${LOOP_DEV}p3" ]; then
 fi
 
 echo "[HOST] Formatting /data partition at full partition size"
-mkfs.ext4 -F "${LOOP_DEV}p3"
-e2fsck -fy "${LOOP_DEV}p3"
+mkfs.f2fs -f "${LOOP_DEV}p3"
 
 echo "[HOST] Checking and mounting partitions"
 for i in 1 2 3; do
@@ -153,6 +152,9 @@ cp "${CONF_DIR}/97-overlayroot" "$MOUNT_DIR/etc/update-motd.d/97-overlayroot"
 echo "[HOST] Copying files to boot partition..."
 cp "./build/firstboot.sh" "$MOUNT_DIR/boot/firstboot.sh"
 chmod +x "$MOUNT_DIR/boot/firstboot.sh"
+
+echo "[HOST] Adding noatime,nodiratime to all fstab entries..."
+sed -i '/^[^#]/ s/\bdefaults\b/defaults,noatime,nodiratime/' "$MOUNT_DIR/etc/fstab"
 
 echo '[HOST] Setting default hostname...'
 echo $NAME > "$MOUNT_DIR/etc/hostname"

@@ -31,6 +31,9 @@ echo '[CHROOT] Updating system...'
 apt-get update
 apt-get upgrade -y
 
+echo '[CHROOT] Installing prerequisites...'
+apt-get install -y f2fs-tools
+
 echo '[CHROOT] Installing nice to haves...'
 apt-get install -y \
   locales-all \

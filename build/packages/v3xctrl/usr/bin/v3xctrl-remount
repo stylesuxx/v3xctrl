@@ -149,10 +149,10 @@ update_fstab_boot_mount() {
 
   if [[ "$mode" == "ro" ]]; then
     echo "[${NAME}] Setting ${BOOT_MOUNT} to read-only in fstab..."
-    local mount_opts="defaults,ro"
+    local mount_opts="defaults,noatime,nodiratime,ro"
   else
     echo "[${NAME}] Setting ${BOOT_MOUNT} to read-write in fstab..."
-    local mount_opts="defaults,rw"
+    local mount_opts="defaults,noatime,nodiratime,rw"
   fi
 
   local awk_script='
