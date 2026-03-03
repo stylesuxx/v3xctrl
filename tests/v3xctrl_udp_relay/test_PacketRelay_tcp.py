@@ -132,7 +132,7 @@ class TestPacketRelayTcp(unittest.TestCase):
         self.assertIn(alive_addr, self.relay.tcp_targets)
 
     def test_streamer_tcp_viewer_udp_forwarding(self):
-        """Phase 4: streamer registers via TCP, viewer via UDP, data flows correctly."""
+        """Streamer registers via TCP, viewer via UDP, data flows correctly."""
         streamer_video = ("10.0.0.1", 50000)
         streamer_control = ("10.0.0.1", 50002)
         viewer_video = ("10.0.0.2", 50001)
@@ -178,7 +178,7 @@ class TestPacketRelayTcp(unittest.TestCase):
         self.mock_sock.sendto.assert_not_called()
 
     def test_streamer_tcp_viewer_tcp_forwarding(self):
-        """Phase 4: both streamer and viewer on TCP, relay bridges TCP↔TCP."""
+        """Both streamer and viewer on TCP, relay bridges TCP↔TCP."""
         streamer_video = ("10.0.0.1", 50000)
         streamer_control = ("10.0.0.1", 50002)
         viewer_video = ("10.0.0.2", 50001)
@@ -228,7 +228,7 @@ class TestPacketRelayTcp(unittest.TestCase):
         streamer_control_target.send.assert_called_with(b"control_cmd")
 
     def test_peer_transport_tracked_on_register(self):
-        """Phase 4: transport is recorded on PeerEntry after registration."""
+        """Transport is recorded on PeerEntry after registration."""
         tcp_addr = ("10.0.0.1", 50000)
         udp_addr = ("10.0.0.2", 50001)
 

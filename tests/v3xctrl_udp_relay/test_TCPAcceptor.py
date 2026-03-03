@@ -107,7 +107,7 @@ class TestTCPAcceptor(unittest.TestCase):
             sock.close()
 
     def test_streamer_video_forwards_data(self):
-        """Phase 4: streamer video connections read data and forward via relay."""
+        """Streamer video connections read data and forward via relay."""
         sock = self._connect()
         try:
             handshake = PeerAnnouncement(r="streamer", i="sid1", p="video").to_bytes()
@@ -129,7 +129,7 @@ class TestTCPAcceptor(unittest.TestCase):
             sock.close()
 
     def test_viewer_video_does_not_forward(self):
-        """Phase 4: viewer video connections only monitor for disconnect, not forward."""
+        """Viewer video connections only monitor for disconnect, not forward."""
         sock = self._connect()
         try:
             handshake = PeerAnnouncement(r="viewer", i="sid1", p="video").to_bytes()
@@ -145,7 +145,7 @@ class TestTCPAcceptor(unittest.TestCase):
             sock.close()
 
     def test_streamer_video_disconnect_unregisters(self):
-        """Phase 4: streamer video disconnect triggers unregister."""
+        """Streamer video disconnect triggers unregister."""
         sock = self._connect()
         handshake = PeerAnnouncement(r="streamer", i="sid1", p="video").to_bytes()
         send_message(sock, handshake)
