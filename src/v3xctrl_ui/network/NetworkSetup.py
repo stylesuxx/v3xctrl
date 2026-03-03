@@ -11,6 +11,7 @@ from v3xctrl_control.State import State
 from v3xctrl_helper.exceptions import PeerRegistrationError, PeerRegistrationAborted
 from v3xctrl_control.message import PeerAnnouncement
 from v3xctrl_udp_relay.Peer import Peer
+from v3xctrl_tcp import Transport
 from v3xctrl_tcp.TcpTunnel import TcpTunnel
 
 from v3xctrl_ui.network.video.Receiver import Receiver
@@ -102,7 +103,7 @@ class NetworkSetup:
         self.ports = settings.get("ports", {})
         self.video_port = self.ports.get("video")
         self.control_port = self.ports.get("control")
-        self.transport = settings.get("transport", "udp")
+        self.transport = settings.get("transport", Transport.UDP)
         self._peer: Optional[Peer] = None
 
     def abort(self) -> None:
@@ -132,7 +133,7 @@ class NetworkSetup:
         video_address = None
         spectator_mode = False
 
-        if self.transport == "tcp" and relay_config:
+        if self.transport == Transport.TCP and relay_config:
             # TCP relay mode: two TcpTunnels to relay, skip Peer.setup()
             relay_host = relay_config['server']
             relay_port = relay_config['port']
@@ -182,7 +183,7 @@ class NetworkSetup:
             keep_alive_thread.start()
             result.video_keep_alive = keep_alive_thread
 
-        elif self.transport == "tcp" and not relay_config:
+        elif self.transport == Transport.TCP and not relay_config:
             # Start TCP server for direct TCP mode
             result.tcp_server = TcpServer(self.video_port, self.control_port)
             result.tcp_server.start()

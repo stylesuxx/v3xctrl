@@ -3,6 +3,7 @@ import logging
 from typing import Dict, Any
 
 from v3xctrl_gst.Streamer import Streamer
+from v3xctrl_tcp import Transport
 from v3xctrl_tcp.TcpTunnel import TcpTunnel
 
 
@@ -108,7 +109,7 @@ def main() -> None:
     video_host = args.host
     video_port = args.port
 
-    if args.transport == 'tcp':
+    if args.transport == Transport.TCP:
         tcp_tunnel = TcpTunnel(
             remote_host=args.host,
             remote_port=args.port,

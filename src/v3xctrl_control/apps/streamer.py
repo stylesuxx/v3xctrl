@@ -29,6 +29,7 @@ from v3xctrl_control.message import (
 )
 
 from v3xctrl_helper import clamp, Address
+from v3xctrl_tcp import Transport
 from v3xctrl_tcp.TcpTunnel import TcpTunnel
 
 parser = argparse.ArgumentParser(description="Test connection performance.")
@@ -346,7 +347,7 @@ def cleanup_pwm() -> None:
 
 
 tcp_tunnel = None
-if args.transport == 'tcp':
+if args.transport == Transport.TCP:
     tcp_tunnel = TcpTunnel(
         remote_host=HOST,
         remote_port=PORT,
@@ -368,7 +369,7 @@ if args.transport == 'tcp':
 # In default UDP mode, mind to external interface, in TCP mode, bind to local
 # interface to which TCP proxy will forward the packages
 bind_address = "0.0.0.0"
-if args.transport == 'tcp':
+if args.transport == Transport.TCP:
     bind_address = "127.0.0.1"
 
 client = Client(HOST, PORT, BIND_PORT, failsafe_ms, bind_address=bind_address)
