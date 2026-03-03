@@ -7,6 +7,10 @@ flags:
     paths:
       - stats-server/
     carryforward: true
+  client:
+    paths:
+      - client/
+    carryforward: true
 
 coverage:
   status:
@@ -24,6 +28,11 @@ coverage:
         threshold: 1%
         flags:
           - stats-server
+      client:
+        target: auto
+        threshold: 1%
+        flags:
+          - client
     patch:
       default:
         target: 80%

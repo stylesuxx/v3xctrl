@@ -42,7 +42,7 @@ done
 
 mkdir -p "$MOUNT_DIR"
 mount "${LOOP_DEV}p2" "$MOUNT_DIR"
-mount "${LOOP_DEV}p1" "$MOUNT_DIR/boot"
+mount "${LOOP_DEV}p1" "$MOUNT_DIR/boot/firmware"
 
 echo "[HOST] Binding system directories"
 for d in $MOUNT_BIND_DIRS; do

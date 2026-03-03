@@ -1,22 +1,24 @@
 import argparse
-import json
 from pathlib import Path
 
-from flask import Flask, render_template
+from flask import Flask, Response, send_from_directory
+from flask_compress import Compress
 from flask_cors import CORS
 from flask_smorest import Api
 
 from .routes import register_routes
 
 PACKAGE_DIR = Path(__file__).resolve().parent
+DIST_DIR = PACKAGE_DIR / "dist"
 
 
 def create_app(schema_path: str, config_path: str, modems_path: str) -> Flask:
     app = Flask(
         __name__,
-        template_folder=str(PACKAGE_DIR / "templates"),
-        static_folder=str(PACKAGE_DIR / "static"),
+        static_folder=str(DIST_DIR),
+        static_url_path="",
     )
+    Compress(app)
     CORS(app)
     app.config["SCHEMA_PATH"] = schema_path
     app.config["CONFIG_PATH"] = config_path
@@ -28,24 +30,18 @@ def create_app(schema_path: str, config_path: str, modems_path: str) -> Flask:
     app.config["OPENAPI_VERSION"] = "3.0.2"
     app.config["OPENAPI_URL_PREFIX"] = "/"
     app.config["OPENAPI_SWAGGER_UI_PATH"] = "/swagger"
-    app.config["OPENAPI_SWAGGER_UI_URL"] = "https://cdn.jsdelivr.net/npm/swagger-ui-dist/"
+    app.config["OPENAPI_SWAGGER_UI_URL"] = "/swagger-ui/"
 
     api = Api(app)
     register_routes(api)
 
     @app.route("/")
-    def index() -> str | tuple[str, int]:
-        try:
-            with open(schema_path) as f:
-                schema = json.load(f)
-            with open(config_path) as f:
-                config = json.load(f)
-            with open(modems_path) as f:
-                modems = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError) as e:
-            return f"Failed to load configuration: {e}", 500
+    def index() -> Response:
+        return send_from_directory(str(DIST_DIR), "index.html")
 
-        return render_template("index.html", schema=schema, config=config, modems=modems)
+    @app.route("/swagger-ui/<path:filename>")
+    def swagger_ui(filename: str) -> Response:
+        return send_from_directory(str(DIST_DIR / "swagger-ui"), filename)
 
     return app
 

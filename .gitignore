@@ -10,7 +10,7 @@ _version.py
 *.deb
 /build/v3xctrl-client/usr/share
 /build/tmp
-/src/v3xctrl_web/static/libs
+/src/v3xctrl_web/dist
 /src/v3xctrl_web/configs
 /.pytest_cache
 *.toml
@@ -18,3 +18,5 @@ _version.py
 !ruff.toml
 .venv
 coverage.xml
+*.vite
+client/coverage

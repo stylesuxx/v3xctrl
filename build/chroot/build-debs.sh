@@ -1,4 +1,6 @@
 #!/bin/bash
+set -e
+
 LOCALE="en_US.UTF-8"
 
 PARAMS=""
@@ -32,6 +34,7 @@ if [ "$SKIP_DEPS" = false ]; then
   echo '[CHROOT] Updating OS and Installing dependencies'
   apt-get update
   apt-get upgrade -y
+  apt-get autoremove -y
   apt-get install -y \
     build-essential \
     curl \

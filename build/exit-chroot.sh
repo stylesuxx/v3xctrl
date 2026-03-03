@@ -19,7 +19,7 @@ fi
 LOOP_DEV=$(cat "$LOOP_STATE_FILE")
 
 echo "[HOST] Cleaning up and unmounting"
-umount -lf "$MOUNT_DIR/boot" 2>/dev/null || true
+umount -lf "$MOUNT_DIR/boot/firmware" 2>/dev/null || true
 umount -lf "$MOUNT_DIR/dev/pts" 2>/dev/null || true
 for d in $MOUNT_BIND_DIRS; do
   umount -lf "$MOUNT_DIR/$d" 2>/dev/null || true
