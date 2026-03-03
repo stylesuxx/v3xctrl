@@ -45,6 +45,8 @@ fun LandscapeViewer(
     spectatorMode: Boolean,
     pipelineStartTime: Long,
     osdSettings: OsdSettings = OsdSettings(),
+    touchSteeringInvert: Boolean = false,
+    touchThrottleInvert: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -220,7 +222,9 @@ fun LandscapeViewer(
                 else -> {
                     TouchControls(
                         controlState = controlState,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize(),
+                        steeringInvert = touchSteeringInvert,
+                        throttleInvert = touchThrottleInvert
                     )
                 }
             }

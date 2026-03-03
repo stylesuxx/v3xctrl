@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -29,6 +30,8 @@ import com.v3xctrl.viewer.input.applyDeadZone
 fun TouchControls(
     controlState: ControlState,
     modifier: Modifier = Modifier,
+    steeringInvert: Boolean = false,
+    throttleInvert: Boolean = false,
     deadZone: Float = 0.1f,
     maxDragPx: Float = 200f
 ) {
@@ -38,6 +41,10 @@ fun TouchControls(
     // Track active touches for each zone
     var leftTouch by remember { mutableStateOf<TouchInfo?>(null) }
     var rightTouch by remember { mutableStateOf<TouchInfo?>(null) }
+
+    // Raw (non-inverted) values for visual indicators
+    var rawThrottle by remember { mutableFloatStateOf(0f) }
+    var rawSteering by remember { mutableFloatStateOf(0f) }
 
     Box(
         modifier = modifier
@@ -76,7 +83,9 @@ fun TouchControls(
                                             leftTouch?.let { touch ->
                                                 val deltaY = touch.startPosition.y - touch.currentPosition.y
                                                 val normalized = (deltaY / maxDrag).coerceIn(-1f, 1f)
-                                                controlState.throttle = applyDeadZone(normalized, deadZone)
+                                                rawThrottle = applyDeadZone(normalized, deadZone)
+                                                val invertMul = if (throttleInvert) -1f else 1f
+                                                controlState.throttle = rawThrottle * invertMul
                                             }
                                         }
 
@@ -85,7 +94,9 @@ fun TouchControls(
                                             rightTouch?.let { touch ->
                                                 val deltaX = touch.currentPosition.x - touch.startPosition.x
                                                 val normalized = (deltaX / maxDrag).coerceIn(-1f, 1f)
-                                                controlState.steering = applyDeadZone(normalized, deadZone)
+                                                rawSteering = applyDeadZone(normalized, deadZone)
+                                                val invertMul = if (steeringInvert) -1f else 1f
+                                                controlState.steering = rawSteering * invertMul
                                             }
                                         }
                                     }
@@ -96,11 +107,13 @@ fun TouchControls(
                                     when (change.id) {
                                         leftTouch?.id -> {
                                             leftTouch = null
+                                            rawThrottle = 0f
                                             controlState.throttle = 0f
                                         }
 
                                         rightTouch?.id -> {
                                             rightTouch = null
+                                            rawSteering = 0f
                                             controlState.steering = 0f
                                         }
                                     }
@@ -114,8 +127,8 @@ fun TouchControls(
         TouchIndicators(
             leftTouch = leftTouch,
             rightTouch = rightTouch,
-            throttle = controlState.throttle,
-            steering = controlState.steering
+            throttle = rawThrottle,
+            steering = rawSteering
         )
     }
 }

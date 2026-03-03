@@ -55,7 +55,11 @@ data class ControlSettings(
     val gamepadReverseSign: Int = 1,
     val gamepadSteeringInvert: Boolean = false,
     val gamepadThrottleInvert: Boolean = false,
-    val gamepadReverseInvert: Boolean = false
+    val gamepadReverseInvert: Boolean = false,
+    val touchSteeringInvert: Boolean = false,
+    val touchThrottleInvert: Boolean = false,
+    val motionSteeringInvert: Boolean = false,
+    val motionThrottleInvert: Boolean = false
 )
 
 class SettingsDataStore(private val context: Context) {
@@ -101,6 +105,11 @@ class SettingsDataStore(private val context: Context) {
         private val GAMEPAD_STEERING_INVERT = booleanPreferencesKey("gamepad_steering_invert")
         private val GAMEPAD_THROTTLE_INVERT = booleanPreferencesKey("gamepad_throttle_invert")
         private val GAMEPAD_REVERSE_INVERT = booleanPreferencesKey("gamepad_reverse_invert")
+
+        private val TOUCH_STEERING_INVERT = booleanPreferencesKey("touch_steering_invert")
+        private val TOUCH_THROTTLE_INVERT = booleanPreferencesKey("touch_throttle_invert")
+        private val MOTION_STEERING_INVERT = booleanPreferencesKey("motion_steering_invert")
+        private val MOTION_THROTTLE_INVERT = booleanPreferencesKey("motion_throttle_invert")
     }
 
     val networkSettings: Flow<NetworkSettings> = context.dataStore.data.map { prefs ->
@@ -156,7 +165,11 @@ class SettingsDataStore(private val context: Context) {
             gamepadReverseSign = prefs[GAMEPAD_REVERSE_SIGN] ?: defaults.gamepadReverseSign,
             gamepadSteeringInvert = prefs[GAMEPAD_STEERING_INVERT] ?: defaults.gamepadSteeringInvert,
             gamepadThrottleInvert = prefs[GAMEPAD_THROTTLE_INVERT] ?: defaults.gamepadThrottleInvert,
-            gamepadReverseInvert = prefs[GAMEPAD_REVERSE_INVERT] ?: defaults.gamepadReverseInvert
+            gamepadReverseInvert = prefs[GAMEPAD_REVERSE_INVERT] ?: defaults.gamepadReverseInvert,
+            touchSteeringInvert = prefs[TOUCH_STEERING_INVERT] ?: defaults.touchSteeringInvert,
+            touchThrottleInvert = prefs[TOUCH_THROTTLE_INVERT] ?: defaults.touchThrottleInvert,
+            motionSteeringInvert = prefs[MOTION_STEERING_INVERT] ?: defaults.motionSteeringInvert,
+            motionThrottleInvert = prefs[MOTION_THROTTLE_INVERT] ?: defaults.motionThrottleInvert
         )
     }
 
@@ -210,6 +223,10 @@ class SettingsDataStore(private val context: Context) {
             prefs[GAMEPAD_STEERING_INVERT] = settings.gamepadSteeringInvert
             prefs[GAMEPAD_THROTTLE_INVERT] = settings.gamepadThrottleInvert
             prefs[GAMEPAD_REVERSE_INVERT] = settings.gamepadReverseInvert
+            prefs[TOUCH_STEERING_INVERT] = settings.touchSteeringInvert
+            prefs[TOUCH_THROTTLE_INVERT] = settings.touchThrottleInvert
+            prefs[MOTION_STEERING_INVERT] = settings.motionSteeringInvert
+            prefs[MOTION_THROTTLE_INVERT] = settings.motionThrottleInvert
         }
     }
 }

@@ -94,14 +94,16 @@ fun ViewerScreen(
     val isGamepadMode = controlSettings.controlMode == "gamepad" && !spectatorMode
 
     // Start/stop motion controller based on mode and orientation
-    DisposableEffect(isMotionMode, isLandscape, controlSettings.motionSteeringDeg, controlSettings.motionForwardDeg, controlSettings.motionBackwardDeg) {
+    DisposableEffect(isMotionMode, isLandscape, controlSettings.motionSteeringDeg, controlSettings.motionForwardDeg, controlSettings.motionBackwardDeg, controlSettings.motionSteeringInvert, controlSettings.motionThrottleInvert) {
         if (isMotionMode && isLandscape) {
             val controller = MotionController(
                 context = context,
                 controlState = controlState,
                 steeringDeg = controlSettings.motionSteeringDeg.toFloat(),
                 forwardDeg = controlSettings.motionForwardDeg.toFloat(),
-                backwardDeg = controlSettings.motionBackwardDeg.toFloat()
+                backwardDeg = controlSettings.motionBackwardDeg.toFloat(),
+                steeringInvert = controlSettings.motionSteeringInvert,
+                throttleInvert = controlSettings.motionThrottleInvert
             )
             controller.start()
             motionController = controller
@@ -322,6 +324,8 @@ fun ViewerScreen(
             spectatorMode = spectatorMode,
             pipelineStartTime = pipelineStartTime,
             osdSettings = osdSettings,
+            touchSteeringInvert = controlSettings.touchSteeringInvert,
+            touchThrottleInvert = controlSettings.touchThrottleInvert,
             modifier = modifier
         )
     } else {
