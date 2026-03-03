@@ -307,11 +307,11 @@ class TestUDPRelayServerUnitTests(unittest.TestCase):
 
         client_addr = ("192.168.1.100", 54321)
 
-        with patch('logging.error') as mock_error:
+        with patch('v3xctrl_udp_relay.PacketRelay.logger') as mock_logger:
             server._handle_peer_announcement(peer_announcement, client_addr)
 
             # Verify error was logged for the send failure
-            mock_error.assert_called()
+            mock_logger.error.assert_called()
 
     @patch('socket.socket')
     def test_handle_packet_message_parse_exception(self, mock_socket_class):

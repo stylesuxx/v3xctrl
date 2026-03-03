@@ -7,6 +7,7 @@ import threading
 from typing import TYPE_CHECKING
 
 from v3xctrl_control.message import Message, PeerAnnouncement
+from v3xctrl_helper import Address
 from v3xctrl_tcp.framing import recv_message
 from v3xctrl_udp_relay.ForwardTarget import TcpTarget
 from v3xctrl_udp_relay.Role import Role
@@ -70,7 +71,7 @@ class TCPAcceptor:
                     logger.error("TCPAcceptor accept error", exc_info=True)
                 break
 
-    def _handle_connection(self, tcp_sock: socket.socket, addr: tuple) -> None:
+    def _handle_connection(self, tcp_sock: socket.socket, addr: Address) -> None:
         tcp_sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         target = TcpTarget(tcp_sock)
 
@@ -129,7 +130,7 @@ class TCPAcceptor:
             except (OSError, ValueError):
                 break
 
-    def _read_and_forward_loop(self, tcp_sock: socket.socket, addr: tuple) -> None:
+    def _read_and_forward_loop(self, tcp_sock: socket.socket, addr: Address) -> None:
         """Read framed messages from a TCP peer and forward via relay."""
         try:
             while not self.stop_event.is_set():
@@ -139,5 +140,5 @@ class TCPAcceptor:
 
                 self.relay.forward_packet(data, addr)
 
-        except ConnectionResetError:
+        except OSError:
             pass

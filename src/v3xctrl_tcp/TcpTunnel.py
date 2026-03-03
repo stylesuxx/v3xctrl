@@ -11,7 +11,6 @@ UDP proxy model:
 - Inbound: TCP data -> proxy sends from E to localhost:local_component_port
 - Responses: component replies to localhost:E -> proxy reads -> forwards over TCP
 """
-
 import logging
 import select
 import socket

@@ -1,6 +1,6 @@
 from enum import Enum
 import time
-from typing import Dict, Set, List, Optional
+from typing import Optional
 
 from v3xctrl_helper import Address
 from v3xctrl_tcp import Transport
@@ -22,7 +22,7 @@ class PeerEntry:
 class SpectatorEntry:
     """Entry for a spectator peer with multiple port addresses."""
     def __init__(self) -> None:
-        self.ports: Dict[PortType, PeerEntry] = {}
+        self.ports: dict[PortType, PeerEntry] = {}
         self.created_at: float = time.time()
         self.last_announcement_at: float = time.time()
 
@@ -35,19 +35,19 @@ class SpectatorEntry:
     def is_complete(self) -> bool:
         return len(self.ports) == len(PortType)
 
-    def get_addresses(self) -> Set[Address]:
+    def get_addresses(self) -> set[Address]:
         return {peer.addr for peer in self.ports.values()}
 
 
 class Session:
     def __init__(self, id: str) -> None:
         self.id = id
-        self.roles: Dict[Role, Dict[PortType, PeerEntry]] = {
+        self.roles: dict[Role, dict[PortType, PeerEntry]] = {
             Role.STREAMER: {},
             Role.VIEWER: {}
         }
-        self.spectators: List[SpectatorEntry] = []
-        self.addresses: Set[Address] = set()
+        self.spectators: list[SpectatorEntry] = []
+        self.addresses: set[Address] = set()
         self.created_at: float = time.time()
         self.last_announcement_at: float = time.time()
 
