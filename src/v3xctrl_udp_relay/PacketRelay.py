@@ -13,6 +13,7 @@ from v3xctrl_control.message import (
 from v3xctrl_udp_relay.SessionStore import SessionStore
 from v3xctrl_udp_relay.Role import Role
 from v3xctrl_udp_relay.ForwardTarget import ForwardTarget, UdpTarget, TcpTarget
+from v3xctrl_tcp import Transport
 from v3xctrl_udp_relay.custom_types import (
     PortType,
     Session,
@@ -137,10 +138,18 @@ class PacketRelay:
                     logging.info(f"Spectator using spectator_id, mapped to session '{sid}'")
 
             session = self.sessions.setdefault(sid, Session(sid))
+            new_transport = Transport.TCP if addr in self.tcp_targets else Transport.UDP
+
+            old_entry = session.roles.get(role, {}).get(port_type)
+            old_transport = old_entry.transport if old_entry else None
+
             is_new_peer = session.register(role, port_type, addr)
+            session.roles[role][port_type].transport = new_transport
 
             if is_new_peer:
-                logging.info(f"{sid}: Registered {role.name}:{port_type.name} from {addr}")
+                logging.info(f"{sid}: Registered {role.name}:{port_type.name} ({new_transport.name}) from {addr}")
+            elif old_transport and old_transport != new_transport:
+                logging.info(f"{sid}: {role.name}:{port_type.name} switched {old_transport.name} -> {new_transport.name}")
 
             if role == Role.SPECTATOR:
                 if session.is_ready():
@@ -158,7 +167,8 @@ class PacketRelay:
                 self._send_peer_info(session)
                 self._setup_all_spectator_mappings(session)
 
-                logging.info(f"{sid}: Session ready, peer info exchanged")
+                transports = self._get_transport_summary(session)
+                logging.info(f"{sid}: Session ready, peer info exchanged ({transports})")
 
     def get_session_peers(self, sid: str) -> Dict[Role, Dict[PortType, PeerEntry]]:
         """Get all peers for a session."""
@@ -442,6 +452,19 @@ class PacketRelay:
             if spectator.is_complete():
                 for port_addr in spectator.get_addresses():
                     self._setup_spectator_mappings(session, port_addr)
+
+    def _get_transport_summary(self, session: Session) -> str:
+        """Build a transport summary string like 'STREAMER: TCP, VIEWER: UDP'."""
+        parts = []
+        for role in (Role.STREAMER, Role.VIEWER):
+            peers = session.roles.get(role, {})
+            transports = {p.transport for p in peers.values()}
+            if len(transports) == 1:
+                parts.append(f"{role.name}: {transports.pop().name}")
+            elif transports:
+                detail = ", ".join(f"{pt.name}={p.transport.name}" for pt, p in peers.items())
+                parts.append(f"{role.name}: {detail}")
+        return ", ".join(parts)
 
     def _get_spectator_targets(self, source_addr: Address) -> Set[Address]:
         """Get existing spectator targets for a source address."""

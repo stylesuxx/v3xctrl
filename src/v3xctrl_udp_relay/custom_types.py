@@ -3,6 +3,7 @@ import time
 from typing import Dict, Set, List, Optional
 
 from v3xctrl_helper import Address
+from v3xctrl_tcp import Transport
 from v3xctrl_udp_relay.Role import Role
 
 
@@ -12,8 +13,9 @@ class PortType(Enum):
 
 
 class PeerEntry:
-    def __init__(self, addr: Address) -> None:
+    def __init__(self, addr: Address, transport: Transport = Transport.UDP) -> None:
         self.addr = addr
+        self.transport = transport
         self.ts = time.time()
 
 
