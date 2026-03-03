@@ -12,7 +12,7 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/versions.env"
 
-REQUIRED_PKGS=(parted e2fsprogs qemu-user-static binfmt-support kpartx dosfstools debootstrap xz-utils)
+REQUIRED_PKGS=(parted e2fsprogs f2fs-tools qemu-user-static binfmt-support kpartx dosfstools debootstrap xz-utils)
 BASE_DIR="./build"
 TMP_DIR="${BASE_DIR}/tmp"
 BASE_IMAGE_PATH="${TMP_DIR}/dependencies/raspios.img.xz"
