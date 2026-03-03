@@ -59,6 +59,10 @@
     <string name="control_gamepad_forward">Forward</string>
     <string name="control_gamepad_reverse">Reverse</string>
     <string name="control_invert">Invert</string>
+    <string name="control_invert_steering_desc">Reverse the steering direction</string>
+    <string name="control_invert_throttle_desc">Reverse the throttle direction</string>
+    <string name="control_invert_forward_desc">Reverse the forward axis direction</string>
+    <string name="control_invert_reverse_desc">Reverse the reverse axis direction</string>
 
     <!-- OSD screen -->
     <string name="osd_title">OSD</string>

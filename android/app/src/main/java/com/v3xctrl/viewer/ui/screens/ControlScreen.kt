@@ -17,7 +17,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
@@ -31,6 +30,7 @@ import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -162,6 +162,40 @@ fun ControlScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 8.dp)
             )
+
+            // -- Touch invert switches --
+            if (settings.controlMode == "touch") {
+                Spacer(modifier = Modifier.height(12.dp))
+                InvertRow(
+                    label = "${stringResource(R.string.control_invert)} ${stringResource(R.string.control_steering_scale).lowercase()}",
+                    description = stringResource(R.string.control_invert_steering_desc),
+                    checked = settings.touchSteeringInvert,
+                    onCheckedChange = { onSettingsChange(settings.copy(touchSteeringInvert = it)) }
+                )
+                InvertRow(
+                    label = "${stringResource(R.string.control_invert)} ${stringResource(R.string.control_gamepad_throttle).lowercase()}",
+                    description = stringResource(R.string.control_invert_throttle_desc),
+                    checked = settings.touchThrottleInvert,
+                    onCheckedChange = { onSettingsChange(settings.copy(touchThrottleInvert = it)) }
+                )
+            }
+
+            // -- Motion invert switches --
+            if (settings.controlMode == "motion") {
+                Spacer(modifier = Modifier.height(12.dp))
+                InvertRow(
+                    label = "${stringResource(R.string.control_invert)} ${stringResource(R.string.control_steering_scale).lowercase()}",
+                    description = stringResource(R.string.control_invert_steering_desc),
+                    checked = settings.motionSteeringInvert,
+                    onCheckedChange = { onSettingsChange(settings.copy(motionSteeringInvert = it)) }
+                )
+                InvertRow(
+                    label = "${stringResource(R.string.control_invert)} ${stringResource(R.string.control_gamepad_throttle).lowercase()}",
+                    description = stringResource(R.string.control_invert_throttle_desc),
+                    checked = settings.motionThrottleInvert,
+                    onCheckedChange = { onSettingsChange(settings.copy(motionThrottleInvert = it)) }
+                )
+            }
 
             // -- Gamepad device selector, calibration, and live display --
             if (settings.controlMode == "gamepad") {
@@ -431,12 +465,14 @@ fun ControlScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // Live axis indicators with invert checkboxes
+                        // Live axis indicators with invert switches
                         AxisIndicator(
                             label = stringResource(R.string.control_gamepad_steering),
                             value = liveSteering.floatValue
                         )
                         InvertRow(
+                            label = "${stringResource(R.string.control_invert)} ${stringResource(R.string.control_gamepad_steering).lowercase()}",
+                            description = stringResource(R.string.control_invert_steering_desc),
                             checked = settings.gamepadSteeringInvert,
                             onCheckedChange = { onSettingsChange(settings.copy(gamepadSteeringInvert = it)) }
                         )
@@ -447,6 +483,8 @@ fun ControlScreen(
                             centered = false
                         )
                         InvertRow(
+                            label = "${stringResource(R.string.control_invert)} ${stringResource(R.string.control_gamepad_forward).lowercase()}",
+                            description = stringResource(R.string.control_invert_forward_desc),
                             checked = settings.gamepadThrottleInvert,
                             onCheckedChange = { onSettingsChange(settings.copy(gamepadThrottleInvert = it)) }
                         )
@@ -457,6 +495,8 @@ fun ControlScreen(
                             centered = false
                         )
                         InvertRow(
+                            label = "${stringResource(R.string.control_invert)} ${stringResource(R.string.control_gamepad_reverse).lowercase()}",
+                            description = stringResource(R.string.control_invert_reverse_desc),
                             checked = settings.gamepadReverseInvert,
                             onCheckedChange = { onSettingsChange(settings.copy(gamepadReverseInvert = it)) }
                         )
@@ -637,19 +677,32 @@ private fun AxisIndicator(
 private fun InvertRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
+    label: String? = null,
+    description: String? = null,
     modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = modifier.padding(start = 72.dp),
+        modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Checkbox(
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label ?: stringResource(R.string.control_invert),
+                style = MaterialTheme.typography.bodyLarge
+            )
+
+            if (description != null) {
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        Switch(
             checked = checked,
             onCheckedChange = onCheckedChange
-        )
-        Text(
-            text = stringResource(R.string.control_invert),
-            style = MaterialTheme.typography.bodySmall
         )
     }
 }
