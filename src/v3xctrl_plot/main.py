@@ -5,18 +5,18 @@ import matplotlib.pyplot as plt
 from matplotlib import gridspec
 from matplotlib.table import Table
 from matplotlib.axes import Axes
-from typing import Dict, List, Tuple, Optional, Any
+from typing import Any
 
 
 def read_s1p(
     file_path: str
-) -> Tuple[NDArray[Any], NDArray[Any], float | None]:
+) -> tuple[NDArray[Any], NDArray[Any], float | None]:
     freqs: list[float] = []
-    s11: List[float] = []
+    s11: list[float] = []
     with open(file_path, 'r') as f:
-        data_format: Optional[str] = None
-        freq_unit: Optional[str] = None
-        z0: Optional[float] = None
+        data_format: str | None = None
+        freq_unit: str | None = None
+        z0: float | None = None
 
         for line in f:
             if line.startswith('!') or line.strip() == '':
@@ -113,7 +113,7 @@ lte_bands_full = {
 def plot_lte_bands_center_based(
     ax: Axes,
     band_type: str,
-    band_data: Dict[str, Any],
+    band_data: dict[str, Any],
     freqs: NDArray[Any],
     swr: NDArray[Any]
 ) -> None:
@@ -160,8 +160,8 @@ if __name__ == '__main__':
     freqs_filtered = freqs[mask]
     swr_filtered = swr[mask]
 
-    def get_band_data(band_type: str) -> List[Dict[str, Any]]:
-        data: List[Dict[str, Any]] = []
+    def get_band_data(band_type: str) -> list[dict[str, Any]]:
+        data: list[dict[str, Any]] = []
         for band, ranges in lte_bands_full.items():
             if band_type not in ranges:
                 continue

@@ -2,7 +2,8 @@
 import copy
 import logging
 import threading
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING
+from collections.abc import Callable
 
 if TYPE_CHECKING:
     from v3xctrl_ui.core.Settings import Settings
@@ -28,19 +29,19 @@ class SettingsController:
         self.old_settings = copy.deepcopy(settings)
 
         # Network restart coordination
-        self.network_restart_thread: Optional[threading.Thread] = None
+        self.network_restart_thread: threading.Thread | None = None
         self.network_restart_complete = threading.Event()
 
         # Callbacks for component updates
-        self.on_timing_update: Optional[Callable[['Settings'], None]] = None
-        self.on_network_update: Optional[Callable[['Settings'], None]] = None
-        self.on_input_update: Optional[Callable[['Settings'], None]] = None
-        self.on_osd_update: Optional[Callable[['Settings'], None]] = None
-        self.on_renderer_update: Optional[Callable[['Settings'], None]] = None
-        self.on_display_update: Optional[Callable[[bool], None]] = None
+        self.on_timing_update: Callable[['Settings'], None] | None = None
+        self.on_network_update: Callable[['Settings'], None] | None = None
+        self.on_input_update: Callable[['Settings'], None] | None = None
+        self.on_osd_update: Callable[['Settings'], None] | None = None
+        self.on_renderer_update: Callable[['Settings'], None] | None = None
+        self.on_display_update: Callable[[bool], None] | None = None
 
         # Callback for network restart
-        self.create_network_restart_thread: Optional[Callable[['Settings'], threading.Thread]] = None
+        self.create_network_restart_thread: Callable[['Settings'], threading.Thread] | None = None
 
     def update_settings(self, new_settings: 'Settings') -> bool:
         """Update settings and coordinate component updates.

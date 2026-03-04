@@ -1,7 +1,7 @@
 import argparse
 from atlib import AIR780EU
 import json
-from typing import Dict, Any
+from typing import Any
 
 
 def main() -> None:
@@ -9,7 +9,7 @@ def main() -> None:
     parser.add_argument("device_path", help="Path to the modem (e.g. /dev/ttyACM0)")
     args = parser.parse_args()
 
-    info: Dict[str, Any] = {
+    info: dict[str, Any] = {
         "version": None,
         "status": None,
         "allowedBands": [],

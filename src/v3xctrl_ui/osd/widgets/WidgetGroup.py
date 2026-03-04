@@ -1,13 +1,14 @@
 """Widget group abstraction for unified rendering."""
 from dataclasses import dataclass
-from typing import Dict, Callable, Any
+from typing import Any
+from collections.abc import Callable
 from v3xctrl_ui.osd.widgets import Widget
 
 
 @dataclass
 class WidgetGroup:
     name: str
-    widgets: Dict[str, Widget]
+    widgets: dict[str, Widget]
     get_value: Callable[[str], Any]
     use_composition: bool = True
     corner_radius: int = 4
@@ -16,7 +17,7 @@ class WidgetGroup:
     def create(
         cls,
         name: str,
-        widgets: Dict[str, Widget],
+        widgets: dict[str, Widget],
         get_value: Callable[[str], Any],
         use_composition: bool = True,
         corner_radius: int = 4

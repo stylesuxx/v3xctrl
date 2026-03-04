@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import gi
 gi.require_version('Gst', '1.0')
@@ -40,11 +40,11 @@ class ReceiverGst(Receiver):
 
         Gst.init(None)
 
-        self.pipeline: Optional[Gst.Pipeline] = None
-        self.appsink: Optional[GstApp.AppSink] = None
-        self.loop: Optional[GLib.MainLoop] = None
+        self.pipeline: Gst.Pipeline | None = None
+        self.appsink: GstApp.AppSink | None = None
+        self.loop: GLib.MainLoop | None = None
 
-        self.latest_pts: Optional[int] = None
+        self.latest_pts: int | None = None
         self.consecutive_old_frames = 0
         self.max_consecutive_old_frames = 60
 
@@ -52,18 +52,18 @@ class ReceiverGst(Receiver):
 
         # Pipeline timing via pad probes (only used when timing_enabled)
         # Track first packet arrival per PTS (for receive timing)
-        self._receive_start_times: Optional[dict[int, float]] = None
+        self._receive_start_times: dict[int, float] | None = None
         # Track decoder entry time per PTS (for decode timing)
-        self._decode_start_times: Optional[dict[int, float]] = None
+        self._decode_start_times: dict[int, float] | None = None
         # Store calculated receive durations to pass through pipeline
-        self._receive_durations: Optional[dict[int, float]] = None
+        self._receive_durations: dict[int, float] | None = None
         # Collect receive timing samples for logging
-        self._timing_receive_samples: Optional[list[float]] = None
+        self._timing_receive_samples: list[float] | None = None
 
         # Cached frame dimensions and pre-allocated buffer
         self._cached_width: int = 0
         self._cached_height: int = 0
-        self._frame_array: Optional[np.ndarray] = None
+        self._frame_array: np.ndarray | None = None
 
     def _setup(self) -> None:
         """Setup GStreamer pipeline."""

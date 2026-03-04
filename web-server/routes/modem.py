@@ -3,7 +3,6 @@ from flask import Response
 from flask.views import MethodView
 import json
 import subprocess
-from typing import Tuple
 
 from routes.response import success, error
 
@@ -13,7 +12,7 @@ blueprint = Blueprint('modem', 'modem', url_prefix='/modem', description='Modem 
 @blueprint.route('/')
 class ModemInfo(MethodView):
     @blueprint.response(200)
-    def get(self) -> Tuple[Response, int]:
+    def get(self) -> tuple[Response, int]:
         try:
             output = subprocess.check_output(
                 ["v3xctrl-modem-info"],
@@ -31,7 +30,7 @@ class ModemInfo(MethodView):
 @blueprint.route('/reset')
 class ModemReset(MethodView):
     @blueprint.response(200)
-    def post(self) -> Tuple[Response, int]:
+    def post(self) -> tuple[Response, int]:
         try:
             subprocess.check_output(
                 ["v3xctrl-modem-reset"],

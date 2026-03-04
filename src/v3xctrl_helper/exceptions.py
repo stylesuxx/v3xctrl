@@ -1,5 +1,3 @@
-from typing import Dict
-
 from v3xctrl_control.message import PeerInfo
 
 
@@ -13,7 +11,7 @@ class PeerRegistrationAborted(Exception):
 
 
 class PeerRegistrationError(Exception):
-    def __init__(self, failures: Dict[str, Exception], successes: Dict[str, PeerInfo]):
+    def __init__(self, failures: dict[str, Exception], successes: dict[str, PeerInfo]):
         self.failures = failures
         self.successes = successes
         failed_ports = list(failures.keys())

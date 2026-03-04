@@ -1,4 +1,4 @@
-from typing import Callable, List
+from collections.abc import Callable
 
 import pygame
 from pygame import Rect, Surface
@@ -48,9 +48,9 @@ class Select(BaseWidget):
 
         self.rect = None
 
-        self.option_surfaces: List[Surface] = []
+        self.option_surfaces: list[Surface] = []
         self.options = []
-        self.option_rects: List[Rect] = []
+        self.option_rects: list[Rect] = []
         self.full_expanded_rect = None
 
         self.label_surface, self.label_rect = self.font.render(label, self.FONT_COLOR)

@@ -1,4 +1,4 @@
-from typing import Optional, Callable
+from collections.abc import Callable
 
 import pygame
 from pygame.freetype import Font
@@ -16,7 +16,7 @@ class NumberInput(BaseInput):
         max_val: int,
         font: Font,
         mono_font: Font,
-        on_change: Optional[Callable[[str], None]] = None,
+        on_change: Callable[[str], None] | None = None,
         input_padding: int = 10
     ) -> None:
         super().__init__(

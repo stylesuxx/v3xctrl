@@ -14,7 +14,8 @@ NOTE: Make sure to add observers before starting the GamepadController, otherwis
 """
 import logging
 import threading
-from typing import Callable, List, Optional, Dict, Set, Tuple, Any
+from typing import Any
+from collections.abc import Callable
 
 import pygame
 from pygame.joystick import JoystickType
@@ -30,21 +31,21 @@ class GamepadController(threading.Thread):
         pygame.joystick.init()
 
         self._lock = threading.Lock()
-        self._gamepads: Dict[str, JoystickType] = {}
-        self._settings: Dict[str, Any] = {}  # Calibration/settings per GUID
-        self._observers: List[Callable[[Dict[str, JoystickType]], None]] = []
+        self._gamepads: dict[str, JoystickType] = {}
+        self._settings: dict[str, Any] = {}  # Calibration/settings per GUID
+        self._observers: list[Callable[[dict[str, JoystickType]], None]] = []
 
-        self._active_guid: Optional[str] = None
-        self._active_gamepad: Optional[JoystickType] = None
-        self._active_settings: Optional[Dict[str, Any]] = None
+        self._active_guid: str | None = None
+        self._active_gamepad: JoystickType | None = None
+        self._active_settings: dict[str, Any] | None = None
 
-        self._previous_guids: Set[str] = set()
+        self._previous_guids: set[str] = set()
 
         self._stop_event = threading.Event()
 
     def run(self) -> None:
         while not self._stop_event.is_set():
-            gamepads: Dict[str, JoystickType] = {}
+            gamepads: dict[str, JoystickType] = {}
             for i in range(pygame.joystick.get_count()):
                 try:
                     js = pygame.joystick.Joystick(i)
@@ -102,38 +103,38 @@ class GamepadController(threading.Thread):
 
     def add_observer(
         self,
-        callback: Callable[[Dict[str, JoystickType]], None]
+        callback: Callable[[dict[str, JoystickType]], None]
     ) -> None:
         with self._lock:
             self._observers.append(callback)
 
-    def get_gamepads(self) -> Dict[str, JoystickType]:
+    def get_gamepads(self) -> dict[str, JoystickType]:
         return self._gamepads
 
     def get_gamepad(self, guid: str) -> JoystickType:
         return self._gamepads[guid]
 
-    def set_calibration(self, guid: str, settings: Dict[str, Any]) -> None:
+    def set_calibration(self, guid: str, settings: dict[str, Any]) -> None:
         with self._lock:
             self._settings[guid] = settings
 
-    def get_calibrations(self) -> Dict[str, Any]:
+    def get_calibrations(self) -> dict[str, Any]:
         return self._settings
 
-    def get_calibration(self, guid: str) -> Dict[str, Any]:
+    def get_calibration(self, guid: str) -> dict[str, Any]:
         return self._settings.get(guid, {})
 
-    def get_active(self) -> Optional[str]:
+    def get_active(self) -> str | None:
         return self._active_guid
 
-    def get_axis_inversion(self) -> Dict[str, bool]:
+    def get_axis_inversion(self) -> dict[str, bool]:
         with self._lock:
             settings = self._active_settings
 
         if not settings:
             return {}
 
-        result: Dict[str, bool] = {}
+        result: dict[str, bool] = {}
         for key, cfg in settings.items():
             if key != "buttons":
                 result[key] = cfg.get("invert", False)
@@ -144,7 +145,7 @@ class GamepadController(threading.Thread):
         with self._lock:
             self._set_active_unlocked(guid)
 
-    def read_inputs(self, apply_deadband: bool = True) -> Optional[Dict[str, float]]:
+    def read_inputs(self, apply_deadband: bool = True) -> dict[str, float] | None:
         with self._lock:
             js = self._active_gamepad
             settings = self._active_settings
@@ -152,7 +153,7 @@ class GamepadController(threading.Thread):
         if not js or not js.get_init() or not settings:
             return None
 
-        values: Dict[str, float] = {}
+        values: dict[str, float] = {}
         for key, cfg in settings.items():
             if key == "buttons":
                 continue
@@ -206,7 +207,7 @@ class GamepadController(threading.Thread):
 
         return values
 
-    def get_button_mapping(self, button_name: str) -> Optional[Any]:
+    def get_button_mapping(self, button_name: str) -> Any | None:
         with self._lock:
             settings = self._active_settings
 
@@ -235,8 +236,8 @@ class GamepadController(threading.Thread):
     def _remap_centered(
         self,
         value: float,
-        calibrated: Tuple[float, float, float],
-        normalized: Tuple[float, float, float]
+        calibrated: tuple[float, float, float],
+        normalized: tuple[float, float, float]
     ) -> float:
         in_min, in_center, in_max = calibrated
         out_min, out_center, out_max = normalized
@@ -264,8 +265,8 @@ class GamepadController(threading.Thread):
     def _remap(
         self,
         value: float,
-        calibrated: Tuple[float, float],
-        normalized: Tuple[float, float]
+        calibrated: tuple[float, float],
+        normalized: tuple[float, float]
     ) -> float:
         in_min, in_max = calibrated
         out_min, out_max = normalized

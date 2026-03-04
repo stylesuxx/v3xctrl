@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Any
+from typing import Any
 from .Message import Message
 
 
@@ -7,8 +7,8 @@ class Telemetry(Message):
 
     def __init__(
         self,
-        v: Dict[str, Any] = {},
-        timestamp: Optional[float] = None
+        v: dict[str, Any] = {},
+        timestamp: float | None = None
     ) -> None:
         super().__init__({
             "v": v
@@ -16,5 +16,5 @@ class Telemetry(Message):
 
         self.values = v
 
-    def get_values(self) -> Dict[str, Any]:
+    def get_values(self) -> dict[str, Any]:
         return self.values

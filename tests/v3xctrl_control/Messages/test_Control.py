@@ -1,13 +1,13 @@
 import unittest
 import msgpack
-from typing import Dict, Any
+from typing import Any
 from v3xctrl_control.message import Message, Control
 
 
 class TestControl(unittest.TestCase):
     def test_roundtrip_and_getters(self) -> None:
         ts = 1_777_888.0
-        payload: Dict[str, Any] = {"steering": -0.5, "throttle": 0.8}
+        payload: dict[str, Any] = {"steering": -0.5, "throttle": 0.8}
         ctrl = Control(v=payload, timestamp=ts)
 
         data = ctrl.to_bytes()

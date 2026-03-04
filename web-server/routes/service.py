@@ -2,7 +2,6 @@ from flask.views import MethodView
 from flask import Response
 from flask_smorest import Blueprint
 import subprocess
-from typing import Tuple
 
 from routes.response import success, error
 
@@ -23,7 +22,7 @@ SERVICES = [
 @blueprint.route('/')
 class ListServices(MethodView):
     @blueprint.response(200, description="List all monitored systemd services with state info")
-    def get(self) -> Tuple[Response, int]:
+    def get(self) -> tuple[Response, int]:
         services = []
 
         for service in SERVICES:
@@ -56,7 +55,7 @@ class ListServices(MethodView):
 @blueprint.route('/<name>')
 class GetService(MethodView):
     @blueprint.response(200, description="Get status of a single systemd service")
-    def get(self, name: str) -> Tuple[Response, int]:
+    def get(self, name: str) -> tuple[Response, int]:
         try:
             output = subprocess.check_output(
                 ["systemctl", "show", name, "--property=Type,ActiveState,Result"],
@@ -83,7 +82,7 @@ class GetService(MethodView):
 @blueprint.route('/<name>/start')
 class StartService(MethodView):
     @blueprint.response(200)
-    def post(self, name: str) -> Tuple[Response, int]:
+    def post(self, name: str) -> tuple[Response, int]:
         try:
             subprocess.run(["sudo", "systemctl", "start", name],
                            check=True, capture_output=True, text=True)
@@ -95,7 +94,7 @@ class StartService(MethodView):
 @blueprint.route('/<name>/stop')
 class StopService(MethodView):
     @blueprint.response(200)
-    def post(self, name: str) -> Tuple[Response, int]:
+    def post(self, name: str) -> tuple[Response, int]:
         try:
             subprocess.run(["sudo", "systemctl", "stop", name],
                            check=True, capture_output=True, text=True)
@@ -107,7 +106,7 @@ class StopService(MethodView):
 @blueprint.route('/<name>/restart')
 class RestartService(MethodView):
     @blueprint.response(200)
-    def post(self, name: str) -> Tuple[Response, int]:
+    def post(self, name: str) -> tuple[Response, int]:
         try:
             subprocess.run(["sudo", "systemctl", "restart", name],
                            check=True, capture_output=True, text=True)
@@ -119,7 +118,7 @@ class RestartService(MethodView):
 @blueprint.route('/<name>/log')
 class ServiceLog(MethodView):
     @blueprint.response(200)
-    def get(self, name: str) -> Tuple[Response, int]:
+    def get(self, name: str) -> tuple[Response, int]:
         output = subprocess.check_output(
             ["journalctl", "-n", "50", "--no-page", "-u", name],
             stderr=subprocess.DEVNULL

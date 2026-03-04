@@ -6,7 +6,6 @@ import json
 import os
 import shutil
 from pathlib import Path
-from typing import Tuple
 
 from routes.response import success, error
 
@@ -16,13 +15,13 @@ blueprint = Blueprint('config', 'config', url_prefix='/config', description='Con
 @blueprint.route('/')
 class Config(MethodView):
     @blueprint.response(200, description="Return current configuration")
-    def get(self) -> Tuple[Response, int]:
+    def get(self) -> tuple[Response, int]:
         config_path: str = str(current_app.config['CONFIG_PATH'])
         with open(config_path) as f:
             return success(json.load(f))
 
     @blueprint.response(200, description="Save configuration and regenerate environment file")
-    def put(self) -> Tuple[Response, int]:
+    def put(self) -> tuple[Response, int]:
         data = request.json
 
         if data is None:
@@ -83,7 +82,7 @@ class Config(MethodView):
 @blueprint.route('/schema')
 class ConfigSchema(MethodView):
     @blueprint.response(200, description="Return configuration JSON schema")
-    def get(self) -> Tuple[Response, int]:
+    def get(self) -> tuple[Response, int]:
         schema_path: str = str(current_app.config['SCHEMA_PATH'])
         with open(schema_path) as f:
             return success(json.load(f))

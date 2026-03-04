@@ -1,4 +1,5 @@
-from typing import Callable, Dict, List, Any
+from typing import Any
+from collections.abc import Callable
 
 from pygame import Surface
 
@@ -31,7 +32,7 @@ class InputTab(Tab):
         self.on_active_toggle = on_active_toggle
         self.gamepad_manager = gamepad_manager
 
-        self.key_widgets: List[KeyMappingWidget] = []
+        self.key_widgets: list[KeyMappingWidget] = []
         keyboard_controls = self.settings.get("controls", {}).get("keyboard", {})
 
         for name, key in keyboard_controls.items():
@@ -59,7 +60,7 @@ class InputTab(Tab):
 
         # Column layout configuration
         self.column_spacing = 20
-        self.keyboard_columns: List[VerticalLayout] = []
+        self.keyboard_columns: list[VerticalLayout] = []
 
         self._add_headline("keyboard", t("Keyboard"))
         self._add_headline("input", t("Input device"), True)
@@ -74,7 +75,7 @@ class InputTab(Tab):
         y = self._draw_keyboard_section(surface, 0)
         y = self._draw_input_section(surface, y)
 
-    def get_settings(self) -> Dict[str, Any]:
+    def get_settings(self) -> dict[str, Any]:
         return {
             "input": {
                 "guid": self.calibration_widget.get_selected_guid()

@@ -1,4 +1,4 @@
-from typing import Tuple, Dict, Any
+from typing import Any
 
 from pygame import Surface, Rect, SRCALPHA, draw
 
@@ -9,7 +9,7 @@ from v3xctrl_ui.osd.widgets.Widget import Widget
 
 
 class StatusWidget(Widget):
-    STATUS_COLORS: Dict[str, Any] = {
+    STATUS_COLORS: dict[str, Any] = {
         "waiting": YELLOW,
         "success": GREEN,
         "fail": RED,
@@ -21,7 +21,7 @@ class StatusWidget(Widget):
 
     def __init__(
         self,
-        position: Tuple[int, int],
+        position: tuple[int, int],
         size: int,
         label: str,
         padding: int = 8

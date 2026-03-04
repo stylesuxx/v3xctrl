@@ -1,4 +1,3 @@
-from typing import Dict, Tuple
 
 import pygame
 
@@ -15,12 +14,12 @@ class InputController:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
         self.gamepad_controller = GamepadController()
-        self.key_handlers: Dict[str, KeyAxisHandler] = {}
+        self.key_handlers: dict[str, KeyAxisHandler] = {}
 
         self._setup_gamepad_controller()
         self._setup_key_handlers()
 
-    def read_inputs(self) -> Tuple[float, float]:
+    def read_inputs(self) -> tuple[float, float]:
         """Read current input values. Returns (throttle, steering)."""
         pressed_keys = pygame.key.get_pressed()
         gamepad_inputs = self.gamepad_controller.read_inputs()

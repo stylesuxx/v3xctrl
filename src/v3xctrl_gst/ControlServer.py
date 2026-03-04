@@ -3,7 +3,7 @@ import logging
 import os
 import socket
 import threading
-from typing import Optional, Dict, Any, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from v3xctrl_gst.Command import Command, CommandValidationError
 
@@ -35,8 +35,8 @@ class ControlServer:
             'recording': self._handle_recording,
         }
 
-        self.server_socket: Optional[socket.socket] = None
-        self.thread: Optional[threading.Thread] = None
+        self.server_socket: socket.socket | None = None
+        self.thread: threading.Thread | None = None
         self.running = False
 
     def start(self) -> None:
@@ -147,7 +147,7 @@ class ControlServer:
         finally:
             client_socket.close()
 
-    def _handle_recording(self, command: Command) -> Dict[str, Any]:
+    def _handle_recording(self, command: Command) -> dict[str, Any]:
         value = command.value
         if value is None:
             return {'status': 'error', 'message': 'Missing value'}
@@ -163,14 +163,14 @@ class ControlServer:
         else:
             return {'status': 'error', 'message': 'Unrecognized value'}
 
-    def _handle_stats(self, command: Command) -> Dict[str, Any]:
+    def _handle_stats(self, command: Command) -> dict[str, Any]:
         return self.streamer.get_stats()
 
-    def _handle_stop(self, command: Command) -> Dict[str, Any]:
+    def _handle_stop(self, command: Command) -> dict[str, Any]:
         self.streamer.stop()
         return {'status': 'success', 'message': 'Pipeline stopped'}
 
-    def _handle_list(self, command: Command) -> Dict[str, Any]:
+    def _handle_list(self, command: Command) -> dict[str, Any]:
         properties = self.streamer.list_properties(command.element)
         return {
             'status': 'success' if properties is not None else 'error',
@@ -178,7 +178,7 @@ class ControlServer:
             'properties': self._serialize_properties(properties)
         }
 
-    def _handle_get(self, command: Command) -> Dict[str, Any]:
+    def _handle_get(self, command: Command) -> dict[str, Any]:
         value = self.streamer.get_property(command.element, command.property)
         return {
             'status': 'success' if value is not None else 'error',
@@ -187,7 +187,7 @@ class ControlServer:
             'value': self._serialize_value(value)
         }
 
-    def _handle_set(self, command: Command) -> Dict[str, Any]:
+    def _handle_set(self, command: Command) -> dict[str, Any]:
         success = self.streamer.set_property(
             command.element,
             command.property,
@@ -205,7 +205,7 @@ class ControlServer:
             'value': self._serialize_value(value)
         }
 
-    def _execute_command(self, command: Command) -> Dict[str, Any]:
+    def _execute_command(self, command: Command) -> dict[str, Any]:
         handler = self._command_handlers.get(command.action)
         if handler:
             return handler(command)
@@ -225,10 +225,10 @@ class ControlServer:
         Returns:
             JSON-serializable representation of the value
         """
-        if value is None or isinstance(value, (str, int, float, bool)):
+        if value is None or isinstance(value, str | int | float | bool):
             return value
 
-        elif isinstance(value, (list, tuple)):
+        elif isinstance(value, list | tuple):
             return [self._serialize_value(v) for v in value]
 
         elif isinstance(value, dict):

@@ -1,4 +1,4 @@
-from typing import Callable, List
+from collections.abc import Callable
 
 import pygame
 from pygame import Surface
@@ -21,7 +21,7 @@ class DialogBox(BaseWidget):
     def __init__(
         self,
         title: str,
-        lines: List[str],
+        lines: list[str],
         button_label: str,
         on_confirm: Callable[[], None]
     ) -> None:
@@ -29,7 +29,7 @@ class DialogBox(BaseWidget):
 
         self.title = title
         self.original_lines = lines
-        self.wrapped_lines: List[str] = []
+        self.wrapped_lines: list[str] = []
         self.button_label = button_label
         self.on_confirm = on_confirm
         self.visible = False
@@ -55,7 +55,7 @@ class DialogBox(BaseWidget):
     def hide(self) -> None:
         self.visible = False
 
-    def set_text(self, lines: List[str]) -> None:
+    def set_text(self, lines: list[str]) -> None:
         self.original_lines = lines
 
     def handle_event(self, event: pygame.event.Event) -> bool:
@@ -68,8 +68,8 @@ class DialogBox(BaseWidget):
         self.hide()
         self.on_confirm()
 
-    def _wrap_text(self, max_width: int) -> List[str]:
-        wrapped: List[str] = []
+    def _wrap_text(self, max_width: int) -> list[str]:
+        wrapped: list[str] = []
         for line in self.original_lines:
             words = line.split()
             current = ""

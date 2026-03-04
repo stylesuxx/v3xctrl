@@ -7,7 +7,8 @@ The only public interface is the get_telemetry() method.
 from atlib import AIR780EU
 from dataclasses import asdict
 import logging
-from typing import Callable, Dict, Optional, Any, TypeVar
+from collections.abc import Callable
+from typing import Any, TypeVar
 import threading
 import time
 
@@ -57,7 +58,7 @@ class Telemetry(threading.Thread):
         self._running = threading.Event()
         self._lock = threading.Lock()
 
-        self._modem: Optional[AIR780EU] = None
+        self._modem: AIR780EU | None = None
         self._sim_absent = False
         self._sim_recheck_counter = 0
         self._init_modem()
@@ -77,7 +78,7 @@ class Telemetry(threading.Thread):
         self._videocore = self._init_component("VideoCore", VideoCoreTelemetry)
         self._gst = self._init_component("GST", GstTelemetry)
 
-    def get_telemetry(self) -> Dict[str, Any]:
+    def get_telemetry(self) -> dict[str, Any]:
         with self._lock:
             return asdict(self.payload)
 
@@ -98,7 +99,7 @@ class Telemetry(threading.Thread):
     def stop(self) -> None:
         self._running.clear()
 
-    def _init_component(self, name: str, factory: Callable[[], T]) -> Optional[T]:
+    def _init_component(self, name: str, factory: Callable[[], T]) -> T | None:
         try:
             return factory()
 

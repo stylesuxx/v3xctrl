@@ -1,6 +1,6 @@
 import argparse
 import logging
-from typing import Dict, Any
+from typing import Any
 
 from v3xctrl_control.message import PeerAnnouncement
 from v3xctrl_gst.Streamer import Streamer
@@ -77,7 +77,7 @@ def main() -> None:
         format="%(asctime)s - %(levelname)s - %(message)s"
     )
 
-    settings: Dict[str, Any] = {
+    settings: dict[str, Any] = {
         'width': args.width,
         'height': args.height,
         'framerate': args.framerate,

@@ -20,7 +20,6 @@ from queue import Queue, Empty
 import socket
 import threading
 import time
-from typing import Optional
 import concurrent.futures
 
 from v3xctrl_helper import Address
@@ -38,7 +37,7 @@ class UDPTransmitter(threading.Thread):
         self.queue: Queue[UDPPacket] = Queue()
 
         self.loop = asyncio.new_event_loop()
-        self.task: Optional[concurrent.futures.Future[None]] = None
+        self.task: concurrent.futures.Future[None] | None = None
 
         self._running = threading.Event()
         self.process_stopped = threading.Event()

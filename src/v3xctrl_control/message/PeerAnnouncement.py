@@ -1,4 +1,3 @@
-from typing import Optional
 from .Message import Message
 
 
@@ -8,7 +7,7 @@ class PeerAnnouncement(Message):
         r: str,
         i: str,
         p: str,
-        timestamp: Optional[float] = None
+        timestamp: float | None = None
     ) -> None:
         super().__init__({
             "r": r,

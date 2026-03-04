@@ -3,7 +3,7 @@ from collections import deque
 import logging
 import threading
 import time
-from typing import Callable, Deque, Optional
+from collections.abc import Callable
 
 import numpy as np
 import numpy.typing as npt
@@ -93,22 +93,22 @@ class Receiver(ABC, threading.Thread):
 
         self.running = threading.Event()
         self.frame_lock = threading.Lock()
-        self.frame: Optional[npt.NDArray[np.uint8]] = None
+        self.frame: npt.NDArray[np.uint8] | None = None
 
         # Frame monitoring
-        self.render_history: Deque[float] = deque(maxlen=history_size)
-        self.frame_receive_history: Deque[float] = deque(maxlen=history_size)
+        self.render_history: deque[float] = deque(maxlen=history_size)
+        self.frame_receive_history: deque[float] = deque(maxlen=history_size)
 
         self.max_frame_buffer_size = 300
-        self.frame_buffer: Deque[npt.NDArray[np.uint8]] = deque(maxlen=self.max_frame_buffer_size)
+        self.frame_buffer: deque[npt.NDArray[np.uint8]] = deque(maxlen=self.max_frame_buffer_size)
 
         # End-to-end timing (decode to display)
         self.timing_enabled = False
-        self.frame_timestamps: Deque[float] = deque(maxlen=self.max_frame_buffer_size)
-        self.last_displayed_decode_time: Optional[float] = None
-        self.decode_durations: Deque[float] = deque(maxlen=self.max_frame_buffer_size)
-        self.timing_decode_samples: Deque[float] = deque(maxlen=100)
-        self.timing_buffer_samples: Deque[float] = deque(maxlen=100)
+        self.frame_timestamps: deque[float] = deque(maxlen=self.max_frame_buffer_size)
+        self.last_displayed_decode_time: float | None = None
+        self.decode_durations: deque[float] = deque(maxlen=self.max_frame_buffer_size)
+        self.timing_decode_samples: deque[float] = deque(maxlen=100)
+        self.timing_buffer_samples: deque[float] = deque(maxlen=100)
         self.timing_log_interval = 30
 
         self.packet_count = 0
@@ -164,7 +164,7 @@ class Receiver(ABC, threading.Thread):
                 # Log cleanup errors but don't let them crash the receiver
                 logging.exception(f"Error during cleanup: {e}")
 
-    def get_frame(self) -> Optional[npt.NDArray[np.uint8]]:
+    def get_frame(self) -> npt.NDArray[np.uint8] | None:
         now = time.monotonic()
         log_data = None
         decode_duration = None

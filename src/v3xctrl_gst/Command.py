@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Dict, Literal, Optional, get_args
+from typing import Any, Literal, get_args
 
 
 ActionType = Literal['stop', 'list', 'get', 'set', 'recording', 'stats']
@@ -15,10 +15,10 @@ class CommandValidationError(Exception):
 class Command:
     """Represents a control command."""
     action: ActionType
-    element: Optional[str] = None
-    property: Optional[str] = None
-    value: Optional[Any] = None
-    properties: Optional[Dict[str, Any]] = None
+    element: str | None = None
+    property: str | None = None
+    value: Any | None = None
+    properties: dict[str, Any] | None = None
 
     def validate(self) -> None:
         """

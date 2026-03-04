@@ -2,7 +2,6 @@ import argparse
 import logging
 import threading
 import time
-from typing import Dict
 
 from v3xctrl_punch.examples.TestPeer import TestPeer
 from v3xctrl_punch.PunchPeer import PunchPeer
@@ -23,7 +22,7 @@ DEFAULT_RENDEZVOUS_PORT = 8888
 
 
 class TestClient(TestPeer):
-    def __init__(self, ports: Dict[str, int], addresses: Dict[str, PeerInfo]) -> None:
+    def __init__(self, ports: dict[str, int], addresses: dict[str, PeerInfo]) -> None:
         super().__init__(ports, addresses)
 
         self.remote_video_addr_formatted = f"{self.remote_video_addr[0]}:{self.remote_video_addr[1]}"

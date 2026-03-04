@@ -1,4 +1,4 @@
-from typing import Dict, List, Any
+from typing import Any
 from pathlib import Path
 import copy
 
@@ -10,7 +10,7 @@ import pygame
 
 
 class Settings:
-    DEFAULTS: Dict[str, Any] = {
+    DEFAULTS: dict[str, Any] = {
         "controls": {
           "keyboard": {
               "throttle_up": pygame.K_w,
@@ -178,7 +178,7 @@ class Settings:
         if key in self.settings:
             del self.settings[key]
 
-    def _merge(self, base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
+    def _merge(self, base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
         for key, value in override.items():
             if (
                 key in base
@@ -190,13 +190,13 @@ class Settings:
                 base[key] = value
         return base
 
-    def _serialize(self, data: Dict[str, Any]) -> Dict[str, Any] | List[Any]:
+    def _serialize(self, data: dict[str, Any]) -> dict[str, Any] | list[Any]:
         if "controls" in data:
             data = data.copy()
             data["controls"] = self._serialize_controls(data["controls"])
         return self._remove_none(data)
 
-    def _remove_none(self, obj: object) -> Dict[str, Any] | List[Any] | object:
+    def _remove_none(self, obj: object) -> dict[str, Any] | list[Any] | object:
         if isinstance(obj, dict):
             return {k: self._remove_none(v) for k, v in obj.items() if v is not None}
         elif isinstance(obj, list):
@@ -204,20 +204,20 @@ class Settings:
         else:
             return obj
 
-    def _deserialize(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _deserialize(self, data: dict[str, Any]) -> dict[str, Any]:
         if "controls" in data:
             data = data.copy()
             data["controls"] = self._deserialize_controls(data["controls"])
 
         return data
 
-    def _serialize_controls(self, controls: Dict[str, Any]) -> Dict[str, Any]:
+    def _serialize_controls(self, controls: dict[str, Any]) -> dict[str, Any]:
         return {
             device: {k: self._key_to_string(v) for k, v in bindings.items()}
             for device, bindings in controls.items()
         }
 
-    def _deserialize_controls(self, controls: Dict[str, Any]) -> Dict[str, Any]:
+    def _deserialize_controls(self, controls: dict[str, Any]) -> dict[str, Any]:
         return {
             device: {k: self._string_to_key(v) for k, v in bindings.items()}
             for device, bindings in controls.items()

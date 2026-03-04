@@ -1,4 +1,4 @@
-from typing import Callable, Tuple, Optional, Dict
+from collections.abc import Callable
 
 import pygame
 from pygame import Rect, Surface
@@ -38,8 +38,8 @@ class Button(BaseWidget):
         label: str,
         font: Font,
         callback: Callable[[], None],
-        width: Optional[int] = None,
-        height: Optional[int] = None,
+        width: int | None = None,
+        height: int | None = None,
         border_radius: int = BORDER_RADIUS,
     ) -> None:
         super().__init__()
@@ -71,7 +71,7 @@ class Button(BaseWidget):
 
         self._render_label(self.FONT_COLOR)
 
-        self.cached_surfaces: Dict[str, Surface] = {}
+        self.cached_surfaces: dict[str, Surface] = {}
         self._render_all_button_states()
         self._current_state = 'normal'
 
@@ -142,7 +142,7 @@ class Button(BaseWidget):
     def _update_label_position(self) -> None:
         self.label_rect.center = self.rect.center
 
-    def _render_label(self, color: Tuple[int, int, int]) -> None:
+    def _render_label(self, color: tuple[int, int, int]) -> None:
         self.label_surface = render_text_full_height(self.font, self.label, color)
         self.label_rect = self.label_surface.get_rect(center=self.rect.center)
 

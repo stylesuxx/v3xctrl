@@ -2,11 +2,6 @@ from collections import deque
 import logging
 import pygame
 import time
-from typing import (
-  Optional,
-  Dict,
-  List,
-)
 
 from v3xctrl_control.message import Message, Latency, Telemetry
 
@@ -41,21 +36,21 @@ class OSD:
         self.widget_settings = {}
         self.update_settings(settings)
 
-        self.debug_data: Optional[str] = None
-        self.debug_latency: Optional[str] = None
-        self.debug_buffer: Optional[str] = None
-        self.loop_history: Optional[deque[float]] = None
-        self.video_history: Optional[deque[float]] = None
+        self.debug_data: str | None = None
+        self.debug_latency: str | None = None
+        self.debug_buffer: str | None = None
+        self.loop_history: deque[float] | None = None
+        self.video_history: deque[float] | None = None
         self.is_spectator: bool = False
         self.throttle: float = 0.0
         self.steering: float = 0.0
 
-        self.widgets_debug: Dict[str, Widget] = {}
-        self.widgets_signal: Dict[str, Widget] = {}
-        self.widgets_battery: Dict[str, Widget] = {}
-        self.widgets_rec: Dict[str, Widget] = {}
-        self.widgets_steering: Dict[str, Widget] = {}
-        self.widgets_clock: Dict[str, Widget] = {}
+        self.widgets_debug: dict[str, Widget] = {}
+        self.widgets_signal: dict[str, Widget] = {}
+        self.widgets_battery: dict[str, Widget] = {}
+        self.widgets_rec: dict[str, Widget] = {}
+        self.widgets_steering: dict[str, Widget] = {}
+        self.widgets_clock: dict[str, Widget] = {}
 
         self._init_widgets_debug()
         self._init_widgets_signal()
@@ -67,7 +62,7 @@ class OSD:
         self.reset()
 
         # Create unified widget groups for rendering
-        self.widget_groups: List[WidgetGroup] = [
+        self.widget_groups: list[WidgetGroup] = [
             WidgetGroup.create(
                 name="steering",
                 widgets=self.widgets_steering,

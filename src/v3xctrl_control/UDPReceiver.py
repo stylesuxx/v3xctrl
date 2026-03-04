@@ -18,7 +18,7 @@ import select
 import socket
 import threading
 import time
-from typing import Callable, Tuple, Optional
+from collections.abc import Callable
 
 from v3xctrl_helper import Address
 
@@ -40,7 +40,7 @@ class UDPReceiver(threading.Thread):
     def __init__(
         self,
         sock: socket.socket,
-        handler: Callable[[Message, Tuple[str, int]], None],
+        handler: Callable[[Message, tuple[str, int]], None],
         timeout_ms: int = 100,
         window_ms: int = 500,
         should_validate_timestamp: bool = False,
@@ -59,14 +59,14 @@ class UDPReceiver(threading.Thread):
 
         self._should_validate_timestamp = should_validate_timestamp
         self._should_validate_host = False
-        self._expected_host: Optional[str] = None
+        self._expected_host: str | None = None
 
         self._running = threading.Event()
 
-        self._queue: queue.Queue[Tuple[Message, Address]] = queue.Queue(maxsize=100)
+        self._queue: queue.Queue[tuple[Message, Address]] = queue.Queue(maxsize=100)
         self._worker_thread = threading.Thread(target=self._worker_loop, daemon=True)
 
-    def is_valid_message(self, message: Message, addr: Tuple[str, int]) -> bool:
+    def is_valid_message(self, message: Message, addr: tuple[str, int]) -> bool:
         if isinstance(message, PeerInfo):
             logging.debug("Skipping PeerInfo - already set up")
             return False

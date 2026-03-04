@@ -1,4 +1,4 @@
-from typing import Dict, Any, List, Tuple
+from typing import Any
 
 from pygame import Surface
 
@@ -12,7 +12,7 @@ from .VerticalLayout import VerticalLayout
 
 
 # (settings_key, label)
-CHECKBOX_CONFIG: List[Tuple[str, str]] = [
+CHECKBOX_CONFIG: list[tuple[str, str]] = [
     ("debug", "Enable Debug Overlay"),
     ("steering", "Show Steering indicator"),
     ("throttle", "Show Throttle indicator"),
@@ -41,7 +41,7 @@ class OsdTab(Tab):
         super().__init__(settings, width, height, padding, y_offset)
 
         # Create checkboxes from config
-        self.checkboxes: Dict[str, Checkbox] = {}
+        self.checkboxes: dict[str, Checkbox] = {}
         for key, label in CHECKBOX_CONFIG:
             self.checkboxes[key] = Checkbox(
                 label=t(label), font=LABEL_FONT,
@@ -62,7 +62,7 @@ class OsdTab(Tab):
     def draw(self, surface: Surface) -> None:
         _ = self._draw_debug_section(surface, 0)
 
-    def get_settings(self) -> Dict[str, Any]:
+    def get_settings(self) -> dict[str, Any]:
         return {
             "widgets": self.widgets
         }

@@ -3,7 +3,6 @@ import select
 import socket
 import threading
 import time
-from typing import Optional, Tuple
 
 from v3xctrl_control.message import Heartbeat
 
@@ -24,14 +23,14 @@ class UdpVideoProxy(threading.Thread):
     def __init__(
         self,
         video_port: int,
-        relay_address: Tuple[str, int],
+        relay_address: tuple[str, int],
     ) -> None:
         super().__init__(daemon=True)
         self.video_port = video_port
         self.relay_address = relay_address
         self._running = threading.Event()
-        self._external_sock: Optional[socket.socket] = None
-        self._forward_sock: Optional[socket.socket] = None
+        self._external_sock: socket.socket | None = None
+        self._forward_sock: socket.socket | None = None
         self.local_port: int = 0
 
     def start_proxy(self) -> bool:
