@@ -1,5 +1,5 @@
 from enum import IntEnum
-from typing import Tuple, Dict, Any
+from typing import Any
 
 from pygame import Surface, SRCALPHA
 from material_icons import IconStyle
@@ -29,7 +29,7 @@ class SignalQualityWidget(Widget):
     SPACING_RATIO = 0.05
     PADDING = 16
 
-    def __init__(self, position: Tuple[int, int], size: Tuple[int, int]) -> None:
+    def __init__(self, position: tuple[int, int], size: tuple[int, int]) -> None:
         super().__init__()
 
         self.position = position
@@ -64,7 +64,7 @@ class SignalQualityWidget(Widget):
         self.top_bottom_padding = 2 * self.bar_spacing
         self.bar_max_height = self.height - 2 * self.top_bottom_padding
 
-    def draw(self, screen: Surface, signal: Dict[str, Any]) -> None:
+    def draw(self, screen: Surface, signal: dict[str, Any]) -> None:
         rsrp = signal.get('rsrp')
         rsrq = signal.get('rsrq')
 

@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, Callable, Optional, Tuple, List
+from typing import TYPE_CHECKING
+from collections.abc import Callable
 import logging
 import time
 import math
@@ -24,7 +25,7 @@ class Renderer:
     """
     Rendering display content
     """
-    def __init__(self, size: Tuple[int, int], settings: Settings) -> None:
+    def __init__(self, size: tuple[int, int], settings: Settings) -> None:
         self.video_width = size[0]
         self.video_height = size[1]
         self.video_size = size
@@ -50,7 +51,7 @@ class Renderer:
         )
 
         # Splash logo (loaded lazily after display is initialized)
-        self._splash_logo: Optional[pygame.Surface] = None
+        self._splash_logo: pygame.Surface | None = None
         self._splash_logo_loaded = False
 
     @property
@@ -104,7 +105,7 @@ class Renderer:
 
         pygame.display.flip()
 
-    def _get_video_frame(self, network_manager: NetworkController) -> Optional[npt.NDArray[np.uint8]]:
+    def _get_video_frame(self, network_manager: NetworkController) -> npt.NDArray[np.uint8] | None:
         """Get the current video frame if available."""
         if not network_manager.video_receiver:
             return None
@@ -138,7 +139,7 @@ class Renderer:
     def _render_text(
         self,
         screen: pygame.Surface,
-        lines: List[Tuple[str, Optional[str]]],
+        lines: list[tuple[str, str | None]],
         x: int,
         y: int,
     ):
@@ -169,7 +170,7 @@ class Renderer:
                 val_rect.topleft = (val_x, y)
                 screen.blit(val_surf, val_rect)
 
-    def _get_splash_logo(self) -> Optional[pygame.Surface]:
+    def _get_splash_logo(self) -> pygame.Surface | None:
         if not self._splash_logo_loaded:
             self._splash_logo_loaded = True
             if getattr(sys, 'frozen', False):
@@ -280,7 +281,7 @@ class Renderer:
     def _render_relay_status_screen(
         self,
         msg: str,
-        offset: Tuple[int, int],
+        offset: tuple[int, int],
         screen: pygame.Surface
     ) -> None:
         now = time.monotonic()
@@ -296,7 +297,7 @@ class Renderer:
         """Video and control ports are fixed with the relay."""
         ports = self.settings.get("ports")
         relay_settings = self.settings.get("relay")
-        data: List[Tuple[str, Optional[str]]] = [
+        data: list[tuple[str, str | None]] = [
             ("STREAMER SETUP", None),
             ("Mode", "relay"),
             ("Relay Server", relay_settings.get("server")),
@@ -312,7 +313,7 @@ class Renderer:
     def _render_direct_connection_info(self, screen: pygame.Surface) -> None:
         """Render IP and port information."""
         ports = self.settings.get("ports")
-        data: List[Tuple[str, Optional[str]]] = [
+        data: list[tuple[str, str | None]] = [
             ("STREAMER SETUP", None),
             ("Mode", "direct"),
             ("Host", self.ip),

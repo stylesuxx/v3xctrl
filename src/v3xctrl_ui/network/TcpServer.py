@@ -16,7 +16,6 @@ import logging
 import select
 import socket
 import threading
-from typing import Optional
 
 from v3xctrl_tcp.framing import recv_message, send_message
 
@@ -33,19 +32,19 @@ class TcpServer:
         self._threads: list[threading.Thread] = []
 
     @property
-    def ephemeral_video_port(self) -> Optional[int]:
+    def ephemeral_video_port(self) -> int | None:
         """UDP ephemeral port used for video forwarding (E1)."""
         return self._video_udp_port
 
     @property
-    def ephemeral_control_port(self) -> Optional[int]:
+    def ephemeral_control_port(self) -> int | None:
         """UDP ephemeral port used for control forwarding (E2)."""
         return self._control_udp_port
 
     def start(self) -> None:
         self._stop_event.clear()
-        self._video_udp_port: Optional[int] = None
-        self._control_udp_port: Optional[int] = None
+        self._video_udp_port: int | None = None
+        self._control_udp_port: int | None = None
 
         video_thread = threading.Thread(
             target=self._run_channel,
@@ -129,7 +128,7 @@ class TcpServer:
         bidirectional: bool,
     ) -> None:
         """Handle a single TCP connection, forwarding data to/from UDP."""
-        outbound_thread: Optional[threading.Thread] = None
+        outbound_thread: threading.Thread | None = None
 
         if bidirectional:
             # Start outbound thread: UDP replies on ephemeral port -> TCP

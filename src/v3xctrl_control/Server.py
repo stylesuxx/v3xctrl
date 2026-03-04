@@ -2,7 +2,7 @@ from concurrent.futures import ThreadPoolExecutor
 import logging
 import threading
 import time
-from typing import Dict, Callable, Optional
+from collections.abc import Callable
 import socket
 
 from v3xctrl_helper import Address
@@ -31,7 +31,7 @@ class Server(Base):
         self.transmitter = UDPTransmitter(self.socket, ttl_ms)
         self.message_handler = MessageHandler(self.socket)
 
-        self.pending_commands: Dict[str, Callable[[bool], None] | None] = {}
+        self.pending_commands: dict[str, Callable[[bool], None] | None] = {}
         self.pending_lock = threading.Lock()
 
         self.thread_pool = ThreadPoolExecutor(
@@ -63,7 +63,7 @@ class Server(Base):
     def send_command(
         self,
         command: Command,
-        callback: Optional[Callable[[bool], None]] = None,
+        callback: Callable[[bool], None] | None = None,
         max_retries: int = 10
     ) -> None:
         """Sends a command up to max_retries or until answer is received."""

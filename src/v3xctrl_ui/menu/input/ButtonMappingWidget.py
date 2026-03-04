@@ -1,4 +1,5 @@
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any
+from collections.abc import Callable
 
 import pygame
 from pygame import Surface
@@ -8,9 +9,9 @@ from v3xctrl_ui.menu.input import Button, BaseWidget
 from v3xctrl_ui.utils.colors import WHITE
 
 # Mapping value is either an int (button index) or a dict (hat mapping)
-MappingValue = Optional[Union[int, Dict[str, Any]]]
+MappingValue = int | dict[str, Any] | None
 
-HAT_DIRECTION_NAMES: Dict[Tuple[int, int], str] = {
+HAT_DIRECTION_NAMES: dict[tuple[int, int], str] = {
     (0, 1): "Up",
     (0, -1): "Down",
     (-1, 0): "Left",
@@ -43,7 +44,7 @@ class ButtonMappingWidget(BaseWidget):
     BAR_HEIGHT = 30  # Match GamepadCalibrationWidget.BAR_HEIGHT for alignment
 
     @property
-    def hover_children(self) -> List[BaseWidget]:
+    def hover_children(self) -> list[BaseWidget]:
         return [self.remap_button, self.reset_button]
 
     def __init__(

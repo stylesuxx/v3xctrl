@@ -1,4 +1,4 @@
-from typing import Callable, List
+from collections.abc import Callable
 
 import pygame
 from pygame import Surface
@@ -12,7 +12,7 @@ class KeyMappingWidget(BaseWidget):
     FONT_COLOR = WHITE
 
     @property
-    def hover_children(self) -> List[BaseWidget]:
+    def hover_children(self) -> list[BaseWidget]:
         return [self.remap_button]
 
     def __init__(

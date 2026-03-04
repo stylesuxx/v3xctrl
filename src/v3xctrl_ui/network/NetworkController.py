@@ -1,7 +1,7 @@
 import logging
 import threading
 import time
-from typing import Any, Dict, Optional
+from typing import Any
 
 from v3xctrl_control import Server
 from v3xctrl_control.message import Latency
@@ -15,7 +15,7 @@ from v3xctrl_ui.network.NetworkSetup import NetworkSetup
 class NetworkController:
     """Manages network connections, relay setup, and server communications."""
 
-    def __init__(self, settings: Settings, handlers: Dict[str, Any]) -> None:
+    def __init__(self, settings: Settings, handlers: dict[str, Any]) -> None:
         self.settings = settings
         self.server_handlers = handlers
 
@@ -26,11 +26,11 @@ class NetworkController:
         # Network state
         self.video_receiver = None
         self.video_keep_alive = None
-        self.server: Optional[Server] = None
+        self.server: Server | None = None
         self.server_error = None
-        self.tcp_server: Optional[TcpServer] = None
-        self.tcp_video_tunnel: Optional[TcpTunnel] = None
-        self.tcp_control_tunnel: Optional[TcpTunnel] = None
+        self.tcp_server: TcpServer | None = None
+        self.tcp_video_tunnel: TcpTunnel | None = None
+        self.tcp_control_tunnel: TcpTunnel | None = None
 
         # Relay state
         self.relay_status_message = "Waiting for streamer..."
@@ -39,8 +39,8 @@ class NetworkController:
         self.relay_port = 8888
         self.relay_id = None
         self.relay_spectator_mode = False
-        self._setup: Optional[NetworkSetup] = None
-        self._setup_thread: Optional[threading.Thread] = None
+        self._setup: NetworkSetup | None = None
+        self._setup_thread: threading.Thread | None = None
 
         self._setup_relay_if_enabled()
 

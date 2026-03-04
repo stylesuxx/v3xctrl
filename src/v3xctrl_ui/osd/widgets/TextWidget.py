@@ -1,6 +1,4 @@
 from enum import Enum
-from typing import Tuple
-
 from pygame import Surface, SRCALPHA
 
 from v3xctrl_ui.utils.colors import WHITE, GREY
@@ -18,7 +16,7 @@ class Alignment(Enum):
 class TextWidget(Widget):
     def __init__(
         self,
-        position: Tuple[int, int],
+        position: tuple[int, int],
         length: int,
         top_padding: int = 5,
         bottom_padding: int = 3,
@@ -58,10 +56,10 @@ class TextWidget(Widget):
     def set_alignment(self, align: Alignment) -> None:
         self.alignment = align
 
-    def set_text_color(self, color: Tuple[int, int, int]) -> None:
+    def set_text_color(self, color: tuple[int, int, int]) -> None:
         self.color = color
 
-    def set_background_color(self, color: Tuple[int, int, int], alpha: int = 180) -> None:
+    def set_background_color(self, color: tuple[int, int, int], alpha: int = 180) -> None:
         self.bg_color = color
         self.background_alpha = alpha
         self._create_background()

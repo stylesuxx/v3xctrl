@@ -3,7 +3,6 @@ import select
 import socket
 import time
 import threading
-from typing import Dict, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from v3xctrl_control.message import (
@@ -34,12 +33,12 @@ class Peer:
         self._finalized_event.set()
 
         self._heartbeat_thread = None
-        self._heartbeat_socket: Optional[socket.socket] = None
+        self._heartbeat_socket: socket.socket | None = None
 
-    def setup(self, role: str, ports: Dict[str, int]) -> Dict[str, Address]:
+    def setup(self, role: str, ports: dict[str, int]) -> dict[str, Address]:
         self._finalized_event.clear()
 
-        sockets: Dict[str, socket.socket] = {}
+        sockets: dict[str, socket.socket] = {}
         try:
             for port_type, port in ports.items():
                 upper_pt = port_type.upper()
@@ -155,9 +154,9 @@ class Peer:
 
         raise InterruptedError(f"Registration aborted for {port_type}")
 
-    def _register_all(self, sockets: Dict[str, socket.socket], role: str) -> Dict[str, PeerInfo]:
-        results: Dict[str, PeerInfo] = {}
-        exceptions: Dict[str, Exception] = {}
+    def _register_all(self, sockets: dict[str, socket.socket], role: str) -> dict[str, PeerInfo]:
+        results: dict[str, PeerInfo] = {}
+        exceptions: dict[str, Exception] = {}
 
         with ThreadPoolExecutor(max_workers=len(sockets)) as executor:
             future_to_port = {
@@ -185,7 +184,7 @@ class Peer:
 
         return results
 
-    def _finalize_sockets(self, sockets: Dict[str, socket.socket]) -> None:
+    def _finalize_sockets(self, sockets: dict[str, socket.socket]) -> None:
         for sock in sockets.values():
             sock.settimeout(None)
             sock.close()

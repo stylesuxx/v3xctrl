@@ -1,4 +1,4 @@
-from typing import Dict, List, Any
+from typing import Any
 
 from pygame import Surface
 
@@ -48,7 +48,7 @@ class GeneralTab(Tab):
             on_change=lambda value: self._on_render_ratio_change(value)
         )
 
-        self.general_widgets: List[BaseInput | BaseWidget] = [
+        self.general_widgets: list[BaseInput | BaseWidget] = [
             self.fullscreen_enabled_checkbox,
             self.show_connection_info_checkbox,
             self.render_ratio_input
@@ -67,7 +67,7 @@ class GeneralTab(Tab):
     def draw(self, surface: Surface) -> None:
         _ = self._draw_general_section(surface, 0)
 
-    def get_settings(self) -> Dict[str, Any]:
+    def get_settings(self) -> dict[str, Any]:
         return {
             "show_connection_info": self.show_connection_info,
             "video": self.video,

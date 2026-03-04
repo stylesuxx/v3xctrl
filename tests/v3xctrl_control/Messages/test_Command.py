@@ -1,13 +1,13 @@
 import unittest
 import msgpack
-from typing import Dict, Any, Set
+from typing import Any
 from v3xctrl_control.message import Message, Command
 
 
 class TestCommand(unittest.TestCase):
     def test_roundtrip_and_getters(self) -> None:
         ts = 1_701_234.0
-        params: Dict[str, Any] = {"speed": "fast", "priority": 3}
+        params: dict[str, Any] = {"speed": "fast", "priority": 3}
         cmd = Command(c="start", p=params, i="cmd-001", timestamp=ts)
 
         data = cmd.to_bytes()
@@ -32,7 +32,7 @@ class TestCommand(unittest.TestCase):
         self.assertEqual(restored.payload["i"], "my-id-42")
 
     def test_auto_generated_id_format_and_uniqueness(self) -> None:
-        ids: Set[str] = set()
+        ids: set[str] = set()
         for _ in range(5):
             c = Command(c="noop")
             cid = c.get_command_id()

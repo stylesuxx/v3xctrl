@@ -5,7 +5,7 @@ import os
 import socket
 import threading
 import time
-from typing import Dict, Optional, Tuple, Any, List
+from typing import Any
 
 from v3xctrl_helper import Address
 from v3xctrl_control.message import (
@@ -144,15 +144,15 @@ class UDPRelayServer(threading.Thread):
         finally:
             client_sock.close()
 
-    def _get_session_stats(self) -> Dict[str, Dict[str, Any]]:
+    def _get_session_stats(self) -> dict[str, dict[str, Any]]:
         """Return current session statistics"""
         now = time.time()
-        result: Dict[str, Dict[str, Any]] = {}
+        result: dict[str, dict[str, Any]] = {}
 
         with self.relay.lock:
             for sid, session in self.relay.sessions.items():
-                mappings: List[Dict[str, Any]] = []
-                spectators: List[Dict[str, Any]] = []
+                mappings: list[dict[str, Any]] = []
+                spectators: list[dict[str, Any]] = []
 
                 if session:
                     for addr in session.addresses:
@@ -187,7 +187,7 @@ class UDPRelayServer(threading.Thread):
 
         return result
 
-    def _find_role_for_address(self, session: Session, addr: Address) -> Optional[Tuple[Role, PortType]]:
+    def _find_role_for_address(self, session: Session, addr: Address) -> tuple[Role, PortType] | None:
         """Find role and port_type for given address in session"""
         for role, port_dict in session.roles.items():
             for port_type, peer_entry in port_dict.items():

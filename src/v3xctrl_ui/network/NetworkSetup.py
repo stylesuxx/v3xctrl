@@ -3,7 +3,8 @@ import logging
 import socket
 import time
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type
+from typing import Any
+from collections.abc import Callable
 
 from v3xctrl_control import Server
 from v3xctrl_control.message import Heartbeat
@@ -22,10 +23,10 @@ from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.utils.gstreamer import is_gstreamer_available
 
 # GStreamer receiver is loaded lazily if available
-_ReceiverGst: Optional[Type[Receiver]] = None
+_ReceiverGst: type[Receiver] | None = None
 
 
-def _get_gstreamer_receiver() -> Optional[Type[Receiver]]:
+def _get_gstreamer_receiver() -> type[Receiver] | None:
     """Get the GStreamer receiver class, loading it lazily."""
     global _ReceiverGst
     if _ReceiverGst is None and is_gstreamer_available():
@@ -38,36 +39,36 @@ def _get_gstreamer_receiver() -> Optional[Type[Receiver]]:
 class RelaySetupResult:
     """Result of relay connection setup."""
     success: bool
-    video_address: Optional[Tuple[str, int]] = None
-    error_message: Optional[str] = None
+    video_address: tuple[str, int] | None = None
+    error_message: str | None = None
 
 
 @dataclass
 class VideoReceiverSetupResult:
     """Result of video receiver setup."""
     success: bool
-    video_receiver: Optional[Receiver] = None
-    error: Optional[Exception] = None
+    video_receiver: Receiver | None = None
+    error: Exception | None = None
 
 
 @dataclass
 class ServerSetupResult:
     """Result of control server setup."""
     success: bool
-    server: Optional[Server] = None
-    error_message: Optional[str] = None
+    server: Server | None = None
+    error_message: str | None = None
 
 
 @dataclass
 class NetworkSetupResult:
     """Complete result of network setup process."""
-    relay_result: Optional[RelaySetupResult] = None
-    video_receiver_result: Optional[VideoReceiverSetupResult] = None
-    server_result: Optional[ServerSetupResult] = None
-    video_keep_alive: Optional[VideoPortKeepAlive] = None
-    tcp_server: Optional[TcpServer] = None
-    tcp_video_tunnel: Optional[TcpTunnel] = None
-    tcp_control_tunnel: Optional[TcpTunnel] = None
+    relay_result: RelaySetupResult | None = None
+    video_receiver_result: VideoReceiverSetupResult | None = None
+    server_result: ServerSetupResult | None = None
+    video_keep_alive: VideoPortKeepAlive | None = None
+    tcp_server: TcpServer | None = None
+    tcp_video_tunnel: TcpTunnel | None = None
+    tcp_control_tunnel: TcpTunnel | None = None
 
     @property
     def has_errors(self) -> bool:
@@ -104,7 +105,7 @@ class NetworkSetup:
         self.video_port = self.ports.get("video")
         self.control_port = self.ports.get("control")
         self.transport = settings.get("transport", Transport.UDP)
-        self._peer: Optional[Peer] = None
+        self._peer: Peer | None = None
 
     def abort(self) -> None:
         """Abort any in-progress relay setup."""
@@ -113,8 +114,8 @@ class NetworkSetup:
 
     def orchestrate_setup(
         self,
-        relay_config: Optional[Dict[str, Any]],
-        handlers: Dict[str, Any],
+        relay_config: dict[str, Any] | None,
+        handlers: dict[str, Any],
     ) -> NetworkSetupResult:
         """
         Orchestrate complete network setup.
@@ -269,7 +270,7 @@ class NetworkSetup:
     # Step 2.a
     def create_keep_alive_callback(
         self,
-        video_address: Optional[Tuple[str, int]]
+        video_address: tuple[str, int] | None
     ) -> Callable[[], None]:
         """
         Create a keep-alive callback for relay connections.
@@ -317,7 +318,7 @@ class NetworkSetup:
     def setup_video_receiver(
         self,
         keep_alive_callback: Callable[[], None],
-        video_address: Optional[Tuple[str, int]] = None,
+        video_address: tuple[str, int] | None = None,
     ) -> VideoReceiverSetupResult:
         """
         Setup video receiver.
@@ -374,8 +375,8 @@ class NetworkSetup:
     # Step 3
     def setup_server(
         self,
-        message_handlers: List[Tuple[Any, Callable]],
-        state_handlers: List[Tuple[Any, Callable]],
+        message_handlers: list[tuple[Any, Callable]],
+        state_handlers: list[tuple[Any, Callable]],
         spectator_mode: bool = False
     ) -> ServerSetupResult:
         """

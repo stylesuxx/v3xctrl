@@ -6,16 +6,10 @@ Every message type can have mutliple handlers and the message is forwarded to
 all of them. Message handlers are triggered in the order they are registered.
 """
 
-from __future__ import annotations
 from collections import defaultdict
 import socket
 import threading
-from typing import (
-  Dict,
-  List,
-  Optional,
-  Any,
-)
+from typing import Any
 
 from v3xctrl_helper import Address
 
@@ -28,12 +22,12 @@ class MessageHandler(threading.Thread):
     def __init__(
         self,
         sock: socket.socket,
-        valid_host_ip: Optional[str] = None
+        valid_host_ip: str | None = None
     ) -> None:
         super().__init__(daemon=True)
 
         self.socket = sock
-        self.handlers: Dict[type[Message], List[Handler[Any]]] = defaultdict(list)
+        self.handlers: dict[type[Message], list[Handler[Any]]] = defaultdict(list)
 
         self.rx = UDPReceiver(self.socket, self.handler)
         if valid_host_ip:

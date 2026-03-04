@@ -1,6 +1,6 @@
 import itertools
 import time
-from typing import Dict, Optional, Any
+from typing import Any
 from .Message import Message
 
 
@@ -11,9 +11,9 @@ class Command(Message):
     def __init__(
         self,
         c: str,
-        p: Dict[str, Any] = {},
-        i: Optional[str] = None,
-        timestamp: Optional[float] = None
+        p: dict[str, Any] = {},
+        i: str | None = None,
+        timestamp: float | None = None
     ) -> None:
         self.command_id = i or self._generate_command_id()
 
@@ -29,7 +29,7 @@ class Command(Message):
     def get_command(self) -> str:
         return self.command
 
-    def get_parameters(self) -> Dict[str, Any]:
+    def get_parameters(self) -> dict[str, Any]:
         return self.parameters
 
     def get_command_id(self) -> str:

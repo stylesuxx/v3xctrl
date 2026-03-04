@@ -7,19 +7,19 @@ only part the devs need to interact with, so this should not be too confusing.
 import abc
 import time
 import msgpack
-from typing import Any, Dict, Optional, TypedDict, cast
+from typing import Any, TypedDict, cast
 
 
 class MessageDict(TypedDict):
     t: str
-    p: Dict[str, object]
+    p: dict[str, object]
     d: float
 
 
 class Message(abc.ABC):
     """Abstract Base Class for all messages with built-in serialization."""
 
-    _registry: Dict[str, Any] = {}
+    _registry: dict[str, Any] = {}
 
     def __init_subclass__(cls, **kwargs: object) -> None:
         """Automatically register subclasses using their class name."""
@@ -27,8 +27,8 @@ class Message(abc.ABC):
 
     def __init__(
         self,
-        payload: Dict[str, Any],
-        timestamp: Optional[float] = None
+        payload: dict[str, Any],
+        timestamp: float | None = None
     ) -> None:
         """Initialize message with a dictionary payload."""
         self.timestamp = time.time() if timestamp is None else timestamp

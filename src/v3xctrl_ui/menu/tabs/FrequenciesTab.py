@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Any
 
 from pygame import Surface
 
@@ -71,7 +71,7 @@ class FrequenciesTab(Tab):
     def draw(self, surface: Surface) -> None:
         _ = self._draw_frequency_section(surface, 0)
 
-    def get_settings(self) -> Dict[str, Any]:
+    def get_settings(self) -> dict[str, Any]:
         return {
             "timing": self.timing
         }

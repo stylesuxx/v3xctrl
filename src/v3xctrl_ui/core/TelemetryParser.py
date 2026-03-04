@@ -1,12 +1,11 @@
 """Telemetry message parser for extracting and formatting telemetry data."""
 from dataclasses import dataclass, field
-from typing import Dict
 from v3xctrl_control.message import Telemetry
 
 
 @dataclass
 class TelemetryData:
-    signal_quality: Dict[str, int] = field(default_factory=lambda: {"rsrq": -1, "rsrp": -1})
+    signal_quality: dict[str, int] = field(default_factory=lambda: {"rsrq": -1, "rsrp": -1})
     signal_band: str = "BAND ?"
     signal_cell: str = "CELL ?"
     battery_icon: int = 0

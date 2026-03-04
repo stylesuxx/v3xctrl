@@ -1,4 +1,3 @@
-from typing import List
 
 import pygame
 from pygame import Surface
@@ -7,7 +6,7 @@ from .BaseWidget import BaseWidget
 
 
 class WidgetRow(BaseWidget):
-    def __init__(self, children: List[BaseWidget], gap: int = 10) -> None:
+    def __init__(self, children: list[BaseWidget], gap: int = 10) -> None:
         super().__init__()
         self.children = children
         self.hover_children = children

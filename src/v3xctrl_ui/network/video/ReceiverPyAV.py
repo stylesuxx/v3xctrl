@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 import threading
 import time
-from typing import Callable, Optional, Tuple
+from collections.abc import Callable
 
 import av
 
@@ -34,7 +34,7 @@ class ReceiverPyAV(Receiver):
         history_size: int = 100,
         max_frame_age_ms: int = 500,
         render_ratio: int = 0,
-        relay_address: Optional[Tuple[str, int]] = None
+        relay_address: tuple[str, int] | None = None
     ) -> None:
         super().__init__(
             port,
@@ -46,7 +46,7 @@ class ReceiverPyAV(Receiver):
         )
 
         self.relay_address = relay_address
-        self._proxy: Optional[UdpVideoProxy] = None
+        self._proxy: UdpVideoProxy | None = None
 
         self.container = None
         self.sdp_path = Path(tempfile.gettempdir()) / f"rtp_{self.port}.sdp"

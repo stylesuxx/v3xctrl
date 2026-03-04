@@ -1,6 +1,3 @@
-from typing import Tuple
-
-
 def clamp(raw: float, min_val: float, max_val: float) -> float:
     lower = min(min_val, max_val)
     upper = max(min_val, max_val)
@@ -9,7 +6,7 @@ def clamp(raw: float, min_val: float, max_val: float) -> float:
     return clamped
 
 
-def color_to_hex(color: Tuple[int, int, int]) -> str:
+def color_to_hex(color: tuple[int, int, int]) -> str:
     return "#" + "".join(f"{c:02X}" for c in color)
 
 

@@ -1,5 +1,6 @@
 import logging
-from typing import Callable, Dict, Any
+from typing import Any
+from collections.abc import Callable
 
 from pygame import Surface
 
@@ -161,7 +162,7 @@ class StreamerTab(Tab):
 
         _ = self._draw_actions_section(surface, 0)
 
-    def get_settings(self) -> Dict[str, Any]:
+    def get_settings(self) -> dict[str, Any]:
         return {}
 
     def _on_command_callback(self, status: bool) -> None:

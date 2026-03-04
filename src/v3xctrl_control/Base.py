@@ -2,12 +2,12 @@
 Base class for Server AND Client - disregard the name, they share more
 than you might think.
 """
-from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections import defaultdict
 import logging
 import threading
-from typing import Callable, Dict, List, Any
+from collections.abc import Callable
+from typing import Any
 import time
 
 from v3xctrl_helper import (
@@ -31,9 +31,9 @@ class Base(threading.Thread, ABC):
     def __init__(self) -> None:
         super().__init__(daemon=True)
 
-        self.state_handlers: Dict[State, List[Callable[[], None]]] = defaultdict(list)
-        self.subscriptions: Dict[type[Message], List[Handler[Any]]] = defaultdict(list)
-        self.message_history: List[MessageFromAddress] = []
+        self.state_handlers: dict[State, list[Callable[[], None]]] = defaultdict(list)
+        self.subscriptions: dict[type[Message], list[Handler[Any]]] = defaultdict(list)
+        self.message_history: list[MessageFromAddress] = []
         self.message_history_length = 50
 
         self.running = threading.Event()
@@ -58,7 +58,7 @@ class Base(threading.Thread, ABC):
 
     def validate_initialization(self) -> None:
         """Validate that all required components are properly initialized."""
-        missing: List[str] = []
+        missing: list[str] = []
 
         if not hasattr(self, 'socket') or self.socket is None:
             missing.append('socket')

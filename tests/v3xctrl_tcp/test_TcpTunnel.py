@@ -2,7 +2,6 @@ import socket
 import threading
 import time
 import unittest
-from typing import Optional
 
 from v3xctrl_tcp.framing import recv_message, send_message
 from v3xctrl_tcp.TcpTunnel import TcpTunnel
@@ -27,7 +26,7 @@ class _TcpServerHelper:
         self.server_sock.bind(("127.0.0.1", port))
         self.server_sock.listen(1)
         self.server_sock.settimeout(5.0)
-        self.client_sock: Optional[socket.socket] = None
+        self.client_sock: socket.socket | None = None
 
     def accept(self) -> socket.socket:
         self.client_sock, _ = self.server_sock.accept()

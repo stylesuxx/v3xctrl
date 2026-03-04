@@ -1,4 +1,3 @@
-from typing import Optional
 from .Message import Message
 
 
@@ -10,7 +9,7 @@ class PeerInfo(Message):
         ip: str,
         video_port: int,
         control_port: int,
-        timestamp: Optional[float] = None
+        timestamp: float | None = None
     ) -> None:
         super().__init__({
             "ip": ip,

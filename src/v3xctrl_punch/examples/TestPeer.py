@@ -2,14 +2,13 @@ import logging
 import socket
 import threading
 import time
-from typing import Dict
 
 from v3xctrl_control.message import Heartbeat, PeerInfo
 from v3xctrl_helper import Address
 
 
 class TestPeer:
-    def __init__(self, ports: Dict[str, int], addresses: Dict[str, PeerInfo]) -> None:
+    def __init__(self, ports: dict[str, int], addresses: dict[str, PeerInfo]) -> None:
         # Re-bind the sockets
         self.video_sock = self._bind_udp(ports['video'])
         self.control_sock = self._bind_udp(ports['control'])

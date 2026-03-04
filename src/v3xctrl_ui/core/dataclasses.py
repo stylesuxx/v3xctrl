@@ -1,7 +1,7 @@
 """Core dataclasses for v3xctrl_ui."""
 from dataclasses import dataclass, field
 from collections import deque
-from typing import Dict, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 # Re-export telemetry dataclasses for backwards compatibility
 # Import directly from dataclasses module to avoid hardware dependencies (smbus3)
@@ -40,7 +40,7 @@ class ApplicationModel:
 
     # Network
     user_connected: bool = False
-    pending_settings: Optional['Settings'] = None
+    pending_settings: 'Settings | None' = None
 
 
 @dataclass
@@ -57,6 +57,6 @@ class BatteryData:
 @dataclass
 class SignalData:
     """Signal telemetry data."""
-    quality: Dict[str, int] = field(default_factory=lambda: {"rsrq": -1, "rsrp": -1})
+    quality: dict[str, int] = field(default_factory=lambda: {"rsrq": -1, "rsrp": -1})
     band: str = "BAND ?"
     cell: str = "CELL ?"

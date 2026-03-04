@@ -8,7 +8,8 @@ import logging
 import os
 import threading
 from datetime import datetime
-from typing import Callable, Dict, Optional, Any
+from collections.abc import Callable
+from typing import Any
 
 import gi
 gi.require_version('Gst', '1.0')
@@ -24,7 +25,7 @@ class RecordingManager:
         tee: Gst.Element,
         recording_dir: str,
         sizebuffers: int = 30,
-        on_queue_overrun: Optional[Callable[[Gst.Element], None]] = None
+        on_queue_overrun: Callable[[Gst.Element], None] | None = None
     ) -> None:
         self._pipeline = pipeline
         self._tee = tee
@@ -33,9 +34,9 @@ class RecordingManager:
         self._on_queue_overrun = on_queue_overrun
 
         self._is_recording = False
-        self._elements: Dict[str, Any] = {}
-        self._tee_pad: Optional[Gst.Pad] = None
-        self._stop_complete: Optional[threading.Event] = None
+        self._elements: dict[str, Any] = {}
+        self._tee_pad: Gst.Pad | None = None
+        self._stop_complete: threading.Event | None = None
 
     @property
     def is_recording(self) -> bool:

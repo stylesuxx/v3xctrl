@@ -1,4 +1,4 @@
-from typing import Callable, Dict
+from collections.abc import Callable
 
 import pygame
 from pygame import Surface, Rect
@@ -42,7 +42,7 @@ class Checkbox(BaseWidget):
         self.label_height = label_rect.height
 
         # Pre-render both checkbox states with label baked in
-        self.cached_surfaces: Dict[str, Surface] = {}
+        self.cached_surfaces: dict[str, Surface] = {}
         self._render_checkbox_states()
 
     def handle_event(self, event: pygame.event.Event) -> bool:

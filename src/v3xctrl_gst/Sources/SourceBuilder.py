@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any
 
 import gi
 gi.require_version('Gst', '1.0')
@@ -12,9 +12,9 @@ class SourceBuilder(ABC):
     # Override in subclasses to indicate if source needs sync
     NEEDS_SYNC: bool = False
 
-    def __init__(self, settings: Dict[str, Any]):
+    def __init__(self, settings: dict[str, Any]):
         self.settings = settings
-        self._output_element: Optional[Gst.Element] = None
+        self._output_element: Gst.Element | None = None
 
     @abstractmethod
     def build(self, pipeline: Gst.Pipeline) -> Gst.Element:

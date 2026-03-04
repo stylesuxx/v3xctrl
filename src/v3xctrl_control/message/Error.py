@@ -1,9 +1,8 @@
-from typing import Optional
 from .Message import Message
 
 
 class Error(Message):
-    def __init__(self, e: str, timestamp: Optional[float] = None) -> None:
+    def __init__(self, e: str, timestamp: float | None = None) -> None:
         super().__init__({
             "e": e,
         }, timestamp)

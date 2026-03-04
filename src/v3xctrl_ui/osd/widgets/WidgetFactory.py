@@ -1,4 +1,3 @@
-from typing import Dict
 
 from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT_14
 from v3xctrl_ui.utils.helpers import (
@@ -21,7 +20,7 @@ from v3xctrl_ui.osd.widgets import (
 )
 
 
-def create_steering_widgets() -> Dict[str, Widget]:
+def create_steering_widgets() -> dict[str, Widget]:
     steering_widget = HorizontalIndicatorWidget(
         position=(0, 0),
         size=(412, 22),
@@ -44,7 +43,7 @@ def create_steering_widgets() -> Dict[str, Widget]:
     }
 
 
-def create_battery_widgets() -> Dict[str, Widget]:
+def create_battery_widgets() -> dict[str, Widget]:
     position = (0, 0)
 
     battery_voltage_widget = TextWidget(position, 70)
@@ -68,7 +67,7 @@ def create_battery_widgets() -> Dict[str, Widget]:
     }
 
 
-def create_signal_widgets() -> Dict[str, Widget]:
+def create_signal_widgets() -> dict[str, Widget]:
     position = (0, 0)
 
     signal_quality_widget = SignalQualityWidget(position, (70, 50))
@@ -83,7 +82,7 @@ def create_signal_widgets() -> Dict[str, Widget]:
     }
 
 
-def create_debug_widgets(fps_width: int, fps_height: int) -> Dict[str, Widget]:
+def create_debug_widgets(fps_width: int, fps_height: int) -> dict[str, Widget]:
     position = (0, 0)
 
     debug_fps_loop_widget = FpsWidget(position, (fps_width, fps_height), "LOOP")
@@ -101,7 +100,7 @@ def create_debug_widgets(fps_width: int, fps_height: int) -> Dict[str, Widget]:
     }
 
 
-def create_rec_widget() -> Dict[str, Widget]:
+def create_rec_widget() -> dict[str, Widget]:
     position = (0, 0)
     rec_widget = RecWidget(position)
 
@@ -110,7 +109,7 @@ def create_rec_widget() -> Dict[str, Widget]:
     }
 
 
-def create_clock_widget() -> Dict[str, Widget]:
+def create_clock_widget() -> dict[str, Widget]:
     position = (0, 0)
     clock_widget = ClockWidget(position)
 

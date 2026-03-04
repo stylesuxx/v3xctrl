@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 import select
 import socket
@@ -20,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class TCPAcceptor:
-    def __init__(self, port: int, relay: PacketRelay, stop_event: threading.Event) -> None:
+    def __init__(self, port: int, relay: 'PacketRelay', stop_event: threading.Event) -> None:
         self.port = port
         self.relay = relay
         self.stop_event = stop_event

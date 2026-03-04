@@ -1,7 +1,7 @@
 import logging
 import time
 
-from typing import Optional, Callable, List, Dict, Tuple
+from collections.abc import Callable
 
 from v3xctrl_ui.menu.DialogBox import DialogBox
 
@@ -15,7 +15,7 @@ class GamepadCalibrator:
     STABLE_TIME = 1.5
     IDLE_SAMPLE_COUNT = 10
 
-    STEP_LABELS: Dict[CalibrationStage, str] = {
+    STEP_LABELS: dict[CalibrationStage, str] = {
         CalibrationStage.STEERING: "Move the steering axis to its left and right maxima...",
         CalibrationStage.STEERING_CENTER: "Let go of steering to detect center position...",
         CalibrationStage.THROTTLE: "Move the throttle axis to its minimum and maximum positions...",
@@ -24,22 +24,22 @@ class GamepadCalibrator:
 
     def __init__(
         self,
-        on_start: Optional[Callable[[], None]] = None,
-        on_done: Optional[Callable[[], None]] = None,
-        dialog: Optional[DialogBox] = None,
-        clock: Optional[Callable[[], float]] = None
+        on_start: Callable[[], None] | None = None,
+        on_done: Callable[[], None] | None = None,
+        dialog: DialogBox | None = None,
+        clock: Callable[[], float] | None = None
     ) -> None:
         self.on_start = on_start
         self.on_done = on_done
         self.dialog = dialog
         self._clock = clock or time.monotonic
 
-        self.stage: Optional[CalibrationStage] = None
+        self.stage: CalibrationStage | None = None
         self.state: CalibratorState = CalibratorState.PAUSE
-        self.pending_stage: Optional[CalibrationStage] = None
+        self.pending_stage: CalibrationStage | None = None
         self.waiting_for_user = False
 
-        self.axes: Dict[str, AxisCalibrationData] = {
+        self.axes: dict[str, AxisCalibrationData] = {
             "steering": AxisCalibrationData(),
             "throttle": AxisCalibrationData(),
             "brake": AxisCalibrationData()
@@ -52,8 +52,8 @@ class GamepadCalibrator:
         self.state = CalibratorState.ACTIVE
         self.stage = CalibrationStage.STEERING
 
-    def get_steps(self) -> List[Tuple[str, bool]]:
-        steps: List[Tuple[str, bool]] = []
+    def get_steps(self) -> list[tuple[str, bool]]:
+        steps: list[tuple[str, bool]] = []
         active_stage = self.pending_stage if self.state == CalibratorState.PAUSE else self.stage
         for key in CalibrationSteps.STEP_ORDER:
             label = CalibrationSteps.get_label(key)
@@ -62,7 +62,7 @@ class GamepadCalibrator:
 
         return steps
 
-    def update(self, axes: List[float]) -> None:
+    def update(self, axes: list[float]) -> None:
         if self.state == CalibratorState.PAUSE:
             return  # Wait for dialog confirmation
 
@@ -78,7 +78,7 @@ class GamepadCalibrator:
         elif self.stage == CalibrationStage.BRAKE:
             self._detect_and_record_axis('brake', axes, exclude=['steering'], on_complete=self._complete)
 
-    def get_settings(self) -> Dict[str, Dict[str, Optional[float | int]]]:
+    def get_settings(self) -> dict[str, dict[str, float | int | None]]:
         return {
             name: {
                 "axis": axis.axis,
@@ -115,10 +115,10 @@ class GamepadCalibrator:
 
     def _detect_and_record_axis(self,
                                 name: str,
-                                axes: List[float],
-                                exclude: List[str] = [],
-                                next_stage: Optional[CalibrationStage] = None,
-                                on_complete: Optional[Callable[[], None]] = None) -> None:
+                                axes: list[float],
+                                exclude: list[str] = [],
+                                next_stage: CalibrationStage | None = None,
+                                on_complete: Callable[[], None] | None = None) -> None:
         axis_data = self.axes[name]
         excluded_indices = [self.axes[e].axis for e in exclude if self.axes[e].axis is not None]
         now = self._clock()
@@ -178,7 +178,7 @@ class GamepadCalibrator:
                 elif next_stage:
                     self._queue_next_stage_with_dialog(next_stage)
 
-    def _record_center_idle(self, name: str, axes: List[float], next_stage: CalibrationStage) -> None:
+    def _record_center_idle(self, name: str, axes: list[float], next_stage: CalibrationStage) -> None:
         axis_data = self.axes[name]
         i = axis_data.axis
         value = axes[i]

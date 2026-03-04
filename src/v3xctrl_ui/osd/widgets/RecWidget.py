@@ -1,5 +1,3 @@
-from typing import Tuple
-
 from pygame import Surface
 
 from v3xctrl_ui.utils.colors import WHITE, RED
@@ -12,7 +10,7 @@ class RecWidget(TextWidget):
 
     def __init__(
         self,
-        position: Tuple[int, int],
+        position: tuple[int, int],
         top_padding: int = 5,
         bottom_padding: int = 3,
         left_padding: int = 8,

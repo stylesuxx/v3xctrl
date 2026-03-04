@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Callable, Tuple, Optional
+from collections.abc import Callable
 
 from pygame import Surface, SRCALPHA
 
@@ -11,10 +11,10 @@ class BaseIndicatorWidget(Widget):
 
     def __init__(
         self,
-        position: Tuple[int, int],
-        size: Tuple[int, int],
+        position: tuple[int, int],
+        size: tuple[int, int],
         range_mode: str = "symmetric",
-        color_fn: Optional[Callable[[float], Tuple[int, int, int]]] = None,
+        color_fn: Callable[[float], tuple[int, int, int]] | None = None,
         bg_alpha: int = 150,
         padding: int = 6
     ) -> None:

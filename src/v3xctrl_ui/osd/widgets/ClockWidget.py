@@ -1,6 +1,4 @@
 from datetime import datetime
-from typing import Tuple
-
 import pygame.freetype
 from pygame import Surface, SRCALPHA
 
@@ -14,7 +12,7 @@ class ClockWidget(Widget):
 
     def __init__(
         self,
-        position: Tuple[int, int],
+        position: tuple[int, int],
         top_padding: int = 16,
         bottom_padding: int = 14,
         left_padding: int = 20,
