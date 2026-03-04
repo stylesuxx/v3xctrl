@@ -7,8 +7,6 @@ Each message is framed as:
 Max payload size is 65535 bytes (fits in !H).
 """
 
-from __future__ import annotations
-
 import struct
 from socket import socket
 

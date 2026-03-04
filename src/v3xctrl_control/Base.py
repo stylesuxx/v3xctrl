@@ -2,7 +2,6 @@
 Base class for Server AND Client - disregard the name, they share more
 than you might think.
 """
-from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections import defaultdict
 import logging

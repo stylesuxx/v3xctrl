@@ -6,7 +6,6 @@ Every message type can have mutliple handlers and the message is forwarded to
 all of them. Message handlers are triggered in the order they are registered.
 """
 
-from __future__ import annotations
 from collections import defaultdict
 import socket
 import threading
