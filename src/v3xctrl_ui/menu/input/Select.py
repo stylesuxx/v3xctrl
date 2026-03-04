@@ -75,6 +75,8 @@ class Select(BaseWidget):
 
         self.rect = Rect(x + self.label_width + self.LABEL_PADDING, y, self.length, self.OPTION_HEIGHT)
         self.label_rect.topleft = (x, y + self.rect.height // 2 - self.label_rect.height // 2)
+        if self.options and not self.option_surfaces:
+            self._update_option_surfaces()
         self._update_option_rects()
 
     def set_options(self, options: list[str], selected_index: int = 0) -> None:
@@ -92,6 +94,7 @@ class Select(BaseWidget):
                 for i, opt_rect in enumerate(self.option_rects):
                     if opt_rect.collidepoint(event.pos):
                         self.hover_index = i
+                        self.hovered = True
                         break
             return self.hovered
 
@@ -165,6 +168,22 @@ class Select(BaseWidget):
             self.OPTION_HEIGHT * len(self.options)
         )
 
+    def draw_overlay(self, surface: Surface) -> None:
+        """Draw expanded dropdown on top of everything else."""
+        if not self.expanded or self.disabled or not self.options:
+            return
+
+        if self.full_expanded_rect:
+            pygame.draw.rect(surface, self.BG_COLOR, self.full_expanded_rect)
+            pygame.draw.rect(surface, self.BORDER_COLOR, self.full_expanded_rect, self.BORDER_WIDTH)
+
+        for i, opt_rect in enumerate(self.option_rects):
+            bg = self.HOVER_COLOR if i == self.hover_index else self.BG_COLOR
+            pygame.draw.rect(surface, bg, opt_rect)
+            option_surface = self.option_surfaces[i]
+            option_y = opt_rect.centery - option_surface.get_height() // 2
+            surface.blit(option_surface, (opt_rect.x + 8, option_y))
+
     def _draw(self, surface: Surface) -> None:
         if not self.options:
             return
@@ -182,14 +201,4 @@ class Select(BaseWidget):
         caret_y = self.rect.centery - self.caret_surface.get_height() // 2
         surface.blit(self.caret_surface, (caret_x, caret_y))
 
-        if self.expanded and not self.disabled:
-            if self.full_expanded_rect:
-                pygame.draw.rect(surface, self.BG_COLOR, self.full_expanded_rect)
-                pygame.draw.rect(surface, self.BORDER_COLOR, self.full_expanded_rect, self.BORDER_WIDTH)
-
-            for i, opt_rect in enumerate(self.option_rects):
-                bg = self.HOVER_COLOR if i == self.hover_index else self.BG_COLOR
-                pygame.draw.rect(surface, bg, opt_rect)
-                option_surface = self.option_surfaces[i]
-                option_y = opt_rect.centery - option_surface.get_height() // 2
-                surface.blit(option_surface, (opt_rect.x + 8, option_y))
+        self.draw_overlay(surface)

@@ -13,6 +13,7 @@ from v3xctrl_ui.menu.input import (
   Button,
   Checkbox,
   NumberInput,
+  Select,
   TextInput,
   WidgetRow
 )
@@ -38,6 +39,14 @@ class NetworkTab(Tab):
 
         self._on_test_relay_callback = on_test_relay
         self._test_status: Optional[Tuple[bool, str]] = None
+
+        self._transport_options = ["UDP", "TCP"]
+
+        # Transport select
+        self.transport_select = Select(
+            label=t("Transport"), label_width=90, length=120,
+            font=LABEL_FONT, callback=self._on_transport_change
+        )
 
         # Port widgets
         self.video_input = NumberInput(
@@ -96,7 +105,8 @@ class NetworkTab(Tab):
             on_change=lambda value: self._on_udp_packet_ttl_change(value)
         )
 
-        self.port_widgets: List[BaseInput] = [
+        self.general_widgets: List[BaseInput | BaseWidget] = [
+            self.transport_select,
             self.video_input,
             self.control_input
         ]
@@ -110,15 +120,15 @@ class NetworkTab(Tab):
             self.udp_packet_ttl_input
         ]
 
-        self.elements = self.port_widgets + self.relay_widgets + self.misc_widgets
+        self.elements = self.general_widgets + self.relay_widgets + self.misc_widgets
 
-        self._add_headline("ports", t("Ports"))
+        self._add_headline("general", t("General"))
         self._add_headline("udp_relay", t("UDP Relay"), True)
         self._add_headline("misc", t("Miscellaneous"), True)
 
-        self.port_layout = VerticalLayout()
-        for element in self.port_widgets:
-            self.port_layout.add(element)
+        self.general_layout = VerticalLayout()
+        for element in self.general_widgets:
+            self.general_layout.add(element)
 
         self.relay_layout = VerticalLayout()
         for element in self.relay_widgets:
@@ -131,23 +141,34 @@ class NetworkTab(Tab):
         self.apply_settings()
 
     def draw(self, surface: Surface) -> None:
-        y = self._draw_port_section(surface, 0)
+        y = self._draw_general_section(surface, 0)
         y_col1 = self._draw_relay_section(surface, y)
 
         y = self._draw_misc_section(surface, y_col1)
 
+        self.transport_select.draw_overlay(surface)
+
     def get_settings(self) -> Dict[str, Any]:
         return {
             "udp_packet_ttl": self.udp_packet_ttl,
+            "transport": self.transport,
             "ports": self.ports,
             "relay": self.relay,
         }
 
     def apply_settings(self) -> None:
         self._test_status = None
+        self.transport = self.settings.get("transport", "udp")
         self.ports = self.settings.get("ports", {})
         self.relay = self.settings.get("relay", {})
         self.udp_packet_ttl = self.settings.get("udp_packet_ttl", 100)
+
+        # Transport select — defer set_options until positioned (rect != None)
+        transport_index = self._transport_options.index(
+            self.transport.upper()
+        ) if self.transport.upper() in self._transport_options else 0
+        self.transport_select.options = self._transport_options
+        self.transport_select.selected_index = transport_index
 
         # Port inputs
         self.video_input.value = str(self.ports.get("video", ""))
@@ -161,6 +182,9 @@ class NetworkTab(Tab):
 
         # Misc inputs
         self.udp_packet_ttl_input.value = str(self.udp_packet_ttl)
+
+    def _on_transport_change(self, index: int) -> None:
+        self.transport = self._transport_options[index].lower()
 
     def _on_port_change(self, name: str, value: str) -> None:
         if is_int(value):
@@ -218,11 +242,11 @@ class NetworkTab(Tab):
     def _on_relay_spectator_change(self, value: bool) -> None:
         self.relay["spectator_mode"] = value
 
-    def _draw_port_section(self, surface: Surface, y: int) -> int:
+    def _draw_general_section(self, surface: Surface, y: int) -> int:
         y += self.y_offset + self.padding
-        y += self._draw_headline(surface, "ports", y)
+        y += self._draw_headline(surface, "general", y)
 
-        return self.port_layout.draw(surface, y)
+        return self.general_layout.draw(surface, y)
 
     def _draw_relay_section(self, surface: Surface, y: int) -> int:
         y += self.y_section_padding

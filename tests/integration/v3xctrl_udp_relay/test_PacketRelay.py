@@ -172,9 +172,9 @@ class TestPacketRelayIntegration(unittest.TestCase):
         # Advance time past timeout so orphaned session will be removed
         future = time.time() + self.timeout + 1
         with patch('time.time', return_value=future):
-            with patch('logging.info') as mock_log:
+            with patch('v3xctrl_udp_relay.PacketRelay.logger') as mock_logger:
                 self.relay.cleanup_expired_mappings()
-                mock_log.assert_called()
+                mock_logger.info.assert_called()
 
         # Session should be removed
         peers_after = self.relay.get_session_peers(self.session_id)
@@ -204,9 +204,9 @@ class TestPacketRelayIntegration(unittest.TestCase):
         # Fast forward past timeout so mappings expire
         expired_time = initial_time + self.timeout + 1
         with patch('time.time', return_value=expired_time):
-            with patch('logging.info') as mock_log:
+            with patch('v3xctrl_udp_relay.PacketRelay.logger') as mock_logger:
                 self.relay.cleanup_expired_mappings()
-                self.assertGreater(mock_log.call_count, 0)
+                self.assertGreater(mock_logger.info.call_count, 0)
 
         # Mappings should be removed (no forwarding)
         self.mock_sock.reset_mock()
@@ -368,9 +368,9 @@ class TestPacketRelayIntegration(unittest.TestCase):
         self.assertGreater(len(orphaned_peers), 0)
 
         # Cleanup should remove only orphaned session
-        with patch('logging.info') as mock_log:
+        with patch('v3xctrl_udp_relay.PacketRelay.logger') as mock_logger:
             self.relay.cleanup_expired_mappings()
-            mock_log.assert_called()
+            mock_logger.info.assert_called()
 
         complete_peers_after = self.relay.get_session_peers(self.session_id)
         orphaned_peers_after = self.relay.get_session_peers(orphaned_session_id)

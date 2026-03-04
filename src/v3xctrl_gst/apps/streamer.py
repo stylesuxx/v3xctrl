@@ -2,7 +2,10 @@ import argparse
 import logging
 from typing import Dict, Any
 
+from v3xctrl_control.message import PeerAnnouncement
 from v3xctrl_gst.Streamer import Streamer
+from v3xctrl_tcp import Transport
+from v3xctrl_tcp.TcpTunnel import TcpTunnel
 
 
 def main() -> None:
@@ -52,6 +55,14 @@ def main() -> None:
         "--log", default="ERROR",
         help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). (default: ERROR)"
     )
+    parser.add_argument(
+        '--transport', type=str, default='udp', choices=['udp', 'tcp'],
+        help='Transport protocol (default: udp)'
+    )
+    parser.add_argument(
+        '--relay-session-id', type=str, default=None,
+        help='Relay session ID (enables relay TCP mode with PeerAnnouncement handshake)'
+    )
 
     args = parser.parse_args()
 
@@ -99,8 +110,43 @@ def main() -> None:
         'timing_enabled': level == logging.DEBUG,
     }
 
-    streamer: Streamer = Streamer(args.host, args.port, args.bind_port, settings)
-    streamer.run()
+    tcp_tunnel = None
+    video_host = args.host
+    video_port = args.port
+
+    if args.transport == Transport.TCP:
+        handshake = None
+        if args.relay_session_id:
+            handshake = PeerAnnouncement(
+                r="streamer", i=args.relay_session_id, p="video"
+            ).to_bytes()
+
+        tcp_tunnel = TcpTunnel(
+            remote_host=args.host,
+            remote_port=args.port,
+            local_component_port=0,
+            bidirectional=False,
+            handshake=handshake,
+        )
+        tcp_tunnel.start()
+        ephemeral_port = tcp_tunnel.wait_for_port()
+        if ephemeral_port is None:
+            logging.error("Failed to allocate TCP tunnel port")
+            return
+        video_host = "127.0.0.1"
+        video_port = ephemeral_port
+        logging.info(
+            f"TCP tunnel: udpsink -> 127.0.0.1:{ephemeral_port} "
+            f"-> TCP -> {args.host}:{args.port}"
+        )
+
+    streamer: Streamer = Streamer(video_host, video_port, args.bind_port, settings)
+
+    try:
+        streamer.run()
+    finally:
+        if tcp_tunnel:
+            tcp_tunnel.stop()
 
 
 if __name__ == '__main__':

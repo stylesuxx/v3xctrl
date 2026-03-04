@@ -11,10 +11,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -32,6 +36,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.v3xctrl.viewer.R
 import com.v3xctrl.viewer.data.NetworkSettings
+import com.v3xctrl.viewer.data.Transport
 import com.v3xctrl.viewer.ui.theme.V3xctrlTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -84,6 +89,42 @@ fun NetworkScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            var transportExpanded by remember { mutableStateOf(false) }
+
+            ExposedDropdownMenuBox(
+                expanded = transportExpanded,
+                onExpandedChange = { transportExpanded = it }
+            ) {
+                OutlinedTextField(
+                    value = settings.transport.name,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text(stringResource(R.string.transport)) },
+                    supportingText = { Text(stringResource(R.string.transport_desc)) },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = transportExpanded) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                )
+
+                ExposedDropdownMenu(
+                    expanded = transportExpanded,
+                    onDismissRequest = { transportExpanded = false }
+                ) {
+                    Transport.entries.forEach { transport ->
+                        DropdownMenuItem(
+                            text = { Text(transport.name) },
+                            onClick = {
+                                onSettingsChange(settings.copy(transport = transport))
+                                transportExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(12.dp))
 

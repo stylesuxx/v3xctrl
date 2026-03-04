@@ -32,13 +32,15 @@ class Client(Base):
         host: str,
         port: int,
         bind_port: Optional[int] = None,
-        failsafe_ms: int = 500
+        failsafe_ms: int = 500,
+        bind_address: str = "0.0.0.0"
     ) -> None:
         super().__init__()
 
         self.host = host
         self.port = port
         self.bind_port = bind_port
+        self.bind_address = bind_address
         self.server_address = (self.host, self.port)
         self.failsafe_ms = failsafe_ms
         self.last_syn = 0
@@ -77,8 +79,7 @@ class Client(Base):
         self.socket.settimeout(1)
 
         if self.bind_port:
-            # Bind to specific internal port (important for hole punching)
-            self.socket.bind(("0.0.0.0", self.bind_port))
+            self.socket.bind((self.bind_address, self.bind_port))
 
         self.transmitter = UDPTransmitter(self.socket)
         self.message_handler = MessageHandler(self.socket, self.host_ip)

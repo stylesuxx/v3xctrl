@@ -72,6 +72,7 @@
     "routing": "wlan",
     "server": {
       "mode": "direct",
+      "transport": "udp",
       "direct": {
         "host": "192.168.1.100"
       },

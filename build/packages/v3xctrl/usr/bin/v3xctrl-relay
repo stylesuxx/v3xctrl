@@ -4,6 +4,24 @@ set -e
 ENV_PATH="/run/v3xctrl.env"
 source "${ENV_PATH}"
 
+# TCP relay mode: no UDP registration needed, TcpTunnel handles handshake
+if [ "$network_server_transport" = "tcp" ]; then
+  relay_host="${network_server_relay_host}"
+  relay_port="8888"
+
+  if [[ "$network_server_relay_host" == *:* ]]; then
+    relay_host="${network_server_relay_host%%:*}"
+    relay_port="${network_server_relay_host##*:}"
+  fi
+
+  sed -i \
+    -e "s/^network_server_direct_host=.*/network_server_direct_host=${relay_host}/" \
+    -e "s/^network_server_ports_video=.*/network_server_ports_video=${relay_port}/" \
+    -e "s/^network_server_ports_control=.*/network_server_ports_control=${relay_port}/" \
+    "$ENV_PATH"
+  exit 0
+fi
+
 relay_host="${network_server_relay_host}"
 extra_args=()
 
