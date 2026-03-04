@@ -68,6 +68,11 @@
     <string name="control_invert_forward_desc">Reverse the forward axis direction</string>
     <string name="control_invert_reverse_desc">Reverse the reverse axis direction</string>
 
+    <!-- General screen -->
+    <string name="general_title">General</string>
+    <string name="general_pipeline_stats">Pipeline Stats</string>
+    <string name="general_pipeline_stats_desc">Log per-element buffer counts to logcat every 5 seconds</string>
+
     <!-- OSD screen -->
     <string name="osd_title">OSD</string>
     <string name="osd_widgets_section">Widgets</string>
@@ -87,6 +92,8 @@
     <string name="osd_signal_cell_id">Cell ID</string>
     <string name="osd_frame_drops">Frame Drops</string>
     <string name="osd_frame_drops_desc">Show warning icon when frames are being dropped</string>
+    <string name="osd_fps">FPS Counter</string>
+    <string name="osd_fps_desc">Show frames per second on the video</string>
 
     <!-- Viewer screen -->
     <string name="viewer_title">Viewer</string>

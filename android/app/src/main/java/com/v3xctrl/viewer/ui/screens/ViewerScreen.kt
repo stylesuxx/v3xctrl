@@ -59,9 +59,11 @@ fun ViewerScreen(
     connection: ConnectionInfo,
     controlHz: Int = 30,
     osdSettings: OsdSettings = OsdSettings(),
+    showPipelineStats: Boolean = false,
     spectatorMode: Boolean = false,
     controlSettings: ControlSettings = ControlSettings(),
     onBack: () -> Unit,
+    onNavigateToGeneral: () -> Unit = {},
     onNavigateToNetwork: () -> Unit = {},
     onNavigateToFrequencies: () -> Unit = {},
     onNavigateToOSD: () -> Unit = {},
@@ -340,10 +342,12 @@ fun ViewerScreen(
             udpReceiver = udpReceiver,
             spectatorMode = spectatorMode,
             osdSettings = osdSettings,
+            showPipelineStats = showPipelineStats,
             onBack = {
                 GstViewer.stop()
                 onBack()
             },
+            onNavigateToGeneral = onNavigateToGeneral,
             onNavigateToNetwork = onNavigateToNetwork,
             onNavigateToFrequencies = onNavigateToFrequencies,
             onNavigateToOSD = onNavigateToOSD,

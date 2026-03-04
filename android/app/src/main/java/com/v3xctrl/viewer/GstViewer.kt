@@ -14,6 +14,8 @@ object GstViewer {
     private external fun nativeGetFrameCount(): Int
     private external fun nativeRestartPipeline()
     private external fun nativeFinalize()
+    private external fun nativeSetStatsEnabled(enabled: Boolean)
+    private external fun nativeGetPipelineStats(): String
 
     fun init() {
         nativeInit()
@@ -32,6 +34,29 @@ object GstViewer {
 
     fun restart() {
         nativeRestartPipeline()
+    }
+
+    fun setStatsEnabled(enabled: Boolean) {
+        nativeSetStatsEnabled(enabled)
+    }
+
+    data class PipelineStats(
+        val udpsrc: Int,
+        val jitterbuffer: Int,
+        val depay: Int,
+        val decoder: Int,
+        val sink: Int
+    )
+
+    fun getPipelineStats(): PipelineStats {
+        val parts = nativeGetPipelineStats().split("|", limit = 5)
+        return PipelineStats(
+            udpsrc = parts.getOrNull(0)?.toIntOrNull() ?: 0,
+            jitterbuffer = parts.getOrNull(1)?.toIntOrNull() ?: 0,
+            depay = parts.getOrNull(2)?.toIntOrNull() ?: 0,
+            decoder = parts.getOrNull(3)?.toIntOrNull() ?: 0,
+            sink = parts.getOrNull(4)?.toIntOrNull() ?: 0
+        )
     }
 
     fun finalize() {

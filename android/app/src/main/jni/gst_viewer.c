@@ -41,6 +41,16 @@ static volatile gint count_depay = 0;
 static volatile gint count_decoder = 0;
 static volatile gint count_sink = 0;
 
+// Stats logging toggle (controlled from Java via JNI)
+static volatile gboolean stats_enabled = FALSE;
+
+// Probe IDs for diagnostic probes (0 = not attached)
+static gulong probe_id_udpsrc = 0;
+static gulong probe_id_jitterbuffer = 0;
+static gulong probe_id_depay = 0;
+static gulong probe_id_decoder = 0;
+static guint stats_timer_id = 0;
+
 static GstPadProbeReturn count_udpsrc_cb(GstPad *pad, GstPadProbeInfo *info, gpointer user_data) {
     count_udpsrc++;
     return GST_PAD_PROBE_OK;
@@ -62,13 +72,15 @@ static GstPadProbeReturn count_decoder_cb(GstPad *pad, GstPadProbeInfo *info, gp
 }
 
 static GstPadProbeReturn count_sink_cb(GstPad *pad, GstPadProbeInfo *info, gpointer user_data) {
-    count_sink++;
+    count_sink++;  // Always count sink frames (used by FPS counter)
     return GST_PAD_PROBE_OK;
 }
 
 // Periodic stats logging — shows buffer counts per element to identify where data stops
 static gboolean log_stats_cb(gpointer user_data) {
-    if (!gst_data.pipeline) return G_SOURCE_REMOVE;
+    if (!gst_data.pipeline) {
+        return G_SOURCE_REMOVE;
+    }
 
     LOGI("Pipeline stats: udpsrc=%d jbuf=%d depay=%d dec=%d sink=%d",
          count_udpsrc, count_jitterbuffer, count_depay, count_decoder, count_sink);
@@ -76,17 +88,75 @@ static gboolean log_stats_cb(gpointer user_data) {
     return G_SOURCE_CONTINUE;
 }
 
-static void add_src_pad_probe(const gchar *element_name, GstPadProbeCallback cb) {
+static gulong add_src_pad_probe(const gchar *element_name, GstPadProbeCallback cb) {
+    gulong probe_id = 0;
     GstElement *el = gst_bin_get_by_name(GST_BIN(gst_data.pipeline), element_name);
     if (el) {
         GstPad *pad = gst_element_get_static_pad(el, "src");
         if (pad) {
-            gst_pad_add_probe(pad, GST_PAD_PROBE_TYPE_BUFFER, cb, NULL, NULL);
+            probe_id = gst_pad_add_probe(pad, GST_PAD_PROBE_TYPE_BUFFER, cb, NULL, NULL);
             gst_object_unref(pad);
         }
         gst_object_unref(el);
     } else {
         LOGW("Could not find element '%s' for pad probe", element_name);
+    }
+    return probe_id;
+}
+
+static void remove_src_pad_probe(const gchar *element_name, gulong probe_id) {
+    GstElement *el = gst_bin_get_by_name(GST_BIN(gst_data.pipeline), element_name);
+    if (el) {
+        GstPad *pad = gst_element_get_static_pad(el, "src");
+        if (pad) {
+            gst_pad_remove_probe(pad, probe_id);
+            gst_object_unref(pad);
+        }
+        gst_object_unref(el);
+    }
+}
+
+static void attach_stats_probes(void) {
+    if (!gst_data.pipeline || gst_data.video_port == 0) {
+        return;
+    }
+
+    count_udpsrc = 0;
+    count_jitterbuffer = 0;
+    count_depay = 0;
+    count_decoder = 0;
+
+    probe_id_udpsrc = add_src_pad_probe("src", count_udpsrc_cb);
+    probe_id_jitterbuffer = add_src_pad_probe("jbuf", count_jitterbuffer_cb);
+    probe_id_depay = add_src_pad_probe("depay", count_depay_cb);
+    probe_id_decoder = add_src_pad_probe("dec", count_decoder_cb);
+
+    stats_timer_id = g_timeout_add_seconds(STATS_INTERVAL_SECS, log_stats_cb, NULL);
+}
+
+static void detach_stats_probes(void) {
+    if (gst_data.pipeline) {
+        if (probe_id_udpsrc) {
+            remove_src_pad_probe("src", probe_id_udpsrc);
+        }
+        if (probe_id_jitterbuffer) {
+            remove_src_pad_probe("jbuf", probe_id_jitterbuffer);
+        }
+        if (probe_id_depay) {
+            remove_src_pad_probe("depay", probe_id_depay);
+        }
+        if (probe_id_decoder) {
+            remove_src_pad_probe("dec", probe_id_decoder);
+        }
+    }
+    probe_id_udpsrc = 0;
+    probe_id_jitterbuffer = 0;
+    probe_id_depay = 0;
+    probe_id_decoder = 0;
+
+    if (stats_timer_id) {
+        g_source_remove(stats_timer_id);
+        stats_timer_id = 0;
     }
 }
 
@@ -285,27 +355,19 @@ Java_com_v3xctrl_viewer_GstViewer_nativeStartPipeline(JNIEnv *env, jclass clazz,
         );
     }
 
-    // Add per-element pad probes for pipeline diagnostics
-    count_udpsrc = 0;
-    count_jitterbuffer = 0;
-    count_depay = 0;
-    count_decoder = 0;
+    // Sink probe always attached (used by FPS counter)
     count_sink = 0;
-
-    if (port != 0) {
-        add_src_pad_probe("src", count_udpsrc_cb);
-        add_src_pad_probe("jbuf", count_jitterbuffer_cb);
-        add_src_pad_probe("depay", count_depay_cb);
-        add_src_pad_probe("dec", count_decoder_cb);
-    }
-
-    // Probe on sink pad of video sink (counts frames actually rendered)
     if (gst_data.video_sink) {
         GstPad *sink_pad = gst_element_get_static_pad(gst_data.video_sink, "sink");
         if (sink_pad) {
             gst_pad_add_probe(sink_pad, GST_PAD_PROBE_TYPE_BUFFER, count_sink_cb, NULL, NULL);
             gst_object_unref(sink_pad);
         }
+    }
+
+    // Diagnostic probes only when stats are enabled
+    if (stats_enabled) {
+        attach_stats_probes();
     }
 
     // Set up bus watch
@@ -320,9 +382,6 @@ Java_com_v3xctrl_viewer_GstViewer_nativeStartPipeline(JNIEnv *env, jclass clazz,
 
     // Create main loop
     gst_data.main_loop = g_main_loop_new(NULL, FALSE);
-
-    // Periodic stats logging
-    g_timeout_add_seconds(STATS_INTERVAL_SECS, log_stats_cb, NULL);
 
     // Reset restart counter for new pipeline
     restart_count = 0;
@@ -396,6 +455,16 @@ Java_com_v3xctrl_viewer_GstViewer_nativeStopPipeline(JNIEnv *env, jclass clazz) 
         gst_data.native_window = NULL;
     }
 
+    // Probes are removed with the pipeline; just reset IDs and timer
+    probe_id_udpsrc = 0;
+    probe_id_jitterbuffer = 0;
+    probe_id_depay = 0;
+    probe_id_decoder = 0;
+    if (stats_timer_id) {
+        g_source_remove(stats_timer_id);
+        stats_timer_id = 0;
+    }
+
     gst_data.video_port = 0;
     restart_count = 0;
     LOGI("Pipeline stopped");
@@ -436,4 +505,23 @@ Java_com_v3xctrl_viewer_GstViewer_nativeFinalize(JNIEnv *env, jclass clazz) {
     Java_com_v3xctrl_viewer_GstViewer_nativeStopPipeline(env, clazz);
     gst_data.initialized = FALSE;
     LOGI("GStreamer finalized");
+}
+
+JNIEXPORT void JNICALL
+Java_com_v3xctrl_viewer_GstViewer_nativeSetStatsEnabled(JNIEnv *env, jclass clazz, jboolean enabled) {
+    if (enabled && !stats_enabled) {
+        stats_enabled = TRUE;
+        attach_stats_probes();
+    } else if (!enabled && stats_enabled) {
+        stats_enabled = FALSE;
+        detach_stats_probes();
+    }
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_v3xctrl_viewer_GstViewer_nativeGetPipelineStats(JNIEnv *env, jclass clazz) {
+    gchar buf[128];
+    g_snprintf(buf, sizeof(buf), "%d|%d|%d|%d|%d",
+               count_udpsrc, count_jitterbuffer, count_depay, count_decoder, count_sink);
+    return (*env)->NewStringUTF(env, buf);
 }

@@ -51,8 +51,10 @@ import com.v3xctrl.viewer.messages.Command
 import com.v3xctrl.viewer.messages.Commands
 import com.v3xctrl.viewer.ui.components.AppMenu
 import com.v3xctrl.viewer.data.OsdSettings
+import com.v3xctrl.viewer.ui.widgets.FpsCounter
 import com.v3xctrl.viewer.ui.widgets.FrameDropIndicator
 import com.v3xctrl.viewer.ui.widgets.LatencyIndicator
+import com.v3xctrl.viewer.ui.widgets.PipelineStatsOverlay
 import com.v3xctrl.viewer.ui.widgets.RecordingIndicator
 import com.v3xctrl.viewer.ui.widgets.SignalStrengthWidget
 
@@ -65,7 +67,9 @@ fun PortraitViewer(
     udpReceiver: UDPReceiver?,
     spectatorMode: Boolean,
     osdSettings: OsdSettings = OsdSettings(),
+    showPipelineStats: Boolean = false,
     onBack: () -> Unit,
+    onNavigateToGeneral: () -> Unit,
     onNavigateToNetwork: () -> Unit,
     onNavigateToFrequencies: () -> Unit,
     onNavigateToOSD: () -> Unit,
@@ -96,6 +100,7 @@ fun PortraitViewer(
                 AppMenu(
                     expanded = menuExpanded,
                     onDismiss = { menuExpanded = false },
+                    onNavigateToGeneral = onNavigateToGeneral,
                     onNavigateToNetwork = onNavigateToNetwork,
                     onNavigateToFrequencies = onNavigateToFrequencies,
                     onNavigateToOSD = onNavigateToOSD,
@@ -121,6 +126,15 @@ fun PortraitViewer(
                 showVideoBlank = showVideoBlank,
                 modifier = Modifier.fillMaxSize()
             )
+
+            // Pipeline stats overlay (top-center, debug only)
+            if (showPipelineStats) {
+                PipelineStatsOverlay(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .offset(y = 4.dp)
+                )
+            }
 
             // Telemetry widgets (hidden when control signal is lost)
             if (!viewerState.isControlTimedOut) {
@@ -153,7 +167,11 @@ fun PortraitViewer(
                 viewerState.batteryVoltage?.let { mv ->
                     Text(
                         text = "%.2fV".format(mv / 1000.0),
-                        color = if (viewerState.batteryWarning) Color.Red else Color.White,
+                        color = if (viewerState.batteryWarning) {
+                            Color.Red
+                        } else {
+                            Color.White
+                        },
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
                         fontFamily = FontFamily.Monospace,
@@ -177,6 +195,20 @@ fun PortraitViewer(
                     )
                 }
             }
+
+            // FPS counter (bottom-right, always shown in portrait)
+            FpsCounter(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .offset(
+                        x = if (viewerState.isRecording) {
+                            (-70).dp
+                        } else {
+                            (-12).dp
+                        },
+                        y = (-12).dp
+                    )
+            )
 
             // Latency indicator (bottom-left)
             if (viewerState.isControlConnected) {

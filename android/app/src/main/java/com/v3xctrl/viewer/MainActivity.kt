@@ -9,6 +9,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -16,9 +17,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.platform.LocalContext
 import com.v3xctrl.viewer.data.ControlSettings
 import com.v3xctrl.viewer.data.FrequencySettings
+import com.v3xctrl.viewer.data.GeneralSettings
 import com.v3xctrl.viewer.data.NetworkSettings
 import com.v3xctrl.viewer.data.OsdSettings
 import com.v3xctrl.viewer.data.SettingsDataStore
@@ -31,6 +34,7 @@ import com.v3xctrl.viewer.relay.ConnectionResult
 import com.v3xctrl.viewer.relay.RelayConnection
 import com.v3xctrl.viewer.ui.screens.ControlScreen
 import com.v3xctrl.viewer.ui.screens.FrequenciesScreen
+import com.v3xctrl.viewer.ui.screens.GeneralScreen
 import com.v3xctrl.viewer.ui.screens.MainScreen
 import com.v3xctrl.viewer.ui.screens.NetworkScreen
 import com.v3xctrl.viewer.ui.screens.OSDScreen
@@ -52,6 +56,7 @@ sealed class ConnectionState {
 
 enum class Screen {
     Main,
+    General,
     Network,
     Frequencies,
     OSD,
@@ -97,6 +102,9 @@ class MainActivity : ComponentActivity() {
             V3xctrlTheme {
                 val context = LocalContext.current
                 val settingsDataStore = remember { SettingsDataStore(context) }
+                val generalSettings by settingsDataStore.generalSettings.collectAsState(
+                    initial = GeneralSettings()
+                )
                 val networkSettings by settingsDataStore.networkSettings.collectAsState(
                     initial = NetworkSettings()
                 )
@@ -109,6 +117,10 @@ class MainActivity : ComponentActivity() {
                 val controlSettings by settingsDataStore.controlSettings.collectAsState(
                     initial = ControlSettings()
                 )
+                LaunchedEffect(generalSettings.enablePipelineStats) {
+                    GstViewer.setStatsEnabled(generalSettings.enablePipelineStats)
+                }
+
                 val scope = rememberCoroutineScope()
 
                 var currentScreen by remember { mutableStateOf(Screen.Main) }
@@ -263,40 +275,10 @@ class MainActivity : ComponentActivity() {
                     navigateBack()
                 }
 
-                when (currentScreen) {
-                    Screen.Main -> MainScreen(
-                        relayUrl = networkSettings.relayUrl,
-                        sessionId = networkSettings.sessionId,
-                        connectionState = connectionState,
-                        onStartConnection = { startConnection() },
-                        onAbortConnection = { abortConnection() },
-                        onClearError = { connectionState = ConnectionState.Idle },
-                        onNavigateToNetwork = { navigateTo(Screen.Network) },
-                        onNavigateToFrequencies = { navigateTo(Screen.Frequencies) },
-                        onNavigateToOSD = { navigateTo(Screen.OSD) },
-                        onNavigateToControl = { navigateTo(Screen.Control) }
-                    )
-                    Screen.Network -> NetworkScreen(
-                        settings = networkSettings,
-                        onSettingsChange = { scope.launch { settingsDataStore.updateNetworkSettings(it) } },
-                        onBack = { navigateBack() }
-                    )
-                    Screen.Frequencies -> FrequenciesScreen(
-                        settings = frequencySettings,
-                        onSettingsChange = { scope.launch { settingsDataStore.updateFrequencySettings(it) } },
-                        onBack = { navigateBack() }
-                    )
-                    Screen.OSD -> OSDScreen(
-                        settings = osdSettings,
-                        onSettingsChange = { scope.launch { settingsDataStore.updateOsdSettings(it) } },
-                        onBack = { navigateBack() }
-                    )
-                    Screen.Control -> ControlScreen(
-                        settings = controlSettings,
-                        onSettingsChange = { scope.launch { settingsDataStore.updateControlSettings(it) } },
-                        onBack = { navigateBack() }
-                    )
-                    Screen.Viewer -> {
+                Box {
+                    // Keep ViewerScreen alive when navigating to settings,
+                    // preserving pipeline, control connection, and button state
+                    if (currentScreen == Screen.Viewer || backStack.contains(Screen.Viewer)) {
                         val (relayHost, relayPort) = parseRelayUrl(networkSettings.relayUrl)
                         ViewerScreen(
                             connection = ConnectionInfo(
@@ -309,16 +291,60 @@ class MainActivity : ComponentActivity() {
                             ),
                             controlHz = frequencySettings.controlHz,
                             osdSettings = osdSettings,
+                            showPipelineStats = generalSettings.enablePipelineStats,
                             spectatorMode = networkSettings.spectatorMode,
                             controlSettings = controlSettings,
                             onBack = {
                                 stopTunnels()
                                 navigateBack()
                             },
+                            onNavigateToGeneral = { navigateTo(Screen.General) },
                             onNavigateToNetwork = { navigateTo(Screen.Network) },
                             onNavigateToFrequencies = { navigateTo(Screen.Frequencies) },
                             onNavigateToOSD = { navigateTo(Screen.OSD) },
                             onNavigateToControl = { navigateTo(Screen.Control) }
+                        )
+                    }
+
+                    when (currentScreen) {
+                        Screen.Viewer -> { /* rendered above */ }
+                        Screen.Main -> MainScreen(
+                            relayUrl = networkSettings.relayUrl,
+                            sessionId = networkSettings.sessionId,
+                            connectionState = connectionState,
+                            onStartConnection = { startConnection() },
+                            onAbortConnection = { abortConnection() },
+                            onClearError = { connectionState = ConnectionState.Idle },
+                            onNavigateToGeneral = { navigateTo(Screen.General) },
+                            onNavigateToNetwork = { navigateTo(Screen.Network) },
+                            onNavigateToFrequencies = { navigateTo(Screen.Frequencies) },
+                            onNavigateToOSD = { navigateTo(Screen.OSD) },
+                            onNavigateToControl = { navigateTo(Screen.Control) }
+                        )
+                        Screen.General -> GeneralScreen(
+                            settings = generalSettings,
+                            onSettingsChange = { scope.launch { settingsDataStore.updateGeneralSettings(it) } },
+                            onBack = { navigateBack() }
+                        )
+                        Screen.Network -> NetworkScreen(
+                            settings = networkSettings,
+                            onSettingsChange = { scope.launch { settingsDataStore.updateNetworkSettings(it) } },
+                            onBack = { navigateBack() }
+                        )
+                        Screen.Frequencies -> FrequenciesScreen(
+                            settings = frequencySettings,
+                            onSettingsChange = { scope.launch { settingsDataStore.updateFrequencySettings(it) } },
+                            onBack = { navigateBack() }
+                        )
+                        Screen.OSD -> OSDScreen(
+                            settings = osdSettings,
+                            onSettingsChange = { scope.launch { settingsDataStore.updateOsdSettings(it) } },
+                            onBack = { navigateBack() }
+                        )
+                        Screen.Control -> ControlScreen(
+                            settings = controlSettings,
+                            onSettingsChange = { scope.launch { settingsDataStore.updateControlSettings(it) } },
+                            onBack = { navigateBack() }
                         )
                     }
                 }

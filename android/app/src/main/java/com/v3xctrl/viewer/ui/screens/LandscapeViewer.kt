@@ -28,6 +28,7 @@ import com.v3xctrl.viewer.data.OsdSettings
 import com.v3xctrl.viewer.input.MotionController
 import com.v3xctrl.viewer.ui.components.TouchControls
 import com.v3xctrl.viewer.ui.widgets.BatteryWidget
+import com.v3xctrl.viewer.ui.widgets.FpsCounter
 import com.v3xctrl.viewer.ui.widgets.FrameDropIndicator
 import com.v3xctrl.viewer.ui.widgets.PipelineTimer
 import com.v3xctrl.viewer.ui.widgets.RecordingIndicator
@@ -138,13 +139,26 @@ fun LandscapeViewer(
                 )
             }
 
+            // FPS counter (bottom-left)
+            if (osdSettings.showFps) {
+                FpsCounter(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .offset(x = 12.dp, y = (-12).dp)
+                )
+            }
+
             // Recording indicator (bottom-right, offset left if timer is showing)
             if (viewerState.isRecording) {
                 RecordingIndicator(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .offset(
-                            x = if (osdSettings.showPipelineTimer) (-140).dp else (-12).dp,
+                            x = if (osdSettings.showPipelineTimer) {
+                                (-140).dp
+                            } else {
+                                (-12).dp
+                            },
                             y = (-12).dp
                         )
                 )

@@ -26,6 +26,10 @@ enum class Transport {
     }
 }
 
+data class GeneralSettings(
+    val enablePipelineStats: Boolean = false
+)
+
 data class NetworkSettings(
     val relayUrl: String = "relay.v3xctrl.com:8888",
     val sessionId: String = "",
@@ -49,7 +53,8 @@ data class OsdSettings(
     val showSignalIcon: Boolean = true,
     val showSignalBand: Boolean = false,
     val showSignalCellId: Boolean = false,
-    val showFrameDrops: Boolean = true
+    val showFrameDrops: Boolean = true,
+    val showFps: Boolean = false
 )
 
 data class ControlSettings(
@@ -79,6 +84,8 @@ data class ControlSettings(
 class SettingsDataStore(private val context: Context) {
 
     companion object {
+        private val ENABLE_PIPELINE_STATS = booleanPreferencesKey("enable_pipeline_stats")
+
         private val RELAY_URL = stringPreferencesKey("relay_url")
         private val SESSION_ID = stringPreferencesKey("session_id")
         private val SPECTATOR_MODE = booleanPreferencesKey("spectator_mode")
@@ -99,6 +106,7 @@ class SettingsDataStore(private val context: Context) {
         private val SHOW_SIGNAL_CELL_ID = booleanPreferencesKey("show_signal_cell_id")
 
         private val SHOW_FRAME_DROPS = booleanPreferencesKey("show_frame_drops")
+        private val SHOW_FPS = booleanPreferencesKey("show_fps")
 
         private val CONTROL_HZ = intPreferencesKey("control_hz")
         private val CONTROL_MODE = stringPreferencesKey("control_mode")
@@ -125,6 +133,13 @@ class SettingsDataStore(private val context: Context) {
         private val TOUCH_THROTTLE_INVERT = booleanPreferencesKey("touch_throttle_invert")
         private val MOTION_STEERING_INVERT = booleanPreferencesKey("motion_steering_invert")
         private val MOTION_THROTTLE_INVERT = booleanPreferencesKey("motion_throttle_invert")
+    }
+
+    val generalSettings: Flow<GeneralSettings> = context.dataStore.data.map { prefs ->
+        val defaults = GeneralSettings()
+        GeneralSettings(
+            enablePipelineStats = prefs[ENABLE_PIPELINE_STATS] ?: defaults.enablePipelineStats
+        )
     }
 
     val networkSettings: Flow<NetworkSettings> = context.dataStore.data.map { prefs ->
@@ -158,7 +173,8 @@ class SettingsDataStore(private val context: Context) {
             showSignalIcon = prefs[SHOW_SIGNAL_ICON] ?: defaults.showSignalIcon,
             showSignalBand = prefs[SHOW_SIGNAL_BAND] ?: defaults.showSignalBand,
             showSignalCellId = prefs[SHOW_SIGNAL_CELL_ID] ?: defaults.showSignalCellId,
-            showFrameDrops = prefs[SHOW_FRAME_DROPS] ?: defaults.showFrameDrops
+            showFrameDrops = prefs[SHOW_FRAME_DROPS] ?: defaults.showFrameDrops,
+            showFps = prefs[SHOW_FPS] ?: defaults.showFps
         )
     }
 
@@ -187,6 +203,12 @@ class SettingsDataStore(private val context: Context) {
             motionSteeringInvert = prefs[MOTION_STEERING_INVERT] ?: defaults.motionSteeringInvert,
             motionThrottleInvert = prefs[MOTION_THROTTLE_INVERT] ?: defaults.motionThrottleInvert
         )
+    }
+
+    suspend fun updateGeneralSettings(settings: GeneralSettings) {
+        context.dataStore.edit { prefs ->
+            prefs[ENABLE_PIPELINE_STATS] = settings.enablePipelineStats
+        }
     }
 
     suspend fun updateNetworkSettings(settings: NetworkSettings) {
@@ -218,6 +240,7 @@ class SettingsDataStore(private val context: Context) {
             prefs[SHOW_SIGNAL_BAND] = settings.showSignalBand
             prefs[SHOW_SIGNAL_CELL_ID] = settings.showSignalCellId
             prefs[SHOW_FRAME_DROPS] = settings.showFrameDrops
+            prefs[SHOW_FPS] = settings.showFps
         }
     }
 

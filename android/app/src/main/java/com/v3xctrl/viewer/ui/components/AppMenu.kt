@@ -11,6 +11,7 @@ import com.v3xctrl.viewer.R
 fun AppMenu(
     expanded: Boolean,
     onDismiss: () -> Unit,
+    onNavigateToGeneral: () -> Unit = {},
     onNavigateToNetwork: () -> Unit,
     onNavigateToFrequencies: () -> Unit,
     onNavigateToOSD: () -> Unit,
@@ -20,6 +21,13 @@ fun AppMenu(
         expanded = expanded,
         onDismissRequest = onDismiss
     ) {
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.menu_general)) },
+            onClick = {
+                onDismiss()
+                onNavigateToGeneral()
+            }
+        )
         DropdownMenuItem(
             text = { Text(stringResource(R.string.menu_network)) },
             onClick = {
