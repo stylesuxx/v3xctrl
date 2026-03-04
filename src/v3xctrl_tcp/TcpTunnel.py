@@ -18,6 +18,8 @@ import threading
 import time
 
 from v3xctrl_tcp.framing import recv_message, send_message
+from v3xctrl_tcp.keepalive import configure_keepalive
+from v3xctrl_tcp.send_timeout import configure_send_timeout
 
 logger = logging.getLogger(__name__)
 
@@ -130,6 +132,8 @@ class TcpTunnel:
                 tcp_sock.setsockopt(
                     socket.IPPROTO_TCP, socket.TCP_NODELAY, 1
                 )
+                configure_keepalive(tcp_sock)
+                configure_send_timeout(tcp_sock, 200)
                 tcp_sock.settimeout(None)
                 return tcp_sock
 
