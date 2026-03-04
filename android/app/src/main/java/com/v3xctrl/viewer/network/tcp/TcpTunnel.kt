@@ -116,6 +116,7 @@ class TcpTunnel(
                     CONNECT_TIMEOUT_MS
                 )
                 tcpSock.tcpNoDelay = true
+                tcpSock.keepAlive = true
                 return tcpSock
             } catch (e: Exception) {
                 tcpSock.close()
