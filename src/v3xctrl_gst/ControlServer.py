@@ -225,10 +225,10 @@ class ControlServer:
         Returns:
             JSON-serializable representation of the value
         """
-        if value is None or isinstance(value, (str, int, float, bool)):
+        if value is None or isinstance(value, str | int | float | bool):
             return value
 
-        elif isinstance(value, (list, tuple)):
+        elif isinstance(value, list | tuple):
             return [self._serialize_value(v) for v in value]
 
         elif isinstance(value, dict):
