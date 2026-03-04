@@ -1,13 +1,9 @@
-import io
-import json
 import logging
-from typing import Any
 
 import discord
 from discord import app_commands
 
 from v3xctrl_udp_relay.SessionStore import SessionStore
-from v3xctrl_udp_relay.discord_bot.RelayClient import RelayClient
 from v3xctrl_udp_relay.discord_bot.testdrive import TestdriveHandler
 
 
@@ -18,11 +14,9 @@ class Bot(discord.Client):
         token: str,
         channel_id: int,
         testdrive_channel_id: int | None = None,
-        relay_client: RelayClient | None = None
     ) -> None:
         self.token = token
         self.store = SessionStore(db_path)
-        self.relay_client = relay_client or RelayClient()
         self.channel_id = channel_id
         self.testdrive_channel_id = testdrive_channel_id
 
@@ -46,10 +40,6 @@ class Bot(discord.Client):
         @self.tree.command(name="renewid", description="Renew your session ID via DM")
         async def renewid_cmd(interaction: discord.Interaction) -> None:
             await self.handle_renewid_command(interaction)
-
-        @self.tree.command(name="stats", description="Get relay server statistics via DM")
-        async def stats_cmd(interaction: discord.Interaction) -> None:
-            await self.handle_stats_command(interaction)
 
     async def setup_hook(self) -> None:
         await self.tree.sync()
@@ -96,8 +86,7 @@ class Bot(discord.Client):
             "## v3xctrl Relay Bot is now online!\n\n"
             "I use slash commands **in this channel only**. Type `/` to see available commands:\n"
             "• `/requestid` - Get your unique session ID for connecting\n"
-            "• `/renewid` - Generate a new session ID\n"
-            "• `/stats` - View relay server statistics (requires 'stats' role)\n\n"
+            "• `/renewid` - Generate a new session ID\n\n"
             "All responses are sent via DM for privacy.\n\n"
             "## CAUTION!\n"
             "**Do not share your session ID** with untrusted users, they will have access to your streamer.\n\n"
@@ -129,113 +118,6 @@ class Bot(discord.Client):
 
     def _is_correct_channel(self, interaction: discord.Interaction) -> bool:
         return interaction.channel_id == self.channel_id
-
-    def _has_role(self, member: discord.Member, role_names: list[str]) -> bool:
-        if member.guild_permissions.manage_messages:
-            return True
-
-        role_names_lower = [name.lower() for name in role_names]
-        return any(role.name.lower() in role_names_lower for role in member.roles)
-
-    def _get_relay_stats(self) -> dict[str, Any]:
-        return self.relay_client.get_stats()
-
-    def _format_stats_message(self, stats: dict[str, Any]) -> str:
-        if not stats:
-            return "No active sessions."
-
-        message_parts = [f"**Active Sessions: {len(stats)}**\n"]
-
-        for session_id, session_data in stats.items():
-            created_at = session_data.get('created_at', 0)
-            mappings = session_data.get('mappings', [])
-
-            timestamp = f"<t:{int(created_at)}:R>"
-
-            message_parts.append(f"**Session ID:** `{session_id}`")
-            message_parts.append(f"**Created:** {timestamp}")
-            message_parts.append("")
-
-            if mappings:
-                streamers = [m for m in mappings if m['role'] == 'STREAMER']
-                viewers = [m for m in mappings if m['role'] == 'VIEWER']
-
-                if streamers:
-                    timeout = 0
-                    for mapping in streamers:
-                        if mapping['timeout_in_sec'] > timeout:
-                            timeout = mapping['timeout_in_sec']
-
-                    message_parts.append(f"**STREAMER (Timeout in {timeout}sec):**")
-                    for mapping in streamers:
-                        message_parts.append(f"    • {mapping['address']} ({mapping['port_type']})")
-                    message_parts.append("")
-
-                if viewers:
-                    timeout = 0
-                    for mapping in viewers:
-                        if mapping['timeout_in_sec'] > timeout:
-                            timeout = mapping['timeout_in_sec']
-
-                    message_parts.append(f"**VIEWER (Timeout in {timeout}sec):**")
-                    for mapping in viewers:
-                        message_parts.append(f"    • {mapping['address']} ({mapping['port_type']})")
-                    message_parts.append("")
-
-            else:
-                message_parts.append("  *No active mappings*")
-                message_parts.append("")
-
-            message_parts.append("─" * 50)
-            message_parts.append("")
-
-        return "\n".join(message_parts)
-
-    async def handle_stats_command(self, interaction: discord.Interaction) -> None:
-        # Silently ignore commands from other channels
-        if not self._is_correct_channel(interaction):
-            return
-
-        if interaction.guild is None:
-            await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
-            return
-
-        if not isinstance(interaction.user, discord.Member):
-            await interaction.response.send_message("This command is only available to server members.", ephemeral=True)
-            return
-
-        if not self._has_role(interaction.user, ['stats']):
-            await interaction.response.send_message("You don't have permission to use this command.", ephemeral=True)
-            return
-
-        try:
-            relay_stats = self._get_relay_stats()
-            formatted_stats = self._format_stats_message(relay_stats)
-
-            await interaction.response.defer(ephemeral=True)
-
-            if len(formatted_stats) > 2000:
-                stats_file = io.BytesIO(json.dumps(relay_stats, indent=2).encode('utf-8'))
-                file = discord.File(stats_file, filename="relay_stats.json")
-                await interaction.user.send("Stats too long for message, sending as file:", file=file)
-
-            else:
-                await interaction.user.send(formatted_stats)
-
-            await interaction.followup.send("Stats sent via DM!", ephemeral=True)
-
-        except discord.Forbidden:
-            await interaction.followup.send(
-                "I couldn't DM you the stats. Please enable DMs from server members and try again.",
-                ephemeral=True
-            )
-
-        except Exception as e:
-            logging.error(f"Stats command failed: {e}")
-            await interaction.followup.send(
-                "Failed to retrieve relay statistics. Check if the relay server is running.",
-                ephemeral=True
-            )
 
     async def handle_requestid_command(self, interaction: discord.Interaction) -> None:
         # Silently ignore commands from other channels
