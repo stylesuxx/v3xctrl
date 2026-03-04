@@ -2,7 +2,8 @@ import logging
 import socket
 import threading
 import time
-from typing import Dict, List, Set
+
+logger = logging.getLogger(__name__)
 
 from v3xctrl_helper import Address
 from v3xctrl_control.message import (
@@ -12,6 +13,8 @@ from v3xctrl_control.message import (
 )
 from v3xctrl_udp_relay.SessionStore import SessionStore
 from v3xctrl_udp_relay.Role import Role
+from v3xctrl_udp_relay.ForwardTarget import ForwardTarget, UdpTarget, TcpTarget
+from v3xctrl_tcp import Transport
 from v3xctrl_udp_relay.custom_types import (
     PortType,
     Session,
@@ -66,14 +69,33 @@ class PacketRelay:
         self.port = address[1]
         self.timeout = timeout
 
-        self.mappings: Dict[Address, tuple[Address, float]] = {}
-        self.sessions: Dict[str, Session] = {}
+        self.mappings: dict[Address, tuple[Address, float]] = {}
+        self.sessions: dict[str, Session] = {}
+
+        # Address -> TcpTarget for peers that registered via TCP
+        self.tcp_targets: dict[Address, TcpTarget] = {}
 
         # General lock, when execution is not hot path
         self.lock = threading.Lock()
 
         # Only lock mappings when absolutely necessary
         self.mapping_lock = threading.Lock()
+
+    def register_tcp_peer(self, msg: PeerAnnouncement, addr: Address, target: TcpTarget) -> None:
+        with self.mapping_lock:
+            self.tcp_targets[addr] = target
+        self.register_peer(msg, addr)
+
+    def unregister_tcp_peer(self, addr: Address) -> None:
+        with self.mapping_lock:
+            self.tcp_targets.pop(addr, None)
+
+    def _get_target(self, addr: Address) -> ForwardTarget:
+        tcp_target = self.tcp_targets.get(addr)
+        if tcp_target and tcp_target.is_alive():
+            return tcp_target
+
+        return UdpTarget(self.sock, addr)
 
     def register_peer(
         self,
@@ -94,41 +116,49 @@ class PacketRelay:
                 case Role.STREAMER | Role.VIEWER:
                     self._remove_spectator_from_all_sessions(addr)
                     if not self.store.exists(sid):
-                        logging.info(f"Ignoring announcement for unknown session '{sid}' from {addr}")
+                        logger.info(f"Ignoring announcement for unknown session '{sid}' from {addr}")
                         try:
                             error_msg = Error(str(403))
-                            self.sock.sendto(error_msg.to_bytes(), addr)
+                            self._get_target(addr).send(error_msg.to_bytes())
                         except Exception as e:
-                            logging.error(f"Failed to send error message to {addr}: {e}", exc_info=True)
+                            logger.error(f"Failed to send error message to {addr}: {e}", exc_info=True)
 
                         return
 
                 case Role.SPECTATOR:
                     actual_sid = self.store.get_session_id_from_spectator_id(sid)
                     if not actual_sid:
-                        logging.info(f"Ignoring spectator announcement for unknown spectator ID '{sid}' from {addr}")
+                        logger.info(f"Ignoring spectator announcement for unknown spectator ID '{sid}' from {addr}")
                         try:
                             error_msg = Error(str(403))
-                            self.sock.sendto(error_msg.to_bytes(), addr)
+                            self._get_target(addr).send(error_msg.to_bytes())
                         except Exception as e:
-                            logging.error(f"Failed to send error message to {addr}: {e}", exc_info=True)
+                            logger.error(f"Failed to send error message to {addr}: {e}", exc_info=True)
                         return
                     sid = actual_sid
-                    logging.info(f"Spectator using spectator_id, mapped to session '{sid}'")
+                    logger.info(f"Spectator using spectator_id, mapped to session '{sid}'")
 
             session = self.sessions.setdefault(sid, Session(sid))
+            new_transport = Transport.TCP if addr in self.tcp_targets else Transport.UDP
+
+            old_entry = session.roles.get(role, {}).get(port_type)
+            old_transport = old_entry.transport if old_entry else None
+
             is_new_peer = session.register(role, port_type, addr)
+            session.roles[role][port_type].transport = new_transport
 
             if is_new_peer:
-                logging.info(f"{sid}: Registered {role.name}:{port_type.name} from {addr}")
+                logger.info(f"{sid}: Registered {role.name}:{port_type.name} ({new_transport.name}) from {addr}")
+            elif old_transport and old_transport != new_transport:
+                logger.info(f"{sid}: {role.name}:{port_type.name} switched {old_transport.name} -> {new_transport.name}")
 
             if role == Role.SPECTATOR:
                 if session.is_ready():
                     self._setup_spectator_mappings(session, addr)
                     self._send_peer_info_to_spectator(session, addr)
-                    logging.info(f"{sid}: Spectator {addr} joined ready session")
+                    logger.info(f"{sid}: Spectator {addr} joined ready session")
                 else:
-                    logging.info(f"{sid}: Spectator {addr} waiting for session to be ready")
+                    logger.info(f"{sid}: Spectator {addr} waiting for session to be ready")
 
                 # Spectators will not make a session ready, return early
                 return
@@ -138,9 +168,10 @@ class PacketRelay:
                 self._send_peer_info(session)
                 self._setup_all_spectator_mappings(session)
 
-                logging.info(f"{sid}: Session ready, peer info exchanged")
+                transports = self._get_transport_summary(session)
+                logger.info(f"{sid}: Session ready, peer info exchanged ({transports})")
 
-    def get_session_peers(self, sid: str) -> Dict[Role, Dict[PortType, PeerEntry]]:
+    def get_session_peers(self, sid: str) -> dict[Role, dict[PortType, PeerEntry]]:
         """Get all peers for a session."""
         with self.lock:
             session = self.sessions.get(sid)
@@ -162,18 +193,10 @@ class PacketRelay:
         for sid, session in self.sessions.items():
             spectator_addresses = session.remove_spectator_by_address(addr)
             if spectator_addresses:
-                streamer_peers = session.roles.get(Role.STREAMER, {})
                 with self.mapping_lock:
-                    for spectator_addr in spectator_addresses:
-                        for peer in streamer_peers.values():
-                            streamer_addr = peer.addr
-                            if streamer_addr in self.mappings:
-                                targets, ts = self.mappings[streamer_addr]
-                                if isinstance(targets, set) and spectator_addr in targets:
-                                    targets.discard(spectator_addr)
-                                    self.mappings[streamer_addr] = (targets, ts)
+                    self._remove_spectator_from_mappings(spectator_addresses, session)
 
-                logging.info(f"{sid}: Removed spectator at {addr}")
+                logger.info(f"{sid}: Removed spectator at {addr}")
                 return
 
     def forward_packet(
@@ -191,7 +214,7 @@ class PacketRelay:
 
         # Send to all targets (viewer + spectators for streamer, or just streamer for viewer)
         for target in targets:
-            self.sock.sendto(data, target)
+            self._get_target(target).send(data)
 
         return True
 
@@ -208,8 +231,13 @@ class PacketRelay:
         """
         now = time.time()
 
+        with self.mapping_lock:
+            dead = [a for a, t in self.tcp_targets.items() if not t.is_alive()]
+            for a in dead:
+                del self.tcp_targets[a]
+
         with self.lock:
-            expired_roles: Dict[str, List[Role]] = {}
+            expired_roles: dict[str, list[Role]] = {}
 
             # Identify expired roles
             for sid, session in self.sessions.items():
@@ -245,10 +273,10 @@ class PacketRelay:
                             self.mappings.pop(peer.addr, None)
 
                     session.roles[r] = {}
-                    logging.info(f"{sid}: Removed expired mappings for {r.name}")
+                    logger.info(f"{sid}: Removed expired mappings for {r.name}")
 
             # Identify sessions with no active roles (spectators don't count)
-            expired_sessions: List[str] = []
+            expired_sessions: list[str] = []
             for sid, session in self.sessions.items():
                 expired = True
                 for _, role in session.roles.items():
@@ -265,64 +293,49 @@ class PacketRelay:
                     for i in reversed(range(len(session.spectators))):
                         spectator = session.spectators[i]
                         if (now - spectator.last_announcement_at) > self.SPECTATOR_TIMEOUT:
-                            streamer_peers = session.roles.get(Role.STREAMER, {})
-
                             with self.mapping_lock:
-                                for port_addr in spectator.get_addresses():
-                                    session.addresses.discard(port_addr)
-                                    for _, peer in streamer_peers.items():
-                                        streamer_addr = peer.addr
-                                        if streamer_addr in self.mappings:
-                                            targets, ts = self.mappings[streamer_addr]
-                                            if isinstance(targets, set) and port_addr in targets:
-                                                targets.discard(port_addr)
-                                                self.mappings[streamer_addr] = (targets, ts)
+                                spectator_addrs = spectator.get_addresses()
+                                for addr in spectator_addrs:
+                                    session.addresses.discard(addr)
+                                self._remove_spectator_from_mappings(spectator_addrs, session)
 
                             del session.spectators[i]
-                            logging.info(f"{sid}: Removed inactive spectator")
+                            logger.info(f"{sid}: Removed inactive spectator")
 
             # Remove expired sessions and cleanup their spectators
             for sid in expired_sessions:
                 session = self.sessions[sid]
                 # Clean up spectator mappings before deleting session
                 for spectator in session.spectators:
-                    streamer_peers = session.roles.get(Role.STREAMER, {})
                     with self.mapping_lock:
-                        for port_addr in spectator.get_addresses():
-                            for _, peer in streamer_peers.items():
-                                streamer_addr = peer.addr
-                                if streamer_addr in self.mappings:
-                                    targets, ts = self.mappings[streamer_addr]
-                                    if isinstance(targets, set) and port_addr in targets:
-                                        targets.discard(port_addr)
-                                        self.mappings[streamer_addr] = (targets, ts)
+                        self._remove_spectator_from_mappings(spectator.get_addresses(), session)
 
                 del self.sessions[sid]
-                logging.info(f"{sid}: Removed expired session")
+                logger.info(f"{sid}: Removed expired session")
 
     def _send_peer_info(self, session: Session) -> None:
         peers = session.roles
         try:
             peer_info = PeerInfo(ip=self.ip, video_port=self.port, control_port=self.port)
-            for role, role_peers in peers.items():
-                for port_type, peer in role_peers.items():
-                    self.sock.sendto(peer_info.to_bytes(), peer.addr)
-                    logging.info(f"{session.id}: Sent PeerInfo to {role.name}:{port_type.name} at {peer.addr}")
+            for role_peers in peers.values():
+                for peer in role_peers.values():
+                    self._get_target(peer.addr).send(peer_info.to_bytes())
 
         except Exception as e:
-            logging.error(f"Error sending PeerInfo: {e}", exc_info=True)
+            logger.error(f"Error sending PeerInfo: {e}", exc_info=True)
 
     def _send_peer_info_to_spectator(self, session: Session, spectator_addr: Address) -> None:
         """Send peer info to a specific spectator address."""
         try:
             peer_info = PeerInfo(ip=self.ip, video_port=self.port, control_port=self.port)
-            self.sock.sendto(peer_info.to_bytes(), spectator_addr)
-        except Exception as e:
-            logging.error(f"Error sending PeerInfo to spectator {spectator_addr}: {e}", exc_info=True)
+            self._get_target(spectator_addr).send(peer_info.to_bytes())
 
-    def _get_sids_for_address_unlocked(self, addr: Address) -> Set[str]:
+        except Exception as e:
+            logger.error(f"Error sending PeerInfo to spectator {spectator_addr}: {e}", exc_info=True)
+
+    def _get_sids_for_address_unlocked(self, addr: Address) -> set[str]:
         """Caller is required to hold the lock."""
-        sids: Set[str] = set()
+        sids: set[str] = set()
         for sid in self.sessions:
             session = self.sessions[sid]
             if addr in session.addresses:
@@ -342,8 +355,8 @@ class PacketRelay:
             return
 
         now = time.time()
-        new_mappings: Dict[Address, tuple[Set[Address], float]] = {}
-        session_addresses: Set[Address] = set()
+        new_mappings: dict[Address, tuple[set[Address], float]] = {}
+        session_addresses: set[Address] = set()
 
         for port_type in PortType:
             if (
@@ -359,7 +372,7 @@ class PacketRelay:
                 session_addresses.add(streamer_addr)
                 session_addresses.add(viewer_addr)
 
-        overwritten: Set[str] = set()
+        overwritten: set[str] = set()
         with self.mapping_lock:
             # Remove mapping that might have existed for this sessions addresses
             # before
@@ -377,7 +390,7 @@ class PacketRelay:
         for sid in overwritten:
             if sid != session.id:
                 del self.sessions[sid]
-                logging.info(f"{sid}: Removed overwritten session")
+                logger.info(f"{sid}: Removed overwritten session")
 
     def _setup_spectator_mappings(self, session: Session, spectator_addr: Address) -> None:
         """
@@ -418,7 +431,32 @@ class PacketRelay:
                 for port_addr in spectator.get_addresses():
                     self._setup_spectator_mappings(session, port_addr)
 
-    def _get_spectator_targets(self, source_addr: Address) -> Set[Address]:
+    def _get_transport_summary(self, session: Session) -> str:
+        """Build a transport summary string like 'STREAMER: TCP, VIEWER: UDP'."""
+        parts = []
+        for role in (Role.STREAMER, Role.VIEWER):
+            peers = session.roles.get(role, {})
+            transports = {p.transport for p in peers.values()}
+            if len(transports) == 1:
+                parts.append(f"{role.name}: {transports.pop().name}")
+            elif transports:
+                detail = ", ".join(f"{pt.name}={p.transport.name}" for pt, p in peers.items())
+                parts.append(f"{role.name}: {detail}")
+        return ", ".join(parts)
+
+    def _remove_spectator_from_mappings(self, spectator_addrs: set[Address], session: Session) -> None:
+        """Remove spectator addresses from streamer mapping targets. Caller must hold mapping_lock."""
+        streamer_peers = session.roles.get(Role.STREAMER, {})
+        for spectator_addr in spectator_addrs:
+            for peer in streamer_peers.values():
+                streamer_addr = peer.addr
+                if streamer_addr in self.mappings:
+                    targets, ts = self.mappings[streamer_addr]
+                    if isinstance(targets, set) and spectator_addr in targets:
+                        targets.discard(spectator_addr)
+                        self.mappings[streamer_addr] = (targets, ts)
+
+    def _get_spectator_targets(self, source_addr: Address) -> set[Address]:
         """Get existing spectator targets for a source address."""
         if source_addr in self.mappings:
             targets, _ = self.mappings[source_addr]

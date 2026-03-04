@@ -66,7 +66,8 @@ class SettingsController:
         # Check if network manager needs to be restarted
         if (
             not self.settings_equal(new_settings, "ports") or
-            self._needs_relay_restart(new_settings)
+            self._needs_relay_restart(new_settings) or
+            self._transport_changed(new_settings)
         ):
             self.model.pending_settings = new_settings
 
@@ -171,6 +172,12 @@ class SettingsController:
             return True
 
         return False
+
+    def _transport_changed(self, new_settings: 'Settings') -> bool:
+        """Check if transport setting changed (udp <-> tcp)."""
+        old_transport = self.old_settings.get("transport", "udp")
+        new_transport = new_settings.get("transport", "udp")
+        return old_transport != new_transport
 
     def settings_equal(self, new_settings: 'Settings', key: str) -> bool:
         """Compare a section of settings with the old settings.

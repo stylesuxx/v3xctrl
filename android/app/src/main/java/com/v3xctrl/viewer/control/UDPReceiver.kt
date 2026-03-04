@@ -13,6 +13,7 @@ import com.v3xctrl.viewer.messages.PeerInfo
 import com.v3xctrl.viewer.messages.PortType
 import com.v3xctrl.viewer.messages.Role
 import com.v3xctrl.viewer.messages.Syn
+import com.v3xctrl.viewer.data.Transport
 import com.v3xctrl.viewer.messages.Telemetry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -54,7 +55,8 @@ class UDPReceiver(
     private val spectatorMode: Boolean = false,
     private val forwardScale: Float = 1f,
     private val backwardScale: Float = 1f,
-    private val steeringScale: Float = 1f
+    private val steeringScale: Float = 1f,
+    private val transport: Transport = Transport.UDP
 ) {
     private val controlIntervalMs = (1000L / controlHz.coerceIn(1, 100))
     private val supervisorJob = SupervisorJob(scope.coroutineContext[Job])
@@ -94,7 +96,11 @@ class UDPReceiver(
 
                 // Launch sub-jobs (all parented by supervisorJob)
                 receiverScope.launch { receiveLoop() }
-                receiverScope.launch { announcementLoop() }
+                // Skip announcement loop in TCP mode. The TcpTunnel handles
+                // the handshake.
+                if (transport != Transport.TCP) {
+                    receiverScope.launch { announcementLoop() }
+                }
                 receiverScope.launch { stateLoop() }
                 receiverScope.launch { latencyLoop() }
             } catch (e: Exception) {

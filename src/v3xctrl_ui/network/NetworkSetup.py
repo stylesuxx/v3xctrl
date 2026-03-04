@@ -9,11 +9,15 @@ from v3xctrl_control import Server
 from v3xctrl_control.message import Heartbeat
 from v3xctrl_control.State import State
 from v3xctrl_helper.exceptions import PeerRegistrationError, PeerRegistrationAborted
+from v3xctrl_control.message import PeerAnnouncement
 from v3xctrl_udp_relay.Peer import Peer
+from v3xctrl_tcp import Transport
+from v3xctrl_tcp.TcpTunnel import TcpTunnel
 
 from v3xctrl_ui.network.video.Receiver import Receiver
 from v3xctrl_ui.network.video.ReceiverPyAV import ReceiverPyAV
 from v3xctrl_ui.network.VideoPortKeepAlive import VideoPortKeepAlive
+from v3xctrl_ui.network.TcpServer import TcpServer
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.utils.gstreamer import is_gstreamer_available
 
@@ -61,6 +65,9 @@ class NetworkSetupResult:
     video_receiver_result: Optional[VideoReceiverSetupResult] = None
     server_result: Optional[ServerSetupResult] = None
     video_keep_alive: Optional[VideoPortKeepAlive] = None
+    tcp_server: Optional[TcpServer] = None
+    tcp_video_tunnel: Optional[TcpTunnel] = None
+    tcp_control_tunnel: Optional[TcpTunnel] = None
 
     @property
     def has_errors(self) -> bool:
@@ -96,6 +103,7 @@ class NetworkSetup:
         self.ports = settings.get("ports", {})
         self.video_port = self.ports.get("video")
         self.control_port = self.ports.get("control")
+        self.transport = settings.get("transport", Transport.UDP)
         self._peer: Optional[Peer] = None
 
     def abort(self) -> None:
@@ -124,7 +132,32 @@ class NetworkSetup:
         # Step 1: Setup relay if configured
         video_address = None
         spectator_mode = False
-        if relay_config:
+
+        if self.transport == Transport.TCP and relay_config:
+            # TCP relay mode: two TcpTunnels to relay, skip Peer.setup()
+            relay_host = relay_config['server']
+            relay_port = relay_config['port']
+            session_id = relay_config['id']
+
+            video_handshake = PeerAnnouncement(r="viewer", i=session_id, p="video").to_bytes()
+            result.tcp_video_tunnel = TcpTunnel(
+                remote_host=relay_host, remote_port=relay_port,
+                local_component_port=self.video_port,
+                bidirectional=True, handshake=video_handshake,
+            )
+            result.tcp_video_tunnel.start()
+
+            control_handshake = PeerAnnouncement(r="viewer", i=session_id, p="control").to_bytes()
+            result.tcp_control_tunnel = TcpTunnel(
+                remote_host=relay_host, remote_port=relay_port,
+                local_component_port=self.control_port,
+                bidirectional=True, handshake=control_handshake,
+            )
+            result.tcp_control_tunnel.start()
+
+            logging.info("TCP relay tunnels started (video + control)")
+
+        elif relay_config:
             spectator_mode = relay_config.get('spectator_mode', False)
             relay_result = self.setup_relay(
                 relay_config['server'],
@@ -149,6 +182,12 @@ class NetworkSetup:
             )
             keep_alive_thread.start()
             result.video_keep_alive = keep_alive_thread
+
+        elif self.transport == Transport.TCP and not relay_config:
+            # Start TCP server for direct TCP mode
+            result.tcp_server = TcpServer(self.video_port, self.control_port)
+            result.tcp_server.start()
+            logging.info("TCP server started for direct mode")
 
         # Step 2: Create keep-alive callback and setup video receiver
         keep_alive_callback = self.create_keep_alive_callback(video_address)

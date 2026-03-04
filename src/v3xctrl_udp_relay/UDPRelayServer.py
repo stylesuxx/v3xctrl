@@ -17,6 +17,7 @@ from v3xctrl_control.message import (
 
 from v3xctrl_udp_relay.SessionStore import SessionStore
 from v3xctrl_udp_relay.PacketRelay import PacketRelay
+from v3xctrl_udp_relay.TCPAcceptor import TCPAcceptor
 from v3xctrl_udp_relay.Role import Role
 from v3xctrl_udp_relay.custom_types import PortType, Session
 
@@ -53,11 +54,14 @@ class UDPRelayServer(threading.Thread):
 
         self.executor = ThreadPoolExecutor(max_workers=10)
         self.running = threading.Event()
+        self._tcp_stop = threading.Event()
+        self.tcp_acceptor = TCPAcceptor(self.port, self.relay, self._tcp_stop)
 
         self._setup_command_socket()
 
     def start(self) -> None:
         self.running.set()
+        self.tcp_acceptor.start()
         threading.Thread(target=self._cleanup_expired_entries, daemon=True).start()
         threading.Thread(target=self._handle_commands, daemon=True).start()
         super().start()
@@ -78,6 +82,8 @@ class UDPRelayServer(threading.Thread):
 
     def shutdown(self) -> None:
         self.running.clear()
+        self._tcp_stop.set()
+        self.tcp_acceptor.stop()
         self.executor.shutdown(wait=True)
 
         try:
