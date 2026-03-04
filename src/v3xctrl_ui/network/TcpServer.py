@@ -20,6 +20,7 @@ from typing import Optional
 
 from v3xctrl_tcp.framing import recv_message, send_message
 from v3xctrl_tcp.keepalive import configure_keepalive
+from v3xctrl_tcp.send_timeout import configure_send_timeout
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +101,7 @@ class TcpServer:
                     socket.IPPROTO_TCP, socket.TCP_NODELAY, 1
                 )
                 configure_keepalive(client_sock)
+                configure_send_timeout(client_sock, 200)
                 logger.info(f"TCP client connected on port {port} from {addr}")
 
                 # Fresh UDP socket per connection so outbound threads from
