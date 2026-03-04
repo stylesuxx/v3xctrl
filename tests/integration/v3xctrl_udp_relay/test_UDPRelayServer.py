@@ -505,9 +505,10 @@ class TestUDPRelayServerIntegration(unittest.TestCase):
         # Test finding role for existing address
         result = server._find_role_for_address(mock_session, addr)
         self.assertIsNotNone(result)
-        role, port_type = result
+        role, port_type, transport, spectator_index = result
         self.assertEqual(role, Role.STREAMER)
         self.assertEqual(port_type, PortType.VIDEO)
+        self.assertIsNone(spectator_index)
 
         # Test finding role for non-existing address
         result = server._find_role_for_address(mock_session, ("192.168.1.999", 99999))

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Login - Relay Stats{% endblock %}
+{% block body %}
+<div class="container" style="max-width: 400px; margin-top: 10vh;">
+  <h3 class="text-center mb-4">Relay Stats</h3>
+  {% if error %}
+  <div class="alert alert-danger" role="alert">{{ error }}</div>
+  {% endif %}
+  <form method="POST" action="{{ url_for('auth.login_post') }}">
+    <div class="mb-3">
+      <label for="username" class="form-label">Username</label>
+      <input type="text" class="form-control" id="username" name="username" required autofocus>
+    </div>
+    <div class="mb-3">
+      <label for="password" class="form-label">Password</label>
+      <input type="password" class="form-control" id="password" name="password" required>
+    </div>
+    <button type="submit" class="btn btn-primary w-100">Login</button>
+  </form>
+</div>
+{% endblock %}

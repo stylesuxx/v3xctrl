@@ -2,7 +2,6 @@ import argparse
 import logging
 
 from v3xctrl_udp_relay.discord_bot import Bot
-from v3xctrl_udp_relay.discord_bot.RelayClient import RelayClient
 
 
 def main() -> None:
@@ -14,8 +13,6 @@ def main() -> None:
                         help="Discord channel ID for test drive requests (optional)")
     parser.add_argument("--db", "--db-path", dest="db_path", default="relay.db",
                         help="Path to SQLite database (default: relay.db)")
-    parser.add_argument("--relay-port", type=int, default=8888,
-                        help="Port of the relay server to connect to for stats (default: 8888)")
     parser.add_argument("--log", default="ERROR",
                         help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). (default: ERROR")
     args = parser.parse_args()
@@ -31,10 +28,8 @@ def main() -> None:
         format="%(asctime)s - %(levelname)s - %(message)s"
     )
 
-    relay_client = RelayClient(port=args.relay_port)
     bot = Bot(args.db_path, args.token, args.channel_id,
-              testdrive_channel_id=args.testdrive_channel_id,
-              relay_client=relay_client)
+              testdrive_channel_id=args.testdrive_channel_id)
     bot.run_bot()
 
 

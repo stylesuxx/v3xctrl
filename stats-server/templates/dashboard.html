@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Relay Stats{% endblock %}
+{% block extra_head %}
+<style>
+  .badge-streamer { background-color: #0d6efd; }
+  .badge-viewer { background-color: #198754; }
+  .badge-spectator { background-color: #6c757d; }
+  .timeout-high { color: #198754; font-weight: 600; }
+  .timeout-mid { color: #ffc107; font-weight: 600; }
+  .timeout-low { color: #dc3545; font-weight: 600; }
+  .pulse-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #198754;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  .relay-error {
+    color: #dc3545;
+    font-style: italic;
+  }
+  #last-updated {
+    font-size: 0.85rem;
+    color: #6c757d;
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+<nav class="navbar navbar-expand-sm navbar-dark bg-dark">
+  <div class="container-fluid">
+    <span class="navbar-brand">Relay Stats</span>
+    <div class="d-flex align-items-center gap-3">
+      <span class="text-light small">{{ username }}</span>
+      <form method="POST" action="{{ url_for('auth.logout') }}" class="m-0">
+        <button type="submit" class="btn btn-outline-light btn-sm">Logout</button>
+      </form>
+    </div>
+  </div>
+</nav>
+<div class="container-fluid">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div class="d-flex align-items-center gap-3">
+      <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" id="auto-refresh" checked>
+        <label class="form-check-label" for="auto-refresh">
+          Auto-refresh <span id="pulse" class="pulse-dot"></span>
+        </label>
+      </div>
+      <select id="refresh-interval" class="form-select form-select-sm" style="width: auto;">
+        <option value="5">5s</option>
+        <option value="10" selected>10s</option>
+        <option value="30">30s</option>
+      </select>
+      <button id="refresh-now" class="btn btn-outline-secondary btn-sm">Refresh now</button>
+    </div>
+    <span id="last-updated"></span>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-header"><strong>Summary</strong></div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Relay Port</th>
+              <th>Status</th>
+              <th>Sessions</th>
+            </tr>
+          </thead>
+          <tbody id="summary-body">
+            {% for port in relay_ports %}
+            <tr id="summary-{{ port }}">
+              <td>{{ port }}</td>
+              <td><span class="badge bg-secondary">loading</span></td>
+              <td>-</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><strong>Sessions</strong></div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-striped table-hover table-sm mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Relay Port</th>
+              <th>Session ID</th>
+              <th>Spectator ID</th>
+              <th>Created</th>
+              <th>Role</th>
+              <th>Port Type</th>
+              <th>Address</th>
+              <th>Connection</th>
+              <th>Timeout</th>
+            </tr>
+          </thead>
+          <tbody id="sessions-body">
+            <tr><td colspan="9" class="text-center text-muted">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+{% endblock %}
