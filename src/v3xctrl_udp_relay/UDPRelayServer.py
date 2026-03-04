@@ -19,6 +19,7 @@ from v3xctrl_udp_relay.SessionStore import SessionStore
 from v3xctrl_udp_relay.PacketRelay import PacketRelay
 from v3xctrl_udp_relay.TCPAcceptor import TCPAcceptor
 from v3xctrl_udp_relay.Role import Role
+from v3xctrl_tcp import Transport
 from v3xctrl_udp_relay.custom_types import PortType, Session
 
 
@@ -166,13 +167,16 @@ class UDPRelayServer(threading.Thread):
                                 timeout_in_sec = round(self.TIMEOUT - diff)
 
                             if role_info:
-                                role, port_type = role_info
-                                entry = {
+                                role, port_type, transport, spectator_index = role_info
+                                entry: dict[str, Any] = {
                                     'address': f"{addr[0]}:{addr[1]}",
                                     'role': role.name,
                                     'port_type': port_type.name,
+                                    'transport': transport.value,
                                     'timeout_in_sec': timeout_in_sec,
                                 }
+                                if spectator_index is not None:
+                                    entry['spectator_index'] = spectator_index
 
                                 if role == Role.SPECTATOR:
                                     spectators.append(entry)
@@ -187,17 +191,16 @@ class UDPRelayServer(threading.Thread):
 
         return result
 
-    def _find_role_for_address(self, session: Session, addr: Address) -> tuple[Role, PortType] | None:
-        """Find role and port_type for given address in session"""
+    def _find_role_for_address(self, session: Session, addr: Address) -> tuple[Role, PortType, Transport, int | None] | None:
         for role, port_dict in session.roles.items():
             for port_type, peer_entry in port_dict.items():
                 if peer_entry.addr == addr:
-                    return role, port_type
+                    return role, port_type, peer_entry.transport, None
 
-        for spectator in session.spectators:
+        for index, spectator in enumerate(session.spectators):
             for port_type, peer_entry in spectator.ports.items():
                 if peer_entry.addr == addr:
-                    return Role.SPECTATOR, port_type
+                    return Role.SPECTATOR, port_type, peer_entry.transport, index
 
         return None
 
