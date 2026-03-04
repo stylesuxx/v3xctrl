@@ -1,4 +1,5 @@
-from typing import Dict, Any, List, Tuple, ItemsView, Callable
+from typing import Any
+from collections.abc import Callable, ItemsView
 import pygame
 
 from v3xctrl_ui.utils.helpers import calculate_widget_position, round_corners
@@ -10,7 +11,7 @@ from v3xctrl_ui.osd.widgets.WidgetGroup import WidgetGroup
 def render_widget_group(
     screen: pygame.Surface,
     group: WidgetGroup,
-    widget_settings: Dict[str, Dict[str, Any]]
+    widget_settings: dict[str, dict[str, Any]]
 ) -> None:
     """
     Render a widget group using either composition or individual rendering.
@@ -43,8 +44,8 @@ def render_widget_group(
 def render_group(
     screen: pygame.Surface,
     widgets: ItemsView[str, Widget],
-    settings: Dict[str, Any],
-    widget_settings: Dict[str, Dict[str, Any]],
+    settings: dict[str, Any],
+    widget_settings: dict[str, dict[str, Any]],
     get_widget_value: Callable[[str], Any],
     corner_radius: int = 4
 ) -> None:
@@ -80,7 +81,7 @@ def render_group(
 def _render_individual_widgets(
     screen: pygame.Surface,
     widgets: ItemsView[str, Widget],
-    widget_settings: Dict[str, Dict[str, Any]],
+    widget_settings: dict[str, dict[str, Any]],
     get_widget_value: Callable[[str], Any]
 ) -> None:
     for name, widget in widgets:
@@ -105,9 +106,9 @@ def _render_individual_widgets(
 
 def _filter_visible_widgets(
     widgets: ItemsView[str, Widget],
-    widget_settings: Dict[str, Dict[str, Any]]
-) -> List[Tuple[str, Widget]]:
-    visible: List[Tuple[str, Widget]] = []
+    widget_settings: dict[str, dict[str, Any]]
+) -> list[tuple[str, Widget]]:
+    visible: list[tuple[str, Widget]] = []
     for name, widget in widgets:
         settings = widget_settings.get(name, {})
         if settings.get("display", True):
@@ -117,9 +118,9 @@ def _filter_visible_widgets(
 
 
 def _calculate_dimensions(
-    widgets: List[Tuple[str, Widget]],
+    widgets: list[tuple[str, Widget]],
     padding: int
-) -> Tuple[int, int]:
+) -> tuple[int, int]:
     width = 0
     height = 0
 
@@ -135,7 +136,7 @@ def _calculate_dimensions(
 
 def _draw_widgets_to_surface(
     surface: pygame.Surface,
-    widgets: List[Tuple[str, Widget]],
+    widgets: list[tuple[str, Widget]],
     get_widget_value: Callable[[str], Any],
     padding: int
 ) -> None:

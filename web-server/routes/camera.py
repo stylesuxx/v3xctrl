@@ -3,7 +3,6 @@ from flask import request
 from flask.views import MethodView
 import json
 import subprocess
-from typing import Tuple
 
 from flask import Response
 
@@ -15,7 +14,7 @@ blueprint = Blueprint('camera', 'camera', url_prefix='/camera', description='Cam
 @blueprint.route('/settings')
 class CameraSettings(MethodView):
     @blueprint.response(200, description="Get current camera settings from the running pipeline")
-    def get(self) -> Tuple[Response, int]:
+    def get(self) -> tuple[Response, int]:
         """
         Query live camera settings via v3xctrl-video-control.
         Requires the video pipeline to be running.
@@ -40,7 +39,7 @@ class CameraSettings(MethodView):
 @blueprint.route('/settings/<name>')
 class CameraSetting(MethodView):
     @blueprint.response(200, description="Get a single camera setting from the running pipeline")
-    def get(self, name: str) -> Tuple[Response, int]:
+    def get(self, name: str) -> tuple[Response, int]:
         try:
             output = subprocess.check_output(
                 ["v3xctrl-video-control", "get", "camera", name],
@@ -58,7 +57,7 @@ class CameraSetting(MethodView):
             return error("Unexpected error", str(e))
 
     @blueprint.response(200, description="Set a camera setting via v3xctrl-video-control")
-    def put(self, name: str) -> Tuple[Response, int]:
+    def put(self, name: str) -> tuple[Response, int]:
         try:
             data = request.get_json()
 

@@ -1,4 +1,4 @@
-from typing import Callable, Tuple, Optional
+from collections.abc import Callable
 
 import pygame
 from pygame import Surface
@@ -38,7 +38,7 @@ class BaseInput(BaseWidget):
         input_width: int,
         font: Font,
         mono_font: Font,
-        on_change: Optional[Callable[[str], None]] = None,
+        on_change: Callable[[str], None] | None = None,
         input_padding: int = 10
     ) -> None:
         super().__init__()
@@ -142,7 +142,7 @@ class BaseInput(BaseWidget):
                 self.CURSOR_WIDTH
             )
 
-    def _handle_mouse(self, mouse_pos: Tuple[int, int]) -> None:
+    def _handle_mouse(self, mouse_pos: tuple[int, int]) -> None:
         text_x = self._get_text_x()
         rel_x = mouse_pos[0] - text_x - self.input_padding
         self.cursor_pos = len(self.value)

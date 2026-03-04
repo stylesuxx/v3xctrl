@@ -2,7 +2,7 @@ import logging
 import signal
 import threading
 import time
-from typing import Any, Optional
+from typing import Any
 
 import pygame
 
@@ -100,7 +100,7 @@ class AppState:
         pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
         self.network_coordinator.setup_ports()
 
-    def update_settings(self, new_settings: Optional[Settings] = None) -> None:
+    def update_settings(self, new_settings: Settings | None = None) -> None:
         """
         Update settings after exiting menu.
         """
@@ -297,8 +297,8 @@ class AppState:
 
     def _signal_handler(
         self,
-        sig: Optional[int] = None,
-        frame: Optional[Any] = None
+        sig: int | None = None,
+        frame: Any | None = None
     ) -> None:
         """Handle shutdown signals gracefully."""
         self.menu.hide()

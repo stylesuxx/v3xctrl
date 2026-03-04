@@ -5,7 +5,7 @@ from pathlib import Path
 import tempfile
 import threading
 import time
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import numpy as np
 import vlc
@@ -19,9 +19,9 @@ class ReceiverVLC(Receiver):
     def __init__(self, port: int, error_callback: Callable[[], None]) -> None:
         super().__init__(port, error_callback)
 
-        self.instance: Optional[vlc.Instance] = None
-        self.player: Optional[vlc.MediaPlayer] = None
-        self.media: Optional[vlc.Media] = None
+        self.instance: vlc.Instance | None = None
+        self.player: vlc.MediaPlayer | None = None
+        self.media: vlc.Media | None = None
 
         # SDP file for RTP stream
         self.sdp_path = Path(tempfile.gettempdir()) / f"vlc_rtp_{self.port}.sdp"
@@ -32,7 +32,7 @@ class ReceiverVLC(Receiver):
         self.pitch = 0
 
         # Frame buffer
-        self.frame_buffer: Optional[ctypes.Array] = None
+        self.frame_buffer: ctypes.Array | None = None
         self.frame_ready = threading.Event()
         self.video_lock = threading.Lock()
 

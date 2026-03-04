@@ -2,7 +2,7 @@ import logging
 import sys
 from threading import Event
 import time
-from typing import Optional, Dict, Any
+from typing import Any
 
 import gi
 gi.require_version('Gst', '1.0')
@@ -20,7 +20,7 @@ class Streamer:
         host: str,
         port: int,
         bind_port: int,
-        settings: Optional[Dict[str, Any]] = None,
+        settings: dict[str, Any] | None = None,
         control_socket: str = '/tmp/v3xctrl.sock'
     ) -> None:
         """
@@ -45,7 +45,7 @@ class Streamer:
 
         # Pipeline timing measurement
         self.timing_enabled = False
-        self.timing_data: Dict[int, Dict[str, float]] = {}
+        self.timing_data: dict[int, dict[str, float]] = {}
         self.timing_stats = {
             'capture': [],
             'capsfilter': [],
@@ -65,7 +65,7 @@ class Streamer:
             'incomplete': 0,
         }
 
-        default_settings: Dict[str, Any] = {
+        default_settings: dict[str, Any] = {
             'width': 1280,
             'height': 720,
             'framerate': 30,
@@ -118,7 +118,7 @@ class Streamer:
             'timing_enabled': False,
         }
 
-        self.settings: Dict[str, Any] = default_settings.copy()
+        self.settings: dict[str, Any] = default_settings.copy()
         if settings:
             self.settings.update(settings)
 
@@ -127,9 +127,9 @@ class Streamer:
 
         logging.debug(self.settings)
 
-        self.pipeline: Optional[Gst.Pipeline] = None
-        self.loop: Optional[GLib.MainLoop] = None
-        self.bus: Optional[Gst.Bus] = None
+        self.pipeline: Gst.Pipeline | None = None
+        self.loop: GLib.MainLoop | None = None
+        self.bus: Gst.Bus | None = None
 
         Gst.init(None)
         self.control_server = ControlServer(self, control_socket)
@@ -205,7 +205,7 @@ class Streamer:
             self.stop()
             logging.info("Pipeline stopped.")
 
-    def get_element(self, name: str) -> Optional[Gst.Element]:
+    def get_element(self, name: str) -> Gst.Element | None:
         """
         Get a pipeline element by name for runtime control.
 
@@ -294,7 +294,7 @@ class Streamer:
         logging.warning(f"Property '{property_name}' failed to stick after {max_retries} attempts (value: {verify_result['actual']})")
         return False
 
-    def get_property(self, element_name: str, property_name: str) -> Optional[Any]:
+    def get_property(self, element_name: str, property_name: str) -> Any | None:
         """
         Get a property value from a named element.
 
@@ -316,7 +316,7 @@ class Streamer:
             logging.error(f"Failed to get property '{property_name}' from element '{element_name}': {e}")
             return None
 
-    def list_properties(self, element_name: str) -> Optional[Dict[str, Any]]:
+    def list_properties(self, element_name: str) -> dict[str, Any] | None:
         """
         List all properties and their current values for a named element.
 
@@ -343,7 +343,7 @@ class Streamer:
 
         return properties
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         return {
             'recording': self.recording_manager.is_recording,
             'qp_min': self.qp_manager.current_qp_min,

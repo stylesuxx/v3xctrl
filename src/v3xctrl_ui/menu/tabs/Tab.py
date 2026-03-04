@@ -2,7 +2,7 @@
 from abc import ABC, abstractmethod
 
 from pygame import Surface, event
-from typing import Dict, List, Any
+from typing import Any
 
 from v3xctrl_ui.utils.colors import WHITE
 from v3xctrl_ui.utils.fonts import TEXT_FONT
@@ -31,8 +31,8 @@ class Tab(ABC):
         self.y_note_padding = 14
         self.y_note_padding_bottom = 5
 
-        self.elements: List[Any] = []
-        self.headlines: Dict[str, Headline] = {}
+        self.elements: list[Any] = []
+        self.headlines: dict[str, Headline] = {}
 
     def handle_event(self, event: event.Event) -> None:
         for element in self.elements:
@@ -61,7 +61,7 @@ class Tab(ABC):
         pass
 
     @abstractmethod
-    def get_settings(self) -> Dict[str, Any]:
+    def get_settings(self) -> dict[str, Any]:
         pass
 
     @abstractmethod

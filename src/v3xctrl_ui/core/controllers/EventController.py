@@ -1,6 +1,7 @@
 """Event handling controller for pygame events."""
 import logging
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING
+from collections.abc import Callable
 
 import pygame
 
@@ -25,9 +26,9 @@ class EventController:
         send_command: Callable,
         settings: Settings,
         telemetry_context: TelemetryContext,
-        gamepad_controller: Optional[GamepadController] = None,
-        connect_button: Optional[Button] = None,
-        model: Optional['ApplicationModel'] = None,
+        gamepad_controller: GamepadController | None = None,
+        connect_button: Button | None = None,
+        model: 'ApplicationModel | None' = None,
     ):
         self.on_quit = on_quit
         self.on_toggle_fullscreen = on_toggle_fullscreen
@@ -125,7 +126,7 @@ class EventController:
     def _is_connected(self) -> bool:
         return self.model is not None and self.model.user_connected
 
-    def _match_gamepad_mapping(self, event: pygame.event.Event) -> Optional[str]:
+    def _match_gamepad_mapping(self, event: pygame.event.Event) -> str | None:
         """Check if a pygame event matches any gamepad button/hat mapping."""
         for name in ("trim_increase", "trim_decrease", "rec_toggle"):
             mapping = self.gamepad_controller.get_button_mapping(name)

@@ -1,12 +1,11 @@
 from abc import ABC, abstractmethod
-from typing import Optional
 
 import pygame
 from pygame import Surface
 
 
 class BaseWidget(ABC):
-    HOVER_CURSOR: Optional[int] = None
+    HOVER_CURSOR: int | None = None
 
     def __init__(self) -> None:
         self.x = 0

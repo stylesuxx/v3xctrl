@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pygame
 from pygame import Surface
-from typing import Dict, Any
+from typing import Any
 
 from v3xctrl_ui.menu.tabs.Tab import Tab
 from v3xctrl_ui.core.Settings import Settings
@@ -19,7 +19,7 @@ class ConcreteTab(Tab):
         # Pre-render headlines during initialization
         self._add_headline("main", "Test Tab", draw_top_line=False)
 
-    def get_settings(self) -> Dict[str, Any]:
+    def get_settings(self) -> dict[str, Any]:
         return {"test_setting": "test_value"}
 
     def draw(self, surface: Surface) -> None:

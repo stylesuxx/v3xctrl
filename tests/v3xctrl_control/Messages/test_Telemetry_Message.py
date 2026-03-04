@@ -1,13 +1,13 @@
 import unittest
 import msgpack
-from typing import Dict, Any
+from typing import Any
 from v3xctrl_control.message import Message, Telemetry
 
 
 class TestTelemetry(unittest.TestCase):
     def test_roundtrip_and_getters(self) -> None:
         ts = 1_734_567.0
-        payload: Dict[str, Any] = {"fps": 30, "temp_c": 52.5, "load": {"cpu": 0.42, "gpu": 0.15}}
+        payload: dict[str, Any] = {"fps": 30, "temp_c": 52.5, "load": {"cpu": 0.42, "gpu": 0.15}}
         t = Telemetry(v=payload, timestamp=ts)
 
         data = t.to_bytes()

@@ -4,7 +4,8 @@ import time
 
 import pygame
 from pygame import Surface, event
-from typing import Callable, NamedTuple, Dict, Optional
+from typing import NamedTuple
+from collections.abc import Callable
 
 from v3xctrl_control.message import Command
 from v3xctrl_udp_relay.helper import test_relay_connection
@@ -133,8 +134,8 @@ class Menu:
         self.spinner_offset = 60
 
         # Timer-based loading result display (non-blocking)
-        self._loading_hide_time: Optional[float] = None
-        self._loading_callback: Optional[Callable[[bool], None]] = None
+        self._loading_hide_time: float | None = None
+        self._loading_callback: Callable[[bool], None] | None = None
         self._loading_result: bool = False
 
     def handle_event(self, event: event.Event) -> None:
@@ -262,7 +263,7 @@ class Menu:
         self.tab_bar_surface = pygame.Surface((self.width, self.tab_height))
         self.tab_bar_dirty = True
 
-    def _create_tabs(self) -> Dict[str, Tab]:
+    def _create_tabs(self) -> dict[str, Tab]:
         return {
             "General": GeneralTab(
                 settings=self.settings,
@@ -378,7 +379,7 @@ class Menu:
             self.exit_button.enable()
             self.quit_button.enable()
 
-    def _update_cursor(self, tab: Optional[TabEntry]) -> None:
+    def _update_cursor(self, tab: TabEntry | None) -> None:
         """Set mouse cursor based on which widget is hovered."""
         for btn in (self.quit_button, self.save_button, self.exit_button):
             if btn.hovered and btn.HOVER_CURSOR is not None:

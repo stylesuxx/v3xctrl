@@ -1,4 +1,3 @@
-from typing import Optional
 from .Message import Message
 
 
@@ -7,7 +6,7 @@ class ConnectionTest(Message):
         self,
         i: str,
         s: bool = False,
-        timestamp: Optional[float] = None
+        timestamp: float | None = None
     ) -> None:
         super().__init__({
             "i": i,

@@ -2,7 +2,6 @@ from collections import deque
 import io
 import logging
 import time
-from typing import Tuple, Dict
 
 import pygame
 from pygame.freetype import Font
@@ -13,11 +12,11 @@ from material_icons import MaterialIcons, IconStyle
 from v3xctrl_helper import clamp, color_to_hex
 
 
-_icon_cache: Dict[Tuple[str, int, Tuple[int, int, int], IconStyle, int], pygame.Surface] = {}
-_mask_cache: Dict[Tuple[int, int, int, int], pygame.Surface] = {}
+_icon_cache: dict[tuple[str, int, tuple[int, int, int], IconStyle, int], pygame.Surface] = {}
+_mask_cache: dict[tuple[int, int, int, int], pygame.Surface] = {}
 
 
-def interpolate_steering_color(steering: float) -> Tuple[int, int, int]:
+def interpolate_steering_color(steering: float) -> tuple[int, int, int]:
     value = clamp(abs(steering), 0.0, 1.0)
 
     if value <= 0.5:
@@ -36,7 +35,7 @@ def interpolate_steering_color(steering: float) -> Tuple[int, int, int]:
     return (r, g, b)
 
 
-def interpolate_throttle_color(throttle: float) -> Tuple[int, int, int]:
+def interpolate_throttle_color(throttle: float) -> tuple[int, int, int]:
     value = clamp(throttle, 0.0, 1.0)
 
     if value <= 0.5:
@@ -75,7 +74,7 @@ def get_external_ip(timeout: int = 5) -> str:
 def get_icon(
     name: str,
     size: int = 24,
-    color: Tuple[int, int, int] = (0, 0, 0),
+    color: tuple[int, int, int] = (0, 0, 0),
     style: IconStyle = IconStyle.ROUND,
     rotation: int = 0
 ) -> pygame.Surface:
@@ -145,7 +144,7 @@ def round_corners(
 def render_text_full_height(
     font: Font,
     text: str,
-    color: Tuple[int, int, int]
+    color: tuple[int, int, int]
 ) -> pygame.Surface:
     text_surface, rect = font.render(text, color)
 
@@ -168,8 +167,8 @@ def calculate_widget_position(
     widget_height: int,
     screen_width: int,
     screen_height: int,
-    offset: Tuple[int, int] = (0, 0)
-) -> Tuple[int, int]:
+    offset: tuple[int, int] = (0, 0)
+) -> tuple[int, int]:
     match alignment:
         case "top-left":
             return offset

@@ -13,7 +13,6 @@ sequentially:
 """
 import socket
 import time
-from typing import Optional
 
 from v3xctrl_helper import Address
 
@@ -31,7 +30,7 @@ class Client(Base):
         self,
         host: str,
         port: int,
-        bind_port: Optional[int] = None,
+        bind_port: int | None = None,
         failsafe_ms: int = 500,
         bind_address: str = "0.0.0.0"
     ) -> None:

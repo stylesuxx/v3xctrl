@@ -1,5 +1,5 @@
 """Display management for handling screen modes, sizing, and scaling."""
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING
 import logging
 import sys
 import time
@@ -17,7 +17,7 @@ class DisplayController:
     def __init__(
         self,
         model: 'ApplicationModel',
-        base_size: Tuple[int, int],
+        base_size: tuple[int, int],
         title: str
     ):
         self.model = model
@@ -107,10 +107,10 @@ class DisplayController:
     def get_screen(self) -> pygame.Surface:
         return self.screen
 
-    def get_size(self) -> Tuple[int, int]:
+    def get_size(self) -> tuple[int, int]:
         return self.screen.get_size()
 
-    def get_base_size(self) -> Tuple[int, int]:
+    def get_base_size(self) -> tuple[int, int]:
         return self.base_size
 
     def get_scale(self) -> float:

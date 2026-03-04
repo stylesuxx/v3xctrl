@@ -1,6 +1,4 @@
 from collections import deque
-from typing import Tuple
-
 import pygame
 from pygame import Surface
 
@@ -13,8 +11,8 @@ from v3xctrl_ui.osd.widgets.Widget import Widget
 class FpsWidget(Widget):
     def __init__(
         self,
-        position: Tuple[int, int],
-        size: Tuple[int, int],
+        position: tuple[int, int],
+        size: tuple[int, int],
         label: str,
         smoothing_window: int = 15
     ) -> None:
@@ -62,7 +60,7 @@ class FpsWidget(Widget):
     def set_status_icon(
         self,
         icon_name: str,
-        color: Tuple[int, int, int] = (255, 255, 255)
+        color: tuple[int, int, int] = (255, 255, 255)
     ) -> None:
         """Set a status icon to display in the bottom right corner.
 

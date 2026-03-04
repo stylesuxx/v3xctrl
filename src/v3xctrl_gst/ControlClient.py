@@ -1,6 +1,6 @@
 import socket
 import json
-from typing import Dict, Any
+from typing import Any
 
 
 class ControlClient:
@@ -15,20 +15,20 @@ class ControlClient:
         """
         self.socket_path = socket_path
 
-    def list_properties(self, element: str) -> Dict[str, Any]:
+    def list_properties(self, element: str) -> dict[str, Any]:
         return self._send_command({
             'action': 'list',
             'element': element
         })
 
-    def get_property(self, element: str, property_name: str) -> Dict[str, Any]:
+    def get_property(self, element: str, property_name: str) -> dict[str, Any]:
         return self._send_command({
             'action': 'get',
             'element': element,
             'property': property_name
         })
 
-    def set_property(self, element: str, property_name: str, value: Any) -> Dict[str, Any]:
+    def set_property(self, element: str, property_name: str, value: Any) -> dict[str, Any]:
         return self._send_command({
             'action': 'set',
             'element': element,
@@ -36,19 +36,19 @@ class ControlClient:
             'value': value
         })
 
-    def stop(self) -> Dict[str, Any]:
+    def stop(self) -> dict[str, Any]:
         return self._send_command({'action': 'stop'})
 
-    def recording(self, value: str) -> Dict[str, Any]:
+    def recording(self, value: str) -> dict[str, Any]:
         return self._send_command({
             'action': 'recording',
             'value': value,
         })
 
-    def stats(self) -> Dict[str, Any]:
+    def stats(self) -> dict[str, Any]:
         return self._send_command({'action': 'stats'})
 
-    def _send_command(self, command: Dict[str, Any]) -> Dict[str, Any]:
+    def _send_command(self, command: dict[str, Any]) -> dict[str, Any]:
         """
         Send a command to the control server.
 

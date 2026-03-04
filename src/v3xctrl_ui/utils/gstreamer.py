@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 # Required GStreamer elements for H264 RTP reception
 _REQUIRED_GST_ELEMENTS = [
@@ -16,7 +15,7 @@ _gstreamer_available = False
 _gstreamer_check_done = False
 
 
-def _check_gstreamer_elements() -> Optional[str]:
+def _check_gstreamer_elements() -> str | None:
     """Check if required GStreamer elements are available.
 
     Returns:

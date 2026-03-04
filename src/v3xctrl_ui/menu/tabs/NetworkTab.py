@@ -1,4 +1,5 @@
-from typing import Callable, Dict, List, Any, Optional, Tuple
+from typing import Any
+from collections.abc import Callable
 
 from pygame import Surface
 
@@ -33,12 +34,12 @@ class NetworkTab(Tab):
         height: int,
         padding: int,
         y_offset: int,
-        on_test_relay: Optional[Callable] = None
+        on_test_relay: Callable | None = None
     ) -> None:
         super().__init__(settings, width, height, padding, y_offset)
 
         self._on_test_relay_callback = on_test_relay
-        self._test_status: Optional[Tuple[bool, str]] = None
+        self._test_status: tuple[bool, str] | None = None
 
         self._transport_options = ["UDP", "TCP"]
 
@@ -105,18 +106,18 @@ class NetworkTab(Tab):
             on_change=lambda value: self._on_udp_packet_ttl_change(value)
         )
 
-        self.general_widgets: List[BaseInput | BaseWidget] = [
+        self.general_widgets: list[BaseInput | BaseWidget] = [
             self.transport_select,
             self.video_input,
             self.control_input
         ]
-        self.relay_widgets: List[BaseInput | BaseWidget] = [
+        self.relay_widgets: list[BaseInput | BaseWidget] = [
             self.relay_server_input,
             self.relay_id_row,
             self.relay_enabled_checkbox,
             self.relay_spectator_checkbox
         ]
-        self.misc_widgets: List[BaseInput | BaseWidget] = [
+        self.misc_widgets: list[BaseInput | BaseWidget] = [
             self.udp_packet_ttl_input
         ]
 
@@ -148,7 +149,7 @@ class NetworkTab(Tab):
 
         self.transport_select.draw_overlay(surface)
 
-    def get_settings(self) -> Dict[str, Any]:
+    def get_settings(self) -> dict[str, Any]:
         return {
             "udp_packet_ttl": self.udp_packet_ttl,
             "transport": self.transport,

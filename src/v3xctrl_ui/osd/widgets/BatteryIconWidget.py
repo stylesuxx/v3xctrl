@@ -1,6 +1,3 @@
-from typing import Tuple
-
-
 from pygame import Surface
 
 from v3xctrl_ui.utils.colors import GREEN, RED, YELLOW, ORANGE
@@ -9,7 +6,7 @@ from v3xctrl_ui.utils.helpers import get_icon
 
 
 class BatteryIconWidget(Widget):
-    def __init__(self, position: Tuple[int, int], width: int) -> None:
+    def __init__(self, position: tuple[int, int], width: int) -> None:
         self.position = position
 
         self.width = width

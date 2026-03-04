@@ -1,7 +1,8 @@
 import pygame
 from pygame import Surface
 from pygame.freetype import Font
-from typing import Any, Callable, Dict, Optional
+from typing import Any
+from collections.abc import Callable
 
 from v3xctrl_ui.utils.colors import WHITE, GREY, TRANSPARENT_GREY
 from v3xctrl_ui.utils.fonts import MONO_FONT
@@ -49,11 +50,11 @@ class GamepadCalibrationWidget(BaseWidget):
         self.on_calibration_done = on_calibration_done
         self.on_remap_toggle_callback = on_remap_toggle
 
-        self.selected_guid: Optional[str] = None
-        self.calibrator: Optional[GamepadCalibrator] = None
-        self.invert_axes: Dict[str, bool] = {k: False for k in ["steering", "throttle", "brake"]}
-        self.deadband_values: Dict[str, int] = {k: 0 for k in ["steering", "throttle", "brake"]}
-        self.button_mappings: Dict[str, Any] = {
+        self.selected_guid: str | None = None
+        self.calibrator: GamepadCalibrator | None = None
+        self.invert_axes: dict[str, bool] = {k: False for k in ["steering", "throttle", "brake"]}
+        self.deadband_values: dict[str, int] = {k: 0 for k in ["steering", "throttle", "brake"]}
+        self.button_mappings: dict[str, Any] = {
             "trim_increase": None,
             "trim_decrease": None,
             "rec_toggle": None
@@ -61,9 +62,9 @@ class GamepadCalibrationWidget(BaseWidget):
 
         self.controller_select: Select
         self.calibrate_button: Button
-        self.invert_checkboxes: Dict[str, Checkbox]
-        self.deadband_inputs: Dict[str, NumberInput]
-        self.button_mapping_widgets: Dict[str, ButtonMappingWidget]
+        self.invert_checkboxes: dict[str, Checkbox]
+        self.deadband_inputs: dict[str, NumberInput]
+        self.button_mapping_widgets: dict[str, ButtonMappingWidget]
         self.button_remap_active: bool = False
 
         self.dialog = DialogBox(title="Next Step", lines=[], button_label="OK", on_confirm=lambda: None)
@@ -71,7 +72,7 @@ class GamepadCalibrationWidget(BaseWidget):
         self._create_ui(font)
         self.set_position(self.x, self.y)
 
-        self.gamepads: Dict[str, pygame.joystick.Joystick] = self.manager.get_gamepads()
+        self.gamepads: dict[str, pygame.joystick.Joystick] = self.manager.get_gamepads()
         self._on_gamepads_changed(self.gamepads)
 
         # When gamepads change, trigger handler
@@ -269,7 +270,7 @@ class GamepadCalibrationWidget(BaseWidget):
 
     def _on_gamepads_changed(
         self,
-        gamepads: Dict[str, pygame.joystick.Joystick]
+        gamepads: dict[str, pygame.joystick.Joystick]
     ) -> None:
         self.gamepads = gamepads
 
@@ -463,7 +464,7 @@ class GamepadCalibrationWidget(BaseWidget):
         value: float,
         min_val: float,
         max_val: float,
-        center_val: Optional[float] = None,
+        center_val: float | None = None,
         deadband_pct: float = 0.0,
         x: int = 0,
         y: int = 0,

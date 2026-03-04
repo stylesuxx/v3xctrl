@@ -1,4 +1,3 @@
-from typing import Optional
 from .Message import Message
 
 
@@ -6,7 +5,7 @@ class ConnectionTestAck(Message):
     def __init__(
         self,
         v: bool,
-        timestamp: Optional[float] = None
+        timestamp: float | None = None
     ) -> None:
         super().__init__({
             "v": v,

@@ -1,4 +1,4 @@
-from typing import Tuple, Dict, Any
+from typing import Any
 
 from pygame import draw, Surface, Rect
 
@@ -11,10 +11,10 @@ from v3xctrl_helper import clamp
 class VerticalIndicatorWidget(BaseIndicatorWidget):
     def __init__(
         self,
-        position: Tuple[int, int],
-        size: Tuple[int, int],
+        position: tuple[int, int],
+        size: tuple[int, int],
         bar_width: int = 20,
-        **kwargs: Dict[str, Any]
+        **kwargs: dict[str, Any]
     ) -> None:
         super().__init__(position, size, **kwargs)
         self.bar_width = bar_width

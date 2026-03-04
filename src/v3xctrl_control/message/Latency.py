@@ -1,7 +1,6 @@
-from typing import Optional
 from .Message import Message
 
 
 class Latency(Message):
-    def __init__(self, timestamp: Optional[float] = None) -> None:
+    def __init__(self, timestamp: float | None = None) -> None:
         super().__init__({}, timestamp)

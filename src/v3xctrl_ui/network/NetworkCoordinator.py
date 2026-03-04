@@ -3,7 +3,8 @@ import logging
 import queue
 import threading
 import time
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any
+from collections.abc import Callable
 
 from v3xctrl_control import State
 from v3xctrl_control.message import Command, Control, Latency, Telemetry
@@ -32,15 +33,15 @@ class NetworkCoordinator:
         self.model = model
         self.osd = osd
 
-        self.network_controller: Optional[NetworkController] = None
+        self.network_controller: NetworkController | None = None
         self.restart_complete = threading.Event()
-        self.on_connection_change: Optional[Callable[[bool], None]] = None
+        self.on_connection_change: Callable[[bool], None] | None = None
 
         # Queue for deferring callbacks to the main thread.
         # Network callbacks (e.g. command ACKs) are invoked from background threads,
         # but UI operations like font rendering are not thread-safe. This queue
         # collects callbacks to be processed on the main thread.
-        self._callback_queue: queue.Queue[Tuple[Callable, tuple]] = queue.Queue()
+        self._callback_queue: queue.Queue[tuple[Callable, tuple]] = queue.Queue()
 
     def create_network_controller(
         self,
@@ -183,7 +184,7 @@ class NetworkCoordinator:
             delta = round(time.monotonic() - start)
             logging.debug(f"Network controller shut down after {delta}s")
 
-    def _create_handlers(self) -> Dict[str, Any]:
+    def _create_handlers(self) -> dict[str, Any]:
         def update_connected(state: bool) -> None:
             self.model.control_connected = state
             if self.on_connection_change:

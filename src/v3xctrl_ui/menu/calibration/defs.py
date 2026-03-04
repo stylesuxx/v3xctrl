@@ -1,6 +1,5 @@
 from enum import Enum, auto
 from dataclasses import dataclass, field
-from typing import Optional, List
 
 
 class CalibrationStage(Enum):
@@ -18,18 +17,18 @@ class CalibratorState(Enum):
 
 @dataclass
 class AxisCalibrationData:
-    axis: Optional[int] = None
-    baseline: Optional[List[float]] = None
-    detection_start: Optional[float] = None
+    axis: int | None = None
+    baseline: list[float] | None = None
+    detection_start: float | None = None
 
-    max_values: List[float] = field(default_factory=list[float])
+    max_values: list[float] = field(default_factory=list[float])
 
-    max_last: Optional[float] = None
-    max_stable_since: Optional[float] = None
+    max_last: float | None = None
+    max_stable_since: float | None = None
 
-    min_last: Optional[float] = None
-    min_stable_since: Optional[float] = None
+    min_last: float | None = None
+    min_stable_since: float | None = None
 
-    idle_last: Optional[float] = None
-    idle_stable_since: Optional[float] = None
-    idle_samples: List[float] = field(default_factory=list[float])
+    idle_last: float | None = None
+    idle_stable_since: float | None = None
+    idle_samples: list[float] = field(default_factory=list[float])

@@ -1,4 +1,3 @@
-from typing import List
 
 from pygame import Surface
 
@@ -9,7 +8,7 @@ class VerticalLayout:
     def __init__(self, padding_x: int = 20, element_padding: int = 10):
         self.padding_x = padding_x
         self.element_padding = element_padding
-        self.widgets: List[BaseWidget] = []
+        self.widgets: list[BaseWidget] = []
 
     def add(self, widget: BaseWidget) -> None:
         self.widgets.append(widget)
