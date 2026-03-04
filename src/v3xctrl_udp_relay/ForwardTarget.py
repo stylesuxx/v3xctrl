@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 
 from v3xctrl_helper import Address
 from v3xctrl_tcp.framing import send_message
+from v3xctrl_tcp.send_timeout import configure_send_timeout
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,7 @@ class TcpTarget(ForwardTarget):
         self._sock = tcp_sock
         self._lock = threading.Lock()
         self._alive = True
+        configure_send_timeout(tcp_sock, 50)
 
     def send(self, data: bytes) -> bool:
         with self._lock:
