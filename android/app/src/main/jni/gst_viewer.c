@@ -323,6 +323,7 @@ Java_com_v3xctrl_viewer_GstViewer_nativeStartPipeline(JNIEnv *env, jclass clazz,
             "rtpjitterbuffer name=jbuf latency=0 drop-on-latency=true ! "
             "rtph264depay name=depay ! "
             "h264parse name=parse ! "
+            "queue max-size-buffers=1 leaky=downstream ! "
             "avdec_h264 name=dec ! "
             "videoconvert ! "
             "glimagesink name=videosink sync=false",
