@@ -3,7 +3,10 @@ package com.v3xctrl.viewer.ui.screens
 import android.app.Activity
 import android.content.pm.ActivityInfo
 import android.widget.Toast
+import android.content.Context
 import android.content.res.Configuration
+import android.net.wifi.WifiManager
+import android.os.Build
 import android.view.InputDevice
 import android.view.SurfaceHolder
 import android.view.SurfaceView
@@ -269,6 +272,28 @@ fun ViewerScreen(
         onDispose {
             activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
             activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
+
+    // WiFi low-latency lock to prevent network throttling during streaming
+    DisposableEffect(Unit) {
+        val wifiManager = context.applicationContext
+            .getSystemService(Context.WIFI_SERVICE) as? WifiManager
+        val wifiLock = wifiManager?.createWifiLock(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                WifiManager.WIFI_MODE_FULL_LOW_LATENCY
+            } else {
+                @Suppress("DEPRECATION")
+                WifiManager.WIFI_MODE_FULL_HIGH_PERF
+            },
+            "v3xctrl:viewer"
+        )
+        wifiLock?.acquire()
+
+        onDispose {
+            if (wifiLock?.isHeld == true) {
+                wifiLock.release()
+            }
         }
     }
 

@@ -1,6 +1,8 @@
 #include <jni.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <pthread.h>
+#include <sys/resource.h>
 #include <android/log.h>
 #include <android/native_window.h>
 #include <android/native_window_jni.h>
@@ -338,6 +340,11 @@ static void on_state_changed(GstBus *bus, GstMessage *msg, gpointer data) {
 }
 
 static void *gst_main_loop_thread(void *arg) {
+    // Raise thread priority for lower latency processing (-10 = audio/video priority)
+    if (setpriority(PRIO_PROCESS, 0, -10) != 0) {
+        LOGW("Failed to set GStreamer thread priority: %s", strerror(errno));
+    }
+
     LOGI("Starting GStreamer main loop");
     g_main_loop_run(gst_data.main_loop);
     LOGI("GStreamer main loop ended");
