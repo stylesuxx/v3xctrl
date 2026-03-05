@@ -53,7 +53,8 @@ class UDPRelayServer(threading.Thread):
             self.TIMEOUT
         )
 
-        self.executor = ThreadPoolExecutor(max_workers=10)
+        self.tcp_executor = ThreadPoolExecutor(max_workers=10)
+        self.control_executor = ThreadPoolExecutor(max_workers=4)
         self.running = threading.Event()
         self._tcp_stop = threading.Event()
         self.tcp_acceptor = TCPAcceptor(self.port, self.relay, self._tcp_stop)
@@ -73,7 +74,13 @@ class UDPRelayServer(threading.Thread):
         while self.running.is_set():
             try:
                 data, addr = self.sock.recvfrom(self.RECEIVE_BUFFER)
-                self.executor.submit(self._handle_packet, data, addr)
+
+                deferred_tcp = self.relay.forward_packet(data, addr)
+                if deferred_tcp is not None:
+                    for tcp_target in deferred_tcp:
+                        self.tcp_executor.submit(tcp_target.send, data)
+                else:
+                    self.control_executor.submit(self._handle_slow_packet, data, addr)
             except OSError:
                 if not self.running.is_set():
                     break
@@ -85,7 +92,8 @@ class UDPRelayServer(threading.Thread):
         self.running.clear()
         self._tcp_stop.set()
         self.tcp_acceptor.stop()
-        self.executor.shutdown(wait=True)
+        self.tcp_executor.shutdown(wait=True)
+        self.control_executor.shutdown(wait=True)
 
         try:
             self.sock.close()
@@ -164,8 +172,7 @@ class UDPRelayServer(threading.Thread):
                             with self.relay.mapping_lock:
                                 mapping = self.relay.mappings.get(addr)
                                 if mapping:
-                                    _, ts = mapping
-                                    diff = now - ts
+                                    diff = now - mapping.timestamp
                                     if diff < self.TIMEOUT:
                                         timeout_in_sec = round(self.TIMEOUT - diff)
 
@@ -206,10 +213,6 @@ class UDPRelayServer(threading.Thread):
     ) -> None:
         self.relay.register_peer(msg, addr)
 
-    def _handle_heartbeat(self, addr: Address) -> None:
-        """Update spectator timestamp on heartbeat."""
-        self.relay.update_spectator_heartbeat(addr)
-
     def _cleanup_expired_entries(self) -> None:
         while self.running.is_set():
             self.relay.cleanup_expired_mappings()
@@ -232,11 +235,8 @@ class UDPRelayServer(threading.Thread):
         except Exception as e:
             logging.error(f"Error handling connection test from {addr}: {e}", exc_info=True)
 
-    def _handle_packet(self, data: bytes, addr: Address) -> None:
-        """
-        Main priority is to forward packets as quickly as possible and handle
-        peer announcements.
-        """
+    def _handle_slow_packet(self, data: bytes, addr: Address) -> None:
+        """Handle non-data packets: peer announcements, connection tests, spectator heartbeats."""
         try:
             if data.startswith(b'\x83\xa1t\xb0PeerAnnouncement'):
                 try:
@@ -251,10 +251,7 @@ class UDPRelayServer(threading.Thread):
                 self._handle_connection_test(data, addr)
                 return
 
-            # Try to forward the packet. If no mapping exists, update spectator heartbeat
-            forwarded = self.relay.forward_packet(data, addr)
-            if not forwarded:
-                self.relay.update_spectator_heartbeat(addr)
+            self.relay.update_spectator_heartbeat(addr)
 
         except Exception as e:
             logging.error(f"Error handling packet from {addr}: {e}", exc_info=True)
