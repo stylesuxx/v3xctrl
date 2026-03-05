@@ -1,10 +1,10 @@
 import socket
 import unittest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock
 
 from v3xctrl_control.message import PeerAnnouncement
 from v3xctrl_tcp import Transport
-from v3xctrl_udp_relay.PacketRelay import PacketRelay
+from v3xctrl_udp_relay.PacketRelay import Mapping, PacketRelay
 from v3xctrl_udp_relay.ForwardTarget import TcpTarget, UdpTarget
 from v3xctrl_udp_relay.SessionStore import SessionStore
 from v3xctrl_udp_relay.custom_types import PortType, Session, Role
@@ -66,34 +66,35 @@ class TestPacketRelayTcp(unittest.TestCase):
         target = self.relay._get_target(addr)
         self.assertIsInstance(target, UdpTarget)
 
-    def test_forward_packet_uses_tcp_target(self):
+    def test_forward_packet_defers_tcp_target(self):
         streamer_addr = ("10.0.0.1", 50000)
         viewer_addr = ("10.0.0.2", 50001)
 
         tcp_target = Mock(spec=TcpTarget)
         tcp_target.is_alive.return_value = True
-        tcp_target.send.return_value = True
         self.relay.tcp_targets[viewer_addr] = tcp_target
 
         # Set up mapping: streamer -> viewer
-        self.relay.mappings[streamer_addr] = ({viewer_addr}, 0)
+        self.relay.mappings[streamer_addr] = Mapping({viewer_addr}, 0)
 
-        result = self.relay.forward_packet(b"video_frame", streamer_addr)
+        deferred = self.relay.forward_packet(b"video_frame", streamer_addr)
 
-        self.assertTrue(result)
-        tcp_target.send.assert_called_once_with(b"video_frame")
-        # Should NOT have called sock.sendto
+        self.assertIsNotNone(deferred)
+        self.assertEqual(deferred, [tcp_target])
+        # TCP send is deferred - not called by forward_packet
+        tcp_target.send.assert_not_called()
         self.mock_sock.sendto.assert_not_called()
 
-    def test_forward_packet_uses_udp_for_non_tcp_peer(self):
+    def test_forward_packet_sends_udp_inline(self):
         streamer_addr = ("10.0.0.1", 50000)
         viewer_addr = ("10.0.0.2", 50001)
 
-        self.relay.mappings[streamer_addr] = ({viewer_addr}, 0)
+        self.relay.mappings[streamer_addr] = Mapping({viewer_addr}, 0)
 
-        result = self.relay.forward_packet(b"video_frame", streamer_addr)
+        deferred = self.relay.forward_packet(b"video_frame", streamer_addr)
 
-        self.assertTrue(result)
+        self.assertIsNotNone(deferred)
+        self.assertEqual(deferred, [])
         self.mock_sock.sendto.assert_called_once_with(b"video_frame", viewer_addr)
 
     def test_send_peer_info_uses_tcp_target(self):
@@ -165,16 +166,21 @@ class TestPacketRelayTcp(unittest.TestCase):
             viewer_control
         )
 
-        # Forward video from streamer -> should reach viewer via UDP
-        result = self.relay.forward_packet(b"video_data", streamer_video)
-        self.assertTrue(result)
+        # Reset mocks after registration (PeerInfo sends happen during setup)
+        self.mock_sock.sendto.reset_mock()
+        streamer_video_target.send.reset_mock()
+        streamer_control_target.send.reset_mock()
+
+        # Forward video from streamer -> viewer via UDP (inline send)
+        deferred = self.relay.forward_packet(b"video_data", streamer_video)
+        self.assertEqual(deferred, [])
         self.mock_sock.sendto.assert_called_with(b"video_data", viewer_video)
 
-        # Forward control from viewer -> should reach streamer via TCP
+        # Forward control from viewer -> streamer via TCP (deferred)
         self.mock_sock.sendto.reset_mock()
-        result = self.relay.forward_packet(b"control_cmd", viewer_control)
-        self.assertTrue(result)
-        streamer_control_target.send.assert_called_with(b"control_cmd")
+        deferred = self.relay.forward_packet(b"control_cmd", viewer_control)
+        self.assertEqual(deferred, [streamer_control_target])
+        streamer_control_target.send.assert_not_called()
         self.mock_sock.sendto.assert_not_called()
 
     def test_streamer_tcp_viewer_tcp_forwarding(self):
@@ -216,16 +222,23 @@ class TestPacketRelayTcp(unittest.TestCase):
             viewer_control, viewer_control_target
         )
 
-        # Forward video from streamer -> viewer via TCP
-        result = self.relay.forward_packet(b"video_data", streamer_video)
-        self.assertTrue(result)
-        viewer_video_target.send.assert_called_with(b"video_data")
+        # Reset mocks after registration (PeerInfo sends happen during setup)
+        self.mock_sock.sendto.reset_mock()
+        streamer_video_target.send.reset_mock()
+        streamer_control_target.send.reset_mock()
+        viewer_video_target.send.reset_mock()
+        viewer_control_target.send.reset_mock()
+
+        # Forward video from streamer -> viewer via TCP (deferred)
+        deferred = self.relay.forward_packet(b"video_data", streamer_video)
+        self.assertEqual(deferred, [viewer_video_target])
+        viewer_video_target.send.assert_not_called()
         self.mock_sock.sendto.assert_not_called()
 
-        # Forward control from viewer -> streamer via TCP
-        result = self.relay.forward_packet(b"control_cmd", viewer_control)
-        self.assertTrue(result)
-        streamer_control_target.send.assert_called_with(b"control_cmd")
+        # Forward control from viewer -> streamer via TCP (deferred)
+        deferred = self.relay.forward_packet(b"control_cmd", viewer_control)
+        self.assertEqual(deferred, [streamer_control_target])
+        streamer_control_target.send.assert_not_called()
 
     def test_peer_transport_tracked_on_register(self):
         """Transport is recorded on PeerEntry after registration."""

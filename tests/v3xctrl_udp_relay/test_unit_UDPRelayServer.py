@@ -314,8 +314,8 @@ class TestUDPRelayServerUnitTests(unittest.TestCase):
             mock_logger.error.assert_called()
 
     @patch('socket.socket')
-    def test_handle_packet_message_parse_exception(self, mock_socket_class):
-        """Test _handle_packet Message.from_bytes exception - lines 228->234, 231-232"""
+    def test_handle_slow_packet_message_parse_exception(self, mock_socket_class):
+        """Test _handle_slow_packet Message.from_bytes exception for PeerAnnouncement prefix."""
         mock_udp_socket = Mock()
         mock_command_socket = Mock()
 
@@ -343,11 +343,11 @@ class TestUDPRelayServerUnitTests(unittest.TestCase):
             mock_message_class.from_bytes.side_effect = Exception("Parse error")
 
             # Should not raise exception, just return early
-            server._handle_packet(peer_announcement_data, client_addr)
+            server._handle_slow_packet(peer_announcement_data, client_addr)
 
     @patch('socket.socket')
-    def test_handle_packet_general_exception(self, mock_socket_class):
-        """Test _handle_packet general exception handling - lines 236-237"""
+    def test_handle_slow_packet_general_exception(self, mock_socket_class):
+        """Test _handle_slow_packet general exception handling."""
         mock_udp_socket = Mock()
         mock_command_socket = Mock()
 
@@ -366,20 +366,20 @@ class TestUDPRelayServerUnitTests(unittest.TestCase):
             self.db_path,
         )
 
-        # Mock forward_packet to raise an exception
-        with patch.object(server.relay, 'forward_packet', side_effect=Exception("Forward error")):
+        # Mock update_spectator_heartbeat to raise an exception
+        with patch.object(server.relay, 'update_spectator_heartbeat', side_effect=Exception("Heartbeat error")):
             regular_data = b'regular_packet_data'
             client_addr = ("192.168.1.100", 54321)
 
             with patch('logging.error') as mock_error:
-                server._handle_packet(regular_data, client_addr)
+                server._handle_slow_packet(regular_data, client_addr)
 
                 # Verify error was logged
                 mock_error.assert_called()
 
     @patch('socket.socket')
-    def test_handle_packet_non_peer_announcement_isinstance_false(self, mock_socket_class):
-        """Test _handle_packet when Message.from_bytes returns non-PeerAnnouncement"""
+    def test_handle_slow_packet_non_peer_announcement_isinstance_false(self, mock_socket_class):
+        """Test _handle_slow_packet when Message.from_bytes returns non-PeerAnnouncement."""
         mock_udp_socket = Mock()
         mock_command_socket = Mock()
 
@@ -407,12 +407,11 @@ class TestUDPRelayServerUnitTests(unittest.TestCase):
             mock_other_msg = Mock()  # Not a PeerAnnouncement
             mock_message_class.from_bytes.return_value = mock_other_msg
 
-            # Should call forward_packet instead of _handle_peer_announcement
-            with patch.object(server.relay, 'forward_packet') as mock_forward:
-                server._handle_packet(peer_announcement_data, client_addr)
+            # Falls through isinstance check, then calls update_spectator_heartbeat
+            with patch.object(server.relay, 'update_spectator_heartbeat') as mock_heartbeat:
+                server._handle_slow_packet(peer_announcement_data, client_addr)
 
-                # Should forward the packet since it's not a PeerAnnouncement
-                mock_forward.assert_called_once_with(peer_announcement_data, client_addr)
+                mock_heartbeat.assert_called_once_with(client_addr)
 
 if __name__ == '__main__':
     unittest.main()
