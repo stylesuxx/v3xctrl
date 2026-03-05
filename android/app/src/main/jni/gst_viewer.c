@@ -19,6 +19,11 @@
 
 typedef struct {
     GstElement *pipeline;
+    GstElement *udpsrc;
+    GstElement *jitterbuffer;
+    GstElement *depay;
+    GstElement *parser;
+    GstElement *decodebin;
     GstElement *video_sink;
     GMainLoop *main_loop;
     ANativeWindow *native_window;
@@ -76,7 +81,7 @@ static GstPadProbeReturn count_sink_cb(GstPad *pad, GstPadProbeInfo *info, gpoin
     return GST_PAD_PROBE_OK;
 }
 
-// Periodic stats logging — shows buffer counts per element to identify where data stops
+// Periodic stats logging - shows buffer counts per element to identify where data stops
 static gboolean log_stats_cb(gpointer user_data) {
     if (!gst_data.pipeline) {
         return G_SOURCE_REMOVE;
@@ -88,31 +93,25 @@ static gboolean log_stats_cb(gpointer user_data) {
     return G_SOURCE_CONTINUE;
 }
 
-static gulong add_src_pad_probe(const gchar *element_name, GstPadProbeCallback cb) {
+static gulong add_element_src_probe(GstElement *element, GstPadProbeCallback cb) {
     gulong probe_id = 0;
-    GstElement *el = gst_bin_get_by_name(GST_BIN(gst_data.pipeline), element_name);
-    if (el) {
-        GstPad *pad = gst_element_get_static_pad(el, "src");
+    if (element) {
+        GstPad *pad = gst_element_get_static_pad(element, "src");
         if (pad) {
             probe_id = gst_pad_add_probe(pad, GST_PAD_PROBE_TYPE_BUFFER, cb, NULL, NULL);
             gst_object_unref(pad);
         }
-        gst_object_unref(el);
-    } else {
-        LOGW("Could not find element '%s' for pad probe", element_name);
     }
     return probe_id;
 }
 
-static void remove_src_pad_probe(const gchar *element_name, gulong probe_id) {
-    GstElement *el = gst_bin_get_by_name(GST_BIN(gst_data.pipeline), element_name);
-    if (el) {
-        GstPad *pad = gst_element_get_static_pad(el, "src");
+static void remove_element_src_probe(GstElement *element, gulong probe_id) {
+    if (element) {
+        GstPad *pad = gst_element_get_static_pad(element, "src");
         if (pad) {
             gst_pad_remove_probe(pad, probe_id);
             gst_object_unref(pad);
         }
-        gst_object_unref(el);
     }
 }
 
@@ -126,10 +125,10 @@ static void attach_stats_probes(void) {
     count_depay = 0;
     count_decoder = 0;
 
-    probe_id_udpsrc = add_src_pad_probe("src", count_udpsrc_cb);
-    probe_id_jitterbuffer = add_src_pad_probe("jbuf", count_jitterbuffer_cb);
-    probe_id_depay = add_src_pad_probe("depay", count_depay_cb);
-    probe_id_decoder = add_src_pad_probe("dec", count_decoder_cb);
+    probe_id_udpsrc = add_element_src_probe(gst_data.udpsrc, count_udpsrc_cb);
+    probe_id_jitterbuffer = add_element_src_probe(gst_data.jitterbuffer, count_jitterbuffer_cb);
+    probe_id_depay = add_element_src_probe(gst_data.depay, count_depay_cb);
+    // Decoder probe is attached in on_decodebin_pad_added (dynamic pad)
 
     stats_timer_id = g_timeout_add_seconds(STATS_INTERVAL_SECS, log_stats_cb, NULL);
 }
@@ -137,16 +136,21 @@ static void attach_stats_probes(void) {
 static void detach_stats_probes(void) {
     if (gst_data.pipeline) {
         if (probe_id_udpsrc) {
-            remove_src_pad_probe("src", probe_id_udpsrc);
+            remove_element_src_probe(gst_data.udpsrc, probe_id_udpsrc);
         }
         if (probe_id_jitterbuffer) {
-            remove_src_pad_probe("jbuf", probe_id_jitterbuffer);
+            remove_element_src_probe(gst_data.jitterbuffer, probe_id_jitterbuffer);
         }
         if (probe_id_depay) {
-            remove_src_pad_probe("depay", probe_id_depay);
+            remove_element_src_probe(gst_data.depay, probe_id_depay);
         }
-        if (probe_id_decoder) {
-            remove_src_pad_probe("dec", probe_id_decoder);
+        // Decoder probe is on decodebin's dynamic src pad - remove via decodebin
+        if (probe_id_decoder && gst_data.decodebin) {
+            GstPad *src_pad = gst_element_get_static_pad(gst_data.decodebin, "src_0");
+            if (src_pad) {
+                gst_pad_remove_probe(src_pad, probe_id_decoder);
+                gst_object_unref(src_pad);
+            }
         }
     }
     probe_id_udpsrc = 0;
@@ -158,6 +162,80 @@ static void detach_stats_probes(void) {
         g_source_remove(stats_timer_id);
         stats_timer_id = 0;
     }
+}
+
+static void log_decodebin_decoder(GstElement *decodebin) {
+    GstIterator *it = gst_bin_iterate_recurse(GST_BIN(decodebin));
+    GValue item = G_VALUE_INIT;
+    gboolean done = FALSE;
+
+    while (!done) {
+        switch (gst_iterator_next(it, &item)) {
+        case GST_ITERATOR_OK: {
+            GstElement *element = g_value_get_object(&item);
+            GstElementFactory *factory = gst_element_get_factory(element);
+            if (factory) {
+                const gchar *klass = gst_element_factory_get_metadata(factory,
+                    GST_ELEMENT_METADATA_KLASS);
+                if (klass && g_strrstr(klass, "Decoder")) {
+                    LOGI("Decoder selected by decodebin: %s (%s)",
+                         GST_OBJECT_NAME(element),
+                         gst_plugin_feature_get_name(GST_PLUGIN_FEATURE(factory)));
+                }
+            }
+            g_value_reset(&item);
+            break;
+        }
+        case GST_ITERATOR_RESYNC:
+            gst_iterator_resync(it);
+            break;
+        case GST_ITERATOR_DONE:
+        case GST_ITERATOR_ERROR:
+        default:
+            done = TRUE;
+            break;
+        }
+    }
+
+    g_value_unset(&item);
+    gst_iterator_free(it);
+}
+
+static void on_decodebin_pad_added(GstElement *decodebin, GstPad *new_pad, gpointer user_data) {
+    GstPad *sink_pad = gst_element_get_static_pad(gst_data.video_sink, "sink");
+
+    if (gst_pad_is_linked(sink_pad)) {
+        gst_object_unref(sink_pad);
+        return;
+    }
+
+    GstCaps *caps = gst_pad_get_current_caps(new_pad);
+    if (!caps) {
+        caps = gst_pad_query_caps(new_pad, NULL);
+    }
+
+    GstStructure *structure = gst_caps_get_structure(caps, 0);
+    const gchar *name = gst_structure_get_name(structure);
+
+    if (g_str_has_prefix(name, "video/")) {
+        GstPadLinkReturn ret = gst_pad_link(new_pad, sink_pad);
+        if (ret != GST_PAD_LINK_OK) {
+            LOGE("Failed to link decodebin to video sink: %d", ret);
+        } else {
+            LOGI("Linked decodebin to video sink (caps: %s)", name);
+        }
+
+        // Attach decoder probe on decodebin's output pad
+        if (stats_enabled) {
+            probe_id_decoder = gst_pad_add_probe(new_pad,
+                GST_PAD_PROBE_TYPE_BUFFER, count_decoder_cb, NULL, NULL);
+        }
+
+        log_decodebin_decoder(decodebin);
+    }
+
+    gst_caps_unref(caps);
+    gst_object_unref(sink_pad);
 }
 
 static gboolean restart_pipeline_cb(gpointer user_data) {
@@ -266,6 +344,86 @@ static void *gst_main_loop_thread(void *arg) {
     return NULL;
 }
 
+static gboolean create_test_pipeline(void) {
+    GError *error = NULL;
+    gchar *pipeline_str = g_strdup(
+        "videotestsrc pattern=smpte ! "
+        "videoconvert ! "
+        "glimagesink name=videosink"
+    );
+
+    LOGI("Pipeline: %s", pipeline_str);
+    gst_data.pipeline = gst_parse_launch(pipeline_str, &error);
+    g_free(pipeline_str);
+
+    if (error) {
+        LOGE("Pipeline parse error: %s", error->message);
+        g_error_free(error);
+    }
+
+    if (!gst_data.pipeline) {
+        return FALSE;
+    }
+
+    gst_data.video_sink = gst_bin_get_by_name(GST_BIN(gst_data.pipeline), "videosink");
+    return TRUE;
+}
+
+static gboolean create_rtp_pipeline(gint port) {
+    gst_data.pipeline = gst_pipeline_new("viewer-pipeline");
+    gst_data.udpsrc = gst_element_factory_make("udpsrc", "src");
+    gst_data.jitterbuffer = gst_element_factory_make("rtpjitterbuffer", "jbuf");
+    gst_data.depay = gst_element_factory_make("rtph264depay", "depay");
+    gst_data.parser = gst_element_factory_make("h264parse", "parse");
+    gst_data.decodebin = gst_element_factory_make("decodebin", "dec");
+    gst_data.video_sink = gst_element_factory_make("glimagesink", "videosink");
+
+    if (!gst_data.pipeline || !gst_data.udpsrc || !gst_data.jitterbuffer ||
+        !gst_data.depay || !gst_data.parser || !gst_data.decodebin ||
+        !gst_data.video_sink) {
+        LOGE("Failed to create one or more pipeline elements");
+        if (gst_data.pipeline) {
+            gst_object_unref(gst_data.pipeline);
+            gst_data.pipeline = NULL;
+        }
+        return FALSE;
+    }
+
+    // Configure udpsrc
+    GstCaps *caps = gst_caps_from_string(
+        "application/x-rtp,media=video,encoding-name=H264,payload=96,clock-rate=90000");
+    g_object_set(gst_data.udpsrc, "port", port, "caps", caps, NULL);
+    gst_caps_unref(caps);
+
+    // Configure jitterbuffer for low latency
+    g_object_set(gst_data.jitterbuffer, "latency", 0, "drop-on-latency", TRUE, NULL);
+
+    // Configure video sink for low latency (no clock sync)
+    g_object_set(gst_data.video_sink, "sync", FALSE, NULL);
+
+    // Add all elements to the pipeline
+    gst_bin_add_many(GST_BIN(gst_data.pipeline),
+        gst_data.udpsrc, gst_data.jitterbuffer, gst_data.depay,
+        gst_data.parser, gst_data.decodebin, gst_data.video_sink, NULL);
+
+    // Link static chain: udpsrc -> jitterbuffer -> depay -> parser -> decodebin
+    if (!gst_element_link_many(gst_data.udpsrc, gst_data.jitterbuffer,
+                                gst_data.depay, gst_data.parser,
+                                gst_data.decodebin, NULL)) {
+        LOGE("Failed to link pipeline elements");
+        gst_object_unref(gst_data.pipeline);
+        gst_data.pipeline = NULL;
+        return FALSE;
+    }
+
+    // decodebin -> video_sink is linked dynamically when decodebin selects a decoder
+    g_signal_connect(gst_data.decodebin, "pad-added",
+        G_CALLBACK(on_decodebin_pad_added), NULL);
+
+    LOGI("Pipeline: udpsrc port=%d ! rtpjitterbuffer ! rtph264depay ! h264parse ! decodebin ! glimagesink", port);
+    return TRUE;
+}
+
 JNIEXPORT void JNICALL
 Java_com_v3xctrl_viewer_GstViewer_nativeInit(JNIEnv *env, jclass clazz) {
     if (gst_data.initialized) {
@@ -305,50 +463,21 @@ Java_com_v3xctrl_viewer_GstViewer_nativeStartPipeline(JNIEnv *env, jclass clazz,
     gst_data.video_port = port;
     LOGI("Creating video receiver pipeline on port %d", port);
 
-    // For debugging: use test source if port is 0, otherwise use RTP receiver
-    GError *error = NULL;
-    gchar *pipeline_str = NULL;
-
+    gboolean created;
     if (port == 0) {
-        // Test pipeline - same as original working code
-        pipeline_str = g_strdup(
-            "videotestsrc pattern=smpte ! "
-            "videoconvert ! "
-            "glimagesink name=videosink"
-        );
+        created = create_test_pipeline();
     } else {
-        // RTP H264 receiver pipeline — elements named for diagnostic pad probes
-        pipeline_str = g_strdup_printf(
-            "udpsrc name=src port=%d caps=\"application/x-rtp,media=video,encoding-name=H264,payload=96,clock-rate=90000\" ! "
-            "rtpjitterbuffer name=jbuf latency=0 drop-on-latency=true ! "
-            "rtph264depay name=depay ! "
-            "h264parse name=parse ! "
-            "queue max-size-buffers=1 leaky=downstream ! "
-            "avdec_h264 name=dec ! "
-            "videoconvert ! "
-            "glimagesink name=videosink sync=false",
-            port
-        );
+        created = create_rtp_pipeline(port);
     }
 
-    LOGI("Pipeline: %s", pipeline_str);
-    gst_data.pipeline = gst_parse_launch(pipeline_str, &error);
-    g_free(pipeline_str);
-
-    if (error) {
-        LOGE("Pipeline parse error: %s", error->message);
-        g_error_free(error);
-    }
-
-    if (!gst_data.pipeline) {
+    if (!created) {
         LOGE("Failed to create pipeline");
         ANativeWindow_release(gst_data.native_window);
         gst_data.native_window = NULL;
         return;
     }
 
-    // Get video sink and set native window
-    gst_data.video_sink = gst_bin_get_by_name(GST_BIN(gst_data.pipeline), "videosink");
+    // Set native window on video sink
     if (gst_data.video_sink) {
         gst_video_overlay_set_window_handle(
             GST_VIDEO_OVERLAY(gst_data.video_sink),
@@ -401,7 +530,9 @@ Java_com_v3xctrl_viewer_GstViewer_nativeStartPipeline(JNIEnv *env, jclass clazz,
             gchar *debug = NULL;
             gst_message_parse_error(msg, &err, &debug);
             LOGE("Pipeline error: %s", err->message);
-            if (debug) LOGD("Debug: %s", debug);
+            if (debug) {
+                LOGD("Debug: %s", debug);
+            }
             g_error_free(err);
             g_free(debug);
             gst_message_unref(msg);
@@ -409,6 +540,12 @@ Java_com_v3xctrl_viewer_GstViewer_nativeStartPipeline(JNIEnv *env, jclass clazz,
         gst_object_unref(err_bus);
         gst_object_unref(gst_data.pipeline);
         gst_data.pipeline = NULL;
+        gst_data.udpsrc = NULL;
+        gst_data.jitterbuffer = NULL;
+        gst_data.depay = NULL;
+        gst_data.parser = NULL;
+        gst_data.decodebin = NULL;
+        gst_data.video_sink = NULL;
         ANativeWindow_release(gst_data.native_window);
         gst_data.native_window = NULL;
         return;
@@ -441,10 +578,13 @@ Java_com_v3xctrl_viewer_GstViewer_nativeStopPipeline(JNIEnv *env, jclass clazz) 
         gst_data.pipeline = NULL;
     }
 
-    if (gst_data.video_sink) {
-        gst_object_unref(gst_data.video_sink);
-        gst_data.video_sink = NULL;
-    }
+    // Elements are owned by the pipeline bin - just NULL out references
+    gst_data.udpsrc = NULL;
+    gst_data.jitterbuffer = NULL;
+    gst_data.depay = NULL;
+    gst_data.parser = NULL;
+    gst_data.decodebin = NULL;
+    gst_data.video_sink = NULL;
 
     if (gst_data.main_loop) {
         g_main_loop_unref(gst_data.main_loop);
@@ -483,7 +623,9 @@ Java_com_v3xctrl_viewer_GstViewer_nativeGetFrameCount(JNIEnv *env, jclass clazz)
 
 JNIEXPORT void JNICALL
 Java_com_v3xctrl_viewer_GstViewer_nativeRestartPipeline(JNIEnv *env, jclass clazz) {
-    if (!gst_data.pipeline || !gst_data.main_loop) return;
+    if (!gst_data.pipeline || !gst_data.main_loop) {
+        return;
+    }
 
     LOGI("Manual pipeline restart requested");
     LOGI("Pipeline stats at restart: udpsrc=%d jbuf=%d depay=%d dec=%d sink=%d",
