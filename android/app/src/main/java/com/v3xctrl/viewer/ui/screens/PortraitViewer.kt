@@ -67,6 +67,7 @@ fun PortraitViewer(
     udpReceiver: UDPReceiver?,
     spectatorMode: Boolean,
     osdSettings: OsdSettings = OsdSettings(),
+    fps: Int = 0,
     showPipelineStats: Boolean = false,
     onBack: () -> Unit,
     onNavigateToGeneral: () -> Unit,
@@ -198,6 +199,7 @@ fun PortraitViewer(
 
             // FPS counter (bottom-right, always shown in portrait)
             FpsCounter(
+                fps = fps,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .offset(

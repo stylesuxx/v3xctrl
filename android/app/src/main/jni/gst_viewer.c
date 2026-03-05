@@ -644,6 +644,50 @@ Java_com_v3xctrl_viewer_GstViewer_nativeRestartPipeline(JNIEnv *env, jclass claz
 }
 
 JNIEXPORT void JNICALL
+Java_com_v3xctrl_viewer_GstViewer_nativePausePipeline(JNIEnv *env, jclass clazz) {
+    if (!gst_data.pipeline) {
+        return;
+    }
+
+    LOGI("Pausing pipeline (surface lost)");
+    gst_element_set_state(gst_data.pipeline, GST_STATE_PAUSED);
+
+    // Release the now-invalid native window
+    if (gst_data.native_window) {
+        ANativeWindow_release(gst_data.native_window);
+        gst_data.native_window = NULL;
+    }
+}
+
+JNIEXPORT void JNICALL
+Java_com_v3xctrl_viewer_GstViewer_nativeResumePipeline(JNIEnv *env, jclass clazz, jobject surface) {
+    if (!gst_data.pipeline || !gst_data.video_sink) {
+        return;
+    }
+
+    // Acquire new native window
+    gst_data.native_window = ANativeWindow_fromSurface(env, surface);
+    if (!gst_data.native_window) {
+        LOGE("Failed to get native window from new surface");
+        return;
+    }
+
+    // Update the window handle on the video sink
+    gst_video_overlay_set_window_handle(
+        GST_VIDEO_OVERLAY(gst_data.video_sink),
+        (guintptr)gst_data.native_window
+    );
+
+    // Resume playback
+    gst_element_set_state(gst_data.pipeline, GST_STATE_PLAYING);
+
+    // Force immediate re-render of last frame for instant video on rotation
+    gst_video_overlay_expose(GST_VIDEO_OVERLAY(gst_data.video_sink));
+
+    LOGI("Pipeline resumed with new surface");
+}
+
+JNIEXPORT void JNICALL
 Java_com_v3xctrl_viewer_GstViewer_nativeFinalize(JNIEnv *env, jclass clazz) {
     Java_com_v3xctrl_viewer_GstViewer_nativeStopPipeline(env, clazz);
     gst_data.initialized = FALSE;

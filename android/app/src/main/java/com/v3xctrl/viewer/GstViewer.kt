@@ -13,6 +13,8 @@ object GstViewer {
     private external fun nativeGetRestartCount(): Int
     private external fun nativeGetFrameCount(): Int
     private external fun nativeRestartPipeline()
+    private external fun nativePausePipeline()
+    private external fun nativeResumePipeline(surface: Surface)
     private external fun nativeFinalize()
     private external fun nativeSetStatsEnabled(enabled: Boolean)
     private external fun nativeGetPipelineStats(): String
@@ -34,6 +36,14 @@ object GstViewer {
 
     fun restart() {
         nativeRestartPipeline()
+    }
+
+    fun pause() {
+        nativePausePipeline()
+    }
+
+    fun resume(surface: Surface) {
+        nativeResumePipeline(surface)
     }
 
     fun setStatsEnabled(enabled: Boolean) {

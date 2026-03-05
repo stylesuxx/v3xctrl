@@ -46,6 +46,7 @@ fun LandscapeViewer(
     spectatorMode: Boolean,
     pipelineStartTime: Long,
     osdSettings: OsdSettings = OsdSettings(),
+    fps: Int = 0,
     touchSteeringInvert: Boolean = false,
     touchThrottleInvert: Boolean = false,
     modifier: Modifier = Modifier
@@ -142,6 +143,7 @@ fun LandscapeViewer(
             // FPS counter (bottom-left)
             if (osdSettings.showFps) {
                 FpsCounter(
+                    fps = fps,
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .offset(x = 12.dp, y = (-12).dp)

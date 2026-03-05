@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -87,8 +88,57 @@ fun ViewerScreen(
     // Track if video should be blanked (after 5 seconds of video service stopped)
     var showVideoBlank by remember { mutableStateOf(false) }
 
+    // Track whether the pipeline has been started (survives surface recreation on rotation)
+    var isPipelineStarted by remember { mutableStateOf(false) }
+
     // Pipeline start time for timer widget
     val pipelineStartTime = remember { System.currentTimeMillis() }
+
+    // FPS counter - hoisted here so it survives orientation changes
+    var fps by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(Unit) {
+        val windowSize = 5
+        val timestamps = LongArray(windowSize + 1)
+        val frameCounts = IntArray(windowSize + 1)
+        var head = 0
+        var count = 0
+
+        while (true) {
+            val currentFrameCount = GstViewer.frameCount
+            val prev = if (count > 0) {
+                (head - 1 + timestamps.size) % timestamps.size
+            } else {
+                head
+            }
+
+            // Pipeline restart detected - counter went backwards; clear the buffer
+            if (count > 0 && currentFrameCount < frameCounts[prev]) {
+                head = 0
+                count = 0
+                fps = 0
+            }
+
+            timestamps[head] = System.currentTimeMillis()
+            frameCounts[head] = currentFrameCount
+
+            if (count < timestamps.size) {
+                count++
+            }
+
+            if (count >= 2) {
+                val oldest = (head - count + 1 + timestamps.size) % timestamps.size
+                val dtMs = timestamps[head] - timestamps[oldest]
+                val dFrames = frameCounts[head] - frameCounts[oldest]
+                if (dtMs > 0) {
+                    fps = (dFrames * 1000L / dtMs).toInt()
+                }
+            }
+
+            head = (head + 1) % timestamps.size
+            delay(1000)
+        }
+    }
 
     // Motion controller for gyroscope-based control
     val isMotionMode = controlSettings.controlMode == "motion" && !spectatorMode
@@ -226,6 +276,7 @@ fun ViewerScreen(
         GstViewer.init()
         onDispose {
             GstViewer.stop()
+            isPipelineStarted = false
         }
     }
 
@@ -299,7 +350,12 @@ fun ViewerScreen(
             isFocusableInTouchMode = false
             holder.addCallback(object : SurfaceHolder.Callback {
                 override fun surfaceCreated(holder: SurfaceHolder) {
-                    GstViewer.start(holder.surface, connection.videoPort)
+                    if (!isPipelineStarted) {
+                        GstViewer.start(holder.surface, connection.videoPort)
+                        isPipelineStarted = true
+                    } else {
+                        GstViewer.resume(holder.surface)
+                    }
                 }
 
                 override fun surfaceChanged(
@@ -308,11 +364,11 @@ fun ViewerScreen(
                     width: Int,
                     height: Int
                 ) {
-                    // Handle surface changes if needed
+                    // Surface resized - pipeline handles this automatically
                 }
 
                 override fun surfaceDestroyed(holder: SurfaceHolder) {
-                    GstViewer.stop()
+                    GstViewer.pause()
                 }
             })
         }
@@ -330,6 +386,7 @@ fun ViewerScreen(
             spectatorMode = spectatorMode,
             pipelineStartTime = pipelineStartTime,
             osdSettings = osdSettings,
+            fps = fps,
             touchSteeringInvert = controlSettings.touchSteeringInvert,
             touchThrottleInvert = controlSettings.touchThrottleInvert,
             modifier = modifier
@@ -342,9 +399,11 @@ fun ViewerScreen(
             udpReceiver = udpReceiver,
             spectatorMode = spectatorMode,
             osdSettings = osdSettings,
+            fps = fps,
             showPipelineStats = showPipelineStats,
             onBack = {
                 GstViewer.stop()
+                isPipelineStarted = false
                 onBack()
             },
             onNavigateToGeneral = onNavigateToGeneral,
