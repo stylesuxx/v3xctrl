@@ -19,7 +19,16 @@ from v3xctrl_udp_relay.custom_types import (
     PortType,
     Session,
     PeerEntry,
+    SpectatorEntry,
 )
+
+
+class Mapping:
+    __slots__ = ('targets', 'timestamp')
+
+    def __init__(self, targets: set[Address], timestamp: float) -> None:
+        self.targets = targets
+        self.timestamp = timestamp
 
 
 class PacketRelay:
@@ -69,11 +78,14 @@ class PacketRelay:
         self.port = address[1]
         self.timeout = timeout
 
-        self.mappings: dict[Address, tuple[Address, float]] = {}
+        self.mappings: dict[Address, Mapping] = {}
         self.sessions: dict[str, Session] = {}
 
         # Address -> TcpTarget for peers that registered via TCP
         self.tcp_targets: dict[Address, TcpTarget] = {}
+
+        # Reverse index: spectator address -> SpectatorEntry for O(1) heartbeat lookup
+        self.spectator_by_address: dict[Address, SpectatorEntry] = {}
 
         # General lock, when execution is not hot path
         self.lock = threading.Lock()
@@ -148,6 +160,11 @@ class PacketRelay:
             is_new_peer = session.register(role, port_type, addr, new_transport)
 
             if role == Role.SPECTATOR:
+                for spectator in session.spectators:
+                    if addr in spectator.get_addresses():
+                        self.spectator_by_address[addr] = spectator
+                        break
+
                 if session.is_ready():
                     self._setup_spectator_mappings(session, addr)
                     self._send_peer_info_to_spectator(session, addr)
@@ -182,17 +199,17 @@ class PacketRelay:
 
     def update_spectator_heartbeat(self, addr: Address) -> None:
         with self.lock:
-            for session in self.sessions.values():
-                for spectator in session.spectators:
-                    # Check if this address belongs to this spectator's control port
-                    if addr in spectator.get_addresses():
-                        spectator.last_announcement_at = time.time()
-                        return
+            spectator = self.spectator_by_address.get(addr)
+            if spectator:
+                spectator.last_announcement_at = time.time()
 
     def _remove_spectator_from_all_sessions(self, addr: Address) -> None:
         for sid, session in self.sessions.items():
             spectator_addresses = session.remove_spectator_by_address(addr)
             if spectator_addresses:
+                for spectator_addr in spectator_addresses:
+                    self.spectator_by_address.pop(spectator_addr, None)
+
                 with self.mapping_lock:
                     self._remove_spectator_from_mappings(spectator_addresses, session)
 
@@ -203,20 +220,30 @@ class PacketRelay:
         self,
         data: bytes,
         addr: Address
-    ) -> bool:
+    ) -> list[TcpTarget] | None:
+        """
+        Forward a packet to its mapped targets.
+
+        Returns None if no mapping exists. Otherwise returns a list of
+        TcpTarget instances whose sends were deferred (caller must submit
+        them to the thread pool). UDP sends happen inline.
+        """
         with self.mapping_lock:
             mapping = self.mappings.get(addr)
             if not mapping:
-                return False
+                return None
 
-            targets, _ = mapping
-            self.mappings[addr] = (targets, time.time())
+            mapping.timestamp = time.time()
 
-        # Send to all targets (viewer + spectators for streamer, or just streamer for viewer)
-        for target in targets:
-            self._get_target(target).send(data)
+        deferred_tcp: list[TcpTarget] = []
+        for target in mapping.targets:
+            tcp_target = self.tcp_targets.get(target)
+            if not tcp_target:
+                self.sock.sendto(data, target)
+            elif tcp_target.is_alive():
+                deferred_tcp.append(tcp_target)
 
-        return True
+        return deferred_tcp
 
     def cleanup_expired_mappings(self) -> None:
         """
@@ -251,8 +278,7 @@ class PacketRelay:
                                 for _, peer in role.items():
                                     mapping = self.mappings.get(peer.addr)
                                     if mapping:
-                                        _, ts = mapping
-                                        if (now - ts) < self.timeout:
+                                        if (now - mapping.timestamp) < self.timeout:
                                             role_expired = False
                                             break
 
@@ -309,6 +335,7 @@ class PacketRelay:
                                 spectator_addrs = spectator.get_addresses()
                                 for addr in spectator_addrs:
                                     session.addresses.discard(addr)
+                                    self.spectator_by_address.pop(addr, None)
                                 self._remove_spectator_from_mappings(spectator_addrs, session)
 
                             del session.spectators[i]
@@ -319,6 +346,8 @@ class PacketRelay:
                 session = self.sessions[sid]
                 # Clean up spectator mappings before deleting session
                 for spectator in session.spectators:
+                    for addr in spectator.get_addresses():
+                        self.spectator_by_address.pop(addr, None)
                     with self.mapping_lock:
                         self._remove_spectator_from_mappings(spectator.get_addresses(), session)
 
@@ -367,7 +396,7 @@ class PacketRelay:
             return
 
         now = time.time()
-        new_mappings: dict[Address, tuple[set[Address], float]] = {}
+        new_mappings: dict[Address, Mapping] = {}
         session_addresses: set[Address] = set()
 
         for port_type in PortType:
@@ -378,8 +407,8 @@ class PacketRelay:
                 streamer_addr = streamer_peers[port_type].addr
                 viewer_addr = viewer_peers[port_type].addr
 
-                new_mappings[streamer_addr] = ({viewer_addr}, now)
-                new_mappings[viewer_addr] = ({streamer_addr}, now)
+                new_mappings[streamer_addr] = Mapping({viewer_addr}, now)
+                new_mappings[viewer_addr] = Mapping({streamer_addr}, now)
 
                 session_addresses.add(streamer_addr)
                 session_addresses.add(viewer_addr)
@@ -431,10 +460,12 @@ class PacketRelay:
                     streamer_addr = streamer_peers[port_type].addr
                     spectator_port_addr = spectator_entry.ports[port_type].addr
 
-                    # Get existing mapping for streamer (viewer might already be mapped)
-                    existing_targets = self._get_spectator_targets(streamer_addr)
-                    existing_targets.add(spectator_port_addr)
-                    self.mappings[streamer_addr] = (existing_targets, now)
+                    existing_mapping = self.mappings.get(streamer_addr)
+                    if existing_mapping:
+                        existing_mapping.targets = existing_mapping.targets | {spectator_port_addr}
+                        existing_mapping.timestamp = now
+                    else:
+                        self.mappings[streamer_addr] = Mapping({spectator_port_addr}, now)
 
     def _setup_all_spectator_mappings(self, session: Session) -> None:
         """Setup mappings for all spectators in a session."""
@@ -462,15 +493,6 @@ class PacketRelay:
         for spectator_addr in spectator_addrs:
             for peer in streamer_peers.values():
                 streamer_addr = peer.addr
-                if streamer_addr in self.mappings:
-                    targets, ts = self.mappings[streamer_addr]
-                    if isinstance(targets, set) and spectator_addr in targets:
-                        targets.discard(spectator_addr)
-                        self.mappings[streamer_addr] = (targets, ts)
-
-    def _get_spectator_targets(self, source_addr: Address) -> set[Address]:
-        """Get existing spectator targets for a source address."""
-        if source_addr in self.mappings:
-            targets, _ = self.mappings[source_addr]
-            return targets.copy()
-        return set()
+                mapping = self.mappings.get(streamer_addr)
+                if mapping and spectator_addr in mapping.targets:
+                    mapping.targets = mapping.targets - {spectator_addr}

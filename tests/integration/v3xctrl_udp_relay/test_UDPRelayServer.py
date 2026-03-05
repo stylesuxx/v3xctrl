@@ -246,7 +246,8 @@ class TestUDPRelayServerIntegration(unittest.TestCase):
         test_data = b"test_video_data"
         sender_addr = ("192.168.1.100", 54321)  # Streamer video port
 
-        server._handle_packet(test_data, sender_addr)
+        # Forwarding now happens inline via relay.forward_packet (not _handle_slow_packet)
+        server.relay.forward_packet(test_data, sender_addr)
 
         # Should forward to viewer video port
         mock_udp_socket.sendto.assert_called_once()
@@ -411,18 +412,16 @@ class TestUDPRelayServerIntegration(unittest.TestCase):
                 mock_message_class.from_bytes.return_value = real_peer_msg
 
                 # Handle peer announcement packet
-                server._handle_packet(peer_announcement_data, client_addr)
+                server._handle_slow_packet(peer_announcement_data, client_addr)
 
                 # Verify peer announcement handler was called with the real object
                 mock_handle_announcement.assert_called_once_with(real_peer_msg, client_addr)
 
-        # For regular packets, we expect them to be forwarded to PacketRelay.
-        # PacketRelay.forward_packet is called with the server's UDP socket object
-        with patch.object(server.relay, 'forward_packet') as mock_forward:
-            server._handle_packet(regular_data, client_addr)
+        # For regular packets, _handle_slow_packet treats them as spectator heartbeats
+        with patch.object(server.relay, 'update_spectator_heartbeat') as mock_heartbeat:
+            server._handle_slow_packet(regular_data, client_addr)
 
-            # Assert it was called with the actual socket attribute from the server
-            mock_forward.assert_called_once_with(regular_data, client_addr)
+            mock_heartbeat.assert_called_once_with(client_addr)
 
         server.shutdown()
 
@@ -658,7 +657,7 @@ class TestUDPRelayServerIntegration(unittest.TestCase):
         client_addr = ("192.168.1.100", 54321)
 
         with patch.object(server, '_handle_connection_test') as mock_handler:
-            server._handle_packet(test_msg.to_bytes(), client_addr)
+            server._handle_slow_packet(test_msg.to_bytes(), client_addr)
             mock_handler.assert_called_once_with(test_msg.to_bytes(), client_addr)
 
         server.shutdown()

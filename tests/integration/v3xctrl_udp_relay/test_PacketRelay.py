@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch
 
 from v3xctrl_helper import Address
 from v3xctrl_control.message import PeerAnnouncement
-from v3xctrl_udp_relay.PacketRelay import PacketRelay
+from v3xctrl_udp_relay.PacketRelay import Mapping, PacketRelay
 from v3xctrl_udp_relay.SessionStore import SessionStore
 from v3xctrl_udp_relay.custom_types import (
     Role,
@@ -71,7 +71,7 @@ class TestPacketRelayIntegration(unittest.TestCase):
         # Verify mappings created (inspect mapping dict under lock)
         with self.relay.mapping_lock:
             self.assertIn(self.streamer_video_addr, self.relay.mappings)
-            targets, _ = self.relay.mappings[self.streamer_video_addr]
+            targets = self.relay.mappings[self.streamer_video_addr].targets
             self.assertEqual(targets, {self.viewer_video_addr})
 
         # Forwarding: calling forward_packet should use relay.sock (self.mock_sock)
@@ -134,7 +134,7 @@ class TestPacketRelayIntegration(unittest.TestCase):
 
         # Verify initial timestamp
         with self.relay.mapping_lock:
-            _, initial_timestamp = self.relay.mappings[self.streamer_video_addr]
+            initial_timestamp = self.relay.mappings[self.streamer_video_addr].timestamp
             self.assertEqual(initial_timestamp, initial_time)
 
         # Forward packet at a later time and ensure timestamp is updated and packet sent
@@ -146,7 +146,7 @@ class TestPacketRelayIntegration(unittest.TestCase):
 
         # Verify mapping timestamp updated
         with self.relay.mapping_lock:
-            _, updated_timestamp = self.relay.mappings[self.streamer_video_addr]
+            updated_timestamp = self.relay.mappings[self.streamer_video_addr].timestamp
             self.assertEqual(updated_timestamp, later_time)
 
     def test_packet_forwarding_unknown_address(self) -> None:
@@ -341,7 +341,7 @@ class TestPacketRelayIntegration(unittest.TestCase):
 
         old_time = time.time() - self.timeout - 1
         with self.relay.mapping_lock:
-            self.relay.mappings[fake_addr] = (target_addr, old_time)
+            self.relay.mappings[fake_addr] = Mapping(target_addr, old_time)
 
         with self.relay.mapping_lock:
             self.assertIn(fake_addr, self.relay.mappings)
