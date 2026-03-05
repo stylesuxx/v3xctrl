@@ -37,6 +37,7 @@ private const val DEFAULT_CONTROL_HZ = 30
 private const val COMMAND_RETRY_DELAY_MS = 200L
 private const val COMMAND_MAX_RETRIES = 10
 private const val LATENCY_CHECK_INTERVAL_MS = 1000L
+private const val HEARTBEAT_INTERVAL_MS = 1000L
 
 /**
  * Receives UDP packets on the control channel and processes messages.
@@ -100,6 +101,7 @@ class UDPReceiver(
                 // the handshake.
                 if (transport != Transport.TCP) {
                     receiverScope.launch { announcementLoop() }
+                    receiverScope.launch { heartbeatLoop() }
                 }
                 receiverScope.launch { stateLoop() }
                 receiverScope.launch { latencyLoop() }
@@ -153,6 +155,10 @@ class UDPReceiver(
     }
 
     private suspend fun latencyLoop() {
+        if (spectatorMode) {
+            return
+        }
+
         while (isRunning && receiverScope.isActive) {
             if (isConnected) {
                 lastPeerAddress?.let { addr ->
@@ -161,6 +167,19 @@ class UDPReceiver(
             }
 
             delay(LATENCY_CHECK_INTERVAL_MS)
+        }
+    }
+
+    private suspend fun heartbeatLoop() {
+        while (isRunning && receiverScope.isActive) {
+            lastPeerAddress?.let { addr ->
+                val elapsed = System.currentTimeMillis() - (transmitter?.lastSentTimestamp ?: 0)
+                if (elapsed > HEARTBEAT_INTERVAL_MS) {
+                    send(Heartbeat(), addr, lastPeerPort)
+                }
+            }
+
+            delay(HEARTBEAT_INTERVAL_MS)
         }
     }
 
@@ -244,6 +263,14 @@ class UDPReceiver(
 
         if (!isOrderAgnostic) {
             lastValidTimestamp = message.timestamp
+        }
+
+        // Track the peer address from forwarded messages (everything except
+        // PeerInfo which comes from the relay during registration). This matches
+        // the Python viewer's all_handler which stores every message's address.
+        if (message !is PeerInfo) {
+            lastPeerAddress = address
+            lastPeerPort = port
         }
 
         viewerState?.onControlMessageReceived()

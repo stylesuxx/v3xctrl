@@ -471,52 +471,6 @@ class TestUDPRelayServerIntegration(unittest.TestCase):
 
 
     @patch('socket.socket')
-    def test_find_role_for_address(self, mock_socket_class):
-        mock_udp_socket = Mock()
-        mock_command_socket = Mock()
-
-        def socket_side_effect(family, sock_type):
-            if family == socket.AF_INET and sock_type == socket.SOCK_DGRAM:
-                return mock_udp_socket
-            elif family == socket.AF_UNIX and sock_type == socket.SOCK_STREAM:
-                return mock_command_socket
-            return Mock()
-
-        mock_socket_class.side_effect = socket_side_effect
-
-        server = UDPRelayServer(
-            self.server_ip,
-            self.server_port,
-            self.db_path,
-        )
-
-        # Create a mock session with roles
-        from v3xctrl_udp_relay.custom_types import Session, PeerEntry
-        mock_session = Mock(spec=Session)
-        mock_session.roles = {
-            Role.STREAMER: {
-                PortType.VIDEO: PeerEntry(("192.168.1.100", 54321))
-            }
-        }
-        mock_session.spectators = []
-
-        addr = ("192.168.1.100", 54321)
-
-        # Test finding role for existing address
-        result = server._find_role_for_address(mock_session, addr)
-        self.assertIsNotNone(result)
-        role, port_type, transport, spectator_index = result
-        self.assertEqual(role, Role.STREAMER)
-        self.assertEqual(port_type, PortType.VIDEO)
-        self.assertIsNone(spectator_index)
-
-        # Test finding role for non-existing address
-        result = server._find_role_for_address(mock_session, ("192.168.1.999", 99999))
-        self.assertIsNone(result)
-
-        server.shutdown()
-
-    @patch('socket.socket')
     def test_cleanup_expired_entries(self, mock_socket_class):
         mock_udp_socket = Mock()
         mock_command_socket = Mock()

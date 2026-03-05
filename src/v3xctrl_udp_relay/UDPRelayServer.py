@@ -156,32 +156,40 @@ class UDPRelayServer(threading.Thread):
                 spectators: list[dict[str, Any]] = []
 
                 if session:
-                    for addr in session.addresses:
-                        if addr in self.relay.mappings:
-                            _, ts = self.relay.mappings.get(addr, (None, 0))
-                            role_info = self._find_role_for_address(session, addr)
-
+                    for role, port_dict in session.roles.items():
+                        for port_type, peer_entry in port_dict.items():
+                            addr = peer_entry.addr
                             timeout_in_sec = 0
-                            diff = now - ts
-                            if diff < self.TIMEOUT:
-                                timeout_in_sec = round(self.TIMEOUT - diff)
 
-                            if role_info:
-                                role, port_type, transport, spectator_index = role_info
-                                entry: dict[str, Any] = {
-                                    'address': f"{addr[0]}:{addr[1]}",
-                                    'role': role.name,
-                                    'port_type': port_type.name,
-                                    'transport': transport.value,
-                                    'timeout_in_sec': timeout_in_sec,
-                                }
-                                if spectator_index is not None:
-                                    entry['spectator_index'] = spectator_index
+                            with self.relay.mapping_lock:
+                                mapping = self.relay.mappings.get(addr)
+                                if mapping:
+                                    _, ts = mapping
+                                    diff = now - ts
+                                    if diff < self.TIMEOUT:
+                                        timeout_in_sec = round(self.TIMEOUT - diff)
 
-                                if role == Role.SPECTATOR:
-                                    spectators.append(entry)
-                                else:
-                                    mappings.append(entry)
+                            mappings.append({
+                                'address': f"{addr[0]}:{addr[1]}",
+                                'role': role.name,
+                                'port_type': port_type.name,
+                                'timeout_in_sec': timeout_in_sec,
+                            })
+
+                    for spectator in session.spectators:
+                        timeout_in_sec = 0
+                        diff = now - spectator.last_announcement_at
+                        if diff < self.relay.SPECTATOR_TIMEOUT:
+                            timeout_in_sec = round(self.relay.SPECTATOR_TIMEOUT - diff)
+
+                        for port_type, peer_entry in spectator.ports.items():
+                            addr = peer_entry.addr
+                            spectators.append({
+                                'address': f"{addr[0]}:{addr[1]}",
+                                'role': Role.SPECTATOR.name,
+                                'port_type': port_type.name,
+                                'timeout_in_sec': timeout_in_sec,
+                            })
 
                     result[sid] = {
                         'created_at': session.created_at,
@@ -190,19 +198,6 @@ class UDPRelayServer(threading.Thread):
                     }
 
         return result
-
-    def _find_role_for_address(self, session: Session, addr: Address) -> tuple[Role, PortType, Transport, int | None] | None:
-        for role, port_dict in session.roles.items():
-            for port_type, peer_entry in port_dict.items():
-                if peer_entry.addr == addr:
-                    return role, port_type, peer_entry.transport, None
-
-        for index, spectator in enumerate(session.spectators):
-            for port_type, peer_entry in spectator.ports.items():
-                if peer_entry.addr == addr:
-                    return Role.SPECTATOR, port_type, peer_entry.transport, index
-
-        return None
 
     def _handle_peer_announcement(
         self,
