@@ -54,7 +54,7 @@ class PacketRelay:
                 being orphaned or being expired.
     """
 
-    SPECTATOR_TIMEOUT = 10
+    SPECTATOR_TIMEOUT = 30
 
     def __init__(
         self,
@@ -141,16 +141,11 @@ class PacketRelay:
             session = self.sessions.setdefault(sid, Session(sid))
             new_transport = Transport.TCP if addr in self.tcp_targets else Transport.UDP
 
-            old_entry = session.roles.get(role, {}).get(port_type)
-            old_transport = old_entry.transport if old_entry else None
+            if role != Role.SPECTATOR:
+                old_entry = session.roles.get(role, {}).get(port_type)
+                old_transport = old_entry.transport if old_entry else None
 
-            is_new_peer = session.register(role, port_type, addr)
-            session.roles[role][port_type].transport = new_transport
-
-            if is_new_peer:
-                logger.info(f"{sid}: Registered {role.name}:{port_type.name} ({new_transport.name}) from {addr}")
-            elif old_transport and old_transport != new_transport:
-                logger.info(f"{sid}: {role.name}:{port_type.name} switched {old_transport.name} -> {new_transport.name}")
+            is_new_peer = session.register(role, port_type, addr, new_transport)
 
             if role == Role.SPECTATOR:
                 if session.is_ready():
@@ -162,6 +157,11 @@ class PacketRelay:
 
                 # Spectators will not make a session ready, return early
                 return
+
+            if is_new_peer:
+                logger.info(f"{sid}: Registered {role.name}:{port_type.name} ({new_transport.name}) from {addr}")
+            elif old_transport and old_transport != new_transport:
+                logger.info(f"{sid}: {role.name}:{port_type.name} switched {old_transport.name} -> {new_transport.name}")
 
             if session.is_ready():
                 self._update_mappings(session)
@@ -287,12 +287,24 @@ class PacketRelay:
                     expired_sessions.append(sid)
 
             # Clean up inactive spectators from active sessions
-            # Spectators must send announcements to stay active
+            # Spectators must send announcements or maintain a TCP connection to stay active
             for sid, session in self.sessions.items():
                 if sid not in expired_sessions:
                     for i in reversed(range(len(session.spectators))):
                         spectator = session.spectators[i]
                         if (now - spectator.last_announcement_at) > self.SPECTATOR_TIMEOUT:
+                            has_active_tcp = False
+                            with self.mapping_lock:
+                                for addr in spectator.get_addresses():
+                                    target = self.tcp_targets.get(addr)
+                                    if target and target.is_alive():
+                                        has_active_tcp = True
+                                        break
+
+                            if has_active_tcp:
+                                spectator.last_announcement_at = now
+                                continue
+
                             with self.mapping_lock:
                                 spectator_addrs = spectator.get_addresses()
                                 for addr in spectator_addrs:

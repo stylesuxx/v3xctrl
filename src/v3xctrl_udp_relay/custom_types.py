@@ -19,15 +19,19 @@ class PeerEntry:
 
 
 class SpectatorEntry:
-    """Entry for a spectator peer with multiple port addresses."""
+    """Entry for a spectator peer with multiple port addresses.
+
+    Spectators are grouped by source IP. This means only one spectator per
+    public IP address is supported per session.
+    """
     def __init__(self) -> None:
         self.ports: dict[PortType, PeerEntry] = {}
         self.created_at: float = time.time()
         self.last_announcement_at: float = time.time()
 
-    def register_port(self, port_type: PortType, addr: Address) -> bool:
+    def register_port(self, port_type: PortType, addr: Address, transport: Transport = Transport.UDP) -> bool:
         new_port = port_type not in self.ports
-        self.ports[port_type] = PeerEntry(addr)
+        self.ports[port_type] = PeerEntry(addr, transport)
         self.last_announcement_at = time.time()
         return new_port
 
@@ -50,23 +54,23 @@ class Session:
         self.created_at: float = time.time()
         self.last_announcement_at: float = time.time()
 
-    def register(self, role: Role, port_type: PortType, addr: Address) -> bool:
+    def register(self, role: Role, port_type: PortType, addr: Address, transport: Transport = Transport.UDP) -> bool:
         if role == Role.SPECTATOR:
-            return self._register_spectator(port_type, addr)
+            return self._register_spectator(port_type, addr, transport)
         elif role == Role.STREAMER or role == Role.VIEWER:
-            return self._register_peer(role, port_type, addr)
+            return self._register_peer(role, port_type, addr, transport)
 
         raise ValueError(f'Unknown role: {role}')
 
-    def _register_peer(self, role: Role, port_type: PortType, addr: Address) -> bool:
+    def _register_peer(self, role: Role, port_type: PortType, addr: Address, transport: Transport) -> bool:
         new_peer = port_type not in self.roles[role]
-        self.roles[role][port_type] = PeerEntry(addr)
+        self.roles[role][port_type] = PeerEntry(addr, transport)
         self.addresses.add(addr)
         self.last_announcement_at = time.time()
 
         return new_peer
 
-    def _register_spectator(self, port_type: PortType, addr: Address) -> bool:
+    def _register_spectator(self, port_type: PortType, addr: Address, transport: Transport) -> bool:
         ip = addr[0]
         spectator = None
         for spec in self.spectators:
@@ -83,7 +87,7 @@ class Session:
             self.spectators.append(spectator)
 
         self.addresses.add(addr)
-        return spectator.register_port(port_type, addr)
+        return spectator.register_port(port_type, addr, transport)
 
     def remove_spectator_by_address(self, addr: Address) -> set[Address] | None:
         for i, spectator in enumerate(self.spectators):
