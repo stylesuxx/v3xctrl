@@ -32,6 +32,9 @@ class UdpVideoProxy(threading.Thread):
         self._external_sock: socket.socket | None = None
         self._forward_sock: socket.socket | None = None
         self.local_port: int = 0
+        self._forward_addr: tuple[str, int] = ("127.0.0.1", 0)
+        self.packets_received: int = 0
+        self.packets_forwarded: int = 0
 
     def start_proxy(self) -> bool:
         """Bind the external socket and find a free local port.
@@ -64,6 +67,8 @@ class UdpVideoProxy(threading.Thread):
             self._external_sock = None
             return False
 
+        self._forward_addr = ("127.0.0.1", self.local_port)
+
         self._forward_sock = socket.socket(
             socket.AF_INET, socket.SOCK_DGRAM
         )
@@ -71,12 +76,20 @@ class UdpVideoProxy(threading.Thread):
         self.start()
         return True
 
+    def update_forward_port(self, port: int) -> None:
+        """Update the local port that packets are forwarded to.
+
+        Safe to call from another thread - tuple assignment is atomic
+        under CPython's GIL.
+        """
+        self.local_port = port
+        self._forward_addr = ("127.0.0.1", port)
+
     def stop(self) -> None:
         self._running.clear()
 
     def run(self) -> None:
         self._running.set()
-        forward_addr = ("127.0.0.1", self.local_port)
         heartbeat_bytes = Heartbeat().to_bytes()
         last_heartbeat = 0.0
 
@@ -106,7 +119,9 @@ class UdpVideoProxy(threading.Thread):
                         data, _ = self._external_sock.recvfrom(
                             RECV_BUFFER_SIZE
                         )
-                        self._forward_sock.sendto(data, forward_addr)
+                        self.packets_received += 1
+                        self._forward_sock.sendto(data, self._forward_addr)
+                        self.packets_forwarded += 1
                 except BlockingIOError:
                     pass
                 except OSError as e:

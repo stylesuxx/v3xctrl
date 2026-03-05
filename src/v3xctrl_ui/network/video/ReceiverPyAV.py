@@ -99,6 +99,26 @@ class ReceiverPyAV(Receiver):
                 finally:
                     self.container = None
 
+    def _refresh_local_port(self) -> None:
+        """Find a new local port for the proxy and rewrite the SDP file.
+
+        On Windows, ffmpeg's internal UDP socket may not be released
+        immediately after container.close(). Using a fresh port on each
+        reconnection attempt avoids binding conflicts that cause
+        AVERROR_INVALIDDATA failures.
+        """
+        if not self._proxy:
+            return
+
+        new_port = UdpVideoProxy._find_free_local_port()
+        if new_port == 0:
+            logging.warning("Failed to find a new local port for proxy")
+            return
+
+        self._proxy.update_forward_port(new_port)
+        self._write_sdp()
+        logging.debug(f"Refreshed local forward port to {new_port}")
+
     def _main_loop(self) -> None:
         while self.running.is_set():
             container = None
@@ -122,7 +142,19 @@ class ReceiverPyAV(Receiver):
                     break
 
                 except av.AVError as e:
-                    logging.warning(f"av.open() failed: {e}")
+                    if self._proxy:
+                        logging.warning(
+                            f"av.open() failed: {e} "
+                            f"(proxy mode, local_port={self._proxy.local_port}, "
+                            f"received={self._proxy.packets_received}, "
+                            f"forwarded={self._proxy.packets_forwarded})"
+                        )
+                    else:
+                        logging.warning(
+                            f"av.open() failed: {e} "
+                            f"(direct mode, port={self.port})"
+                        )
+                    self._refresh_local_port()
                     time.sleep(0.5)
 
             if container is None:
@@ -179,6 +211,7 @@ class ReceiverPyAV(Receiver):
                     self.frame_buffer.clear()
 
                 self._close_container()
+                self._refresh_local_port()
 
                 # Send keep-alive to maintain NAT hole when stream ends/fails.
                 # When the proxy is active it handles heartbeats continuously,
@@ -226,6 +259,11 @@ a=recvonly
             f.write(sdp_text)
             f.flush()
             os.fsync(f.fileno())
+
+        logging.debug(
+            f"SDP written: {self.sdp_path} "
+            f"(listen={listen_addr}:{listen_port})"
+        )
 
     def _should_drop_packet_by_age(self, packet: av.Packet, stream: av.VideoStream) -> bool:
         if packet.pts is None:

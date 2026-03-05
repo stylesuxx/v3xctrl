@@ -192,6 +192,47 @@ class TestReceiverPyAVCleanup(unittest.TestCase):
             self.receiver._cleanup()  # Should not raise exception
 
 
+class TestReceiverPyAVRefreshLocalPort(unittest.TestCase):
+
+    def test_refresh_local_port_noop_without_proxy(self):
+        receiver = ReceiverPyAV(5600, Mock())
+        receiver._proxy = None
+        with patch.object(ReceiverPyAV, '_write_sdp') as mock_write:
+            receiver._refresh_local_port()
+            mock_write.assert_not_called()
+
+    def test_refresh_local_port_updates_proxy_and_sdp(self):
+        receiver = ReceiverPyAV(5600, Mock())
+        mock_proxy = Mock()
+        mock_proxy.local_port = 40000
+        receiver._proxy = mock_proxy
+
+        with patch(
+            'v3xctrl_ui.network.video.ReceiverPyAV.UdpVideoProxy._find_free_local_port',
+            return_value=50000
+        ):
+            with patch.object(receiver, '_write_sdp') as mock_write:
+                receiver._refresh_local_port()
+
+                mock_proxy.update_forward_port.assert_called_once_with(50000)
+                mock_write.assert_called_once()
+
+    def test_refresh_local_port_handles_no_free_port(self):
+        receiver = ReceiverPyAV(5600, Mock())
+        mock_proxy = Mock()
+        receiver._proxy = mock_proxy
+
+        with patch(
+            'v3xctrl_ui.network.video.ReceiverPyAV.UdpVideoProxy._find_free_local_port',
+            return_value=0
+        ):
+            with patch.object(receiver, '_write_sdp') as mock_write:
+                receiver._refresh_local_port()
+
+                mock_proxy.update_forward_port.assert_not_called()
+                mock_write.assert_not_called()
+
+
 class TestReceiverPyAVPacketDropping(unittest.TestCase):
 
     def setUp(self):
@@ -267,6 +308,37 @@ class TestReceiverPyAVMainLoop(unittest.TestCase):
 
                     mock_warning.assert_called()
                     mock_sleep.assert_called_with(0.5)
+
+    def test_main_loop_refreshes_port_on_open_failure(self):
+        with patch('av.open', side_effect=av.AVError(-1, "Open failed", "")):
+            with patch('time.sleep') as mock_sleep:
+                with patch.object(self.receiver, '_refresh_local_port') as mock_refresh:
+                    def stop_after_retry(*args):
+                        self.receiver.running.clear()
+
+                    mock_sleep.side_effect = stop_after_retry
+                    self.receiver._main_loop()
+
+                    mock_refresh.assert_called()
+
+    def test_main_loop_refreshes_port_after_container_close(self):
+        mock_container = Mock()
+        mock_stream = Mock(spec=av.VideoStream)
+        mock_stream.codec_context = Mock()
+        mock_stream.time_base = 1.0 / 90000
+        mock_container.streams.video = [mock_stream]
+
+        def error_demux(*args):
+            self.receiver.running.clear()
+            return []
+
+        mock_container.demux.side_effect = error_demux
+
+        with patch('av.open', return_value=mock_container):
+            with patch.object(self.receiver, '_refresh_local_port') as mock_refresh:
+                self.receiver._main_loop()
+
+                mock_refresh.assert_called()
 
     def test_main_loop_container_open_success(self):
         mock_container = Mock()

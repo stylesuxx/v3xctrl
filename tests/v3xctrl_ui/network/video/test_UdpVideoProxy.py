@@ -98,6 +98,60 @@ class TestUdpVideoProxy(unittest.TestCase):
         proxy.join(timeout=3.0)
         self.assertFalse(proxy.is_alive())
 
+    def test_update_forward_port(self):
+        proxy = UdpVideoProxy(
+            video_port=0,
+            relay_address=("127.0.0.1", self.relay_port),
+        )
+        try:
+            proxy.start_proxy()
+
+            original_port = proxy.local_port
+            self.assertGreater(original_port, 0)
+            self.assertEqual(proxy._forward_addr, ("127.0.0.1", original_port))
+
+            proxy.update_forward_port(55555)
+            self.assertEqual(proxy.local_port, 55555)
+            self.assertEqual(proxy._forward_addr, ("127.0.0.1", 55555))
+        finally:
+            proxy.stop()
+            proxy.join(timeout=3.0)
+
+    def test_update_forward_port_redirects_traffic(self):
+        proxy = UdpVideoProxy(
+            video_port=0,
+            relay_address=("127.0.0.1", self.relay_port),
+        )
+        try:
+            proxy.start_proxy()
+
+            # Wait for initial heartbeat so proxy is running
+            self.relay_socket.recvfrom(1024)
+
+            # Find a new free port and update the proxy
+            new_port = UdpVideoProxy._find_free_local_port()
+            proxy.update_forward_port(new_port)
+
+            # Listen on the NEW local port
+            local_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            local_sock.bind(("127.0.0.1", new_port))
+            local_sock.settimeout(3.0)
+
+            # Send a packet to the proxy's external port
+            sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            video_port = proxy._external_sock.getsockname()[1]
+            sender.sendto(b"redirected-data", ("127.0.0.1", video_port))
+            sender.close()
+
+            # Verify it arrives on the NEW local port
+            data, _ = local_sock.recvfrom(1024)
+            self.assertEqual(data, b"redirected-data")
+
+            local_sock.close()
+        finally:
+            proxy.stop()
+            proxy.join(timeout=3.0)
+
     def test_start_proxy_returns_false_on_bind_failure(self):
         # Bind the port first without SO_REUSEADDR to block the proxy
         blocker = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
