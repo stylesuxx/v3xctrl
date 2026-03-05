@@ -94,13 +94,12 @@ class TCPAcceptor:
             self.relay.register_tcp_peer(msg, addr, target)
 
             # Behavior depends on port type and role
-            if port_type == PortType.VIDEO:
-                role = Role(msg.get_role())
-                if role == Role.STREAMER:
-                    self._read_and_forward_loop(tcp_sock, addr)
-                else:
-                    self._monitor_disconnect(tcp_sock)
-            elif port_type == PortType.CONTROL:
+            role = Role(msg.get_role())
+            if role == Role.SPECTATOR:
+                self._monitor_disconnect(tcp_sock)
+            elif port_type == PortType.VIDEO and role != Role.STREAMER:
+                self._monitor_disconnect(tcp_sock)
+            else:
                 self._read_and_forward_loop(tcp_sock, addr)
 
         except Exception:
