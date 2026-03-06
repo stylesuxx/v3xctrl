@@ -657,6 +657,15 @@ Java_com_v3xctrl_viewer_GstViewer_nativePausePipeline(JNIEnv *env, jclass clazz)
     }
 
     LOGI("Pausing pipeline (surface lost)");
+
+    // Detach glimagesink from the surface BEFORE pausing so its GL thread
+    // stops rendering immediately, preventing "BufferQueue has been abandoned"
+    // errors when Android destroys the surface.
+    if (gst_data.video_sink) {
+        gst_video_overlay_set_window_handle(
+            GST_VIDEO_OVERLAY(gst_data.video_sink), (guintptr)0);
+    }
+
     gst_element_set_state(gst_data.pipeline, GST_STATE_PAUSED);
 
     // Release the now-invalid native window
