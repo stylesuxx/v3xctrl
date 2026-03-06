@@ -1,9 +1,12 @@
 package com.v3xctrl.viewer
 
+import android.app.PictureInPictureParams
 import android.view.MotionEvent
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
+import android.os.Build
 import android.os.Bundle
+import android.util.Rational
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -73,12 +76,34 @@ private fun parseRelayUrl(url: String): Pair<String, Int> {
 
 class MainActivity : ComponentActivity() {
     var onGamepadMotionEvent: ((MotionEvent) -> Boolean)? = null
+    var currentScreen by mutableStateOf(Screen.Main)
+    var isInPipMode by mutableStateOf(false)
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
         onGamepadMotionEvent?.let { handler ->
             if (handler(event)) return true
         }
         return super.dispatchGenericMotionEvent(event)
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+            && currentScreen == Screen.Viewer) {
+            enterPictureInPictureMode(
+                PictureInPictureParams.Builder()
+                    .setAspectRatio(Rational(16, 9))
+                    .build()
+            )
+        }
+    }
+
+    override fun onPictureInPictureModeChanged(
+        inPipMode: Boolean,
+        newConfig: Configuration
+    ) {
+        super.onPictureInPictureModeChanged(inPipMode, newConfig)
+        isInPipMode = inPipMode
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -123,7 +148,6 @@ class MainActivity : ComponentActivity() {
 
                 val scope = rememberCoroutineScope()
 
-                var currentScreen by remember { mutableStateOf(Screen.Main) }
                 val backStack = remember { mutableStateListOf<Screen>() }
 
                 fun navigateTo(screen: Screen) {
@@ -133,6 +157,18 @@ class MainActivity : ComponentActivity() {
 
                 fun navigateBack() {
                     currentScreen = backStack.removeLastOrNull() ?: Screen.Main
+                }
+
+                // Auto-enter PiP on gesture navigation (API 31+)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    LaunchedEffect(currentScreen) {
+                        setPictureInPictureParams(
+                            PictureInPictureParams.Builder()
+                                .setAspectRatio(Rational(16, 9))
+                                .setAutoEnterEnabled(currentScreen == Screen.Viewer)
+                                .build()
+                        )
+                    }
                 }
 
                 var connectionState by remember { mutableStateOf<ConnectionState>(ConnectionState.Idle) }
@@ -294,6 +330,7 @@ class MainActivity : ComponentActivity() {
                             showPipelineStats = generalSettings.enablePipelineStats,
                             spectatorMode = networkSettings.spectatorMode,
                             controlSettings = controlSettings,
+                            isInPipMode = isInPipMode,
                             onBack = {
                                 stopTunnels()
                                 navigateBack()

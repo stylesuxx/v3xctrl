@@ -20,6 +20,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize"
+            android:supportsPictureInPicture="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.V3xctrl">
             <intent-filter>

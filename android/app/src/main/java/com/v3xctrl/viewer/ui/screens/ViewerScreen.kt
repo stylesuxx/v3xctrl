@@ -66,6 +66,7 @@ fun ViewerScreen(
     showPipelineStats: Boolean = false,
     spectatorMode: Boolean = false,
     controlSettings: ControlSettings = ControlSettings(),
+    isInPipMode: Boolean = false,
     onBack: () -> Unit,
     onNavigateToGeneral: () -> Unit = {},
     onNavigateToNetwork: () -> Unit = {},
@@ -143,6 +144,13 @@ fun ViewerScreen(
         }
     }
 
+    // Reset controls when entering PiP so the vehicle stops
+    LaunchedEffect(isInPipMode) {
+        if (isInPipMode) {
+            controlState.reset()
+        }
+    }
+
     // Motion controller for gyroscope-based control
     val isMotionMode = controlSettings.controlMode == "motion" && !spectatorMode
     var motionController by remember { mutableStateOf<MotionController?>(null) }
@@ -150,9 +158,9 @@ fun ViewerScreen(
     // Gamepad controller for USB/Bluetooth HID controllers
     val isGamepadMode = controlSettings.controlMode == "gamepad" && !spectatorMode
 
-    // Start/stop motion controller based on mode and orientation
-    DisposableEffect(isMotionMode, isLandscape, controlSettings.motionSteeringDeg, controlSettings.motionForwardDeg, controlSettings.motionBackwardDeg, controlSettings.motionSteeringInvert, controlSettings.motionThrottleInvert) {
-        if (isMotionMode && isLandscape) {
+    // Start/stop motion controller based on mode and orientation (disabled in PiP)
+    DisposableEffect(isMotionMode, isLandscape, isInPipMode, controlSettings.motionSteeringDeg, controlSettings.motionForwardDeg, controlSettings.motionBackwardDeg, controlSettings.motionSteeringInvert, controlSettings.motionThrottleInvert) {
+        if (isMotionMode && isLandscape && !isInPipMode) {
             val controller = MotionController(
                 context = context,
                 controlState = controlState,
@@ -399,7 +407,14 @@ fun ViewerScreen(
         }
     }
 
-    if (isLandscape) {
+    if (isInPipMode) {
+        // PiP: show only video, no controls or OSD
+        VideoSurface(
+            surfaceView = surfaceView,
+            showVideoBlank = showVideoBlank,
+            modifier = Modifier.fillMaxSize()
+        )
+    } else if (isLandscape) {
         LandscapeViewer(
             surfaceView = surfaceView,
             showVideoBlank = showVideoBlank,
