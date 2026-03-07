@@ -22,11 +22,17 @@ fun PipelineStatsOverlay(
 ) {
     var statsText by remember { mutableStateOf("") }
 
+    var droppingFrames by remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) {
         while (true) {
             val stats = GstViewer.getPipelineStats()
+            val decoder = GstViewer.decoderName
+            droppingFrames = stats.dropped > 0
             statsText = "src=${stats.udpsrc} jbuf=${stats.jitterbuffer}\n" +
-                "depay=${stats.depay} dec=${stats.decoder} sink=${stats.sink}"
+                "depay=${stats.depay} dec=${stats.decoder} sink=${stats.sink}" +
+                (if (droppingFrames) "\ndropped=${stats.dropped}" else "") +
+                (if (decoder.isNotEmpty()) "\ndecoder=$decoder" else "")
             delay(1000)
         }
     }
@@ -37,7 +43,7 @@ fun PipelineStatsOverlay(
     ) {
         Text(
             text = statsText,
-            color = Color.Yellow,
+            color = if (droppingFrames) Color.Red else Color.Yellow,
             fontSize = 11.sp,
             fontFamily = FontFamily.Monospace
         )

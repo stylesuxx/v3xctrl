@@ -51,6 +51,7 @@ import com.v3xctrl.viewer.messages.Command
 import com.v3xctrl.viewer.messages.Commands
 import com.v3xctrl.viewer.ui.components.AppMenu
 import com.v3xctrl.viewer.data.OsdSettings
+import com.v3xctrl.viewer.ui.widgets.DecoderWarning
 import com.v3xctrl.viewer.ui.widgets.FpsCounter
 import com.v3xctrl.viewer.ui.widgets.FrameDropIndicator
 import com.v3xctrl.viewer.ui.widgets.LatencyIndicator
@@ -221,6 +222,11 @@ fun PortraitViewer(
                         .offset(x = 12.dp, y = (-12).dp)
                 )
             }
+
+            // Decoder backpressure warning (bottom center)
+            DecoderWarning(
+                modifier = Modifier.align(Alignment.BottomCenter)
+            )
 
             // Status messages (centered, stacked)
             if (showVideoBlank || viewerState.isControlTimedOut) {

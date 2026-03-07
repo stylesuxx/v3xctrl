@@ -18,6 +18,8 @@ object GstViewer {
     private external fun nativeFinalize()
     private external fun nativeSetStatsEnabled(enabled: Boolean)
     private external fun nativeGetPipelineStats(): String
+    private external fun nativeGetDecodeQueueLevel(): Int
+    private external fun nativeGetDecoderName(): String
 
     fun init() {
         nativeInit()
@@ -55,19 +57,24 @@ object GstViewer {
         val jitterbuffer: Int,
         val depay: Int,
         val decoder: Int,
-        val sink: Int
+        val sink: Int,
+        val dropped: Int
     )
 
     fun getPipelineStats(): PipelineStats {
-        val parts = nativeGetPipelineStats().split("|", limit = 5)
+        val parts = nativeGetPipelineStats().split("|", limit = 6)
         return PipelineStats(
             udpsrc = parts.getOrNull(0)?.toIntOrNull() ?: 0,
             jitterbuffer = parts.getOrNull(1)?.toIntOrNull() ?: 0,
             depay = parts.getOrNull(2)?.toIntOrNull() ?: 0,
             decoder = parts.getOrNull(3)?.toIntOrNull() ?: 0,
-            sink = parts.getOrNull(4)?.toIntOrNull() ?: 0
+            sink = parts.getOrNull(4)?.toIntOrNull() ?: 0,
+            dropped = parts.getOrNull(5)?.toIntOrNull() ?: 0
         )
     }
+
+    val decodeQueueLevel: Int get() = nativeGetDecodeQueueLevel()
+    val decoderName: String get() = nativeGetDecoderName()
 
     fun finalize() {
         nativeFinalize()

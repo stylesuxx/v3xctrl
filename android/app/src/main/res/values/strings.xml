@@ -118,6 +118,7 @@
     <string name="no_video_signal">No video signal</string>
     <string name="pipeline_restarted">Video pipeline restarted</string>
     <string name="no_control_signal">No control signal</string>
+    <string name="decoder_too_slow">Device too slow for current framerate</string>
 
     <!-- Connection -->
     <string name="establishing_connection">Establishing Connection…</string>
