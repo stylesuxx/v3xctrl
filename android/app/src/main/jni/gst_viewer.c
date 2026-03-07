@@ -25,6 +25,7 @@ typedef struct {
     GstElement *jitterbuffer;
     GstElement *depay;
     GstElement *parser;
+    GstElement *queue;
     GstElement *decodebin;
     GstElement *video_sink;
     GMainLoop *main_loop;
@@ -382,12 +383,13 @@ static gboolean create_rtp_pipeline(gint port) {
     gst_data.jitterbuffer = gst_element_factory_make("rtpjitterbuffer", "jbuf");
     gst_data.depay = gst_element_factory_make("rtph264depay", "depay");
     gst_data.parser = gst_element_factory_make("h264parse", "parse");
+    gst_data.queue = gst_element_factory_make("queue", "queue");
     gst_data.decodebin = gst_element_factory_make("decodebin", "dec");
     gst_data.video_sink = gst_element_factory_make("glimagesink", "videosink");
 
     if (!gst_data.pipeline || !gst_data.udpsrc || !gst_data.jitterbuffer ||
-        !gst_data.depay || !gst_data.parser || !gst_data.decodebin ||
-        !gst_data.video_sink) {
+        !gst_data.depay || !gst_data.parser || !gst_data.queue ||
+        !gst_data.decodebin || !gst_data.video_sink) {
         LOGE("Failed to create one or more pipeline elements");
         if (gst_data.pipeline) {
             gst_object_unref(gst_data.pipeline);
@@ -408,15 +410,19 @@ static gboolean create_rtp_pipeline(gint port) {
     // Configure video sink for low latency (no clock sync)
     g_object_set(gst_data.video_sink, "sync", FALSE, NULL);
 
+    // Configure leaky queue to prevent buffer buildup
+    g_object_set(gst_data.queue, "max-size-buffers", 1, "leaky", 2 /* downstream */, NULL);
+
     // Add all elements to the pipeline
     gst_bin_add_many(GST_BIN(gst_data.pipeline),
         gst_data.udpsrc, gst_data.jitterbuffer, gst_data.depay,
-        gst_data.parser, gst_data.decodebin, gst_data.video_sink, NULL);
+        gst_data.parser, gst_data.queue, gst_data.decodebin,
+        gst_data.video_sink, NULL);
 
-    // Link static chain: udpsrc -> jitterbuffer -> depay -> parser -> decodebin
+    // Link static chain: udpsrc -> jitterbuffer -> depay -> parser -> queue -> decodebin
     if (!gst_element_link_many(gst_data.udpsrc, gst_data.jitterbuffer,
                                 gst_data.depay, gst_data.parser,
-                                gst_data.decodebin, NULL)) {
+                                gst_data.queue, gst_data.decodebin, NULL)) {
         LOGE("Failed to link pipeline elements");
         gst_object_unref(gst_data.pipeline);
         gst_data.pipeline = NULL;
@@ -427,7 +433,7 @@ static gboolean create_rtp_pipeline(gint port) {
     g_signal_connect(gst_data.decodebin, "pad-added",
         G_CALLBACK(on_decodebin_pad_added), NULL);
 
-    LOGI("Pipeline: udpsrc port=%d ! rtpjitterbuffer ! rtph264depay ! h264parse ! decodebin ! glimagesink", port);
+    LOGI("Pipeline: udpsrc port=%d ! rtpjitterbuffer ! rtph264depay ! h264parse ! queue ! decodebin ! glimagesink", port);
     return TRUE;
 }
 
