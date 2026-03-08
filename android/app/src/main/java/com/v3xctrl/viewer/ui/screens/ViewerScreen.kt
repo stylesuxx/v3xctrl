@@ -271,15 +271,27 @@ fun ViewerScreen(
         }
     }
 
-    // Allow rotation and keep screen on while viewing video
+    // Allow rotation, keep screen on, and request max refresh rate while viewing video
     DisposableEffect(Unit) {
         val activity = context as? Activity
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR
         activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
+        val display = activity?.display ?: @Suppress("DEPRECATION") activity?.windowManager?.defaultDisplay
+        val maxRefreshRate = display?.supportedModes
+            ?.maxOfOrNull { it.refreshRate } ?: 0f
+        if (maxRefreshRate > 0f) {
+            activity?.window?.attributes = activity.window.attributes.apply {
+                preferredRefreshRate = maxRefreshRate
+            }
+        }
+
         onDispose {
             activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
             activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            activity?.window?.attributes = activity.window.attributes.apply {
+                preferredRefreshRate = 0f
+            }
         }
     }
 
