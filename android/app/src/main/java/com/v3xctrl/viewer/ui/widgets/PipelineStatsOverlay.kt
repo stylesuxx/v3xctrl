@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.os.Debug
 import android.os.Process
 import android.os.SystemClock
 import com.v3xctrl.viewer.GstViewer
@@ -37,6 +38,8 @@ fun PipelineStatsOverlay(
     var decodeQueueLevel by remember { mutableStateOf(0) }
     var renderQueueLevel by remember { mutableStateOf(0) }
     var cpuUsage by remember { mutableStateOf<Int?>(null) }
+    var nativeHeapMb by remember { mutableStateOf(0f) }
+    var javaHeapMb by remember { mutableStateOf(0f) }
 
     LaunchedEffect(Unit) {
         var previousCpuTime = Process.getElapsedCpuTime()
@@ -56,6 +59,10 @@ fun PipelineStatsOverlay(
             }
             previousCpuTime = currentCpuTime
             previousWallTime = currentWallTime
+
+            nativeHeapMb = Debug.getNativeHeapAllocatedSize() / (1024f * 1024f)
+            val runtime = Runtime.getRuntime()
+            javaHeapMb = (runtime.totalMemory() - runtime.freeMemory()) / (1024f * 1024f)
 
             delay(1000)
         }
@@ -91,6 +98,8 @@ fun PipelineStatsOverlay(
             cpuUsage?.let { cpu ->
                 StatsRow("cpu", "$cpu%", if (cpu > 80) Color.Red else ValueColor)
             }
+            StatsRow("mem native", "%.1f MB".format(nativeHeapMb))
+            StatsRow("mem java", "%.1f MB".format(javaHeapMb))
         }
     }
 }

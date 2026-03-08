@@ -24,7 +24,6 @@ typedef struct {
     GstElement *udpsrc;
     GstElement *jitterbuffer;
     GstElement *depay;
-    GstElement *parser;
     GstElement *decode_queue;
     GstElement *decodebin;
     GstElement *render_queue;
@@ -133,15 +132,27 @@ static void attach_stats_probes(void) {
         return;
     }
 
+    // Reset all counters together so stats are consistent
     count_udpsrc = 0;
     count_jitterbuffer = 0;
     count_depay = 0;
     count_decoder = 0;
+    count_sink = 0;
+    count_queue_in = 0;
 
     probe_id_udpsrc = add_element_src_probe(gst_data.udpsrc, count_udpsrc_cb);
     probe_id_jitterbuffer = add_element_src_probe(gst_data.jitterbuffer, count_jitterbuffer_cb);
     probe_id_depay = add_element_src_probe(gst_data.depay, count_depay_cb);
-    // Decoder probe is attached in on_decodebin_pad_added (dynamic pad)
+
+    // Attach decoder probe to decodebin's existing src pad (if already linked)
+    if (gst_data.decodebin && !probe_id_decoder) {
+        GstPad *src_pad = gst_element_get_static_pad(gst_data.decodebin, "src_0");
+        if (src_pad) {
+            probe_id_decoder = gst_pad_add_probe(src_pad,
+                GST_PAD_PROBE_TYPE_BUFFER, count_decoder_cb, NULL, NULL);
+            gst_object_unref(src_pad);
+        }
+    }
 
     stats_timer_id = g_timeout_add_seconds(STATS_INTERVAL_SECS, log_stats_cb, NULL);
 }
@@ -188,13 +199,13 @@ static void log_decodebin_decoder(GstElement *decodebin) {
             GstElement *element = g_value_get_object(&item);
             GstElementFactory *factory = gst_element_get_factory(element);
             if (factory) {
+                const gchar *factory_name = gst_plugin_feature_get_name(
+                    GST_PLUGIN_FEATURE(factory));
                 const gchar *klass = gst_element_factory_get_metadata(factory,
                     GST_ELEMENT_METADATA_KLASS);
+                LOGI("decodebin element: %s (factory=%s, klass=%s)",
+                     GST_OBJECT_NAME(element), factory_name, klass ? klass : "");
                 if (klass && g_strrstr(klass, "Decoder")) {
-                    const gchar *factory_name = gst_plugin_feature_get_name(
-                        GST_PLUGIN_FEATURE(factory));
-                    LOGI("Decoder selected by decodebin: %s (%s)",
-                         GST_OBJECT_NAME(element), factory_name);
                     g_strlcpy(decoder_name, factory_name, sizeof(decoder_name));
                 }
             }
@@ -233,11 +244,30 @@ static void on_decodebin_pad_added(GstElement *decodebin, GstPad *new_pad, gpoin
     const gchar *name = gst_structure_get_name(structure);
 
     if (g_str_has_prefix(name, "video/")) {
+        gchar *caps_str = gst_caps_to_string(caps);
+        LOGI("decodebin output caps: %s", caps_str);
+        g_free(caps_str);
+
         GstPadLinkReturn ret = gst_pad_link(new_pad, render_queue_sink);
         if (ret != GST_PAD_LINK_OK) {
             LOGE("Failed to link decodebin to render queue: %d", ret);
         } else {
-            LOGI("Linked decodebin to render queue to video sink (caps: %s)", name);
+            LOGI("Linked decodebin to render queue to video sink");
+
+            // Log negotiated caps on render_queue src -> glimagesink
+            GstPad *render_queue_src = gst_element_get_static_pad(gst_data.render_queue, "src");
+            if (render_queue_src) {
+                GstCaps *sink_caps = gst_pad_get_current_caps(render_queue_src);
+                if (sink_caps) {
+                    gchar *sink_caps_str = gst_caps_to_string(sink_caps);
+                    LOGI("render_queue -> glimagesink caps: %s", sink_caps_str);
+                    g_free(sink_caps_str);
+                    gst_caps_unref(sink_caps);
+                } else {
+                    LOGI("render_queue -> glimagesink caps: not yet negotiated");
+                }
+                gst_object_unref(render_queue_src);
+            }
         }
 
         // Attach decoder probe on decodebin's output pad
@@ -353,6 +383,8 @@ static void on_state_changed(GstBus *bus, GstMessage *msg, gpointer data) {
 }
 
 static void *gst_main_loop_thread(void *arg) {
+    pthread_setname_np(pthread_self(), "GstMainLoop");
+
     // Raise thread priority for lower latency processing (-10 = audio/video priority)
     if (setpriority(PRIO_PROCESS, 0, -10) != 0) {
         LOGW("Failed to set GStreamer thread priority: %s", strerror(errno));
@@ -394,14 +426,13 @@ static gboolean create_rtp_pipeline(gint port) {
     gst_data.udpsrc = gst_element_factory_make("udpsrc", "src");
     gst_data.jitterbuffer = gst_element_factory_make("rtpjitterbuffer", "jbuf");
     gst_data.depay = gst_element_factory_make("rtph264depay", "depay");
-    gst_data.parser = gst_element_factory_make("h264parse", "parse");
     gst_data.decode_queue = gst_element_factory_make("queue", "decode_queue");
     gst_data.decodebin = gst_element_factory_make("decodebin", "dec");
     gst_data.render_queue = gst_element_factory_make("queue", "render_queue");
     gst_data.video_sink = gst_element_factory_make("glimagesink", "videosink");
 
     if (!gst_data.pipeline || !gst_data.udpsrc || !gst_data.jitterbuffer ||
-        !gst_data.depay || !gst_data.parser || !gst_data.decode_queue ||
+        !gst_data.depay || !gst_data.decode_queue ||
         !gst_data.decodebin || !gst_data.render_queue || !gst_data.video_sink) {
         LOGE("Failed to create one or more pipeline elements");
         if (gst_data.pipeline) {
@@ -434,14 +465,14 @@ static gboolean create_rtp_pipeline(gint port) {
     // Add all elements to the pipeline
     gst_bin_add_many(GST_BIN(gst_data.pipeline),
         gst_data.udpsrc, gst_data.jitterbuffer, gst_data.depay,
-        gst_data.parser, gst_data.decode_queue, gst_data.decodebin,
+        gst_data.decode_queue, gst_data.decodebin,
         gst_data.render_queue, gst_data.video_sink, NULL);
 
-    // Link static chain: udpsrc -> jitterbuffer -> depay -> parser -> decode_queue -> decodebin
+    // Link static chain: udpsrc -> jitterbuffer -> depay -> decode_queue -> decodebin
+    // (h264parse is not needed - decodebin adds its own internally)
     if (!gst_element_link_many(gst_data.udpsrc, gst_data.jitterbuffer,
-                                gst_data.depay, gst_data.parser,
-                                gst_data.decode_queue, gst_data.decodebin,
-                                NULL)) {
+                                gst_data.depay, gst_data.decode_queue,
+                                gst_data.decodebin, NULL)) {
         LOGE("Failed to link pipeline elements");
         gst_object_unref(gst_data.pipeline);
         gst_data.pipeline = NULL;
@@ -460,7 +491,7 @@ static gboolean create_rtp_pipeline(gint port) {
     g_signal_connect(gst_data.decodebin, "pad-added",
         G_CALLBACK(on_decodebin_pad_added), NULL);
 
-    LOGI("Pipeline: udpsrc port=%d ! rtpjitterbuffer ! rtph264depay ! h264parse ! decode_queue ! decodebin ! render_queue ! glimagesink", port);
+    LOGI("Pipeline: udpsrc port=%d ! rtpjitterbuffer ! rtph264depay ! decode_queue ! decodebin ! render_queue ! glimagesink", port);
     return TRUE;
 }
 
@@ -591,7 +622,6 @@ Java_com_v3xctrl_viewer_GstViewer_nativeStartPipeline(JNIEnv *env, jclass clazz,
         gst_data.udpsrc = NULL;
         gst_data.jitterbuffer = NULL;
         gst_data.depay = NULL;
-        gst_data.parser = NULL;
         gst_data.decode_queue = NULL;
         gst_data.render_queue = NULL;
         gst_data.decodebin = NULL;
@@ -632,7 +662,6 @@ Java_com_v3xctrl_viewer_GstViewer_nativeStopPipeline(JNIEnv *env, jclass clazz) 
     gst_data.udpsrc = NULL;
     gst_data.jitterbuffer = NULL;
     gst_data.depay = NULL;
-    gst_data.parser = NULL;
     gst_data.decode_queue = NULL;
     gst_data.decodebin = NULL;
     gst_data.render_queue = NULL;
