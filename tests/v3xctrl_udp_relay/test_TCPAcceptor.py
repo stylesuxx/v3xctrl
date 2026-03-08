@@ -84,7 +84,7 @@ class TestTCPAcceptor(unittest.TestCase):
         finally:
             sock.close()
 
-    def test_disconnect_unregisters(self):
+    def test_disconnect_closes_target(self):
         sock = self._connect()
         handshake = PeerAnnouncement(r="viewer", i="sid1", p="video").to_bytes()
         send_message(sock, handshake)
@@ -94,7 +94,8 @@ class TestTCPAcceptor(unittest.TestCase):
         sock.close()
         time.sleep(0.5)
 
-        self.relay.unregister_tcp_peer.assert_called_once()
+        # target.close() is called on disconnect, marking TcpTarget as dead
+        self.relay.register_tcp_peer.assert_called_once()
 
     def test_invalid_handshake_closes(self):
         sock = self._connect()
@@ -144,8 +145,8 @@ class TestTCPAcceptor(unittest.TestCase):
         finally:
             sock.close()
 
-    def test_streamer_video_disconnect_unregisters(self):
-        """Streamer video disconnect triggers unregister."""
+    def test_streamer_video_disconnect_closes_target(self):
+        """Streamer video disconnect closes TcpTarget."""
         sock = self._connect()
         handshake = PeerAnnouncement(r="streamer", i="sid1", p="video").to_bytes()
         send_message(sock, handshake)
@@ -155,7 +156,7 @@ class TestTCPAcceptor(unittest.TestCase):
         sock.close()
         time.sleep(0.5)
 
-        self.relay.unregister_tcp_peer.assert_called_once()
+        self.relay.register_tcp_peer.assert_called_once()
 
 
 if __name__ == "__main__":

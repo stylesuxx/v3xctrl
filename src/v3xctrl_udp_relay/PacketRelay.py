@@ -98,10 +98,6 @@ class PacketRelay:
             self.tcp_targets[addr] = target
         self.register_peer(msg, addr)
 
-    def unregister_tcp_peer(self, addr: Address) -> None:
-        with self.mapping_lock:
-            self.tcp_targets.pop(addr, None)
-
     def _get_target(self, addr: Address) -> ForwardTarget:
         tcp_target = self.tcp_targets.get(addr)
         if tcp_target and tcp_target.is_alive():
@@ -240,7 +236,9 @@ class PacketRelay:
             for target_addr in mapping.targets:
                 target_mapping = self.mappings.get(target_addr)
                 if target_mapping:
-                    target_mapping.timestamp = now
+                    tcp_target = self.tcp_targets.get(target_addr)
+                    if not tcp_target or tcp_target.is_alive():
+                        target_mapping.timestamp = now
 
         deferred_tcp: list[TcpTarget] = []
         for target in mapping.targets:
@@ -266,7 +264,10 @@ class PacketRelay:
         now = time.time()
 
         with self.mapping_lock:
-            dead = [a for a, t in self.tcp_targets.items() if not t.is_alive()]
+            dead = [
+                a for a, t in self.tcp_targets.items()
+                if not t.is_alive() and a not in self.mappings
+            ]
             for a in dead:
                 del self.tcp_targets[a]
 
@@ -422,6 +423,13 @@ class PacketRelay:
 
         overwritten: set[str] = set()
         with self.mapping_lock:
+            # Preserve timestamps for unchanged mappings so re-announcements
+            # don't reset the timeout for inactive peers.
+            for addr, new_mapping in new_mappings.items():
+                existing = self.mappings.get(addr)
+                if existing and existing.targets == new_mapping.targets:
+                    new_mapping.timestamp = existing.timestamp
+
             # Remove mapping that might have existed for this sessions addresses
             # before
             for addr in session.addresses:

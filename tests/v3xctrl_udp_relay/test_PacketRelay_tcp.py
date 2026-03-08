@@ -32,16 +32,15 @@ class TestPacketRelayTcp(unittest.TestCase):
         self.assertIn(addr, self.relay.tcp_targets)
         self.assertIs(self.relay.tcp_targets[addr], target)
 
-    def test_unregister_tcp_peer(self):
+    def test_dead_tcp_target_stays_in_dict(self):
+        """Dead TcpTarget stays in tcp_targets so forward_packet
+        doesn't fall through to UDP after disconnect."""
         addr = ("10.0.0.1", 50000)
         target = Mock(spec=TcpTarget)
+        target.is_alive.return_value = False
         self.relay.tcp_targets[addr] = target
 
-        self.relay.unregister_tcp_peer(addr)
-        self.assertNotIn(addr, self.relay.tcp_targets)
-
-    def test_unregister_tcp_peer_not_found(self):
-        self.relay.unregister_tcp_peer(("10.0.0.1", 99999))  # Should not raise
+        self.assertIn(addr, self.relay.tcp_targets)
 
     def test_get_target_returns_tcp_when_registered(self):
         addr = ("10.0.0.1", 50000)

@@ -106,7 +106,6 @@ class TCPAcceptor:
             logger.error(f"TCPAcceptor: error handling {addr}", exc_info=True)
 
         finally:
-            self.relay.unregister_tcp_peer(addr)
             target.close()
 
     def _monitor_disconnect(self, tcp_sock: socket.socket) -> None:
