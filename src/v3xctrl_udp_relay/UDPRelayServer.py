@@ -68,6 +68,19 @@ class UDPRelayServer(threading.Thread):
         threading.Thread(target=self._handle_commands, daemon=True).start()
         super().start()
 
+    # Byte prefixes for control messages that must always be processed,
+    # even when arriving from an address that already has a forwarding
+    # mapping. Once a session is ready, _update_mappings creates entries
+    # for the viewer's address. Subsequent PeerAnnouncements from the
+    # viewer would then be matched by forward_packet and silently
+    # forwarded as data, preventing _send_peer_info from being called
+    # again. Extracting control messages before forward_packet ensures
+    # they are always handled, so PeerInfo can be (re-)sent reliably.
+    _CONTROL_PREFIXES = (
+        b'\x83\xa1t\xb0PeerAnnouncement',
+        b'\x83\xa1t\xaeConnectionTest',
+    )
+
     def run(self) -> None:
         logging.info(f"UDP Relay server listening on {self.ip}:{self.port}")
 
@@ -75,12 +88,17 @@ class UDPRelayServer(threading.Thread):
             try:
                 data, addr = self.sock.recvfrom(self.RECEIVE_BUFFER)
 
-                deferred_tcp = self.relay.forward_packet(data, addr)
-                if deferred_tcp is not None:
-                    for tcp_target in deferred_tcp:
-                        self.tcp_executor.submit(tcp_target.send, data)
-                else:
+                is_control = any(data.startswith(p) for p in self._CONTROL_PREFIXES)
+
+                if is_control:
                     self.control_executor.submit(self._handle_slow_packet, data, addr)
+                else:
+                    deferred_tcp = self.relay.forward_packet(data, addr)
+                    if deferred_tcp is not None:
+                        for tcp_target in deferred_tcp:
+                            self.tcp_executor.submit(tcp_target.send, data)
+                    else:
+                        self.control_executor.submit(self._handle_slow_packet, data, addr)
             except OSError:
                 if not self.running.is_set():
                     break
@@ -244,7 +262,8 @@ class UDPRelayServer(threading.Thread):
                     if isinstance(msg, PeerAnnouncement):
                         self._handle_peer_announcement(msg, addr)
                         return
-                except Exception:
+                except Exception as e:
+                    logging.warning(f"Failed to parse PeerAnnouncement from {addr}: {e}")
                     return
 
             if data.startswith(b'\x83\xa1t\xaeConnectionTest'):

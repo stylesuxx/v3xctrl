@@ -119,6 +119,7 @@ class PacketRelay:
             role = Role(msg.get_role())
             port_type = PortType(msg.get_port_type())
         except ValueError:
+            logger.warning(f"Invalid announcement from {addr}: role='{msg.get_role()}', port_type='{msg.get_port_type()}'")
             return
 
         sid = msg.get_id()

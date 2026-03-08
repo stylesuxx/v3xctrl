@@ -22,10 +22,9 @@ class TestPeer(unittest.TestCase):
         pi = MagicMock(spec=PeerInfo)
         with (
             patch.object(PeerAnnouncement, "to_bytes", return_value=b"ann"), \
-            patch.object(Message, "from_bytes", return_value=pi), \
-            patch.object(self.peer, "_flush_socket")
+            patch.object(Message, "from_bytes", return_value=pi)
         ):
-            mock_sock.recvfrom.return_value = (b"data", ("server", 1234))
+            mock_sock.recvfrom.return_value = (b"\x83\xa1tdata", ("server", 1234))
             self.assertEqual(self.peer._register_with_relay(mock_sock, "video", "client"), pi)
 
     def test_register_with_relay_unauthorized_error(self):
@@ -35,10 +34,9 @@ class TestPeer(unittest.TestCase):
 
         with (
             patch.object(PeerAnnouncement, "to_bytes", return_value=b"ann"), \
-            patch.object(Message, "from_bytes", return_value=err), \
-            patch.object(self.peer, "_flush_socket")
+            patch.object(Message, "from_bytes", return_value=err)
         ):
-            mock_sock.recvfrom.return_value = (b"data", ("server", 1234))
+            mock_sock.recvfrom.return_value = (b"\x83\xa1tdata", ("server", 1234))
 
             with self.assertRaises(UnauthorizedError):
                 self.peer._register_with_relay(mock_sock, "video", "client")
@@ -66,7 +64,7 @@ class TestPeer(unittest.TestCase):
     def test_register_with_relay_value_error_parsing(self):
         """Test ValueError handling in message parsing"""
         mock_sock = MagicMock()
-        mock_sock.recvfrom.return_value = (b"invalid_data", ("server", 1234))
+        mock_sock.recvfrom.return_value = (b"\x83\xa1tinvalid_data", ("server", 1234))
 
         with patch.object(PeerAnnouncement, "to_bytes", return_value=b"ann"), \
              patch.object(Message, "from_bytes", side_effect=ValueError("Parse error")), \
@@ -87,7 +85,7 @@ class TestPeer(unittest.TestCase):
         with patch.object(PeerAnnouncement, "to_bytes", return_value=b"ann"), \
              patch.object(Message, "from_bytes", return_value=unknown_msg), \
              patch("time.sleep", return_value=None):
-            mock_sock.recvfrom.return_value = (b"unknown_msg", ("server", 1234))
+            mock_sock.recvfrom.return_value = (b"\x83\xa1tunknown_msg", ("server", 1234))
 
             # Set abort event to prevent infinite loop
             self.peer._abort_event.set()
@@ -96,6 +94,22 @@ class TestPeer(unittest.TestCase):
                 self.peer._register_with_relay(mock_sock, "video", "client")
 
         self.peer._abort_event.clear()
+
+    def test_register_with_relay_skips_non_message_packets(self):
+        """Non-message packets (e.g. RTP data) are silently skipped via prefix check."""
+        mock_sock = MagicMock()
+        pi = MagicMock(spec=PeerInfo)
+
+        mock_sock.recvfrom.side_effect = [
+            (b"\x80\x60\x00\x01rtp_data", ("server", 1234)),  # RTP packet
+            (b"\x00\x00\x00\x01nal_unit", ("server", 1234)),  # H264 NAL
+            (b"\x83\xa1tpeerinfo", ("server", 1234)),          # Message prefix
+        ]
+
+        with patch.object(PeerAnnouncement, "to_bytes", return_value=b"ann"), \
+             patch.object(Message, "from_bytes", return_value=pi):
+            result = self.peer._register_with_relay(mock_sock, "video", "client")
+            self.assertEqual(result, pi)
 
     def test_register_with_relay_socket_timeout(self):
         mock_sock = MagicMock()
@@ -126,7 +140,6 @@ class TestPeer(unittest.TestCase):
             self.peer._abort_event.clear()
 
     def test_register_with_relay_abort_event_set(self):
-        # Test lines 44-49: abort event handling in registration loop
         mock_sock = MagicMock()
 
         def side_effect(*args, **kwargs):
@@ -137,7 +150,6 @@ class TestPeer(unittest.TestCase):
         mock_sock.recvfrom.side_effect = side_effect
 
         with patch.object(PeerAnnouncement, "to_bytes", return_value=b"ann"), \
-             patch.object(self.peer, "_flush_socket"), \
              patch("time.sleep", return_value=None):
 
             with self.assertRaises(InterruptedError) as cm:
@@ -148,7 +160,6 @@ class TestPeer(unittest.TestCase):
         self.peer._abort_event.clear()
 
     def test_register_with_relay_abort_event_checked_on_timeout(self):
-        # Test branch 51->36: abort event check after timeout
         mock_sock = MagicMock()
 
         call_count = 0
@@ -166,7 +177,6 @@ class TestPeer(unittest.TestCase):
         mock_sock.recvfrom.side_effect = timeout_then_abort
 
         with patch.object(PeerAnnouncement, "to_bytes", return_value=b"ann"), \
-             patch.object(self.peer, "_flush_socket"), \
              patch("time.sleep", return_value=None):
 
             with self.assertRaises(InterruptedError) as cm:
@@ -194,7 +204,6 @@ class TestPeer(unittest.TestCase):
         mock_sock.recvfrom.side_effect = exception_then_abort
 
         with patch.object(PeerAnnouncement, "to_bytes", return_value=b"ann"), \
-            patch.object(self.peer, "_flush_socket"), \
             patch("time.sleep", return_value=None):
 
             # Should raise InterruptedError when abort event is set

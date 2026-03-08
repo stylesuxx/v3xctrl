@@ -1,5 +1,4 @@
 import logging
-import select
 import socket
 import time
 import threading
@@ -77,18 +76,14 @@ class Peer:
 
         self._finalized_event.wait()
 
-    def _flush_socket(self, sock: socket.socket) -> None:
-        while select.select([sock], [], [], 0)[0]:
-            try:
-                sock.recvfrom(65535)
-            except (socket.error, OSError):
-                break
-
     def _bind_socket(self, name: str, port: int = 0) -> socket.socket:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.bind(('0.0.0.0', port))
         logging.info(f"Bound {name} socket to {sock.getsockname()}")
         return sock
+
+    # Msgpack prefix for all Message objects: fixmap(3) + fixstr(1) "t"
+    _MESSAGE_PREFIX = b'\x83\xa1t'
 
     def _register_with_relay(
         self,
@@ -100,9 +95,9 @@ class Peer:
         Register with the relay and wait for PeerInfo response.
 
         The relay may be forwarding traffic from an existing session, so the
-        socket buffer can fill up with non-PeerInfo messages. We flush the
-        buffer before each announcement and read continuously to find PeerInfo
-        among incoming traffic.
+        socket can receive non-Message data (e.g. RTP packets) at any time.
+        We skip those using a byte-prefix check and keep reading until we
+        find a PeerInfo response.
 
         This runs until one of three states occurs:
         1. abort is called externally
@@ -112,11 +107,11 @@ class Peer:
         announcement = PeerAnnouncement(r=role, i=self.session_id, p=port_type)
         sock.settimeout(self.SOCKET_TIMEOUT)
         last_announce = 0.0
+        skipped_data_packets = 0
 
         while not self._abort_event.is_set():
             now = time.time()
             if now - last_announce >= self.ANNOUNCE_INTERVAL:
-                self._flush_socket(sock)
                 sock.sendto(announcement.to_bytes(), (self.server, self.port))
                 logging.debug(f"Sent {port_type} announcement to {self.server}:{self.port} from {sock.getsockname()}")
                 last_announce = now
@@ -124,10 +119,16 @@ class Peer:
             try:
                 data, addr = sock.recvfrom(65535)
                 if data:
+                    if not data[:3] == self._MESSAGE_PREFIX:
+                        skipped_data_packets += 1
+                        continue
+
                     try:
                         response = Message.from_bytes(data)
 
                         if isinstance(response, PeerInfo):
+                            if skipped_data_packets > 0:
+                                logging.debug(f"Skipped {skipped_data_packets} non-message packets during {port_type} registration")
                             logging.info(f"Received PeerInfo for {port_type}: {response}")
                             return response
 
