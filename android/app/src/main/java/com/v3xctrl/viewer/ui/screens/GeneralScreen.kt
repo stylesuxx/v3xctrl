@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -54,32 +55,92 @@ fun GeneralScreen(
                 .padding(innerPadding)
                 .padding(16.dp)
         ) {
+            // Debug stats main toggle
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable {
-                        onSettingsChange(settings.copy(enablePipelineStats = !settings.enablePipelineStats))
+                        onSettingsChange(settings.copy(enableDebugStats = !settings.enableDebugStats))
                     }
                     .padding(vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = stringResource(R.string.general_pipeline_stats),
+                        text = stringResource(R.string.general_debug_stats),
                         style = MaterialTheme.typography.bodyLarge
                     )
                     Text(
-                        text = stringResource(R.string.general_pipeline_stats_desc),
+                        text = stringResource(R.string.general_debug_stats_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Switch(
-                    checked = settings.enablePipelineStats,
+                    checked = settings.enableDebugStats,
                     onCheckedChange = {
-                        onSettingsChange(settings.copy(enablePipelineStats = it))
+                        onSettingsChange(settings.copy(enableDebugStats = it))
                     }
                 )
+            }
+
+            // Sub-toggles (only shown when debug stats enabled)
+            if (settings.enableDebugStats) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            onSettingsChange(settings.copy(showPipelineStats = !settings.showPipelineStats))
+                        }
+                        .padding(start = 32.dp, top = 4.dp, bottom = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.general_pipeline_stats),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = stringResource(R.string.general_pipeline_stats_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Checkbox(
+                        checked = settings.showPipelineStats,
+                        onCheckedChange = {
+                            onSettingsChange(settings.copy(showPipelineStats = it))
+                        }
+                    )
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            onSettingsChange(settings.copy(showSystemStats = !settings.showSystemStats))
+                        }
+                        .padding(start = 32.dp, top = 4.dp, bottom = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.general_system_stats),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = stringResource(R.string.general_system_stats_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Checkbox(
+                        checked = settings.showSystemStats,
+                        onCheckedChange = {
+                            onSettingsChange(settings.copy(showSystemStats = it))
+                        }
+                    )
+                }
             }
         }
     }

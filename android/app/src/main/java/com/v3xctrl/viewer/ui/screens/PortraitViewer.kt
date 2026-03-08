@@ -50,12 +50,13 @@ import com.v3xctrl.viewer.control.ViewerState
 import com.v3xctrl.viewer.messages.Command
 import com.v3xctrl.viewer.messages.Commands
 import com.v3xctrl.viewer.ui.components.AppMenu
+import com.v3xctrl.viewer.data.GeneralSettings
 import com.v3xctrl.viewer.data.OsdSettings
 import com.v3xctrl.viewer.ui.widgets.DecoderWarning
 import com.v3xctrl.viewer.ui.widgets.FpsCounter
 import com.v3xctrl.viewer.ui.widgets.FrameDropIndicator
 import com.v3xctrl.viewer.ui.widgets.LatencyIndicator
-import com.v3xctrl.viewer.ui.widgets.PipelineStatsOverlay
+import com.v3xctrl.viewer.ui.widgets.DebugStatsOverlay
 import com.v3xctrl.viewer.ui.widgets.RecordingIndicator
 import com.v3xctrl.viewer.ui.widgets.SignalStrengthWidget
 
@@ -69,7 +70,7 @@ fun PortraitViewer(
     spectatorMode: Boolean,
     osdSettings: OsdSettings = OsdSettings(),
     fps: Int = 0,
-    showPipelineStats: Boolean = false,
+    generalSettings: GeneralSettings = GeneralSettings(),
     onBack: () -> Unit,
     onNavigateToGeneral: () -> Unit,
     onNavigateToNetwork: () -> Unit,
@@ -282,9 +283,11 @@ fun PortraitViewer(
                 )
             }
 
-            // Pipeline stats (below controls, debug only)
-            if (showPipelineStats) {
-                PipelineStatsOverlay(
+            // Debug stats (below controls)
+            if (generalSettings.enableDebugStats) {
+                DebugStatsOverlay(
+                    showPipelineStats = generalSettings.showPipelineStats,
+                    showSystemStats = generalSettings.showSystemStats,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }

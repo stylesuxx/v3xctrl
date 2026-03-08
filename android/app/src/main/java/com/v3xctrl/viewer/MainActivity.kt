@@ -142,8 +142,9 @@ class MainActivity : ComponentActivity() {
                 val controlSettings by settingsDataStore.controlSettings.collectAsState(
                     initial = ControlSettings()
                 )
-                LaunchedEffect(generalSettings.enablePipelineStats) {
-                    GstViewer.setStatsEnabled(generalSettings.enablePipelineStats)
+                val pipelineStatsActive = generalSettings.enableDebugStats && generalSettings.showPipelineStats
+                LaunchedEffect(pipelineStatsActive) {
+                    GstViewer.setStatsEnabled(pipelineStatsActive)
                 }
 
                 val scope = rememberCoroutineScope()
@@ -327,7 +328,7 @@ class MainActivity : ComponentActivity() {
                             ),
                             controlHz = frequencySettings.controlHz,
                             osdSettings = osdSettings,
-                            showPipelineStats = generalSettings.enablePipelineStats,
+                            generalSettings = generalSettings,
                             spectatorMode = networkSettings.spectatorMode,
                             controlSettings = controlSettings,
                             isInPipMode = isInPipMode,

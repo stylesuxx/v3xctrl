@@ -30,7 +30,9 @@ private val ValueColor = Color.White
 private val HeaderColor = Color.Yellow
 
 @Composable
-fun PipelineStatsOverlay(
+fun DebugStatsOverlay(
+    showPipelineStats: Boolean,
+    showSystemStats: Boolean,
     modifier: Modifier = Modifier
 ) {
     var stats by remember { mutableStateOf(GstViewer.PipelineStats(0, 0, 0, 0, 0, 0)) }
@@ -41,28 +43,33 @@ fun PipelineStatsOverlay(
     var nativeHeapMb by remember { mutableStateOf(0f) }
     var javaHeapMb by remember { mutableStateOf(0f) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(showPipelineStats, showSystemStats) {
         var previousCpuTime = Process.getElapsedCpuTime()
         var previousWallTime = SystemClock.elapsedRealtime()
         while (true) {
-            stats = GstViewer.getPipelineStats()
-            decoderName = GstViewer.decoderName
-            decodeQueueLevel = GstViewer.decodeQueueLevel
-            renderQueueLevel = GstViewer.renderQueueLevel
-
-            val currentCpuTime = Process.getElapsedCpuTime()
-            val currentWallTime = SystemClock.elapsedRealtime()
-            val wallDelta = currentWallTime - previousWallTime
-            if (wallDelta > 0) {
-                val cpuDelta = currentCpuTime - previousCpuTime
-                cpuUsage = (cpuDelta * 100 / wallDelta).toInt()
+            if (showPipelineStats) {
+                stats = GstViewer.getPipelineStats()
+                decodeQueueLevel = GstViewer.decodeQueueLevel
+                renderQueueLevel = GstViewer.renderQueueLevel
             }
-            previousCpuTime = currentCpuTime
-            previousWallTime = currentWallTime
 
-            nativeHeapMb = Debug.getNativeHeapAllocatedSize() / (1024f * 1024f)
-            val runtime = Runtime.getRuntime()
-            javaHeapMb = (runtime.totalMemory() - runtime.freeMemory()) / (1024f * 1024f)
+            decoderName = GstViewer.decoderName
+
+            if (showSystemStats) {
+                val currentCpuTime = Process.getElapsedCpuTime()
+                val currentWallTime = SystemClock.elapsedRealtime()
+                val wallDelta = currentWallTime - previousWallTime
+                if (wallDelta > 0) {
+                    val cpuDelta = currentCpuTime - previousCpuTime
+                    cpuUsage = (cpuDelta * 100 / wallDelta).toInt()
+                }
+                previousCpuTime = currentCpuTime
+                previousWallTime = currentWallTime
+
+                nativeHeapMb = Debug.getNativeHeapAllocatedSize() / (1024f * 1024f)
+                val runtime = Runtime.getRuntime()
+                javaHeapMb = (runtime.totalMemory() - runtime.freeMemory()) / (1024f * 1024f)
+            }
 
             delay(1000)
         }
@@ -73,33 +80,45 @@ fun PipelineStatsOverlay(
         padding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
     ) {
         Column {
-            // Buffer counts table
-            Row {
-                StatsColumn("src", stats.udpsrc, modifier = Modifier.weight(1f))
-                StatsColumn("jbuf", stats.jitterbuffer, modifier = Modifier.weight(1f))
-                StatsColumn("depay", stats.depay, modifier = Modifier.weight(1f))
-                StatsColumn("dec", stats.decoder, modifier = Modifier.weight(1f))
-                StatsColumn("sink", stats.sink, modifier = Modifier.weight(1f))
-                StatsColumn("drop", stats.dropped, if (stats.dropped > 0) Color.Red else ValueColor, Modifier.weight(1f))
+            if (showPipelineStats) {
+                // Buffer counts table
+                Row {
+                    StatsColumn("src", stats.udpsrc, modifier = Modifier.weight(1f))
+                    StatsColumn("jbuf", stats.jitterbuffer, modifier = Modifier.weight(1f))
+                    StatsColumn("depay", stats.depay, modifier = Modifier.weight(1f))
+                    StatsColumn("dec", stats.decoder, modifier = Modifier.weight(1f))
+                    StatsColumn("sink", stats.sink, modifier = Modifier.weight(1f))
+                    StatsColumn("drop", stats.dropped, if (stats.dropped > 0) Color.Red else ValueColor, Modifier.weight(1f))
+                }
+
+                HorizontalDivider(
+                    color = Color.Gray.copy(alpha = 0.4f),
+                    modifier = Modifier.padding(vertical = 6.dp)
+                )
+
+                StatsRow("decode queue", "$decodeQueueLevel/3",
+                    if (decodeQueueLevel >= 2) Color.Red else ValueColor)
+                StatsRow("render queue", "$renderQueueLevel/1",
+                    if (renderQueueLevel >= 1) Color.Red else ValueColor)
             }
 
-            HorizontalDivider(
-                color = Color.Gray.copy(alpha = 0.4f),
-                modifier = Modifier.padding(vertical = 6.dp)
-            )
+            if (showPipelineStats && showSystemStats) {
+                HorizontalDivider(
+                    color = Color.Gray.copy(alpha = 0.4f),
+                    modifier = Modifier.padding(vertical = 6.dp)
+                )
+            }
 
-            StatsRow("decode queue", "$decodeQueueLevel/3",
-                if (decodeQueueLevel >= 2) Color.Red else ValueColor)
-            StatsRow("render queue", "$renderQueueLevel/1",
-                if (renderQueueLevel >= 1) Color.Red else ValueColor)
-            if (decoderName.isNotEmpty()) {
-                StatsRow("decoder", decoderName, ValueColor)
+            if (showSystemStats) {
+                if (decoderName.isNotEmpty()) {
+                    StatsRow("decoder", decoderName, ValueColor)
+                }
+                cpuUsage?.let { cpu ->
+                    StatsRow("cpu", "$cpu%", if (cpu > 80) Color.Red else ValueColor)
+                }
+                StatsRow("mem native", "%.1f MB".format(nativeHeapMb))
+                StatsRow("mem java", "%.1f MB".format(javaHeapMb))
             }
-            cpuUsage?.let { cpu ->
-                StatsRow("cpu", "$cpu%", if (cpu > 80) Color.Red else ValueColor)
-            }
-            StatsRow("mem native", "%.1f MB".format(nativeHeapMb))
-            StatsRow("mem java", "%.1f MB".format(javaHeapMb))
         }
     }
 }

@@ -35,6 +35,7 @@ import com.v3xctrl.viewer.MainActivity
 import com.v3xctrl.viewer.GstViewer
 import com.v3xctrl.viewer.control.ControlState
 import com.v3xctrl.viewer.data.ControlSettings
+import com.v3xctrl.viewer.data.GeneralSettings
 import com.v3xctrl.viewer.data.OsdSettings
 import com.v3xctrl.viewer.data.Transport
 import com.v3xctrl.viewer.input.GamepadController
@@ -63,7 +64,7 @@ fun ViewerScreen(
     connection: ConnectionInfo,
     controlHz: Int = 30,
     osdSettings: OsdSettings = OsdSettings(),
-    showPipelineStats: Boolean = false,
+    generalSettings: GeneralSettings = GeneralSettings(),
     spectatorMode: Boolean = false,
     controlSettings: ControlSettings = ControlSettings(),
     isInPipMode: Boolean = false,
@@ -452,7 +453,7 @@ fun ViewerScreen(
             spectatorMode = spectatorMode,
             osdSettings = osdSettings,
             fps = fps,
-            showPipelineStats = showPipelineStats,
+            generalSettings = generalSettings,
             onBack = {
                 GstViewer.stop()
                 isPipelineStarted = false

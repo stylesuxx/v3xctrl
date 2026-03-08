@@ -70,8 +70,12 @@
 
     <!-- General screen -->
     <string name="general_title">General</string>
-    <string name="general_pipeline_stats">Pipeline Stats</string>
-    <string name="general_pipeline_stats_desc">Log per-element buffer counts to logcat every 5 seconds</string>
+    <string name="general_debug_stats">Debug Stats</string>
+    <string name="general_debug_stats_desc">Show debug statistics below the video stream</string>
+    <string name="general_pipeline_stats">Pipeline</string>
+    <string name="general_pipeline_stats_desc">Buffer counts, queue levels (enables GStreamer probes)</string>
+    <string name="general_system_stats">System</string>
+    <string name="general_system_stats_desc">CPU usage, memory, decoder name</string>
 
     <!-- OSD screen -->
     <string name="osd_title">OSD</string>

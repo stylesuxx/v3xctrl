@@ -27,7 +27,9 @@ enum class Transport {
 }
 
 data class GeneralSettings(
-    val enablePipelineStats: Boolean = false
+    val enableDebugStats: Boolean = false,
+    val showPipelineStats: Boolean = true,
+    val showSystemStats: Boolean = true
 )
 
 data class NetworkSettings(
@@ -84,7 +86,9 @@ data class ControlSettings(
 class SettingsDataStore(private val context: Context) {
 
     companion object {
-        private val ENABLE_PIPELINE_STATS = booleanPreferencesKey("enable_pipeline_stats")
+        private val ENABLE_DEBUG_STATS = booleanPreferencesKey("enable_debug_stats")
+        private val SHOW_PIPELINE_STATS = booleanPreferencesKey("show_pipeline_stats")
+        private val SHOW_SYSTEM_STATS = booleanPreferencesKey("show_system_stats")
 
         private val RELAY_URL = stringPreferencesKey("relay_url")
         private val SESSION_ID = stringPreferencesKey("session_id")
@@ -138,7 +142,9 @@ class SettingsDataStore(private val context: Context) {
     val generalSettings: Flow<GeneralSettings> = context.dataStore.data.map { prefs ->
         val defaults = GeneralSettings()
         GeneralSettings(
-            enablePipelineStats = prefs[ENABLE_PIPELINE_STATS] ?: defaults.enablePipelineStats
+            enableDebugStats = prefs[ENABLE_DEBUG_STATS] ?: defaults.enableDebugStats,
+            showPipelineStats = prefs[SHOW_PIPELINE_STATS] ?: defaults.showPipelineStats,
+            showSystemStats = prefs[SHOW_SYSTEM_STATS] ?: defaults.showSystemStats
         )
     }
 
@@ -207,7 +213,9 @@ class SettingsDataStore(private val context: Context) {
 
     suspend fun updateGeneralSettings(settings: GeneralSettings) {
         context.dataStore.edit { prefs ->
-            prefs[ENABLE_PIPELINE_STATS] = settings.enablePipelineStats
+            prefs[ENABLE_DEBUG_STATS] = settings.enableDebugStats
+            prefs[SHOW_PIPELINE_STATS] = settings.showPipelineStats
+            prefs[SHOW_SYSTEM_STATS] = settings.showSystemStats
         }
     }
 
