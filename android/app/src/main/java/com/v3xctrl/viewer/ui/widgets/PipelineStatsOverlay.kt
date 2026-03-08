@@ -1,10 +1,8 @@
 package com.v3xctrl.viewer.ui.widgets
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
@@ -21,6 +19,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.os.Process
+import android.os.SystemClock
 import com.v3xctrl.viewer.GstViewer
 import kotlinx.coroutines.delay
 
@@ -36,13 +36,27 @@ fun PipelineStatsOverlay(
     var decoderName by remember { mutableStateOf("") }
     var decodeQueueLevel by remember { mutableStateOf(0) }
     var renderQueueLevel by remember { mutableStateOf(0) }
+    var cpuUsage by remember { mutableStateOf<Int?>(null) }
 
     LaunchedEffect(Unit) {
+        var previousCpuTime = Process.getElapsedCpuTime()
+        var previousWallTime = SystemClock.elapsedRealtime()
         while (true) {
             stats = GstViewer.getPipelineStats()
             decoderName = GstViewer.decoderName
             decodeQueueLevel = GstViewer.decodeQueueLevel
             renderQueueLevel = GstViewer.renderQueueLevel
+
+            val currentCpuTime = Process.getElapsedCpuTime()
+            val currentWallTime = SystemClock.elapsedRealtime()
+            val wallDelta = currentWallTime - previousWallTime
+            if (wallDelta > 0) {
+                val cpuDelta = currentCpuTime - previousCpuTime
+                cpuUsage = (cpuDelta * 100 / wallDelta).toInt()
+            }
+            previousCpuTime = currentCpuTime
+            previousWallTime = currentWallTime
+
             delay(1000)
         }
     }
@@ -52,7 +66,7 @@ fun PipelineStatsOverlay(
         padding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
     ) {
         Column {
-            // Buffer counts table: src | jbuf | depay | dec
+            // Buffer counts table
             Row {
                 StatsColumn("src", stats.udpsrc, modifier = Modifier.weight(1f))
                 StatsColumn("jbuf", stats.jitterbuffer, modifier = Modifier.weight(1f))
@@ -73,6 +87,9 @@ fun PipelineStatsOverlay(
                 if (renderQueueLevel >= 1) Color.Red else ValueColor)
             if (decoderName.isNotEmpty()) {
                 StatsRow("decoder", decoderName, ValueColor)
+            }
+            cpuUsage?.let { cpu ->
+                StatsRow("cpu", "$cpu%", if (cpu > 80) Color.Red else ValueColor)
             }
         }
     }
