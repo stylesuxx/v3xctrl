@@ -135,7 +135,7 @@ fun ViewerScreen(
                 val dtMs = timestamps[head] - timestamps[oldest]
                 val dFrames = frameCounts[head] - frameCounts[oldest]
                 if (dtMs > 0) {
-                    fps = (dFrames * 1000L / dtMs).toInt()
+                    fps = ((dFrames * 1000L + dtMs - 1) / dtMs).toInt()
                 }
             }
 
