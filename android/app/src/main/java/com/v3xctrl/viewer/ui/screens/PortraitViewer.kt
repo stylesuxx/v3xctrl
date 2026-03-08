@@ -129,15 +129,6 @@ fun PortraitViewer(
                 modifier = Modifier.fillMaxSize()
             )
 
-            // Pipeline stats overlay (top-center, debug only)
-            if (showPipelineStats) {
-                PipelineStatsOverlay(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .offset(y = 4.dp)
-                )
-            }
-
             // Telemetry widgets (hidden when control signal is lost)
             if (!viewerState.isControlTimedOut) {
                 // Frame drop indicator (top-center, always shown in portrait)
@@ -288,6 +279,13 @@ fun PortraitViewer(
                         }
                     },
                     onDisconnect = onBack
+                )
+            }
+
+            // Pipeline stats (below controls, debug only)
+            if (showPipelineStats) {
+                PipelineStatsOverlay(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
         }

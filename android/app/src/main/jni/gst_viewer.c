@@ -792,3 +792,13 @@ Java_com_v3xctrl_viewer_GstViewer_nativeGetDecodeQueueLevel(JNIEnv *env, jclass 
     g_object_get(gst_data.decode_queue, "current-level-buffers", &level, NULL);
     return (jint)level;
 }
+
+JNIEXPORT jint JNICALL
+Java_com_v3xctrl_viewer_GstViewer_nativeGetRenderQueueLevel(JNIEnv *env, jclass clazz) {
+    if (!gst_data.render_queue) {
+        return 0;
+    }
+    guint level = 0;
+    g_object_get(gst_data.render_queue, "current-level-buffers", &level, NULL);
+    return (jint)level;
+}

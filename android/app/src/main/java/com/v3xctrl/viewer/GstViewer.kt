@@ -19,6 +19,7 @@ object GstViewer {
     private external fun nativeSetStatsEnabled(enabled: Boolean)
     private external fun nativeGetPipelineStats(): String
     private external fun nativeGetDecodeQueueLevel(): Int
+    private external fun nativeGetRenderQueueLevel(): Int
     private external fun nativeGetDecoderName(): String
 
     fun init() {
@@ -74,6 +75,7 @@ object GstViewer {
     }
 
     val decodeQueueLevel: Int get() = nativeGetDecodeQueueLevel()
+    val renderQueueLevel: Int get() = nativeGetRenderQueueLevel()
     val decoderName: String get() = nativeGetDecoderName()
 
     fun finalize() {
