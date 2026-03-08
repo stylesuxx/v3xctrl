@@ -198,6 +198,7 @@ class UDPRelayServer(threading.Thread):
                                 'address': f"{addr[0]}:{addr[1]}",
                                 'role': role.name,
                                 'port_type': port_type.name,
+                                'transport': peer_entry.transport.name,
                                 'timeout_in_sec': timeout_in_sec,
                             })
 

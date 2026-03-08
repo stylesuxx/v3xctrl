@@ -52,6 +52,12 @@
     return Math.floor(difference / 86400) + "d ago";
   }
 
+  function formatTimeout(seconds) {
+    var minutes = Math.floor(seconds / 60);
+    var remaining = seconds % 60;
+    return String(minutes).padStart(2, "0") + ":" + String(remaining).padStart(2, "0");
+  }
+
   function timeoutClass(seconds) {
     if (seconds > 300) {
       return "timeout-high";
@@ -149,7 +155,6 @@
             "<tr>" +
             "<td><code>" + escapeHtml(port) + "</code></td>" +
             '<td title="' + escapeHtml(sessionId) + '"><code>' + escapeHtml(sessionId.substring(0, 8)) + "</code></td>" +
-            "<td></td>" +
             "<td>" + escapeHtml(formatRelativeTime(session.created_at)) + "</td>" +
             '<td colspan="5" class="text-muted">No active mappings</td>' +
             "</tr>";
@@ -187,11 +192,6 @@
               "</code></td>";
           }
 
-          if (group.isFirst) {
-            const spectatorId = entry.spectator_index !== undefined ? String(entry.spectator_index) : "";
-            html += '<td rowspan="' + group.size + '">' + escapeHtml(spectatorId) + "</td>";
-          }
-
           if (index === 0) {
             html +=
               '<td rowspan="' + entries.length + '">' +
@@ -207,7 +207,7 @@
             "<td><code>" + formatAddress(entry.address) + "</code></td>" +
             "<td>" + escapeHtml((entry.transport || "udp").toUpperCase()) + "</td>" +
             '<td class="' + timeoutClass(entry.timeout_in_sec) + '">' +
-            entry.timeout_in_sec + "s</td>";
+            formatTimeout(entry.timeout_in_sec) + "</td>";
 
           html += "</tr>";
         }
@@ -215,7 +215,7 @@
     }
 
     if (!html) {
-      html = '<tr><td colspan="9" class="text-center text-muted">No active sessions</td></tr>';
+      html = '<tr><td colspan="8" class="text-center text-muted">No active sessions</td></tr>';
     }
 
     sessionsBody.innerHTML = html;
