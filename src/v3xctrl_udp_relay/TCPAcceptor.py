@@ -137,7 +137,10 @@ class TCPAcceptor:
                 if data is None:
                     break
 
-                self.relay.forward_packet(data, addr)
+                deferred_tcp = self.relay.forward_packet(data, addr)
+                if deferred_tcp:
+                    for tcp_target in deferred_tcp:
+                        tcp_target.send(data)
 
         except OSError:
             pass

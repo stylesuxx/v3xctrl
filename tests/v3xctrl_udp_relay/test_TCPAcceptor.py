@@ -28,7 +28,7 @@ class TestTCPAcceptor(unittest.TestCase):
             target.send(peer_info.to_bytes())
 
         self.relay.register_tcp_peer.side_effect = fake_register
-        self.relay.forward_packet.return_value = True
+        self.relay.forward_packet.return_value = []
 
         self.acceptor = TCPAcceptor(self.port, self.relay, self.stop_event)
         self.acceptor.start()

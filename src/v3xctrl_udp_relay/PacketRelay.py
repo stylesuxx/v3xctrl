@@ -234,7 +234,13 @@ class PacketRelay:
             if not mapping:
                 return None
 
-            mapping.timestamp = time.time()
+            now = time.time()
+            mapping.timestamp = now
+
+            for target_addr in mapping.targets:
+                target_mapping = self.mappings.get(target_addr)
+                if target_mapping:
+                    target_mapping.timestamp = now
 
         deferred_tcp: list[TcpTarget] = []
         for target in mapping.targets:
