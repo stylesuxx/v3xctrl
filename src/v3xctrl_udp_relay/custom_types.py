@@ -107,6 +107,13 @@ class Session:
 
         return None
 
+    def find_spectator_by_address(self, addr: Address) -> SpectatorEntry | None:
+        for spectator in self.spectators:
+            if addr in spectator.get_addresses():
+                return spectator
+
+        return None
+
     def is_role_ready(self, role: Role) -> bool:
         for port_type in PortType:
             if port_type not in self.roles[role]:

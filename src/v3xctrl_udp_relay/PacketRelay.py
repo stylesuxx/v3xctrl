@@ -168,10 +168,9 @@ class PacketRelay:
                     with self.mapping_lock:
                         self._remove_spectator_addr_from_mappings(replaced_addr, session)
 
-                for spectator in session.spectators:
-                    if addr in spectator.get_addresses():
-                        self.spectator_by_address[addr] = spectator
-                        break
+                spectator = session.find_spectator_by_address(addr)
+                if spectator:
+                    self.spectator_by_address[addr] = spectator
 
                 if session.is_ready():
                     self._setup_spectator_mappings(session, addr)
@@ -456,13 +455,7 @@ class PacketRelay:
         Setup mappings for a spectator to receive streamer data.
         Spectators only receive from streamer, they don't send anything back.
         """
-        # Find the spectator entry by address
-        spectator_entry = None
-        for spectator in session.spectators:
-            if spectator_addr in spectator.get_addresses():
-                spectator_entry = spectator
-                break
-
+        spectator_entry = session.find_spectator_by_address(spectator_addr)
         if not spectator_entry or not spectator_entry.is_complete():
             return
 
