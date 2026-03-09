@@ -530,5 +530,292 @@ class TestSessionLifecycleUDPStreamerTCPViewer(_SessionLifecycleBase, unittest.T
     viewer_transport = _TransportMode.TCP
 
 
+# ---------------------------------------------------------------------------
+# Protocol switching: peer reconnects using a different transport
+# ---------------------------------------------------------------------------
+
+class _ProtocolSwitchBase:
+    """Helpers for protocol switch tests. Mixed with unittest.TestCase."""
+
+    TIMEOUT = 450
+
+    def setUp(self):
+        self.store = Mock(spec=SessionStore)
+        self.store.exists.return_value = True
+        self.sock = Mock(spec=socket.socket)
+        self.relay = PacketRelay(
+            store=self.store,
+            sock=self.sock,
+            address=("1.2.3.4", 8888),
+            timeout=self.TIMEOUT,
+        )
+        self.tcp_targets: dict[tuple, Mock] = {}
+
+        self.streamer_video = ("10.0.0.1", 50000)
+        self.streamer_control = ("10.0.0.1", 50001)
+        self.viewer_video = ("10.0.0.2", 60000)
+        self.viewer_control = ("10.0.0.2", 60001)
+
+    def _make_tcp_target(self) -> Mock:
+        target = Mock(spec=TcpTarget)
+        target.is_alive.return_value = True
+        target.send.return_value = True
+        return target
+
+    def _register(self, role: str, port_type: str, addr: tuple,
+                  transport: _TransportMode) -> None:
+        msg = PeerAnnouncement(r=role, i="sid1", p=port_type)
+        if transport == _TransportMode.TCP:
+            target = self._make_tcp_target()
+            self.tcp_targets[addr] = target
+            self.relay.register_tcp_peer(msg, addr, target)
+        else:
+            self.relay.register_peer(msg, addr)
+
+    def _register_role(self, role: str, video: tuple, control: tuple,
+                       transport: _TransportMode) -> None:
+        self._register(role, "video", video, transport)
+        self._register(role, "control", control, transport)
+
+
+class TestViewerProtocolSwitch(_ProtocolSwitchBase, unittest.TestCase):
+
+    def test_viewer_switches_udp_to_tcp(self):
+        """Viewer initially UDP, reconnects via TCP - session stays ready."""
+        self._register_role("streamer", self.streamer_video,
+                            self.streamer_control, _TransportMode.UDP)
+        self._register_role("viewer", self.viewer_video,
+                            self.viewer_control, _TransportMode.UDP)
+
+        session = self.relay.sessions["sid1"]
+        self.assertTrue(session.is_ready())
+
+        # Viewer reconnects via TCP
+        self._register_role("viewer", self.viewer_video,
+                            self.viewer_control, _TransportMode.TCP)
+
+        self.assertTrue(session.is_ready())
+        self.assertIn(self.viewer_video, self.relay.mappings)
+
+        # Forward from streamer should produce deferred TCP send
+        deferred = self.relay.forward_packet(b"video", self.streamer_video)
+        self.assertIsNotNone(deferred)
+        self.assertEqual(len(deferred), 1)
+
+    def test_viewer_switches_tcp_to_udp(self):
+        """Viewer initially TCP, reconnects via UDP with new ports."""
+        self._register_role("streamer", self.streamer_video,
+                            self.streamer_control, _TransportMode.UDP)
+        self._register_role("viewer", self.viewer_video,
+                            self.viewer_control, _TransportMode.TCP)
+
+        session = self.relay.sessions["sid1"]
+        self.assertTrue(session.is_ready())
+
+        for addr in (self.viewer_video, self.viewer_control):
+            self.tcp_targets[addr].is_alive.return_value = False
+
+        # Viewer reconnects via UDP (new socket -> new ports)
+        new_video = ("10.0.0.2", 60100)
+        new_control = ("10.0.0.2", 60101)
+        self._register_role("viewer", new_video, new_control,
+                            _TransportMode.UDP)
+
+        self.assertTrue(session.is_ready())
+        self.assertIn(new_video, self.relay.mappings)
+
+        # Forward from streamer should send inline via UDP (no deferred)
+        self.sock.sendto.reset_mock()
+        deferred = self.relay.forward_packet(b"video", self.streamer_video)
+        self.assertIsNotNone(deferred)
+        self.assertEqual(len(deferred), 0)
+        self.sock.sendto.assert_called_with(b"video", new_video)
+
+
+class TestStreamerProtocolSwitch(_ProtocolSwitchBase, unittest.TestCase):
+
+    def test_streamer_switches_udp_to_tcp(self):
+        """Streamer initially UDP, reconnects via TCP - session stays ready."""
+        self._register_role("streamer", self.streamer_video,
+                            self.streamer_control, _TransportMode.UDP)
+        self._register_role("viewer", self.viewer_video,
+                            self.viewer_control, _TransportMode.UDP)
+
+        session = self.relay.sessions["sid1"]
+        self.assertTrue(session.is_ready())
+
+        # Streamer reconnects via TCP
+        self._register_role("streamer", self.streamer_video,
+                            self.streamer_control, _TransportMode.TCP)
+
+        self.assertTrue(session.is_ready())
+        self.assertIn(self.streamer_video, self.relay.mappings)
+
+        # Forward from viewer to streamer should produce deferred TCP send
+        deferred = self.relay.forward_packet(b"control", self.viewer_control)
+        self.assertIsNotNone(deferred)
+        self.assertEqual(len(deferred), 1)
+
+    def test_streamer_switches_tcp_to_udp(self):
+        """Streamer initially TCP, reconnects via UDP with new ports."""
+        self._register_role("streamer", self.streamer_video,
+                            self.streamer_control, _TransportMode.TCP)
+        self._register_role("viewer", self.viewer_video,
+                            self.viewer_control, _TransportMode.UDP)
+
+        session = self.relay.sessions["sid1"]
+        self.assertTrue(session.is_ready())
+
+        for addr in (self.streamer_video, self.streamer_control):
+            self.tcp_targets[addr].is_alive.return_value = False
+
+        # Streamer reconnects via UDP (new socket -> new ports)
+        new_video = ("10.0.0.1", 50100)
+        new_control = ("10.0.0.1", 50101)
+        self._register_role("streamer", new_video, new_control,
+                            _TransportMode.UDP)
+
+        self.assertTrue(session.is_ready())
+
+        # Forward from viewer to streamer should go inline via UDP
+        self.sock.sendto.reset_mock()
+        deferred = self.relay.forward_packet(b"control", self.viewer_control)
+        self.assertIsNotNone(deferred)
+        self.assertEqual(len(deferred), 0)
+        self.sock.sendto.assert_called_with(b"control", new_control)
+
+
+# ---------------------------------------------------------------------------
+# Spectator: all transport combinations for spectator + streamer
+# ---------------------------------------------------------------------------
+
+class _SpectatorBase:
+    """Helpers for spectator tests. Mixed with unittest.TestCase."""
+
+    TIMEOUT = 450
+
+    def setUp(self):
+        self.store = Mock(spec=SessionStore)
+        self.store.exists.return_value = True
+        self.store.get_session_id_from_spectator_id.return_value = "sid1"
+        self.sock = Mock(spec=socket.socket)
+        self.relay = PacketRelay(
+            store=self.store,
+            sock=self.sock,
+            address=("1.2.3.4", 8888),
+            timeout=self.TIMEOUT,
+        )
+        self.tcp_targets: dict[tuple, Mock] = {}
+
+        self.streamer_video = ("10.0.0.1", 50000)
+        self.streamer_control = ("10.0.0.1", 50001)
+        self.viewer_video = ("10.0.0.2", 60000)
+        self.viewer_control = ("10.0.0.2", 60001)
+        self.spectator_video = ("10.0.0.3", 70000)
+        self.spectator_control = ("10.0.0.3", 70001)
+
+    def _make_tcp_target(self) -> Mock:
+        target = Mock(spec=TcpTarget)
+        target.is_alive.return_value = True
+        target.send.return_value = True
+        return target
+
+    def _register(self, role: str, port_type: str, addr: tuple,
+                  transport: _TransportMode) -> None:
+        msg = PeerAnnouncement(r=role, i="sid1", p=port_type)
+        if transport == _TransportMode.TCP:
+            target = self._make_tcp_target()
+            self.tcp_targets[addr] = target
+            self.relay.register_tcp_peer(msg, addr, target)
+        else:
+            self.relay.register_peer(msg, addr)
+
+    def _register_role(self, role: str, video: tuple, control: tuple,
+                       transport: _TransportMode) -> None:
+        self._register(role, "video", video, transport)
+        self._register(role, "control", control, transport)
+
+    def _establish_session(self, streamer_transport: _TransportMode,
+                           viewer_transport: _TransportMode) -> None:
+        self._register_role("streamer", self.streamer_video,
+                            self.streamer_control, streamer_transport)
+        self._register_role("viewer", self.viewer_video,
+                            self.viewer_control, viewer_transport)
+
+    def _register_spectator(self, transport: _TransportMode) -> None:
+        self._register("spectator", "video", self.spectator_video, transport)
+        self._register("spectator", "control", self.spectator_control, transport)
+
+    def _assert_spectator_in_streamer_targets(self) -> None:
+        with self.relay.mapping_lock:
+            video_targets = self.relay.mappings[self.streamer_video].targets
+            control_targets = self.relay.mappings[self.streamer_control].targets
+        self.assertIn(self.spectator_video, video_targets)
+        self.assertIn(self.spectator_control, control_targets)
+
+    def _assert_spectator_receives_data(self,
+                                        spectator_transport: _TransportMode) -> None:
+        self.sock.sendto.reset_mock()
+        for addr in list(self.tcp_targets.values()):
+            addr.send.reset_mock()
+
+        deferred = self.relay.forward_packet(b"video_frame", self.streamer_video)
+        self.assertIsNotNone(deferred)
+        if deferred:
+            for tcp_target in deferred:
+                tcp_target.send(b"video_frame")
+
+        if spectator_transport == _TransportMode.UDP:
+            send_addrs = [c[0][1] for c in self.sock.sendto.call_args_list]
+            self.assertIn(self.spectator_video, send_addrs)
+        else:
+            spectator_target = self.tcp_targets[self.spectator_video]
+            spectator_target.send.assert_called_with(b"video_frame")
+
+
+class TestSpectatorUDPWithStreamerUDP(_SpectatorBase, unittest.TestCase):
+
+    def test_spectator_joins_and_receives(self):
+        """UDP spectator joins session with UDP streamer."""
+        self._establish_session(_TransportMode.UDP, _TransportMode.UDP)
+        self._register_spectator(_TransportMode.UDP)
+
+        self._assert_spectator_in_streamer_targets()
+        self._assert_spectator_receives_data(_TransportMode.UDP)
+
+
+class TestSpectatorTCPWithStreamerUDP(_SpectatorBase, unittest.TestCase):
+
+    def test_spectator_joins_and_receives(self):
+        """TCP spectator joins session with UDP streamer."""
+        self._establish_session(_TransportMode.UDP, _TransportMode.UDP)
+        self._register_spectator(_TransportMode.TCP)
+
+        self._assert_spectator_in_streamer_targets()
+        self._assert_spectator_receives_data(_TransportMode.TCP)
+
+
+class TestSpectatorUDPWithStreamerTCP(_SpectatorBase, unittest.TestCase):
+
+    def test_spectator_joins_and_receives(self):
+        """UDP spectator joins session with TCP streamer."""
+        self._establish_session(_TransportMode.TCP, _TransportMode.UDP)
+        self._register_spectator(_TransportMode.UDP)
+
+        self._assert_spectator_in_streamer_targets()
+        self._assert_spectator_receives_data(_TransportMode.UDP)
+
+
+class TestSpectatorTCPWithStreamerTCP(_SpectatorBase, unittest.TestCase):
+
+    def test_spectator_joins_and_receives(self):
+        """TCP spectator joins session with TCP streamer."""
+        self._establish_session(_TransportMode.TCP, _TransportMode.UDP)
+        self._register_spectator(_TransportMode.TCP)
+
+        self._assert_spectator_in_streamer_targets()
+        self._assert_spectator_receives_data(_TransportMode.TCP)
+
+
 if __name__ == "__main__":
     unittest.main()

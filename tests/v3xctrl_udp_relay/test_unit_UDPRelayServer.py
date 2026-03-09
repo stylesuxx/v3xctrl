@@ -5,7 +5,12 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from v3xctrl_control.message import PeerAnnouncement
+from v3xctrl_control.message import (
+    ConnectionTest,
+    ConnectionTestAck,
+    Message,
+    PeerAnnouncement,
+)
 from v3xctrl_udp_relay.custom_types import Role, PortType
 from v3xctrl_udp_relay.UDPRelayServer import UDPRelayServer
 
@@ -35,14 +40,15 @@ class TestUDPRelayServerUnitTests(unittest.TestCase):
             cur.execute('''
                 CREATE TABLE IF NOT EXISTS allowed_sessions (
                     id TEXT PRIMARY KEY,
+                    spectator_id TEXT NOT NULL UNIQUE,
                     discord_user_id TEXT NOT NULL UNIQUE,
                     discord_username TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
             cur.execute(
-                "INSERT INTO allowed_sessions (id, discord_user_id, discord_username) VALUES (?, ?, ?)",
-                ("test_session_1", "user123", "testuser")
+                "INSERT INTO allowed_sessions (id, spectator_id, discord_user_id, discord_username) VALUES (?, ?, ?, ?)",
+                ("test_session_1", "test_spectator_1", "user123", "testuser")
             )
             conn.commit()
 
@@ -412,6 +418,88 @@ class TestUDPRelayServerUnitTests(unittest.TestCase):
                 server._handle_slow_packet(peer_announcement_data, client_addr)
 
                 mock_heartbeat.assert_called_once_with(client_addr)
+
+    # -- Connection test (relay test button) --
+
+    def _create_server_with_mock_socket(self, mock_socket_class):
+        mock_udp_socket = Mock()
+        mock_command_socket = Mock()
+
+        def socket_side_effect(family, sock_type):
+            if family == socket.AF_INET and sock_type == socket.SOCK_DGRAM:
+                return mock_udp_socket
+            elif family == socket.AF_UNIX and sock_type == socket.SOCK_STREAM:
+                return mock_command_socket
+            return Mock()
+
+        mock_socket_class.side_effect = socket_side_effect
+
+        server = UDPRelayServer(
+            self.server_ip,
+            self.server_port,
+            self.db_path,
+        )
+        return server, mock_udp_socket
+
+    def _parse_connection_test_ack(self, mock_udp_socket) -> ConnectionTestAck:
+        ack_bytes = mock_udp_socket.sendto.call_args[0][0]
+        msg = Message.from_bytes(ack_bytes)
+        self.assertIsInstance(msg, ConnectionTestAck)
+        return msg
+
+    @patch('socket.socket')
+    def test_connection_test_valid_session_id(self, mock_socket_class):
+        """ConnectionTest with valid session ID returns ack with valid=True."""
+        server, mock_udp_socket = self._create_server_with_mock_socket(mock_socket_class)
+
+        data = ConnectionTest(i="test_session_1", s=False).to_bytes()
+        addr = ("192.168.1.100", 54321)
+
+        server._handle_connection_test(data, addr)
+
+        ack = self._parse_connection_test_ack(mock_udp_socket)
+        self.assertTrue(ack.valid)
+        self.assertEqual(mock_udp_socket.sendto.call_args[0][1], addr)
+
+    @patch('socket.socket')
+    def test_connection_test_invalid_session_id(self, mock_socket_class):
+        """ConnectionTest with invalid session ID returns ack with valid=False."""
+        server, mock_udp_socket = self._create_server_with_mock_socket(mock_socket_class)
+
+        data = ConnectionTest(i="nonexistent_session", s=False).to_bytes()
+        addr = ("192.168.1.100", 54321)
+
+        server._handle_connection_test(data, addr)
+
+        ack = self._parse_connection_test_ack(mock_udp_socket)
+        self.assertFalse(ack.valid)
+
+    @patch('socket.socket')
+    def test_connection_test_valid_spectator_id(self, mock_socket_class):
+        """ConnectionTest with valid spectator ID returns ack with valid=True."""
+        server, mock_udp_socket = self._create_server_with_mock_socket(mock_socket_class)
+
+        data = ConnectionTest(i="test_spectator_1", s=True).to_bytes()
+        addr = ("192.168.1.100", 54321)
+
+        server._handle_connection_test(data, addr)
+
+        ack = self._parse_connection_test_ack(mock_udp_socket)
+        self.assertTrue(ack.valid)
+
+    @patch('socket.socket')
+    def test_connection_test_invalid_spectator_id(self, mock_socket_class):
+        """ConnectionTest with invalid spectator ID returns ack with valid=False."""
+        server, mock_udp_socket = self._create_server_with_mock_socket(mock_socket_class)
+
+        data = ConnectionTest(i="nonexistent_spectator", s=True).to_bytes()
+        addr = ("192.168.1.100", 54321)
+
+        server._handle_connection_test(data, addr)
+
+        ack = self._parse_connection_test_ack(mock_udp_socket)
+        self.assertFalse(ack.valid)
+
 
 if __name__ == '__main__':
     unittest.main()
