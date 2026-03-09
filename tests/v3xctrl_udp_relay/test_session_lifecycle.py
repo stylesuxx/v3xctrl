@@ -871,6 +871,66 @@ class TestSpectatorJoinsBeforeSessionReady(_SpectatorBase, unittest.TestCase):
         self._assert_spectator_receives_data(_TransportMode.UDP)
 
 
+class TestMultipleSpectators(_SpectatorBase, unittest.TestCase):
+    """Test that multiple spectators from different IPs coexist correctly."""
+
+    def setUp(self):
+        super().setUp()
+        self.spectator2_video = ("10.0.0.4", 80000)
+        self.spectator2_control = ("10.0.0.4", 80001)
+
+    def _register_spectator2(self, transport: _TransportMode) -> None:
+        self._register("spectator", "video", self.spectator2_video, transport)
+        self._register("spectator", "control", self.spectator2_control, transport)
+
+    def test_two_spectators_both_receive_streamer_data(self):
+        """Two spectators from different IPs both receive streamer data."""
+        self._establish_session(_TransportMode.UDP, _TransportMode.UDP)
+        self._register_spectator(_TransportMode.UDP)
+        self._register_spectator2(_TransportMode.UDP)
+
+        with self.relay.mapping_lock:
+            video_targets = self.relay.mappings[self.streamer_video].targets
+            control_targets = self.relay.mappings[self.streamer_control].targets
+
+        self.assertIn(self.spectator_video, video_targets)
+        self.assertIn(self.spectator2_video, video_targets)
+        self.assertIn(self.spectator_control, control_targets)
+        self.assertIn(self.spectator2_control, control_targets)
+
+        # Forward data and verify both spectators receive it
+        self.sock.sendto.reset_mock()
+        self.relay.forward_packet(b"video_frame", self.streamer_video)
+
+        sent_addrs = {call[0][1] for call in self.sock.sendto.call_args_list}
+        self.assertIn(self.spectator_video, sent_addrs)
+        self.assertIn(self.spectator2_video, sent_addrs)
+
+    def test_removing_one_spectator_preserves_other(self):
+        """Removing one spectator via timeout preserves the other's mappings."""
+        self._establish_session(_TransportMode.UDP, _TransportMode.UDP)
+        self._register_spectator(_TransportMode.UDP)
+        self._register_spectator2(_TransportMode.UDP)
+
+        # Expire the first spectator's heartbeat
+        session = self.relay.sessions["sid1"]
+        session.spectators[0].last_announcement_at = time.time() - self.relay.SPECTATOR_TIMEOUT - 1
+
+        self.relay.cleanup_expired_mappings()
+
+        with self.relay.mapping_lock:
+            video_targets = self.relay.mappings[self.streamer_video].targets
+            control_targets = self.relay.mappings[self.streamer_control].targets
+
+        # First spectator should be removed
+        self.assertNotIn(self.spectator_video, video_targets)
+        self.assertNotIn(self.spectator_control, control_targets)
+
+        # Second spectator should still be present
+        self.assertIn(self.spectator2_video, video_targets)
+        self.assertIn(self.spectator2_control, control_targets)
+
+
 class TestSpectatorTransportSwitch(_SpectatorBase, unittest.TestCase):
     """Test spectator switching between UDP and TCP transport."""
 

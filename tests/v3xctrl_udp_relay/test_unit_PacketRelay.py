@@ -3,6 +3,7 @@ import time
 import unittest
 from unittest.mock import Mock, patch
 
+from v3xctrl_udp_relay.ForwardTarget import TcpTarget
 from v3xctrl_udp_relay.PacketRelay import Mapping, PacketRelay
 from v3xctrl_udp_relay.SessionStore import SessionStore
 from v3xctrl_udp_relay.custom_types import Role, PortType, Session
@@ -358,6 +359,94 @@ class TestPacketRelay(unittest.TestCase):
     def test_spectator_heartbeat_unknown_address_noop(self) -> None:
         unknown_addr = ("192.168.1.99", 9999)
         self.relay.update_spectator_heartbeat(unknown_addr)  # Should not raise
+
+
+class TestForwardPacket(unittest.TestCase):
+    def setUp(self) -> None:
+        self.mock_store = Mock(spec=SessionStore)
+        self.mock_sock = Mock(spec=socket.socket)
+        self.address = ("127.0.0.1", 12345)
+        self.timeout = 5.0
+        self.relay = PacketRelay(
+            store=self.mock_store,
+            sock=self.mock_sock,
+            address=self.address,
+            timeout=self.timeout
+        )
+
+        self.source_addr = ("192.168.1.10", 5000)
+        self.target_udp_1 = ("192.168.1.20", 6000)
+        self.target_udp_2 = ("192.168.1.30", 7000)
+        self.target_tcp = ("192.168.1.40", 8000)
+
+    def test_returns_none_for_unknown_source(self) -> None:
+        result = self.relay.forward_packet(b"data", ("192.168.1.99", 9999))
+        self.assertIsNone(result)
+
+    def test_updates_source_mapping_timestamp(self) -> None:
+        old_time = time.time() - 100
+        with self.relay.mapping_lock:
+            self.relay.mappings[self.source_addr] = Mapping({self.target_udp_1}, old_time)
+
+        self.relay.forward_packet(b"data", self.source_addr)
+
+        with self.relay.mapping_lock:
+            new_time = self.relay.mappings[self.source_addr].timestamp
+        self.assertGreater(new_time, old_time + 50)
+
+    def test_does_not_update_target_mapping_timestamp(self) -> None:
+        old_time = time.time() - 100
+        with self.relay.mapping_lock:
+            self.relay.mappings[self.source_addr] = Mapping({self.target_udp_1}, time.time())
+            self.relay.mappings[self.target_udp_1] = Mapping({self.source_addr}, old_time)
+
+        self.relay.forward_packet(b"data", self.source_addr)
+
+        with self.relay.mapping_lock:
+            target_time = self.relay.mappings[self.target_udp_1].timestamp
+        self.assertAlmostEqual(target_time, old_time, delta=1.0)
+
+    def test_sends_to_all_udp_targets_inline(self) -> None:
+        with self.relay.mapping_lock:
+            self.relay.mappings[self.source_addr] = Mapping(
+                {self.target_udp_1, self.target_udp_2}, time.time()
+            )
+
+        self.relay.forward_packet(b"data", self.source_addr)
+
+        sent_addrs = {call[0][1] for call in self.mock_sock.sendto.call_args_list}
+        self.assertIn(self.target_udp_1, sent_addrs)
+        self.assertIn(self.target_udp_2, sent_addrs)
+
+    def test_skips_dead_tcp_target_no_udp_fallback(self) -> None:
+        dead_target = Mock(spec=TcpTarget)
+        dead_target.is_alive.return_value = False
+        with self.relay.mapping_lock:
+            self.relay.tcp_targets[self.target_tcp] = dead_target
+            self.relay.mappings[self.source_addr] = Mapping({self.target_tcp}, time.time())
+
+        deferred = self.relay.forward_packet(b"data", self.source_addr)
+
+        self.assertIsNotNone(deferred)
+        self.assertEqual(len(deferred), 0)
+        # Must not fall back to UDP for a dead TCP target
+        for call_args in self.mock_sock.sendto.call_args_list:
+            self.assertNotEqual(call_args[0][1], self.target_tcp)
+
+    def test_returns_alive_tcp_targets_as_deferred(self) -> None:
+        alive_target = Mock(spec=TcpTarget)
+        alive_target.is_alive.return_value = True
+        with self.relay.mapping_lock:
+            self.relay.tcp_targets[self.target_tcp] = alive_target
+            self.relay.mappings[self.source_addr] = Mapping({self.target_tcp}, time.time())
+
+        deferred = self.relay.forward_packet(b"data", self.source_addr)
+
+        self.assertIsNotNone(deferred)
+        self.assertEqual(len(deferred), 1)
+        self.assertIs(deferred[0], alive_target)
+        # TCP target send is deferred, not called inline
+        alive_target.send.assert_not_called()
 
 
 if __name__ == "__main__":
