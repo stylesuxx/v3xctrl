@@ -1,8 +1,10 @@
 import errno
 import unittest
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 
 from v3xctrl_helper.exceptions import PeerRegistrationError
+from v3xctrl_tcp import Transport
+from v3xctrl_udp_relay.Role import Role
 from v3xctrl_ui.network.NetworkSetup import (
     NetworkSetup,
     RelaySetupResult,
@@ -430,6 +432,106 @@ class TestNetworkSetup(unittest.TestCase):
 
         # Verify has_errors is True
         self.assertTrue(result.has_errors)
+
+
+class TestTcpRelayHandshakeRole(unittest.TestCase):
+    """Test that TCP relay handshake uses the correct role."""
+
+    def setUp(self):
+        self.peer_patcher = patch("v3xctrl_ui.network.NetworkSetup.Peer")
+        self.mock_peer_cls = self.peer_patcher.start()
+
+        self.server_patcher = patch("v3xctrl_ui.network.NetworkSetup.Server")
+        self.mock_server_cls = self.server_patcher.start()
+
+        self.video_receiver_patcher = patch("v3xctrl_ui.network.NetworkSetup.ReceiverPyAV")
+        self.mock_video_receiver_cls = self.video_receiver_patcher.start()
+        self.mock_video_receiver_cls.return_value = MagicMock()
+
+        self.socket_patcher = patch("v3xctrl_ui.network.NetworkSetup.socket")
+        self.mock_socket = self.socket_patcher.start()
+
+        self.tunnel_patcher = patch("v3xctrl_ui.network.NetworkSetup.TcpTunnel")
+        self.mock_tunnel_cls = self.tunnel_patcher.start()
+        self.mock_tunnel_cls.return_value = MagicMock()
+
+        self.announcement_patcher = patch("v3xctrl_ui.network.NetworkSetup.PeerAnnouncement")
+        self.mock_announcement_cls = self.announcement_patcher.start()
+        self.mock_announcement_cls.return_value.to_bytes.return_value = b"handshake"
+
+    def tearDown(self):
+        self.peer_patcher.stop()
+        self.server_patcher.stop()
+        self.video_receiver_patcher.stop()
+        self.socket_patcher.stop()
+        self.tunnel_patcher.stop()
+        self.announcement_patcher.stop()
+
+    def _make_settings(self):
+        settings = MagicMock()
+        settings.get.side_effect = lambda key, default=None: {
+            "ports": {"video": 5000, "control": 6000},
+            "transport": Transport.TCP,
+            "udp_packet_ttl": 100,
+            "video": {"render_ratio": 0},
+        }.get(key, default)
+        return settings
+
+    def test_tcp_viewer_sends_viewer_role(self):
+        setup = NetworkSetup(self._make_settings())
+
+        relay_config = {
+            'server': 'relay.example.com',
+            'port': 8080,
+            'id': 'session123',
+            'spectator_mode': False,
+        }
+        handlers = {"messages": [], "states": []}
+
+        setup.orchestrate_setup(relay_config, handlers)
+
+        # Verify PeerAnnouncement was called with role="viewer" for both ports
+        calls = self.mock_announcement_cls.call_args_list
+        self.assertEqual(len(calls), 2)
+        for c in calls:
+            self.assertEqual(c.kwargs.get("r", c.args[0] if c.args else None), Role.VIEWER.value)
+
+    def test_tcp_spectator_sends_spectator_role(self):
+        setup = NetworkSetup(self._make_settings())
+
+        relay_config = {
+            'server': 'relay.example.com',
+            'port': 8080,
+            'id': 'spectator123',
+            'spectator_mode': True,
+        }
+        handlers = {"messages": [], "states": []}
+
+        setup.orchestrate_setup(relay_config, handlers)
+
+        # Verify PeerAnnouncement was called with role="spectator" for both ports
+        calls = self.mock_announcement_cls.call_args_list
+        self.assertEqual(len(calls), 2)
+        for c in calls:
+            self.assertEqual(c.kwargs.get("r", c.args[0] if c.args else None), Role.SPECTATOR.value)
+
+    def test_tcp_spectator_default_is_viewer(self):
+        """When spectator_mode is not in relay_config, default to viewer."""
+        setup = NetworkSetup(self._make_settings())
+
+        relay_config = {
+            'server': 'relay.example.com',
+            'port': 8080,
+            'id': 'session123',
+        }
+        handlers = {"messages": [], "states": []}
+
+        setup.orchestrate_setup(relay_config, handlers)
+
+        calls = self.mock_announcement_cls.call_args_list
+        self.assertEqual(len(calls), 2)
+        for c in calls:
+            self.assertEqual(c.kwargs.get("r", c.args[0] if c.args else None), Role.VIEWER.value)
 
 
 if __name__ == '__main__':

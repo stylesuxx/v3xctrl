@@ -84,18 +84,20 @@ class TestSession(unittest.TestCase):
     def test_register_new_peer_returns_true(self):
         addr = ("192.168.1.1", 8080)
 
-        result = self.session.register(Role.STREAMER, PortType.VIDEO, addr)
+        is_new, replaced_addr = self.session.register(Role.STREAMER, PortType.VIDEO, addr)
 
-        self.assertTrue(result)
+        self.assertTrue(is_new)
+        self.assertIsNone(replaced_addr)
 
     def test_register_existing_peer_returns_false(self):
         addr1 = ("192.168.1.1", 8080)
         addr2 = ("192.168.1.2", 8081)
 
         self.session.register(Role.STREAMER, PortType.VIDEO, addr1)
-        result = self.session.register(Role.STREAMER, PortType.VIDEO, addr2)
+        is_new, replaced_addr = self.session.register(Role.STREAMER, PortType.VIDEO, addr2)
 
-        self.assertFalse(result)
+        self.assertFalse(is_new)
+        self.assertIsNone(replaced_addr)
 
     def test_register_stores_peer_entry(self):
         addr = ("192.168.1.1", 8080)
@@ -210,9 +212,10 @@ class TestSpectatorEntry(unittest.TestCase):
         spectator = SpectatorEntry()
         addr = ("192.168.1.100", 5000)
 
-        result = spectator.register_port(PortType.VIDEO, addr)
+        is_new, replaced_addr = spectator.register_port(PortType.VIDEO, addr)
 
-        self.assertTrue(result)
+        self.assertTrue(is_new)
+        self.assertIsNone(replaced_addr)
         self.assertIn(PortType.VIDEO, spectator.ports)
         self.assertEqual(spectator.ports[PortType.VIDEO].addr, addr)
 
@@ -222,9 +225,10 @@ class TestSpectatorEntry(unittest.TestCase):
         addr2 = ("192.168.1.101", 5001)
 
         spectator.register_port(PortType.VIDEO, addr1)
-        result = spectator.register_port(PortType.VIDEO, addr2)
+        is_new, replaced_addr = spectator.register_port(PortType.VIDEO, addr2)
 
-        self.assertFalse(result)
+        self.assertFalse(is_new)
+        self.assertEqual(replaced_addr, addr1)
         self.assertEqual(spectator.ports[PortType.VIDEO].addr, addr2)
 
     def test_is_complete_empty(self):

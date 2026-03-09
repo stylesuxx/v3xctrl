@@ -817,5 +817,147 @@ class TestSpectatorTCPWithStreamerTCP(_SpectatorBase, unittest.TestCase):
         self._assert_spectator_receives_data(_TransportMode.TCP)
 
 
+class TestSpectatorJoinsBeforeSessionReady(_SpectatorBase, unittest.TestCase):
+    """Test spectators that register before the session is ready."""
+
+    def test_tcp_spectator_gets_peer_info_when_session_becomes_ready(self):
+        """TCP spectator that joins before session is ready gets PeerInfo when session becomes ready."""
+        # Spectator joins first (session not ready yet)
+        self._register_spectator(_TransportMode.TCP)
+
+        session = self.relay.sessions.get("sid1")
+        self.assertIsNotNone(session)
+        self.assertFalse(session.is_ready())
+
+        # PeerInfo should NOT have been sent yet (only on register since session not ready)
+        spectator_video_target = self.tcp_targets[self.spectator_video]
+        spectator_control_target = self.tcp_targets[self.spectator_control]
+        spectator_video_target.send.assert_not_called()
+        spectator_control_target.send.assert_not_called()
+
+        # Now establish the session (streamer + viewer connect)
+        self._establish_session(_TransportMode.UDP, _TransportMode.UDP)
+
+        # PeerInfo should have been sent to spectator when session became ready
+        spectator_video_target.send.assert_called()
+        spectator_control_target.send.assert_called()
+
+    def test_udp_spectator_gets_peer_info_when_session_becomes_ready(self):
+        """UDP spectator that joins before session is ready gets PeerInfo when session becomes ready."""
+        # Spectator joins first
+        self._register_spectator(_TransportMode.UDP)
+
+        session = self.relay.sessions.get("sid1")
+        self.assertFalse(session.is_ready())
+
+        # No PeerInfo sent via UDP yet for spectator
+        video_sends = [c[0][1] for c in self.sock.sendto.call_args_list]
+        self.assertNotIn(self.spectator_video, video_sends)
+
+        # Session becomes ready
+        self._establish_session(_TransportMode.UDP, _TransportMode.UDP)
+
+        # PeerInfo should be sent to spectator addresses
+        all_sends = [c[0][1] for c in self.sock.sendto.call_args_list]
+        self.assertIn(self.spectator_video, all_sends)
+        self.assertIn(self.spectator_control, all_sends)
+
+    def test_spectator_mappings_set_up_when_session_becomes_ready(self):
+        """Spectator mappings are set up when the session becomes ready."""
+        self._register_spectator(_TransportMode.UDP)
+        self._establish_session(_TransportMode.UDP, _TransportMode.UDP)
+
+        self._assert_spectator_in_streamer_targets()
+        self._assert_spectator_receives_data(_TransportMode.UDP)
+
+
+class TestSpectatorTransportSwitch(_SpectatorBase, unittest.TestCase):
+    """Test spectator switching between UDP and TCP transport."""
+
+    def test_spectator_udp_to_tcp_updates_transport(self):
+        """Switching spectator from UDP to TCP updates the transport in the spectator entry."""
+        self._establish_session(_TransportMode.UDP, _TransportMode.UDP)
+        self._register_spectator(_TransportMode.UDP)
+
+        session = self.relay.sessions["sid1"]
+        for peer_entry in session.spectators[0].ports.values():
+            self.assertEqual(peer_entry.transport.name, "UDP")
+
+        # Switch to TCP using new addresses (different ports)
+        new_spectator_video = ("10.0.0.3", 71000)
+        new_spectator_control = ("10.0.0.3", 71001)
+        self._register("spectator", "video", new_spectator_video, _TransportMode.TCP)
+        self._register("spectator", "control", new_spectator_control, _TransportMode.TCP)
+
+        # Transport should be TCP now
+        for peer_entry in session.spectators[0].ports.values():
+            self.assertEqual(peer_entry.transport.name, "TCP")
+
+    def test_spectator_udp_to_tcp_cleans_up_old_addresses(self):
+        """Switching spectator from UDP to TCP removes old UDP addresses from spectator_by_address."""
+        self._establish_session(_TransportMode.UDP, _TransportMode.UDP)
+        self._register_spectator(_TransportMode.UDP)
+
+        # Old UDP addresses should be in spectator_by_address
+        self.assertIn(self.spectator_video, self.relay.spectator_by_address)
+        self.assertIn(self.spectator_control, self.relay.spectator_by_address)
+
+        # Switch to TCP
+        new_spectator_video = ("10.0.0.3", 71000)
+        new_spectator_control = ("10.0.0.3", 71001)
+        self._register("spectator", "video", new_spectator_video, _TransportMode.TCP)
+        self._register("spectator", "control", new_spectator_control, _TransportMode.TCP)
+
+        # Old UDP addresses should be removed from spectator_by_address
+        self.assertNotIn(self.spectator_video, self.relay.spectator_by_address)
+        self.assertNotIn(self.spectator_control, self.relay.spectator_by_address)
+
+        # New TCP addresses should be present
+        self.assertIn(new_spectator_video, self.relay.spectator_by_address)
+        self.assertIn(new_spectator_control, self.relay.spectator_by_address)
+
+    def test_spectator_udp_to_tcp_cleans_up_old_mapping_targets(self):
+        """Switching spectator from UDP to TCP removes old addresses from streamer mapping targets."""
+        self._establish_session(_TransportMode.UDP, _TransportMode.UDP)
+        self._register_spectator(_TransportMode.UDP)
+
+        # Old UDP addresses should be in streamer mapping targets
+        self._assert_spectator_in_streamer_targets()
+
+        # Switch to TCP
+        new_spectator_video = ("10.0.0.3", 71000)
+        new_spectator_control = ("10.0.0.3", 71001)
+        self._register("spectator", "video", new_spectator_video, _TransportMode.TCP)
+        self._register("spectator", "control", new_spectator_control, _TransportMode.TCP)
+
+        with self.relay.mapping_lock:
+            video_targets = self.relay.mappings[self.streamer_video].targets
+            control_targets = self.relay.mappings[self.streamer_control].targets
+
+        # Old UDP addresses should be removed
+        self.assertNotIn(self.spectator_video, video_targets)
+        self.assertNotIn(self.spectator_control, control_targets)
+
+        # New TCP addresses should be present
+        self.assertIn(new_spectator_video, video_targets)
+        self.assertIn(new_spectator_control, control_targets)
+
+    def test_spectator_receives_data_after_transport_switch(self):
+        """Spectator receives data via TCP after switching from UDP."""
+        self._establish_session(_TransportMode.UDP, _TransportMode.UDP)
+        self._register_spectator(_TransportMode.UDP)
+
+        # Switch to TCP
+        new_spectator_video = ("10.0.0.3", 71000)
+        new_spectator_control = ("10.0.0.3", 71001)
+        self._register("spectator", "video", new_spectator_video, _TransportMode.TCP)
+        self._register("spectator", "control", new_spectator_control, _TransportMode.TCP)
+
+        # Update instance vars for assertion helper
+        self.spectator_video = new_spectator_video
+        self.spectator_control = new_spectator_control
+        self._assert_spectator_receives_data(_TransportMode.TCP)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -29,11 +29,13 @@ class SpectatorEntry:
         self.created_at: float = time.time()
         self.last_announcement_at: float = time.time()
 
-    def register_port(self, port_type: PortType, addr: Address, transport: Transport = Transport.UDP) -> bool:
-        new_port = port_type not in self.ports
+    def register_port(self, port_type: PortType, addr: Address, transport: Transport = Transport.UDP) -> tuple[bool, Address | None]:
+        old_entry = self.ports.get(port_type)
+        replaced_addr = old_entry.addr if old_entry and old_entry.addr != addr else None
+        new_port = old_entry is None
         self.ports[port_type] = PeerEntry(addr, transport)
         self.last_announcement_at = time.time()
-        return new_port
+        return (new_port, replaced_addr)
 
     def is_complete(self) -> bool:
         return len(self.ports) == len(PortType)
@@ -54,11 +56,11 @@ class Session:
         self.created_at: float = time.time()
         self.last_announcement_at: float = time.time()
 
-    def register(self, role: Role, port_type: PortType, addr: Address, transport: Transport = Transport.UDP) -> bool:
+    def register(self, role: Role, port_type: PortType, addr: Address, transport: Transport = Transport.UDP) -> tuple[bool, Address | None]:
         if role == Role.SPECTATOR:
             return self._register_spectator(port_type, addr, transport)
         elif role == Role.STREAMER or role == Role.VIEWER:
-            return self._register_peer(role, port_type, addr, transport)
+            return (self._register_peer(role, port_type, addr, transport), None)
 
         raise ValueError(f'Unknown role: {role}')
 
@@ -70,7 +72,7 @@ class Session:
 
         return new_peer
 
-    def _register_spectator(self, port_type: PortType, addr: Address, transport: Transport) -> bool:
+    def _register_spectator(self, port_type: PortType, addr: Address, transport: Transport) -> tuple[bool, Address | None]:
         ip = addr[0]
         spectator = None
         for spec in self.spectators:
@@ -87,7 +89,10 @@ class Session:
             self.spectators.append(spectator)
 
         self.addresses.add(addr)
-        return spectator.register_port(port_type, addr, transport)
+        new_port, replaced_addr = spectator.register_port(port_type, addr, transport)
+        if replaced_addr:
+            self.addresses.discard(replaced_addr)
+        return (new_port, replaced_addr)
 
     def remove_spectator_by_address(self, addr: Address) -> set[Address] | None:
         for i, spectator in enumerate(self.spectators):

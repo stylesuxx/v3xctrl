@@ -208,10 +208,21 @@ class UDPRelayServer(threading.Thread):
                             })
 
                     for spectator in session.spectators:
-                        timeout_in_sec = 0
-                        diff = now - spectator.last_announcement_at
-                        if diff < self.relay.SPECTATOR_TIMEOUT:
-                            timeout_in_sec = round(self.relay.SPECTATOR_TIMEOUT - diff)
+                        has_active_tcp = False
+                        with self.relay.mapping_lock:
+                            for spectator_addr in spectator.get_addresses():
+                                target = self.relay.tcp_targets.get(spectator_addr)
+                                if target and target.is_alive():
+                                    has_active_tcp = True
+                                    break
+
+                        if has_active_tcp:
+                            timeout_in_sec = self.relay.SPECTATOR_TIMEOUT
+                        else:
+                            timeout_in_sec = 0
+                            diff = now - spectator.last_announcement_at
+                            if diff < self.relay.SPECTATOR_TIMEOUT:
+                                timeout_in_sec = round(self.relay.SPECTATOR_TIMEOUT - diff)
 
                         for port_type, peer_entry in spectator.ports.items():
                             addr = peer_entry.addr
@@ -219,6 +230,7 @@ class UDPRelayServer(threading.Thread):
                                 'address': f"{addr[0]}:{addr[1]}",
                                 'role': Role.SPECTATOR.name,
                                 'port_type': port_type.name,
+                                'transport': peer_entry.transport.name,
                                 'timeout_in_sec': timeout_in_sec,
                             })
 

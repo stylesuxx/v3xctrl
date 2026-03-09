@@ -154,9 +154,14 @@ class PacketRelay:
                 old_entry = session.roles.get(role, {}).get(port_type)
                 old_transport = old_entry.transport if old_entry else None
 
-            is_new_peer = session.register(role, port_type, addr, new_transport)
+            is_new_peer, replaced_addr = session.register(role, port_type, addr, new_transport)
 
             if role == Role.SPECTATOR:
+                if replaced_addr:
+                    self.spectator_by_address.pop(replaced_addr, None)
+                    with self.mapping_lock:
+                        self._remove_spectator_addr_from_mappings(replaced_addr, session)
+
                 for spectator in session.spectators:
                     if addr in spectator.get_addresses():
                         self.spectator_by_address[addr] = spectator
@@ -181,6 +186,7 @@ class PacketRelay:
                 self._update_mappings(session)
                 self._send_peer_info(session)
                 self._setup_all_spectator_mappings(session)
+                self._send_peer_info_to_all_spectators(session)
 
                 transports = self._get_transport_summary(session)
                 logger.info(f"{sid}: Session ready, peer info exchanged ({transports})")
@@ -374,6 +380,12 @@ class PacketRelay:
         except Exception as e:
             logger.error(f"Error sending PeerInfo to spectator {spectator_addr}: {e}", exc_info=True)
 
+    def _send_peer_info_to_all_spectators(self, session: Session) -> None:
+        """Send peer info to all spectators in the session."""
+        for spectator in session.spectators:
+            for peer_entry in spectator.ports.values():
+                self._send_peer_info_to_spectator(session, peer_entry.addr)
+
     def _get_sids_for_address_unlocked(self, addr: Address) -> set[str]:
         """Caller is required to hold the lock."""
         sids: set[str] = set()
@@ -493,6 +505,10 @@ class PacketRelay:
                 detail = ", ".join(f"{pt.name}={p.transport.name}" for pt, p in peers.items())
                 parts.append(f"{role.name}: {detail}")
         return ", ".join(parts)
+
+    def _remove_spectator_addr_from_mappings(self, spectator_addr: Address, session: Session) -> None:
+        """Remove a single spectator address from streamer mapping targets. Caller must hold mapping_lock."""
+        self._remove_spectator_from_mappings({spectator_addr}, session)
 
     def _remove_spectator_from_mappings(self, spectator_addrs: set[Address], session: Session) -> None:
         """Remove spectator addresses from streamer mapping targets. Caller must hold mapping_lock."""

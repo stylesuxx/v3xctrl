@@ -2,6 +2,7 @@ import os
 import socket
 import sqlite3
 import tempfile
+import time
 import unittest
 from unittest.mock import Mock, patch
 
@@ -11,7 +12,10 @@ from v3xctrl_control.message import (
     Message,
     PeerAnnouncement,
 )
-from v3xctrl_udp_relay.custom_types import Role, PortType
+from v3xctrl_tcp import Transport
+from v3xctrl_udp_relay.custom_types import Role, PortType, Session, SpectatorEntry, PeerEntry
+from v3xctrl_udp_relay.ForwardTarget import TcpTarget
+from v3xctrl_udp_relay.PacketRelay import Mapping
 from v3xctrl_udp_relay.UDPRelayServer import UDPRelayServer
 
 
@@ -499,6 +503,144 @@ class TestUDPRelayServerUnitTests(unittest.TestCase):
 
         ack = self._parse_connection_test_ack(mock_udp_socket)
         self.assertFalse(ack.valid)
+
+    # -- Spectator stats --
+
+    def _setup_session_with_spectator(self, server, transport=Transport.UDP):
+        """Set up a ready session with one spectator. Returns spectator addresses."""
+        session = Session("test_session_1")
+
+        # Register streamer and viewer to make session ready
+        streamer_video_addr = ("10.0.0.1", 5000)
+        streamer_control_addr = ("10.0.0.1", 5001)
+        viewer_video_addr = ("10.0.0.2", 6000)
+        viewer_control_addr = ("10.0.0.2", 6001)
+
+        session.register(Role.STREAMER, PortType.VIDEO, streamer_video_addr)
+        session.register(Role.STREAMER, PortType.CONTROL, streamer_control_addr)
+        session.register(Role.VIEWER, PortType.VIDEO, viewer_video_addr)
+        session.register(Role.VIEWER, PortType.CONTROL, viewer_control_addr)
+
+        # Add mappings for streamer
+        now = time.time()
+        server.relay.mappings[streamer_video_addr] = Mapping({viewer_video_addr}, now)
+        server.relay.mappings[viewer_video_addr] = Mapping({streamer_video_addr}, now)
+        server.relay.mappings[streamer_control_addr] = Mapping({viewer_control_addr}, now)
+        server.relay.mappings[viewer_control_addr] = Mapping({streamer_control_addr}, now)
+
+        # Register spectator
+        spectator_video_addr = ("10.0.0.3", 7000)
+        spectator_control_addr = ("10.0.0.3", 7001)
+
+        session.register(Role.SPECTATOR, PortType.VIDEO, spectator_video_addr, transport)
+        session.register(Role.SPECTATOR, PortType.CONTROL, spectator_control_addr, transport)
+
+        server.relay.sessions["test_session_1"] = session
+
+        return spectator_video_addr, spectator_control_addr
+
+    @patch('socket.socket')
+    def test_spectator_stats_include_transport_udp(self, mock_socket_class):
+        """UDP spectator stats include transport=UDP."""
+        server, _ = self._create_server_with_mock_socket(mock_socket_class)
+        self._setup_session_with_spectator(server, Transport.UDP)
+
+        stats = server._get_session_stats()
+        spectators = stats["test_session_1"]["spectators"]
+
+        self.assertEqual(len(spectators), 2)
+        for entry in spectators:
+            self.assertEqual(entry["transport"], "UDP")
+
+    @patch('socket.socket')
+    def test_spectator_stats_include_transport_tcp(self, mock_socket_class):
+        """TCP spectator stats include transport=TCP."""
+        server, _ = self._create_server_with_mock_socket(mock_socket_class)
+        spectator_video_addr, spectator_control_addr = self._setup_session_with_spectator(
+            server, Transport.TCP
+        )
+
+        # Add alive TCP targets for spectator addresses
+        target_video = TcpTarget(Mock())
+        target_control = TcpTarget(Mock())
+        server.relay.tcp_targets[spectator_video_addr] = target_video
+        server.relay.tcp_targets[spectator_control_addr] = target_control
+
+        stats = server._get_session_stats()
+        spectators = stats["test_session_1"]["spectators"]
+
+        self.assertEqual(len(spectators), 2)
+        for entry in spectators:
+            self.assertEqual(entry["transport"], "TCP")
+
+    @patch('socket.socket')
+    def test_tcp_spectator_timeout_stays_full_with_active_connection(self, mock_socket_class):
+        """TCP spectator with active connection shows full SPECTATOR_TIMEOUT."""
+        server, _ = self._create_server_with_mock_socket(mock_socket_class)
+        spectator_video_addr, spectator_control_addr = self._setup_session_with_spectator(
+            server, Transport.TCP
+        )
+
+        # Add alive TCP targets
+        target = TcpTarget(Mock())
+        server.relay.tcp_targets[spectator_video_addr] = target
+
+        # Artificially age the last_announcement_at to simulate time passing
+        session = server.relay.sessions["test_session_1"]
+        session.spectators[0].last_announcement_at = time.time() - 25
+
+        stats = server._get_session_stats()
+        spectators = stats["test_session_1"]["spectators"]
+
+        # Should show full SPECTATOR_TIMEOUT, not the decayed value
+        for entry in spectators:
+            self.assertEqual(entry["timeout_in_sec"], server.relay.SPECTATOR_TIMEOUT)
+
+    @patch('socket.socket')
+    def test_udp_spectator_timeout_decays_normally(self, mock_socket_class):
+        """UDP spectator timeout decays based on last_announcement_at."""
+        server, _ = self._create_server_with_mock_socket(mock_socket_class)
+        self._setup_session_with_spectator(server, Transport.UDP)
+
+        # Age the last_announcement_at by 10 seconds
+        session = server.relay.sessions["test_session_1"]
+        session.spectators[0].last_announcement_at = time.time() - 10
+
+        stats = server._get_session_stats()
+        spectators = stats["test_session_1"]["spectators"]
+
+        # Should show decayed timeout (~20 seconds remaining)
+        for entry in spectators:
+            self.assertLess(entry["timeout_in_sec"], server.relay.SPECTATOR_TIMEOUT)
+            self.assertGreater(entry["timeout_in_sec"], 0)
+
+    @patch('socket.socket')
+    def test_tcp_spectator_timeout_decays_when_connection_dead(self, mock_socket_class):
+        """TCP spectator with dead connection shows decayed timeout."""
+        server, _ = self._create_server_with_mock_socket(mock_socket_class)
+        spectator_video_addr, spectator_control_addr = self._setup_session_with_spectator(
+            server, Transport.TCP
+        )
+
+        # Add dead TCP targets
+        target = TcpTarget(Mock())
+        target.close()
+        server.relay.tcp_targets[spectator_video_addr] = target
+
+        target2 = TcpTarget(Mock())
+        target2.close()
+        server.relay.tcp_targets[spectator_control_addr] = target2
+
+        # Age the last_announcement_at
+        session = server.relay.sessions["test_session_1"]
+        session.spectators[0].last_announcement_at = time.time() - 10
+
+        stats = server._get_session_stats()
+        spectators = stats["test_session_1"]["spectators"]
+
+        # Should show decayed timeout since TCP connections are dead
+        for entry in spectators:
+            self.assertLess(entry["timeout_in_sec"], server.relay.SPECTATOR_TIMEOUT)
 
 
 if __name__ == '__main__':
