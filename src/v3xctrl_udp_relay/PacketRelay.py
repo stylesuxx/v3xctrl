@@ -230,15 +230,7 @@ class PacketRelay:
             if not mapping:
                 return None
 
-            now = time.time()
-            mapping.timestamp = now
-
-            for target_addr in mapping.targets:
-                target_mapping = self.mappings.get(target_addr)
-                if target_mapping:
-                    tcp_target = self.tcp_targets.get(target_addr)
-                    if not tcp_target or tcp_target.is_alive():
-                        target_mapping.timestamp = now
+            mapping.timestamp = time.time()
 
         deferred_tcp: list[TcpTarget] = []
         for target in mapping.targets:

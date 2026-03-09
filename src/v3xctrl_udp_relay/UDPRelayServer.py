@@ -182,24 +182,29 @@ class UDPRelayServer(threading.Thread):
                 spectators: list[dict[str, Any]] = []
 
                 if session:
+                    # Compute per-role timeout: a role is active if ANY of
+                    # its ports has recent activity (matching cleanup logic).
+                    role_timeout: dict[Role, int] = {}
+                    with self.relay.mapping_lock:
+                        for role, port_dict in session.roles.items():
+                            max_remaining = 0
+                            for peer_entry in port_dict.values():
+                                mapping = self.relay.mappings.get(peer_entry.addr)
+                                if mapping:
+                                    remaining = self.TIMEOUT - (now - mapping.timestamp)
+                                    if remaining > max_remaining:
+                                        max_remaining = remaining
+                            role_timeout[role] = round(max(max_remaining, 0))
+
                     for role, port_dict in session.roles.items():
                         for port_type, peer_entry in port_dict.items():
                             addr = peer_entry.addr
-                            timeout_in_sec = 0
-
-                            with self.relay.mapping_lock:
-                                mapping = self.relay.mappings.get(addr)
-                                if mapping:
-                                    diff = now - mapping.timestamp
-                                    if diff < self.TIMEOUT:
-                                        timeout_in_sec = round(self.TIMEOUT - diff)
-
                             mappings.append({
                                 'address': f"{addr[0]}:{addr[1]}",
                                 'role': role.name,
                                 'port_type': port_type.name,
                                 'transport': peer_entry.transport.name,
-                                'timeout_in_sec': timeout_in_sec,
+                                'timeout_in_sec': role_timeout.get(role, 0),
                             })
 
                     for spectator in session.spectators:
