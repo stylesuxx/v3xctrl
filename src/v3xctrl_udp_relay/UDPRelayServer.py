@@ -76,10 +76,9 @@ class UDPRelayServer(threading.Thread):
     # forwarded as data, preventing _send_peer_info from being called
     # again. Extracting control messages before forward_packet ensures
     # they are always handled, so PeerInfo can be (re-)sent reliably.
-    _CONTROL_PREFIXES = (
-        b'\x83\xa1t\xb0PeerAnnouncement',
-        b'\x83\xa1t\xaeConnectionTest',
-    )
+    _PEER_ANNOUNCEMENT_PREFIX = b'\x83\xa1t\xb0PeerAnnouncement'
+    _CONNECTION_TEST_PREFIX = b'\x83\xa1t\xaeConnectionTest'
+    _CONTROL_PREFIXES = (_PEER_ANNOUNCEMENT_PREFIX, _CONNECTION_TEST_PREFIX)
 
     def run(self) -> None:
         logging.info(f"UDP Relay server listening on {self.ip}:{self.port}")
@@ -266,7 +265,7 @@ class UDPRelayServer(threading.Thread):
     def _handle_slow_packet(self, data: bytes, addr: Address) -> None:
         """Handle non-data packets: peer announcements, connection tests, spectator heartbeats."""
         try:
-            if data.startswith(b'\x83\xa1t\xb0PeerAnnouncement'):
+            if data.startswith(self._PEER_ANNOUNCEMENT_PREFIX):
                 try:
                     msg = Message.from_bytes(data)
                     if isinstance(msg, PeerAnnouncement):
@@ -276,7 +275,7 @@ class UDPRelayServer(threading.Thread):
                     logging.warning(f"Failed to parse PeerAnnouncement from {addr}: {e}")
                     return
 
-            if data.startswith(b'\x83\xa1t\xaeConnectionTest'):
+            if data.startswith(self._CONNECTION_TEST_PREFIX):
                 self._handle_connection_test(data, addr)
                 return
 
