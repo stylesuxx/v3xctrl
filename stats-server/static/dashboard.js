@@ -154,7 +154,7 @@
           html +=
             "<tr>" +
             "<td><code>" + escapeHtml(port) + "</code></td>" +
-            '<td title="' + escapeHtml(sessionId) + '"><code>' + escapeHtml(sessionId.substring(0, 8)) + "</code></td>" +
+            "<td><code>" + escapeHtml(sessionId) + "</code></td>" +
             "<td>" + escapeHtml(formatRelativeTime(session.created_at)) + "</td>" +
             '<td colspan="5" class="text-muted">No active mappings</td>' +
             "</tr>";
@@ -187,8 +187,8 @@
           if (index === 0) {
             html +=
               '<td rowspan="' + entries.length + '"><code>' + escapeHtml(port) + "</code></td>" +
-              '<td rowspan="' + entries.length + '" title="' + escapeHtml(sessionId) + '"><code>' +
-              escapeHtml(sessionId.substring(0, 8)) +
+              '<td rowspan="' + entries.length + '"><code>' +
+              escapeHtml(sessionId) +
               "</code></td>";
           }
 
