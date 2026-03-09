@@ -257,106 +257,107 @@ class PacketRelay:
     def cleanup_expired_mappings(self) -> None:
         """
         Session removal works in multiple steps:
-        1. Check if role is active: a role is considered active if any of its
-           ports has been active within the timeout period
-        2. Remove role from sesssion if it has not been active: Clear the role
-           in the session, remove from sessions address list and remove from
-           mappings
-        3. If all of a sessions roles have been cleared, remove the session
-           completely
+        1. Remove dead TCP targets that have no active mapping
+        2. Identify and remove roles whose mappings have expired
+        3. Remove inactive spectators from sessions that still have active roles
+        4. Remove sessions where all roles are empty
         """
-        now = time.time()
+        self._cleanup_dead_tcp_targets()
+        with self.session_lock:
+            now = time.time()
+            self._cleanup_expired_roles(now)
+            self._cleanup_inactive_spectators(now)
+            self._cleanup_empty_sessions()
 
+    def _cleanup_dead_tcp_targets(self) -> None:
+        """Remove TCP targets that are dead and have no active mapping."""
         with self.mapping_lock:
             dead = [
-                a for a, t in self.tcp_targets.items()
-                if not t.is_alive() and a not in self.mappings
+                addr for addr, target in self.tcp_targets.items()
+                if not target.is_alive() and addr not in self.mappings
             ]
-            for a in dead:
-                del self.tcp_targets[a]
+            for addr in dead:
+                del self.tcp_targets[addr]
 
-        with self.session_lock:
-            expired_roles: dict[str, list[Role]] = {}
+    def _cleanup_expired_roles(self, now: float) -> None:
+        """Identify and remove roles whose mappings have all expired. Caller must hold session_lock."""
+        expired_roles_by_session: dict[str, list[Role]] = {}
 
-            # Identify expired roles
-            for sid, session in self.sessions.items():
-                # Ignore sessions with active announcements
-                if (now - session.last_announcement_at) > self.timeout:
-                    for r, role in session.roles.items():
-                        # Ignore empty roles
-                        if len(role) > 0:
-                            with self.mapping_lock:
-                                role_expired = True
-                                for _, peer in role.items():
-                                    mapping = self.mappings.get(peer.addr)
-                                    if mapping:
-                                        if (now - mapping.timestamp) < self.timeout:
-                                            role_expired = False
-                                            break
+        for sid, session in self.sessions.items():
+            if (now - session.last_announcement_at) <= self.timeout:
+                continue
 
-                                if role_expired:
-                                    if sid not in expired_roles:
-                                        expired_roles[sid] = []
+            for role, peers_by_port in session.roles.items():
+                if len(peers_by_port) == 0:
+                    continue
 
-                                    expired_roles[sid].append(r)
+                with self.mapping_lock:
+                    all_expired = all(
+                        (mapping := self.mappings.get(peer.addr)) is None
+                        or (now - mapping.timestamp) >= self.timeout
+                        for peer in peers_by_port.values()
+                    )
 
-            # Remove expired roles
-            for sid, roles_to_remove in expired_roles.items():
-                session = self.sessions[sid]
-                for r in roles_to_remove:
-                    role = session.roles[r]
+                    if all_expired:
+                        expired_roles_by_session.setdefault(sid, []).append(role)
+
+        for sid, roles_to_remove in expired_roles_by_session.items():
+            session = self.sessions[sid]
+            for role in roles_to_remove:
+                peers_by_port = session.roles[role]
+                with self.mapping_lock:
+                    for peer in peers_by_port.values():
+                        session.addresses.discard(peer.addr)
+                        self.mappings.pop(peer.addr, None)
+
+                session.roles[role] = {}
+                logger.info(f"{sid}: Removed expired mappings for {role.name}")
+
+    def _cleanup_inactive_spectators(self, now: float) -> None:
+        """Remove spectators that stopped sending heartbeats and have no active TCP. Caller must hold session_lock."""
+        expired_session_ids = {
+            sid for sid, session in self.sessions.items()
+            if all(len(peers_by_port) == 0 for peers_by_port in session.roles.values())
+        }
+
+        for sid, session in self.sessions.items():
+            if sid in expired_session_ids:
+                continue
+
+            for i in reversed(range(len(session.spectators))):
+                spectator = session.spectators[i]
+                if (now - spectator.last_announcement_at) > self.SPECTATOR_TIMEOUT:
+                    if self._spectator_has_active_tcp(spectator):
+                        spectator.last_announcement_at = now
+                        continue
+
                     with self.mapping_lock:
-                        for _, peer in role.items():
-                            session.addresses.discard(peer.addr)
-                            self.mappings.pop(peer.addr, None)
+                        spectator_addrs = spectator.get_addresses()
+                        for addr in spectator_addrs:
+                            session.addresses.discard(addr)
+                            self.spectator_by_address.pop(addr, None)
+                        self._remove_spectator_from_mappings(spectator_addrs, session)
 
-                    session.roles[r] = {}
-                    logger.info(f"{sid}: Removed expired mappings for {r.name}")
+                    del session.spectators[i]
+                    logger.info(f"{sid}: Removed inactive spectator")
 
-            # Identify sessions with no active roles (spectators don't count)
-            expired_sessions: list[str] = []
-            for sid, session in self.sessions.items():
-                expired = True
-                for _, role in session.roles.items():
-                    if len(role) > 0:
-                        expired = False
+    def _cleanup_empty_sessions(self) -> None:
+        """Remove sessions where all roles are empty, cleaning up their spectators. Caller must hold session_lock."""
+        expired_session_ids = [
+            sid for sid, session in self.sessions.items()
+            if all(len(peers_by_port) == 0 for peers_by_port in session.roles.values())
+        ]
 
-                if expired:
-                    expired_sessions.append(sid)
+        for sid in expired_session_ids:
+            session = self.sessions[sid]
+            for spectator in session.spectators:
+                for addr in spectator.get_addresses():
+                    self.spectator_by_address.pop(addr, None)
+                with self.mapping_lock:
+                    self._remove_spectator_from_mappings(spectator.get_addresses(), session)
 
-            # Clean up inactive spectators from active sessions
-            # Spectators must send announcements or maintain a TCP connection to stay active
-            for sid, session in self.sessions.items():
-                if sid not in expired_sessions:
-                    for i in reversed(range(len(session.spectators))):
-                        spectator = session.spectators[i]
-                        if (now - spectator.last_announcement_at) > self.SPECTATOR_TIMEOUT:
-                            if self._spectator_has_active_tcp(spectator):
-                                spectator.last_announcement_at = now
-                                continue
-
-                            with self.mapping_lock:
-                                spectator_addrs = spectator.get_addresses()
-                                for addr in spectator_addrs:
-                                    session.addresses.discard(addr)
-                                    self.spectator_by_address.pop(addr, None)
-                                self._remove_spectator_from_mappings(spectator_addrs, session)
-
-                            del session.spectators[i]
-                            logger.info(f"{sid}: Removed inactive spectator")
-
-            # Remove expired sessions and cleanup their spectators
-            for sid in expired_sessions:
-                session = self.sessions[sid]
-                # Clean up spectator mappings before deleting session
-                for spectator in session.spectators:
-                    for addr in spectator.get_addresses():
-                        self.spectator_by_address.pop(addr, None)
-                    with self.mapping_lock:
-                        self._remove_spectator_from_mappings(spectator.get_addresses(), session)
-
-                del self.sessions[sid]
-                logger.info(f"{sid}: Removed expired session")
+            del self.sessions[sid]
+            logger.info(f"{sid}: Removed expired session")
 
     def _send_peer_info(self, session: Session) -> None:
         peers = session.roles
