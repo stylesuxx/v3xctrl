@@ -60,6 +60,7 @@ fun MainScreen(
     onStartConnection: () -> Unit,
     onAbortConnection: () -> Unit,
     onClearError: () -> Unit,
+    onNavigateToGeneral: () -> Unit = {},
     onNavigateToNetwork: () -> Unit = {},
     onNavigateToFrequencies: () -> Unit = {},
     onNavigateToOSD: () -> Unit = {},
@@ -106,6 +107,7 @@ fun MainScreen(
                     AppMenu(
                         expanded = menuExpanded,
                         onDismiss = { menuExpanded = false },
+                        onNavigateToGeneral = onNavigateToGeneral,
                         onNavigateToNetwork = onNavigateToNetwork,
                         onNavigateToFrequencies = onNavigateToFrequencies,
                         onNavigateToOSD = onNavigateToOSD,

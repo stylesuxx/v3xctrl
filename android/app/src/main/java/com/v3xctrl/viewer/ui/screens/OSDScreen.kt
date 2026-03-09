@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Checkbox
@@ -53,6 +55,7 @@ fun OSDScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
             // Battery main toggle
@@ -131,6 +134,14 @@ fun OSDScreen(
                 description = stringResource(R.string.osd_frame_drops_desc),
                 checked = settings.showFrameDrops,
                 onCheckedChange = { onSettingsChange(settings.copy(showFrameDrops = it)) }
+            )
+
+            // FPS Counter toggle
+            MainToggle(
+                title = stringResource(R.string.osd_fps),
+                description = stringResource(R.string.osd_fps_desc),
+                checked = settings.showFps,
+                onCheckedChange = { onSettingsChange(settings.copy(showFps = it)) }
             )
 
             // Pipeline Timer toggle

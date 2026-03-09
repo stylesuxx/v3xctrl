@@ -50,9 +50,13 @@ import com.v3xctrl.viewer.control.ViewerState
 import com.v3xctrl.viewer.messages.Command
 import com.v3xctrl.viewer.messages.Commands
 import com.v3xctrl.viewer.ui.components.AppMenu
+import com.v3xctrl.viewer.data.GeneralSettings
 import com.v3xctrl.viewer.data.OsdSettings
+import com.v3xctrl.viewer.ui.widgets.DecoderWarning
+import com.v3xctrl.viewer.ui.widgets.FpsCounter
 import com.v3xctrl.viewer.ui.widgets.FrameDropIndicator
 import com.v3xctrl.viewer.ui.widgets.LatencyIndicator
+import com.v3xctrl.viewer.ui.widgets.DebugStatsOverlay
 import com.v3xctrl.viewer.ui.widgets.RecordingIndicator
 import com.v3xctrl.viewer.ui.widgets.SignalStrengthWidget
 
@@ -65,7 +69,10 @@ fun PortraitViewer(
     udpReceiver: UDPReceiver?,
     spectatorMode: Boolean,
     osdSettings: OsdSettings = OsdSettings(),
+    fps: Int = 0,
+    generalSettings: GeneralSettings = GeneralSettings(),
     onBack: () -> Unit,
+    onNavigateToGeneral: () -> Unit,
     onNavigateToNetwork: () -> Unit,
     onNavigateToFrequencies: () -> Unit,
     onNavigateToOSD: () -> Unit,
@@ -96,6 +103,7 @@ fun PortraitViewer(
                 AppMenu(
                     expanded = menuExpanded,
                     onDismiss = { menuExpanded = false },
+                    onNavigateToGeneral = onNavigateToGeneral,
                     onNavigateToNetwork = onNavigateToNetwork,
                     onNavigateToFrequencies = onNavigateToFrequencies,
                     onNavigateToOSD = onNavigateToOSD,
@@ -153,7 +161,11 @@ fun PortraitViewer(
                 viewerState.batteryVoltage?.let { mv ->
                     Text(
                         text = "%.2fV".format(mv / 1000.0),
-                        color = if (viewerState.batteryWarning) Color.Red else Color.White,
+                        color = if (viewerState.batteryWarning) {
+                            Color.Red
+                        } else {
+                            Color.White
+                        },
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
                         fontFamily = FontFamily.Monospace,
@@ -178,6 +190,21 @@ fun PortraitViewer(
                 }
             }
 
+            // FPS counter (bottom-right, always shown in portrait)
+            FpsCounter(
+                fps = fps,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .offset(
+                        x = if (viewerState.isRecording) {
+                            (-70).dp
+                        } else {
+                            (-12).dp
+                        },
+                        y = (-12).dp
+                    )
+            )
+
             // Latency indicator (bottom-left)
             if (viewerState.isControlConnected) {
                 LatencyIndicator(
@@ -187,6 +214,11 @@ fun PortraitViewer(
                         .offset(x = 12.dp, y = (-12).dp)
                 )
             }
+
+            // Decoder backpressure warning (bottom center)
+            DecoderWarning(
+                modifier = Modifier.align(Alignment.BottomCenter)
+            )
 
             // Status messages (centered, stacked)
             if (showVideoBlank || viewerState.isControlTimedOut) {
@@ -248,6 +280,15 @@ fun PortraitViewer(
                         }
                     },
                     onDisconnect = onBack
+                )
+            }
+
+            // Debug stats (below controls)
+            if (generalSettings.enableDebugStats) {
+                DebugStatsOverlay(
+                    showPipelineStats = generalSettings.showPipelineStats,
+                    showSystemStats = generalSettings.showSystemStats,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
         }

@@ -26,6 +26,12 @@ enum class Transport {
     }
 }
 
+data class GeneralSettings(
+    val enableDebugStats: Boolean = false,
+    val showPipelineStats: Boolean = true,
+    val showSystemStats: Boolean = true
+)
+
 data class NetworkSettings(
     val relayUrl: String = "relay.v3xctrl.com:8888",
     val sessionId: String = "",
@@ -49,7 +55,8 @@ data class OsdSettings(
     val showSignalIcon: Boolean = true,
     val showSignalBand: Boolean = false,
     val showSignalCellId: Boolean = false,
-    val showFrameDrops: Boolean = true
+    val showFrameDrops: Boolean = true,
+    val showFps: Boolean = false
 )
 
 data class ControlSettings(
@@ -79,6 +86,10 @@ data class ControlSettings(
 class SettingsDataStore(private val context: Context) {
 
     companion object {
+        private val ENABLE_DEBUG_STATS = booleanPreferencesKey("enable_debug_stats")
+        private val SHOW_PIPELINE_STATS = booleanPreferencesKey("show_pipeline_stats")
+        private val SHOW_SYSTEM_STATS = booleanPreferencesKey("show_system_stats")
+
         private val RELAY_URL = stringPreferencesKey("relay_url")
         private val SESSION_ID = stringPreferencesKey("session_id")
         private val SPECTATOR_MODE = booleanPreferencesKey("spectator_mode")
@@ -99,6 +110,7 @@ class SettingsDataStore(private val context: Context) {
         private val SHOW_SIGNAL_CELL_ID = booleanPreferencesKey("show_signal_cell_id")
 
         private val SHOW_FRAME_DROPS = booleanPreferencesKey("show_frame_drops")
+        private val SHOW_FPS = booleanPreferencesKey("show_fps")
 
         private val CONTROL_HZ = intPreferencesKey("control_hz")
         private val CONTROL_MODE = stringPreferencesKey("control_mode")
@@ -125,6 +137,15 @@ class SettingsDataStore(private val context: Context) {
         private val TOUCH_THROTTLE_INVERT = booleanPreferencesKey("touch_throttle_invert")
         private val MOTION_STEERING_INVERT = booleanPreferencesKey("motion_steering_invert")
         private val MOTION_THROTTLE_INVERT = booleanPreferencesKey("motion_throttle_invert")
+    }
+
+    val generalSettings: Flow<GeneralSettings> = context.dataStore.data.map { prefs ->
+        val defaults = GeneralSettings()
+        GeneralSettings(
+            enableDebugStats = prefs[ENABLE_DEBUG_STATS] ?: defaults.enableDebugStats,
+            showPipelineStats = prefs[SHOW_PIPELINE_STATS] ?: defaults.showPipelineStats,
+            showSystemStats = prefs[SHOW_SYSTEM_STATS] ?: defaults.showSystemStats
+        )
     }
 
     val networkSettings: Flow<NetworkSettings> = context.dataStore.data.map { prefs ->
@@ -158,7 +179,8 @@ class SettingsDataStore(private val context: Context) {
             showSignalIcon = prefs[SHOW_SIGNAL_ICON] ?: defaults.showSignalIcon,
             showSignalBand = prefs[SHOW_SIGNAL_BAND] ?: defaults.showSignalBand,
             showSignalCellId = prefs[SHOW_SIGNAL_CELL_ID] ?: defaults.showSignalCellId,
-            showFrameDrops = prefs[SHOW_FRAME_DROPS] ?: defaults.showFrameDrops
+            showFrameDrops = prefs[SHOW_FRAME_DROPS] ?: defaults.showFrameDrops,
+            showFps = prefs[SHOW_FPS] ?: defaults.showFps
         )
     }
 
@@ -187,6 +209,14 @@ class SettingsDataStore(private val context: Context) {
             motionSteeringInvert = prefs[MOTION_STEERING_INVERT] ?: defaults.motionSteeringInvert,
             motionThrottleInvert = prefs[MOTION_THROTTLE_INVERT] ?: defaults.motionThrottleInvert
         )
+    }
+
+    suspend fun updateGeneralSettings(settings: GeneralSettings) {
+        context.dataStore.edit { prefs ->
+            prefs[ENABLE_DEBUG_STATS] = settings.enableDebugStats
+            prefs[SHOW_PIPELINE_STATS] = settings.showPipelineStats
+            prefs[SHOW_SYSTEM_STATS] = settings.showSystemStats
+        }
     }
 
     suspend fun updateNetworkSettings(settings: NetworkSettings) {
@@ -218,6 +248,7 @@ class SettingsDataStore(private val context: Context) {
             prefs[SHOW_SIGNAL_BAND] = settings.showSignalBand
             prefs[SHOW_SIGNAL_CELL_ID] = settings.showSignalCellId
             prefs[SHOW_FRAME_DROPS] = settings.showFrameDrops
+            prefs[SHOW_FPS] = settings.showFps
         }
     }
 

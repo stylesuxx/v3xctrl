@@ -30,7 +30,8 @@ include $(GSTREAMER_NDK_BUILD_PATH)/plugins.mk
 # - rtpmanager: RTP jitter buffer (rtpjitterbuffer)
 # - videoparsersbad: H264 parser (h264parse)
 # - libav: Software H264 decoder fallback (avdec_h264)
-GSTREAMER_PLUGINS := coreelements videotestsrc videoconvertscale opengl androidmedia udp rtp rtpmanager videoparsersbad libav
+# - playback: decodebin for auto decoder selection (prefers HW over SW)
+GSTREAMER_PLUGINS := coreelements videotestsrc videoconvertscale opengl androidmedia udp rtp rtpmanager videoparsersbad libav playback
 GSTREAMER_EXTRA_DEPS := gstreamer-video-1.0 gstreamer-gl-1.0 gstreamer-rtp-1.0
 
 include $(GSTREAMER_NDK_BUILD_PATH)/gstreamer-1.0.mk

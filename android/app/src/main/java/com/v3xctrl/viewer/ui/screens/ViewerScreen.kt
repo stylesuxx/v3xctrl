@@ -3,7 +3,10 @@ package com.v3xctrl.viewer.ui.screens
 import android.app.Activity
 import android.content.pm.ActivityInfo
 import android.widget.Toast
+import android.content.Context
 import android.content.res.Configuration
+import android.net.wifi.WifiManager
+import android.os.Build
 import android.view.InputDevice
 import android.view.SurfaceHolder
 import android.view.SurfaceView
@@ -18,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -31,6 +35,7 @@ import com.v3xctrl.viewer.MainActivity
 import com.v3xctrl.viewer.GstViewer
 import com.v3xctrl.viewer.control.ControlState
 import com.v3xctrl.viewer.data.ControlSettings
+import com.v3xctrl.viewer.data.GeneralSettings
 import com.v3xctrl.viewer.data.OsdSettings
 import com.v3xctrl.viewer.data.Transport
 import com.v3xctrl.viewer.input.GamepadController
@@ -59,9 +64,12 @@ fun ViewerScreen(
     connection: ConnectionInfo,
     controlHz: Int = 30,
     osdSettings: OsdSettings = OsdSettings(),
+    generalSettings: GeneralSettings = GeneralSettings(),
     spectatorMode: Boolean = false,
     controlSettings: ControlSettings = ControlSettings(),
+    isInPipMode: Boolean = false,
     onBack: () -> Unit,
+    onNavigateToGeneral: () -> Unit = {},
     onNavigateToNetwork: () -> Unit = {},
     onNavigateToFrequencies: () -> Unit = {},
     onNavigateToOSD: () -> Unit = {},
@@ -85,8 +93,64 @@ fun ViewerScreen(
     // Track if video should be blanked (after 5 seconds of video service stopped)
     var showVideoBlank by remember { mutableStateOf(false) }
 
+    // Track whether the pipeline has been started (survives surface recreation on rotation)
+    var isPipelineStarted by remember { mutableStateOf(false) }
+
     // Pipeline start time for timer widget
     val pipelineStartTime = remember { System.currentTimeMillis() }
+
+    // FPS counter - hoisted here so it survives orientation changes
+    var fps by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(Unit) {
+        val windowSize = 5
+        val timestamps = LongArray(windowSize + 1)
+        val frameCounts = IntArray(windowSize + 1)
+        var head = 0
+        var count = 0
+
+        while (true) {
+            val currentFrameCount = GstViewer.frameCount
+            val prev = if (count > 0) {
+                (head - 1 + timestamps.size) % timestamps.size
+            } else {
+                head
+            }
+
+            // Pipeline restart detected - counter went backwards; clear the buffer
+            if (count > 0 && currentFrameCount < frameCounts[prev]) {
+                head = 0
+                count = 0
+                fps = 0
+            }
+
+            timestamps[head] = System.currentTimeMillis()
+            frameCounts[head] = currentFrameCount
+
+            if (count < timestamps.size) {
+                count++
+            }
+
+            if (count >= 2) {
+                val oldest = (head - count + 1 + timestamps.size) % timestamps.size
+                val dtMs = timestamps[head] - timestamps[oldest]
+                val dFrames = frameCounts[head] - frameCounts[oldest]
+                if (dtMs > 0) {
+                    fps = ((dFrames * 1000L + dtMs - 1) / dtMs).toInt()
+                }
+            }
+
+            head = (head + 1) % timestamps.size
+            delay(1000)
+        }
+    }
+
+    // Reset controls when entering PiP so the vehicle stops
+    LaunchedEffect(isInPipMode) {
+        if (isInPipMode) {
+            controlState.reset()
+        }
+    }
 
     // Motion controller for gyroscope-based control
     val isMotionMode = controlSettings.controlMode == "motion" && !spectatorMode
@@ -95,9 +159,9 @@ fun ViewerScreen(
     // Gamepad controller for USB/Bluetooth HID controllers
     val isGamepadMode = controlSettings.controlMode == "gamepad" && !spectatorMode
 
-    // Start/stop motion controller based on mode and orientation
-    DisposableEffect(isMotionMode, isLandscape, controlSettings.motionSteeringDeg, controlSettings.motionForwardDeg, controlSettings.motionBackwardDeg, controlSettings.motionSteeringInvert, controlSettings.motionThrottleInvert) {
-        if (isMotionMode && isLandscape) {
+    // Start/stop motion controller based on mode and orientation (disabled in PiP)
+    DisposableEffect(isMotionMode, isLandscape, isInPipMode, controlSettings.motionSteeringDeg, controlSettings.motionForwardDeg, controlSettings.motionBackwardDeg, controlSettings.motionSteeringInvert, controlSettings.motionThrottleInvert) {
+        if (isMotionMode && isLandscape && !isInPipMode) {
             val controller = MotionController(
                 context = context,
                 controlState = controlState,
@@ -208,15 +272,49 @@ fun ViewerScreen(
         }
     }
 
-    // Allow rotation and keep screen on while viewing video
+    // Allow rotation, keep screen on, and request max refresh rate while viewing video
     DisposableEffect(Unit) {
         val activity = context as? Activity
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR
         activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
+        val display = activity?.display ?: @Suppress("DEPRECATION") activity?.windowManager?.defaultDisplay
+        val maxRefreshRate = display?.supportedModes
+            ?.maxOfOrNull { it.refreshRate } ?: 0f
+        if (maxRefreshRate > 0f) {
+            activity?.window?.attributes = activity.window.attributes.apply {
+                preferredRefreshRate = maxRefreshRate
+            }
+        }
+
         onDispose {
             activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
             activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            activity?.window?.attributes = activity.window.attributes.apply {
+                preferredRefreshRate = 0f
+            }
+        }
+    }
+
+    // WiFi low-latency lock to prevent network throttling during streaming
+    DisposableEffect(Unit) {
+        val wifiManager = context.applicationContext
+            .getSystemService(Context.WIFI_SERVICE) as? WifiManager
+        val wifiLock = wifiManager?.createWifiLock(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                WifiManager.WIFI_MODE_FULL_LOW_LATENCY
+            } else {
+                @Suppress("DEPRECATION")
+                WifiManager.WIFI_MODE_FULL_HIGH_PERF
+            },
+            "v3xctrl:viewer"
+        )
+        wifiLock?.acquire()
+
+        onDispose {
+            if (wifiLock?.isHeld == true) {
+                wifiLock.release()
+            }
         }
     }
 
@@ -224,6 +322,7 @@ fun ViewerScreen(
         GstViewer.init()
         onDispose {
             GstViewer.stop()
+            isPipelineStarted = false
         }
     }
 
@@ -297,7 +396,12 @@ fun ViewerScreen(
             isFocusableInTouchMode = false
             holder.addCallback(object : SurfaceHolder.Callback {
                 override fun surfaceCreated(holder: SurfaceHolder) {
-                    GstViewer.start(holder.surface, connection.videoPort)
+                    if (!isPipelineStarted) {
+                        GstViewer.start(holder.surface, connection.videoPort)
+                        isPipelineStarted = true
+                    } else {
+                        GstViewer.resume(holder.surface)
+                    }
                 }
 
                 override fun surfaceChanged(
@@ -306,17 +410,24 @@ fun ViewerScreen(
                     width: Int,
                     height: Int
                 ) {
-                    // Handle surface changes if needed
+                    // Surface resized - pipeline handles this automatically
                 }
 
                 override fun surfaceDestroyed(holder: SurfaceHolder) {
-                    GstViewer.stop()
+                    GstViewer.pause()
                 }
             })
         }
     }
 
-    if (isLandscape) {
+    if (isInPipMode) {
+        // PiP: show only video, no controls or OSD
+        VideoSurface(
+            surfaceView = surfaceView,
+            showVideoBlank = showVideoBlank,
+            modifier = Modifier.fillMaxSize()
+        )
+    } else if (isLandscape) {
         LandscapeViewer(
             surfaceView = surfaceView,
             showVideoBlank = showVideoBlank,
@@ -328,6 +439,7 @@ fun ViewerScreen(
             spectatorMode = spectatorMode,
             pipelineStartTime = pipelineStartTime,
             osdSettings = osdSettings,
+            fps = fps,
             touchSteeringInvert = controlSettings.touchSteeringInvert,
             touchThrottleInvert = controlSettings.touchThrottleInvert,
             modifier = modifier
@@ -340,10 +452,14 @@ fun ViewerScreen(
             udpReceiver = udpReceiver,
             spectatorMode = spectatorMode,
             osdSettings = osdSettings,
+            fps = fps,
+            generalSettings = generalSettings,
             onBack = {
                 GstViewer.stop()
+                isPipelineStarted = false
                 onBack()
             },
+            onNavigateToGeneral = onNavigateToGeneral,
             onNavigateToNetwork = onNavigateToNetwork,
             onNavigateToFrequencies = onNavigateToFrequencies,
             onNavigateToOSD = onNavigateToOSD,
