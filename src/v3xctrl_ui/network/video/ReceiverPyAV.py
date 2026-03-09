@@ -164,6 +164,8 @@ class ReceiverPyAV(Receiver):
             stream.codec_context.thread_type = "AUTO"
             stream.codec_context.options = self.codec_options
 
+            consecutive_decode_errors = 0
+
             try:
                 for packet in container.demux(stream):
                     if not self.running.is_set():
@@ -181,14 +183,28 @@ class ReceiverPyAV(Receiver):
                                 f"Dropped {self.consecutive_old_frames} consecutive old frames, "
                                 f"forcing container restart"
                             )
-                            raise av.AVError(-1, "Stale packet stream detected", "")
+                            break
 
                         continue
 
                     self.consecutive_old_frames = 0
 
-                    decode_start = time.monotonic()
-                    decoded_frames = list(packet.decode())
+                    try:
+                        decode_start = time.monotonic()
+                        decoded_frames = list(packet.decode())
+                    except av.AVError as e:
+                        consecutive_decode_errors += 1
+                        if consecutive_decode_errors >= 30:
+                            logging.warning(
+                                f"Too many consecutive decode errors "
+                                f"({consecutive_decode_errors}), restarting container"
+                            )
+                            break
+                        logging.debug(f"Decode error (skipping packet): {e}")
+                        continue
+
+                    consecutive_decode_errors = 0
+
                     if decoded_frames:
                         decode_duration = (time.monotonic() - decode_start) / len(decoded_frames)
                         for frame in decoded_frames:
@@ -200,7 +216,7 @@ class ReceiverPyAV(Receiver):
                     self._log_stats_if_needed()
 
             except av.AVError as e:
-                logging.warning(f"Stream decode error: {e}")
+                logging.warning(f"Stream demux error: {e}")
 
             except Exception as e:
                 logging.exception(f"Unexpected error in receiver thread: {e}")
@@ -211,7 +227,6 @@ class ReceiverPyAV(Receiver):
                     self.frame_buffer.clear()
 
                 self._close_container()
-                self._refresh_local_port()
 
                 # Send keep-alive to maintain NAT hole when stream ends/fails.
                 # When the proxy is active it handles heartbeats continuously,

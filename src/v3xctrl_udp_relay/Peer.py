@@ -122,7 +122,7 @@ class Peer:
                 last_announce = now
 
             try:
-                data, addr = sock.recvfrom(1024)
+                data, addr = sock.recvfrom(65535)
                 if data:
                     try:
                         response = Message.from_bytes(data)
