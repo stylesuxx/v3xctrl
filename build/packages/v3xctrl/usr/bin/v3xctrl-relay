@@ -33,7 +33,7 @@ if [[ "$network_server_relay_host" == *:* ]]; then
 fi
 
 json=$(
-  v3xctrl-python -m v3xctrl_udp_relay.apps.getRelayInfo \
+  v3xctrl-python -m v3xctrl_relay.apps.getRelayInfo \
     "$relay_host" "$network_server_relay_sessionId" \
     --port-video "$network_server_ports_video_bind" \
     --port-control "$network_server_ports_control_bind" \

@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 from v3xctrl_helper.exceptions import PeerRegistrationError
 from v3xctrl_tcp import Transport
-from v3xctrl_udp_relay.Role import Role
+from v3xctrl_relay.Role import Role
 from v3xctrl_ui.network.NetworkSetup import (
     NetworkSetup,
     RelaySetupResult,
