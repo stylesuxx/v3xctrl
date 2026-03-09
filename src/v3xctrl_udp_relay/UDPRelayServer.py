@@ -208,15 +208,7 @@ class UDPRelayServer(threading.Thread):
                             })
 
                     for spectator in session.spectators:
-                        has_active_tcp = False
-                        with self.relay.mapping_lock:
-                            for spectator_addr in spectator.get_addresses():
-                                target = self.relay.tcp_targets.get(spectator_addr)
-                                if target and target.is_alive():
-                                    has_active_tcp = True
-                                    break
-
-                        if has_active_tcp:
+                        if self.relay._spectator_has_active_tcp(spectator):
                             timeout_in_sec = self.relay.SPECTATOR_TIMEOUT
                         else:
                             timeout_in_sec = 0

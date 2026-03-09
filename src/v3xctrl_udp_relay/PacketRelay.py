@@ -331,15 +331,7 @@ class PacketRelay:
                     for i in reversed(range(len(session.spectators))):
                         spectator = session.spectators[i]
                         if (now - spectator.last_announcement_at) > self.SPECTATOR_TIMEOUT:
-                            has_active_tcp = False
-                            with self.mapping_lock:
-                                for addr in spectator.get_addresses():
-                                    target = self.tcp_targets.get(addr)
-                                    if target and target.is_alive():
-                                        has_active_tcp = True
-                                        break
-
-                            if has_active_tcp:
+                            if self._spectator_has_active_tcp(spectator):
                                 spectator.last_announcement_at = now
                                 continue
 
@@ -511,6 +503,16 @@ class PacketRelay:
                 detail = ", ".join(f"{pt.name}={p.transport.name}" for pt, p in peers.items())
                 parts.append(f"{role.name}: {detail}")
         return ", ".join(parts)
+
+    def _spectator_has_active_tcp(self, spectator: SpectatorEntry) -> bool:
+        """Check if a spectator has any active TCP connection. Acquires mapping_lock."""
+        with self.mapping_lock:
+            for addr in spectator.get_addresses():
+                target = self.tcp_targets.get(addr)
+                if target and target.is_alive():
+                    return True
+
+        return False
 
     def _remove_spectator_addr_from_mappings(self, spectator_addr: Address, session: Session) -> None:
         """Remove a single spectator address from streamer mapping targets. Caller must hold mapping_lock."""
