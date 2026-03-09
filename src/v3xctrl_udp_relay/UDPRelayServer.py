@@ -176,7 +176,7 @@ class UDPRelayServer(threading.Thread):
         now = time.time()
         result: dict[str, dict[str, Any]] = {}
 
-        with self.relay.lock:
+        with self.relay.session_lock:
             for sid, session in self.relay.sessions.items():
                 mappings: list[dict[str, Any]] = []
                 spectators: list[dict[str, Any]] = []

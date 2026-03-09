@@ -61,6 +61,12 @@ class PacketRelay:
                 are removed - this might happen if session ID is renewed and
                 the previous session has not been removed in the meantime due to
                 being orphaned or being expired.
+
+    Lock ordering:
+        session_lock -> mapping_lock (always acquire in this order, never reverse)
+        - session_lock protects session state (sessions, spectator_by_address)
+        - mapping_lock protects hot-path forwarding (mappings, tcp_targets)
+        - NEVER acquire session_lock while holding mapping_lock
     """
 
     SPECTATOR_TIMEOUT = 30
@@ -87,10 +93,10 @@ class PacketRelay:
         # Reverse index: spectator address -> SpectatorEntry for O(1) heartbeat lookup
         self.spectator_by_address: dict[Address, SpectatorEntry] = {}
 
-        # General lock, when execution is not hot path
-        self.lock = threading.Lock()
+        # Protects session state: self.sessions, self.spectator_by_address
+        self.session_lock = threading.Lock()
 
-        # Only lock mappings when absolutely necessary
+        # Protects hot-path forwarding: self.mappings, self.tcp_targets
         self.mapping_lock = threading.Lock()
 
     def register_tcp_peer(self, msg: PeerAnnouncement, addr: Address, target: TcpTarget) -> None:
@@ -120,7 +126,7 @@ class PacketRelay:
 
         sid = msg.get_id()
 
-        with self.lock:
+        with self.session_lock:
             match role:
                 case Role.STREAMER | Role.VIEWER:
                     self._remove_spectator_from_all_sessions(addr)
@@ -193,7 +199,7 @@ class PacketRelay:
 
     def get_session_peers(self, sid: str) -> dict[Role, dict[PortType, PeerEntry]]:
         """Get all peers for a session."""
-        with self.lock:
+        with self.session_lock:
             session = self.sessions.get(sid)
             if not session:
                 return {}
@@ -201,7 +207,7 @@ class PacketRelay:
             return session.roles
 
     def update_spectator_heartbeat(self, addr: Address) -> None:
-        with self.lock:
+        with self.session_lock:
             spectator = self.spectator_by_address.get(addr)
             if spectator:
                 spectator.last_announcement_at = time.time()
@@ -269,7 +275,7 @@ class PacketRelay:
             for a in dead:
                 del self.tcp_targets[a]
 
-        with self.lock:
+        with self.session_lock:
             expired_roles: dict[str, list[Role]] = {}
 
             # Identify expired roles
