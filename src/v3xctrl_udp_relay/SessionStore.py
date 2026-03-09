@@ -33,15 +33,18 @@ class SessionStore:
 
         raise RuntimeError(f"Failed to generate a unique {column} after multiple attempts")
 
-    def create(self, discord_user_id: str, username: str) -> tuple[str, str]:
+    def _generate_unique_id_pair(self) -> tuple[str, str]:
         for _ in range(5):
             session_id = self._generate_unique_id('id')
             spectator_id = self._generate_unique_id('spectator_id')
 
             if session_id != spectator_id:
-                break
-        else:
-            raise RuntimeError("Failed to generate different session_id and spectator_id after multiple attempts")
+                return (session_id, spectator_id)
+
+        raise RuntimeError("Failed to generate different session_id and spectator_id after multiple attempts")
+
+    def create(self, discord_user_id: str, username: str) -> tuple[str, str]:
+        session_id, spectator_id = self._generate_unique_id_pair()
 
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -64,14 +67,7 @@ class SessionStore:
             raise RuntimeError("Database integrity error occurred")
 
     def update(self, discord_user_id: str, username: str) -> tuple[str, str]:
-        for _ in range(5):
-            session_id = self._generate_unique_id('id')
-            spectator_id = self._generate_unique_id('spectator_id')
-
-            if session_id != spectator_id:
-                break
-        else:
-            raise RuntimeError("Failed to generate different session_id and spectator_id after multiple attempts")
+        session_id, spectator_id = self._generate_unique_id_pair()
 
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.cursor()
