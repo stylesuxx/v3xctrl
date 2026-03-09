@@ -28,8 +28,10 @@ import com.v3xctrl.viewer.data.OsdSettings
 import com.v3xctrl.viewer.input.MotionController
 import com.v3xctrl.viewer.ui.components.TouchControls
 import com.v3xctrl.viewer.ui.widgets.BatteryWidget
+import com.v3xctrl.viewer.ui.widgets.FpsCounter
 import com.v3xctrl.viewer.ui.widgets.FrameDropIndicator
 import com.v3xctrl.viewer.ui.widgets.PipelineTimer
+import com.v3xctrl.viewer.ui.widgets.DecoderWarning
 import com.v3xctrl.viewer.ui.widgets.RecordingIndicator
 import com.v3xctrl.viewer.ui.widgets.SignalStrengthWidget
 
@@ -45,6 +47,7 @@ fun LandscapeViewer(
     spectatorMode: Boolean,
     pipelineStartTime: Long,
     osdSettings: OsdSettings = OsdSettings(),
+    fps: Int = 0,
     touchSteeringInvert: Boolean = false,
     touchThrottleInvert: Boolean = false,
     modifier: Modifier = Modifier
@@ -138,18 +141,37 @@ fun LandscapeViewer(
                 )
             }
 
+            // FPS counter (bottom-left)
+            if (osdSettings.showFps) {
+                FpsCounter(
+                    fps = fps,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .offset(x = 12.dp, y = (-12).dp)
+                )
+            }
+
             // Recording indicator (bottom-right, offset left if timer is showing)
             if (viewerState.isRecording) {
                 RecordingIndicator(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .offset(
-                            x = if (osdSettings.showPipelineTimer) (-140).dp else (-12).dp,
+                            x = if (osdSettings.showPipelineTimer) {
+                                (-140).dp
+                            } else {
+                                (-12).dp
+                            },
                             y = (-12).dp
                         )
                 )
             }
         }
+
+        // Decoder backpressure warning (bottom center)
+        DecoderWarning(
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
 
         // Control overlay (hidden in spectator mode)
         if (!spectatorMode) {
