@@ -321,7 +321,7 @@ class TestReceiverPyAVMainLoop(unittest.TestCase):
 
                     mock_refresh.assert_called()
 
-    def test_main_loop_refreshes_port_after_container_close(self):
+    def test_main_loop_does_not_refresh_port_after_container_close(self):
         mock_container = Mock()
         mock_stream = Mock(spec=av.VideoStream)
         mock_stream.codec_context = Mock()
@@ -338,7 +338,7 @@ class TestReceiverPyAVMainLoop(unittest.TestCase):
             with patch.object(self.receiver, '_refresh_local_port') as mock_refresh:
                 self.receiver._main_loop()
 
-                mock_refresh.assert_called()
+                mock_refresh.assert_not_called()
 
     def test_main_loop_container_open_success(self):
         mock_container = Mock()
