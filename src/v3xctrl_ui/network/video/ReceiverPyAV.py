@@ -99,6 +99,26 @@ class ReceiverPyAV(Receiver):
                 finally:
                     self.container = None
 
+    def _refresh_local_port(self) -> None:
+        """Find a new local port for the proxy and rewrite the SDP file.
+
+        On Windows, ffmpeg's internal UDP socket may not be released
+        immediately after container.close(). Using a fresh port on each
+        reconnection attempt avoids binding conflicts that cause
+        AVERROR_INVALIDDATA failures.
+        """
+        if not self._proxy:
+            return
+
+        new_port = UdpVideoProxy._find_free_local_port()
+        if new_port == 0:
+            logging.warning("Failed to find a new local port for proxy")
+            return
+
+        self._proxy.update_forward_port(new_port)
+        self._write_sdp()
+        logging.debug(f"Refreshed local forward port to {new_port}")
+
     def _main_loop(self) -> None:
         while self.running.is_set():
             container = None
@@ -122,7 +142,19 @@ class ReceiverPyAV(Receiver):
                     break
 
                 except av.AVError as e:
-                    logging.warning(f"av.open() failed: {e}")
+                    if self._proxy:
+                        logging.warning(
+                            f"av.open() failed: {e} "
+                            f"(proxy mode, local_port={self._proxy.local_port}, "
+                            f"received={self._proxy.packets_received}, "
+                            f"forwarded={self._proxy.packets_forwarded})"
+                        )
+                    else:
+                        logging.warning(
+                            f"av.open() failed: {e} "
+                            f"(direct mode, port={self.port})"
+                        )
+                    self._refresh_local_port()
                     time.sleep(0.5)
 
             if container is None:
@@ -131,6 +163,8 @@ class ReceiverPyAV(Receiver):
             stream = container.streams.video[0]
             stream.codec_context.thread_type = "AUTO"
             stream.codec_context.options = self.codec_options
+
+            consecutive_decode_errors = 0
 
             try:
                 for packet in container.demux(stream):
@@ -149,14 +183,28 @@ class ReceiverPyAV(Receiver):
                                 f"Dropped {self.consecutive_old_frames} consecutive old frames, "
                                 f"forcing container restart"
                             )
-                            raise av.AVError(-1, "Stale packet stream detected", "")
+                            break
 
                         continue
 
                     self.consecutive_old_frames = 0
 
-                    decode_start = time.monotonic()
-                    decoded_frames = list(packet.decode())
+                    try:
+                        decode_start = time.monotonic()
+                        decoded_frames = list(packet.decode())
+                    except av.AVError as e:
+                        consecutive_decode_errors += 1
+                        if consecutive_decode_errors >= 30:
+                            logging.warning(
+                                f"Too many consecutive decode errors "
+                                f"({consecutive_decode_errors}), restarting container"
+                            )
+                            break
+                        logging.debug(f"Decode error (skipping packet): {e}")
+                        continue
+
+                    consecutive_decode_errors = 0
+
                     if decoded_frames:
                         decode_duration = (time.monotonic() - decode_start) / len(decoded_frames)
                         for frame in decoded_frames:
@@ -168,7 +216,7 @@ class ReceiverPyAV(Receiver):
                     self._log_stats_if_needed()
 
             except av.AVError as e:
-                logging.warning(f"Stream decode error: {e}")
+                logging.warning(f"Stream demux error: {e}")
 
             except Exception as e:
                 logging.exception(f"Unexpected error in receiver thread: {e}")
@@ -226,6 +274,11 @@ a=recvonly
             f.write(sdp_text)
             f.flush()
             os.fsync(f.fileno())
+
+        logging.debug(
+            f"SDP written: {self.sdp_path} "
+            f"(listen={listen_addr}:{listen_port})"
+        )
 
     def _should_drop_packet_by_age(self, packet: av.Packet, stream: av.VideoStream) -> bool:
         if packet.pts is None:
