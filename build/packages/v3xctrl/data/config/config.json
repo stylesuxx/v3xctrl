@@ -96,7 +96,7 @@
     },
     "extras": {
       "samba": false,
-      "reverseShellUrl": null
+      "reverseShellUrl": ""
     }
   },
   "development": {
