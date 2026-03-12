@@ -22,7 +22,8 @@ class TestPeer(unittest.TestCase):
         pi = MagicMock(spec=PeerInfo)
         with (
             patch.object(PeerAnnouncement, "to_bytes", return_value=b"ann"), \
-            patch.object(Message, "from_bytes", return_value=pi)
+            patch.object(Message, "from_bytes", return_value=pi), \
+            patch.object(self.peer, "_flush_socket", return_value=None)
         ):
             mock_sock.recvfrom.return_value = (b"\x83\xa1tdata", ("server", 1234))
             self.assertEqual(self.peer._register_with_relay(mock_sock, "video", "client"), pi)
@@ -34,7 +35,8 @@ class TestPeer(unittest.TestCase):
 
         with (
             patch.object(PeerAnnouncement, "to_bytes", return_value=b"ann"), \
-            patch.object(Message, "from_bytes", return_value=err)
+            patch.object(Message, "from_bytes", return_value=err), \
+            patch.object(self.peer, "_flush_socket", return_value=None)
         ):
             mock_sock.recvfrom.return_value = (b"\x83\xa1tdata", ("server", 1234))
 
@@ -51,6 +53,7 @@ class TestPeer(unittest.TestCase):
 
         with (
             patch.object(PeerAnnouncement, "to_bytes", return_value=b"ann"), \
+            patch.object(self.peer, "_flush_socket", return_value=None), \
             patch("time.sleep", return_value=None)
         ):
             # Set abort event to prevent infinite loop
@@ -68,6 +71,7 @@ class TestPeer(unittest.TestCase):
 
         with patch.object(PeerAnnouncement, "to_bytes", return_value=b"ann"), \
              patch.object(Message, "from_bytes", side_effect=ValueError("Parse error")), \
+             patch.object(self.peer, "_flush_socket", return_value=None), \
              patch("time.sleep", return_value=None):
             # Set abort event to prevent infinite loop after the ValueError
             self.peer._abort_event.set()
@@ -84,6 +88,7 @@ class TestPeer(unittest.TestCase):
 
         with patch.object(PeerAnnouncement, "to_bytes", return_value=b"ann"), \
              patch.object(Message, "from_bytes", return_value=unknown_msg), \
+             patch.object(self.peer, "_flush_socket", return_value=None), \
              patch("time.sleep", return_value=None):
             mock_sock.recvfrom.return_value = (b"\x83\xa1tunknown_msg", ("server", 1234))
 
@@ -94,6 +99,39 @@ class TestPeer(unittest.TestCase):
                 self.peer._register_with_relay(mock_sock, "video", "client")
 
         self.peer._abort_event.clear()
+
+    def test_flush_socket_finds_peerinfo(self):
+        """Flush should return PeerInfo if found among backlog packets."""
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.bind(('127.0.0.1', 0))
+        addr = sock.getsockname()
+
+        sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        pi = PeerInfo(ip="1.2.3.4", video_port=5000, control_port=6000)
+
+        # Send some junk packets followed by a PeerInfo
+        sender.sendto(b"\x80\x60rtp_junk", addr)
+        sender.sendto(b"\x80\x61more_junk", addr)
+        sender.sendto(pi.to_bytes(), addr)
+
+        import time
+        time.sleep(0.01)
+
+        result = self.peer._flush_socket(sock)
+        self.assertIsInstance(result, PeerInfo)
+
+        sock.close()
+        sender.close()
+
+    def test_flush_socket_returns_none_when_empty(self):
+        """Flush should return None when no data is pending."""
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.bind(('127.0.0.1', 0))
+
+        result = self.peer._flush_socket(sock)
+        self.assertIsNone(result)
+
+        sock.close()
 
     def test_register_with_relay_skips_non_message_packets(self):
         """Non-message packets (e.g. RTP data) are silently skipped via prefix check."""
@@ -107,7 +145,8 @@ class TestPeer(unittest.TestCase):
         ]
 
         with patch.object(PeerAnnouncement, "to_bytes", return_value=b"ann"), \
-             patch.object(Message, "from_bytes", return_value=pi):
+             patch.object(Message, "from_bytes", return_value=pi), \
+             patch.object(self.peer, "_flush_socket", return_value=None):
             result = self.peer._register_with_relay(mock_sock, "video", "client")
             self.assertEqual(result, pi)
 
@@ -115,6 +154,7 @@ class TestPeer(unittest.TestCase):
         mock_sock = MagicMock()
         mock_sock.recvfrom.side_effect = [socket.timeout, KeyboardInterrupt]
         with patch.object(PeerAnnouncement, "to_bytes", return_value=b"ann"), \
+             patch.object(self.peer, "_flush_socket", return_value=None), \
              patch("time.sleep", return_value=None):
             self.peer._abort_event.set()
 
@@ -129,6 +169,7 @@ class TestPeer(unittest.TestCase):
         mock_sock = MagicMock()
         mock_sock.recvfrom.side_effect = [Exception("boom"), KeyboardInterrupt]
         with patch.object(PeerAnnouncement, "to_bytes", return_value=b"ann"), \
+             patch.object(self.peer, "_flush_socket", return_value=None), \
              patch("time.sleep", return_value=None):
             self.peer._abort_event.set()
 
@@ -150,6 +191,7 @@ class TestPeer(unittest.TestCase):
         mock_sock.recvfrom.side_effect = side_effect
 
         with patch.object(PeerAnnouncement, "to_bytes", return_value=b"ann"), \
+             patch.object(self.peer, "_flush_socket", return_value=None), \
              patch("time.sleep", return_value=None):
 
             with self.assertRaises(InterruptedError) as cm:
@@ -177,6 +219,7 @@ class TestPeer(unittest.TestCase):
         mock_sock.recvfrom.side_effect = timeout_then_abort
 
         with patch.object(PeerAnnouncement, "to_bytes", return_value=b"ann"), \
+             patch.object(self.peer, "_flush_socket", return_value=None), \
              patch("time.sleep", return_value=None):
 
             with self.assertRaises(InterruptedError) as cm:
@@ -204,6 +247,7 @@ class TestPeer(unittest.TestCase):
         mock_sock.recvfrom.side_effect = exception_then_abort
 
         with patch.object(PeerAnnouncement, "to_bytes", return_value=b"ann"), \
+            patch.object(self.peer, "_flush_socket", return_value=None), \
             patch("time.sleep", return_value=None):
 
             # Should raise InterruptedError when abort event is set
@@ -220,6 +264,7 @@ class TestPeer(unittest.TestCase):
         mock_sock.sendto.side_effect = OSError("Network unreachable")
 
         with patch.object(PeerAnnouncement, "to_bytes", return_value=b"ann"), \
+             patch.object(self.peer, "_flush_socket", return_value=None), \
              patch("time.sleep", return_value=None):
 
             # Set abort event to prevent infinite loop

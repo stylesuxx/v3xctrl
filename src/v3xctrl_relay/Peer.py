@@ -1,4 +1,5 @@
 import logging
+import select
 import socket
 import time
 import threading
@@ -76,6 +77,42 @@ class Peer:
 
         self._finalized_event.wait()
 
+    def _flush_socket(self, sock: socket.socket) -> PeerInfo | None:
+        """
+        Drain all pending packets from the socket buffer, returning PeerInfo
+        if found.
+
+        When the streamer restarts, the relay may still be forwarding the
+        viewer's packets to the streamer's address from the previous session.
+        These fill the kernel UDP buffer and can cause the relay's PeerInfo
+        response to be dropped. Draining before each announcement ensures
+        buffer space for the response.
+        """
+        drained = 0
+        while select.select([sock], [], [], 0)[0]:
+            try:
+                data, _ = sock.recvfrom(65535)
+                drained += 1
+                if data[:3] == self._MESSAGE_PREFIX:
+                    try:
+                        response = Message.from_bytes(data)
+                        if isinstance(response, PeerInfo):
+                            if drained > 1:
+                                logging.debug(f"Drained {drained - 1} backlog packets")
+                            return response
+                        if isinstance(response, Error):
+                            self._abort_event.set()
+                            raise UnauthorizedError()
+                    except ValueError:
+                        pass
+            except (socket.error, OSError):
+                break
+
+        if drained > 0:
+            logging.debug(f"Drained {drained} backlog packets")
+
+        return None
+
     def _bind_socket(self, name: str, port: int = 0) -> socket.socket:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.bind(('0.0.0.0', port))
@@ -112,6 +149,10 @@ class Peer:
         while not self._abort_event.is_set():
             now = time.time()
             if now - last_announce >= self.ANNOUNCE_INTERVAL:
+                peer_info = self._flush_socket(sock)
+                if peer_info:
+                    return peer_info
+
                 sock.sendto(announcement.to_bytes(), (self.server, self.port))
                 logging.debug(f"Sent {port_type} announcement to {self.server}:{self.port} from {sock.getsockname()}")
                 last_announce = now
