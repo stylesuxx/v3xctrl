@@ -7,7 +7,7 @@ import os
 import shutil
 from pathlib import Path
 
-from routes.response import success, error
+from .response import success, error
 
 blueprint = Blueprint('config', 'config', url_prefix='/config', description='Configuration management')
 

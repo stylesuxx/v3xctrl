@@ -93,7 +93,6 @@ cp -r "./${PACKAGES_DIR}/v3xctrl" "${MOUNT_DIR}/src/${PACKAGES_DIR}"
 cp -r "./build/requirements" "${MOUNT_DIR}/src/build"
 cp -r "./build/build-python.sh" "${MOUNT_DIR}/src/build"
 cp -r "./build/build-v3xctrl.sh" "${MOUNT_DIR}/src/build"
-cp -r "./web-server" "${MOUNT_DIR}/src"
 cp -r "./branding" "${MOUNT_DIR}/src"
 cp -r "./src" "${MOUNT_DIR}/src"
 

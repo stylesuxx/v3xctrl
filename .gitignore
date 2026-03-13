@@ -10,8 +10,8 @@ _version.py
 *.deb
 /build/v3xctrl-client/usr/share
 /build/tmp
-/web-server/static/libs
-/web-server/configs
+/src/v3xctrl_web/static/libs
+/src/v3xctrl_web/configs
 /.pytest_cache
 *.toml
 !android/gradle/libs.versions.toml
