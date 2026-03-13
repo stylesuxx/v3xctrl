@@ -126,6 +126,7 @@
 
     <!-- Connection -->
     <string name="establishing_connection">Establishing Connection…</string>
+    <string name="reconnecting">Reconnecting…</string>
     <string name="abort">Abort</string>
     <string name="ok">OK</string>
     <string name="connection_unauthorized">Session ID not authorized</string>

@@ -15,8 +15,12 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -26,8 +30,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
@@ -68,6 +75,8 @@ fun ViewerScreen(
     spectatorMode: Boolean = false,
     controlSettings: ControlSettings = ControlSettings(),
     isInPipMode: Boolean = false,
+    isReconnecting: Boolean = false,
+    reconnectionGeneration: Int = 0,
     onBack: () -> Unit,
     onNavigateToGeneral: () -> Unit = {},
     onNavigateToNetwork: () -> Unit = {},
@@ -318,7 +327,7 @@ fun ViewerScreen(
         }
     }
 
-    DisposableEffect(Unit) {
+    DisposableEffect(reconnectionGeneration) {
         GstViewer.init()
         onDispose {
             GstViewer.stop()
@@ -389,8 +398,9 @@ fun ViewerScreen(
         }
     }
 
-    // Remember the SurfaceView to persist it across recompositions
-    val surfaceView = remember(connection.videoPort) {
+    // Remember the SurfaceView to persist it across recompositions.
+    // Keyed on reconnectionGeneration to recreate after reconnection.
+    val surfaceView = remember(connection.videoPort, reconnectionGeneration) {
         SurfaceView(context).apply {
             isFocusable = false
             isFocusableInTouchMode = false
@@ -466,6 +476,26 @@ fun ViewerScreen(
             onNavigateToControl = onNavigateToControl,
             modifier = modifier
         )
+    }
+
+    if (isReconnecting) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.7f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                CircularProgressIndicator(color = Color.White)
+                Text(
+                    text = stringResource(R.string.reconnecting),
+                    color = Color.White
+                )
+            }
+        }
     }
 }
 
