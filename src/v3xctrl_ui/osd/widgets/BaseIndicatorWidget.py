@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from collections.abc import Callable
 
-from pygame import Surface, SRCALPHA
+from pygame import SRCALPHA, Surface
 
 from v3xctrl_ui.osd.widgets.Widget import Widget
 

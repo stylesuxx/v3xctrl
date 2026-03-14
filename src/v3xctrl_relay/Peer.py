@@ -1,8 +1,8 @@
 import logging
 import select
 import socket
-import time
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from v3xctrl_control.message import (
@@ -11,12 +11,12 @@ from v3xctrl_control.message import (
     PeerAnnouncement,
     PeerInfo,
 )
-from v3xctrl_helper.exceptions import (
-  UnauthorizedError,
-  PeerRegistrationError,
-  PeerRegistrationAborted,
-)
 from v3xctrl_helper import Address
+from v3xctrl_helper.exceptions import (
+    PeerRegistrationAborted,
+    PeerRegistrationError,
+    UnauthorizedError,
+)
 
 
 class Peer:
@@ -105,7 +105,7 @@ class Peer:
                             raise UnauthorizedError()
                     except ValueError:
                         pass
-            except (socket.error, OSError):
+            except OSError:
                 break
 
         if drained > 0:
@@ -183,7 +183,7 @@ class Peer:
                     except ValueError as e:
                         logging.debug(f"Data could not be parsed: {e}")
 
-            except socket.timeout:
+            except TimeoutError:
                 # Implicit sleep through socket timeout
                 continue
 

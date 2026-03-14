@@ -12,6 +12,7 @@ from v3xctrl_ui.utils.colors import (
     LIGHT_GREY,
     WHITE,
 )
+
 from .BaseWidget import BaseWidget
 
 

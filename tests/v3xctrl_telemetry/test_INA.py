@@ -1,8 +1,8 @@
 """Tests for INA sensor interface."""
 import unittest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-from v3xctrl_telemetry.INA import INA, INARegister, INAUnits
+from v3xctrl_telemetry.INA import INA, INARegister
 
 
 class TestINA(unittest.TestCase):

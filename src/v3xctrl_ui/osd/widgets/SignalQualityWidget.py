@@ -1,20 +1,19 @@
 from enum import IntEnum
 from typing import Any
 
-from pygame import Surface, SRCALPHA
 from material_icons import IconStyle
-
-from v3xctrl_ui.utils.colors import (
-  WHITE,
-  GREEN,
-  RED,
-  YELLOW,
-  ORANGE,
-  GREY,
-)
-from v3xctrl_ui.utils.helpers import get_icon
+from pygame import SRCALPHA, Surface
 
 from v3xctrl_ui.osd.widgets.Widget import Widget
+from v3xctrl_ui.utils.colors import (
+    GREEN,
+    GREY,
+    ORANGE,
+    RED,
+    WHITE,
+    YELLOW,
+)
+from v3xctrl_ui.utils.helpers import get_icon
 
 
 class SignalQuality(IntEnum):

@@ -1,6 +1,6 @@
+import secrets
 import sqlite3
 import string
-import secrets
 
 from v3xctrl_relay.helper import init_db
 

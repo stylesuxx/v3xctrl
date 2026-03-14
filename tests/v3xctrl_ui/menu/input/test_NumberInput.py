@@ -1,5 +1,6 @@
 # Required before importing pygame, otherwise screen might flicker during tests
 import os
+
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 import unittest
@@ -9,17 +10,17 @@ import pygame
 import pygame.freetype
 from pygame.event import Event
 from pygame.locals import (
-  K_BACKSPACE,
-  K_LEFT,
-  K_RIGHT,
-  K_UP,
-  K_DOWN,
-  K_RETURN,
-  KEYDOWN,
-  MOUSEBUTTONDOWN,
+    K_BACKSPACE,
+    K_DOWN,
+    K_LEFT,
+    K_RETURN,
+    K_RIGHT,
+    K_UP,
+    KEYDOWN,
+    MOUSEBUTTONDOWN,
 )
 
-from v3xctrl_ui.menu.input import NumberInput, BaseInput
+from v3xctrl_ui.menu.input import BaseInput, NumberInput
 
 
 class TestNumberInput(unittest.TestCase):

@@ -1,12 +1,13 @@
 # Required before importing pygame, otherwise screen might flicker during tests
 import os
+
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 import unittest
 from unittest.mock import MagicMock, patch
 
 import pygame
-from pygame import Surface, SRCALPHA
+from pygame import SRCALPHA, Surface
 
 from v3xctrl_ui.osd.widgets.BaseIndicatorWidget import BaseIndicatorWidget
 

@@ -3,7 +3,7 @@ import logging
 import os
 import socket
 import threading
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from v3xctrl_gst.Command import Command, CommandValidationError
 
@@ -95,7 +95,7 @@ class ControlServer:
                     )
                     client_thread.start()
 
-                except socket.timeout:
+                except TimeoutError:
                     continue
 
                 except Exception as e:

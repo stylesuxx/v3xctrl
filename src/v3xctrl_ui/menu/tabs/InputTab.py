@@ -1,16 +1,14 @@
-from typing import Any
 from collections.abc import Callable
+from typing import Any
 
 from pygame import Surface
 
+from v3xctrl_ui.core.controllers.input.GamepadController import GamepadController
+from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.menu.calibration.GamepadCalibrationWidget import GamepadCalibrationWidget
+from v3xctrl_ui.menu.input import KeyMappingWidget
 from v3xctrl_ui.utils.fonts import LABEL_FONT
 from v3xctrl_ui.utils.i18n import t
-from v3xctrl_ui.core.controllers.input.GamepadController import GamepadController
-from v3xctrl_ui.menu.calibration.GamepadCalibrationWidget import (
-  GamepadCalibrationWidget
-)
-from v3xctrl_ui.menu.input import KeyMappingWidget
-from v3xctrl_ui.core.Settings import Settings
 
 from .Tab import Tab
 from .VerticalLayout import VerticalLayout

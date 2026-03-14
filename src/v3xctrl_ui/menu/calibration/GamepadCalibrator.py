@@ -1,12 +1,10 @@
 import logging
 import time
-
 from collections.abc import Callable
 
-from v3xctrl_ui.menu.DialogBox import DialogBox
-
-from v3xctrl_ui.menu.calibration.defs import CalibrationStage, CalibratorState, AxisCalibrationData
 from v3xctrl_ui.menu.calibration.CalibrationSteps import CalibrationSteps
+from v3xctrl_ui.menu.calibration.defs import AxisCalibrationData, CalibrationStage, CalibratorState
+from v3xctrl_ui.menu.DialogBox import DialogBox
 
 
 class GamepadCalibrator:
@@ -147,18 +145,12 @@ class GamepadCalibrator:
             current_min = min(axis_data.max_values)
 
             # Track max stability
-            if axis_data.max_last is None:
-                axis_data.max_last = current_max
-                axis_data.max_stable_since = now
-            elif current_max > axis_data.max_last + 0.01:
+            if axis_data.max_last is None or current_max > axis_data.max_last + 0.01:
                 axis_data.max_last = current_max
                 axis_data.max_stable_since = now
 
             # Track min stability
-            if axis_data.min_last is None:
-                axis_data.min_last = current_min
-                axis_data.min_stable_since = now
-            elif current_min < axis_data.min_last - 0.01:
+            if axis_data.min_last is None or current_min < axis_data.min_last - 0.01:
                 axis_data.min_last = current_min
                 axis_data.min_stable_since = now
 

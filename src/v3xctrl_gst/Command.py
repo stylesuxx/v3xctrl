@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from typing import Any, Literal, get_args
 
-
 ActionType = Literal['stop', 'list', 'get', 'set', 'recording', 'stats']
 valid_actions = get_args(ActionType)
 

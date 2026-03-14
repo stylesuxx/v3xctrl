@@ -1,6 +1,8 @@
 import unittest
+
 import msgpack
-from v3xctrl_control.message import Message, Heartbeat
+
+from v3xctrl_control.message import Heartbeat, Message
 
 
 class TestHeartbeat(unittest.TestCase):

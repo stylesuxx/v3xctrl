@@ -1,16 +1,14 @@
-from collections import deque
 import io
 import logging
 import time
+import urllib.request
+from collections import deque
 
 import pygame
+from material_icons import IconStyle, MaterialIcons
 from pygame.freetype import Font
 
-import urllib.request
-from material_icons import MaterialIcons, IconStyle
-
 from v3xctrl_helper import clamp, color_to_hex
-
 
 _icon_cache: dict[tuple[str, int, tuple[int, int, int], IconStyle, int], pygame.Surface] = {}
 _mask_cache: dict[tuple[int, int, int, int], pygame.Surface] = {}

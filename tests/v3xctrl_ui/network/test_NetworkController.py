@@ -122,9 +122,7 @@ class TestNetworkController(unittest.TestCase):
 
     def test_setup_ports_no_relay(self):
         """Test setup_ports without relay."""
-        from v3xctrl_ui.network.NetworkSetup import (
-            NetworkSetupResult, ServerSetupResult, VideoReceiverSetupResult
-        )
+        from v3xctrl_ui.network.NetworkSetup import NetworkSetupResult, ServerSetupResult, VideoReceiverSetupResult
 
         nm = NetworkController(self.settings, self.handlers)
 
@@ -163,8 +161,10 @@ class TestNetworkController(unittest.TestCase):
     def test_setup_ports_with_relay_success(self):
         """Test setup_ports with successful relay connection."""
         from v3xctrl_ui.network.NetworkSetup import (
-            NetworkSetupResult, ServerSetupResult,
-            VideoReceiverSetupResult, RelaySetupResult
+            NetworkSetupResult,
+            RelaySetupResult,
+            ServerSetupResult,
+            VideoReceiverSetupResult,
         )
 
         nm = NetworkController(self.settings, self.handlers)
@@ -207,8 +207,10 @@ class TestNetworkController(unittest.TestCase):
     def test_setup_ports_with_relay_registration_error(self):
         """Test setup_ports with peer registration error."""
         from v3xctrl_ui.network.NetworkSetup import (
-            NetworkSetupResult, ServerSetupResult,
-            VideoReceiverSetupResult, RelaySetupResult
+            NetworkSetupResult,
+            RelaySetupResult,
+            ServerSetupResult,
+            VideoReceiverSetupResult,
         )
 
         nm = NetworkController(self.settings, self.handlers)
@@ -242,9 +244,7 @@ class TestNetworkController(unittest.TestCase):
 
     def test_setup_ports_server_error(self):
         """Test setup_ports when server initialization fails."""
-        from v3xctrl_ui.network.NetworkSetup import (
-            NetworkSetupResult, ServerSetupResult, VideoReceiverSetupResult
-        )
+        from v3xctrl_ui.network.NetworkSetup import NetworkSetupResult, ServerSetupResult, VideoReceiverSetupResult
 
         nm = NetworkController(self.settings, self.handlers)
 

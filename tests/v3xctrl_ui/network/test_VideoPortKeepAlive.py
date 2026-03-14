@@ -1,5 +1,4 @@
 import socket
-import time
 import unittest
 
 from v3xctrl_control.message import Heartbeat, Message

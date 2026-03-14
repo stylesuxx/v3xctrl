@@ -1,5 +1,5 @@
-import json
 import functools
+import json
 import logging
 from collections.abc import Callable
 from typing import Any

@@ -2,12 +2,12 @@
 from threading import Lock
 
 from v3xctrl_ui.core.dataclasses import (
-    ServiceFlags,
-    GstFlags,
-    VideoCoreFlags,
-    ThrottleFlags,
     BatteryData,
+    GstFlags,
+    ServiceFlags,
     SignalData,
+    ThrottleFlags,
+    VideoCoreFlags,
 )
 
 

@@ -1,16 +1,17 @@
 # Required before importing pygame, otherwise screen might flicker during tests
 import os
+
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 import unittest
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pygame
 from pygame import Surface
-from typing import Any
 
-from v3xctrl_ui.menu.tabs.Tab import Tab
 from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.menu.tabs.Tab import Tab
 
 
 class ConcreteTab(Tab):

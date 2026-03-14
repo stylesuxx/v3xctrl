@@ -3,11 +3,10 @@ from typing import Any
 from pygame import Surface
 
 from v3xctrl_helper import is_int
-
+from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.menu.input import NumberInput
 from v3xctrl_ui.utils.fonts import LABEL_FONT, MONO_FONT
 from v3xctrl_ui.utils.i18n import t
-from v3xctrl_ui.menu.input import NumberInput
-from v3xctrl_ui.core.Settings import Settings
 
 from .Tab import Tab
 from .VerticalLayout import VerticalLayout

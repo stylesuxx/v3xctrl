@@ -1,7 +1,7 @@
+import queue
 import socket
 import time
 import unittest
-import queue
 from unittest.mock import MagicMock
 
 from src.v3xctrl_control import UDPReceiver

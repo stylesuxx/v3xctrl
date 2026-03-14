@@ -1,15 +1,14 @@
-import time
 import threading
+import time
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from src.v3xctrl_control import Server, State
 from src.v3xctrl_control.message import (
-    Syn,
-    Heartbeat,
-    Message,
     Command,
     CommandAck,
+    Message,
+    Syn,
 )
 from tests.v3xctrl_control.config import HOST, PORT
 

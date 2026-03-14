@@ -59,7 +59,7 @@ class SelfTestClient:
                         ready = True
                         print(" OK")
                         break
-                except socket.timeout:
+                except TimeoutError:
                     print(".", end='', flush=True)
 
             if not ready:
@@ -94,7 +94,7 @@ class SelfTestClient:
                             print(f"\n! Unexpected response for timeout {timeout_value:.2f}: {data}")
                             return
 
-                    except socket.timeout:
+                    except TimeoutError:
                         if attempt < max_request_attempts - 1:
                             print(".", end='', flush=True)
                         continue
@@ -108,7 +108,7 @@ class SelfTestClient:
                 try:
                     while True:
                         data, _ = client_socket.recvfrom(BUFFER_SIZE)
-                except socket.timeout:
+                except TimeoutError:
                     pass
 
                 # Wait for completion with extended timeout
@@ -121,14 +121,14 @@ class SelfTestClient:
                     try:
                         while True:
                             client_socket.recvfrom(BUFFER_SIZE)
-                    except socket.timeout:
+                    except TimeoutError:
                         pass
 
                     print(f"+ Received timeout response: {timeout_value:7.2f} OK")
                     last_successful_timeout = timeout_value
                     timeout_value += self.increment
 
-                except socket.timeout:
+                except TimeoutError:
                     print("")
                     print("--- Results ---")
                     print(f"Minimum hole lifetime: {last_successful_timeout:.2f}s")

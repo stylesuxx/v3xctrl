@@ -1,11 +1,12 @@
-import numpy as np
-from numpy.typing import NDArray
-import pandas as pd
-import matplotlib.pyplot as plt
-from matplotlib import gridspec
-from matplotlib.table import Table
-from matplotlib.axes import Axes
 from typing import Any
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from matplotlib import gridspec
+from matplotlib.axes import Axes
+from matplotlib.table import Table
+from numpy.typing import NDArray
 
 
 def read_s1p(
@@ -13,7 +14,7 @@ def read_s1p(
 ) -> tuple[NDArray[Any], NDArray[Any], float | None]:
     freqs: list[float] = []
     s11: list[float] = []
-    with open(file_path, 'r') as f:
+    with open(file_path) as f:
         data_format: str | None = None
         freq_unit: str | None = None
         z0: float | None = None
@@ -143,8 +144,8 @@ def plot_lte_bands_center_based(
 
 
 if __name__ == '__main__':
-    import sys
     import os
+    import sys
 
     if len(sys.argv) != 2:
         print("Usage: python swr_lte_plotter.py <file.s1p>")

@@ -1,9 +1,8 @@
-import json
 import argparse
+import json
 from typing import Any
 
 from v3xctrl_gst import ControlClient
-
 
 actions = [
     'set',

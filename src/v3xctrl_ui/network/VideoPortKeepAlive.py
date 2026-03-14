@@ -5,7 +5,6 @@ import time
 
 from v3xctrl_control.message import Heartbeat
 
-
 # Keepalive interval when video is not running (NAT hole punch)
 INTERVAL_IDLE_S = 1.0
 

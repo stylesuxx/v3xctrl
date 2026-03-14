@@ -1,15 +1,15 @@
 """Core dataclasses for v3xctrl_ui."""
-from dataclasses import dataclass, field
 from collections import deque
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 # Re-export telemetry dataclasses for backwards compatibility
 # Import directly from dataclasses module to avoid hardware dependencies (smbus3)
-from v3xctrl_telemetry.dataclasses import (
-    ServiceFlags,
+from v3xctrl_telemetry.dataclasses import (  # noqa: F401
     GstFlags,
-    VideoCoreFlags,
+    ServiceFlags,
     ThrottleFlags,
+    VideoCoreFlags,
 )
 
 if TYPE_CHECKING:

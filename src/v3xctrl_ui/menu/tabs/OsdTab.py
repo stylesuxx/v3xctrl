@@ -2,14 +2,13 @@ from typing import Any
 
 from pygame import Surface
 
+from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.menu.input import Checkbox
 from v3xctrl_ui.utils.fonts import LABEL_FONT
 from v3xctrl_ui.utils.i18n import t
-from v3xctrl_ui.menu.input import Checkbox
-from v3xctrl_ui.core.Settings import Settings
 
 from .Tab import Tab
 from .VerticalLayout import VerticalLayout
-
 
 # (settings_key, label)
 CHECKBOX_CONFIG: list[tuple[str, str]] = [

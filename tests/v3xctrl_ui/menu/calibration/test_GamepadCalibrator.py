@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
+from v3xctrl_ui.menu.calibration.defs import AxisCalibrationData, CalibrationStage, CalibratorState
 from v3xctrl_ui.menu.calibration.GamepadCalibrator import GamepadCalibrator
-from v3xctrl_ui.menu.calibration.defs import CalibrationStage, CalibratorState, AxisCalibrationData
 from v3xctrl_ui.menu.DialogBox import DialogBox
 
 

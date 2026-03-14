@@ -2,25 +2,23 @@ import errno
 import logging
 import socket
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
-from collections.abc import Callable
 
 from v3xctrl_control import Server
-from v3xctrl_control.message import Heartbeat
+from v3xctrl_control.message import Heartbeat, PeerAnnouncement
 from v3xctrl_control.State import State
-from v3xctrl_helper.exceptions import PeerRegistrationError, PeerRegistrationAborted
-from v3xctrl_control.message import PeerAnnouncement
+from v3xctrl_helper.exceptions import PeerRegistrationAborted, PeerRegistrationError
 from v3xctrl_relay.Peer import Peer
 from v3xctrl_relay.Role import Role
 from v3xctrl_tcp import Transport
 from v3xctrl_tcp.TcpTunnel import TcpTunnel
-
+from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.network.TcpServer import TcpServer
 from v3xctrl_ui.network.video.Receiver import Receiver
 from v3xctrl_ui.network.video.ReceiverPyAV import ReceiverPyAV
 from v3xctrl_ui.network.VideoPortKeepAlive import VideoPortKeepAlive
-from v3xctrl_ui.network.TcpServer import TcpServer
-from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.utils.gstreamer import is_gstreamer_available
 
 # GStreamer receiver is loaded lazily if available

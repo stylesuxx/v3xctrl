@@ -3,11 +3,11 @@ import time
 from collections.abc import Callable
 
 import gi
+
 gi.require_version('Gst', '1.0')
 gi.require_version('GstApp', '1.0')
-from gi.repository import Gst, GLib, GstApp
-
 import numpy as np
+from gi.repository import GLib, Gst, GstApp
 
 from v3xctrl_ui.network.video.Receiver import Receiver
 

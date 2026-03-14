@@ -4,25 +4,20 @@ here.
 
 The only public interface is the get_telemetry() method.
 """
-from atlib import AIR780EU
-from dataclasses import asdict
 import logging
-from collections.abc import Callable
-from typing import Any, TypeVar
 import threading
 import time
+from collections.abc import Callable
+from dataclasses import asdict
+from typing import Any, TypeVar
 
-from v3xctrl_telemetry import (
-    SignalInfo,
-    CellInfo,
-    LocationInfo,
-    BatteryInfo,
-    TelemetryPayload
-)
+from atlib import AIR780EU
+
+from v3xctrl_telemetry import BatteryInfo, CellInfo, LocationInfo, SignalInfo, TelemetryPayload
 from v3xctrl_telemetry.BatteryTelemetry import BatteryTelemetry
+from v3xctrl_telemetry.GstTelemetry import GstTelemetry
 from v3xctrl_telemetry.ServiceTelemetry import ServiceTelemetry
 from v3xctrl_telemetry.VideoCoreTelemetry import VideoCoreTelemetry
-from v3xctrl_telemetry.GstTelemetry import GstTelemetry
 
 T = TypeVar("T")
 

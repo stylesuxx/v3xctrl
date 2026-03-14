@@ -1,10 +1,11 @@
-from flask_smorest import Blueprint
-from flask import Response
-from flask.views import MethodView
 import json
 import subprocess
 
-from .response import success, error
+from flask import Response
+from flask.views import MethodView
+from flask_smorest import Blueprint
+
+from .response import error, success
 
 blueprint = Blueprint('modem', 'modem', url_prefix='/modem', description='Modem control endpoints')
 

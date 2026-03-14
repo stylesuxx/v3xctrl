@@ -1,9 +1,10 @@
 import argparse
+import json
 from pathlib import Path
+
 from flask import Flask, render_template
 from flask_cors import CORS
 from flask_smorest import Api
-import json
 
 from .routes import register_routes
 

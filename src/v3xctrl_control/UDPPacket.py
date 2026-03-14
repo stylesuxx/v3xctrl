@@ -1,7 +1,7 @@
 import time
 
 
-class UDPPacket():
+class UDPPacket:
     """
     Use time.time for inter system checks - this would obviously require the
     clocks on both systems to be synchronized, by for example using the same NTP

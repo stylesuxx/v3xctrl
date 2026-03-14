@@ -1,11 +1,11 @@
 from collections.abc import Callable
 
 import pygame
-from pygame import Surface, Rect
+from pygame import Rect, Surface
 from pygame.freetype import Font
 
-from v3xctrl_ui.utils.colors import MID_GREY, WHITE, DARK_GREY, GAINSBORO
 from v3xctrl_ui.menu.input import BaseWidget
+from v3xctrl_ui.utils.colors import DARK_GREY, GAINSBORO, MID_GREY, WHITE
 from v3xctrl_ui.utils.helpers import get_icon
 
 
@@ -109,7 +109,7 @@ class Checkbox(BaseWidget):
         font_height = font_ascent + font_descent
         label_y = (height - font_height + font_descent) // 2 + 2
 
-        for state in states.keys():
+        for state in states:
             surface = Surface((width, height), pygame.SRCALPHA)
             surface.fill((0, 0, 0, 0))
             surface.blit(states[state], (icon_x, icon_y))

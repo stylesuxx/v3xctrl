@@ -9,27 +9,27 @@ CTRL-C will exit the client cleanly
 """
 import argparse
 import logging
-from concurrent.futures import ThreadPoolExecutor
-from rpi_servo_pwm import HardwarePWM
 import signal
 import subprocess
 import sys
 import time
 import traceback
 import types
+from concurrent.futures import ThreadPoolExecutor
+
+from rpi_servo_pwm import HardwarePWM
 
 from v3xctrl_control import Client, State
-from v3xctrl_gst import ControlClient
-from v3xctrl_control.Telemetry import Telemetry as TelemetryHandler
 from v3xctrl_control.message import (
-  Command,
-  Control,
-  PeerAnnouncement,
-  Telemetry,
-  Latency,
+    Command,
+    Control,
+    Latency,
+    PeerAnnouncement,
+    Telemetry,
 )
-
-from v3xctrl_helper import clamp, Address
+from v3xctrl_control.Telemetry import Telemetry as TelemetryHandler
+from v3xctrl_gst import ControlClient
+from v3xctrl_helper import Address, clamp
 from v3xctrl_tcp import Transport
 from v3xctrl_tcp.TcpTunnel import TcpTunnel
 

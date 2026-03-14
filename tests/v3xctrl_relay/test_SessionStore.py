@@ -4,8 +4,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from v3xctrl_relay.SessionStore import SessionStore
 from v3xctrl_relay.helper import init_db
+from v3xctrl_relay.SessionStore import SessionStore
 
 
 class TestSessionStore(unittest.TestCase):

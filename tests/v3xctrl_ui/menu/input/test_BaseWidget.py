@@ -1,6 +1,7 @@
 """Tests for BaseWidget."""
 import os
 import unittest
+
 import pygame
 
 # Set SDL to use dummy video driver

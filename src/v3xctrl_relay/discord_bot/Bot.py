@@ -3,8 +3,8 @@ import logging
 import discord
 from discord import app_commands
 
-from v3xctrl_relay.SessionStore import SessionStore
 from v3xctrl_relay.discord_bot.testdrive import TestdriveHandler
+from v3xctrl_relay.SessionStore import SessionStore
 
 
 class Bot(discord.Client):

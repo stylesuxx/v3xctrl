@@ -2,13 +2,14 @@
 import os
 import unittest
 from unittest.mock import MagicMock
+
 import pygame
 
 # Set SDL to use dummy video driver
 os.environ['SDL_VIDEODRIVER'] = 'dummy'
 
-from v3xctrl_ui.menu.tabs.GeneralTab import GeneralTab
 from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.menu.tabs.GeneralTab import GeneralTab
 
 
 class TestGeneralTab(unittest.TestCase):

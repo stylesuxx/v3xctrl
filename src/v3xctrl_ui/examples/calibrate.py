@@ -1,12 +1,10 @@
-import pygame
-
 from typing import Any
 
+import pygame
+
+from v3xctrl_ui.menu.calibration.GamepadCalibrationWidget import GamepadCalibrationWidget
 from v3xctrl_ui.utils.colors import DARK_GREY
 from v3xctrl_ui.utils.fonts import LABEL_FONT
-from v3xctrl_ui.core.controllers.input.GamepadController import GamepadController
-from v3xctrl_ui.menu.calibration.GamepadCalibrationWidget import GamepadCalibrationWidget
-
 
 # This mocks what will be saved in the config file after a calibration
 calibrations: dict[str, Any] = {

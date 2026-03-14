@@ -3,9 +3,8 @@ import logging
 import socket
 from typing import Any
 
-from flask import Blueprint, jsonify, redirect, render_template, session, url_for
-
 from auth import login_required
+from flask import Blueprint, jsonify, render_template, session
 
 
 class RelayClient:

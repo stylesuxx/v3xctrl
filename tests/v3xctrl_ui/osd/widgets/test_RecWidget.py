@@ -1,13 +1,14 @@
 # Required before importing pygame, otherwise screen might flicker during tests
 import os
+
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 import unittest
 
 import pygame
 
-from v3xctrl_ui.utils.colors import WHITE, RED
 from v3xctrl_ui.osd.widgets import RecWidget
+from v3xctrl_ui.utils.colors import RED, WHITE
 
 
 class TestRecWidget(unittest.TestCase):

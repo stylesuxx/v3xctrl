@@ -1,13 +1,14 @@
-from flask_smorest import Blueprint
-from flask.views import MethodView
-from flask import request, current_app, Response
-import subprocess
 import json
 import os
 import shutil
+import subprocess
 from pathlib import Path
 
-from .response import success, error
+from flask import Response, current_app, request
+from flask.views import MethodView
+from flask_smorest import Blueprint
+
+from .response import error, success
 
 blueprint = Blueprint('config', 'config', url_prefix='/config', description='Configuration management')
 
@@ -69,7 +70,7 @@ class Config(MethodView):
                 except Exception:
                     pass
 
-            return error(f"Failed to save configuration: {str(e)}")
+            return error(f"Failed to save configuration: {e!s}")
 
         finally:
             if temp_path.exists():

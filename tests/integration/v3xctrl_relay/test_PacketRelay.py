@@ -4,15 +4,14 @@ import time
 import unittest
 from unittest.mock import Mock, patch
 
-
-from v3xctrl_helper import Address
 from v3xctrl_control.message import PeerAnnouncement
+from v3xctrl_helper import Address
+from v3xctrl_relay.custom_types import (
+    PortType,
+    Role,
+)
 from v3xctrl_relay.PacketRelay import Mapping, PacketRelay
 from v3xctrl_relay.SessionStore import SessionStore
-from v3xctrl_relay.custom_types import (
-    Role,
-    PortType,
-)
 
 
 class TestPacketRelayIntegration(unittest.TestCase):
@@ -171,10 +170,9 @@ class TestPacketRelayIntegration(unittest.TestCase):
 
         # Advance time past timeout so orphaned session will be removed
         future = time.time() + self.timeout + 1
-        with patch('time.time', return_value=future):
-            with patch('v3xctrl_relay.PacketRelay.logger') as mock_logger:
-                self.relay.cleanup_expired_mappings()
-                mock_logger.info.assert_called()
+        with patch('time.time', return_value=future), patch('v3xctrl_relay.PacketRelay.logger') as mock_logger:
+            self.relay.cleanup_expired_mappings()
+            mock_logger.info.assert_called()
 
         # Session should be removed
         peers_after = self.relay.get_session_peers(self.session_id)

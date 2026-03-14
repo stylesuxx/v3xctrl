@@ -1,10 +1,9 @@
 import socket
-
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from src.v3xctrl_relay.Peer import Peer, PeerRegistrationError
-from v3xctrl_control.message import PeerAnnouncement, PeerInfo, Error, Message
+from v3xctrl_control.message import Error, Message, PeerAnnouncement, PeerInfo
 from v3xctrl_helper.exceptions import UnauthorizedError
 
 
@@ -48,7 +47,7 @@ class TestPeer(unittest.TestCase):
         mock_sock = MagicMock()
         mock_sock.recvfrom.side_effect = [
             (b"", ("server", 1234)),  # Empty data - should be skipped
-            socket.timeout()  # Then timeout to trigger sleep
+            TimeoutError()  # Then timeout to trigger sleep
         ]
 
         with (
@@ -186,7 +185,7 @@ class TestPeer(unittest.TestCase):
         def side_effect(*args, **kwargs):
             # Set abort event during the first iteration
             self.peer._abort_event.set()
-            raise socket.timeout()
+            raise TimeoutError()
 
         mock_sock.recvfrom.side_effect = side_effect
 
@@ -210,11 +209,11 @@ class TestPeer(unittest.TestCase):
             call_count += 1
             if call_count == 1:
                 # First call: timeout
-                raise socket.timeout()
+                raise TimeoutError()
             else:
                 # Second call: set abort and timeout again
                 self.peer._abort_event.set()
-                raise socket.timeout()
+                raise TimeoutError()
 
         mock_sock.recvfrom.side_effect = timeout_then_abort
 
@@ -347,9 +346,8 @@ class TestPeer(unittest.TestCase):
         with patch.object(
             self.peer, "_bind_socket",
             side_effect=OSError(98, "Address already in use")
-        ):
-            with self.assertRaises(OSError):
-                self.peer.setup("viewer", {"video": 5000, "control": 6000})
+        ), self.assertRaises(OSError):
+            self.peer.setup("viewer", {"video": 5000, "control": 6000})
 
         self.assertTrue(self.peer._finalized_event.is_set())
 
@@ -366,9 +364,8 @@ class TestPeer(unittest.TestCase):
                 return first_sock
             raise OSError(98, "Address already in use")
 
-        with patch.object(self.peer, "_bind_socket", side_effect=bind_side_effect):
-            with self.assertRaises(OSError):
-                self.peer.setup("viewer", {"video": 5000, "control": 6000})
+        with patch.object(self.peer, "_bind_socket", side_effect=bind_side_effect), self.assertRaises(OSError):
+            self.peer.setup("viewer", {"video": 5000, "control": 6000})
 
         first_sock.close.assert_called_once()
 

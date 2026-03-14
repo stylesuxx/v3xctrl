@@ -2,8 +2,8 @@
 import unittest
 from unittest.mock import patch
 
+from v3xctrl_telemetry.dataclasses import ThrottleFlags, VideoCoreFlags
 from v3xctrl_telemetry.VideoCoreTelemetry import VideoCoreTelemetry
-from v3xctrl_telemetry.dataclasses import VideoCoreFlags, ThrottleFlags
 
 
 class TestVideoCoreTelemetry(unittest.TestCase):

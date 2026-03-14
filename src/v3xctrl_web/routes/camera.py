@@ -1,12 +1,11 @@
-from flask_smorest import Blueprint
-from flask import request
-from flask.views import MethodView
 import json
 import subprocess
 
-from flask import Response
+from flask import Response, request
+from flask.views import MethodView
+from flask_smorest import Blueprint
 
-from .response import success, error
+from .response import error, success
 
 blueprint = Blueprint('camera', 'camera', url_prefix='/camera', description='Camera control endpoints')
 

@@ -1,7 +1,7 @@
 """Tests for TelemetrySource protocol."""
 import sys
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 # Mock GStreamer before any imports
 sys.modules['gi'] = MagicMock()
@@ -10,16 +10,16 @@ sys.modules['gi.repository.Gst'] = MagicMock()
 sys.modules['gi.repository.GLib'] = MagicMock()
 
 from v3xctrl_telemetry import (
-    ServiceFlags,
-    VideoCoreFlags,
-    ThrottleFlags,
     GstFlags,
+    ServiceFlags,
+    ThrottleFlags,
+    VideoCoreFlags,
 )
-from v3xctrl_telemetry.TelemetrySource import TelemetrySource
-from v3xctrl_telemetry.BatteryTelemetry import BatteryTelemetry, BatteryState
-from v3xctrl_telemetry.ServiceTelemetry import ServiceTelemetry
-from v3xctrl_telemetry.VideoCoreTelemetry import VideoCoreTelemetry
+from v3xctrl_telemetry.BatteryTelemetry import BatteryState, BatteryTelemetry
 from v3xctrl_telemetry.GstTelemetry import GstTelemetry
+from v3xctrl_telemetry.ServiceTelemetry import ServiceTelemetry
+from v3xctrl_telemetry.TelemetrySource import TelemetrySource
+from v3xctrl_telemetry.VideoCoreTelemetry import VideoCoreTelemetry
 
 
 class TestTelemetrySourceProtocol(unittest.TestCase):

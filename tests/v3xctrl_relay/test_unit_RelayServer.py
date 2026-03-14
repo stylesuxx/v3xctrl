@@ -12,11 +12,11 @@ from v3xctrl_control.message import (
     Message,
     PeerAnnouncement,
 )
-from v3xctrl_tcp import Transport
-from v3xctrl_relay.custom_types import Role, PortType, Session, SpectatorEntry, PeerEntry
+from v3xctrl_relay.custom_types import PortType, Role, Session
 from v3xctrl_relay.ForwardTarget import TcpTarget
 from v3xctrl_relay.PacketRelay import Mapping
 from v3xctrl_relay.RelayServer import RelayServer
+from v3xctrl_tcp import Transport
 
 
 class TestRelayServerUnitTests(unittest.TestCase):

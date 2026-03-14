@@ -17,7 +17,7 @@ import time
 from v3xctrl_helper import Address
 
 from .Base import Base
-from .message import Message, Syn, Ack, Command, CommandAck
+from .message import Ack, Command, CommandAck, Message, Syn
 from .MessageHandler import MessageHandler
 from .State import State
 from .UDPTransmitter import UDPTransmitter

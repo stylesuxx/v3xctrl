@@ -1,7 +1,8 @@
 """Widget group abstraction for unified rendering."""
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
-from collections.abc import Callable
+
 from v3xctrl_ui.osd.widgets import Widget
 
 

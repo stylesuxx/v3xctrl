@@ -1,9 +1,9 @@
 """Display management for handling screen modes, sizing, and scaling."""
-from typing import TYPE_CHECKING
 import logging
 import sys
 import time
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pygame
 

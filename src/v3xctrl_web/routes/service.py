@@ -1,9 +1,10 @@
-from flask.views import MethodView
-from flask import Response
-from flask_smorest import Blueprint
 import subprocess
 
-from .response import success, error
+from flask import Response
+from flask.views import MethodView
+from flask_smorest import Blueprint
+
+from .response import error, success
 
 blueprint = Blueprint('service', 'service', url_prefix='/service', description='Systemd service control')
 

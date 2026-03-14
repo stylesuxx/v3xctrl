@@ -1,8 +1,8 @@
-from abc import ABC, abstractmethod
-from collections import deque
 import logging
 import threading
 import time
+from abc import ABC, abstractmethod
+from collections import deque
 from collections.abc import Callable
 
 import numpy as np

@@ -15,17 +15,17 @@ tx.stop()
 tx.join()
 """
 import asyncio
+import concurrent.futures
 import logging
-from queue import Queue, Empty
 import socket
 import threading
 import time
-import concurrent.futures
+from queue import Empty, Queue
 
 from v3xctrl_helper import Address
 
-from .UDPPacket import UDPPacket
 from .message import Message
+from .UDPPacket import UDPPacket
 
 
 class UDPTransmitter(threading.Thread):

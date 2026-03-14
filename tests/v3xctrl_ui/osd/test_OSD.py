@@ -1,20 +1,20 @@
 import os
+
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
-from collections import deque
 import tempfile
 import time
-from pathlib import Path
-
 import unittest
+from collections import deque
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pygame
 
-from v3xctrl_ui.core.Settings import Settings
-from v3xctrl_ui.osd.OSD import OSD
-from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 from v3xctrl_control.message import Latency, Telemetry
+from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.core.TelemetryContext import TelemetryContext
+from v3xctrl_ui.osd.OSD import OSD
 
 
 class TestOSD(unittest.TestCase):

@@ -1,11 +1,11 @@
 from typing import Any
 
-from pygame import Surface, Rect, SRCALPHA, draw
+from pygame import SRCALPHA, Rect, Surface, draw
 
-from v3xctrl_ui.utils.colors import WHITE, GREEN, RED, YELLOW, GREY
+from v3xctrl_ui.osd.widgets.Widget import Widget
+from v3xctrl_ui.utils.colors import GREEN, GREY, RED, WHITE, YELLOW
 from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT
 from v3xctrl_ui.utils.helpers import round_corners
-from v3xctrl_ui.osd.widgets.Widget import Widget
 
 
 class StatusWidget(Widget):

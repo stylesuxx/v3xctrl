@@ -2,8 +2,8 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from v3xctrl_ui.core.Settings import Settings
     from v3xctrl_ui.core.dataclasses import ApplicationModel
+    from v3xctrl_ui.core.Settings import Settings
 
 
 class TimingController:

@@ -1,9 +1,9 @@
-from enum import Enum
 import time
+from enum import Enum
 
 from v3xctrl_helper import Address
-from v3xctrl_tcp import Transport
 from v3xctrl_relay.Role import Role
+from v3xctrl_tcp import Transport
 
 
 class PortType(Enum):

@@ -1,16 +1,16 @@
 """Event handling controller for pygame events."""
 import logging
-from typing import TYPE_CHECKING
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 import pygame
 
 from v3xctrl_ui.core.controllers.input.GamepadController import GamepadController
-from v3xctrl_ui.core.TelemetryContext import TelemetryContext
-from v3xctrl_ui.menu.Menu import Menu
-from v3xctrl_ui.menu.input.Button import Button
-from v3xctrl_ui.network.Commands import Commands
 from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.core.TelemetryContext import TelemetryContext
+from v3xctrl_ui.menu.input.Button import Button
+from v3xctrl_ui.menu.Menu import Menu
+from v3xctrl_ui.network.Commands import Commands
 
 if TYPE_CHECKING:
     from v3xctrl_ui.core.dataclasses import ApplicationModel

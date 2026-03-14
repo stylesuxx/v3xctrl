@@ -1,11 +1,11 @@
-from typing import Any
 from collections.abc import Callable
+from typing import Any
 
 import pygame
 from pygame import Surface
 from pygame.freetype import Font
 
-from v3xctrl_ui.menu.input import Button, BaseWidget
+from v3xctrl_ui.menu.input import BaseWidget, Button
 from v3xctrl_ui.utils.colors import WHITE
 
 # Mapping value is either an int (button index) or a dict (hat mapping)

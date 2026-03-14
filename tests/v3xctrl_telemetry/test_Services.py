@@ -2,8 +2,8 @@
 import unittest
 from unittest.mock import patch
 
-from v3xctrl_telemetry.ServiceTelemetry import ServiceTelemetry
 from v3xctrl_telemetry.dataclasses import ServiceFlags
+from v3xctrl_telemetry.ServiceTelemetry import ServiceTelemetry
 
 
 class TestServiceTelemetry(unittest.TestCase):

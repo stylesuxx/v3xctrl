@@ -1,17 +1,18 @@
 import logging
 import sys
-from threading import Event
 import time
+from threading import Event
 from typing import Any
 
 import gi
-gi.require_version('Gst', '1.0')
-from gi.repository import Gst, GLib
 
-from v3xctrl_gst.SourceRegistry import SourceRegistry
+gi.require_version('Gst', '1.0')
+from gi.repository import GLib, Gst
+
 from v3xctrl_gst.ControlServer import ControlServer
-from v3xctrl_gst.RecordingManager import RecordingManager
 from v3xctrl_gst.QPManager import QPManager
+from v3xctrl_gst.RecordingManager import RecordingManager
+from v3xctrl_gst.SourceRegistry import SourceRegistry
 
 
 class Streamer:

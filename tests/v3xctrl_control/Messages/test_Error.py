@@ -1,7 +1,9 @@
 # tests/v3xctrl_control/message/test_Error.py
 import unittest
+
 import msgpack
-from v3xctrl_control.message import Message, Error
+
+from v3xctrl_control.message import Error, Message
 
 
 class TestError(unittest.TestCase):

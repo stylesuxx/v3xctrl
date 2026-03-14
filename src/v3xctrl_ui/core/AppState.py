@@ -6,18 +6,18 @@ from typing import Any
 
 import pygame
 
-from v3xctrl_ui.core.dataclasses import ApplicationModel
+from v3xctrl_ui.core.controllers.DisplayController import DisplayController
 from v3xctrl_ui.core.controllers.EventController import EventController
+from v3xctrl_ui.core.controllers.input.InputController import InputController
 from v3xctrl_ui.core.controllers.SettingsController import SettingsController
 from v3xctrl_ui.core.controllers.TimingController import TimingController
-from v3xctrl_ui.menu.Menu import Menu
-from v3xctrl_ui.osd.OSD import OSD
+from v3xctrl_ui.core.dataclasses import ApplicationModel
 from v3xctrl_ui.core.Renderer import Renderer
-from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 from v3xctrl_ui.core.Settings import Settings
-from v3xctrl_ui.core.controllers.input.InputController import InputController
-from v3xctrl_ui.core.controllers.DisplayController import DisplayController
+from v3xctrl_ui.core.TelemetryContext import TelemetryContext
+from v3xctrl_ui.menu.Menu import Menu
 from v3xctrl_ui.network.NetworkCoordinator import NetworkCoordinator
+from v3xctrl_ui.osd.OSD import OSD
 
 
 class AppState:

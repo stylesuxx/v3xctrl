@@ -1,26 +1,23 @@
-from concurrent.futures import ThreadPoolExecutor
 import json
 import logging
 import os
 import socket
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
-from v3xctrl_helper import Address
 from v3xctrl_control.message import (
-    Message,
     ConnectionTest,
     ConnectionTestAck,
+    Message,
     PeerAnnouncement,
 )
-
-from v3xctrl_relay.SessionStore import SessionStore
+from v3xctrl_helper import Address
 from v3xctrl_relay.PacketRelay import PacketRelay
-from v3xctrl_relay.TCPAcceptor import TCPAcceptor
 from v3xctrl_relay.Role import Role
-from v3xctrl_tcp import Transport
-from v3xctrl_relay.custom_types import PortType, Session
+from v3xctrl_relay.SessionStore import SessionStore
+from v3xctrl_relay.TCPAcceptor import TCPAcceptor
 
 
 class RelayServer(threading.Thread):

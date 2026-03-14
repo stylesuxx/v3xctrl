@@ -2,22 +2,22 @@
 Base class for Server AND Client - disregard the name, they share more
 than you might think.
 """
-from abc import ABC, abstractmethod
-from collections import defaultdict
 import logging
 import threading
+import time
+from abc import ABC, abstractmethod
+from collections import defaultdict
 from collections.abc import Callable
 from typing import Any
-import time
 
 from v3xctrl_helper import (
-  Address,
-  MessageFromAddress,
+    Address,
+    MessageFromAddress,
 )
 
-from .State import State
-from .message import Message, Heartbeat
 from .handler_types import Handler, T
+from .message import Heartbeat, Message
+from .State import State
 
 
 class InitializationError(Exception):

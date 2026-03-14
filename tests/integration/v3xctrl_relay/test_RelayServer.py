@@ -7,11 +7,13 @@ import unittest
 from unittest.mock import Mock, patch
 
 from v3xctrl_control.message import (
-    PeerAnnouncement, ConnectionTest, ConnectionTestAck, Message,
+    ConnectionTest,
+    ConnectionTestAck,
+    Message,
+    PeerAnnouncement,
 )
-from v3xctrl_relay.custom_types import Role, PortType
+from v3xctrl_relay.custom_types import PortType, Role, Session
 from v3xctrl_relay.RelayServer import RelayServer
-from v3xctrl_relay.custom_types import Session
 
 
 class TestRelayServerIntegration(unittest.TestCase):

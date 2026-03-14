@@ -1,7 +1,6 @@
-from flask import jsonify
 from typing import Any
 
-from flask import Response
+from flask import Response, jsonify
 
 
 def success(data: Any = None, status: int = 200) -> tuple[Response, int]:

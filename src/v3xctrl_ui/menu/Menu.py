@@ -1,31 +1,22 @@
 import math
 import threading
 import time
+from collections.abc import Callable
+from typing import NamedTuple
 
 import pygame
 from pygame import Surface, event
-from typing import NamedTuple
-from collections.abc import Callable
 
 from v3xctrl_control.message import Command
 from v3xctrl_relay.helper import test_relay_connection
-
-from v3xctrl_ui.utils.colors import WHITE, DARK_GREY, CHARCOAL, GREY, TRANSPARENT_BLACK
-from v3xctrl_ui.utils.fonts import MAIN_FONT
-from v3xctrl_ui.utils.i18n import t
 from v3xctrl_ui.core.controllers.input.GamepadController import GamepadController
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 from v3xctrl_ui.menu.input import Button
-from v3xctrl_ui.menu.tabs import (
-  GeneralTab,
-  InputTab,
-  FrequenciesTab,
-  StreamerTab,
-  OsdTab,
-  NetworkTab,
-  Tab
-)
+from v3xctrl_ui.menu.tabs import FrequenciesTab, GeneralTab, InputTab, NetworkTab, OsdTab, StreamerTab, Tab
+from v3xctrl_ui.utils.colors import CHARCOAL, DARK_GREY, GREY, TRANSPARENT_BLACK, WHITE
+from v3xctrl_ui.utils.fonts import MAIN_FONT
+from v3xctrl_ui.utils.i18n import t
 
 
 class TabEntry(NamedTuple):

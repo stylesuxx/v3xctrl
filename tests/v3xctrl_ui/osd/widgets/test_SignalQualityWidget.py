@@ -1,12 +1,13 @@
 # Required before importing pygame, otherwise screen might flicker during tests
 import os
+
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 import unittest
 
 import pygame
 
-from v3xctrl_ui.osd.widgets.SignalQualityWidget import SignalQualityWidget, SignalQuality
+from v3xctrl_ui.osd.widgets.SignalQualityWidget import SignalQuality, SignalQualityWidget
 
 
 class TestSignalQualityWidget(unittest.TestCase):

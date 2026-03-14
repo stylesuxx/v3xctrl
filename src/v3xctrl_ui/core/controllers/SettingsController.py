@@ -2,12 +2,12 @@
 import copy
 import logging
 import threading
-from typing import TYPE_CHECKING
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from v3xctrl_ui.core.Settings import Settings
     from v3xctrl_ui.core.dataclasses import ApplicationModel
+    from v3xctrl_ui.core.Settings import Settings
 
 
 class SettingsController:
@@ -33,15 +33,15 @@ class SettingsController:
         self.network_restart_complete = threading.Event()
 
         # Callbacks for component updates
-        self.on_timing_update: Callable[['Settings'], None] | None = None
-        self.on_network_update: Callable[['Settings'], None] | None = None
-        self.on_input_update: Callable[['Settings'], None] | None = None
-        self.on_osd_update: Callable[['Settings'], None] | None = None
-        self.on_renderer_update: Callable[['Settings'], None] | None = None
+        self.on_timing_update: Callable[[Settings], None] | None = None
+        self.on_network_update: Callable[[Settings], None] | None = None
+        self.on_input_update: Callable[[Settings], None] | None = None
+        self.on_osd_update: Callable[[Settings], None] | None = None
+        self.on_renderer_update: Callable[[Settings], None] | None = None
         self.on_display_update: Callable[[bool], None] | None = None
 
         # Callback for network restart
-        self.create_network_restart_thread: Callable[['Settings'], threading.Thread] | None = None
+        self.create_network_restart_thread: Callable[[Settings], threading.Thread] | None = None
 
     def update_settings(self, new_settings: 'Settings') -> bool:
         """Update settings and coordinate component updates.

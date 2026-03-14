@@ -1,13 +1,13 @@
 
 from abc import ABC, abstractmethod
-
-from pygame import Surface, event
 from typing import Any
 
-from v3xctrl_ui.utils.colors import WHITE
-from v3xctrl_ui.utils.fonts import TEXT_FONT
+from pygame import Surface, event
+
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.menu.tabs.Headline import Headline
+from v3xctrl_ui.utils.colors import WHITE
+from v3xctrl_ui.utils.fonts import TEXT_FONT
 
 
 class Tab(ABC):

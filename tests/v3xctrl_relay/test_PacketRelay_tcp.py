@@ -3,11 +3,11 @@ import unittest
 from unittest.mock import Mock
 
 from v3xctrl_control.message import PeerAnnouncement
-from v3xctrl_tcp import Transport
-from v3xctrl_relay.PacketRelay import Mapping, PacketRelay
+from v3xctrl_relay.custom_types import PortType, Role, Session
 from v3xctrl_relay.ForwardTarget import TcpTarget, UdpTarget
+from v3xctrl_relay.PacketRelay import Mapping, PacketRelay
 from v3xctrl_relay.SessionStore import SessionStore
-from v3xctrl_relay.custom_types import PortType, Session, Role
+from v3xctrl_tcp import Transport
 
 
 class TestPacketRelayTcp(unittest.TestCase):

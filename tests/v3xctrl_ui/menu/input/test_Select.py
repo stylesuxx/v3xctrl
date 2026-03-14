@@ -1,12 +1,13 @@
 # Required before importing pygame, otherwise screen might flicker during tests
 import os
+
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 import unittest
 
 import pygame
-from pygame.freetype import SysFont
 from pygame.event import Event
+from pygame.freetype import SysFont
 from pygame.locals import MOUSEBUTTONDOWN, MOUSEMOTION
 
 from v3xctrl_ui.menu.input import Select

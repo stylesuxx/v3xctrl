@@ -5,11 +5,10 @@ from typing import Any
 
 from v3xctrl_control import Server
 from v3xctrl_control.message import Latency
-
-from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_tcp.TcpTunnel import TcpTunnel
-from v3xctrl_ui.network.TcpServer import TcpServer
+from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.network.NetworkSetup import NetworkSetup
+from v3xctrl_ui.network.TcpServer import TcpServer
 
 
 class NetworkController:

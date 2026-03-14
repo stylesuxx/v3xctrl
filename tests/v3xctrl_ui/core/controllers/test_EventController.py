@@ -1,16 +1,18 @@
 """Tests for EventController - handles pygame events and menu state."""
 # Required before importing pygame, otherwise screen might flicker during tests
 import os
+
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 import logging
-from unittest.mock import Mock, MagicMock, call
+from unittest.mock import Mock
+
 import pygame
 import pytest
 
 from v3xctrl_ui.core.controllers.EventController import EventController
-from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 
 
 @pytest.fixture

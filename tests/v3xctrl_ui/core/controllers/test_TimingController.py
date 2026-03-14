@@ -1,5 +1,6 @@
 """Tests for TimingController - manages timing intervals and frame rates."""
 import time
+
 import pytest
 
 from v3xctrl_ui.core.controllers.TimingController import TimingController

@@ -23,13 +23,13 @@ from collections.abc import Callable
 from v3xctrl_helper import Address
 
 from .message import (
-  Message,
-  PeerInfo,
-  Syn,
-  Ack,
-  Command,
-  CommandAck,
-  Latency,
+    Ack,
+    Command,
+    CommandAck,
+    Latency,
+    Message,
+    PeerInfo,
+    Syn,
 )
 
 
@@ -125,7 +125,7 @@ class UDPReceiver(threading.Thread):
             while self._running.is_set():
                 try:
                     ready, _, _ = select.select([self.socket], [], [], self.timeout)
-                except (ValueError, socket.error, OSError) as e:
+                except (ValueError, OSError) as e:
                     logging.error(f"Socket error during select: {e}")
                     break
 
@@ -138,7 +138,7 @@ class UDPReceiver(threading.Thread):
                 except ConnectionResetError:
                     # Windows-specific: ICMP port unreachable received, safe to ignore
                     continue
-                except (socket.error, OSError) as e:
+                except OSError as e:
                     logging.error(f"Socket error during recvfrom: {e}")
                     break
 

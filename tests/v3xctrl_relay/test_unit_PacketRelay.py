@@ -3,10 +3,10 @@ import time
 import unittest
 from unittest.mock import Mock, patch
 
+from v3xctrl_relay.custom_types import PortType, Role, Session
 from v3xctrl_relay.ForwardTarget import TcpTarget
 from v3xctrl_relay.PacketRelay import Mapping, PacketRelay
 from v3xctrl_relay.SessionStore import SessionStore
-from v3xctrl_relay.custom_types import Role, PortType, Session
 
 
 class TestPacketRelay(unittest.TestCase):

@@ -1,9 +1,9 @@
-from flask_smorest import Blueprint
 from flask import Response, request
 from flask.views import MethodView
+from flask_smorest import Blueprint
 from rpi_servo_pwm import HardwarePWM
 
-from .response import success, error
+from .response import error, success
 
 blueprint = Blueprint('gpio', 'gpio', url_prefix='/gpio', description='GPIO control endpoints')
 

@@ -1,8 +1,8 @@
 import argparse
-from datetime import datetime
 import faulthandler
 import logging
 import sys
+from datetime import datetime
 
 # On Windows in windowed mode, stdout/stderr are None.
 # Attach to the parent console so output works when launched from a terminal.
@@ -65,6 +65,7 @@ logging.basicConfig(
 
 # Check GStreamer availability and inform user
 from v3xctrl_ui.utils.gstreamer import is_gstreamer_available
+
 if is_gstreamer_available():
     print("GStreamer receiver available. Set video.receiver = \"gst\" in settings to use it.")
 

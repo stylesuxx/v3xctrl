@@ -7,13 +7,14 @@ via a tee element.
 import logging
 import os
 import threading
-from datetime import datetime
 from collections.abc import Callable
+from datetime import datetime
 from typing import Any
 
 import gi
+
 gi.require_version('Gst', '1.0')
-from gi.repository import Gst, GLib
+from gi.repository import GLib, Gst
 
 
 class RecordingManager:

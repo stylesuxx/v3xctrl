@@ -1,6 +1,7 @@
 import argparse
-from atlib import AIR780EU
 import json
+
+from atlib import AIR780EU
 
 
 def main() -> None:

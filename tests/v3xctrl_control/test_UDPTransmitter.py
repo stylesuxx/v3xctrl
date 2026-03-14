@@ -1,7 +1,7 @@
 import socket
 import unittest
 
-from src.v3xctrl_control import UDPTransmitter, UDPPacket
+from src.v3xctrl_control import UDPPacket, UDPTransmitter
 
 
 class FakeMessage:

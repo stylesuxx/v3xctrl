@@ -1,11 +1,10 @@
 # Required before importing pygame, otherwise screen might flicker during tests
 import os
+
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 import unittest
 from unittest.mock import MagicMock, patch
-
-import pygame
 
 from src.v3xctrl_ui.menu.Menu import Menu
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext

@@ -6,8 +6,9 @@ only part the devs need to interact with, so this should not be too confusing.
 
 import abc
 import time
-import msgpack
 from typing import Any, TypedDict, cast
+
+import msgpack
 
 
 class MessageDict(TypedDict):

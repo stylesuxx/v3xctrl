@@ -1,10 +1,10 @@
 from enum import Enum
-from pygame import Surface, SRCALPHA
 
-from v3xctrl_ui.utils.colors import WHITE, GREY
-from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT
+from pygame import SRCALPHA, Surface
 
 from v3xctrl_ui.osd.widgets.Widget import Widget
+from v3xctrl_ui.utils.colors import GREY, WHITE
+from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT
 
 
 class Alignment(Enum):

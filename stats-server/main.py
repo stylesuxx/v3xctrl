@@ -1,10 +1,9 @@
 import argparse
 import secrets
 
-from flask import Flask
-
 from auth import auth_blueprint
-from stats import create_stats_blueprint, RelayClient
+from flask import Flask
+from stats import RelayClient, create_stats_blueprint
 
 
 def create_app(

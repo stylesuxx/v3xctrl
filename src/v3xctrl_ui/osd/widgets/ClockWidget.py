@@ -1,10 +1,10 @@
 from datetime import datetime
-import pygame.freetype
-from pygame import Surface, SRCALPHA
 
-from v3xctrl_ui.utils.colors import WHITE, BLACK
+import pygame.freetype
+from pygame import SRCALPHA, Surface
 
 from v3xctrl_ui.osd.widgets.Widget import Widget
+from v3xctrl_ui.utils.colors import BLACK, WHITE
 
 
 class ClockWidget(Widget):

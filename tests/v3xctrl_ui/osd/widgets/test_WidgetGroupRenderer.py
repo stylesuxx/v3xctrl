@@ -1,21 +1,23 @@
 # Required before importing pygame, otherwise screen might flicker during tests
 import os
+
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 import unittest
-import pygame
 from unittest.mock import patch
 
+import pygame
+
+from v3xctrl_ui.osd.widgets import TextWidget
+from v3xctrl_ui.osd.widgets.WidgetGroup import WidgetGroup
 from v3xctrl_ui.osd.widgets.WidgetGroupRenderer import (
-    render_widget_group,
-    render_group,
-    _render_individual_widgets,
-    _filter_visible_widgets,
     _calculate_dimensions,
     _draw_widgets_to_surface,
+    _filter_visible_widgets,
+    _render_individual_widgets,
+    render_group,
+    render_widget_group,
 )
-from v3xctrl_ui.osd.widgets.WidgetGroup import WidgetGroup
-from v3xctrl_ui.osd.widgets import TextWidget
 
 
 class TestWidgetGroupRenderer(unittest.TestCase):

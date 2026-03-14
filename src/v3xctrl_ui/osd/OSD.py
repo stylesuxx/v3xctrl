@@ -1,28 +1,26 @@
-from collections import deque
 import logging
-import pygame
 import time
+from collections import deque
 
-from v3xctrl_control.message import Message, Latency, Telemetry
+import pygame
 
+from v3xctrl_control.message import Latency, Message, Telemetry
+from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext
-
 from v3xctrl_ui.core.TelemetryParser import parse_telemetry
+from v3xctrl_ui.osd.widgets import Widget
 from v3xctrl_ui.osd.widgets.WidgetFactory import (
-    create_steering_widgets,
     create_battery_widgets,
-    create_signal_widgets,
+    create_clock_widget,
     create_debug_widgets,
     create_rec_widget,
-    create_clock_widget,
+    create_signal_widgets,
+    create_steering_widgets,
 )
-from v3xctrl_ui.osd.widgets.WidgetGroupRenderer import render_widget_group
 from v3xctrl_ui.osd.widgets.WidgetGroup import WidgetGroup
-from v3xctrl_ui.osd.widgets import Widget
-
+from v3xctrl_ui.osd.widgets.WidgetGroupRenderer import render_widget_group
 from v3xctrl_ui.utils.colors import ORANGE, RED, WHITE
 from v3xctrl_ui.utils.helpers import get_fps
-from v3xctrl_ui.core.Settings import Settings
 
 
 class OSD:

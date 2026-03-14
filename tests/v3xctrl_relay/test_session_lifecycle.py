@@ -15,11 +15,11 @@ from enum import Enum
 from unittest.mock import Mock
 
 from v3xctrl_control.message import PeerAnnouncement
+from v3xctrl_relay.custom_types import PortType
 from v3xctrl_relay.ForwardTarget import TcpTarget
 from v3xctrl_relay.PacketRelay import PacketRelay
 from v3xctrl_relay.Role import Role
 from v3xctrl_relay.SessionStore import SessionStore
-from v3xctrl_relay.custom_types import PortType
 
 
 class _TransportMode(Enum):

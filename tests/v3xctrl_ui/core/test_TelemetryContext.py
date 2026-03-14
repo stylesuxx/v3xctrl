@@ -1,17 +1,17 @@
 """Tests for TelemetryContext."""
-import unittest
 import threading
 import time
+import unittest
 
-from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 from v3xctrl_ui.core.dataclasses import (
-    ServiceFlags,
-    GstFlags,
-    VideoCoreFlags,
-    ThrottleFlags,
     BatteryData,
+    GstFlags,
+    ServiceFlags,
     SignalData,
+    ThrottleFlags,
+    VideoCoreFlags,
 )
+from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 
 
 class TestServiceFlags(unittest.TestCase):

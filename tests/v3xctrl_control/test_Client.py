@@ -2,10 +2,10 @@
 import socket
 import time
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-from src.v3xctrl_control import Client, UDPTransmitter, State
-from src.v3xctrl_control.message import Heartbeat, Command, CommandAck, Syn, Ack, Message
+from src.v3xctrl_control import Client, State, UDPTransmitter
+from src.v3xctrl_control.message import Ack, Command, CommandAck, Heartbeat, Message, Syn
 from tests.v3xctrl_control.config import HOST, PORT, SLEEP
 
 

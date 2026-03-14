@@ -1,12 +1,12 @@
 import json
 import os
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
 
 from werkzeug.security import generate_password_hash
 
-import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from main import create_app

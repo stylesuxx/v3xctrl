@@ -6,16 +6,16 @@ Every message type can have mutliple handlers and the message is forwarded to
 all of them. Message handlers are triggered in the order they are registered.
 """
 
-from collections import defaultdict
 import socket
 import threading
+from collections import defaultdict
 from typing import Any
 
 from v3xctrl_helper import Address
 
-from .UDPReceiver import UDPReceiver
-from .message import Message
 from .handler_types import Handler, T
+from .message import Message
+from .UDPReceiver import UDPReceiver
 
 
 class MessageHandler(threading.Thread):

@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 import gi
+
 gi.require_version('Gst', '1.0')
 from gi.repository import Gst
 

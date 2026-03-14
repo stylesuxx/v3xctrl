@@ -1,22 +1,21 @@
 
-from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT_14
-from v3xctrl_ui.utils.helpers import (
-    interpolate_steering_color,
-    interpolate_throttle_color,
-)
-
 from v3xctrl_ui.osd.widgets import (
-    Widget,
-    BatteryIconWidget,
     Alignment,
+    BatteryIconWidget,
     ClockWidget,
     FpsWidget,
     HorizontalIndicatorWidget,
     RecWidget,
-    StatusValueWidget,
     SignalQualityWidget,
+    StatusValueWidget,
     TextWidget,
     VerticalIndicatorWidget,
+    Widget,
+)
+from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT_14
+from v3xctrl_ui.utils.helpers import (
+    interpolate_steering_color,
+    interpolate_throttle_color,
 )
 
 

@@ -1,26 +1,26 @@
+from collections.abc import Callable
+from typing import Any
+
 import pygame
 from pygame import Surface
 from pygame.freetype import Font
-from typing import Any
-from collections.abc import Callable
 
-from v3xctrl_ui.utils.colors import WHITE, GREY, TRANSPARENT_GREY
-from v3xctrl_ui.utils.fonts import MONO_FONT
 from v3xctrl_ui.core.controllers.input.GamepadController import GamepadController
-
 from v3xctrl_ui.menu.calibration.GamepadCalibrator import (
-  GamepadCalibrator,
-  CalibratorState,
+    CalibratorState,
+    GamepadCalibrator,
 )
 from v3xctrl_ui.menu.DialogBox import DialogBox
 from v3xctrl_ui.menu.input import (
-  BaseWidget,
-  Button,
-  ButtonMappingWidget,
-  Checkbox,
-  NumberInput,
-  Select,
+    BaseWidget,
+    Button,
+    ButtonMappingWidget,
+    Checkbox,
+    NumberInput,
+    Select,
 )
+from v3xctrl_ui.utils.colors import GREY, TRANSPARENT_GREY, WHITE
+from v3xctrl_ui.utils.fonts import MONO_FONT
 
 
 class GamepadCalibrationWidget(BaseWidget):

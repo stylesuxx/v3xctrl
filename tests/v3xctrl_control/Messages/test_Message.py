@@ -1,5 +1,6 @@
-import unittest
 import time
+import unittest
+
 import msgpack
 
 from src.v3xctrl_control.message import Message

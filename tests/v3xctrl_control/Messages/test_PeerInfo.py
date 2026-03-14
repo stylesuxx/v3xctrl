@@ -1,5 +1,7 @@
 import unittest
+
 import msgpack
+
 from v3xctrl_control.message import Message, PeerInfo
 
 

@@ -14,8 +14,8 @@ NOTE: Make sure to add observers before starting the GamepadController, otherwis
 """
 import logging
 import threading
-from typing import Any
 from collections.abc import Callable
+from typing import Any
 
 import pygame
 from pygame.joystick import JoystickType

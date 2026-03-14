@@ -1,16 +1,17 @@
 # Required before importing pygame, otherwise screen might flicker during tests
 import os
+
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 import unittest
 from unittest.mock import Mock
+
 import pygame
 
-from v3xctrl_ui.menu.input import BaseWidget
-
+from v3xctrl_ui.menu.calibration.defs import CalibrationStage, CalibratorState
 from v3xctrl_ui.menu.calibration.GamepadCalibrationWidget import GamepadCalibrationWidget
 from v3xctrl_ui.menu.calibration.GamepadCalibrator import GamepadCalibrator
-from v3xctrl_ui.menu.calibration.defs import CalibrationStage, CalibratorState
+from v3xctrl_ui.menu.input import BaseWidget
 
 
 class MockClock:

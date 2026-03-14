@@ -1,12 +1,11 @@
-from typing import Any
-from pathlib import Path
 import copy
-
 import tomllib
-import tomli_w
-from platformdirs import user_config_dir
+from pathlib import Path
+from typing import Any
 
 import pygame
+import tomli_w
+from platformdirs import user_config_dir
 
 
 class Settings:

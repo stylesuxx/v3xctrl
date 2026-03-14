@@ -1,8 +1,6 @@
 """Tests for ApplicationModel - the pure state container for the application."""
 from collections import deque
 
-import pytest
-
 from v3xctrl_ui.core.dataclasses import ApplicationModel
 
 

@@ -1,6 +1,6 @@
 """Tests for Battery monitoring."""
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from v3xctrl_telemetry.BatteryTelemetry import BatteryTelemetry
 

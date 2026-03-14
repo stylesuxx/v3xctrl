@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import Mock
 
 from src.v3xctrl_control.Base import Base
-from src.v3xctrl_control.message import Heartbeat, Control, Message
+from src.v3xctrl_control.message import Control, Heartbeat, Message
 from src.v3xctrl_control.State import State
 from src.v3xctrl_helper import MessageFromAddress
 

@@ -1,10 +1,11 @@
 # Required before importing pygame, otherwise screen might flicker during tests
 import os
+
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
-from pathlib import Path
 import tempfile
 import unittest
+from pathlib import Path
 
 import pygame
 import tomli_w

@@ -1,25 +1,15 @@
-from typing import Any
 from collections.abc import Callable
+from typing import Any
 
+import pygame
 from pygame import Surface
 
+from v3xctrl_helper import is_int
+from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.menu.input import BaseInput, BaseWidget, Button, Checkbox, NumberInput, Select, TextInput, WidgetRow
 from v3xctrl_ui.utils.colors import GREEN, RED
 from v3xctrl_ui.utils.fonts import LABEL_FONT, MONO_FONT, TEXT_FONT
 from v3xctrl_ui.utils.i18n import t
-import pygame
-
-from v3xctrl_ui.menu.input import (
-  BaseInput,
-  BaseWidget,
-  Button,
-  Checkbox,
-  NumberInput,
-  Select,
-  TextInput,
-  WidgetRow
-)
-from v3xctrl_ui.core.Settings import Settings
-from v3xctrl_helper import is_int
 
 from .Tab import Tab
 from .VerticalLayout import VerticalLayout

@@ -93,7 +93,7 @@ class TcpServer:
                 # Accept a connection (with timeout so we can check stop_event)
                 try:
                     client_sock, addr = tcp_sock.accept()
-                except socket.timeout:
+                except TimeoutError:
                     continue
 
                 client_sock.setsockopt(

@@ -1,6 +1,8 @@
 import unittest
+
 import msgpack
-from v3xctrl_control.message import Message, Latency
+
+from v3xctrl_control.message import Latency, Message
 
 
 class TestLatency(unittest.TestCase):

@@ -1,8 +1,8 @@
 from pygame import Surface
 
-from v3xctrl_ui.utils.colors import WHITE, RED
-from v3xctrl_ui.utils.helpers import round_corners
 from v3xctrl_ui.osd.widgets.TextWidget import TextWidget
+from v3xctrl_ui.utils.colors import RED, WHITE
+from v3xctrl_ui.utils.helpers import round_corners
 
 
 class RecWidget(TextWidget):

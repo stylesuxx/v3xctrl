@@ -2,13 +2,13 @@ from collections.abc import Callable
 
 import pygame
 from pygame import Surface
-from pygame.freetype import SysFont, STYLE_STRONG
+from pygame.freetype import STYLE_STRONG, SysFont
 
-from v3xctrl_ui.menu.input import Button, BaseWidget
+from v3xctrl_ui.menu.input import BaseWidget, Button
 from v3xctrl_ui.utils.colors import (
-  TRANSPARENT_BLACK,
-  WHITE,
-  DARK_GREY,
+    DARK_GREY,
+    TRANSPARENT_BLACK,
+    WHITE,
 )
 
 

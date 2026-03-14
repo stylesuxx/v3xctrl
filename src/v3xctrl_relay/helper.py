@@ -55,7 +55,7 @@ def test_relay_connection(
                     else:
                         id_type = "spectator ID" if spectator_mode else "session ID"
                         return (False, f"Invalid {id_type}")
-            except socket.timeout:
+            except TimeoutError:
                 continue
             except ValueError:
                 continue

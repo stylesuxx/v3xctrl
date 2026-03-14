@@ -1,10 +1,10 @@
-from typing import TYPE_CHECKING
-from collections.abc import Callable
 import logging
-import time
 import math
 import sys
+import time
+from collections.abc import Callable
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import numpy as np
 import numpy.typing as npt
@@ -12,13 +12,13 @@ import pygame
 
 if TYPE_CHECKING:
     from v3xctrl_ui.core.AppState import AppState
+from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.menu.input.Button import Button
+from v3xctrl_ui.menu.Menu import Menu
+from v3xctrl_ui.network.NetworkController import NetworkController
 from v3xctrl_ui.utils.colors import BLACK, RED, WHITE
 from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT_24, BOLD_MONO_FONT_32, BOLD_MONO_FONT_48, TEXT_FONT
 from v3xctrl_ui.utils.helpers import get_external_ip
-from v3xctrl_ui.menu.Menu import Menu
-from v3xctrl_ui.menu.input.Button import Button
-from v3xctrl_ui.core.Settings import Settings
-from v3xctrl_ui.network.NetworkController import NetworkController
 
 
 class Renderer:

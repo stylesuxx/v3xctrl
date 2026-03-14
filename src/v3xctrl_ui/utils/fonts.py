@@ -1,8 +1,8 @@
+import sys
+from pathlib import Path
+
 import pygame
 from pygame.freetype import Font
-
-from pathlib import Path
-import sys
 
 pygame.init()
 pygame.freetype.init()

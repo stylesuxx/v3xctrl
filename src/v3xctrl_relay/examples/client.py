@@ -3,9 +3,9 @@ import logging
 import threading
 import time
 
+from v3xctrl_control.message import Heartbeat, PeerInfo
 from v3xctrl_punch.examples.TestPeer import TestPeer
 from v3xctrl_relay.Peer import Peer
-from v3xctrl_control.message import Heartbeat, PeerInfo
 
 logging.basicConfig(
     level="DEBUG",

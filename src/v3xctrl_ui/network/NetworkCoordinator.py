@@ -3,15 +3,14 @@ import logging
 import queue
 import threading
 import time
-from typing import Any
 from collections.abc import Callable
+from typing import Any
 
 from v3xctrl_control import State
 from v3xctrl_control.message import Command, Control, Latency, Telemetry
-
-from v3xctrl_ui.network.NetworkController import NetworkController
-from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.core.dataclasses import ApplicationModel
+from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.network.NetworkController import NetworkController
 from v3xctrl_ui.osd.OSD import OSD
 
 

@@ -1,8 +1,9 @@
-from flask_smorest import Blueprint
-from flask import Response
-from flask.views import MethodView
 import socket
 import subprocess
+
+from flask import Response
+from flask.views import MethodView
+from flask_smorest import Blueprint
 
 from .response import success
 

@@ -3,7 +3,6 @@ import socket
 import struct
 import time
 
-
 parser = argparse.ArgumentParser(description="Test connection performance.")
 parser.add_argument("port", type=int, help="The target port number")
 parser.add_argument(
@@ -47,7 +46,7 @@ class SelfTestServer:
                         ready = True
                         print(f" OK ({addr[0]}:{addr[1]})")
 
-                except socket.timeout:
+                except TimeoutError:
                     print(".", end='', flush=True)
                     continue
 
@@ -84,7 +83,7 @@ class SelfTestServer:
                         time.sleep(0.1)
 
                     first_request = False
-            except socket.timeout:
+            except TimeoutError:
                 if not first_request:
                     print(" FAILED")
 
