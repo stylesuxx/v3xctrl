@@ -1,9 +1,10 @@
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler, FileSystemEvent
 import os
 import subprocess
-import time
 import threading
+import time
+
+from watchdog.events import FileSystemEvent, FileSystemEventHandler
+from watchdog.observers import Observer
 
 
 class TestRunner(FileSystemEventHandler):
@@ -27,10 +28,7 @@ class TestRunner(FileSystemEventHandler):
             self.last_modified[event.src_path] = current_time  # Update modification time
 
             print(f"File changed: {event.src_path}, re-running tests...")
-            subprocess.run(
-                ["pytest", "tests"],
-                env={**os.environ, "PYTHONPATH": "."}
-            )
+            subprocess.run(["pytest", "tests"], env={**os.environ, "PYTHONPATH": "."})
 
 
 observer = Observer()
