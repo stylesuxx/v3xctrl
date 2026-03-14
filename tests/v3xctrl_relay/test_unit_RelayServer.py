@@ -639,5 +639,49 @@ class TestRelayServerUnitTests(unittest.TestCase):
             self.assertLess(entry["timeout_in_sec"], server.relay.SPECTATOR_TIMEOUT)
 
 
+class TestRelayServerBytePrefixes(unittest.TestCase):
+    """Validate that hardcoded byte prefixes match actual msgpack serialization.
+
+    RelayServer uses byte prefix checks on the hot path to distinguish control
+    messages (PeerAnnouncement, ConnectionTest) from data packets without
+    deserializing. If the Message serialization format changes, these prefixes
+    must be updated - this test catches any drift.
+    """
+
+    def test_peer_announcement_prefix_matches_serialized_output(self):
+        msg = PeerAnnouncement(r="viewer", i="session123", p="video")
+        serialized = msg.to_bytes()
+        self.assertTrue(
+            serialized.startswith(RelayServer._PEER_ANNOUNCEMENT_PREFIX),
+            f"PeerAnnouncement serialized bytes {serialized[:20]!r} "
+            f"do not start with expected prefix {RelayServer._PEER_ANNOUNCEMENT_PREFIX!r}",
+        )
+
+    def test_connection_test_prefix_matches_serialized_output(self):
+        msg = ConnectionTest(i="session123")
+        serialized = msg.to_bytes()
+        self.assertTrue(
+            serialized.startswith(RelayServer._CONNECTION_TEST_PREFIX),
+            f"ConnectionTest serialized bytes {serialized[:20]!r} "
+            f"do not start with expected prefix {RelayServer._CONNECTION_TEST_PREFIX!r}",
+        )
+
+    def test_prefixes_are_distinct(self):
+        self.assertNotEqual(
+            RelayServer._PEER_ANNOUNCEMENT_PREFIX,
+            RelayServer._CONNECTION_TEST_PREFIX,
+        )
+
+    def test_non_control_message_does_not_match_prefixes(self):
+        from v3xctrl_control.message import Heartbeat
+
+        heartbeat = Heartbeat().to_bytes()
+        for prefix in RelayServer._CONTROL_PREFIXES:
+            self.assertFalse(
+                heartbeat.startswith(prefix),
+                f"Heartbeat should not match control prefix {prefix!r}",
+            )
+
+
 if __name__ == "__main__":
     unittest.main()
