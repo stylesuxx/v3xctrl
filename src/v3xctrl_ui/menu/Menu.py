@@ -8,7 +8,7 @@ from typing import NamedTuple
 from collections.abc import Callable
 
 from v3xctrl_control.message import Command
-from v3xctrl_udp_relay.helper import test_relay_connection
+from v3xctrl_relay.helper import test_relay_connection
 
 from v3xctrl_ui.utils.colors import WHITE, DARK_GREY, CHARCOAL, GREY, TRANSPARENT_BLACK
 from v3xctrl_ui.utils.fonts import MAIN_FONT
