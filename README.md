@@ -5,6 +5,7 @@
 </p>
 
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Discord](https://img.shields.io/discord/1208003816498498642?logo=discord&label=Discord)](https://discord.gg/uF4hf8UBBW)
 
 > Control your vehicle and stream video over 4G from anywhere.
 
