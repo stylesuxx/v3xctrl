@@ -1,9 +1,10 @@
 """Display management for handling screen modes, sizing, and scaling."""
-from typing import TYPE_CHECKING
+
 import logging
 import sys
 import time
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pygame
 
@@ -14,12 +15,7 @@ if TYPE_CHECKING:
 class DisplayController:
     CURSOR_HIDE_DELAY = 5.0  # Seconds of inactivity before hiding cursor
 
-    def __init__(
-        self,
-        model: 'ApplicationModel',
-        base_size: tuple[int, int],
-        title: str
-    ):
+    def __init__(self, model: "ApplicationModel", base_size: tuple[int, int], title: str):
         self.model = model
         self.base_size = base_size
         self.title = title
@@ -48,12 +44,7 @@ class DisplayController:
 
         try:
             # Get path to icon, works for both dev and PyInstaller
-            if getattr(sys, 'frozen', False):
-                # Running in PyInstaller bundle
-                base_path = Path(sys._MEIPASS)
-            else:
-                # Running in normal Python environment
-                base_path = Path(__file__).parent.parent.parent
+            base_path = Path(sys._MEIPASS) if getattr(sys, "frozen", False) else Path(__file__).parent.parent.parent
 
             icon_path = base_path / "assets" / "images" / "logo.png"
             icon = pygame.image.load(str(icon_path))

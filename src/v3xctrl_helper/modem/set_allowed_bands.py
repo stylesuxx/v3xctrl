@@ -10,8 +10,7 @@ def main() -> None:
     parser.add_argument("bands", help="Comma-separated list of LTE band integers (e.g. 1,3,7,20)")
 
     parser.add_argument(
-        "--log", default="ERROR",
-        help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). (default: ERROR)"
+        "--log", default="ERROR", help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). (default: ERROR)"
     )
 
     args = parser.parse_args()
@@ -22,10 +21,7 @@ def main() -> None:
     if not isinstance(level, int):
         raise ValueError(f"Invalid log level: {args.log}")
 
-    logging.basicConfig(
-        level=level,
-        format="%(asctime)s - %(levelname)s - %(message)s"
-    )
+    logging.basicConfig(level=level, format="%(asctime)s - %(levelname)s - %(message)s")
 
     bands = list(map(int, args.bands.split(",")))
 

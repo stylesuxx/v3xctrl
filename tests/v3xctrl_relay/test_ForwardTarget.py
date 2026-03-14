@@ -3,7 +3,7 @@ import threading
 import unittest
 from unittest.mock import Mock, patch
 
-from v3xctrl_relay.ForwardTarget import ForwardTarget, UdpTarget, TcpTarget
+from v3xctrl_relay.ForwardTarget import TcpTarget, UdpTarget
 
 
 class TestUdpTarget(unittest.TestCase):

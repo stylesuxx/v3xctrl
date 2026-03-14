@@ -1,14 +1,14 @@
-from concurrent.futures import ThreadPoolExecutor
 import logging
+import socket
 import threading
 import time
 from collections.abc import Callable
-import socket
+from concurrent.futures import ThreadPoolExecutor
 
 from v3xctrl_helper import Address
 
 from .Base import Base
-from .message import Message, Syn, Ack, Command, CommandAck
+from .message import Ack, Command, CommandAck, Message, Syn
 from .MessageHandler import MessageHandler
 from .State import State
 from .UDPTransmitter import UDPTransmitter
@@ -25,7 +25,7 @@ class Server(Base):
         self.no_message_timeout = 10
 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.socket.bind(('0.0.0.0', self.port))
+        self.socket.bind(("0.0.0.0", self.port))
         self.socket.settimeout(1)
 
         self.transmitter = UDPTransmitter(self.socket, ttl_ms)
@@ -34,10 +34,7 @@ class Server(Base):
         self.pending_commands: dict[str, Callable[[bool], None] | None] = {}
         self.pending_lock = threading.Lock()
 
-        self.thread_pool = ThreadPoolExecutor(
-            max_workers=self.MAX_WORKERS,
-            thread_name_prefix=f"Server-{port}"
-        )
+        self.thread_pool = ThreadPoolExecutor(max_workers=self.MAX_WORKERS, thread_name_prefix=f"Server-{port}")
 
     def syn_handler(self, message: Syn, addr: Address) -> None:
         super()._send(Ack(), addr)
@@ -49,11 +46,7 @@ class Server(Base):
         if addr:
             super()._send(message, addr)
 
-    def command_ack_handler(
-        self,
-        message: CommandAck,
-        addr: Address
-    ) -> None:
+    def command_ack_handler(self, message: CommandAck, addr: Address) -> None:
         command_id = message.get_command_id()
         with self.pending_lock:
             callback = self.pending_commands.pop(command_id, None)
@@ -61,10 +54,7 @@ class Server(Base):
                 callback(True)
 
     def send_command(
-        self,
-        command: Command,
-        callback: Callable[[bool], None] | None = None,
-        max_retries: int = 10
+        self, command: Command, callback: Callable[[bool], None] | None = None, max_retries: int = 10
     ) -> None:
         """Sends a command up to max_retries or until answer is received."""
         command_id = command.get_command_id()

@@ -1,0 +1,22 @@
+target-version = "py311"
+line-length = 120
+
+[lint]
+select = [
+  "E",      # pycodestyle errors
+  "W",      # pycodestyle warnings
+  "F",      # pyflakes
+  "I",      # isort
+  "UP",     # pyupgrade (catches old-style typing)
+  "B",      # flake8-bugbear (catches mutable defaults, etc.)
+  "SIM",    # flake8-simplify
+  "RUF",    # ruff-specific rules
+]
+ignore = [
+  "E501",   # line too long (handled by formatter if enabled)
+]
+
+[lint.per-file-ignores]
+"**/v3xctrl_control/examples/*" = ["ALL"]
+"**/v3xctrl_ui/examples/*" = ["ALL"]
+"**/v3xctrl_punch/*" = ["ALL"]  # legacy package

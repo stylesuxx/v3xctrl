@@ -34,24 +34,14 @@ class Headline:
         # Draw top line if needed
         y_offset = 0
         if self.draw_top_line:
-            pygame.draw.line(
-                surface, WHITE,
-                (0, line_width // 2),
-                (headline_width, line_width // 2),
-                line_width
-            )
+            pygame.draw.line(surface, WHITE, (0, line_width // 2), (headline_width, line_width // 2), line_width)
             y_offset = line_padding_top
 
         surface.blit(text_surface, (0, y_offset))
 
         # Draw bottom line
         bottom_line_y = y_offset + height + line_padding
-        pygame.draw.line(
-            surface, WHITE,
-            (0, bottom_line_y),
-            (headline_width, bottom_line_y),
-            line_width
-        )
+        pygame.draw.line(surface, WHITE, (0, bottom_line_y), (headline_width, bottom_line_y), line_width)
 
         self.surface = surface
         return surface

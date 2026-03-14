@@ -1,12 +1,14 @@
 """Tests for Renderer - handles all rendering logic for the application."""
+
 import os
 import unittest
 from unittest.mock import MagicMock, patch
+
 import numpy as np
 import pygame
 
 # Set SDL to use dummy video driver before importing pygame
-os.environ['SDL_VIDEODRIVER'] = 'dummy'
+os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 from v3xctrl_ui.core.Renderer import Renderer
 
@@ -31,7 +33,7 @@ class TestRenderer(unittest.TestCase):
         # call multiple times without quit.
         pass
 
-    @patch('v3xctrl_ui.core.Renderer.get_external_ip')
+    @patch("v3xctrl_ui.core.Renderer.get_external_ip")
     def test_initialization(self, mock_get_ip):
         """Test Renderer initialization."""
         mock_get_ip.return_value = "192.168.1.100"
@@ -46,7 +48,7 @@ class TestRenderer(unittest.TestCase):
         assert isinstance(renderer.video_surface, pygame.Surface)
         assert renderer.last_frame_id is None
 
-    @patch('v3xctrl_ui.core.Renderer.get_external_ip')
+    @patch("v3xctrl_ui.core.Renderer.get_external_ip")
     def test_get_video_frame_with_receiver(self, mock_get_ip):
         """Test _get_video_frame when video receiver exists."""
         mock_get_ip.return_value = "192.168.1.100"
@@ -61,7 +63,7 @@ class TestRenderer(unittest.TestCase):
         assert frame is not None
         assert frame.shape == (720, 1280, 3)
 
-    @patch('v3xctrl_ui.core.Renderer.get_external_ip')
+    @patch("v3xctrl_ui.core.Renderer.get_external_ip")
     def test_get_video_frame_no_receiver(self, mock_get_ip):
         """Test _get_video_frame when no video receiver."""
         mock_get_ip.return_value = "192.168.1.100"
@@ -74,8 +76,8 @@ class TestRenderer(unittest.TestCase):
 
         assert frame is None
 
-    @patch('v3xctrl_ui.core.Renderer.get_external_ip')
-    @patch('v3xctrl_ui.core.Renderer.pygame.display.flip')
+    @patch("v3xctrl_ui.core.Renderer.get_external_ip")
+    @patch("v3xctrl_ui.core.Renderer.pygame.display.flip")
     def test_render_all_with_video_frame(self, mock_flip, mock_get_ip):
         """Test render_all when video frame is available."""
         mock_get_ip.return_value = "192.168.1.100"
@@ -107,15 +109,15 @@ class TestRenderer(unittest.TestCase):
         # Verify rendering completed
         mock_flip.assert_called_once()
 
-    @patch('v3xctrl_ui.core.Renderer.get_external_ip')
-    @patch('v3xctrl_ui.core.Renderer.pygame.display.flip')
+    @patch("v3xctrl_ui.core.Renderer.get_external_ip")
+    @patch("v3xctrl_ui.core.Renderer.pygame.display.flip")
     def test_render_all_no_video(self, mock_flip, mock_get_ip):
         """Test render_all when no video frame is available."""
         mock_get_ip.return_value = "192.168.1.100"
         self.settings.get.side_effect = lambda key, default=None: {
             "show_connection_info": True,
             "relay": {"enabled": False},
-            "ports": {"video": 6666, "control": 6668}
+            "ports": {"video": 6666, "control": 6668},
         }.get(key, default)
 
         renderer = Renderer(self.size, self.settings)
@@ -146,15 +148,15 @@ class TestRenderer(unittest.TestCase):
         # Verify rendering completed
         mock_flip.assert_called_once()
 
-    @patch('v3xctrl_ui.core.Renderer.get_external_ip')
-    @patch('v3xctrl_ui.core.Renderer.pygame.display.flip')
+    @patch("v3xctrl_ui.core.Renderer.get_external_ip")
+    @patch("v3xctrl_ui.core.Renderer.pygame.display.flip")
     def test_render_all_with_server_error(self, mock_flip, mock_get_ip):
         """Test render_all when server has an error."""
         mock_get_ip.return_value = "192.168.1.100"
         self.settings.get.side_effect = lambda key, default=None: {
             "show_connection_info": True,
             "relay": {"enabled": False},
-            "ports": {"video": 6666, "control": 6668}
+            "ports": {"video": 6666, "control": 6668},
         }.get(key, default)
 
         renderer = Renderer(self.size, self.settings)
@@ -186,15 +188,15 @@ class TestRenderer(unittest.TestCase):
         state.osd.update_debug_status.assert_called_with("fail")
         mock_flip.assert_called_once()
 
-    @patch('v3xctrl_ui.core.Renderer.get_external_ip')
-    @patch('v3xctrl_ui.core.Renderer.pygame.display.flip')
+    @patch("v3xctrl_ui.core.Renderer.get_external_ip")
+    @patch("v3xctrl_ui.core.Renderer.pygame.display.flip")
     def test_render_all_with_menu(self, mock_flip, mock_get_ip):
         """Test render_all when menu is active."""
         mock_get_ip.return_value = "192.168.1.100"
         self.settings.get.side_effect = lambda key, default=None: {
             "show_connection_info": True,
             "relay": {"enabled": False},
-            "ports": {"video": 6666, "control": 6668}
+            "ports": {"video": 6666, "control": 6668},
         }.get(key, default)
 
         renderer = Renderer(self.size, self.settings)
@@ -229,7 +231,7 @@ class TestRenderer(unittest.TestCase):
         mock_menu.draw.assert_called_once_with(state.screen)
         mock_flip.assert_called_once()
 
-    @patch('v3xctrl_ui.core.Renderer.get_external_ip')
+    @patch("v3xctrl_ui.core.Renderer.get_external_ip")
     def test_render_video_frame_new_frame(self, mock_get_ip):
         """Test _render_video_frame with a new frame."""
         mock_get_ip.return_value = "192.168.1.100"
@@ -243,7 +245,7 @@ class TestRenderer(unittest.TestCase):
         # Verify frame was processed
         assert renderer.last_frame_id == id(frame)
 
-    @patch('v3xctrl_ui.core.Renderer.get_external_ip')
+    @patch("v3xctrl_ui.core.Renderer.get_external_ip")
     def test_render_video_frame_same_frame(self, mock_get_ip):
         """Test _render_video_frame with the same frame twice."""
         mock_get_ip.return_value = "192.168.1.100"
@@ -262,7 +264,7 @@ class TestRenderer(unittest.TestCase):
         # Frame ID should be the same
         assert frame_id_first == frame_id_second
 
-    @patch('v3xctrl_ui.core.Renderer.get_external_ip')
+    @patch("v3xctrl_ui.core.Renderer.get_external_ip")
     def test_render_video_frame_fullscreen(self, mock_get_ip):
         """Test _render_video_frame in fullscreen mode."""
         mock_get_ip.return_value = "192.168.1.100"
@@ -281,5 +283,5 @@ class TestRenderer(unittest.TestCase):
         assert renderer.fullscreen is True
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

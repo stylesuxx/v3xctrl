@@ -15,9 +15,9 @@ def load_users(path: str) -> dict[str, str | None]:
 
 
 def save_users(path: str, users: dict[str, str | None]) -> None:
-    with open(path, 'w') as f:
+    with open(path, "w") as f:
         json.dump(users, f, indent=2)
-        f.write('\n')
+        f.write("\n")
 
 
 def cmd_add(args: argparse.Namespace) -> None:
@@ -51,24 +51,24 @@ def cmd_list(args: argparse.Namespace) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Manage stats interface users")
-    parser.add_argument('file', help='Path to users.json')
+    parser.add_argument("file", help="Path to users.json")
 
-    subparsers = parser.add_subparsers(dest='command', required=True)
+    subparsers = parser.add_subparsers(dest="command", required=True)
 
-    add_parser = subparsers.add_parser('add', help='Add a user or reset their password')
-    add_parser.add_argument('username', help='Username to add')
+    add_parser = subparsers.add_parser("add", help="Add a user or reset their password")
+    add_parser.add_argument("username", help="Username to add")
     add_parser.set_defaults(func=cmd_add)
 
-    remove_parser = subparsers.add_parser('remove', help='Remove a user')
-    remove_parser.add_argument('username', help='Username to remove')
+    remove_parser = subparsers.add_parser("remove", help="Remove a user")
+    remove_parser.add_argument("username", help="Username to remove")
     remove_parser.set_defaults(func=cmd_remove)
 
-    list_parser = subparsers.add_parser('list', help='List all users')
+    list_parser = subparsers.add_parser("list", help="List all users")
     list_parser.set_defaults(func=cmd_list)
 
     args = parser.parse_args()
     args.func(args)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -1,16 +1,18 @@
 import unittest
 
 from v3xctrl_control.message import Telemetry
-from v3xctrl_ui.core.TelemetryParser import parse_telemetry, TelemetryData
+from v3xctrl_ui.core.TelemetryParser import TelemetryData, parse_telemetry
 
 
 class TestParseTelemetry(unittest.TestCase):
     def test_parse_telemetry_basic(self):
-        telemetry = Telemetry({
-            "sig": {"rsrq": -10, "rsrp": -90},
-            "cell": {"band": 3, "id": 0x0A0F},
-            "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False}
-        })
+        telemetry = Telemetry(
+            {
+                "sig": {"rsrq": -10, "rsrp": -90},
+                "cell": {"band": 3, "id": 0x0A0F},
+                "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False},
+            }
+        )
 
         data = parse_telemetry(telemetry)
 
@@ -25,11 +27,13 @@ class TestParseTelemetry(unittest.TestCase):
         self.assertFalse(data.battery_warning)
 
     def test_parse_telemetry_battery_warning(self):
-        telemetry = Telemetry({
-            "sig": {"rsrq": -10, "rsrp": -90},
-            "cell": {"band": 1, "id": 0x0100},
-            "bat": {"vol": 3200, "avg": 3150, "pct": 20, "wrn": True}
-        })
+        telemetry = Telemetry(
+            {
+                "sig": {"rsrq": -10, "rsrp": -90},
+                "cell": {"band": 1, "id": 0x0100},
+                "bat": {"vol": 3200, "avg": 3150, "pct": 20, "wrn": True},
+            }
+        )
 
         data = parse_telemetry(telemetry)
 
@@ -39,11 +43,13 @@ class TestParseTelemetry(unittest.TestCase):
         self.assertTrue(data.battery_warning)
 
     def test_parse_telemetry_unknown_cell(self):
-        telemetry = Telemetry({
-            "sig": {"rsrq": -15, "rsrp": -100},
-            "cell": {"band": 7, "id": "?"},
-            "bat": {"vol": 4000, "avg": 3950, "pct": 90, "wrn": False}
-        })
+        telemetry = Telemetry(
+            {
+                "sig": {"rsrq": -15, "rsrp": -100},
+                "cell": {"band": 7, "id": "?"},
+                "bat": {"vol": 4000, "avg": 3950, "pct": 90, "wrn": False},
+            }
+        )
 
         data = parse_telemetry(telemetry)
 
@@ -51,47 +57,55 @@ class TestParseTelemetry(unittest.TestCase):
         self.assertEqual(data.signal_cell, "CELL ?")
 
     def test_parse_telemetry_cell_id_parsing(self):
-        telemetry = Telemetry({
-            "sig": {"rsrq": -10, "rsrp": -90},
-            "cell": {"band": 20, "id": 0xFF00},
-            "bat": {"vol": 3700, "avg": 3700, "pct": 60, "wrn": False}
-        })
+        telemetry = Telemetry(
+            {
+                "sig": {"rsrq": -10, "rsrp": -90},
+                "cell": {"band": 20, "id": 0xFF00},
+                "bat": {"vol": 3700, "avg": 3700, "pct": 60, "wrn": False},
+            }
+        )
 
         data = parse_telemetry(telemetry)
 
         self.assertEqual(data.signal_cell, "255:0")
 
     def test_parse_telemetry_gstreamer_recording(self):
-        telemetry = Telemetry({
-            "sig": {"rsrq": -10, "rsrp": -90},
-            "cell": {"band": 3, "id": 0x0100},
-            "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False},
-            "gst": 0b0001
-        })
+        telemetry = Telemetry(
+            {
+                "sig": {"rsrq": -10, "rsrp": -90},
+                "cell": {"band": 3, "id": 0x0100},
+                "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False},
+                "gst": 0b0001,
+            }
+        )
 
         data = parse_telemetry(telemetry)
 
         self.assertTrue(data.recording)
 
     def test_parse_telemetry_gstreamer_not_recording(self):
-        telemetry = Telemetry({
-            "sig": {"rsrq": -10, "rsrp": -90},
-            "cell": {"band": 3, "id": 0x0100},
-            "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False},
-            "gst": 0b0000
-        })
+        telemetry = Telemetry(
+            {
+                "sig": {"rsrq": -10, "rsrp": -90},
+                "cell": {"band": 3, "id": 0x0100},
+                "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False},
+                "gst": 0b0000,
+            }
+        )
 
         data = parse_telemetry(telemetry)
 
         self.assertFalse(data.recording)
 
     def test_parse_telemetry_services_flags(self):
-        telemetry = Telemetry({
-            "sig": {"rsrq": -10, "rsrp": -90},
-            "cell": {"band": 3, "id": 0x0100},
-            "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False},
-            "svc": 0b0011
-        })
+        telemetry = Telemetry(
+            {
+                "sig": {"rsrq": -10, "rsrp": -90},
+                "cell": {"band": 3, "id": 0x0100},
+                "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False},
+                "svc": 0b0011,
+            }
+        )
 
         data = parse_telemetry(telemetry)
 
@@ -99,12 +113,14 @@ class TestParseTelemetry(unittest.TestCase):
         self.assertTrue(data.service_debug)
 
     def test_parse_telemetry_videocore_flags(self):
-        telemetry = Telemetry({
-            "sig": {"rsrq": -10, "rsrp": -90},
-            "cell": {"band": 3, "id": 0x0100},
-            "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False},
-            "vc": 0xF5
-        })
+        telemetry = Telemetry(
+            {
+                "sig": {"rsrq": -10, "rsrp": -90},
+                "cell": {"band": 3, "id": 0x0100},
+                "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False},
+                "vc": 0xF5,
+            }
+        )
 
         data = parse_telemetry(telemetry)
 
@@ -112,11 +128,13 @@ class TestParseTelemetry(unittest.TestCase):
         self.assertEqual(data.vc_history_flags, 0x0F)
 
     def test_parse_telemetry_missing_optional_fields(self):
-        telemetry = Telemetry({
-            "sig": {"rsrq": -10, "rsrp": -90},
-            "cell": {"band": 3, "id": 0x0100},
-            "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False}
-        })
+        telemetry = Telemetry(
+            {
+                "sig": {"rsrq": -10, "rsrp": -90},
+                "cell": {"band": 3, "id": 0x0100},
+                "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False},
+            }
+        )
 
         data = parse_telemetry(telemetry)
 
@@ -146,11 +164,13 @@ class TestParseTelemetry(unittest.TestCase):
 
     def test_parse_telemetry_battery_current_milliamps(self):
         """Test battery current parsing for values under 1000mA."""
-        telemetry = Telemetry({
-            "sig": {"rsrq": -10, "rsrp": -90},
-            "cell": {"band": 3, "id": 0x0100},
-            "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False, "cur": 500}
-        })
+        telemetry = Telemetry(
+            {
+                "sig": {"rsrq": -10, "rsrp": -90},
+                "cell": {"band": 3, "id": 0x0100},
+                "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False, "cur": 500},
+            }
+        )
 
         data = parse_telemetry(telemetry)
 
@@ -158,11 +178,13 @@ class TestParseTelemetry(unittest.TestCase):
 
     def test_parse_telemetry_battery_current_amps(self):
         """Test battery current parsing for values >= 1000mA (displayed as A)."""
-        telemetry = Telemetry({
-            "sig": {"rsrq": -10, "rsrp": -90},
-            "cell": {"band": 3, "id": 0x0100},
-            "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False, "cur": 2500}
-        })
+        telemetry = Telemetry(
+            {
+                "sig": {"rsrq": -10, "rsrp": -90},
+                "cell": {"band": 3, "id": 0x0100},
+                "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False, "cur": 2500},
+            }
+        )
 
         data = parse_telemetry(telemetry)
 
@@ -170,11 +192,13 @@ class TestParseTelemetry(unittest.TestCase):
 
     def test_parse_telemetry_battery_current_exactly_1000(self):
         """Test battery current parsing at exactly 1000mA threshold."""
-        telemetry = Telemetry({
-            "sig": {"rsrq": -10, "rsrp": -90},
-            "cell": {"band": 3, "id": 0x0100},
-            "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False, "cur": 1000}
-        })
+        telemetry = Telemetry(
+            {
+                "sig": {"rsrq": -10, "rsrp": -90},
+                "cell": {"band": 3, "id": 0x0100},
+                "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False, "cur": 1000},
+            }
+        )
 
         data = parse_telemetry(telemetry)
 
@@ -182,11 +206,13 @@ class TestParseTelemetry(unittest.TestCase):
 
     def test_parse_telemetry_battery_current_missing(self):
         """Test battery current defaults to 0mA when not in telemetry."""
-        telemetry = Telemetry({
-            "sig": {"rsrq": -10, "rsrp": -90},
-            "cell": {"band": 3, "id": 0x0100},
-            "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False}
-        })
+        telemetry = Telemetry(
+            {
+                "sig": {"rsrq": -10, "rsrp": -90},
+                "cell": {"band": 3, "id": 0x0100},
+                "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False},
+            }
+        )
 
         data = parse_telemetry(telemetry)
 

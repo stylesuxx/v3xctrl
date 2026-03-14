@@ -3,14 +3,10 @@ import socket
 import struct
 import time
 
-
 parser = argparse.ArgumentParser(description="Test connection performance.")
 parser.add_argument("port", type=int, help="The target port number")
 parser.add_argument(
-    "--max-timeout",
-    type=int,
-    default=3600,
-    help="Maximum timeout to accept before stopping (default: 3600s)"
+    "--max-timeout", type=int, default=3600, help="Maximum timeout to accept before stopping (default: 3600s)"
 )
 args = parser.parse_args()
 
@@ -37,7 +33,7 @@ class SelfTestServer:
             sock.bind((self.host, self.port))
             sock.settimeout(TIMEOUT)
 
-            print("Waiting for client connection...", end='', flush=True)
+            print("Waiting for client connection...", end="", flush=True)
             ready = False
             while not ready:
                 try:
@@ -47,8 +43,8 @@ class SelfTestServer:
                         ready = True
                         print(f" OK ({addr[0]}:{addr[1]})")
 
-                except socket.timeout:
-                    print(".", end='', flush=True)
+                except TimeoutError:
+                    print(".", end="", flush=True)
                     continue
 
             print("\nStarting duration test...")
@@ -70,7 +66,7 @@ class SelfTestServer:
 
                     # Extract requested timeout (client sends as struct "d" - double)
                     requested_timeout = struct.unpack("d", data)[0]
-                    print(f"+ Received timeout request: {requested_timeout:7.2f}", end='', flush=True)
+                    print(f"+ Received timeout request: {requested_timeout:7.2f}", end="", flush=True)
 
                     # Send confirmation multiple times to ensure delivery
                     for _ in range(3):
@@ -84,7 +80,7 @@ class SelfTestServer:
                         time.sleep(0.1)
 
                     first_request = False
-            except socket.timeout:
+            except TimeoutError:
                 if not first_request:
                     print(" FAILED")
 

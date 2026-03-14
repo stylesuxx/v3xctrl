@@ -20,7 +20,7 @@ class KeyAxisHandler:
         min_val: float = -1.0,
         max_val: float = 1.0,
         deadzone: float = 0.0,
-        cooldown_frames: int = 3
+        cooldown_frames: int = 3,
     ) -> None:
         self.positive = positive
         self.negative = negative
@@ -115,6 +115,8 @@ class KeyAxisHandler:
 
     def __repr__(self) -> str:
         avg = self._smoothed_interval()
-        return (f"<KeyAxisHandler(value={self.value:.3f}, cooldown={self.cooldown}, "
-                f"tap_avg_interval={avg:.1f}, hold_frames={self.hold_frames}, "
-                f"keys=({self.positive}, {self.negative}))>")
+        return (
+            f"<KeyAxisHandler(value={self.value:.3f}, cooldown={self.cooldown}, "
+            f"tap_avg_interval={avg:.1f}, hold_frames={self.hold_frames}, "
+            f"keys=({self.positive}, {self.negative}))>"
+        )

@@ -15,11 +15,11 @@ from enum import Enum
 from unittest.mock import Mock
 
 from v3xctrl_control.message import PeerAnnouncement
+from v3xctrl_relay.custom_types import PortType
 from v3xctrl_relay.ForwardTarget import TcpTarget
 from v3xctrl_relay.PacketRelay import PacketRelay
 from v3xctrl_relay.Role import Role
 from v3xctrl_relay.SessionStore import SessionStore
-from v3xctrl_relay.custom_types import PortType
 
 
 class _TransportMode(Enum):
@@ -66,8 +66,7 @@ class _SessionLifecycleBase:
         target.send.return_value = True
         return target
 
-    def _register(self, role: str, port_type: str, addr: tuple,
-                  transport: _TransportMode) -> None:
+    def _register(self, role: str, port_type: str, addr: tuple, transport: _TransportMode) -> None:
         msg = PeerAnnouncement(r=role, i="sid1", p=port_type)
         if transport == _TransportMode.TCP:
             target = self._make_tcp_target()
@@ -76,15 +75,13 @@ class _SessionLifecycleBase:
         else:
             self.relay.register_peer(msg, addr)
 
-    def _register_streamer(self, video_addr: tuple | None = None,
-                           control_addr: tuple | None = None) -> None:
+    def _register_streamer(self, video_addr: tuple | None = None, control_addr: tuple | None = None) -> None:
         video = video_addr or self.streamer_video
         control = control_addr or self.streamer_control
         self._register("streamer", "video", video, self.streamer_transport)
         self._register("streamer", "control", control, self.streamer_transport)
 
-    def _register_viewer(self, video_addr: tuple | None = None,
-                         control_addr: tuple | None = None) -> None:
+    def _register_viewer(self, video_addr: tuple | None = None, control_addr: tuple | None = None) -> None:
         video = video_addr or self.viewer_video
         control = control_addr or self.viewer_control
         self._register("viewer", "video", video, self.viewer_transport)
@@ -152,13 +149,11 @@ class _SessionLifecycleBase:
 
     def assertHasMapping(self, addr: tuple) -> None:
         with self.relay.mapping_lock:
-            self.assertIn(addr, self.relay.mappings,
-                          f"Mapping should exist for {addr}")
+            self.assertIn(addr, self.relay.mappings, f"Mapping should exist for {addr}")
 
     def assertNoMapping(self, addr: tuple) -> None:
         with self.relay.mapping_lock:
-            self.assertNotIn(addr, self.relay.mappings,
-                             f"Mapping should not exist for {addr}")
+            self.assertNotIn(addr, self.relay.mappings, f"Mapping should not exist for {addr}")
 
     # -- Session establishment --
 
@@ -444,10 +439,7 @@ class _SessionLifecycleBase:
         self.assertIsNotNone(deferred)
         self.assertEqual(len(deferred), 0)
         for call_args in self.sock.sendto.call_args_list:
-            self.assertNotEqual(
-                call_args[0][1], self.viewer_video,
-                "Dead TCP target should not fall back to UDP"
-            )
+            self.assertNotEqual(call_args[0][1], self.viewer_video, "Dead TCP target should not fall back to UDP")
 
     def test_dead_tcp_target_cleaned_after_mapping_removed(self):
         """Dead TCP target is cleaned up only after its mapping is removed.
@@ -456,8 +448,7 @@ class _SessionLifecycleBase:
         takes two cleanup cycles: the first removes the mapping, the second
         removes the dead TCP target.
         """
-        if (self.viewer_transport != _TransportMode.TCP and
-                self.streamer_transport != _TransportMode.TCP):
+        if self.viewer_transport != _TransportMode.TCP and self.streamer_transport != _TransportMode.TCP:
             self.skipTest("Only applies when at least one peer is TCP")
 
         self._establish_session()
@@ -508,24 +499,28 @@ class _SessionLifecycleBase:
 
 class TestSessionLifecycleUDP(_SessionLifecycleBase, unittest.TestCase):
     """UDP streamer, UDP viewer."""
+
     streamer_transport = _TransportMode.UDP
     viewer_transport = _TransportMode.UDP
 
 
 class TestSessionLifecycleTCP(_SessionLifecycleBase, unittest.TestCase):
     """TCP streamer, TCP viewer."""
+
     streamer_transport = _TransportMode.TCP
     viewer_transport = _TransportMode.TCP
 
 
 class TestSessionLifecycleTCPStreamerUDPViewer(_SessionLifecycleBase, unittest.TestCase):
     """TCP streamer, UDP viewer."""
+
     streamer_transport = _TransportMode.TCP
     viewer_transport = _TransportMode.UDP
 
 
 class TestSessionLifecycleUDPStreamerTCPViewer(_SessionLifecycleBase, unittest.TestCase):
     """UDP streamer, TCP viewer."""
+
     streamer_transport = _TransportMode.UDP
     viewer_transport = _TransportMode.TCP
 
@@ -533,6 +528,7 @@ class TestSessionLifecycleUDPStreamerTCPViewer(_SessionLifecycleBase, unittest.T
 # ---------------------------------------------------------------------------
 # Protocol switching: peer reconnects using a different transport
 # ---------------------------------------------------------------------------
+
 
 class _ProtocolSwitchBase:
     """Helpers for protocol switch tests. Mixed with unittest.TestCase."""
@@ -562,8 +558,7 @@ class _ProtocolSwitchBase:
         target.send.return_value = True
         return target
 
-    def _register(self, role: str, port_type: str, addr: tuple,
-                  transport: _TransportMode) -> None:
+    def _register(self, role: str, port_type: str, addr: tuple, transport: _TransportMode) -> None:
         msg = PeerAnnouncement(r=role, i="sid1", p=port_type)
         if transport == _TransportMode.TCP:
             target = self._make_tcp_target()
@@ -572,27 +567,22 @@ class _ProtocolSwitchBase:
         else:
             self.relay.register_peer(msg, addr)
 
-    def _register_role(self, role: str, video: tuple, control: tuple,
-                       transport: _TransportMode) -> None:
+    def _register_role(self, role: str, video: tuple, control: tuple, transport: _TransportMode) -> None:
         self._register(role, "video", video, transport)
         self._register(role, "control", control, transport)
 
 
 class TestViewerProtocolSwitch(_ProtocolSwitchBase, unittest.TestCase):
-
     def test_viewer_switches_udp_to_tcp(self):
         """Viewer initially UDP, reconnects via TCP - session stays ready."""
-        self._register_role("streamer", self.streamer_video,
-                            self.streamer_control, _TransportMode.UDP)
-        self._register_role("viewer", self.viewer_video,
-                            self.viewer_control, _TransportMode.UDP)
+        self._register_role("streamer", self.streamer_video, self.streamer_control, _TransportMode.UDP)
+        self._register_role("viewer", self.viewer_video, self.viewer_control, _TransportMode.UDP)
 
         session = self.relay.sessions["sid1"]
         self.assertTrue(session.is_ready())
 
         # Viewer reconnects via TCP
-        self._register_role("viewer", self.viewer_video,
-                            self.viewer_control, _TransportMode.TCP)
+        self._register_role("viewer", self.viewer_video, self.viewer_control, _TransportMode.TCP)
 
         self.assertTrue(session.is_ready())
         self.assertIn(self.viewer_video, self.relay.mappings)
@@ -604,10 +594,8 @@ class TestViewerProtocolSwitch(_ProtocolSwitchBase, unittest.TestCase):
 
     def test_viewer_switches_tcp_to_udp(self):
         """Viewer initially TCP, reconnects via UDP with new ports."""
-        self._register_role("streamer", self.streamer_video,
-                            self.streamer_control, _TransportMode.UDP)
-        self._register_role("viewer", self.viewer_video,
-                            self.viewer_control, _TransportMode.TCP)
+        self._register_role("streamer", self.streamer_video, self.streamer_control, _TransportMode.UDP)
+        self._register_role("viewer", self.viewer_video, self.viewer_control, _TransportMode.TCP)
 
         session = self.relay.sessions["sid1"]
         self.assertTrue(session.is_ready())
@@ -618,8 +606,7 @@ class TestViewerProtocolSwitch(_ProtocolSwitchBase, unittest.TestCase):
         # Viewer reconnects via UDP (new socket -> new ports)
         new_video = ("10.0.0.2", 60100)
         new_control = ("10.0.0.2", 60101)
-        self._register_role("viewer", new_video, new_control,
-                            _TransportMode.UDP)
+        self._register_role("viewer", new_video, new_control, _TransportMode.UDP)
 
         self.assertTrue(session.is_ready())
         self.assertIn(new_video, self.relay.mappings)
@@ -633,20 +620,16 @@ class TestViewerProtocolSwitch(_ProtocolSwitchBase, unittest.TestCase):
 
 
 class TestStreamerProtocolSwitch(_ProtocolSwitchBase, unittest.TestCase):
-
     def test_streamer_switches_udp_to_tcp(self):
         """Streamer initially UDP, reconnects via TCP - session stays ready."""
-        self._register_role("streamer", self.streamer_video,
-                            self.streamer_control, _TransportMode.UDP)
-        self._register_role("viewer", self.viewer_video,
-                            self.viewer_control, _TransportMode.UDP)
+        self._register_role("streamer", self.streamer_video, self.streamer_control, _TransportMode.UDP)
+        self._register_role("viewer", self.viewer_video, self.viewer_control, _TransportMode.UDP)
 
         session = self.relay.sessions["sid1"]
         self.assertTrue(session.is_ready())
 
         # Streamer reconnects via TCP
-        self._register_role("streamer", self.streamer_video,
-                            self.streamer_control, _TransportMode.TCP)
+        self._register_role("streamer", self.streamer_video, self.streamer_control, _TransportMode.TCP)
 
         self.assertTrue(session.is_ready())
         self.assertIn(self.streamer_video, self.relay.mappings)
@@ -658,10 +641,8 @@ class TestStreamerProtocolSwitch(_ProtocolSwitchBase, unittest.TestCase):
 
     def test_streamer_switches_tcp_to_udp(self):
         """Streamer initially TCP, reconnects via UDP with new ports."""
-        self._register_role("streamer", self.streamer_video,
-                            self.streamer_control, _TransportMode.TCP)
-        self._register_role("viewer", self.viewer_video,
-                            self.viewer_control, _TransportMode.UDP)
+        self._register_role("streamer", self.streamer_video, self.streamer_control, _TransportMode.TCP)
+        self._register_role("viewer", self.viewer_video, self.viewer_control, _TransportMode.UDP)
 
         session = self.relay.sessions["sid1"]
         self.assertTrue(session.is_ready())
@@ -672,8 +653,7 @@ class TestStreamerProtocolSwitch(_ProtocolSwitchBase, unittest.TestCase):
         # Streamer reconnects via UDP (new socket -> new ports)
         new_video = ("10.0.0.1", 50100)
         new_control = ("10.0.0.1", 50101)
-        self._register_role("streamer", new_video, new_control,
-                            _TransportMode.UDP)
+        self._register_role("streamer", new_video, new_control, _TransportMode.UDP)
 
         self.assertTrue(session.is_ready())
 
@@ -688,6 +668,7 @@ class TestStreamerProtocolSwitch(_ProtocolSwitchBase, unittest.TestCase):
 # ---------------------------------------------------------------------------
 # Spectator: all transport combinations for spectator + streamer
 # ---------------------------------------------------------------------------
+
 
 class _SpectatorBase:
     """Helpers for spectator tests. Mixed with unittest.TestCase."""
@@ -720,8 +701,7 @@ class _SpectatorBase:
         target.send.return_value = True
         return target
 
-    def _register(self, role: str, port_type: str, addr: tuple,
-                  transport: _TransportMode) -> None:
+    def _register(self, role: str, port_type: str, addr: tuple, transport: _TransportMode) -> None:
         msg = PeerAnnouncement(r=role, i="sid1", p=port_type)
         if transport == _TransportMode.TCP:
             target = self._make_tcp_target()
@@ -730,17 +710,13 @@ class _SpectatorBase:
         else:
             self.relay.register_peer(msg, addr)
 
-    def _register_role(self, role: str, video: tuple, control: tuple,
-                       transport: _TransportMode) -> None:
+    def _register_role(self, role: str, video: tuple, control: tuple, transport: _TransportMode) -> None:
         self._register(role, "video", video, transport)
         self._register(role, "control", control, transport)
 
-    def _establish_session(self, streamer_transport: _TransportMode,
-                           viewer_transport: _TransportMode) -> None:
-        self._register_role("streamer", self.streamer_video,
-                            self.streamer_control, streamer_transport)
-        self._register_role("viewer", self.viewer_video,
-                            self.viewer_control, viewer_transport)
+    def _establish_session(self, streamer_transport: _TransportMode, viewer_transport: _TransportMode) -> None:
+        self._register_role("streamer", self.streamer_video, self.streamer_control, streamer_transport)
+        self._register_role("viewer", self.viewer_video, self.viewer_control, viewer_transport)
 
     def _register_spectator(self, transport: _TransportMode) -> None:
         self._register("spectator", "video", self.spectator_video, transport)
@@ -753,8 +729,7 @@ class _SpectatorBase:
         self.assertIn(self.spectator_video, video_targets)
         self.assertIn(self.spectator_control, control_targets)
 
-    def _assert_spectator_receives_data(self,
-                                        spectator_transport: _TransportMode) -> None:
+    def _assert_spectator_receives_data(self, spectator_transport: _TransportMode) -> None:
         self.sock.sendto.reset_mock()
         for addr in list(self.tcp_targets.values()):
             addr.send.reset_mock()
@@ -774,7 +749,6 @@ class _SpectatorBase:
 
 
 class TestSpectatorUDPWithStreamerUDP(_SpectatorBase, unittest.TestCase):
-
     def test_spectator_joins_and_receives(self):
         """UDP spectator joins session with UDP streamer."""
         self._establish_session(_TransportMode.UDP, _TransportMode.UDP)
@@ -785,7 +759,6 @@ class TestSpectatorUDPWithStreamerUDP(_SpectatorBase, unittest.TestCase):
 
 
 class TestSpectatorTCPWithStreamerUDP(_SpectatorBase, unittest.TestCase):
-
     def test_spectator_joins_and_receives(self):
         """TCP spectator joins session with UDP streamer."""
         self._establish_session(_TransportMode.UDP, _TransportMode.UDP)
@@ -796,7 +769,6 @@ class TestSpectatorTCPWithStreamerUDP(_SpectatorBase, unittest.TestCase):
 
 
 class TestSpectatorUDPWithStreamerTCP(_SpectatorBase, unittest.TestCase):
-
     def test_spectator_joins_and_receives(self):
         """UDP spectator joins session with TCP streamer."""
         self._establish_session(_TransportMode.TCP, _TransportMode.UDP)
@@ -807,7 +779,6 @@ class TestSpectatorUDPWithStreamerTCP(_SpectatorBase, unittest.TestCase):
 
 
 class TestSpectatorTCPWithStreamerTCP(_SpectatorBase, unittest.TestCase):
-
     def test_spectator_joins_and_receives(self):
         """TCP spectator joins session with TCP streamer."""
         self._establish_session(_TransportMode.TCP, _TransportMode.UDP)

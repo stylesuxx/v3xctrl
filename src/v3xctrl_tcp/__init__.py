@@ -4,9 +4,9 @@ from .send_timeout import configure_send_timeout
 from .transport import Transport
 
 __all__ = [
+    "Transport",
     "configure_keepalive",
     "configure_send_timeout",
     "recv_message",
     "send_message",
-    "Transport",
 ]

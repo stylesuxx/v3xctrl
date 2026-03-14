@@ -12,6 +12,7 @@ from v3xctrl_ui.utils.colors import (
     LIGHT_GREY,
     WHITE,
 )
+
 from .BaseWidget import BaseWidget
 
 
@@ -39,7 +40,7 @@ class BaseInput(BaseWidget):
         font: Font,
         mono_font: Font,
         on_change: Callable[[str], None] | None = None,
-        input_padding: int = 10
+        input_padding: int = 10,
     ) -> None:
         super().__init__()
 
@@ -115,16 +116,13 @@ class BaseInput(BaseWidget):
 
         if value_changed:
             self.last_value = self.value
-            self.text_surface, self.text_rect = self.mono_font.render(
-                self.value,
-                self.TEXT_COLOR
-            )
+            self.text_surface, self.text_rect = self.mono_font.render(self.value, self.TEXT_COLOR)
             self.text_rect.right = self.input_rect.right - self.input_padding
             self.text_rect.centery = self.input_rect.centery
 
         if value_changed or cursor_pos_changed:
             self.last_cursor_pos = self.cursor_pos
-            text_width = self.mono_font.get_rect(self.value[self.cursor_pos:]).width
+            text_width = self.mono_font.get_rect(self.value[self.cursor_pos :]).width
             gap = self.CURSOR_GAP if self.cursor_pos < len(self.value) else 0
             self.cursor_x = self.text_rect.right - text_width - gap
 
@@ -139,7 +137,7 @@ class BaseInput(BaseWidget):
                 self.CURSOR_COLOR,
                 (self.cursor_x, self.cursor_y_start),
                 (self.cursor_x, self.cursor_y_end),
-                self.CURSOR_WIDTH
+                self.CURSOR_WIDTH,
             )
 
     def _handle_mouse(self, mouse_pos: tuple[int, int]) -> None:
@@ -170,13 +168,10 @@ class BaseInput(BaseWidget):
                 data = pygame.scrap.get(type)
                 if data:
                     try:
-                        if isinstance(data, bytes):
-                            text = data.decode("utf-8", errors="ignore")
-                        else:
-                            text = data
+                        text = data.decode("utf-8", errors="ignore") if isinstance(data, bytes) else data
 
                         # Only keep printable characters
-                        cleaned_text = ''.join(char for char in text if char.isprintable()).strip()
+                        cleaned_text = "".join(char for char in text if char.isprintable()).strip()
 
                         return cleaned_text
 
@@ -200,7 +195,7 @@ class BaseInput(BaseWidget):
             return
 
         if event.key == pygame.K_BACKSPACE and self.cursor_pos > 0:
-            self.value = self.value[:self.cursor_pos - 1] + self.value[self.cursor_pos:]
+            self.value = self.value[: self.cursor_pos - 1] + self.value[self.cursor_pos :]
             self.cursor_pos -= 1
             if self.on_change:
                 self.on_change(self.value)
@@ -217,27 +212,17 @@ class BaseInput(BaseWidget):
 
     def _draw_input_background(self) -> None:
         self.input_surface.fill(self.INPUT_BG_COLOR)
-        pygame.draw.line(
-            self.input_surface,
-            self.BORDER_LIGHT_COLOR,
-            (0, 0),
-            (self.input_width - 1, 0)
-        )
-        pygame.draw.line(
-            self.input_surface,
-            self.BORDER_LIGHT_COLOR,
-            (0, 0),
-            (0, self.input_height - 1)
-        )
+        pygame.draw.line(self.input_surface, self.BORDER_LIGHT_COLOR, (0, 0), (self.input_width - 1, 0))
+        pygame.draw.line(self.input_surface, self.BORDER_LIGHT_COLOR, (0, 0), (0, self.input_height - 1))
         pygame.draw.line(
             self.input_surface,
             self.BORDER_DARK_COLOR,
             (0, self.input_height - 1),
-            (self.input_width - 1, self.input_height - 1)
+            (self.input_width - 1, self.input_height - 1),
         )
         pygame.draw.line(
             self.input_surface,
             self.BORDER_DARK_COLOR,
             (self.input_width - 1, 0),
-            (self.input_width - 1, self.input_height - 1)
+            (self.input_width - 1, self.input_height - 1),
         )

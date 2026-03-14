@@ -1,18 +1,18 @@
-from typing import Any
+from typing import Any, ClassVar
 
 from v3xctrl_gst.Sources import (
-    SourceBuilder,
     CameraSourceBuilder,
     FileSourceBuilder,
+    SourceBuilder,
     TestSourceBuilder,
 )
 
 
 class SourceRegistry:
-    _builders: dict[str, type[SourceBuilder]] = {
-        'camera': CameraSourceBuilder,
-        'file': FileSourceBuilder,
-        'test': TestSourceBuilder,
+    _builders: ClassVar[dict[str, type[SourceBuilder]]] = {
+        "camera": CameraSourceBuilder,
+        "file": FileSourceBuilder,
+        "test": TestSourceBuilder,
     }
 
     @classmethod
@@ -20,7 +20,7 @@ class SourceRegistry:
         """Create a source builder by name"""
         builder_class = cls._builders.get(name)
         if not builder_class:
-            available = ', '.join(cls._builders.keys())
+            available = ", ".join(cls._builders.keys())
             raise ValueError(f"Unknown source builder: '{name}'. Available: {available}")
 
         return builder_class(settings)

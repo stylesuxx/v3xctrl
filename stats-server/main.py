@@ -1,10 +1,9 @@
 import argparse
 import secrets
 
-from flask import Flask
-
 from auth import auth_blueprint
-from stats import create_stats_blueprint, RelayClient
+from flask import Flask
+from stats import RelayClient, create_stats_blueprint
 
 
 def create_app(
@@ -12,9 +11,9 @@ def create_app(
     users_file: str,
     secret_key: str,
 ) -> Flask:
-    app = Flask(__name__, template_folder='templates', static_folder='static')
+    app = Flask(__name__, template_folder="templates", static_folder="static")
     app.secret_key = secret_key
-    app.config['USERS_FILE'] = users_file
+    app.config["USERS_FILE"] = users_file
 
     relay_clients = {port: RelayClient(port) for port in relay_ports}
 
@@ -27,25 +26,25 @@ def create_app(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Stats web interface for UDP relay servers.")
     parser.add_argument(
-        '--relay-port',
+        "--relay-port",
         type=int,
-        action='append',
+        action="append",
         required=True,
-        dest='relay_ports',
-        help='Relay server port (can be specified multiple times)',
+        dest="relay_ports",
+        help="Relay server port (can be specified multiple times)",
     )
     parser.add_argument(
-        '--users-file',
+        "--users-file",
         required=True,
-        help='Path to users.json file with password hashes',
+        help="Path to users.json file with password hashes",
     )
     parser.add_argument(
-        '--secret-key',
+        "--secret-key",
         default=None,
-        help='Secret key for session signing (default: random per restart)',
+        help="Secret key for session signing (default: random per restart)",
     )
-    parser.add_argument('--host', default='0.0.0.0', help='Host to bind to')
-    parser.add_argument('--port', default=8080, type=int, help='Port to listen on')
+    parser.add_argument("--host", default="0.0.0.0", help="Host to bind to")
+    parser.add_argument("--port", default=8080, type=int, help="Port to listen on")
     args = parser.parse_args()
 
     secret_key = args.secret_key or secrets.token_hex(32)
@@ -58,5 +57,5 @@ def main() -> None:
     app.run(host=args.host, port=args.port)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

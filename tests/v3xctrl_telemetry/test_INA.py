@@ -1,8 +1,9 @@
 """Tests for INA sensor interface."""
-import unittest
-from unittest.mock import Mock, patch, MagicMock
 
-from v3xctrl_telemetry.INA import INA, INARegister, INAUnits
+import unittest
+from unittest.mock import MagicMock, patch
+
+from v3xctrl_telemetry.INA import INA, INARegister
 
 
 class TestINA(unittest.TestCase):
@@ -10,7 +11,7 @@ class TestINA(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures with mocked SMBus."""
-        self.mock_smbus_patcher = patch('v3xctrl_telemetry.INA.SMBus')
+        self.mock_smbus_patcher = patch("v3xctrl_telemetry.INA.SMBus")
         self.mock_smbus_class = self.mock_smbus_patcher.start()
         self.mock_bus = MagicMock()
         self.mock_smbus_class.return_value = self.mock_bus
@@ -162,5 +163,5 @@ class TestINA(unittest.TestCase):
         assert INARegister.POWER in registers_read
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

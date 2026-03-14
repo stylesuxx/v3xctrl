@@ -1,5 +1,6 @@
 # Required before importing pygame, otherwise screen might flicker during tests
 import os
+
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 import unittest
@@ -9,17 +10,17 @@ import pygame
 import pygame.freetype
 from pygame.event import Event
 from pygame.locals import (
-  KEYDOWN,
-  K_BACKSPACE,
-  K_LEFT,
-  K_RIGHT,
-  K_RETURN,
-  K_v,
-  MOUSEBUTTONDOWN,
-  KMOD_CTRL,
+    K_BACKSPACE,
+    K_LEFT,
+    K_RETURN,
+    K_RIGHT,
+    KEYDOWN,
+    KMOD_CTRL,
+    MOUSEBUTTONDOWN,
+    K_v,
 )
 
-from v3xctrl_ui.menu.input import TextInput, BaseInput
+from v3xctrl_ui.menu.input import BaseInput, TextInput
 
 
 class TestTextInput(unittest.TestCase):
@@ -36,7 +37,7 @@ class TestTextInput(unittest.TestCase):
             font=self.font,
             mono_font=self.font,
             max_length=10,
-            on_change=self.mock_on_change
+            on_change=self.mock_on_change,
         )
         self.text_input.set_position(0, 0)
 
@@ -50,23 +51,11 @@ class TestTextInput(unittest.TestCase):
         self.assertEqual(self.text_input.get_value(), "")
         self.assertEqual(self.text_input.cursor_pos, 0)
 
-        fresh_input = TextInput(
-            label="Fresh",
-            label_width=100,
-            input_width=200,
-            font=self.font,
-            mono_font=self.font
-        )
+        fresh_input = TextInput(label="Fresh", label_width=100, input_width=200, font=self.font, mono_font=self.font)
         self.assertFalse(fresh_input.focused)
 
     def test_initialization_default_max_length(self):
-        widget = TextInput(
-            label="Test",
-            label_width=100,
-            input_width=200,
-            font=self.font,
-            mono_font=self.font
-        )
+        widget = TextInput(label="Test", label_width=100, input_width=200, font=self.font, mono_font=self.font)
         self.assertEqual(widget.max_length, 32)
 
     def test_single_character_input(self):
@@ -237,21 +226,15 @@ class TestTextInput(unittest.TestCase):
         self.mock_on_change.assert_called_once_with("")
 
     def test_return_key_without_callback(self):
-        widget = TextInput(
-            label="Test",
-            label_width=100,
-            input_width=200,
-            font=self.font,
-            mono_font=self.font
-        )
+        widget = TextInput(label="Test", label_width=100, input_width=200, font=self.font, mono_font=self.font)
         widget.focused = True
         widget.value = "test"
 
         event = Event(KEYDOWN, {"key": K_RETURN, "unicode": ""})
         self.assertTrue(widget.handle_event(event))
 
-    @patch('pygame.scrap.get_init')
-    @patch('pygame.key.get_mods')
+    @patch("pygame.scrap.get_init")
+    @patch("pygame.key.get_mods")
     def test_paste_within_max_length(self, mock_get_mods, mock_scrap_init):
         self.text_input.focused = True
         mock_get_mods.return_value = KMOD_CTRL
@@ -259,22 +242,22 @@ class TestTextInput(unittest.TestCase):
         self.text_input.max_length = 10
         self.text_input.value = "hello"
 
-        with patch.object(self.text_input, '_get_clipboard_text', return_value="world"):
+        with patch.object(self.text_input, "_get_clipboard_text", return_value="world"):
             event = Event(KEYDOWN, {"key": K_v, "unicode": ""})
             self.text_input.handle_event(event)
 
         self.assertEqual(self.text_input.value, "world")
         self.mock_on_change.assert_called_with("world")
 
-    @patch('pygame.scrap.get_init')
-    @patch('pygame.key.get_mods')
+    @patch("pygame.scrap.get_init")
+    @patch("pygame.key.get_mods")
     def test_paste_exceeds_max_length(self, mock_get_mods, mock_scrap_init):
         self.text_input.focused = True
         mock_get_mods.return_value = KMOD_CTRL
         mock_scrap_init.return_value = True
         self.text_input.max_length = 5
 
-        with patch.object(self.text_input, '_get_clipboard_text', return_value="this is too long"):
+        with patch.object(self.text_input, "_get_clipboard_text", return_value="this is too long"):
             event = Event(KEYDOWN, {"key": K_v, "unicode": ""})
             self.text_input.handle_event(event)
 
@@ -332,8 +315,8 @@ class TestTextInput(unittest.TestCase):
 
         event = Event(KEYDOWN, {"key": pygame.K_SPACE})
 
-        if hasattr(event, 'unicode'):
-            delattr(event, 'unicode')
+        if hasattr(event, "unicode"):
+            delattr(event, "unicode")
 
         self.assertTrue(self.text_input.handle_event(event))
         self.assertEqual(self.text_input.value, "")
@@ -371,7 +354,7 @@ class TestTextInput(unittest.TestCase):
         self.assertGreater(height, 0)
 
     def test_cursor_blink_functionality(self):
-        with patch('pygame.time.get_ticks') as mock_ticks:
+        with patch("pygame.time.get_ticks") as mock_ticks:
             mock_ticks.return_value = self.text_input.cursor_timer + TextInput.CURSOR_INTERVAL + 1
 
             old_visibility = self.text_input.cursor_visible
@@ -381,13 +364,7 @@ class TestTextInput(unittest.TestCase):
             self.assertNotEqual(old_visibility, new_visibility)
 
     def test_multiple_inputs_independence(self):
-        second_input = TextInput(
-            label="Second",
-            label_width=50,
-            input_width=150,
-            font=self.font,
-            mono_font=self.font
-        )
+        second_input = TextInput(label="Second", label_width=50, input_width=150, font=self.font, mono_font=self.font)
 
         self.text_input.value = "first"
         second_input.value = "second"

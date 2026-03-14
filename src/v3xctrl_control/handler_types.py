@@ -1,4 +1,5 @@
 from typing import Protocol, TypeVar
+
 from v3xctrl_helper import Address
 
 from .message import Message

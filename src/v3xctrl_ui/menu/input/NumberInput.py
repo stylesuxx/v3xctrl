@@ -17,17 +17,9 @@ class NumberInput(BaseInput):
         font: Font,
         mono_font: Font,
         on_change: Callable[[str], None] | None = None,
-        input_padding: int = 10
+        input_padding: int = 10,
     ) -> None:
-        super().__init__(
-            label,
-            label_width,
-            input_width,
-            font,
-            mono_font,
-            on_change,
-            input_padding
-        )
+        super().__init__(label, label_width, input_width, font, mono_font, on_change, input_padding)
         self.min_val = min_val
         self.max_val = max_val
 
@@ -57,18 +49,13 @@ class NumberInput(BaseInput):
                     self.cursor_pos = len(self.value)
                     if self.on_change:
                         self.on_change(self.value)
-        elif (
-            hasattr(event, 'unicode') and
-            event.unicode.isdigit() and
-            len(self.value) < 5
-        ):
+        elif hasattr(event, "unicode") and event.unicode.isdigit() and len(self.value) < 5:
             try:
-                new_val = str(self.value[:self.cursor_pos] + event.unicode + self.value[self.cursor_pos:])
-                if new_val != self.value:
-                    if self.min_val <= int(new_val) <= self.max_val:
-                        self.value = new_val
-                        self.cursor_pos += 1
-                        if self.on_change:
-                            self.on_change(self.value)
+                new_val = str(self.value[: self.cursor_pos] + event.unicode + self.value[self.cursor_pos :])
+                if new_val != self.value and self.min_val <= int(new_val) <= self.max_val:
+                    self.value = new_val
+                    self.cursor_pos += 1
+                    if self.on_change:
+                        self.on_change(self.value)
             except ValueError:
                 pass

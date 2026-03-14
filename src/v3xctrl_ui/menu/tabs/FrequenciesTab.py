@@ -3,25 +3,17 @@ from typing import Any
 from pygame import Surface
 
 from v3xctrl_helper import is_int
-
+from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.menu.input import NumberInput
 from v3xctrl_ui.utils.fonts import LABEL_FONT, MONO_FONT
 from v3xctrl_ui.utils.i18n import t
-from v3xctrl_ui.menu.input import NumberInput
-from v3xctrl_ui.core.Settings import Settings
 
 from .Tab import Tab
 from .VerticalLayout import VerticalLayout
 
 
 class FrequenciesTab(Tab):
-    def __init__(
-        self,
-        settings: Settings,
-        width: int,
-        height: int,
-        padding: int,
-        y_offset: int
-    ) -> None:
+    def __init__(self, settings: Settings, width: int, height: int, padding: int, y_offset: int) -> None:
         super().__init__(settings, width, height, padding, y_offset)
 
         label_width = 170
@@ -31,27 +23,33 @@ class FrequenciesTab(Tab):
             t("Main Loop FPS"),
             label_width=label_width,
             input_width=input_width,
-            min_val=1, max_val=120,
-            font=LABEL_FONT, mono_font=MONO_FONT,
-            on_change=lambda v: self._on_rate_change("main_loop_fps", v)
+            min_val=1,
+            max_val=120,
+            font=LABEL_FONT,
+            mono_font=MONO_FONT,
+            on_change=lambda v: self._on_rate_change("main_loop_fps", v),
         )
 
         self.control_input = NumberInput(
             t("Control Frequency"),
             label_width=label_width,
             input_width=input_width,
-            min_val=1, max_val=120,
-            font=LABEL_FONT, mono_font=MONO_FONT,
-            on_change=lambda v: self._on_rate_change("control_update_hz", v)
+            min_val=1,
+            max_val=120,
+            font=LABEL_FONT,
+            mono_font=MONO_FONT,
+            on_change=lambda v: self._on_rate_change("control_update_hz", v),
         )
 
         self.latency_input = NumberInput(
             t("Latency Frequency"),
             label_width=label_width,
             input_width=input_width,
-            min_val=1, max_val=120,
-            font=LABEL_FONT, mono_font=MONO_FONT,
-            on_change=lambda v: self._on_rate_change("latency_check_hz", v)
+            min_val=1,
+            max_val=120,
+            font=LABEL_FONT,
+            mono_font=MONO_FONT,
+            on_change=lambda v: self._on_rate_change("latency_check_hz", v),
         )
 
         self.elements = [
@@ -72,9 +70,7 @@ class FrequenciesTab(Tab):
         _ = self._draw_frequency_section(surface, 0)
 
     def get_settings(self) -> dict[str, Any]:
-        return {
-            "timing": self.timing
-        }
+        return {"timing": self.timing}
 
     def apply_settings(self) -> None:
         self.timing = self.settings.get("timing", {})
@@ -86,6 +82,7 @@ class FrequenciesTab(Tab):
     def _on_rate_change(self, name: str, value: str) -> None:
         if is_int(value):
             self.timing[name] = int(value)
+
     def _draw_frequency_section(self, surface: Surface, y: int) -> int:
         y = self.y_offset + self.padding
         y += self._draw_headline(surface, "frequencies", y)

@@ -1,4 +1,5 @@
 """Tests for SettingsManager - handles settings updates and coordination."""
+
 import threading
 import time
 from unittest.mock import Mock
@@ -45,15 +46,11 @@ class TestUpdateSettings:
 
     def test_update_settings_without_network_restart(self):
         """Test updating settings that don't require network restart."""
-        old_settings = {
-            "video": {"fullscreen": False},
-            "ports": {"video": 6666},
-            "relay": {}
-        }
+        old_settings = {"video": {"fullscreen": False}, "ports": {"video": 6666}, "relay": {}}
         new_settings = {
             "video": {"fullscreen": True},
             "ports": {"video": 6666},  # Same ports
-            "relay": {}  # Same relay
+            "relay": {},  # Same relay
         }
         model = ApplicationModel()
         manager = SettingsController(old_settings, model)
@@ -72,15 +69,11 @@ class TestUpdateSettings:
 
     def test_update_settings_with_ports_change(self):
         """Test updating settings when ports change (requires restart)."""
-        old_settings = {
-            "video": {"fullscreen": False},
-            "ports": {"video": 6666},
-            "relay": {}
-        }
+        old_settings = {"video": {"fullscreen": False}, "ports": {"video": 6666}, "relay": {}}
         new_settings = {
             "video": {"fullscreen": False},
             "ports": {"video": 7777},  # Changed port
-            "relay": {}
+            "relay": {},
         }
         model = ApplicationModel()
         model.user_connected = True
@@ -102,12 +95,12 @@ class TestUpdateSettings:
         old_settings = {
             "video": {"fullscreen": False},
             "ports": {"video": 6666},
-            "relay": {"enabled": False, "id": "test-session"}
+            "relay": {"enabled": False, "id": "test-session"},
         }
         new_settings = {
             "video": {"fullscreen": False},
             "ports": {"video": 6666},
-            "relay": {"enabled": True, "id": "test-session"}  # Changed relay
+            "relay": {"enabled": True, "id": "test-session"},  # Changed relay
         }
         model = ApplicationModel()
         model.user_connected = True
@@ -127,9 +120,7 @@ class TestSettingsEqual:
 
     def test_settings_equal_when_identical(self):
         """Test that identical settings sections are considered equal."""
-        settings = {
-            "ports": {"video": 6666, "control": 6668}
-        }
+        settings = {"ports": {"video": 6666, "control": 6668}}
         model = ApplicationModel()
         manager = SettingsController(settings, model)
 
@@ -137,12 +128,8 @@ class TestSettingsEqual:
 
     def test_settings_not_equal_when_values_differ(self):
         """Test that different values are detected."""
-        old_settings = {
-            "ports": {"video": 6666, "control": 6668}
-        }
-        new_settings = {
-            "ports": {"video": 7777, "control": 6668}
-        }
+        old_settings = {"ports": {"video": 6666, "control": 6668}}
+        new_settings = {"ports": {"video": 7777, "control": 6668}}
         model = ApplicationModel()
         manager = SettingsController(old_settings, model)
 
@@ -150,12 +137,8 @@ class TestSettingsEqual:
 
     def test_settings_not_equal_when_keys_differ(self):
         """Test that different keys are detected."""
-        old_settings = {
-            "ports": {"video": 6666}
-        }
-        new_settings = {
-            "ports": {"video": 6666, "control": 6668}
-        }
+        old_settings = {"ports": {"video": 6666}}
+        new_settings = {"ports": {"video": 6666, "control": 6668}}
         model = ApplicationModel()
         manager = SettingsController(old_settings, model)
 
@@ -338,7 +321,7 @@ class TestSettingsManagerIntegration:
             "video": {"fullscreen": False},
             "ports": {"video": 6666},
             "relay": {},
-            "timing": {"control_update_hz": 30}
+            "timing": {"control_update_hz": 30},
         }
         model = ApplicationModel()
         manager = SettingsController(initial_settings, model)
@@ -360,7 +343,7 @@ class TestSettingsManagerIntegration:
             "video": {"fullscreen": True},
             "ports": {"video": 6666},
             "relay": {},
-            "timing": {"control_update_hz": 60}
+            "timing": {"control_update_hz": 60},
         }
 
         manager.update_settings(new_settings)
@@ -371,9 +354,7 @@ class TestSettingsManagerIntegration:
 
     def test_network_restart_workflow(self):
         """Test network restart workflow."""
-        initial_settings = {
-            "ports": {"video": 6666}
-        }
+        initial_settings = {"ports": {"video": 6666}}
         model = ApplicationModel()
         model.user_connected = True
         manager = SettingsController(initial_settings, model)

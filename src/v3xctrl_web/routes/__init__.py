@@ -1,11 +1,11 @@
 from flask_smorest import Api
 
+from .camera import blueprint as camera_blueprint
+from .config import blueprint as config_blueprint
+from .gpio import blueprint as gpio_blueprint
 from .modem import blueprint as modem_blueprint
 from .service import blueprint as service_blueprint
 from .system import blueprint as system_blueprint
-from .config import blueprint as config_blueprint
-from .gpio import blueprint as gpio_blueprint
-from .camera import blueprint as camera_blueprint
 
 
 def register_routes(api: Api) -> None:

@@ -10,8 +10,8 @@ from v3xctrl_helper import Address
 class TestPeer:
     def __init__(self, ports: dict[str, int], addresses: dict[str, PeerInfo]) -> None:
         # Re-bind the sockets
-        self.video_sock = self._bind_udp(ports['video'])
-        self.control_sock = self._bind_udp(ports['control'])
+        self.video_sock = self._bind_udp(ports["video"])
+        self.control_sock = self._bind_udp(ports["control"])
 
         self.remote_video_addr = addresses["video"]
         self.remote_control_addr = addresses["control"]
@@ -19,7 +19,7 @@ class TestPeer:
     def _bind_udp(self, port: int) -> socket.socket:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.bind(('0.0.0.0', port))
+        sock.bind(("0.0.0.0", port))
 
         return sock
 

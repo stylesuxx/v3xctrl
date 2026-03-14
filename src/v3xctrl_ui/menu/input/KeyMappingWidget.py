@@ -4,7 +4,7 @@ import pygame
 from pygame import Surface
 from pygame.freetype import Font
 
-from v3xctrl_ui.menu.input import Button, BaseWidget
+from v3xctrl_ui.menu.input import BaseWidget, Button
 from v3xctrl_ui.utils.colors import WHITE
 
 
@@ -21,7 +21,7 @@ class KeyMappingWidget(BaseWidget):
         key_code: int,
         font: Font,
         on_key_change: Callable[[int], None],
-        on_remap_toggle: Callable[[bool], None]
+        on_remap_toggle: Callable[[bool], None],
     ) -> None:
         super().__init__()
 

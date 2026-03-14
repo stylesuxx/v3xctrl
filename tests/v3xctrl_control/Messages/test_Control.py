@@ -1,7 +1,9 @@
 import unittest
-import msgpack
 from typing import Any
-from v3xctrl_control.message import Message, Control
+
+import msgpack
+
+from v3xctrl_control.message import Control, Message
 
 
 class TestControl(unittest.TestCase):

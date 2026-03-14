@@ -9,9 +9,9 @@ With idle=10s, interval=5s, count=3: dead connections detected in ~25s.
 
 import socket
 
-_KEEPIDLE = 10   # Start probes after 10s idle
-_KEEPINTVL = 5   # Probe every 5s
-_KEEPCNT = 3     # 3 missed probes = dead
+_KEEPIDLE = 10  # Start probes after 10s idle
+_KEEPINTVL = 5  # Probe every 5s
+_KEEPCNT = 3  # 3 missed probes = dead
 
 
 def configure_keepalive(sock: socket.socket) -> None:

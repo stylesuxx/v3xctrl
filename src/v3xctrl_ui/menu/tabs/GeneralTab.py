@@ -3,55 +3,51 @@ from typing import Any
 from pygame import Surface
 
 from v3xctrl_helper import is_int
+from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.menu.input import (
+    BaseInput,
+    BaseWidget,
+    Checkbox,
+    NumberInput,
+)
 from v3xctrl_ui.utils.fonts import LABEL_FONT, MONO_FONT
 from v3xctrl_ui.utils.i18n import t
-from v3xctrl_ui.menu.input import (
-  BaseInput,
-  BaseWidget,
-  Checkbox,
-  NumberInput,
-)
-from v3xctrl_ui.core.Settings import Settings
 
 from .Tab import Tab
 from .VerticalLayout import VerticalLayout
 
 
 class GeneralTab(Tab):
-    def __init__(
-        self,
-        settings: Settings,
-        width: int,
-        height: int,
-        padding: int,
-        y_offset: int
-    ) -> None:
+    def __init__(self, settings: Settings, width: int, height: int, padding: int, y_offset: int) -> None:
         super().__init__(settings, width, height, padding, y_offset)
 
         # General widgets
         self.fullscreen_enabled_checkbox = Checkbox(
-            label=t("Fullscreen"), font=LABEL_FONT,
-            checked=False,
-            on_change=self._on_fullscreen_enable_change
+            label=t("Fullscreen"), font=LABEL_FONT, checked=False, on_change=self._on_fullscreen_enable_change
         )
 
         self.show_connection_info_checkbox = Checkbox(
-            label=t("Show connection info (CAUTION: This potentially exposes your location)"), font=LABEL_FONT,
+            label=t("Show connection info (CAUTION: This potentially exposes your location)"),
+            font=LABEL_FONT,
             checked=False,
-            on_change=self._on_show_connection_info_change
+            on_change=self._on_show_connection_info_change,
         )
 
         self.render_ratio_input = NumberInput(
-            t("Render Ratio"), label_width=120, input_width=75,
-            min_val=0, max_val=100,
-            font=LABEL_FONT, mono_font=MONO_FONT,
-            on_change=lambda value: self._on_render_ratio_change(value)
+            t("Render Ratio"),
+            label_width=120,
+            input_width=75,
+            min_val=0,
+            max_val=100,
+            font=LABEL_FONT,
+            mono_font=MONO_FONT,
+            on_change=lambda value: self._on_render_ratio_change(value),
         )
 
         self.general_widgets: list[BaseInput | BaseWidget] = [
             self.fullscreen_enabled_checkbox,
             self.show_connection_info_checkbox,
-            self.render_ratio_input
+            self.render_ratio_input,
         ]
 
         self.elements = self.general_widgets

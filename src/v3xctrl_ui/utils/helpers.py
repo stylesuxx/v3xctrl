@@ -1,16 +1,14 @@
-from collections import deque
 import io
 import logging
 import time
+import urllib.request
+from collections import deque
 
 import pygame
+from material_icons import IconStyle, MaterialIcons
 from pygame.freetype import Font
 
-import urllib.request
-from material_icons import MaterialIcons, IconStyle
-
 from v3xctrl_helper import clamp, color_to_hex
-
 
 _icon_cache: dict[tuple[str, int, tuple[int, int, int], IconStyle, int], pygame.Surface] = {}
 _mask_cache: dict[tuple[int, int, int, int], pygame.Surface] = {}
@@ -64,8 +62,8 @@ def get_fps(history: deque[float], window_seconds: float = 1) -> int:
 
 def get_external_ip(timeout: int = 5) -> str:
     try:
-        with urllib.request.urlopen('https://api.ipify.org', timeout=timeout) as response:
-            return response.read().decode('utf-8')
+        with urllib.request.urlopen("https://api.ipify.org", timeout=timeout) as response:
+            return response.read().decode("utf-8")
     except Exception:
         logging.warning("Could not get external IP address")
         return "0.0.0.0"
@@ -76,7 +74,7 @@ def get_icon(
     size: int = 24,
     color: tuple[int, int, int] = (0, 0, 0),
     style: IconStyle = IconStyle.ROUND,
-    rotation: int = 0
+    rotation: int = 0,
 ) -> pygame.Surface:
     """
     Get a Material Design icon as a pygame surface.
@@ -99,11 +97,7 @@ def get_icon(
     return surface
 
 
-def round_corners(
-    surface: pygame.Surface,
-    radius: int,
-    scale: int = 2
-) -> pygame.Surface:
+def round_corners(surface: pygame.Surface, radius: int, scale: int = 2) -> pygame.Surface:
     """
     Apply rounded corners to a pygame surface with anti-aliasing.
 
@@ -126,10 +120,7 @@ def round_corners(
     else:
         mask_large = pygame.Surface((width * scale, height * scale), pygame.SRCALPHA)
         pygame.draw.rect(
-            mask_large,
-            (255, 255, 255, 255),
-            (0, 0, width * scale, height * scale),
-            border_radius=radius * scale
+            mask_large, (255, 255, 255, 255), (0, 0, width * scale, height * scale), border_radius=radius * scale
         )
         mask = pygame.transform.smoothscale(mask_large, (width, height))
         _mask_cache[cache_key] = mask
@@ -141,11 +132,7 @@ def round_corners(
     return rounded
 
 
-def render_text_full_height(
-    font: Font,
-    text: str,
-    color: tuple[int, int, int]
-) -> pygame.Surface:
+def render_text_full_height(font: Font, text: str, color: tuple[int, int, int]) -> pygame.Surface:
     text_surface, rect = font.render(text, color)
 
     ascent = font.get_sized_ascender()
@@ -167,7 +154,7 @@ def calculate_widget_position(
     widget_height: int,
     screen_width: int,
     screen_height: int,
-    offset: tuple[int, int] = (0, 0)
+    offset: tuple[int, int] = (0, 0),
 ) -> tuple[int, int]:
     match alignment:
         case "top-left":

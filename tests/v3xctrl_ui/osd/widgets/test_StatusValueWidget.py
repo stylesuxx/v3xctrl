@@ -1,5 +1,6 @@
 # Required before importing pygame, otherwise screen might flicker during tests
 import os
+
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 import unittest
@@ -7,7 +8,6 @@ from unittest.mock import MagicMock
 
 import pygame
 
-from v3xctrl_ui.utils.colors import BLACK
 from v3xctrl_ui.osd.widgets import StatusValueWidget
 
 
@@ -22,6 +22,7 @@ class TestStatusValueWidget(unittest.TestCase):
 
     def test_inherits_from_status_widget(self):
         from v3xctrl_ui.osd.widgets.StatusWidget import StatusWidget
+
         self.assertIsInstance(self.widget, StatusWidget)
 
     def test_default_value_is_none(self):

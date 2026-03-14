@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from src.v3xctrl_control import MessageHandler, UDPTransmitter
-from src.v3xctrl_control.message import Heartbeat, Ack, Message
+from src.v3xctrl_control.message import Ack, Heartbeat, Message
 from tests.v3xctrl_control.config import HOST, PORT, SLEEP
 
 
@@ -116,8 +116,12 @@ class TestMessageHandler(unittest.TestCase):
         generic handlers run before specific ones.
         """
         calls = []
-        def generic(m: Message, _addr): calls.append(("generic", type(m).__name__))
-        def specific(m: Heartbeat, _addr): calls.append(("specific", type(m).__name__))
+
+        def generic(m: Message, _addr):
+            calls.append(("generic", type(m).__name__))
+
+        def specific(m: Heartbeat, _addr):
+            calls.append(("specific", type(m).__name__))
 
         # Class insertion order: Message first, then Heartbeat
         self.handler.add_handler(Message, generic)
@@ -133,8 +137,12 @@ class TestMessageHandler(unittest.TestCase):
         If Heartbeat is registered before Message, class insertion order makes specific run first.
         """
         calls = []
-        def generic(m: Message, _addr): calls.append(("generic", type(m).__name__))
-        def specific(m: Heartbeat, _addr): calls.append(("specific", type(m).__name__))
+
+        def generic(m: Message, _addr):
+            calls.append(("generic", type(m).__name__))
+
+        def specific(m: Heartbeat, _addr):
+            calls.append(("specific", type(m).__name__))
 
         # Class insertion order: Heartbeat first, then Message
         self.handler.add_handler(Heartbeat, specific)
@@ -160,7 +168,7 @@ class TestMessageHandler(unittest.TestCase):
 
     def test_valid_host_ip_calls_validate_host(self) -> None:
         with patch("src.v3xctrl_control.MessageHandler.UDPReceiver.validate_host") as mock_validate:
-            mh = MessageHandler(self.sock_rx, valid_host_ip="127.0.0.1")
+            _mh = MessageHandler(self.sock_rx, valid_host_ip="127.0.0.1")
             mock_validate.assert_called_once_with("127.0.0.1")
 
     def test_handler_no_matching_type_direct_call(self) -> None:

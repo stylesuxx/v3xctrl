@@ -1,6 +1,8 @@
 import unittest
+
 import msgpack
-from v3xctrl_control.message import Message, ConnectionTestAck
+
+from v3xctrl_control.message import ConnectionTestAck, Message
 
 
 class TestConnectionTestAck(unittest.TestCase):

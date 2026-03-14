@@ -1,24 +1,16 @@
-
 from abc import ABC, abstractmethod
-
-from pygame import Surface, event
 from typing import Any
 
-from v3xctrl_ui.utils.colors import WHITE
-from v3xctrl_ui.utils.fonts import TEXT_FONT
+from pygame import Surface, event
+
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.menu.tabs.Headline import Headline
+from v3xctrl_ui.utils.colors import WHITE
+from v3xctrl_ui.utils.fonts import TEXT_FONT
 
 
 class Tab(ABC):
-    def __init__(
-        self,
-        settings: Settings,
-        width: int,
-        height: int,
-        padding: int,
-        y_offset: int
-    ) -> None:
+    def __init__(self, settings: Settings, width: int, height: int, padding: int, y_offset: int) -> None:
         self.settings = settings
         self.width = width
         self.height = height
@@ -58,7 +50,7 @@ class Tab(ABC):
         Called during initialization and when menu is shown.
         Override this method in subclasses to update widget states.
         """
-        pass
+        return
 
     @abstractmethod
     def get_settings(self) -> dict[str, Any]:
@@ -74,12 +66,7 @@ class Tab(ABC):
         headline.render(self.width, self.padding)
         self.headlines[key] = headline
 
-    def _draw_headline(
-        self,
-        surface: Surface,
-        headline_key: str,
-        y: int
-    ) -> int:
+    def _draw_headline(self, surface: Surface, headline_key: str, y: int) -> int:
         if headline_key not in self.headlines:
             raise KeyError(f"Headline '{headline_key}' not found. Did you forget to add it with _add_headline()?")
 

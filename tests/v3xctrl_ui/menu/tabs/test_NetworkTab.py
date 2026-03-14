@@ -1,8 +1,10 @@
 # Required before importing pygame, otherwise screen might flicker during tests
 import os
+
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 import unittest
+
 import pygame
 
 from v3xctrl_ui.menu.tabs import NetworkTab
@@ -15,12 +17,8 @@ class TestNetworkTab(unittest.TestCase):
 
         self.settings = {
             "ports": {"video": 5000, "control": 6000},
-            "relay": {
-                "enabled": True,
-                "server": "192.168.1.1",
-                "id": "relay01"
-            },
-            "udp_packet_ttl": 100
+            "relay": {"enabled": True, "server": "192.168.1.1", "id": "relay01"},
+            "udp_packet_ttl": 100,
         }
 
         self.tab = NetworkTab(self.settings.copy(), width=640, height=480, padding=10, y_offset=0)

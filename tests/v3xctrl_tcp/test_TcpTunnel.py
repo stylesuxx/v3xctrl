@@ -1,5 +1,4 @@
 import socket
-import threading
 import time
 import unittest
 
@@ -30,9 +29,7 @@ class _TcpServerHelper:
 
     def accept(self) -> socket.socket:
         self.client_sock, _ = self.server_sock.accept()
-        self.client_sock.setsockopt(
-            socket.IPPROTO_TCP, socket.TCP_NODELAY, 1
-        )
+        self.client_sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         return self.client_sock
 
     def close(self) -> None:
@@ -71,9 +68,7 @@ class TestTcpTunnelOutbound(unittest.TestCase):
 
         try:
             payload = b"hello from udp"
-            udp_sender.sendto(
-                payload, ("127.0.0.1", self.tunnel.ephemeral_port)
-            )
+            udp_sender.sendto(payload, ("127.0.0.1", self.tunnel.ephemeral_port))
 
             self.tcp_client.settimeout(2.0)
             data = recv_message(self.tcp_client)
@@ -88,9 +83,7 @@ class TestTcpTunnelOutbound(unittest.TestCase):
         try:
             packets = [b"pkt1", b"pkt2", b"pkt3"]
             for pkt in packets:
-                udp_sender.sendto(
-                    pkt, ("127.0.0.1", self.tunnel.ephemeral_port)
-                )
+                udp_sender.sendto(pkt, ("127.0.0.1", self.tunnel.ephemeral_port))
 
             self.tcp_client.settimeout(2.0)
             for pkt in packets:
@@ -105,9 +98,7 @@ class TestTcpTunnelOutbound(unittest.TestCase):
 
         try:
             payload = b"\xab" * 1400  # typical video packet size
-            udp_sender.sendto(
-                payload, ("127.0.0.1", self.tunnel.ephemeral_port)
-            )
+            udp_sender.sendto(payload, ("127.0.0.1", self.tunnel.ephemeral_port))
 
             self.tcp_client.settimeout(2.0)
             data = recv_message(self.tcp_client)
@@ -166,9 +157,7 @@ class TestTcpTunnelBidirectional(unittest.TestCase):
 
         try:
             # Component sends outbound via tunnel
-            udp_component.sendto(
-                b"command", ("127.0.0.1", self.tunnel.ephemeral_port)
-            )
+            udp_component.sendto(b"command", ("127.0.0.1", self.tunnel.ephemeral_port))
 
             # Remote receives it over TCP
             self.tcp_client.settimeout(2.0)
@@ -198,9 +187,7 @@ class TestTcpTunnelBidirectional(unittest.TestCase):
                 cmd = f"cmd_{i}".encode()
                 reply = f"reply_{i}".encode()
 
-                udp_component.sendto(
-                    cmd, ("127.0.0.1", self.tunnel.ephemeral_port)
-                )
+                udp_component.sendto(cmd, ("127.0.0.1", self.tunnel.ephemeral_port))
                 data = recv_message(self.tcp_client)
                 self.assertEqual(data, cmd)
 

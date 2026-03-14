@@ -1,15 +1,16 @@
-from flask_smorest import Blueprint
-from flask import Response
-from flask.views import MethodView
 import socket
 import subprocess
 
+from flask import Response
+from flask.views import MethodView
+from flask_smorest import Blueprint
+
 from .response import success
 
-blueprint = Blueprint('system', 'system', url_prefix='/system', description='System control endpoints')
+blueprint = Blueprint("system", "system", url_prefix="/system", description="System control endpoints")
 
 
-@blueprint.route('/reboot')
+@blueprint.route("/reboot")
 class Reboot(MethodView):
     @blueprint.response(200, description="Force reboot the system")
     def post(self) -> tuple[Response, int]:
@@ -18,7 +19,7 @@ class Reboot(MethodView):
         return success({"message": "Rebooting..."})
 
 
-@blueprint.route('/shutdown')
+@blueprint.route("/shutdown")
 class Shutdown(MethodView):
     @blueprint.response(200, description="Shutdown the system")
     def post(self) -> tuple[Response, int]:
@@ -27,14 +28,11 @@ class Shutdown(MethodView):
         return success({"message": "Shutting down..."})
 
 
-@blueprint.route('/dmesg')
+@blueprint.route("/dmesg")
 class Dmesg(MethodView):
     @blueprint.response(200, description="Return output of dmesg")
     def get(self) -> tuple[Response, int]:
-        output = subprocess.check_output(
-            ["dmesg"],
-            stderr=subprocess.DEVNULL
-        ).decode().strip()
+        output = subprocess.check_output(["dmesg"], stderr=subprocess.DEVNULL).decode().strip()
 
         return success({"log": output})
 
@@ -56,14 +54,16 @@ class Info(MethodView):
                     check=True,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.DEVNULL,
-                    text=True
+                    text=True,
                 )
                 version = result.stdout.strip()
                 versions[package] = version
             except subprocess.CalledProcessError:
                 versions[package] = None
 
-        return success({
-            "hostname": socket.gethostname(),
-            "packages": versions,
-        })
+        return success(
+            {
+                "hostname": socket.gethostname(),
+                "packages": versions,
+            }
+        )

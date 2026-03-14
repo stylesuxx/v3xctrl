@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import select
 import socket
@@ -6,11 +7,11 @@ from typing import TYPE_CHECKING
 
 from v3xctrl_control.message import Message, PeerAnnouncement
 from v3xctrl_helper import Address
-from v3xctrl_tcp.framing import recv_message
-from v3xctrl_tcp.keepalive import configure_keepalive
+from v3xctrl_relay.custom_types import PortType
 from v3xctrl_relay.ForwardTarget import TcpTarget
 from v3xctrl_relay.Role import Role
-from v3xctrl_relay.custom_types import PortType
+from v3xctrl_tcp.framing import recv_message
+from v3xctrl_tcp.keepalive import configure_keepalive
 
 if TYPE_CHECKING:
     from v3xctrl_relay.PacketRelay import PacketRelay
@@ -19,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class TCPAcceptor:
-    def __init__(self, port: int, relay: 'PacketRelay', stop_event: threading.Event) -> None:
+    def __init__(self, port: int, relay: "PacketRelay", stop_event: threading.Event) -> None:
         self.port = port
         self.relay = relay
         self.stop_event = stop_event
@@ -36,10 +37,8 @@ class TCPAcceptor:
 
     def stop(self) -> None:
         if self._listener:
-            try:
+            with contextlib.suppress(OSError):
                 self._listener.close()
-            except OSError:
-                pass
         if self._thread:
             self._thread.join(timeout=5.0)
 
@@ -62,7 +61,7 @@ class TCPAcceptor:
                     daemon=True,
                 ).start()
 
-            except socket.timeout:
+            except TimeoutError:
                 continue
 
             except OSError:
@@ -95,9 +94,7 @@ class TCPAcceptor:
 
             # Behavior depends on port type and role
             role = Role(msg.get_role())
-            if role == Role.SPECTATOR:
-                self._monitor_disconnect(tcp_sock)
-            elif port_type == PortType.VIDEO and role != Role.STREAMER:
+            if role == Role.SPECTATOR or (port_type == PortType.VIDEO and role != Role.STREAMER):
                 self._monitor_disconnect(tcp_sock)
             else:
                 self._read_and_forward_loop(tcp_sock, addr)

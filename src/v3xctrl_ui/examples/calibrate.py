@@ -1,12 +1,10 @@
-import pygame
-
 from typing import Any
 
+import pygame
+
+from v3xctrl_ui.menu.calibration.GamepadCalibrationWidget import GamepadCalibrationWidget
 from v3xctrl_ui.utils.colors import DARK_GREY
 from v3xctrl_ui.utils.fonts import LABEL_FONT
-from v3xctrl_ui.core.controllers.input.GamepadController import GamepadController
-from v3xctrl_ui.menu.calibration.GamepadCalibrationWidget import GamepadCalibrationWidget
-
 
 # This mocks what will be saved in the config file after a calibration
 calibrations: dict[str, Any] = {
@@ -19,7 +17,7 @@ calibrations: dict[str, Any] = {
         "steering": {"axis": 0, "min": -1.0, "max": 1.0, "center": 0.0},
         "throttle": {"axis": 5, "min": -1.0, "max": 1.0, "center": None},
         "brake": {"axis": 2, "min": -1.0, "max": 1.0, "center": None},
-    }
+    },
 }
 
 
@@ -49,7 +47,7 @@ calibration_widget = GamepadCalibrationWidget(
     font=LABEL_FONT,
     manager=gamepad_manager,
     on_calibration_start=on_calibration_start,
-    on_calibration_done=on_calibration_done
+    on_calibration_done=on_calibration_done,
 )
 calibration_widget.set_position(50, 50)
 

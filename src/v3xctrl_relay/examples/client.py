@@ -3,21 +3,15 @@ import logging
 import threading
 import time
 
+from v3xctrl_control.message import Heartbeat, PeerInfo
 from v3xctrl_punch.examples.TestPeer import TestPeer
 from v3xctrl_relay.Peer import Peer
-from v3xctrl_control.message import Heartbeat, PeerInfo
 
-logging.basicConfig(
-    level="DEBUG",
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level="DEBUG", format="%(asctime)s - %(levelname)s - %(message)s")
 
-LOCAL_BIND_PORTS = {
-    "video": 26666,
-    "control": 26668
-}
+LOCAL_BIND_PORTS = {"video": 26666, "control": 26668}
 
-DEFAULT_RENDEZVOUS_SERVER = 'rendezvous.websium.at'
+DEFAULT_RENDEZVOUS_SERVER = "rendezvous.websium.at"
 DEFAULT_RENDEZVOUS_PORT = 8888
 
 
@@ -28,16 +22,12 @@ class TestClient(TestPeer):
         self.remote_video_addr_formatted = f"{self.remote_video_addr[0]}:{self.remote_video_addr[1]}"
 
     def run(self) -> None:
-        threading.Thread(
-            target=self.video_sender,
-            daemon=True,
-            name="VideoSender"
-        ).start()
+        threading.Thread(target=self.video_sender, daemon=True, name="VideoSender").start()
         threading.Thread(
             target=self.control_loop,
             args=(self.control_sock, self.remote_control_addr),
             daemon=True,
-            name="ControlLoop"
+            name="ControlLoop",
         ).start()
 
         try:

@@ -1,12 +1,12 @@
 # Required before importing pygame, otherwise screen might flicker during tests
 import os
+
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 import unittest
 
 import pygame
 
-from v3xctrl_ui.utils.colors import WHITE, GREY
 from v3xctrl_ui.osd.widgets import TextWidget
 
 
@@ -110,12 +110,7 @@ class TestTextWidget(unittest.TestCase):
 
     def test_custom_padding_initialization(self):
         widget = TextWidget(
-            position=(0, 0),
-            length=200,
-            top_padding=10,
-            bottom_padding=15,
-            left_padding=8,
-            right_padding=12
+            position=(0, 0), length=200, top_padding=10, bottom_padding=15, left_padding=8, right_padding=12
         )
 
         self.assertEqual(widget.top_padding, 10)
@@ -147,7 +142,7 @@ class TestTextWidget(unittest.TestCase):
 
     def test_set_background_color_recreates_background(self):
         # Get initial background surface
-        initial_bg = self.widget.bg_surface
+        _initial_bg = self.widget.bg_surface
 
         # Change background color
         self.widget.set_background_color((100, 100, 100), alpha=255)

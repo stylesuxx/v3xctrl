@@ -1,29 +1,28 @@
 import os
+
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
-from collections import deque
 import tempfile
 import time
-from pathlib import Path
-
 import unittest
+from collections import deque
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pygame
 
-from v3xctrl_ui.core.Settings import Settings
-from v3xctrl_ui.osd.OSD import OSD
-from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 from v3xctrl_control.message import Latency, Telemetry
+from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.core.TelemetryContext import TelemetryContext
+from v3xctrl_ui.osd.OSD import OSD
 
 
 class TestOSD(unittest.TestCase):
     def setUp(self):
         pygame.init()
         # Create a temp settings file
-        self.tempfile = tempfile.NamedTemporaryFile(delete=False, suffix=".toml")
-        self.path = self.tempfile.name
-        self.tempfile.close()
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".toml") as tmp:
+            self.path = tmp.name
 
         self.settings = Settings(self.path)
         self.telemetry_context = TelemetryContext()
@@ -67,11 +66,13 @@ class TestOSD(unittest.TestCase):
         self.osd.widgets_debug["debug_latency"].set_value.assert_called()
 
     def test_telemetry_update_sets_values(self):
-        telemetry = Telemetry({
-            "sig": {"rsrq": -9, "rsrp": -95},
-            "cell": {"band": 3, "id": 0x0000F002},
-            "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False}
-        })
+        telemetry = Telemetry(
+            {
+                "sig": {"rsrq": -9, "rsrp": -95},
+                "cell": {"band": 3, "id": 0x0000F002},
+                "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False},
+            }
+        )
         self.osd._telemetry_update(telemetry)
         # Data now in telemetry_context
         signal = self.telemetry_context.get_signal()
@@ -86,7 +87,7 @@ class TestOSD(unittest.TestCase):
         self.osd.render(
             self.screen,
             loop_history=deque([time.time() - 0.1 for _ in range(5)]),
-            video_history=deque([time.time() - 0.1 for _ in range(5)])
+            video_history=deque([time.time() - 0.1 for _ in range(5)]),
         )
 
     @patch("v3xctrl_ui.osd.OSD.pygame.display.get_window_size", return_value=(800, 600))
@@ -96,11 +97,7 @@ class TestOSD(unittest.TestCase):
         self.osd.widgets_steering["steering"].draw = MagicMock()
         self.osd.widgets_steering["throttle"].draw = MagicMock()
 
-        self.osd.render(
-            self.screen,
-            loop_history=deque([time.time()]),
-            video_history=deque([time.time()])
-        )
+        self.osd.render(self.screen, loop_history=deque([time.time()]), video_history=deque([time.time()]))
 
         self.osd.widgets_steering["steering"].draw.assert_called()
         self.osd.widgets_steering["throttle"].draw.assert_called()
@@ -112,11 +109,7 @@ class TestOSD(unittest.TestCase):
             self.osd.widget_settings[key] = {"display": True}
             self.osd.widgets_debug[key].draw = MagicMock()
 
-        self.osd.render(
-            self.screen,
-            loop_history=deque([time.time()]),
-            video_history=deque([time.time()])
-        )
+        self.osd.render(self.screen, loop_history=deque([time.time()]), video_history=deque([time.time()]))
 
         for widget in self.osd.widgets_debug.values():
             widget.draw.assert_called()

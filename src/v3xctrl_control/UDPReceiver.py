@@ -12,6 +12,7 @@ NOTE: The kernel avoids buildup by dropping older UDP packets when new ones
       interested in the most recent data, this behavior is beneficial and does
       not require special handling on our side.
 """
+
 import logging
 import queue
 import select
@@ -23,13 +24,13 @@ from collections.abc import Callable
 from v3xctrl_helper import Address
 
 from .message import (
-  Message,
-  PeerInfo,
-  Syn,
-  Ack,
-  Command,
-  CommandAck,
-  Latency,
+    Ack,
+    Command,
+    CommandAck,
+    Latency,
+    Message,
+    PeerInfo,
+    Syn,
 )
 
 
@@ -77,15 +78,11 @@ class UDPReceiver(threading.Thread):
 
         # By default all Messages are order critical, we exempt this ones since
         # order does not matter, we need them processed in any case
-        if (
-            isinstance(message, Command) or
-            isinstance(message, CommandAck) or
-            isinstance(message, Latency)
-        ):
+        if isinstance(message, Command | CommandAck | Latency):
             return True
 
         # Reset timestamps on Syn or Ack
-        if isinstance(message, Syn) or isinstance(message, Ack):
+        if isinstance(message, Syn | Ack):
             logging.debug("Resetting timestamps...")
             self.reset()
             return True
@@ -125,7 +122,7 @@ class UDPReceiver(threading.Thread):
             while self._running.is_set():
                 try:
                     ready, _, _ = select.select([self.socket], [], [], self.timeout)
-                except (ValueError, socket.error, OSError) as e:
+                except (ValueError, OSError) as e:
                     logging.error(f"Socket error during select: {e}")
                     break
 
@@ -138,7 +135,7 @@ class UDPReceiver(threading.Thread):
                 except ConnectionResetError:
                     # Windows-specific: ICMP port unreachable received, safe to ignore
                     continue
-                except (socket.error, OSError) as e:
+                except OSError as e:
                     logging.error(f"Socket error during recvfrom: {e}")
                     break
 

@@ -2,13 +2,13 @@ from collections.abc import Callable
 
 import pygame
 from pygame import Surface
-from pygame.freetype import SysFont, STYLE_STRONG
+from pygame.freetype import STYLE_STRONG, SysFont
 
-from v3xctrl_ui.menu.input import Button, BaseWidget
+from v3xctrl_ui.menu.input import BaseWidget, Button
 from v3xctrl_ui.utils.colors import (
-  TRANSPARENT_BLACK,
-  WHITE,
-  DARK_GREY,
+    DARK_GREY,
+    TRANSPARENT_BLACK,
+    WHITE,
 )
 
 
@@ -18,13 +18,7 @@ class DialogBox(BaseWidget):
     TEXT_COLOR = WHITE
     TITLE_COLOR = WHITE
 
-    def __init__(
-        self,
-        title: str,
-        lines: list[str],
-        button_label: str,
-        on_confirm: Callable[[], None]
-    ) -> None:
+    def __init__(self, title: str, lines: list[str], button_label: str, on_confirm: Callable[[], None]) -> None:
         super().__init__()
 
         self.title = title
@@ -104,10 +98,13 @@ class DialogBox(BaseWidget):
         title_height = title_surface.get_height()
 
         box_height = (
-            self.padding + title_height +
-            self.padding + len(self.wrapped_lines) * self.line_spacing +
-            self.padding + self.button.height +
             self.padding
+            + title_height
+            + self.padding
+            + len(self.wrapped_lines) * self.line_spacing
+            + self.padding
+            + self.button.height
+            + self.padding
         )
 
         box_x = (rect.width - box_width) // 2
@@ -118,10 +115,7 @@ class DialogBox(BaseWidget):
 
         # Draw title
         y = self.box_rect.y + self.padding
-        surface.blit(title_surface, (
-            self.box_rect.centerx - title_surface.get_width() // 2,
-            y
-        ))
+        surface.blit(title_surface, (self.box_rect.centerx - title_surface.get_width() // 2, y))
         y += title_height + self.padding
 
         # Draw wrapped lines
@@ -132,8 +126,5 @@ class DialogBox(BaseWidget):
 
         # Button
         y += self.padding
-        self.button.set_position(
-            self.box_rect.centerx - self.button.width // 2,
-            y
-        )
+        self.button.set_position(self.box_rect.centerx - self.button.width // 2, y)
         self.button.draw(surface)

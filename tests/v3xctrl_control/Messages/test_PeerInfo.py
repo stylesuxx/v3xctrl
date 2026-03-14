@@ -1,5 +1,7 @@
 import unittest
+
 import msgpack
+
 from v3xctrl_control.message import Message, PeerInfo
 
 
@@ -20,10 +22,7 @@ class TestPeerInfo(unittest.TestCase):
         self.assertEqual(restored.get_control_port(), 2000)
 
         # Check raw payload
-        self.assertEqual(
-            restored.payload,
-            {"ip": "192.168.0.50", "video_port": 1000, "control_port": 2000}
-        )
+        self.assertEqual(restored.payload, {"ip": "192.168.0.50", "video_port": 1000, "control_port": 2000})
 
     def test_peek_type(self) -> None:
         pi = PeerInfo(ip="10.0.0.5", video_port=1111, control_port=2222)

@@ -1,4 +1,3 @@
-
 import pygame
 
 from v3xctrl_ui.core.controllers.input.GamepadController import GamepadController
@@ -8,6 +7,7 @@ from v3xctrl_ui.core.Settings import Settings
 
 class InputController:
     """Manages keyboard and gamepad input handling."""
+
     THROTTLE_RANGE = (-1.0, 1.0)
     STEERING_RANGE = (-1.0, 1.0)
 
@@ -67,12 +67,12 @@ class InputController:
                     positive=control_settings["throttle_up"],
                     negative=control_settings["throttle_down"],
                     min_val=self.THROTTLE_RANGE[0],
-                    max_val=self.THROTTLE_RANGE[1]
+                    max_val=self.THROTTLE_RANGE[1],
                 ),
                 "steering": KeyAxisHandler(
                     positive=control_settings["steering_right"],
                     negative=control_settings["steering_left"],
                     min_val=self.STEERING_RANGE[0],
-                    max_val=self.STEERING_RANGE[1]
-                )
+                    max_val=self.STEERING_RANGE[1],
+                ),
             }

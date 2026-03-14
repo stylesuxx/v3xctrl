@@ -2,12 +2,11 @@ import socket
 import threading
 import time
 import unittest
-from unittest.mock import Mock, MagicMock
+from unittest.mock import MagicMock
 
 from v3xctrl_control.message import PeerAnnouncement, PeerInfo
-from v3xctrl_tcp.framing import send_message, recv_message
-from v3xctrl_relay.ForwardTarget import TcpTarget
 from v3xctrl_relay.TCPAcceptor import TCPAcceptor
+from v3xctrl_tcp.framing import recv_message, send_message
 
 
 def _find_free_port():

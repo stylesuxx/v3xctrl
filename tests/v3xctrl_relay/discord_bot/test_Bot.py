@@ -13,7 +13,7 @@ class TestBot(unittest.TestCase):
         self.mock_store = MagicMock()
         self.test_channel_id = 123456789
 
-        with patch('v3xctrl_relay.discord_bot.Bot.SessionStore') as mock_session_store_class:
+        with patch("v3xctrl_relay.discord_bot.Bot.SessionStore") as mock_session_store_class:
             mock_session_store_class.return_value = self.mock_store
             self.bot = Bot(
                 db_path="test.db",
@@ -26,18 +26,18 @@ class TestBot(unittest.TestCase):
         self.assertEqual(self.bot.store, self.mock_store)
         self.assertEqual(self.bot.channel_id, self.test_channel_id)
 
-    @patch('discord.Client.run')
+    @patch("discord.Client.run")
     def test_run_bot(self, mock_super_run):
         self.bot.run_bot()
         mock_super_run.assert_called_once_with("test_token")
 
-    @patch('logging.info')
+    @patch("logging.info")
     def test_on_ready(self, mock_logging_info):
         async def async_test():
             mock_user = MagicMock()
             mock_user.__str__ = MagicMock(return_value="TestBot#1234")
 
-            with patch.object(type(self.bot), 'user', mock_user, create=True):
+            with patch.object(type(self.bot), "user", mock_user, create=True):
                 await self.bot.on_ready()
 
             mock_logging_info.assert_called_once_with("Bot connected as TestBot#1234")
@@ -52,7 +52,7 @@ class TestBot(unittest.TestCase):
             mock_message.author = MagicMock()
             mock_message.author.__str__ = MagicMock(return_value="User#1234")
 
-            with patch.object(type(self.bot), 'user', MagicMock(), create=True):
+            with patch.object(type(self.bot), "user", MagicMock(), create=True):
                 await self.bot.on_message(mock_message)
 
             mock_message.delete.assert_called_once()
@@ -67,7 +67,7 @@ class TestBot(unittest.TestCase):
             mock_message.channel.id = self.test_channel_id
             mock_message.author = mock_bot_user
 
-            with patch.object(type(self.bot), 'user', mock_bot_user, create=True):
+            with patch.object(type(self.bot), "user", mock_bot_user, create=True):
                 await self.bot.on_message(mock_message)
 
             mock_message.delete.assert_not_called()
@@ -87,7 +87,7 @@ class TestBot(unittest.TestCase):
 
         asyncio.run(async_test())
 
-    @patch('logging.error')
+    @patch("logging.error")
     def test_on_message_handles_forbidden_error(self, mock_logging_error):
         async def async_test():
             mock_message = AsyncMock(spec=discord.Message)
@@ -95,20 +95,19 @@ class TestBot(unittest.TestCase):
             mock_message.channel.id = self.test_channel_id
             mock_message.author = MagicMock()
 
-            forbidden_exception = discord.Forbidden(
-                response=MagicMock(),
-                message="Missing Permissions"
-            )
+            forbidden_exception = discord.Forbidden(response=MagicMock(), message="Missing Permissions")
             mock_message.delete = AsyncMock(side_effect=forbidden_exception)
 
-            with patch.object(type(self.bot), 'user', MagicMock(), create=True):
+            with patch.object(type(self.bot), "user", MagicMock(), create=True):
                 await self.bot.on_message(mock_message)
 
-            mock_logging_error.assert_called_once_with(f"Cannot delete messages in channel {self.test_channel_id} - missing permissions")
+            mock_logging_error.assert_called_once_with(
+                f"Cannot delete messages in channel {self.test_channel_id} - missing permissions"
+            )
 
         asyncio.run(async_test())
 
-    @patch('logging.error')
+    @patch("logging.error")
     def test_on_message_handles_general_exception(self, mock_logging_error):
         async def async_test():
             mock_message = AsyncMock(spec=discord.Message)
@@ -117,10 +116,12 @@ class TestBot(unittest.TestCase):
             mock_message.author = MagicMock()
             mock_message.delete = AsyncMock(side_effect=Exception("Some error"))
 
-            with patch.object(type(self.bot), 'user', MagicMock(), create=True):
+            with patch.object(type(self.bot), "user", MagicMock(), create=True):
                 await self.bot.on_message(mock_message)
 
-            mock_logging_error.assert_called_once_with(f"Failed to delete message in channel {self.test_channel_id}: Some error")
+            mock_logging_error.assert_called_once_with(
+                f"Failed to delete message in channel {self.test_channel_id}: Some error"
+            )
 
         asyncio.run(async_test())
 
@@ -151,7 +152,7 @@ class TestBot(unittest.TestCase):
 
         asyncio.run(async_test())
 
-    @patch('logging.info')
+    @patch("logging.info")
     def test_handle_requestid_command_dm_context_new_session(self, mock_logging_info):
         async def async_test():
             mock_interaction = AsyncMock(spec=discord.Interaction)
@@ -181,7 +182,7 @@ class TestBot(unittest.TestCase):
 
         asyncio.run(async_test())
 
-    @patch('logging.error')
+    @patch("logging.error")
     def test_handle_requestid_command_create_session_error(self, mock_logging_error):
         async def async_test():
             mock_interaction = AsyncMock(spec=discord.Interaction)
@@ -198,9 +199,7 @@ class TestBot(unittest.TestCase):
 
             await self.bot.handle_requestid_command(mock_interaction)
 
-            mock_logging_error.assert_called_once_with(
-                "ID generation failed for TestUser#1234: Creation failed"
-            )
+            mock_logging_error.assert_called_once_with("ID generation failed for TestUser#1234: Creation failed")
             mock_interaction.followup.send.assert_called_once_with(
                 "Failed to generate a unique session ID. Try again later.", ephemeral=True
             )
@@ -218,10 +217,7 @@ class TestBot(unittest.TestCase):
             mock_interaction.response = AsyncMock()
             mock_interaction.followup = AsyncMock()
 
-            forbidden_exception = discord.Forbidden(
-                response=MagicMock(),
-                message="DMs disabled"
-            )
+            forbidden_exception = discord.Forbidden(response=MagicMock(), message="DMs disabled")
             mock_interaction.user.send = AsyncMock(side_effect=forbidden_exception)
 
             self.mock_store.get.return_value = ("session_id", "spectator_id")
@@ -250,7 +246,7 @@ class TestBot(unittest.TestCase):
             mock_interaction.channel_id = self.test_channel_id
 
             commands = {cmd.name: cmd for cmd in self.bot.tree.get_commands()}
-            with patch.object(self.bot, 'handle_requestid_command') as mock_handler:
+            with patch.object(self.bot, "handle_requestid_command") as mock_handler:
                 await commands["requestid"].callback(mock_interaction)
                 mock_handler.assert_called_once_with(mock_interaction)
 
@@ -262,16 +258,17 @@ class TestBot(unittest.TestCase):
             mock_interaction.channel_id = self.test_channel_id
 
             commands = {cmd.name: cmd for cmd in self.bot.tree.get_commands()}
-            with patch.object(self.bot, 'handle_renewid_command') as mock_handler:
+            with patch.object(self.bot, "handle_renewid_command") as mock_handler:
                 await commands["renewid"].callback(mock_interaction)
                 mock_handler.assert_called_once_with(mock_interaction)
 
         asyncio.run(async_test())
 
-
     def test_init_with_testdrive_channel_id(self):
-        with patch('v3xctrl_relay.discord_bot.Bot.SessionStore') as mock_ss, \
-             patch('v3xctrl_relay.discord_bot.Bot.TestdriveHandler') as mock_td:
+        with (
+            patch("v3xctrl_relay.discord_bot.Bot.SessionStore") as mock_ss,
+            patch("v3xctrl_relay.discord_bot.Bot.TestdriveHandler") as mock_td,
+        ):
             mock_ss.return_value = MagicMock()
             mock_td_instance = MagicMock()
             mock_td.return_value = mock_td_instance
@@ -293,8 +290,10 @@ class TestBot(unittest.TestCase):
 
     def test_on_message_deletes_in_testdrive_channel(self):
         async def async_test():
-            with patch('v3xctrl_relay.discord_bot.Bot.SessionStore') as mock_ss, \
-                 patch('v3xctrl_relay.discord_bot.Bot.TestdriveHandler'):
+            with (
+                patch("v3xctrl_relay.discord_bot.Bot.SessionStore") as mock_ss,
+                patch("v3xctrl_relay.discord_bot.Bot.TestdriveHandler"),
+            ):
                 mock_ss.return_value = MagicMock()
                 bot = Bot(
                     db_path="test.db",
@@ -308,7 +307,7 @@ class TestBot(unittest.TestCase):
             mock_message.channel.id = 987654321
             mock_message.author = MagicMock()
 
-            with patch.object(type(bot), 'user', MagicMock(), create=True):
+            with patch.object(type(bot), "user", MagicMock(), create=True):
                 await bot.on_message(mock_message)
 
             mock_message.delete.assert_called_once()
@@ -317,8 +316,10 @@ class TestBot(unittest.TestCase):
 
     def test_on_message_ignores_other_channels_with_testdrive(self):
         async def async_test():
-            with patch('v3xctrl_relay.discord_bot.Bot.SessionStore') as mock_ss, \
-                 patch('v3xctrl_relay.discord_bot.Bot.TestdriveHandler'):
+            with (
+                patch("v3xctrl_relay.discord_bot.Bot.SessionStore") as mock_ss,
+                patch("v3xctrl_relay.discord_bot.Bot.TestdriveHandler"),
+            ):
                 mock_ss.return_value = MagicMock()
                 bot = Bot(
                     db_path="test.db",
@@ -342,8 +343,10 @@ class TestBot(unittest.TestCase):
         async def async_test():
             mock_td_handler = AsyncMock()
 
-            with patch('v3xctrl_relay.discord_bot.Bot.SessionStore') as mock_ss, \
-                 patch('v3xctrl_relay.discord_bot.Bot.TestdriveHandler') as mock_td:
+            with (
+                patch("v3xctrl_relay.discord_bot.Bot.SessionStore") as mock_ss,
+                patch("v3xctrl_relay.discord_bot.Bot.TestdriveHandler") as mock_td,
+            ):
                 mock_ss.return_value = MagicMock()
                 mock_td.return_value = mock_td_handler
                 bot = Bot(
@@ -366,8 +369,10 @@ class TestBot(unittest.TestCase):
         async def async_test():
             mock_td_handler = AsyncMock()
 
-            with patch('v3xctrl_relay.discord_bot.Bot.SessionStore') as mock_ss, \
-                 patch('v3xctrl_relay.discord_bot.Bot.TestdriveHandler') as mock_td:
+            with (
+                patch("v3xctrl_relay.discord_bot.Bot.SessionStore") as mock_ss,
+                patch("v3xctrl_relay.discord_bot.Bot.TestdriveHandler") as mock_td,
+            ):
                 mock_ss.return_value = MagicMock()
                 mock_td.return_value = mock_td_handler
                 bot = Bot(
@@ -400,8 +405,10 @@ class TestBot(unittest.TestCase):
         async def async_test():
             mock_td_handler = AsyncMock()
 
-            with patch('v3xctrl_relay.discord_bot.Bot.SessionStore') as mock_ss, \
-                 patch('v3xctrl_relay.discord_bot.Bot.TestdriveHandler') as mock_td:
+            with (
+                patch("v3xctrl_relay.discord_bot.Bot.SessionStore") as mock_ss,
+                patch("v3xctrl_relay.discord_bot.Bot.TestdriveHandler") as mock_td,
+            ):
                 mock_ss.return_value = MagicMock()
                 mock_td.return_value = mock_td_handler
                 bot = Bot(
@@ -415,10 +422,11 @@ class TestBot(unittest.TestCase):
             mock_user = MagicMock()
             mock_user.__str__ = MagicMock(return_value="TestBot#1234")
 
-            with patch.object(type(bot), 'user', mock_user, create=True), \
-                 patch.object(bot, 'get_channel') as mock_get_channel, \
-                 patch.object(bot, '_announce_presence'):
-
+            with (
+                patch.object(type(bot), "user", mock_user, create=True),
+                patch.object(bot, "get_channel") as mock_get_channel,
+                patch.object(bot, "_announce_presence"),
+            ):
                 mock_get_channel.return_value = mock_channel
                 await bot._announce_testdrive()
 
@@ -427,5 +435,5 @@ class TestBot(unittest.TestCase):
         asyncio.run(async_test())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

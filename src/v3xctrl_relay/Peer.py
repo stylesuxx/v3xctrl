@@ -1,8 +1,8 @@
 import logging
 import select
 import socket
-import time
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from v3xctrl_control.message import (
@@ -11,12 +11,12 @@ from v3xctrl_control.message import (
     PeerAnnouncement,
     PeerInfo,
 )
-from v3xctrl_helper.exceptions import (
-  UnauthorizedError,
-  PeerRegistrationError,
-  PeerRegistrationAborted,
-)
 from v3xctrl_helper import Address
+from v3xctrl_helper.exceptions import (
+    PeerRegistrationAborted,
+    PeerRegistrationError,
+    UnauthorizedError,
+)
 
 
 class Peer:
@@ -50,14 +50,8 @@ class Peer:
             self._finalize_sockets(sockets)
 
         return {
-            "video": (
-                peer_info_map["video"].get_ip(),
-                peer_info_map["video"].get_video_port()
-            ),
-            "control": (
-                peer_info_map["control"].get_ip(),
-                peer_info_map["control"].get_control_port()
-            )
+            "video": (peer_info_map["video"].get_ip(), peer_info_map["video"].get_video_port()),
+            "control": (peer_info_map["control"].get_ip(), peer_info_map["control"].get_control_port()),
         }
 
     def abort(self) -> None:
@@ -105,7 +99,7 @@ class Peer:
                             raise UnauthorizedError()
                     except ValueError:
                         pass
-            except (socket.error, OSError):
+            except OSError:
                 break
 
         if drained > 0:
@@ -115,19 +109,14 @@ class Peer:
 
     def _bind_socket(self, name: str, port: int = 0) -> socket.socket:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.bind(('0.0.0.0', port))
+        sock.bind(("0.0.0.0", port))
         logging.info(f"Bound {name} socket to {sock.getsockname()}")
         return sock
 
     # Msgpack prefix for all Message objects: fixmap(3) + fixstr(1) "t"
-    _MESSAGE_PREFIX = b'\x83\xa1t'
+    _MESSAGE_PREFIX = b"\x83\xa1t"
 
-    def _register_with_relay(
-        self,
-        sock: socket.socket,
-        port_type: str,
-        role: str
-    ) -> PeerInfo:
+    def _register_with_relay(self, sock: socket.socket, port_type: str, role: str) -> PeerInfo:
         """
         Register with the relay and wait for PeerInfo response.
 
@@ -158,9 +147,9 @@ class Peer:
                 last_announce = now
 
             try:
-                data, addr = sock.recvfrom(65535)
+                data, _addr = sock.recvfrom(65535)
                 if data:
-                    if not data[:3] == self._MESSAGE_PREFIX:
+                    if data[:3] != self._MESSAGE_PREFIX:
                         skipped_data_packets += 1
                         continue
 
@@ -169,7 +158,9 @@ class Peer:
 
                         if isinstance(response, PeerInfo):
                             if skipped_data_packets > 0:
-                                logging.debug(f"Skipped {skipped_data_packets} non-message packets during {port_type} registration")
+                                logging.debug(
+                                    f"Skipped {skipped_data_packets} non-message packets during {port_type} registration"
+                                )
                             logging.info(f"Received PeerInfo for {port_type}: {response}")
                             return response
 
@@ -183,7 +174,7 @@ class Peer:
                     except ValueError as e:
                         logging.debug(f"Data could not be parsed: {e}")
 
-            except socket.timeout:
+            except TimeoutError:
                 # Implicit sleep through socket timeout
                 continue
 
@@ -216,10 +207,7 @@ class Peer:
 
         if exceptions:
             # Check if all failures were due to abort
-            all_aborted = all(
-                isinstance(exc, InterruptedError)
-                for exc in exceptions.values()
-            )
+            all_aborted = all(isinstance(exc, InterruptedError) for exc in exceptions.values())
             if all_aborted:
                 raise PeerRegistrationAborted()
             raise PeerRegistrationError(exceptions, results)

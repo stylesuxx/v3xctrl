@@ -1,17 +1,17 @@
 """Network coordination for handling message routing and network lifecycle."""
+
 import logging
 import queue
 import threading
 import time
-from typing import Any
 from collections.abc import Callable
+from typing import Any
 
 from v3xctrl_control import State
 from v3xctrl_control.message import Command, Control, Latency, Telemetry
-
-from v3xctrl_ui.network.NetworkController import NetworkController
-from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.core.dataclasses import ApplicationModel
+from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.network.NetworkController import NetworkController
 from v3xctrl_ui.osd.OSD import OSD
 
 
@@ -25,11 +25,8 @@ class NetworkCoordinator:
     * Setup handlers for incoming messages and state changes
     * Handles callbacks that should deferred to the main thread
     """
-    def __init__(
-        self,
-        model: ApplicationModel,
-        osd: OSD
-    ):
+
+    def __init__(self, model: ApplicationModel, osd: OSD):
         self.model = model
         self.osd = osd
 
@@ -43,17 +40,11 @@ class NetworkCoordinator:
         # collects callbacks to be processed on the main thread.
         self._callback_queue: queue.Queue[tuple[Callable, tuple]] = queue.Queue()
 
-    def create_network_controller(
-        self,
-        settings: Settings
-    ) -> NetworkController:
+    def create_network_controller(self, settings: Settings) -> NetworkController:
         handlers = self._create_handlers()
         return NetworkController(settings, handlers)
 
-    def restart_network_controller(
-        self,
-        settings: Settings
-    ) -> threading.Thread:
+    def restart_network_controller(self, settings: Settings) -> threading.Thread:
         def _restart() -> None:
             logging.info("[NetworkController] Restarting...")
             try:
@@ -79,32 +70,22 @@ class NetworkCoordinator:
 
     def send_control_message(self, throttle: float, steering: float) -> None:
         # Skip sending control messages in spectator mode
-        if (
-            self.network_controller and
-            self.network_controller.relay_spectator_mode
-        ):
+        if self.network_controller and self.network_controller.relay_spectator_mode:
             return
 
-        if (
-            self.network_controller and
-            self.network_controller.server and
-            not self.network_controller.server_error
-        ):
-            self.network_controller.server.send(Control({
-                "steering": steering,
-                "throttle": throttle,
-            }))
+        if self.network_controller and self.network_controller.server and not self.network_controller.server_error:
+            self.network_controller.server.send(
+                Control(
+                    {
+                        "steering": steering,
+                        "throttle": throttle,
+                    }
+                )
+            )
 
-    def send_command(
-        self,
-        command: Command,
-        callback: Callable[[bool], None]
-    ) -> None:
+    def send_command(self, command: Command, callback: Callable[[bool], None]) -> None:
         # Skip sending commands in spectator mode
-        if (
-            self.network_controller and
-            self.network_controller.relay_spectator_mode
-        ):
+        if self.network_controller and self.network_controller.relay_spectator_mode:
             logging.debug(f"Blocked command in spectator mode: {command}")
             self._callback_queue.put((callback, (False,)))
             return
@@ -121,10 +102,7 @@ class NetworkCoordinator:
 
     def send_latency_check(self) -> None:
         # Skip latency checks in spectator mode
-        if (
-            self.network_controller and
-            self.network_controller.relay_spectator_mode
-        ):
+        if self.network_controller and self.network_controller.relay_spectator_mode:
             return
 
         if self.network_controller:
@@ -154,28 +132,19 @@ class NetworkCoordinator:
         return 0
 
     def get_video_buffer_size(self) -> int:
-        if (
-            self.network_controller and
-            self.network_controller.video_receiver
-        ):
+        if self.network_controller and self.network_controller.video_receiver:
             return len(self.network_controller.video_receiver.frame_buffer)
 
         return 0
 
     def has_server_error(self) -> bool:
-        return bool(
-            self.network_controller and
-            self.network_controller.server_error
-        )
+        return bool(self.network_controller and self.network_controller.server_error)
 
     def is_control_connected(self) -> bool:
         return self.model.control_connected
 
     def is_spectator(self) -> bool:
-        return bool(
-            self.network_controller and
-            self.network_controller.relay_spectator_mode
-        )
+        return bool(self.network_controller and self.network_controller.relay_spectator_mode)
 
     def shutdown(self) -> None:
         if self.network_controller:
@@ -201,6 +170,6 @@ class NetworkCoordinator:
                 (State.DISCONNECTED, lambda: self.osd.disconnect_handler()),
                 (State.CONNECTED, lambda: update_connected(True)),
                 (State.SPECTATING, lambda: update_connected(True)),
-                (State.DISCONNECTED, lambda: update_connected(False))
-            ]
+                (State.DISCONNECTED, lambda: update_connected(False)),
+            ],
         }

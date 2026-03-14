@@ -22,23 +22,16 @@ def clean_expired_sessions() -> None:
         now = time.time()
         with lock:
             expired = [
-                sid for sid, peers in sessions.items()
-                if all(
-                    now - entry["ts"] > TIMEOUT
-                    for role in peers.values()
-                    for entry in role.values()
-                )
+                sid
+                for sid, peers in sessions.items()
+                if all(now - entry["ts"] > TIMEOUT for role in peers.values() for entry in role.values())
             ]
             for sid in expired:
                 print(f"[~] Removed expired session: {sid}")
                 del sessions[sid]
 
 
-def handle_peer_announcement(
-    msg: PeerAnnouncement,
-    addr: Address,
-    sock: socket.socket
-) -> None:
+def handle_peer_announcement(msg: PeerAnnouncement, addr: Address, sock: socket.socket) -> None:
     session_id = msg.get_id()
     role = msg.get_role()
     port_type = msg.get_port_type()
@@ -55,10 +48,7 @@ def handle_peer_announcement(
         print(f"[+] Registered {role.upper()} {port_type} for session '{session_id}' from {addr}")
 
         # Check for full match
-        if all(
-            role in session and all(pt in session[role] for pt in valid_types)
-            for role in roles
-        ):
+        if all(role in session and all(pt in session[role] for pt in valid_types) for role in roles):
             client = session["client"]
             server = session["server"]
 
@@ -83,7 +73,7 @@ def handle_peer_announcement(
 
 def main() -> None:
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind(('0.0.0.0', PORT))
+    sock.bind(("0.0.0.0", PORT))
     print(f"[+] Rendezvous server listening on UDP port {PORT}")
 
     threading.Thread(target=clean_expired_sessions, daemon=True).start()

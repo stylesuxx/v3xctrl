@@ -1,7 +1,6 @@
 """Tests for ApplicationModel - the pure state container for the application."""
-from collections import deque
 
-import pytest
+from collections import deque
 
 from v3xctrl_ui.core.dataclasses import ApplicationModel
 
@@ -31,13 +30,7 @@ class TestApplicationModel:
 
     def test_custom_initialization(self):
         """Test that ApplicationModel can be initialized with custom values."""
-        model = ApplicationModel(
-            throttle=0.5,
-            steering=-0.3,
-            fullscreen=True,
-            scale=2.0,
-            running=False
-        )
+        model = ApplicationModel(throttle=0.5, steering=-0.3, fullscreen=True, scale=2.0, running=False)
 
         assert model.throttle == 0.5
         assert model.steering == -0.3

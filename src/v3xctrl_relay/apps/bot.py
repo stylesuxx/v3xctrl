@@ -7,14 +7,16 @@ from v3xctrl_relay.discord_bot import Bot
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run the Discord relay bot.")
     parser.add_argument("token", help="Discord bot token")
-    parser.add_argument("channel_id", type=int,
-                        help="Discord channel ID where bot commands can be used (required)")
-    parser.add_argument("--testdrive-channel-id", type=int, default=None,
-                        help="Discord channel ID for test drive requests (optional)")
-    parser.add_argument("--db", "--db-path", dest="db_path", default="relay.db",
-                        help="Path to SQLite database (default: relay.db)")
-    parser.add_argument("--log", default="ERROR",
-                        help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). (default: ERROR")
+    parser.add_argument("channel_id", type=int, help="Discord channel ID where bot commands can be used (required)")
+    parser.add_argument(
+        "--testdrive-channel-id", type=int, default=None, help="Discord channel ID for test drive requests (optional)"
+    )
+    parser.add_argument(
+        "--db", "--db-path", dest="db_path", default="relay.db", help="Path to SQLite database (default: relay.db)"
+    )
+    parser.add_argument(
+        "--log", default="ERROR", help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). (default: ERROR"
+    )
     args = parser.parse_args()
 
     level_name = args.log.upper()
@@ -23,13 +25,9 @@ def main() -> None:
     if not isinstance(level, int):
         raise ValueError(f"Invalid log level: {args.log}")
 
-    logging.basicConfig(
-        level=level,
-        format="%(asctime)s - %(levelname)s - %(message)s"
-    )
+    logging.basicConfig(level=level, format="%(asctime)s - %(levelname)s - %(message)s")
 
-    bot = Bot(args.db_path, args.token, args.channel_id,
-              testdrive_channel_id=args.testdrive_channel_id)
+    bot = Bot(args.db_path, args.token, args.channel_id, testdrive_channel_id=args.testdrive_channel_id)
     bot.run_bot()
 
 

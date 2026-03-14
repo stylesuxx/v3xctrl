@@ -3,11 +3,11 @@ import unittest
 from unittest.mock import Mock
 
 from v3xctrl_control.message import PeerAnnouncement
-from v3xctrl_tcp import Transport
-from v3xctrl_relay.PacketRelay import Mapping, PacketRelay
+from v3xctrl_relay.custom_types import PortType, Role, Session
 from v3xctrl_relay.ForwardTarget import TcpTarget, UdpTarget
+from v3xctrl_relay.PacketRelay import Mapping, PacketRelay
 from v3xctrl_relay.SessionStore import SessionStore
-from v3xctrl_relay.custom_types import PortType, Session, Role
+from v3xctrl_tcp import Transport
 
 
 class TestPacketRelayTcp(unittest.TestCase):
@@ -147,23 +147,15 @@ class TestPacketRelayTcp(unittest.TestCase):
         self.mock_store.exists.return_value = True
 
         self.relay.register_tcp_peer(
-            PeerAnnouncement(r="streamer", i="sid1", p="video"),
-            streamer_video, streamer_video_target
+            PeerAnnouncement(r="streamer", i="sid1", p="video"), streamer_video, streamer_video_target
         )
         self.relay.register_tcp_peer(
-            PeerAnnouncement(r="streamer", i="sid1", p="control"),
-            streamer_control, streamer_control_target
+            PeerAnnouncement(r="streamer", i="sid1", p="control"), streamer_control, streamer_control_target
         )
 
         # Register viewer via UDP
-        self.relay.register_peer(
-            PeerAnnouncement(r="viewer", i="sid1", p="video"),
-            viewer_video
-        )
-        self.relay.register_peer(
-            PeerAnnouncement(r="viewer", i="sid1", p="control"),
-            viewer_control
-        )
+        self.relay.register_peer(PeerAnnouncement(r="viewer", i="sid1", p="video"), viewer_video)
+        self.relay.register_peer(PeerAnnouncement(r="viewer", i="sid1", p="control"), viewer_control)
 
         # Reset mocks after registration (PeerInfo sends happen during setup)
         self.mock_sock.sendto.reset_mock()
@@ -198,12 +190,10 @@ class TestPacketRelayTcp(unittest.TestCase):
         streamer_control_target.is_alive.return_value = True
 
         self.relay.register_tcp_peer(
-            PeerAnnouncement(r="streamer", i="sid1", p="video"),
-            streamer_video, streamer_video_target
+            PeerAnnouncement(r="streamer", i="sid1", p="video"), streamer_video, streamer_video_target
         )
         self.relay.register_tcp_peer(
-            PeerAnnouncement(r="streamer", i="sid1", p="control"),
-            streamer_control, streamer_control_target
+            PeerAnnouncement(r="streamer", i="sid1", p="control"), streamer_control, streamer_control_target
         )
 
         # Register viewer via TCP
@@ -213,12 +203,10 @@ class TestPacketRelayTcp(unittest.TestCase):
         viewer_control_target.is_alive.return_value = True
 
         self.relay.register_tcp_peer(
-            PeerAnnouncement(r="viewer", i="sid1", p="video"),
-            viewer_video, viewer_video_target
+            PeerAnnouncement(r="viewer", i="sid1", p="video"), viewer_video, viewer_video_target
         )
         self.relay.register_tcp_peer(
-            PeerAnnouncement(r="viewer", i="sid1", p="control"),
-            viewer_control, viewer_control_target
+            PeerAnnouncement(r="viewer", i="sid1", p="control"), viewer_control, viewer_control_target
         )
 
         # Reset mocks after registration (PeerInfo sends happen during setup)
@@ -248,20 +236,14 @@ class TestPacketRelayTcp(unittest.TestCase):
 
         # TCP registration
         tcp_target = Mock(spec=TcpTarget)
-        self.relay.register_tcp_peer(
-            PeerAnnouncement(r="streamer", i="sid1", p="video"),
-            tcp_addr, tcp_target
-        )
+        self.relay.register_tcp_peer(PeerAnnouncement(r="streamer", i="sid1", p="video"), tcp_addr, tcp_target)
 
         session = self.relay.sessions["sid1"]
         entry = session.roles[Role.STREAMER][PortType.VIDEO]
         self.assertEqual(entry.transport, Transport.TCP)
 
         # UDP registration
-        self.relay.register_peer(
-            PeerAnnouncement(r="viewer", i="sid1", p="video"),
-            udp_addr
-        )
+        self.relay.register_peer(PeerAnnouncement(r="viewer", i="sid1", p="video"), udp_addr)
 
         entry = session.roles[Role.VIEWER][PortType.VIDEO]
         self.assertEqual(entry.transport, Transport.UDP)

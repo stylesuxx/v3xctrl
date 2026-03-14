@@ -1,5 +1,7 @@
 """Telemetry message parser for extracting and formatting telemetry data."""
+
 from dataclasses import dataclass, field
+
 from v3xctrl_control.message import Telemetry
 
 

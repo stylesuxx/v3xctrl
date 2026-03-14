@@ -1,5 +1,6 @@
 # Required before importing pygame, otherwise screen might flicker during tests
 import os
+
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 import unittest
@@ -58,15 +59,7 @@ class TestGamepadController(unittest.TestCase):
         js.get_axis.return_value = 0.5
 
         self.mgr._active_gamepad = js
-        self.mgr._active_settings = {
-            "steering": {
-                "axis": 0,
-                "invert": True,
-                "min": -1.0,
-                "max": 1.0,
-                "center": 0.0
-            }
-        }
+        self.mgr._active_settings = {"steering": {"axis": 0, "invert": True, "min": -1.0, "max": 1.0, "center": 0.0}}
         values = self.mgr.read_inputs()
         self.assertIn("steering", values)
         self.assertLessEqual(values["steering"], 0)
@@ -79,14 +72,7 @@ class TestGamepadController(unittest.TestCase):
         js.get_axis.return_value = 0.5
 
         self.mgr._active_gamepad = js
-        self.mgr._active_settings = {
-            "throttle": {
-                "axis": 0,
-                "invert": False,
-                "min": 0.0,
-                "max": 1.0
-            }
-        }
+        self.mgr._active_settings = {"throttle": {"axis": 0, "invert": False, "min": 0.0, "max": 1.0}}
         values = self.mgr.read_inputs()
         self.assertIn("throttle", values)
 
@@ -101,9 +87,7 @@ class TestGamepadController(unittest.TestCase):
         js.get_numaxes.return_value = 1
         js.get_axis.side_effect = Exception("pygame.error")
         self.mgr._active_gamepad = js
-        self.mgr._active_settings = {
-            "axis1": {"axis": 0, "invert": False, "min": 0.0, "max": 1.0}
-        }
+        self.mgr._active_settings = {"axis1": {"axis": 0, "invert": False, "min": 0.0, "max": 1.0}}
         self.assertEqual(self.mgr.read_inputs(), {})
 
     def test_stop_sets_event(self, mock_js_init):
@@ -131,6 +115,7 @@ class TestGamepadController(unittest.TestCase):
         # Stop after first iteration
         def stop_after_first(*args):
             self.mgr.stop()
+
         mock_wait.side_effect = stop_after_first
 
         self.mgr.run()
@@ -154,6 +139,7 @@ class TestGamepadController(unittest.TestCase):
 
         def stop_after_first(*args):
             self.mgr.stop()
+
         mock_wait.side_effect = stop_after_first
 
         self.mgr.run()
@@ -178,6 +164,7 @@ class TestGamepadController(unittest.TestCase):
 
         def stop_after_first(*args):
             self.mgr.stop()
+
         mock_wait.side_effect = stop_after_first
 
         self.mgr.run()
@@ -196,6 +183,7 @@ class TestGamepadController(unittest.TestCase):
 
         def stop_after_first(*args):
             self.mgr.stop()
+
         mock_wait.side_effect = stop_after_first
 
         self.mgr.run()
@@ -219,11 +207,13 @@ class TestGamepadController(unittest.TestCase):
         self.mgr.add_observer(observer)
 
         iteration_count = 0
+
         def stop_after_second(*args):
             nonlocal iteration_count
             iteration_count += 1
             if iteration_count >= 2:
                 self.mgr.stop()
+
         mock_wait.side_effect = stop_after_second
 
         self.mgr.run()
@@ -280,9 +270,7 @@ class TestGamepadController(unittest.TestCase):
         js.get_numaxes.return_value = 2
 
         self.mgr._active_gamepad = js
-        self.mgr._active_settings = {
-            "invalid_axis": {"axis": 5, "invert": False, "min": 0.0, "max": 1.0}
-        }
+        self.mgr._active_settings = {"invalid_axis": {"axis": 5, "invert": False, "min": 0.0, "max": 1.0}}
 
         values = self.mgr.read_inputs()
         self.assertEqual(values, {})
@@ -293,9 +281,7 @@ class TestGamepadController(unittest.TestCase):
         js.get_numaxes.return_value = 2
 
         self.mgr._active_gamepad = js
-        self.mgr._active_settings = {
-            "no_axis": {"invert": False, "min": 0.0, "max": 1.0}
-        }
+        self.mgr._active_settings = {"no_axis": {"invert": False, "min": 0.0, "max": 1.0}}
 
         values = self.mgr.read_inputs()
         self.assertEqual(values, {})
@@ -308,14 +294,7 @@ class TestGamepadController(unittest.TestCase):
         js.get_axis.return_value = 0.3
 
         self.mgr._active_gamepad = js
-        self.mgr._active_settings = {
-            "throttle": {
-                "axis": 0,
-                "invert": True,
-                "min": 0.0,
-                "max": 1.0
-            }
-        }
+        self.mgr._active_settings = {"throttle": {"axis": 0, "invert": True, "min": 0.0, "max": 1.0}}
 
         values = self.mgr.read_inputs()
         # Should use swapped min/max for inverted axis
@@ -332,5 +311,5 @@ class TestGamepadController(unittest.TestCase):
         self.assertEqual(result, 0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

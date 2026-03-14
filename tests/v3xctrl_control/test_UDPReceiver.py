@@ -1,7 +1,7 @@
+import queue
 import socket
 import time
 import unittest
-import queue
 from unittest.mock import MagicMock
 
 from src.v3xctrl_control import UDPReceiver
@@ -30,8 +30,8 @@ class TestUDPReceiver(unittest.TestCase):
         self.handler = lambda msg, addr: self.received.append((msg.timestamp, addr))
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.bind(('127.0.0.1', 0))
-        self.host = '127.0.0.1'
+        self.sock.bind(("127.0.0.1", 0))
+        self.host = "127.0.0.1"
         self.port = self.sock.getsockname()[1]
 
         self.receiver = UDPReceiver(self.sock, self.handler, timeout_ms=50, window_ms=500)
@@ -90,7 +90,6 @@ class TestUDPReceiver(unittest.TestCase):
 
     def test_timestamp_outside_window_is_ignored(self):
         self.receiver._should_validate_timestamp = True
-        self.receiver.last_valid_timestamp
         self.send(b"1000")  # first valid message
         time.sleep(0.05)
         timestamps = [t for t, _ in self.received]
@@ -211,5 +210,5 @@ class TestUDPReceiver(unittest.TestCase):
         self.assertEqual(len(self.received), 2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

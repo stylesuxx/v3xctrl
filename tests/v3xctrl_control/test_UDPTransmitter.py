@@ -1,7 +1,7 @@
 import socket
 import unittest
 
-from src.v3xctrl_control import UDPTransmitter, UDPPacket
+from src.v3xctrl_control import UDPPacket, UDPTransmitter
 
 
 class FakeMessage:
@@ -16,7 +16,7 @@ class TestUDPTransmitter(unittest.TestCase):
     def setUp(self):
         # Setup a UDP socket pair
         self.recv_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.recv_sock.bind(('localhost', 0))
+        self.recv_sock.bind(("localhost", 0))
         self.host, self.port = self.recv_sock.getsockname()
 
         self.send_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

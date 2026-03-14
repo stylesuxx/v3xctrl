@@ -5,7 +5,6 @@ import time
 
 from v3xctrl_control.message import Heartbeat
 
-
 # Keepalive interval when video is not running (NAT hole punch)
 INTERVAL_IDLE_S = 1.0
 
@@ -50,19 +49,14 @@ class VideoPortKeepAlive(threading.Thread):
             sock.bind(("0.0.0.0", self.video_port))
             sock.sendto(Heartbeat().to_bytes(), self.relay_address)
         except Exception as e:
-            logging.debug(
-                f"Video port keep-alive heartbeat skipped on port "
-                f"{self.video_port}: {e}"
-            )
+            logging.debug(f"Video port keep-alive heartbeat skipped on port {self.video_port}: {e}")
         finally:
             if sock:
                 sock.close()
 
     def run(self) -> None:
         self._running.set()
-        logging.info(
-            f"Video port keep-alive started on port {self.video_port}"
-        )
+        logging.info(f"Video port keep-alive started on port {self.video_port}")
 
         while self._running.is_set():
             self._send_heartbeat()

@@ -1,8 +1,10 @@
 # Required before importing pygame, otherwise screen might flicker during tests
 import os
+
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 import unittest
+
 import pygame
 
 from v3xctrl_ui.menu.tabs import OsdTab
@@ -24,7 +26,7 @@ class TestOsdTab(unittest.TestCase):
                 "battery_current": {"display": False},
                 "signal_quality": {"display": True},
                 "signal_band": {"display": False},
-                "signal_cell": {"display": True}
+                "signal_cell": {"display": True},
             }
         }
 

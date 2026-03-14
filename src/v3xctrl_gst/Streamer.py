@@ -1,17 +1,19 @@
+import contextlib
 import logging
 import sys
-from threading import Event
 import time
+from threading import Event
 from typing import Any
 
 import gi
-gi.require_version('Gst', '1.0')
-from gi.repository import Gst, GLib
 
-from v3xctrl_gst.SourceRegistry import SourceRegistry
-from v3xctrl_gst.ControlServer import ControlServer
-from v3xctrl_gst.RecordingManager import RecordingManager
-from v3xctrl_gst.QPManager import QPManager
+gi.require_version("Gst", "1.0")
+from gi.repository import GLib, Gst  # noqa: E402
+
+from v3xctrl_gst.ControlServer import ControlServer  # noqa: E402
+from v3xctrl_gst.QPManager import QPManager  # noqa: E402
+from v3xctrl_gst.RecordingManager import RecordingManager  # noqa: E402
+from v3xctrl_gst.SourceRegistry import SourceRegistry  # noqa: E402
 
 
 class Streamer:
@@ -21,7 +23,7 @@ class Streamer:
         port: int,
         bind_port: int,
         settings: dict[str, Any] | None = None,
-        control_socket: str = '/tmp/v3xctrl.sock'
+        control_socket: str = "/tmp/v3xctrl.sock",
     ) -> None:
         """
         Initialize the Streamer.
@@ -47,82 +49,75 @@ class Streamer:
         self.timing_enabled = False
         self.timing_data: dict[int, dict[str, float]] = {}
         self.timing_stats = {
-            'capture': [],
-            'capsfilter': [],
-            'encode': [],
-            'package': [],
+            "capture": [],
+            "capsfilter": [],
+            "encode": [],
+            "package": [],
         }
         self.timing_log_interval = 1.0
         self.timing_last_log = 0.0
         self.timing_debug = {
-            'source_probe': 0,
-            'capsfilter_probe': 0,
-            'capsfilter_miss': 0,
-            'encoder_probe': 0,
-            'encoder_miss': 0,
-            'udp_probe': 0,
-            'udp_miss': 0,
-            'incomplete': 0,
+            "source_probe": 0,
+            "capsfilter_probe": 0,
+            "capsfilter_miss": 0,
+            "encoder_probe": 0,
+            "encoder_miss": 0,
+            "udp_probe": 0,
+            "udp_miss": 0,
+            "incomplete": 0,
         }
 
         default_settings: dict[str, Any] = {
-            'width': 1280,
-            'height': 720,
-            'framerate': 30,
-            'buffertime': 50000000,
-            'sizebuffers': 2,
-            'recording_dir': None,
-            'recording': False,
-            'test_pattern': False,
-            'buffertime_udp': 50000000,
-            'sizebuffers_udp': 2,
-            'sizebuffers_write': 30,
-            'mtu': 1400,
-            'file_src': None,
-
+            "width": 1280,
+            "height": 720,
+            "framerate": 30,
+            "buffertime": 50000000,
+            "sizebuffers": 2,
+            "recording_dir": None,
+            "recording": False,
+            "test_pattern": False,
+            "buffertime_udp": 50000000,
+            "sizebuffers_udp": 2,
+            "sizebuffers_write": 30,
+            "mtu": 1400,
+            "file_src": None,
             # Encoder (via CAPS)
-            'h264_profile': "high",
-            'h264_level': "4.1",
-            'capture_io_mode': 4,
-            'output_io_mode': 4,
-
+            "h264_profile": "high",
+            "h264_level": "4.1",
+            "capture_io_mode": 4,
+            "output_io_mode": 4,
             # via extra-controls
-            'bitrate_mode': 1,  # 0 VBR, 1: CBR
-            'bitrate': 1800000,
-            'h264_i_frame_period': 15,
-            'h264_minimum_qp_value': 20,
-            'h264_maximum_qp_value': 51,
-
+            "bitrate_mode": 1,  # 0 VBR, 1: CBR
+            "bitrate": 1800000,
+            "h264_i_frame_period": 15,
+            "h264_minimum_qp_value": 20,
+            "h264_maximum_qp_value": 51,
             # Auto adjust
-            'enable_i_frame_adjust': False,
-            'max_i_frame_bytes': 25600,
-
+            "enable_i_frame_adjust": False,
+            "max_i_frame_bytes": 25600,
             # Camera settings
-            'af_mode': 0,
-            'lens_position': 0,
-            'analogue_gain_mode': 0,
-            'analogue_gain': 1,
-            'exposure_time_mode': 0,
-            'exposure_time': 32000,
-
-            'brightness': 0.0,
-            'contrast': 1.0,
-            'saturation': 1.0,
-            'sharpness': 0.0,
-
+            "af_mode": 0,
+            "lens_position": 0,
+            "analogue_gain_mode": 0,
+            "analogue_gain": 1,
+            "exposure_time_mode": 0,
+            "exposure_time": 32000,
+            "brightness": 0.0,
+            "contrast": 1.0,
+            "saturation": 1.0,
+            "sharpness": 0.0,
             # Sensor mode control
-            'sensor_mode_width': 0,
-            'sensor_mode_height': 0,
-
+            "sensor_mode_width": 0,
+            "sensor_mode_height": 0,
             # Pipeline timing
-            'timing_enabled': False,
+            "timing_enabled": False,
         }
 
         self.settings: dict[str, Any] = default_settings.copy()
         if settings:
             self.settings.update(settings)
 
-        if self.settings['timing_enabled']:
+        if self.settings["timing_enabled"]:
             self.enable_timing(True)
 
         logging.debug(self.settings)
@@ -145,16 +140,16 @@ class Streamer:
         self.recording_manager = RecordingManager(
             pipeline=self.pipeline,
             tee=self.get_element("t"),
-            recording_dir=self.settings['recording_dir'],
-            sizebuffers=self.settings['sizebuffers_write'],
-            on_queue_overrun=self._on_queue_overrun
+            recording_dir=self.settings["recording_dir"],
+            sizebuffers=self.settings["sizebuffers_write"],
+            on_queue_overrun=self._on_queue_overrun,
         )
 
         self.qp_manager = QPManager(
             encoder=self.get_element("encoder"),
-            max_i_frame_bytes=self.settings['max_i_frame_bytes'],
-            qp_min=self.settings['h264_minimum_qp_value'],
-            qp_max=self.settings['h264_maximum_qp_value'],
+            max_i_frame_bytes=self.settings["max_i_frame_bytes"],
+            qp_min=self.settings["h264_minimum_qp_value"],
+            qp_max=self.settings["h264_maximum_qp_value"],
         )
 
         self.bus = self.pipeline.get_bus()
@@ -168,7 +163,7 @@ class Streamer:
 
         logging.info("Pipeline running. Press Ctrl+C to stop.")
 
-        if self.settings['recording'] and self.settings['recording_dir']:
+        if self.settings["recording"] and self.settings["recording_dir"]:
             if self.start_recording():
                 logging.info("Auto-started recording on pipeline start")
             else:
@@ -235,15 +230,15 @@ class Streamer:
             True if successful, False otherwise
         """
         for attempt in range(max_retries):
-            result = {'success': False}
+            result = {"success": False}
             event = Event()
 
-            def _do_set():
+            def _do_set(result=result, event=event):
                 element = self.get_element(element_name)
                 if element:
                     try:
                         element.set_property(property_name, value)
-                        result['success'] = True
+                        result["success"] = True
                     except Exception as e:
                         logging.error(f"Failed to set property '{property_name}': {e}")
                 event.set()
@@ -252,7 +247,7 @@ class Streamer:
             GLib.idle_add(_do_set)
             event.wait(timeout=0.5)
 
-            if not result['success']:
+            if not result["success"]:
                 return False
 
             # Give the element some time to process the setting - especially
@@ -260,16 +255,14 @@ class Streamer:
             time.sleep(0.5)
 
             # Verify setting actually stuck
-            verify_result = {'actual': None}
+            verify_result = {"actual": None}
             verify_event = Event()
 
-            def _do_verify():
+            def _do_verify(verify_result=verify_result, verify_event=verify_event):
                 element = self.get_element(element_name)
                 if element:
-                    try:
-                        verify_result['actual'] = element.get_property(property_name)
-                    except Exception:
-                        pass
+                    with contextlib.suppress(Exception):
+                        verify_result["actual"] = element.get_property(property_name)
                 verify_event.set()
                 return False
 
@@ -277,21 +270,25 @@ class Streamer:
             verify_event.wait(timeout=0.5)
 
             # For float properties, use approximate comparison
-            if isinstance(verify_result['actual'], float):
-                if abs(verify_result['actual'] - value) < 0.001:
+            if isinstance(verify_result["actual"], float):
+                if abs(verify_result["actual"] - value) < 0.001:
                     if attempt > 0:
                         logging.debug(f"Property '{property_name}' stuck after {attempt + 1} attempts")
                     return True
 
-            elif verify_result['actual'] == value:
+            elif verify_result["actual"] == value:
                 if attempt > 0:
                     logging.debug(f"Property '{property_name}' stuck after {attempt + 1} attempts")
                 return True
 
             if attempt < max_retries - 1:
-                logging.debug(f"Attempt {attempt + 1}: value is {verify_result['actual']}, expected {value}, retrying...")
+                logging.debug(
+                    f"Attempt {attempt + 1}: value is {verify_result['actual']}, expected {value}, retrying..."
+                )
 
-        logging.warning(f"Property '{property_name}' failed to stick after {max_retries} attempts (value: {verify_result['actual']})")
+        logging.warning(
+            f"Property '{property_name}' failed to stick after {max_retries} attempts (value: {verify_result['actual']})"
+        )
         return False
 
     def get_property(self, element_name: str, property_name: str) -> Any | None:
@@ -345,10 +342,10 @@ class Streamer:
 
     def get_stats(self) -> dict[str, Any]:
         return {
-            'recording': self.recording_manager.is_recording,
-            'qp_min': self.qp_manager.current_qp_min,
-            'qp_max': self.qp_manager.qp_max,
-            'udp_overrun': (time.monotonic() - self.last_udp_overflow_time) < 5,
+            "recording": self.recording_manager.is_recording,
+            "qp_min": self.qp_manager.current_qp_min,
+            "qp_max": self.qp_manager.qp_max,
+            "udp_overrun": (time.monotonic() - self.last_udp_overflow_time) < 5,
         }
 
     def enable_timing(self, enabled: bool = True) -> None:
@@ -356,21 +353,21 @@ class Streamer:
         if enabled:
             self.timing_data.clear()
             self.timing_stats = {
-                'capture': [],
-                'capsfilter': [],
-                'encode': [],
-                'package': [],
-                'total': [],
+                "capture": [],
+                "capsfilter": [],
+                "encode": [],
+                "package": [],
+                "total": [],
             }
             self.timing_debug = {
-                'source_probe': 0,
-                'capsfilter_probe': 0,
-                'capsfilter_miss': 0,
-                'encoder_probe': 0,
-                'encoder_miss': 0,
-                'udp_probe': 0,
-                'udp_miss': 0,
-                'incomplete': 0,
+                "source_probe": 0,
+                "capsfilter_probe": 0,
+                "capsfilter_miss": 0,
+                "encoder_probe": 0,
+                "encoder_miss": 0,
+                "udp_probe": 0,
+                "udp_miss": 0,
+                "incomplete": 0,
             }
             self.timing_last_log = time.monotonic()
 
@@ -411,11 +408,11 @@ class Streamer:
         """
         self.pipeline = Gst.Pipeline.new("streamer-pipeline")
 
-        source_type = 'camera'
-        if self.settings.get('file_src'):
-            source_type = 'file'
-        elif self.settings.get('test_pattern'):
-            source_type = 'test'
+        source_type = "camera"
+        if self.settings.get("file_src"):
+            source_type = "file"
+        elif self.settings.get("test_pattern"):
+            source_type = "test"
 
         # Create source using registry
         try:
@@ -462,8 +459,8 @@ class Streamer:
             logging.error("Failed to create encoder queue")
             return False
 
-        queue_encoder.set_property("max-size-buffers", self.settings['sizebuffers'])
-        queue_encoder.set_property("max-size-time", self.settings['buffertime'])
+        queue_encoder.set_property("max-size-buffers", self.settings["sizebuffers"])
+        queue_encoder.set_property("max-size-time", self.settings["buffertime"])
         queue_encoder.set_property("leaky", 2)  # Downstream leaky
         queue_encoder.connect("overrun", self._on_queue_overrun)
         self.pipeline.add(queue_encoder)
@@ -485,8 +482,8 @@ class Streamer:
         )
 
         encoder.set_property("extra-controls", Gst.Structure.from_string(encoder_controls)[0])
-        encoder.set_property("capture-io-mode", self.settings['capture_io_mode'])
-        encoder.set_property("output-io-mode", self.settings['output_io_mode'])
+        encoder.set_property("capture-io-mode", self.settings["capture_io_mode"])
+        encoder.set_property("output-io-mode", self.settings["output_io_mode"])
         self.pipeline.add(encoder)
 
         encoder_caps_filter = Gst.ElementFactory.make("capsfilter", "encoder_caps")
@@ -518,8 +515,8 @@ class Streamer:
             logging.error("Failed to create UDP queue")
             return False
 
-        queue_udp.set_property("max-size-buffers", self.settings['sizebuffers_udp'])
-        queue_udp.set_property("max-size-time", self.settings['buffertime_udp'])
+        queue_udp.set_property("max-size-buffers", self.settings["sizebuffers_udp"])
+        queue_udp.set_property("max-size-time", self.settings["buffertime_udp"])
         queue_udp.set_property("leaky", 2)  # Downstream
         queue_udp.connect("overrun", self._on_udp_queue_overrun)
         self.pipeline.add(queue_udp)
@@ -532,7 +529,7 @@ class Streamer:
         payloader.set_property("aggregate-mode", 1)  # zero-latency
         payloader.set_property("config-interval", 1)
         payloader.set_property("pt", 96)
-        payloader.set_property("mtu", self.settings['mtu'])
+        payloader.set_property("mtu", self.settings["mtu"])
         self.pipeline.add(payloader)
 
         # Add probe to measure total pipeline latency (before UDP send)
@@ -608,29 +605,31 @@ class Streamer:
 
         is_keyframe = not buffer.has_flags(Gst.BufferFlags.DELTA_UNIT)
 
-        if is_keyframe and self.settings['enable_i_frame_adjust']:
+        if is_keyframe and self.settings["enable_i_frame_adjust"]:
             size = buffer.get_size()
-            logging.debug(f"i-frame: {size/1024:.1f} KB at PTS {pts/Gst.SECOND:.3f}s")
+            logging.debug(f"i-frame: {size / 1024:.1f} KB at PTS {pts / Gst.SECOND:.3f}s")
             self.qp_manager.on_keyframe(size)
 
         if self.last_buffer_pts is not None:
             delta = (pts - self.last_buffer_pts) / Gst.SECOND
-            expected = 1.0 / self.settings['framerate']
+            expected = 1.0 / self.settings["framerate"]
             jitter = abs(delta - expected) * 1000  # in ms
 
             if jitter > 5:
-                logging.warning(f"Frame timing jitter: {jitter:.2f}ms (expected {expected*1000:.2f}ms, got {delta*1000:.2f}ms)")
+                logging.warning(
+                    f"Frame timing jitter: {jitter:.2f}ms (expected {expected * 1000:.2f}ms, got {delta * 1000:.2f}ms)"
+                )
 
         self.last_buffer_pts = pts
         self.frame_count += 1
 
         # Record encoder timing
         if self.timing_enabled:
-            self.timing_debug['encoder_probe'] += 1
+            self.timing_debug["encoder_probe"] += 1
             if pts in self.timing_data:
-                self.timing_data[pts]['encoder'] = time.monotonic()
+                self.timing_data[pts]["encoder"] = time.monotonic()
             else:
-                self.timing_debug['encoder_miss'] += 1
+                self.timing_debug["encoder_miss"] += 1
 
         return Gst.PadProbeReturn.OK
 
@@ -647,14 +646,14 @@ class Streamer:
         pts = buffer.pts
         now = time.monotonic()
 
-        self.timing_debug['source_probe'] += 1
+        self.timing_debug["source_probe"] += 1
 
         running_time = self.pipeline.get_clock().get_time() - self.pipeline.get_base_time()
         capture_delay = (running_time - pts) / Gst.MSECOND  # Convert to ms
 
         self.timing_data[pts] = {
-            'source': now,
-            'capture_delay': capture_delay,
+            "source": now,
+            "capture_delay": capture_delay,
         }
 
         return Gst.PadProbeReturn.OK
@@ -666,21 +665,23 @@ class Streamer:
 
         if self.last_camera_pts is not None:
             delta = (pts - self.last_camera_pts) / Gst.SECOND
-            expected = 1.0 / self.settings['framerate']
+            expected = 1.0 / self.settings["framerate"]
             jitter = abs(delta - expected) * 1000
 
             if jitter > 5:
-                logging.warning(f"CAMERA jitter: {jitter:.2f}ms (expected {expected*1000:.2f}ms, got {delta*1000:.2f}ms)")
+                logging.warning(
+                    f"CAMERA jitter: {jitter:.2f}ms (expected {expected * 1000:.2f}ms, got {delta * 1000:.2f}ms)"
+                )
 
         self.last_camera_pts = pts
 
         # Record capsfilter output time
         if self.timing_enabled:
-            self.timing_debug['capsfilter_probe'] += 1
+            self.timing_debug["capsfilter_probe"] += 1
             if pts in self.timing_data:
-                self.timing_data[pts]['capsfilter'] = time.monotonic()
+                self.timing_data[pts]["capsfilter"] = time.monotonic()
             else:
-                self.timing_debug['capsfilter_miss'] += 1
+                self.timing_debug["capsfilter_miss"] += 1
 
         return Gst.PadProbeReturn.OK
 
@@ -690,30 +691,30 @@ class Streamer:
         pts = buffer.pts
 
         if pts not in self.timing_data:
-            self.timing_debug['udp_miss'] += 1
+            self.timing_debug["udp_miss"] += 1
             return Gst.PadProbeReturn.OK
 
         timing = self.timing_data[pts]
-        self.timing_debug['udp_probe'] += 1
+        self.timing_debug["udp_probe"] += 1
 
         # Only process if all stages have been recorded
-        if 'source' not in timing or 'capsfilter' not in timing or 'encoder' not in timing:
-            self.timing_debug['incomplete'] += 1
+        if "source" not in timing or "capsfilter" not in timing or "encoder" not in timing:
+            self.timing_debug["incomplete"] += 1
             return Gst.PadProbeReturn.OK
 
         # All stages complete - pop entry and calculate stats
         now = time.monotonic()
         self.timing_data.pop(pts)
 
-        capture_time = timing.get('capture_delay', 0)
-        capsfilter_time = (timing['capsfilter'] - timing['source']) * 1000
-        encode_time = (timing['encoder'] - timing['capsfilter']) * 1000
-        package_time = (now - timing['encoder']) * 1000
+        capture_time = timing.get("capture_delay", 0)
+        capsfilter_time = (timing["capsfilter"] - timing["source"]) * 1000
+        encode_time = (timing["encoder"] - timing["capsfilter"]) * 1000
+        package_time = (now - timing["encoder"]) * 1000
 
-        self.timing_stats['capture'].append(capture_time)
-        self.timing_stats['capsfilter'].append(capsfilter_time)
-        self.timing_stats['encode'].append(encode_time)
-        self.timing_stats['package'].append(package_time)
+        self.timing_stats["capture"].append(capture_time)
+        self.timing_stats["capsfilter"].append(capsfilter_time)
+        self.timing_stats["encode"].append(encode_time)
+        self.timing_stats["package"].append(package_time)
 
         # Log periodically (time-based)
         now = time.monotonic()
@@ -731,7 +732,7 @@ class Streamer:
 
     def _log_timing_stats(self) -> None:
         """Log timing statistics."""
-        if not self.timing_stats['capture']:
+        if not self.timing_stats["capture"]:
             return
 
         def stats(data):
@@ -739,12 +740,12 @@ class Streamer:
                 return 0, 0, 0
             return min(data), sum(data) / len(data), max(data)
 
-        cap_min, cap_avg, cap_max = stats(self.timing_stats['capture'])
-        enc_min, enc_avg, enc_max = stats(self.timing_stats['encode'])
-        pkg_min, pkg_avg, pkg_max = stats(self.timing_stats['package'])
+        _cap_min, cap_avg, _cap_max = stats(self.timing_stats["capture"])
+        _enc_min, enc_avg, _enc_max = stats(self.timing_stats["encode"])
+        _pkg_min, pkg_avg, _pkg_max = stats(self.timing_stats["package"])
 
         total_avg = cap_avg + enc_avg + pkg_avg
-        frame_count = len(self.timing_stats['capture'])
+        frame_count = len(self.timing_stats["capture"])
         interval = time.monotonic() - self.timing_last_log
         fps = frame_count / interval if interval > 0 else 0
 
@@ -757,18 +758,18 @@ class Streamer:
 
         # Reset stats after logging
         self.timing_debug = {
-            'source_probe': 0,
-            'capsfilter_probe': 0,
-            'capsfilter_miss': 0,
-            'encoder_probe': 0,
-            'encoder_miss': 0,
-            'udp_probe': 0,
-            'udp_miss': 0,
-            'incomplete': 0,
+            "source_probe": 0,
+            "capsfilter_probe": 0,
+            "capsfilter_miss": 0,
+            "encoder_probe": 0,
+            "encoder_miss": 0,
+            "udp_probe": 0,
+            "udp_miss": 0,
+            "incomplete": 0,
         }
         self.timing_stats = {
-            'capture': [],
-            'capsfilter': [],
-            'encode': [],
-            'package': [],
+            "capture": [],
+            "capsfilter": [],
+            "encode": [],
+            "package": [],
         }

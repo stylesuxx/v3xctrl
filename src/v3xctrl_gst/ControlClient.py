@@ -1,12 +1,12 @@
-import socket
 import json
+import socket
 from typing import Any
 
 
 class ControlClient:
     """Client to control a running Streamer instance."""
 
-    def __init__(self, socket_path: str = '/tmp/v3xctrl.sock') -> None:
+    def __init__(self, socket_path: str = "/tmp/v3xctrl.sock") -> None:
         """
         Initialize the client.
 
@@ -16,37 +16,27 @@ class ControlClient:
         self.socket_path = socket_path
 
     def list_properties(self, element: str) -> dict[str, Any]:
-        return self._send_command({
-            'action': 'list',
-            'element': element
-        })
+        return self._send_command({"action": "list", "element": element})
 
     def get_property(self, element: str, property_name: str) -> dict[str, Any]:
-        return self._send_command({
-            'action': 'get',
-            'element': element,
-            'property': property_name
-        })
+        return self._send_command({"action": "get", "element": element, "property": property_name})
 
     def set_property(self, element: str, property_name: str, value: Any) -> dict[str, Any]:
-        return self._send_command({
-            'action': 'set',
-            'element': element,
-            'property': property_name,
-            'value': value
-        })
+        return self._send_command({"action": "set", "element": element, "property": property_name, "value": value})
 
     def stop(self) -> dict[str, Any]:
-        return self._send_command({'action': 'stop'})
+        return self._send_command({"action": "stop"})
 
     def recording(self, value: str) -> dict[str, Any]:
-        return self._send_command({
-            'action': 'recording',
-            'value': value,
-        })
+        return self._send_command(
+            {
+                "action": "recording",
+                "value": value,
+            }
+        )
 
     def stats(self) -> dict[str, Any]:
-        return self._send_command({'action': 'stats'})
+        return self._send_command({"action": "stats"})
 
     def _send_command(self, command: dict[str, Any]) -> dict[str, Any]:
         """
@@ -62,11 +52,11 @@ class ControlClient:
             sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             sock.connect(self.socket_path)
 
-            sock.sendall(json.dumps(command).encode('utf-8'))
-            response = sock.recv(4096).decode('utf-8')
+            sock.sendall(json.dumps(command).encode("utf-8"))
+            response = sock.recv(4096).decode("utf-8")
             sock.close()
 
             return json.loads(response)
 
         except Exception as e:
-            return {'status': 'error', 'message': str(e)}
+            return {"status": "error", "message": str(e)}

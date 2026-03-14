@@ -1,9 +1,10 @@
 """Timing controller for managing frame rates and update intervals."""
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from v3xctrl_ui.core.Settings import Settings
     from v3xctrl_ui.core.dataclasses import ApplicationModel
+    from v3xctrl_ui.core.Settings import Settings
 
 
 class TimingController:
@@ -12,7 +13,7 @@ class TimingController:
     # Epsilon for floating-point comparison tolerance
     TIMING_EPSILON = 1e-9
 
-    def __init__(self, settings: 'Settings', model: 'ApplicationModel'):
+    def __init__(self, settings: "Settings", model: "ApplicationModel"):
         """Initialize timing controller with settings.
 
         Args:

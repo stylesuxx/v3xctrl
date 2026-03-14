@@ -1,9 +1,10 @@
 import argparse
+import json
 from pathlib import Path
+
 from flask import Flask, render_template
 from flask_cors import CORS
 from flask_smorest import Api
-import json
 
 from .routes import register_routes
 
@@ -13,26 +14,26 @@ PACKAGE_DIR = Path(__file__).resolve().parent
 def create_app(schema_path: str, config_path: str, modems_path: str) -> Flask:
     app = Flask(
         __name__,
-        template_folder=str(PACKAGE_DIR / 'templates'),
-        static_folder=str(PACKAGE_DIR / 'static'),
+        template_folder=str(PACKAGE_DIR / "templates"),
+        static_folder=str(PACKAGE_DIR / "static"),
     )
     CORS(app)
-    app.config['SCHEMA_PATH'] = schema_path
-    app.config['CONFIG_PATH'] = config_path
-    app.config['MODEMS_PATH'] = modems_path
+    app.config["SCHEMA_PATH"] = schema_path
+    app.config["CONFIG_PATH"] = config_path
+    app.config["MODEMS_PATH"] = modems_path
 
     # Flask-smorest OpenAPI config
-    app.config['API_TITLE'] = 'V3XCTRL API'
-    app.config['API_VERSION'] = 'v1'
-    app.config['OPENAPI_VERSION'] = '3.0.2'
-    app.config['OPENAPI_URL_PREFIX'] = '/'
-    app.config['OPENAPI_SWAGGER_UI_PATH'] = '/swagger'
-    app.config['OPENAPI_SWAGGER_UI_URL'] = 'https://cdn.jsdelivr.net/npm/swagger-ui-dist/'
+    app.config["API_TITLE"] = "V3XCTRL API"
+    app.config["API_VERSION"] = "v1"
+    app.config["OPENAPI_VERSION"] = "3.0.2"
+    app.config["OPENAPI_URL_PREFIX"] = "/"
+    app.config["OPENAPI_SWAGGER_UI_PATH"] = "/swagger"
+    app.config["OPENAPI_SWAGGER_UI_URL"] = "https://cdn.jsdelivr.net/npm/swagger-ui-dist/"
 
     api = Api(app)
     register_routes(api)
 
-    @app.route('/')
+    @app.route("/")
     def index() -> str:
         with open(schema_path) as f:
             schema = json.load(f)
@@ -41,12 +42,7 @@ def create_app(schema_path: str, config_path: str, modems_path: str) -> Flask:
         with open(modems_path) as f:
             modems = json.load(f)
 
-        return render_template(
-            'index.html',
-            schema=schema,
-            config=config,
-            modems=modems
-        )
+        return render_template("index.html", schema=schema, config=config, modems=modems)
 
     return app
 
@@ -55,16 +51,16 @@ def main() -> None:
     global schema_path, config_path, modems_path
 
     parser = argparse.ArgumentParser(description="Run the Form Editor server.")
-    parser.add_argument('--schema', required=True, help='Path to schema.json')
-    parser.add_argument('--config', required=True, help='Path to config.json')
-    parser.add_argument('--modems', required=True, help='Path to modems.json')
-    parser.add_argument('--host', default='0.0.0.0', help='Host to run the server on')
-    parser.add_argument('--port', default=80, type=int, help='Port to run the server on')
+    parser.add_argument("--schema", required=True, help="Path to schema.json")
+    parser.add_argument("--config", required=True, help="Path to config.json")
+    parser.add_argument("--modems", required=True, help="Path to modems.json")
+    parser.add_argument("--host", default="0.0.0.0", help="Host to run the server on")
+    parser.add_argument("--port", default=80, type=int, help="Port to run the server on")
     args = parser.parse_args()
 
     app = create_app(args.schema, args.config, args.modems)
     app.run(debug=True, host=args.host, port=args.port)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

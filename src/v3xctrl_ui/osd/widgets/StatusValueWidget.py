@@ -1,8 +1,10 @@
 from collections import deque
+
 from pygame import Surface
+
+from v3xctrl_ui.osd.widgets.StatusWidget import StatusWidget
 from v3xctrl_ui.utils.colors import BLACK
 from v3xctrl_ui.utils.fonts import SMALL_MONO_FONT
-from v3xctrl_ui.osd.widgets.StatusWidget import StatusWidget
 
 
 class StatusValueWidget(StatusWidget):

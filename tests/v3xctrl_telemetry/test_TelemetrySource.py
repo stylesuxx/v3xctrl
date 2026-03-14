@@ -1,25 +1,26 @@
 """Tests for TelemetrySource protocol."""
+
 import sys
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 # Mock GStreamer before any imports
-sys.modules['gi'] = MagicMock()
-sys.modules['gi.repository'] = MagicMock()
-sys.modules['gi.repository.Gst'] = MagicMock()
-sys.modules['gi.repository.GLib'] = MagicMock()
+sys.modules["gi"] = MagicMock()
+sys.modules["gi.repository"] = MagicMock()
+sys.modules["gi.repository.Gst"] = MagicMock()
+sys.modules["gi.repository.GLib"] = MagicMock()
 
-from v3xctrl_telemetry import (
-    ServiceFlags,
-    VideoCoreFlags,
-    ThrottleFlags,
+from v3xctrl_telemetry import (  # noqa: E402
     GstFlags,
+    ServiceFlags,
+    ThrottleFlags,
+    VideoCoreFlags,
 )
-from v3xctrl_telemetry.TelemetrySource import TelemetrySource
-from v3xctrl_telemetry.BatteryTelemetry import BatteryTelemetry, BatteryState
-from v3xctrl_telemetry.ServiceTelemetry import ServiceTelemetry
-from v3xctrl_telemetry.VideoCoreTelemetry import VideoCoreTelemetry
-from v3xctrl_telemetry.GstTelemetry import GstTelemetry
+from v3xctrl_telemetry.BatteryTelemetry import BatteryState, BatteryTelemetry  # noqa: E402
+from v3xctrl_telemetry.GstTelemetry import GstTelemetry  # noqa: E402
+from v3xctrl_telemetry.ServiceTelemetry import ServiceTelemetry  # noqa: E402
+from v3xctrl_telemetry.TelemetrySource import TelemetrySource  # noqa: E402
+from v3xctrl_telemetry.VideoCoreTelemetry import VideoCoreTelemetry  # noqa: E402
 
 
 class TestTelemetrySourceProtocol(unittest.TestCase):
@@ -27,13 +28,13 @@ class TestTelemetrySourceProtocol(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures with mocked hardware."""
-        self.smbus_patcher = patch('v3xctrl_telemetry.INA.SMBus')
+        self.smbus_patcher = patch("v3xctrl_telemetry.INA.SMBus")
         self.mock_smbus = self.smbus_patcher.start()
 
-        self.subprocess_patcher = patch('v3xctrl_telemetry.ServiceTelemetry.subprocess')
+        self.subprocess_patcher = patch("v3xctrl_telemetry.ServiceTelemetry.subprocess")
         self.mock_subprocess_service = self.subprocess_patcher.start()
 
-        self.vcgencmd_patcher = patch('v3xctrl_telemetry.VideoCoreTelemetry.subprocess')
+        self.vcgencmd_patcher = patch("v3xctrl_telemetry.VideoCoreTelemetry.subprocess")
         self.mock_subprocess_vc = self.vcgencmd_patcher.start()
         self.mock_subprocess_vc.check_output.return_value = "throttled=0x0"
 
@@ -48,7 +49,7 @@ class TestTelemetrySourceProtocol(unittest.TestCase):
         battery = BatteryTelemetry()
 
         assert isinstance(battery, TelemetrySource)
-        assert hasattr(battery, 'update')
+        assert hasattr(battery, "update")
         assert callable(battery.update)
 
     def test_service_implements_protocol(self):
@@ -56,7 +57,7 @@ class TestTelemetrySourceProtocol(unittest.TestCase):
         service = ServiceTelemetry()
 
         assert isinstance(service, TelemetrySource)
-        assert hasattr(service, 'update')
+        assert hasattr(service, "update")
         assert callable(service.update)
 
     def test_videocore_implements_protocol(self):
@@ -64,7 +65,7 @@ class TestTelemetrySourceProtocol(unittest.TestCase):
         videocore = VideoCoreTelemetry()
 
         assert isinstance(videocore, TelemetrySource)
-        assert hasattr(videocore, 'update')
+        assert hasattr(videocore, "update")
         assert callable(videocore.update)
 
     def test_gst_implements_protocol(self):
@@ -72,7 +73,7 @@ class TestTelemetrySourceProtocol(unittest.TestCase):
         gst = GstTelemetry()
 
         assert isinstance(gst, TelemetrySource)
-        assert hasattr(gst, 'update')
+        assert hasattr(gst, "update")
         assert callable(gst.update)
 
 
@@ -81,13 +82,13 @@ class TestGetStateMethods(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures with mocked hardware."""
-        self.smbus_patcher = patch('v3xctrl_telemetry.INA.SMBus')
+        self.smbus_patcher = patch("v3xctrl_telemetry.INA.SMBus")
         self.mock_smbus = self.smbus_patcher.start()
 
-        self.subprocess_patcher = patch('v3xctrl_telemetry.ServiceTelemetry.subprocess')
+        self.subprocess_patcher = patch("v3xctrl_telemetry.ServiceTelemetry.subprocess")
         self.mock_subprocess_service = self.subprocess_patcher.start()
 
-        self.vcgencmd_patcher = patch('v3xctrl_telemetry.VideoCoreTelemetry.subprocess')
+        self.vcgencmd_patcher = patch("v3xctrl_telemetry.VideoCoreTelemetry.subprocess")
         self.mock_subprocess_vc = self.vcgencmd_patcher.start()
         self.mock_subprocess_vc.check_output.return_value = "throttled=0x0"
 
@@ -103,11 +104,11 @@ class TestGetStateMethods(unittest.TestCase):
         state = battery.get_state()
 
         assert isinstance(state, BatteryState)
-        assert hasattr(state, 'voltage')
-        assert hasattr(state, 'average_voltage')
-        assert hasattr(state, 'percentage')
-        assert hasattr(state, 'warning')
-        assert hasattr(state, 'cell_count')
+        assert hasattr(state, "voltage")
+        assert hasattr(state, "average_voltage")
+        assert hasattr(state, "percentage")
+        assert hasattr(state, "warning")
+        assert hasattr(state, "cell_count")
 
     def test_service_get_state(self):
         """Test ServiceTelemetry.get_state() returns ServiceFlags."""
@@ -115,8 +116,8 @@ class TestGetStateMethods(unittest.TestCase):
         state = service.get_state()
 
         assert isinstance(state, ServiceFlags)
-        assert hasattr(state, 'video')
-        assert hasattr(state, 'debug')
+        assert hasattr(state, "video")
+        assert hasattr(state, "debug")
 
     def test_videocore_get_state(self):
         """Test VideoCoreTelemetry.get_state() returns VideoCoreFlags."""
@@ -133,7 +134,7 @@ class TestGetStateMethods(unittest.TestCase):
         state = gst.get_state()
 
         assert isinstance(state, GstFlags)
-        assert hasattr(state, 'recording')
+        assert hasattr(state, "recording")
 
     def test_battery_state_is_dataclass(self):
         """Test BatteryTelemetry.get_state() returns a proper dataclass instance."""
@@ -142,6 +143,7 @@ class TestGetStateMethods(unittest.TestCase):
 
         # Verify it's a dataclass with expected attributes
         from dataclasses import is_dataclass
+
         assert is_dataclass(state)
         assert state.voltage == 0
         assert state.average_voltage == 0
@@ -150,5 +152,5 @@ class TestGetStateMethods(unittest.TestCase):
         assert state.cell_count >= 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

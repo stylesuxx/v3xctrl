@@ -1,9 +1,10 @@
 """Tests for Services telemetry."""
+
 import unittest
 from unittest.mock import patch
 
-from v3xctrl_telemetry.ServiceTelemetry import ServiceTelemetry
 from v3xctrl_telemetry.dataclasses import ServiceFlags
+from v3xctrl_telemetry.ServiceTelemetry import ServiceTelemetry
 
 
 class TestServiceTelemetry(unittest.TestCase):
@@ -11,7 +12,7 @@ class TestServiceTelemetry(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.subprocess_patcher = patch('v3xctrl_telemetry.ServiceTelemetry.subprocess')
+        self.subprocess_patcher = patch("v3xctrl_telemetry.ServiceTelemetry.subprocess")
         self.mock_subprocess = self.subprocess_patcher.start()
 
     def tearDown(self):
@@ -131,5 +132,5 @@ class TestServiceTelemetry(unittest.TestCase):
         assert telemetry.get_byte() == 0x07  # 0000 0111
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

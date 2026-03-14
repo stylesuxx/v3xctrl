@@ -3,13 +3,13 @@ import time
 from collections.abc import Callable
 
 import gi
-gi.require_version('Gst', '1.0')
-gi.require_version('GstApp', '1.0')
-from gi.repository import Gst, GLib, GstApp
 
-import numpy as np
+gi.require_version("Gst", "1.0")
+gi.require_version("GstApp", "1.0")
+import numpy as np  # noqa: E402
+from gi.repository import GLib, Gst, GstApp  # noqa: E402
 
-from v3xctrl_ui.network.video.Receiver import Receiver
+from v3xctrl_ui.network.video.Receiver import Receiver  # noqa: E402
 
 
 class ReceiverGst(Receiver):
@@ -27,16 +27,9 @@ class ReceiverGst(Receiver):
         log_interval: int = 10,
         history_size: int = 100,
         max_frame_age_ms: int = 500,
-        render_ratio: int = 0
+        render_ratio: int = 0,
     ) -> None:
-        super().__init__(
-            port,
-            keep_alive,
-            log_interval,
-            history_size,
-            max_frame_age_ms,
-            render_ratio
-        )
+        super().__init__(port, keep_alive, log_interval, history_size, max_frame_age_ms, render_ratio)
 
         Gst.init(None)
 
@@ -69,9 +62,7 @@ class ReceiverGst(Receiver):
         """Setup GStreamer pipeline."""
         pass
 
-    def _on_receive_probe(
-        self, pad: Gst.Pad, info: Gst.PadProbeInfo
-    ) -> Gst.PadProbeReturn:
+    def _on_receive_probe(self, pad: Gst.Pad, info: Gst.PadProbeInfo) -> Gst.PadProbeReturn:
         """Record timestamp when FIRST packet of each frame arrives."""
         buffer = info.get_buffer()
         if buffer and buffer.pts != Gst.CLOCK_TIME_NONE:
@@ -81,9 +72,7 @@ class ReceiverGst(Receiver):
                 self._receive_start_times[pts] = time.monotonic()
         return Gst.PadProbeReturn.OK
 
-    def _on_decoder_entry_probe(
-        self, pad: Gst.Pad, info: Gst.PadProbeInfo
-    ) -> Gst.PadProbeReturn:
+    def _on_decoder_entry_probe(self, pad: Gst.Pad, info: Gst.PadProbeInfo) -> Gst.PadProbeReturn:
         """Record when complete frame enters decoder, calculate receive time."""
         buffer = info.get_buffer()
         if buffer and buffer.pts != Gst.CLOCK_TIME_NONE:
@@ -113,9 +102,7 @@ class ReceiverGst(Receiver):
             return False
 
         udpsrc.set_property("port", self.port)
-        caps = Gst.Caps.from_string(
-            "application/x-rtp,media=video,encoding-name=H264,payload=96,clock-rate=90000"
-        )
+        caps = Gst.Caps.from_string("application/x-rtp,media=video,encoding-name=H264,payload=96,clock-rate=90000")
         udpsrc.set_property("caps", caps)
 
         # RTP jitter buffer
@@ -176,10 +163,7 @@ class ReceiverGst(Receiver):
         self.appsink.connect("new-sample", self._on_new_sample)
 
         # Add elements to pipeline
-        elements = [
-            udpsrc, jitterbuffer, depay, h264parse,
-            decoder, videoconvert, capsfilter, self.appsink
-        ]
+        elements = [udpsrc, jitterbuffer, depay, h264parse, decoder, videoconvert, capsfilter, self.appsink]
 
         for element in elements:
             self.pipeline.add(element)
@@ -223,16 +207,12 @@ class ReceiverGst(Receiver):
             # Probe at jitterbuffer input - first packet arrival
             jitter_sink = jitterbuffer.get_static_pad("sink")
             if jitter_sink:
-                jitter_sink.add_probe(
-                    Gst.PadProbeType.BUFFER, self._on_receive_probe
-                )
+                jitter_sink.add_probe(Gst.PadProbeType.BUFFER, self._on_receive_probe)
 
             # Probe at decoder input - complete frame ready for decode
             decoder_sink = decoder.get_static_pad("sink")
             if decoder_sink:
-                decoder_sink.add_probe(
-                    Gst.PadProbeType.BUFFER, self._on_decoder_entry_probe
-                )
+                decoder_sink.add_probe(Gst.PadProbeType.BUFFER, self._on_decoder_entry_probe)
 
         # Setup bus message handling
         bus = self.pipeline.get_bus()
@@ -261,9 +241,7 @@ class ReceiverGst(Receiver):
             self.consecutive_old_frames += 1
 
             if self.consecutive_old_frames > self.max_consecutive_old_frames:
-                logging.warning(
-                    f"Dropped {self.consecutive_old_frames} consecutive old frames"
-                )
+                logging.warning(f"Dropped {self.consecutive_old_frames} consecutive old frames")
                 self.consecutive_old_frames = 0
 
             return Gst.FlowReturn.OK
@@ -277,10 +255,7 @@ class ReceiverGst(Receiver):
             self._cached_width = structure.get_int("width")[1]
             self._cached_height = structure.get_int("height")[1]
             # Pre-allocate frame buffer
-            self._frame_array = np.empty(
-                (self._cached_height, self._cached_width, 3),
-                dtype=np.uint8
-            )
+            self._frame_array = np.empty((self._cached_height, self._cached_width, 3), dtype=np.uint8)
 
         success, mapinfo = buffer.map(Gst.MapFlags.READ)
         if not success:
@@ -289,9 +264,9 @@ class ReceiverGst(Receiver):
 
         try:
             # Use frombuffer (faster than np.ndarray) + copy for frame_buffer
-            frame = np.frombuffer(mapinfo.data, dtype=np.uint8).reshape(
-                self._cached_height, self._cached_width, 3
-            ).copy()
+            frame = (
+                np.frombuffer(mapinfo.data, dtype=np.uint8).reshape(self._cached_height, self._cached_width, 3).copy()
+            )
 
             # Calculate timing if enabled
             decode_duration = 0.0
@@ -345,9 +320,7 @@ class ReceiverGst(Receiver):
                 if self.frame is not None or len(self.frame_buffer) > 0:
                     self.frame = None
                     self.frame_buffer.clear()
-                    logging.info(
-                        f"No frames received for {elapsed:.1f}s, clearing frame"
-                    )
+                    logging.info(f"No frames received for {elapsed:.1f}s, clearing frame")
 
         return True
 
@@ -372,7 +345,7 @@ class ReceiverGst(Receiver):
         if message.src != self.pipeline:
             return
 
-        old, new, pending = message.parse_state_changed()
+        _old, new, _pending = message.parse_state_changed()
         if new == Gst.State.PLAYING:
             logging.info("Pipeline is now PLAYING")
 
@@ -458,8 +431,8 @@ class ReceiverGst(Receiver):
         buffer_samples = list(self.timing_buffer_samples)
         receive_samples = list(self._timing_receive_samples) if self._timing_receive_samples else []
 
-        rec_min, rec_avg, rec_max = stats(receive_samples)
-        dec_min, dec_avg, dec_max = stats(decode_samples)
+        _rec_min, rec_avg, _rec_max = stats(receive_samples)
+        _dec_min, dec_avg, _dec_max = stats(decode_samples)
         buf_min, buf_avg, buf_max = stats(buffer_samples)
 
         # Convert to ms for display (receive/decode/buffer are in seconds)

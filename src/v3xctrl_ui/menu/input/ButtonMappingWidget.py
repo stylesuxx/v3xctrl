@@ -1,11 +1,11 @@
-from typing import Any
 from collections.abc import Callable
+from typing import Any
 
 import pygame
 from pygame import Surface
 from pygame.freetype import Font
 
-from v3xctrl_ui.menu.input import Button, BaseWidget
+from v3xctrl_ui.menu.input import BaseWidget, Button
 from v3xctrl_ui.utils.colors import WHITE
 
 # Mapping value is either an int (button index) or a dict (hat mapping)
@@ -53,7 +53,7 @@ class ButtonMappingWidget(BaseWidget):
         button_number: MappingValue,
         font: Font,
         on_button_change: Callable[[MappingValue], None],
-        on_remap_toggle: Callable[[bool], None]
+        on_remap_toggle: Callable[[bool], None],
     ) -> None:
         super().__init__()
 
@@ -161,10 +161,7 @@ class ButtonMappingWidget(BaseWidget):
 
         surface.blit(self.label_surface, self.label_rect)
 
-        if self.waiting_for_button:
-            button_label = "---"
-        else:
-            button_label = format_mapping(self.button_number)
+        button_label = "---" if self.waiting_for_button else format_mapping(self.button_number)
 
         button_surface, button_rect = self.font.render(button_label, self.FONT_COLOR)
         button_rect.midleft = self.button_text_center

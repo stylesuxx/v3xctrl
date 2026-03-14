@@ -1,16 +1,17 @@
 import argparse
-from datetime import datetime
 import faulthandler
 import logging
 import sys
+from datetime import datetime
 
 # On Windows in windowed mode, stdout/stderr are None.
 # Attach to the parent console so output works when launched from a terminal.
 if sys.platform == "win32" and sys.stdout is None:
     import ctypes
+
     if ctypes.windll.kernel32.AttachConsole(-1):
-        sys.stdout = open("CONOUT$", "w")
-        sys.stderr = open("CONOUT$", "w")
+        sys.stdout = open("CONOUT$", "w")  # noqa: SIM115
+        sys.stderr = open("CONOUT$", "w")  # noqa: SIM115
 
 if sys.stderr is not None:
     faulthandler.enable()
@@ -21,24 +22,12 @@ from v3xctrl_ui.core.Settings import Settings
 
 parser = argparse.ArgumentParser(description="RC Streamer")
 parser.add_argument(
-    "--log",
-    default="ERROR",
-    help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). Default is ERROR."
+    "--log", default="ERROR", help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). Default is ERROR."
 )
+parser.add_argument("--mem-profile", action="store_true", help="Enable periodic memory tracking using tracemalloc.")
+parser.add_argument("--log-to-file", action="store_true", help="Save logs to txt file.")
 parser.add_argument(
-    "--mem-profile",
-    action="store_true",
-    help="Enable periodic memory tracking using tracemalloc."
-)
-parser.add_argument(
-    "--log-to-file",
-    action="store_true",
-    help="Save logs to txt file."
-)
-parser.add_argument(
-    "--config",
-    default=None,
-    help="Path to custom config file. If not specified, uses default location."
+    "--config", default=None, help="Path to custom config file. If not specified, uses default location."
 )
 
 args, unknown = parser.parse_known_args()
@@ -57,16 +46,13 @@ if args.log_to_file:
     log_filename = f"{timestamp}.txt"
     handlers.append(logging.FileHandler(log_filename))
 
-logging.basicConfig(
-    level=level,
-    format=log_format,
-    handlers=handlers
-)
+logging.basicConfig(level=level, format=log_format, handlers=handlers)
 
 # Check GStreamer availability and inform user
-from v3xctrl_ui.utils.gstreamer import is_gstreamer_available
+from v3xctrl_ui.utils.gstreamer import is_gstreamer_available  # noqa: E402
+
 if is_gstreamer_available():
-    print("GStreamer receiver available. Set video.receiver = \"gst\" in settings to use it.")
+    print('GStreamer receiver available. Set video.receiver = "gst" in settings to use it.')
 
 mem_tracker = None
 if args.mem_profile:

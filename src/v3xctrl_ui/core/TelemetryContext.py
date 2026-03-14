@@ -1,13 +1,14 @@
 """Shared telemetry context for accessing telemetry state across components."""
+
 from threading import Lock
 
 from v3xctrl_ui.core.dataclasses import (
-    ServiceFlags,
-    GstFlags,
-    VideoCoreFlags,
-    ThrottleFlags,
     BatteryData,
+    GstFlags,
+    ServiceFlags,
     SignalData,
+    ThrottleFlags,
+    VideoCoreFlags,
 )
 
 
@@ -58,8 +59,9 @@ class TelemetryContext:
         with self._lock:
             self._signal.cell = cell
 
-    def update_battery(self, icon: int, voltage: str, average_voltage: str,
-                      percent: str, current: str, warning: bool) -> None:
+    def update_battery(
+        self, icon: int, voltage: str, average_voltage: str, percent: str, current: str, warning: bool
+    ) -> None:
         """Update battery data."""
         with self._lock:
             self._battery = BatteryData(
@@ -68,25 +70,20 @@ class TelemetryContext:
                 average_voltage=average_voltage,
                 percent=percent,
                 current=current,
-                warning=warning
+                warning=warning,
             )
 
     def get_services(self) -> ServiceFlags:
         """Get current service flags (thread-safe)."""
         with self._lock:
             return ServiceFlags(
-                video=self._services.video,
-                reverse_shell=self._services.reverse_shell,
-                debug=self._services.debug
+                video=self._services.video, reverse_shell=self._services.reverse_shell, debug=self._services.debug
             )
 
     def get_gst(self) -> GstFlags:
         """Get current GST flags (thread-safe)."""
         with self._lock:
-            return GstFlags(
-                recording=self._gst.recording,
-                udp_overrun=self._gst.udp_overrun
-            )
+            return GstFlags(recording=self._gst.recording, udp_overrun=self._gst.udp_overrun)
 
     def get_videocore(self) -> VideoCoreFlags:
         """Get current VideoCore flags (thread-safe)."""
@@ -96,24 +93,20 @@ class TelemetryContext:
                     undervolt=self._videocore.current.undervolt,
                     freq_capped=self._videocore.current.freq_capped,
                     throttled=self._videocore.current.throttled,
-                    soft_temp_limit=self._videocore.current.soft_temp_limit
+                    soft_temp_limit=self._videocore.current.soft_temp_limit,
                 ),
                 history=ThrottleFlags(
                     undervolt=self._videocore.history.undervolt,
                     freq_capped=self._videocore.history.freq_capped,
                     throttled=self._videocore.history.throttled,
-                    soft_temp_limit=self._videocore.history.soft_temp_limit
-                )
+                    soft_temp_limit=self._videocore.history.soft_temp_limit,
+                ),
             )
 
     def get_signal(self) -> SignalData:
         """Get current signal data (thread-safe)."""
         with self._lock:
-            return SignalData(
-                quality=self._signal.quality.copy(),
-                band=self._signal.band,
-                cell=self._signal.cell
-            )
+            return SignalData(quality=self._signal.quality.copy(), band=self._signal.band, cell=self._signal.cell)
 
     def get_battery(self) -> BatteryData:
         """Get current battery data (thread-safe)."""
@@ -124,7 +117,7 @@ class TelemetryContext:
                 average_voltage=self._battery.average_voltage,
                 percent=self._battery.percent,
                 current=self._battery.current,
-                warning=self._battery.warning
+                warning=self._battery.warning,
             )
 
     def reset(self) -> None:

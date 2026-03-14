@@ -1,7 +1,9 @@
 """
 Abstract Base class for all widgets.
 """
+
 from abc import ABC, abstractmethod
+
 from pygame import Surface
 
 

@@ -1,6 +1,6 @@
 import json
+
 import jsonschema
-from pathlib import Path
 
 
 def validate_os_list(schema_path, json_path):
@@ -30,7 +30,4 @@ def validate_os_list(schema_path, json_path):
 
 # Usage
 if __name__ == "__main__":
-    validate_os_list(
-        "./schema.json",
-        "./v3xctrl_repo.json"
-    )
+    validate_os_list("./schema.json", "./v3xctrl_repo.json")

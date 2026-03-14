@@ -3,11 +3,7 @@ import time
 import unittest
 from unittest.mock import Mock
 
-from src.v3xctrl_control import (
-  UDPReceiver,
-  UDPTransmitter,
-  UDPPacket
-)
+from src.v3xctrl_control import UDPPacket, UDPReceiver, UDPTransmitter
 from src.v3xctrl_control.message import Heartbeat
 from tests.v3xctrl_control.config import HOST, PORT, SLEEP
 

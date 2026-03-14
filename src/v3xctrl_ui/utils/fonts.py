@@ -1,21 +1,15 @@
+import sys
+from pathlib import Path
+
 import pygame
 from pygame.freetype import Font
-
-from pathlib import Path
-import sys
 
 pygame.init()
 pygame.freetype.init()
 
 
 def _get_resource_path(relative_path: str) -> Path:
-    if getattr(sys, 'frozen', False):
-        # Running in PyInstaller bundle
-        base_path = Path(sys._MEIPASS)
-    else:
-        # Running in normal Python environment
-        base_path = Path(__file__).parent.parent
-
+    base_path = Path(sys._MEIPASS) if getattr(sys, "frozen", False) else Path(__file__).parent.parent
     return base_path / relative_path
 
 

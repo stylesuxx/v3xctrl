@@ -1,5 +1,6 @@
 # Required before importing pygame, otherwise screen might flicker during tests
 import os
+
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 import unittest
@@ -46,10 +47,10 @@ class TestCheckbox(unittest.TestCase):
         """Test that both checkbox states are pre-rendered and cached"""
         checkbox = Checkbox("Test", font=self.font, checked=False, on_change=self.on_change)
 
-        expected_states = {'checked', 'unchecked'}
+        expected_states = {"checked", "unchecked"}
         self.assertEqual(set(checkbox.cached_surfaces.keys()), expected_states)
 
-        for state, surface in checkbox.cached_surfaces.items():
+        for _state, surface in checkbox.cached_surfaces.items():
             self.assertIsInstance(surface, pygame.Surface)
             # Verify surface size matches get_size()
             expected_width, expected_height = checkbox.get_size()
@@ -72,10 +73,7 @@ class TestCheckbox(unittest.TestCase):
     def test_click_on_box_toggles_state(self):
         checkbox = Checkbox("ClickBox", font=self.font, checked=False, on_change=self.on_change)
         center = checkbox.box_rect.center
-        event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-            'pos': center,
-            'button': 1
-        })
+        event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": center, "button": 1})
         self.assertTrue(checkbox.handle_event(event))
         self.assertTrue(checkbox.checked)
         self.assertEqual(self.change_called_with, [True])
@@ -88,20 +86,14 @@ class TestCheckbox(unittest.TestCase):
         label_x = checkbox.x + Checkbox.BOX_SIZE + Checkbox.BOX_MARGIN + 5
         label_y = checkbox.y + 10
 
-        event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-            'pos': (label_x, label_y),
-            'button': 1
-        })
+        event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": (label_x, label_y), "button": 1})
         self.assertTrue(checkbox.handle_event(event))
         self.assertTrue(checkbox.checked)
         self.assertEqual(self.change_called_with, [True])
 
     def test_click_outside_does_not_toggle(self):
         checkbox = Checkbox("OutsideClick", font=self.font, checked=False, on_change=self.on_change)
-        event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-            'pos': (300, 300),
-            'button': 1
-        })
+        event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": (300, 300), "button": 1})
         self.assertFalse(checkbox.handle_event(event))
         self.assertFalse(checkbox.checked)
         self.assertEqual(self.change_called_with, [])
@@ -109,27 +101,21 @@ class TestCheckbox(unittest.TestCase):
     def test_right_click_ignored(self):
         checkbox = Checkbox("RightClick", font=self.font, checked=False, on_change=self.on_change)
         center = checkbox.box_rect.center
-        event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-            'pos': center,
-            'button': 3
-        })
+        event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": center, "button": 3})
         self.assertFalse(checkbox.handle_event(event))
         self.assertFalse(checkbox.checked)
         self.assertEqual(self.change_called_with, [])
 
     def test_other_events_ignored(self):
         checkbox = Checkbox("OtherEvents", font=self.font, checked=False, on_change=self.on_change)
-        keydown_event = pygame.event.Event(pygame.KEYDOWN, {'key': pygame.K_SPACE})
+        keydown_event = pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_SPACE})
         self.assertFalse(checkbox.handle_event(keydown_event))
         self.assertFalse(checkbox.checked)
         self.assertEqual(self.change_called_with, [])
 
     def test_toggle_twice(self):
         checkbox = Checkbox("Toggle", font=self.font, checked=False, on_change=self.on_change)
-        event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-            'pos': checkbox.box_rect.center,
-            'button': 1
-        })
+        event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": checkbox.box_rect.center, "button": 1})
 
         checkbox.handle_event(event)
         checkbox.handle_event(event)
@@ -195,12 +181,12 @@ class TestCheckbox(unittest.TestCase):
         surface = pygame.Surface((200, 100))
 
         checkbox.visible = True
-        with patch.object(checkbox, '_draw') as mock_private_draw:
+        with patch.object(checkbox, "_draw") as mock_private_draw:
             checkbox.draw(surface)
             mock_private_draw.assert_called_once_with(surface)
 
         checkbox.visible = False
-        with patch.object(checkbox, '_draw') as mock_private_draw:
+        with patch.object(checkbox, "_draw") as mock_private_draw:
             checkbox.draw(surface)
             mock_private_draw.assert_not_called()
 
@@ -215,10 +201,7 @@ class TestCheckbox(unittest.TestCase):
         mock_callback = MagicMock()
         checkbox = Checkbox("MockCallback", font=self.font, checked=False, on_change=mock_callback)
 
-        event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-            'pos': checkbox.box_rect.center,
-            'button': 1
-        })
+        event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": checkbox.box_rect.center, "button": 1})
         checkbox.handle_event(event)
 
         mock_callback.assert_called_once_with(True)
@@ -247,10 +230,7 @@ class TestCheckbox(unittest.TestCase):
                 checkbox.checked = False
                 self.change_called_with.clear()
 
-                event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-                    'pos': pos,
-                    'button': 1
-                })
+                event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": pos, "button": 1})
                 self.assertTrue(checkbox.handle_event(event))
                 self.assertTrue(checkbox.checked)
                 self.assertEqual(self.change_called_with, [True])
@@ -275,10 +255,7 @@ class TestCheckbox(unittest.TestCase):
                 checkbox.checked = False
                 self.change_called_with.clear()
 
-                event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-                    'pos': pos,
-                    'button': 1
-                })
+                event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": pos, "button": 1})
                 self.assertFalse(checkbox.handle_event(event))
                 self.assertFalse(checkbox.checked)
                 self.assertEqual(self.change_called_with, [])
@@ -290,7 +267,7 @@ class TestCheckbox(unittest.TestCase):
 
         # Test unchecked state
         checkbox.checked = False
-        self.assertIn('unchecked', checkbox.cached_surfaces)
+        self.assertIn("unchecked", checkbox.cached_surfaces)
         try:
             checkbox._draw(surface)
         except Exception as e:
@@ -298,7 +275,7 @@ class TestCheckbox(unittest.TestCase):
 
         # Test checked state
         checkbox.checked = True
-        self.assertIn('checked', checkbox.cached_surfaces)
+        self.assertIn("checked", checkbox.cached_surfaces)
         try:
             checkbox._draw(surface)
         except Exception as e:
@@ -318,10 +295,7 @@ class TestCheckbox(unittest.TestCase):
         checkbox = Checkbox("Disabled", font=self.font, checked=False, on_change=self.on_change)
         checkbox.disabled = True
 
-        event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-            'pos': checkbox.box_rect.center,
-            'button': 1
-        })
+        event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": checkbox.box_rect.center, "button": 1})
 
         self.assertFalse(checkbox.handle_event(event))
         self.assertFalse(checkbox.checked)
@@ -335,15 +309,11 @@ class TestCheckbox(unittest.TestCase):
         checkbox.set_position(100, 150)
 
         # Click at new position
-        event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-            'pos': (100 + 10, 150 + 10),
-            'button': 1
-        })
+        event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": (100 + 10, 150 + 10), "button": 1})
 
         self.assertTrue(checkbox.handle_event(event))
         self.assertTrue(checkbox.checked)
         self.assertEqual(self.change_called_with, [True])
-
 
     def test_hover_cursor_class_attribute(self):
         self.assertEqual(Checkbox.HOVER_CURSOR, pygame.SYSTEM_CURSOR_HAND)
@@ -352,7 +322,7 @@ class TestCheckbox(unittest.TestCase):
         checkbox = Checkbox("Hover", font=self.font, checked=False, on_change=self.on_change)
         checkbox.set_position(50, 50)
 
-        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {'pos': (60, 60)})
+        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {"pos": (60, 60)})
         self.assertTrue(checkbox.handle_event(motion_event))
         self.assertTrue(checkbox.hovered)
 
@@ -360,7 +330,7 @@ class TestCheckbox(unittest.TestCase):
         checkbox = Checkbox("Hover", font=self.font, checked=False, on_change=self.on_change)
         checkbox.set_position(50, 50)
 
-        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {'pos': (300, 300)})
+        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {"pos": (300, 300)})
         self.assertFalse(checkbox.handle_event(motion_event))
         self.assertFalse(checkbox.hovered)
 
@@ -368,10 +338,10 @@ class TestCheckbox(unittest.TestCase):
         checkbox = Checkbox("Hover", font=self.font, checked=False, on_change=self.on_change)
         checkbox.disabled = True
 
-        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {'pos': checkbox.box_rect.center})
+        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {"pos": checkbox.box_rect.center})
         self.assertTrue(checkbox.handle_event(motion_event))
         self.assertTrue(checkbox.hovered)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

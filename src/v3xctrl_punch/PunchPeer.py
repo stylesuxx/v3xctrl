@@ -3,14 +3,7 @@ import socket
 import time
 import threading
 
-from v3xctrl_control.message import (
-    Message,
-    PeerAnnouncement,
-    PeerInfo,
-    Syn,
-    SynAck,
-    Ack
-)
+from v3xctrl_control.message import Message, PeerAnnouncement, PeerInfo, Syn, SynAck, Ack
 
 from v3xctrl_helper import Address
 
@@ -22,13 +15,7 @@ class AckTimeoutError(Exception):
 class PunchPeer:
     ANNOUNCE_INTERVAL = 5
 
-    def __init__(
-        self,
-        server: str,
-        port: int,
-        session_id: str,
-        register_timeout: int = 300
-    ) -> None:
+    def __init__(self, server: str, port: int, session_id: str, register_timeout: int = 300) -> None:
         self.server = server
         self.port = port
         self.session_id = session_id
@@ -36,16 +23,12 @@ class PunchPeer:
 
     def bind_socket(self, name: str, port: int = 0) -> socket.socket:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.bind(('0.0.0.0', port))
+        sock.bind(("0.0.0.0", port))
         logging.info(f"Bound {name} socket to {sock.getsockname()}")
 
         return sock
 
-    def register_with_rendezvous(
-        self,
-        sock: socket.socket,
-        announcement_msg: PeerAnnouncement
-    ) -> PeerInfo | None:
+    def register_with_rendezvous(self, sock: socket.socket, announcement_msg: PeerAnnouncement) -> PeerInfo | None:
         assert isinstance(announcement_msg, PeerAnnouncement)
         sock.settimeout(1)
         start_time = time.time()
@@ -53,7 +36,9 @@ class PunchPeer:
         while time.time() - start_time < self.register_timeout:
             try:
                 sock.sendto(announcement_msg.to_bytes(), (self.server, self.port))
-                logging.info(f"Sent {announcement_msg.type} from port {sock.getsockname()[1]} to {self.server}:{self.port}")
+                logging.info(
+                    f"Sent {announcement_msg.type} from port {sock.getsockname()[1]} to {self.server}:{self.port}"
+                )
 
                 data, _ = sock.recvfrom(1024)
                 peer_msg = Message.from_bytes(data)
@@ -73,11 +58,7 @@ class PunchPeer:
         logging.error(f"Timeout registering: {announcement_msg}")
         return None
 
-    def register_all(
-        self,
-        sockets: dict[str, socket.socket],
-        role: str
-    ) -> dict[str, PeerInfo]:
+    def register_all(self, sockets: dict[str, socket.socket], role: str) -> dict[str, PeerInfo]:
         results = {peer_type: [None] for peer_type in sockets.keys()}
 
         def reg_worker(peer_type: str) -> None:
@@ -92,13 +73,7 @@ class PunchPeer:
 
         return {peer_type: results[peer_type][0] for peer_type in results}
 
-    def _handshake(
-        self,
-        sock: socket.socket,
-        addr: Address,
-        interval: int = 1,
-        timeout: int = 15
-    ) -> None:
+    def _handshake(self, sock: socket.socket, addr: Address, interval: int = 1, timeout: int = 15) -> None:
         logging.info(f"Starting handshake with {addr}")
         sock.settimeout(interval)
 
@@ -144,9 +119,7 @@ class PunchPeer:
         raise AckTimeoutError(f"No Ack received from {addr} after {timeout:.1f}s")
 
     def rendezvous_and_punch(
-        self,
-        role: str,
-        sockets: dict[str, socket.socket]
+        self, role: str, sockets: dict[str, socket.socket]
     ) -> tuple[dict[str, PeerInfo], dict[str, Address]]:
         peer_info = self.register_all(sockets, role=role)
         if not all(isinstance(p, PeerInfo) for p in peer_info.values()):
@@ -161,12 +134,14 @@ class PunchPeer:
         threads = {
             "video": threading.Thread(
                 target=lambda: peer_addresses.update({"video": self._handshake(sockets["video"], (ip, video_port))}),
-                name="HandshakeVideo"
+                name="HandshakeVideo",
             ),
             "control": threading.Thread(
-                target=lambda: peer_addresses.update({"control": self._handshake(sockets["control"], (ip, control_port))}),
-                name="HandshakeControl"
-            )
+                target=lambda: peer_addresses.update(
+                    {"control": self._handshake(sockets["control"], (ip, control_port))}
+                ),
+                name="HandshakeControl",
+            ),
         }
 
         for t in threads.values():
@@ -183,14 +158,9 @@ class PunchPeer:
             sock.close()
 
     def setup(
-        self,
-        role: str,
-        ports: dict[str, int]
+        self, role: str, ports: dict[str, int]
     ) -> tuple[dict[str, socket.socket], dict[str, PeerInfo], dict[str, Address]]:
-        sockets = {
-            pt: self.bind_socket(pt.upper(), port)
-            for pt, port in ports.items()
-        }
+        sockets = {pt: self.bind_socket(pt.upper(), port) for pt, port in ports.items()}
         peer_addresses = self.rendezvous_and_punch(role, sockets)
         self.finalize_sockets(sockets)
 

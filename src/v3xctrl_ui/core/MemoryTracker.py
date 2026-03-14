@@ -4,12 +4,7 @@ import tracemalloc
 
 
 class MemoryTracker:
-    def __init__(
-        self,
-        interval: int = 10,
-        top: int = 5,
-        enable_log: bool = True
-    ) -> None:
+    def __init__(self, interval: int = 10, top: int = 5, enable_log: bool = True) -> None:
         """
         :param interval: Seconds between snapshots
         :param top: Number of top growing lines to report
@@ -37,23 +32,27 @@ class MemoryTracker:
             current = tracemalloc.take_snapshot()
 
             # Filter out tracemalloc-related frames
-            current = current.filter_traces((
-                tracemalloc.Filter(False, "<frozen importlib._bootstrap>"),
-                tracemalloc.Filter(False, "<frozen importlib._bootstrap_external>"),
-                tracemalloc.Filter(False, "*tracemalloc*"),
-            ))
+            current = current.filter_traces(
+                (
+                    tracemalloc.Filter(False, "<frozen importlib._bootstrap>"),
+                    tracemalloc.Filter(False, "<frozen importlib._bootstrap_external>"),
+                    tracemalloc.Filter(False, "*tracemalloc*"),
+                )
+            )
 
-            self._baseline = self._baseline.filter_traces((
-                tracemalloc.Filter(False, "<frozen importlib._bootstrap>"),
-                tracemalloc.Filter(False, "<frozen importlib._bootstrap_external>"),
-                tracemalloc.Filter(False, "*tracemalloc*"),
-            ))
+            self._baseline = self._baseline.filter_traces(
+                (
+                    tracemalloc.Filter(False, "<frozen importlib._bootstrap>"),
+                    tracemalloc.Filter(False, "<frozen importlib._bootstrap_external>"),
+                    tracemalloc.Filter(False, "*tracemalloc*"),
+                )
+            )
 
-            stats = current.compare_to(self._baseline, 'lineno')
+            stats = current.compare_to(self._baseline, "lineno")
 
             if self.enable_log:
                 print(f"[MemoryTracker] Top {self.top} memory growth lines since last snapshot:")
-                for stat in stats[:self.top]:
+                for stat in stats[: self.top]:
                     print(f"  {stat}")
 
             self._baseline = current
