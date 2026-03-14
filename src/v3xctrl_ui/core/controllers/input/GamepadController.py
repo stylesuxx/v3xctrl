@@ -12,6 +12,7 @@ active gampad, normalized based on the calibration.
 NOTE: Make sure to add observers before starting the GamepadController, otherwise
       you might miss the first update.
 """
+
 import logging
 import threading
 from collections.abc import Callable
@@ -97,10 +98,7 @@ class GamepadController(threading.Thread):
 
             pygame.time.wait(self.REFRESH_INTERVAL_MS)
 
-    def add_observer(
-        self,
-        callback: Callable[[dict[str, JoystickType]], None]
-    ) -> None:
+    def add_observer(self, callback: Callable[[dict[str, JoystickType]], None]) -> None:
         with self._lock:
             self._observers.append(callback)
 
@@ -230,10 +228,7 @@ class GamepadController(threading.Thread):
             self._active_settings = settings
 
     def _remap_centered(
-        self,
-        value: float,
-        calibrated: tuple[float, float, float],
-        normalized: tuple[float, float, float]
+        self, value: float, calibrated: tuple[float, float, float], normalized: tuple[float, float, float]
     ) -> float:
         in_min, in_center, in_max = calibrated
         out_min, out_center, out_max = normalized
@@ -258,12 +253,7 @@ class GamepadController(threading.Thread):
 
             return out_center + scale * out_span
 
-    def _remap(
-        self,
-        value: float,
-        calibrated: tuple[float, float],
-        normalized: tuple[float, float]
-    ) -> float:
+    def _remap(self, value: float, calibrated: tuple[float, float], normalized: tuple[float, float]) -> float:
         in_min, in_max = calibrated
         out_min, out_max = normalized
         in_span = in_max - in_min

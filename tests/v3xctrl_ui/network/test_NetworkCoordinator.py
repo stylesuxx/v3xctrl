@@ -13,11 +13,7 @@ class TestNetworkCoordinator(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.model = ApplicationModel(
-            fullscreen=False,
-            throttle=0.0,
-            steering=0.0
-        )
+        self.model = ApplicationModel(fullscreen=False, throttle=0.0, steering=0.0)
         self.mock_osd = MagicMock()
         self.coordinator = NetworkCoordinator(self.model, self.mock_osd)
 

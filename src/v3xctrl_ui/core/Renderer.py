@@ -25,6 +25,7 @@ class Renderer:
     """
     Rendering display content
     """
+
     def __init__(self, size: tuple[int, int], settings: Settings) -> None:
         self.video_width = size[0]
         self.video_height = size[1]
@@ -63,7 +64,7 @@ class Renderer:
 
     def render_all(
         self,
-        state: 'AppState',
+        state: "AppState",
         network_controller: NetworkController,
         fullscreen: bool = False,
         scale: float = 1.0,
@@ -96,7 +97,7 @@ class Renderer:
                 self._render_relay_status_screen(
                     network_controller.relay_status_message.upper(),
                     (self.center_x - 6, self.center_y - 110),
-                    state.screen
+                    state.screen,
                 )
 
         self._render_osd(state, network_controller)
@@ -173,7 +174,7 @@ class Renderer:
     def _get_splash_logo(self) -> pygame.Surface | None:
         if not self._splash_logo_loaded:
             self._splash_logo_loaded = True
-            base_path = Path(sys._MEIPASS) if getattr(sys, 'frozen', False) else Path(__file__).parent.parent
+            base_path = Path(sys._MEIPASS) if getattr(sys, "frozen", False) else Path(__file__).parent.parent
 
             logo_path = base_path / "assets" / "images" / "v3xctrl_logo.png"
             try:
@@ -275,12 +276,7 @@ class Renderer:
             else:
                 self._render_direct_connection_info(screen)
 
-    def _render_relay_status_screen(
-        self,
-        msg: str,
-        offset: tuple[int, int],
-        screen: pygame.Surface
-    ) -> None:
+    def _render_relay_status_screen(self, msg: str, offset: tuple[int, int], screen: pygame.Surface) -> None:
         now = time.monotonic()
         breath = math.sin(now * 3) * 0.5 + 0.5
         alpha = int(50 + breath * 205)
@@ -299,11 +295,10 @@ class Renderer:
             ("Mode", "relay"),
             ("Relay Server", relay_settings.get("server")),
             ("Session ID", relay_settings.get("id")),
-
             ("", None),
             ("Network Ports", None),
-            ("Video", str(ports['video'])),
-            ("Control", str(ports['control'])),
+            ("Video", str(ports["video"])),
+            ("Control", str(ports["control"])),
         ]
         self._render_text(screen, data, 50, self.center_y + 10)
 
@@ -314,27 +309,22 @@ class Renderer:
             ("STREAMER SETUP", None),
             ("Mode", "direct"),
             ("Host", self.ip),
-
             ("", None),
             ("Network Ports", None),
-            ("Video", str(ports['video'])),
-            ("Control", str(ports['control'])),
+            ("Video", str(ports["video"])),
+            ("Control", str(ports["control"])),
         ]
 
         self._render_text(screen, data, 50, self.center_y + 10)
 
-    def _render_error_text(self, screen: pygame.Surface, network_manager: 'NetworkController') -> None:
+    def _render_error_text(self, screen: pygame.Surface, network_manager: "NetworkController") -> None:
         """Render error messages on top of main UI."""
         if network_manager.server_error:
             surface, rect = BOLD_MONO_FONT_24.render(network_manager.server_error, RED)
             rect.center = (self.center_x, 50)
             screen.blit(surface, rect)
 
-    def _render_osd(
-        self,
-        state: 'AppState',
-        network_manager: NetworkController
-    ) -> None:
+    def _render_osd(self, state: "AppState", network_manager: NetworkController) -> None:
         """Render OSD and overlay information."""
         data_left = network_manager.get_data_queue_size()
         if network_manager.server_error:
@@ -347,11 +337,7 @@ class Renderer:
         if network_manager.video_receiver is not None:
             video_history = network_manager.video_receiver.render_history.copy()
 
-        state.osd.render(
-            state.screen,
-            state.model.loop_history.copy(),
-            video_history
-        )
+        state.osd.render(state.screen, state.model.loop_history.copy(), video_history)
 
     def _render_menu(self, screen: pygame.Surface, menu: Menu) -> None:
         """Render menu above everything else."""

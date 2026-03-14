@@ -57,7 +57,7 @@ class TestTestdriveHandler(unittest.TestCase):
         async def async_test():
             mock_channel = AsyncMock(spec=discord.TextChannel)
 
-            with patch.object(self.handler, '_delete_old_announcement'):
+            with patch.object(self.handler, "_delete_old_announcement"):
                 await self.handler.post_persistent_message(mock_channel)
 
             mock_channel.send.assert_called_once()
@@ -71,14 +71,14 @@ class TestTestdriveHandler(unittest.TestCase):
         async def async_test():
             mock_channel = AsyncMock(spec=discord.TextChannel)
 
-            with patch.object(self.handler, '_delete_old_announcement') as mock_delete:
+            with patch.object(self.handler, "_delete_old_announcement") as mock_delete:
                 await self.handler.post_persistent_message(mock_channel)
 
             mock_delete.assert_called_once_with(mock_channel)
 
         asyncio.run(async_test())
 
-    @patch('logging.error')
+    @patch("logging.error")
     def test_post_persistent_message_forbidden(self, mock_logging_error):
         async def async_test():
             mock_channel = AsyncMock(spec=discord.TextChannel)
@@ -86,7 +86,7 @@ class TestTestdriveHandler(unittest.TestCase):
                 side_effect=discord.Forbidden(response=MagicMock(), message="Missing Permissions")
             )
 
-            with patch.object(self.handler, '_delete_old_announcement'):
+            with patch.object(self.handler, "_delete_old_announcement"):
                 await self.handler.post_persistent_message(mock_channel)
 
             mock_logging_error.assert_called_once()
@@ -139,9 +139,7 @@ class TestTestdriveHandler(unittest.TestCase):
 
             mock_channel = AsyncMock(spec=discord.TextChannel)
             mock_channel.guild.me = mock_bot_user
-            mock_channel.history.return_value = AsyncIteratorMock(
-                [history_msg, plain_msg]
-            )
+            mock_channel.history.return_value = AsyncIteratorMock([history_msg, plain_msg])
 
             await self.handler._delete_old_announcement(mock_channel)
 
@@ -216,7 +214,7 @@ class TestTestdriveHandler(unittest.TestCase):
             mock_interaction.type = discord.InteractionType.component
             mock_interaction.data = {"custom_id": "other_button"}
 
-            with patch.object(self.handler, '_handle_request') as mock_handler:
+            with patch.object(self.handler, "_handle_request") as mock_handler:
                 await self.handler.handle_interaction(mock_interaction)
                 mock_handler.assert_not_called()
 
@@ -228,7 +226,7 @@ class TestTestdriveHandler(unittest.TestCase):
             mock_interaction.type = discord.InteractionType.component
             mock_interaction.data = {"custom_id": CUSTOM_ID_REQUEST}
 
-            with patch.object(self.handler, '_handle_request') as mock_handler:
+            with patch.object(self.handler, "_handle_request") as mock_handler:
                 await self.handler.handle_interaction(mock_interaction)
                 mock_handler.assert_called_once_with(mock_interaction)
 
@@ -240,7 +238,7 @@ class TestTestdriveHandler(unittest.TestCase):
             mock_interaction.type = discord.InteractionType.component
             mock_interaction.data = {"custom_id": f"{CUSTOM_ID_CANCEL_PREFIX}12345"}
 
-            with patch.object(self.handler, '_handle_cancel') as mock_handler:
+            with patch.object(self.handler, "_handle_cancel") as mock_handler:
                 await self.handler.handle_interaction(mock_interaction)
                 mock_handler.assert_called_once_with(mock_interaction, "12345")
 
@@ -252,7 +250,7 @@ class TestTestdriveHandler(unittest.TestCase):
             mock_interaction.type = discord.InteractionType.component
             mock_interaction.data = {"custom_id": f"{CUSTOM_ID_ACCEPT_PREFIX}12345"}
 
-            with patch.object(self.handler, '_handle_accept') as mock_handler:
+            with patch.object(self.handler, "_handle_accept") as mock_handler:
                 await self.handler.handle_interaction(mock_interaction)
                 mock_handler.assert_called_once_with(mock_interaction, "12345")
 
@@ -264,7 +262,7 @@ class TestTestdriveHandler(unittest.TestCase):
             mock_interaction.type = discord.InteractionType.component
             mock_interaction.data = {"custom_id": f"{CUSTOM_ID_INVALIDATE_PREFIX}111:222"}
 
-            with patch.object(self.handler, '_handle_invalidate') as mock_handler:
+            with patch.object(self.handler, "_handle_invalidate") as mock_handler:
                 await self.handler.handle_interaction(mock_interaction)
                 mock_handler.assert_called_once_with(mock_interaction, "111", "222")
 
@@ -276,7 +274,7 @@ class TestTestdriveHandler(unittest.TestCase):
             mock_interaction.type = discord.InteractionType.component
             mock_interaction.data = {"custom_id": f"{CUSTOM_ID_RATE_PREFIX}111:222:4"}
 
-            with patch.object(self.handler, '_handle_rate') as mock_handler:
+            with patch.object(self.handler, "_handle_rate") as mock_handler:
                 await self.handler.handle_interaction(mock_interaction)
                 mock_handler.assert_called_once_with(mock_interaction, "111", "222", 4)
 
@@ -307,7 +305,7 @@ class TestTestdriveHandler(unittest.TestCase):
 
             self.mock_store.get_testdrive_by_user.return_value = None
 
-            with patch('discord.utils.get', return_value=host_role):
+            with patch("discord.utils.get", return_value=host_role):
                 await self.handler._handle_request(mock_interaction)
 
             self.assertIn("12345", self.handler.pending_requests)
@@ -600,8 +598,7 @@ class TestTestdriveHandler(unittest.TestCase):
             mock_interaction.user.mention = "<@222>"
             mock_interaction.message = AsyncMock()
             mock_interaction.message.content = (
-                "<@111> requested a test ride. <@222> hosted them.\n\n"
-                "<@111> rated their experience: ★★★★☆"
+                "<@111> requested a test ride. <@222> hosted them.\n\n<@111> rated their experience: ★★★★☆"
             )
             mock_interaction.response = AsyncMock()
 
@@ -798,5 +795,5 @@ class TestTestdriveHandler(unittest.TestCase):
         asyncio.run(async_test())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

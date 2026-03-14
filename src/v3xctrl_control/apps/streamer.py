@@ -7,6 +7,7 @@ blink lights, etc.
 
 CTRL-C will exit the client cleanly
 """
+
 import argparse
 import logging
 import signal
@@ -38,60 +39,63 @@ parser.add_argument("host", help="The target IP address")
 parser.add_argument("port", type=int, help="The target port number")
 parser.add_argument("bind_port", type=int, help="The internal port number")
 
-parser.add_argument("--throttle-min", type=int, default=1000,
-                    help="Minimum pulse width for throttle (default: 1000)")
-parser.add_argument("--throttle-idle", type=int, default=1500,
-                    help="Mid pulse width for throttle (default: 1500)")
-parser.add_argument("--throttle-max", type=int, default=2000,
-                    help="Maximum pulse width for throttle (default: 2000)")
-parser.add_argument("--steering-min", type=int, default=1000,
-                    help="Minimum pulse width for steering (default: 1000)")
-parser.add_argument("--steering-max", type=int, default=2000,
-                    help="Maximum pulse width for steering (default: 2000)")
-parser.add_argument("--steering-trim", type=int, default=0,
-                    help="Pulse width to trim steering center (default: 0)")
-parser.add_argument("--steering-invert", action="store_true",
-                    help="Invert steering direction (default: False)")
-parser.add_argument("--steering-scale", type=int, default=100,
-                    help="Max percent of range for steering (default: 100)")
-parser.add_argument("--forward-scale", type=int, default=100,
-                    help="Max percent of range for forward throttle (default: 100)")
-parser.add_argument("--reverse-scale", type=int, default=100,
-                    help="Max percent of range for reverse throttle (default: 100)")
-parser.add_argument("--forward-boost", type=int, default=0,
-                    help="Minimum pulse width offset for going forward (default: 0)")
-parser.add_argument("--reverse-boost", type=int, default=0,
-                    help="Minimum pulse width offset for going reverse (default: 0)")
-parser.add_argument("--pwm-channel-throttle", type=int, default=0,
-                    help="PWM channel for throttle signal (default: 0)")
-parser.add_argument("--pwm-channel-steering", type=int, default=1,
-                    help="PWM channel for steering signal (default: 1)")
-parser.add_argument("--modem-path", type=str, default="/dev/ttyACM0",
-                    help="Path to modem device (default: /dev/ttyACM0)")
-parser.add_argument("--log", default="ERROR",
-                    help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). (default: ERROR)")
-parser.add_argument("--transport", type=str, default="udp", choices=["udp", "tcp"],
-                    help="Transport protocol (default: udp)")
-parser.add_argument("--relay-session-id", type=str, default=None,
-                    help="Relay session ID (enables relay TCP mode with PeerAnnouncement handshake)")
-parser.add_argument("--failsafe-ms", type=int, default=500,
-                    help="Timeout in milliseconds to trigger failsafe (default: 500)")
-parser.add_argument("--failsafe-throttle", type=int, default=1500,
-                    help="Throttle value when failsafe (default: 1500)")
-parser.add_argument("--failsafe-steering", type=int, default=1500,
-                    help="Steering value when failsafe (default: 1500)")
-parser.add_argument("--battery-min-voltage", type=int, default=3500,
-                    help="Minimum cell voltage in mV (default: 3500)")
-parser.add_argument("--battery-max-voltage", type=int, default=4200,
-                    help="Maximum cell voltage in mV (default: 4200)")
-parser.add_argument("--battery-warn-voltage", type=int, default=3700,
-                    help="Warning cell voltage in mV (default: 3700)")
-parser.add_argument("--battery-i2c-address", type=lambda x: int(x, 0), default=0x40,
-                    help="I2C address of battery sensor (default: 0x40)")
-parser.add_argument("--battery-shunt-mohms", type=int, default=100,
-                    help="Shunt resistor value in milliohms (default: 100)")
-parser.add_argument("--battery-max-current", type=float, default=0.8,
-                    help="Maximum expected current in Amperes (default: 0.8)")
+parser.add_argument("--throttle-min", type=int, default=1000, help="Minimum pulse width for throttle (default: 1000)")
+parser.add_argument("--throttle-idle", type=int, default=1500, help="Mid pulse width for throttle (default: 1500)")
+parser.add_argument("--throttle-max", type=int, default=2000, help="Maximum pulse width for throttle (default: 2000)")
+parser.add_argument("--steering-min", type=int, default=1000, help="Minimum pulse width for steering (default: 1000)")
+parser.add_argument("--steering-max", type=int, default=2000, help="Maximum pulse width for steering (default: 2000)")
+parser.add_argument("--steering-trim", type=int, default=0, help="Pulse width to trim steering center (default: 0)")
+parser.add_argument("--steering-invert", action="store_true", help="Invert steering direction (default: False)")
+parser.add_argument("--steering-scale", type=int, default=100, help="Max percent of range for steering (default: 100)")
+parser.add_argument(
+    "--forward-scale", type=int, default=100, help="Max percent of range for forward throttle (default: 100)"
+)
+parser.add_argument(
+    "--reverse-scale", type=int, default=100, help="Max percent of range for reverse throttle (default: 100)"
+)
+parser.add_argument(
+    "--forward-boost", type=int, default=0, help="Minimum pulse width offset for going forward (default: 0)"
+)
+parser.add_argument(
+    "--reverse-boost", type=int, default=0, help="Minimum pulse width offset for going reverse (default: 0)"
+)
+parser.add_argument("--pwm-channel-throttle", type=int, default=0, help="PWM channel for throttle signal (default: 0)")
+parser.add_argument("--pwm-channel-steering", type=int, default=1, help="PWM channel for steering signal (default: 1)")
+parser.add_argument(
+    "--modem-path", type=str, default="/dev/ttyACM0", help="Path to modem device (default: /dev/ttyACM0)"
+)
+parser.add_argument(
+    "--log", default="ERROR", help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). (default: ERROR)"
+)
+parser.add_argument(
+    "--transport", type=str, default="udp", choices=["udp", "tcp"], help="Transport protocol (default: udp)"
+)
+parser.add_argument(
+    "--relay-session-id",
+    type=str,
+    default=None,
+    help="Relay session ID (enables relay TCP mode with PeerAnnouncement handshake)",
+)
+parser.add_argument(
+    "--failsafe-ms", type=int, default=500, help="Timeout in milliseconds to trigger failsafe (default: 500)"
+)
+parser.add_argument("--failsafe-throttle", type=int, default=1500, help="Throttle value when failsafe (default: 1500)")
+parser.add_argument("--failsafe-steering", type=int, default=1500, help="Steering value when failsafe (default: 1500)")
+parser.add_argument("--battery-min-voltage", type=int, default=3500, help="Minimum cell voltage in mV (default: 3500)")
+parser.add_argument("--battery-max-voltage", type=int, default=4200, help="Maximum cell voltage in mV (default: 4200)")
+parser.add_argument("--battery-warn-voltage", type=int, default=3700, help="Warning cell voltage in mV (default: 3700)")
+parser.add_argument(
+    "--battery-i2c-address",
+    type=lambda x: int(x, 0),
+    default=0x40,
+    help="I2C address of battery sensor (default: 0x40)",
+)
+parser.add_argument(
+    "--battery-shunt-mohms", type=int, default=100, help="Shunt resistor value in milliohms (default: 100)"
+)
+parser.add_argument(
+    "--battery-max-current", type=float, default=0.8, help="Maximum expected current in Amperes (default: 0.8)"
+)
 
 
 args = parser.parse_args()
@@ -133,10 +137,7 @@ failsafe_steering = args.failsafe_steering
 if not isinstance(level, int):
     raise ValueError(f"Invalid log level: {args.log}")
 
-logging.basicConfig(
-    level=level,
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=level, format="%(asctime)s - %(levelname)s - %(message)s")
 
 forward_multiplier = forward_scale / 100.0
 reverse_multiplier = reverse_scale / 100.0
@@ -175,7 +176,7 @@ telemetry = TelemetryHandler(
     battery_warn_voltage=args.battery_warn_voltage,
     battery_i2c_address=args.battery_i2c_address,
     battery_shunt_mohms=args.battery_shunt_mohms,
-    battery_max_current=args.battery_max_current
+    battery_max_current=args.battery_max_current,
 )
 telemetry.start()
 
@@ -183,11 +184,7 @@ video_control = ControlClient()
 executor = ThreadPoolExecutor(max_workers=2)
 
 
-def map_range(
-    value: float,
-    in_min: float, in_max: float,
-    servo_min: int = 1000, servo_max: int = 2000
-) -> int:
+def map_range(value: float, in_min: float, in_max: float, servo_min: int = 1000, servo_max: int = 2000) -> int:
     """
     Maps a float value from an input range [in_min, in_max] to a servo PWM pulse width.
 
@@ -215,8 +212,8 @@ def control_handler(message: Control, address: Address) -> None:
 
     if client.state == State.CONNECTED:
         values = message.get_values()
-        raw_throttle = values['throttle']
-        raw_steering = values['steering']
+        raw_throttle = values["throttle"]
+        raw_steering = values["steering"]
 
         # Determine throttle pulse forward or reverse
         scaled_throttle = raw_throttle * forward_multiplier
@@ -229,13 +226,9 @@ def control_handler(message: Control, address: Address) -> None:
 
         # Map, add trim and clamp
         scaled_steering = raw_steering * steering_multiplier
-        steering_value = map_range(
-            scaled_steering,
-            steering_left,
-            steering_right,
-            steering_min,
-            steering_max
-        ) + (steering_trim * trim_multiplier)
+        steering_value = map_range(scaled_steering, steering_left, steering_right, steering_min, steering_max) + (
+            steering_trim * trim_multiplier
+        )
         steering_value = clamp(steering_value, steering_min, steering_max)
 
     logging.debug(f"Throttle: {throttle_value}; Steering: {steering_value}")
@@ -286,13 +279,7 @@ def command_handler(command: Command, address: Address) -> None:
                 steering_trim -= step
 
             steering_center = calculate_steering_center()
-            subprocess.Popen([
-                "sudo",
-                "v3xctrl-settings",
-                "set",
-                ".controls.steering.trim",
-                str(steering_trim)
-            ])
+            subprocess.Popen(["sudo", "v3xctrl-settings", "set", ".controls.steering.trim", str(steering_trim)])
 
         case "shutdown":
             subprocess.Popen(["sudo", "poweroff"])
@@ -353,9 +340,7 @@ tcp_tunnel = None
 if args.transport == Transport.TCP:
     handshake = None
     if args.relay_session_id:
-        handshake = PeerAnnouncement(
-            r="streamer", i=args.relay_session_id, p="control"
-        ).to_bytes()
+        handshake = PeerAnnouncement(r="streamer", i=args.relay_session_id, p="control").to_bytes()
 
     tcp_tunnel = TcpTunnel(
         remote_host=HOST,
@@ -371,10 +356,7 @@ if args.transport == Transport.TCP:
         sys.exit(1)
     HOST = "127.0.0.1"
     PORT = ephemeral_port
-    logging.info(
-        f"TCP tunnel: control -> 127.0.0.1:{ephemeral_port} "
-        f"-> TCP -> {args.host}:{args.port}"
-    )
+    logging.info(f"TCP tunnel: control -> 127.0.0.1:{ephemeral_port} -> TCP -> {args.host}:{args.port}")
 
 # In default UDP mode, mind to external interface, in TCP mode, bind to local
 # interface to which TCP proxy will forward the packages

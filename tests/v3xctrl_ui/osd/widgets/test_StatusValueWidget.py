@@ -22,6 +22,7 @@ class TestStatusValueWidget(unittest.TestCase):
 
     def test_inherits_from_status_widget(self):
         from v3xctrl_ui.osd.widgets.StatusWidget import StatusWidget
+
         self.assertIsInstance(self.widget, StatusWidget)
 
     def test_default_value_is_none(self):

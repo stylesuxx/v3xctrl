@@ -51,22 +51,22 @@ class TestSignalQualityWidget(unittest.TestCase):
 
     def test_draw_runs_without_error(self):
         signals = [
-            {'rsrp': 220, 'rsrq': 59},
-            {'rsrp': 190, 'rsrq': 10},
-            {'rsrp': 255, 'rsrq': 255},
+            {"rsrp": 220, "rsrq": 59},
+            {"rsrp": 190, "rsrq": 10},
+            {"rsrp": 255, "rsrq": 255},
         ]
         for sig in signals:
             self.widget.draw(self.screen, sig)
 
     def test_draw_no_modem_state(self):
-        self.widget.draw(self.screen, {'rsrp': -1, 'rsrq': -1})
+        self.widget.draw(self.screen, {"rsrp": -1, "rsrq": -1})
 
     def test_invalid_rsrq_still_maps(self):
         self.assertEqual(self.widget._get_quality(255), SignalQuality.POOR)
         self.assertEqual(self.widget._get_quality(-1), SignalQuality.POOR)
 
     def test_invalid_rsrp_still_draws(self):
-        signals = [{'rsrp': -1, 'rsrq': 15}, {'rsrp': 999, 'rsrq': 15}]
+        signals = [{"rsrp": -1, "rsrq": 15}, {"rsrp": 999, "rsrq": 15}]
         for sig in signals:
             self.widget.draw(self.screen, sig)
 

@@ -21,7 +21,7 @@ class TextWidget(Widget):
         top_padding: int = 5,
         bottom_padding: int = 3,
         left_padding: int = 4,
-        right_padding: int = 4
+        right_padding: int = 4,
     ) -> None:
         super().__init__()
 

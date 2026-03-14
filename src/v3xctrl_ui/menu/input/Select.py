@@ -32,7 +32,7 @@ class Select(BaseWidget):
         length: int,
         font: Font,
         callback: Callable[[int], None],
-        selected_index: int = 0
+        selected_index: int = 0,
     ) -> None:
         super().__init__()
 
@@ -127,10 +127,7 @@ class Select(BaseWidget):
             self.label_surface, self.label_rect = self.font.render(self.label, color)
 
             # Restore vertical centering
-            self.label_rect.topleft = (
-                self.x,
-                self.y + self.rect.height // 2 - self.label_rect.height // 2
-            )
+            self.label_rect.topleft = (self.x, self.y + self.rect.height // 2 - self.label_rect.height // 2)
 
             self._update_option_surfaces()
 
@@ -156,17 +153,11 @@ class Select(BaseWidget):
         self.option_rects = []
         for i in range(len(self.options)):
             rect = Rect(
-                self.rect.x,
-                self.rect.y + self.OPTION_HEIGHT + i * self.OPTION_HEIGHT,
-                self.length,
-                self.OPTION_HEIGHT
+                self.rect.x, self.rect.y + self.OPTION_HEIGHT + i * self.OPTION_HEIGHT, self.length, self.OPTION_HEIGHT
             )
             self.option_rects.append(rect)
         self.full_expanded_rect = Rect(
-            self.rect.x,
-            self.rect.y + self.OPTION_HEIGHT,
-            self.length,
-            self.OPTION_HEIGHT * len(self.options)
+            self.rect.x, self.rect.y + self.OPTION_HEIGHT, self.length, self.OPTION_HEIGHT * len(self.options)
         )
 
     def draw_overlay(self, surface: Surface) -> None:

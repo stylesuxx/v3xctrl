@@ -11,16 +11,16 @@ from .VerticalIndicatorWidget import VerticalIndicatorWidget
 from .Widget import Widget
 
 __all__ = [
-  "Alignment",
-  "BatteryIconWidget",
-  "ClockWidget",
-  "FpsWidget",
-  "HorizontalIndicatorWidget",
-  "RecWidget",
-  "SignalQualityWidget",
-  "StatusValueWidget",
-  "StatusWidget",
-  "TextWidget",
-  "VerticalIndicatorWidget",
-  "Widget",
+    "Alignment",
+    "BatteryIconWidget",
+    "ClockWidget",
+    "FpsWidget",
+    "HorizontalIndicatorWidget",
+    "RecWidget",
+    "SignalQualityWidget",
+    "StatusValueWidget",
+    "StatusWidget",
+    "TextWidget",
+    "VerticalIndicatorWidget",
+    "Widget",
 ]

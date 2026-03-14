@@ -25,7 +25,7 @@ class TestKeyMappingWidget(unittest.TestCase):
             key_code=pygame.K_w,
             font=self.font,
             on_key_change=self.on_key_change,
-            on_remap_toggle=self.on_remap_toggle
+            on_remap_toggle=self.on_remap_toggle,
         )
         self.widget.set_column_width(400)
         self.widget.set_position(10, 20)
@@ -38,15 +38,9 @@ class TestKeyMappingWidget(unittest.TestCase):
 
     def test_click_remap_starts_remapping(self):
         pos = self.widget.remap_button.rect.center
-        self.widget.handle_event(pygame.event.Event(pygame.MOUSEMOTION, {'pos': pos}))
-        self.widget.handle_event(pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-            'pos': pos,
-            'button': 1
-        }))
-        self.widget.handle_event(pygame.event.Event(pygame.MOUSEBUTTONUP, {
-            'pos': pos,
-            'button': 1
-        }))
+        self.widget.handle_event(pygame.event.Event(pygame.MOUSEMOTION, {"pos": pos}))
+        self.widget.handle_event(pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": pos, "button": 1}))
+        self.widget.handle_event(pygame.event.Event(pygame.MOUSEBUTTONUP, {"pos": pos, "button": 1}))
 
         self.assertTrue(self.widget.waiting_for_key)
         self.assertIsNone(self.widget.key_code)
@@ -55,7 +49,7 @@ class TestKeyMappingWidget(unittest.TestCase):
     def test_key_assignment_after_remap(self):
         self.widget._on_remap_click()
 
-        event = pygame.event.Event(pygame.KEYDOWN, {'key': pygame.K_a})
+        event = pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_a})
         self.widget.handle_event(event)
 
         self.assertEqual(self.widget.key_code, pygame.K_a)
@@ -89,20 +83,19 @@ class TestKeyMappingWidget(unittest.TestCase):
         self.widget.disable()
         self.assertTrue(self.widget.remap_button.disabled)
 
-
     def test_hover_children_contains_remap_button(self):
         self.assertEqual(self.widget.hover_children, [self.widget.remap_button])
 
     def test_remap_button_hover_tracked(self):
         """MOUSEMOTION over remap button sets button.hovered for cursor management"""
         pos = self.widget.remap_button.rect.center
-        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {'pos': pos})
+        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {"pos": pos})
         self.widget.handle_event(motion_event)
 
         self.assertTrue(self.widget.remap_button.hovered)
 
     def test_remap_button_hover_outside(self):
-        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {'pos': (0, 0)})
+        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {"pos": (0, 0)})
         self.widget.handle_event(motion_event)
 
         self.assertFalse(self.widget.remap_button.hovered)

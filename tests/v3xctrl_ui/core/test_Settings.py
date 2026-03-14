@@ -51,14 +51,7 @@ class TestSettings(unittest.TestCase):
         self.assertEqual(loaded.get("video")["height"], 480)
 
     def test_merge_partial_override(self):
-        partial = {
-            "video": {"width": 800},
-            "controls": {
-                "keyboard": {
-                    "throttle_up": "K_UP"
-                }
-            }
-        }
+        partial = {"video": {"width": 800}, "controls": {"keyboard": {"throttle_up": "K_UP"}}}
         with open(self.path, "wb") as f:
             f.write(tomli_w.dumps(partial).encode("utf-8"))
 

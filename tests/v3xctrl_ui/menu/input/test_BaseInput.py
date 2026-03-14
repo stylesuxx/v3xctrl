@@ -41,7 +41,7 @@ class TestBaseInput(unittest.TestCase):
             font=self.mock_font,
             mono_font=self.mock_mono_font,
             on_change=self.mock_on_change,
-            input_padding=10
+            input_padding=10,
         )
 
     def test_initialization(self):
@@ -70,11 +70,7 @@ class TestBaseInput(unittest.TestCase):
 
     def test_initialization_without_callback(self):
         widget = BaseInput(
-            label="Test",
-            label_width=50,
-            input_width=100,
-            font=self.mock_font,
-            mono_font=self.mock_mono_font
+            label="Test", label_width=50, input_width=100, font=self.mock_font, mono_font=self.mock_mono_font
         )
 
         self.assertIsNone(widget.on_change)
@@ -109,7 +105,7 @@ class TestBaseInput(unittest.TestCase):
         self.input_widget.value = ""
         self.assertEqual(self.input_widget.get_value(), "")
 
-    @patch('pygame.time.get_ticks')
+    @patch("pygame.time.get_ticks")
     def test_update_cursor_blink(self, mock_get_ticks):
         self.input_widget.cursor_visible = True
         self.input_widget.cursor_timer = 0
@@ -139,15 +135,15 @@ class TestBaseInput(unittest.TestCase):
 
         self.assertEqual(actual_x, expected_x)
 
-    @patch('pygame.time.get_ticks')
+    @patch("pygame.time.get_ticks")
     def test_handle_mouse_cursor_position(self, mock_get_ticks):
         mock_get_ticks.return_value = 1000
         self.input_widget.set_position(0, 0)
         self.input_widget.value = "hello"
 
-        self.mock_mono_font.get_rect.side_effect = lambda text: type('MockRect', (), {'width': len(text) * 8})()
+        self.mock_mono_font.get_rect.side_effect = lambda text: type("MockRect", (), {"width": len(text) * 8})()
 
-        with patch.object(self.input_widget, '_get_text_x', return_value=100):
+        with patch.object(self.input_widget, "_get_text_x", return_value=100):
             mouse_pos = (116, 10)
             self.input_widget._handle_mouse(mouse_pos)
 
@@ -155,12 +151,9 @@ class TestBaseInput(unittest.TestCase):
 
     def test_handle_event_mouse_click_inside(self):
         self.input_widget.set_position(0, 0)
-        event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-            'button': 1,
-            'pos': (150, 10)
-        })
+        event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"button": 1, "pos": (150, 10)})
 
-        with patch.object(self.input_widget, '_handle_mouse') as mock_handle_mouse:
+        with patch.object(self.input_widget, "_handle_mouse") as mock_handle_mouse:
             self.assertTrue(self.input_widget.handle_event(event))
             mock_handle_mouse.assert_called_once_with((150, 10))
             self.assertTrue(self.input_widget.focused)
@@ -169,255 +162,226 @@ class TestBaseInput(unittest.TestCase):
         self.input_widget.set_position(0, 0)
         self.input_widget.focused = True
 
-        event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-            'button': 1,
-            'pos': (50, 10)
-        })
+        event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"button": 1, "pos": (50, 10)})
 
-        with patch.object(self.input_widget, '_handle_mouse') as mock_handle_mouse:
+        with patch.object(self.input_widget, "_handle_mouse") as mock_handle_mouse:
             self.assertFalse(self.input_widget.handle_event(event))
             mock_handle_mouse.assert_not_called()
             self.assertFalse(self.input_widget.focused)
 
     def test_handle_event_mouse_right_click(self):
-        event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-            'button': 3,
-            'pos': (100, 50)
-        })
+        event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"button": 3, "pos": (100, 50)})
 
-        with patch.object(self.input_widget, '_handle_mouse') as mock_handle_mouse:
+        with patch.object(self.input_widget, "_handle_mouse") as mock_handle_mouse:
             self.assertFalse(self.input_widget.handle_event(event))
             mock_handle_mouse.assert_not_called()
 
     def test_handle_event_keydown_unfocused(self):
         self.input_widget.focused = False
-        event = pygame.event.Event(pygame.KEYDOWN, {
-            'key': pygame.K_a
-        })
+        event = pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_a})
 
-        with patch.object(self.input_widget, '_handle_keydown') as mock_handle_keydown:
+        with patch.object(self.input_widget, "_handle_keydown") as mock_handle_keydown:
             self.assertFalse(self.input_widget.handle_event(event))
             mock_handle_keydown.assert_not_called()
 
     def test_handle_event_keydown_focused(self):
         self.input_widget.focused = True
-        event = pygame.event.Event(pygame.KEYDOWN, {
-            'key': pygame.K_a
-        })
+        event = pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_a})
 
-        with patch.object(self.input_widget, '_handle_keydown') as mock_handle_keydown:
+        with patch.object(self.input_widget, "_handle_keydown") as mock_handle_keydown:
             self.assertTrue(self.input_widget.handle_event(event))
             mock_handle_keydown.assert_called_once_with(event)
 
     def test_handle_event_other_types(self):
-        event = pygame.event.Event(pygame.KEYUP, {
-            'key': pygame.K_a
-        })
+        event = pygame.event.Event(pygame.KEYUP, {"key": pygame.K_a})
 
-        with patch.object(self.input_widget, '_handle_mouse') as mock_handle_mouse, \
-             patch.object(self.input_widget, '_handle_keydown') as mock_handle_keydown:
-
+        with (
+            patch.object(self.input_widget, "_handle_mouse") as mock_handle_mouse,
+            patch.object(self.input_widget, "_handle_keydown") as mock_handle_keydown,
+        ):
             self.assertFalse(self.input_widget.handle_event(event))
             mock_handle_mouse.assert_not_called()
             mock_handle_keydown.assert_not_called()
 
-    @patch('pygame.key.get_mods')
+    @patch("pygame.key.get_mods")
     def test_handle_keydown_backspace(self, mock_get_mods):
         mock_get_mods.return_value = 0
         self.input_widget.value = "hello"
         self.input_widget.cursor_pos = 3
 
-        event = pygame.event.Event(pygame.KEYDOWN, {
-            'key': pygame.K_BACKSPACE
-        })
+        event = pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_BACKSPACE})
 
         self.input_widget._handle_keydown(event)
 
         self.assertEqual(self.input_widget.value, "helo")
         self.assertEqual(self.input_widget.cursor_pos, 2)
 
-    @patch('pygame.key.get_mods')
+    @patch("pygame.key.get_mods")
     def test_handle_keydown_backspace_at_start(self, mock_get_mods):
         mock_get_mods.return_value = 0
         self.input_widget.value = "hello"
         self.input_widget.cursor_pos = 0
 
-        event = pygame.event.Event(pygame.KEYDOWN, {
-            'key': pygame.K_BACKSPACE
-        })
+        event = pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_BACKSPACE})
 
         self.input_widget._handle_keydown(event)
 
         self.assertEqual(self.input_widget.value, "hello")
         self.assertEqual(self.input_widget.cursor_pos, 0)
 
-    @patch('pygame.key.get_mods')
+    @patch("pygame.key.get_mods")
     def test_handle_keydown_left_arrow(self, mock_get_mods):
         mock_get_mods.return_value = 0
         self.input_widget.value = "hello"
         self.input_widget.cursor_pos = 3
 
-        event = pygame.event.Event(pygame.KEYDOWN, {
-            'key': pygame.K_LEFT
-        })
+        event = pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_LEFT})
 
         self.input_widget._handle_keydown(event)
 
         self.assertEqual(self.input_widget.cursor_pos, 2)
 
-    @patch('pygame.key.get_mods')
+    @patch("pygame.key.get_mods")
     def test_handle_keydown_left_arrow_at_start(self, mock_get_mods):
         mock_get_mods.return_value = 0
         self.input_widget.cursor_pos = 0
 
-        event = pygame.event.Event(pygame.KEYDOWN, {
-            'key': pygame.K_LEFT
-        })
+        event = pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_LEFT})
 
         self.input_widget._handle_keydown(event)
 
         self.assertEqual(self.input_widget.cursor_pos, 0)
 
-    @patch('pygame.key.get_mods')
+    @patch("pygame.key.get_mods")
     def test_handle_keydown_right_arrow(self, mock_get_mods):
         mock_get_mods.return_value = 0
         self.input_widget.value = "hello"
         self.input_widget.cursor_pos = 3
 
-        event = pygame.event.Event(pygame.KEYDOWN, {
-            'key': pygame.K_RIGHT
-        })
+        event = pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_RIGHT})
 
         self.input_widget._handle_keydown(event)
 
         self.assertEqual(self.input_widget.cursor_pos, 4)
 
-    @patch('pygame.key.get_mods')
+    @patch("pygame.key.get_mods")
     def test_handle_keydown_right_arrow_at_end(self, mock_get_mods):
         mock_get_mods.return_value = 0
         self.input_widget.value = "hello"
         self.input_widget.cursor_pos = 5
 
-        event = pygame.event.Event(pygame.KEYDOWN, {
-            'key': pygame.K_RIGHT
-        })
+        event = pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_RIGHT})
 
         self.input_widget._handle_keydown(event)
 
         self.assertEqual(self.input_widget.cursor_pos, 5)
 
-    @patch('pygame.scrap.get_init')
-    @patch('pygame.key.get_mods')
+    @patch("pygame.scrap.get_init")
+    @patch("pygame.key.get_mods")
     def test_handle_keydown_paste_not_initialized(self, mock_get_mods, mock_scrap_init):
         mock_get_mods.return_value = pygame.KMOD_CTRL
         mock_scrap_init.return_value = False
         self.input_widget.value = "hello"
 
-        event = pygame.event.Event(pygame.KEYDOWN, {
-            'key': pygame.K_v
-        })
+        event = pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_v})
 
         self.input_widget._handle_keydown(event)
 
         self.assertEqual(self.input_widget.value, "hello")
 
-    @patch('pygame.scrap.get_init')
-    @patch('pygame.key.get_mods')
+    @patch("pygame.scrap.get_init")
+    @patch("pygame.key.get_mods")
     def test_handle_keydown_paste_with_text(self, mock_get_mods, mock_scrap_init):
         mock_get_mods.return_value = pygame.KMOD_CTRL
         mock_scrap_init.return_value = True
         self.input_widget.value = "hello"
         self.input_widget.cursor_pos = 2
 
-        event = pygame.event.Event(pygame.KEYDOWN, {
-            'key': pygame.K_v
-        })
+        event = pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_v})
 
-        with patch.object(self.input_widget, '_get_clipboard_text', return_value="pasted"):
+        with patch.object(self.input_widget, "_get_clipboard_text", return_value="pasted"):
             self.input_widget._handle_keydown(event)
 
         self.assertEqual(self.input_widget.value, "pasted")
         self.assertEqual(self.input_widget.cursor_pos, 6)
         self.mock_on_change.assert_called_once_with("pasted")
 
-    @patch('pygame.scrap.get_init')
-    @patch('pygame.key.get_mods')
+    @patch("pygame.scrap.get_init")
+    @patch("pygame.key.get_mods")
     def test_handle_keydown_paste_no_text(self, mock_get_mods, mock_scrap_init):
         mock_get_mods.return_value = pygame.KMOD_CTRL
         mock_scrap_init.return_value = True
         self.input_widget.value = "hello"
 
-        event = pygame.event.Event(pygame.KEYDOWN, {
-            'key': pygame.K_v
-        })
+        event = pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_v})
 
-        with patch.object(self.input_widget, '_get_clipboard_text', return_value=None):
+        with patch.object(self.input_widget, "_get_clipboard_text", return_value=None):
             self.input_widget._handle_keydown(event)
 
         self.assertEqual(self.input_widget.value, "hello")
         self.mock_on_change.assert_not_called()
 
-    @patch('pygame.scrap.get_types')
-    @patch('pygame.scrap.get')
+    @patch("pygame.scrap.get_types")
+    @patch("pygame.scrap.get")
     def test_get_clipboard_text_success(self, mock_scrap_get, mock_get_types):
         mock_get_types.return_value = ["text/plain;charset=utf-8"]
         mock_scrap_get.return_value = b"clipboard text"
 
         self.assertEqual(self.input_widget._get_clipboard_text(), "clipboard text")
 
-    @patch('pygame.scrap.get_types')
-    @patch('pygame.scrap.get')
+    @patch("pygame.scrap.get_types")
+    @patch("pygame.scrap.get")
     def test_get_clipboard_text_string_data(self, mock_scrap_get, mock_get_types):
         mock_get_types.return_value = ["text/plain"]
         mock_scrap_get.return_value = "  clipboard text  "
 
         self.assertEqual(self.input_widget._get_clipboard_text(), "clipboard text")
 
-    @patch('pygame.scrap.get_types')
-    @patch('pygame.scrap.get')
+    @patch("pygame.scrap.get_types")
+    @patch("pygame.scrap.get")
     def test_get_clipboard_text_no_data(self, mock_scrap_get, mock_get_types):
         mock_get_types.return_value = ["text/plain"]
         mock_scrap_get.return_value = None
 
         self.assertIsNone(self.input_widget._get_clipboard_text())
 
-    @patch('pygame.scrap.get_types')
-    @patch('pygame.scrap.get')
+    @patch("pygame.scrap.get_types")
+    @patch("pygame.scrap.get")
     def test_get_clipboard_text_empty_after_decode(self, mock_scrap_get, mock_get_types):
         mock_get_types.return_value = ["text/plain", "text/plain;charset=utf-8"]
 
         def side_effect(type_name):
             if type_name == "text/plain":
-                return b''
+                return b""
             elif type_name == "text/plain;charset=utf-8":
-                return b'valid text'
+                return b"valid text"
             return None
 
         mock_scrap_get.side_effect = side_effect
 
         self.assertEqual(self.input_widget._get_clipboard_text(), "valid text")
 
-    @patch('pygame.scrap.get_types')
-    @patch('pygame.scrap.get')
+    @patch("pygame.scrap.get_types")
+    @patch("pygame.scrap.get")
     def test_get_clipboard_text_actual_unicode_error(self, mock_scrap_get, mock_get_types):
         mock_get_types.return_value = ["text/plain", "text/plain;charset=utf-8"]
 
         class BadBytes(bytes):
-            def decode(self, encoding='utf-8', errors='strict'):
-                raise UnicodeDecodeError('utf-8', self, 0, 1, 'mock error')
+            def decode(self, encoding="utf-8", errors="strict"):
+                raise UnicodeDecodeError("utf-8", self, 0, 1, "mock error")
 
         def side_effect(type_name):
             if type_name == "text/plain":
-                return BadBytes(b'bad data')
+                return BadBytes(b"bad data")
             elif type_name == "text/plain;charset=utf-8":
-                return b'valid text'
+                return b"valid text"
             return None
 
         mock_scrap_get.side_effect = side_effect
 
         self.assertEqual(self.input_widget._get_clipboard_text(), "valid text")
 
-    @patch('pygame.scrap.get_types')
+    @patch("pygame.scrap.get_types")
     def test_get_clipboard_text_no_text_types(self, mock_get_types):
         mock_get_types.return_value = ["image/png", "application/json"]
 
@@ -428,12 +392,12 @@ class TestBaseInput(unittest.TestCase):
         self.input_widget.set_position(10, 10)
         self.input_widget.value = "test"
 
-        with patch.object(self.input_widget, '_update_cursor_blink'):
+        with patch.object(self.input_widget, "_update_cursor_blink"):
             self.input_widget._draw(surface)
 
         self.mock_mono_font.render.assert_called_with("test", BaseInput.TEXT_COLOR)
 
-    @patch('pygame.draw.line')
+    @patch("pygame.draw.line")
     def test_draw_with_cursor(self, mock_draw_line):
         surface = pygame.Surface((400, 100))
         self.input_widget.set_position(10, 10)
@@ -448,10 +412,10 @@ class TestBaseInput(unittest.TestCase):
         self.text_rect.centery = 20
         self.mock_mono_font.render.return_value = (self.text_surface, self.text_rect)
 
-        mock_rect = type('MockRect', (), {'width': 16})()
+        mock_rect = type("MockRect", (), {"width": 16})()
         self.mock_mono_font.get_rect.return_value = mock_rect
 
-        with patch.object(self.input_widget, '_update_cursor_blink'):
+        with patch.object(self.input_widget, "_update_cursor_blink"):
             self.input_widget.draw(surface)
 
         mock_draw_line.assert_called_once()
@@ -462,15 +426,13 @@ class TestBaseInput(unittest.TestCase):
         self.input_widget.value = "test"
         self.input_widget.focused = False
 
-        with patch('pygame.draw.line') as mock_draw_line, \
-             patch.object(self.input_widget, '_update_cursor_blink'):
-
+        with patch("pygame.draw.line") as mock_draw_line, patch.object(self.input_widget, "_update_cursor_blink"):
             self.input_widget._draw(surface)
 
         mock_draw_line.assert_not_called()
 
     def test_draw_input_background(self):
-        with patch('pygame.draw.line') as mock_draw_line:
+        with patch("pygame.draw.line") as mock_draw_line:
             self.input_widget._draw_input_background()
 
         self.assertEqual(mock_draw_line.call_count, 4)
@@ -479,7 +441,7 @@ class TestBaseInput(unittest.TestCase):
         surface = pygame.Surface((400, 100))
         self.input_widget.set_position(10, 10)
 
-        with patch.object(self.input_widget, '_update_cursor_blink'):
+        with patch.object(self.input_widget, "_update_cursor_blink"):
             self.input_widget._draw(surface)
 
     def test_public_draw_method_when_visible(self):
@@ -487,7 +449,7 @@ class TestBaseInput(unittest.TestCase):
         self.input_widget.set_position(10, 10)
         self.input_widget.visible = True
 
-        with patch.object(self.input_widget, '_draw') as mock_private_draw:
+        with patch.object(self.input_widget, "_draw") as mock_private_draw:
             self.input_widget.draw(surface)
             mock_private_draw.assert_called_once_with(surface)
 
@@ -496,7 +458,7 @@ class TestBaseInput(unittest.TestCase):
         self.input_widget.set_position(10, 10)
         self.input_widget.visible = False
 
-        with patch.object(self.input_widget, '_draw') as mock_private_draw:
+        with patch.object(self.input_widget, "_draw") as mock_private_draw:
             self.input_widget.draw(surface)
             mock_private_draw.assert_not_called()
 
@@ -512,14 +474,12 @@ class TestBaseInput(unittest.TestCase):
         self.assertTrue(self.input_widget.visible)
 
     def test_abstract_methods_implemented(self):
-        event = pygame.event.Event(pygame.KEYUP, {
-            'key': pygame.K_a
-        })
+        event = pygame.event.Event(pygame.KEYUP, {"key": pygame.K_a})
 
         self.assertIsInstance(self.input_widget.handle_event(event), bool)
 
         surface = pygame.Surface((100, 100))
-        with patch.object(self.input_widget, '_update_cursor_blink'):
+        with patch.object(self.input_widget, "_update_cursor_blink"):
             self.input_widget._draw(surface)
 
         size = self.input_widget.get_size()
@@ -530,11 +490,9 @@ class TestBaseInput(unittest.TestCase):
         self.input_widget.value = "hello"
         self.input_widget.cursor_pos = 3
 
-        event = pygame.event.Event(pygame.KEYDOWN, {
-            'key': pygame.K_BACKSPACE
-        })
+        event = pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_BACKSPACE})
 
-        with patch('pygame.key.get_mods', return_value=0):
+        with patch("pygame.key.get_mods", return_value=0):
             self.input_widget._handle_keydown(event)
 
         self.mock_on_change.assert_called_once_with("helo")
@@ -544,7 +502,7 @@ class TestBaseInput(unittest.TestCase):
         self.input_widget.set_position(10, 10)
         self.input_widget.value = "test"
 
-        with patch.object(self.input_widget, '_update_cursor_blink'):
+        with patch.object(self.input_widget, "_update_cursor_blink"):
             self.input_widget._draw(surface)
             first_call_count = self.mock_mono_font.render.call_count
 
@@ -564,9 +522,9 @@ class TestBaseInput(unittest.TestCase):
         self.input_widget.value = "hello"
         self.input_widget.input_padding = 15
 
-        self.mock_mono_font.get_rect.side_effect = lambda text: type('MockRect', (), {'width': len(text) * 8})()
+        self.mock_mono_font.get_rect.side_effect = lambda text: type("MockRect", (), {"width": len(text) * 8})()
 
-        with patch.object(self.input_widget, '_get_text_x', return_value=100) as mock_get_text_x:
+        with patch.object(self.input_widget, "_get_text_x", return_value=100) as mock_get_text_x:
             mouse_pos = (130, 10)
             self.input_widget._handle_mouse(mouse_pos)
 
@@ -575,5 +533,5 @@ class TestBaseInput(unittest.TestCase):
             self.assertTrue(self.input_widget.cursor_visible)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

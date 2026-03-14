@@ -20,13 +20,7 @@ class Checkbox(BaseWidget):
     BOX_SIZE = 24
     BOX_MARGIN = 5
 
-    def __init__(
-        self,
-        label: str,
-        font: Font,
-        checked: bool,
-        on_change: Callable[[bool], None]
-    ) -> None:
+    def __init__(self, label: str, font: Font, checked: bool, on_change: Callable[[bool], None]) -> None:
         super().__init__()
 
         self.label = label
@@ -91,10 +85,7 @@ class Checkbox(BaseWidget):
         checkbox_icon = get_icon("circle", color=self.LABEL_COLOR)
         checkbox_checked_icon = get_icon("check_circle", color=self.LABEL_COLOR)
 
-        states = {
-            "unchecked": checkbox_icon,
-            "checked": checkbox_checked_icon
-        }
+        states = {"unchecked": checkbox_icon, "checked": checkbox_checked_icon}
 
         # Render label once
         label_surface, _label_rect = self.font.render(self.label, self.LABEL_COLOR)
@@ -117,5 +108,5 @@ class Checkbox(BaseWidget):
             self.cached_surfaces[state] = surface
 
     def _draw(self, surface: Surface) -> None:
-        state = 'checked' if self.checked else 'unchecked'
+        state = "checked" if self.checked else "unchecked"
         surface.blit(self.cached_surfaces[state], (self.x, self.y))

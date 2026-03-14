@@ -11,7 +11,6 @@ def mock_keys(pressed_indices, total=300):
 
 
 class TestKeyAxisHandler(unittest.TestCase):
-
     def test_positive_key_increases_value(self):
         handler = KeyAxisHandler(positive=1, negative=2, friction=0.05)
         handler.frames_since_last_tap = 100  # ensure tap triggers

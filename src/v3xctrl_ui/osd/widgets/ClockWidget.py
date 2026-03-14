@@ -16,7 +16,7 @@ class ClockWidget(Widget):
         top_padding: int = 16,
         bottom_padding: int = 14,
         left_padding: int = 20,
-        right_padding: int = 20
+        right_padding: int = 20,
     ) -> None:
         super().__init__()
 

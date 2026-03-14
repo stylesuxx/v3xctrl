@@ -1,4 +1,5 @@
 """Widget group abstraction for unified rendering."""
+
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -21,8 +22,8 @@ class WidgetGroup:
         widgets: dict[str, Widget],
         get_value: Callable[[str], Any],
         use_composition: bool = True,
-        corner_radius: int = 4
-    ) -> 'WidgetGroup':
+        corner_radius: int = 4,
+    ) -> "WidgetGroup":
         """Create a widget group.
 
         Args:

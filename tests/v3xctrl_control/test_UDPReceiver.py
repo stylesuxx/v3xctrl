@@ -30,8 +30,8 @@ class TestUDPReceiver(unittest.TestCase):
         self.handler = lambda msg, addr: self.received.append((msg.timestamp, addr))
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.bind(('127.0.0.1', 0))
-        self.host = '127.0.0.1'
+        self.sock.bind(("127.0.0.1", 0))
+        self.host = "127.0.0.1"
         self.port = self.sock.getsockname()[1]
 
         self.receiver = UDPReceiver(self.sock, self.handler, timeout_ms=50, window_ms=500)
@@ -210,5 +210,5 @@ class TestUDPReceiver(unittest.TestCase):
         self.assertEqual(len(self.received), 2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

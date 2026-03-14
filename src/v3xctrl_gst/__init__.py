@@ -5,9 +5,9 @@ from v3xctrl_gst.RecordingManager import RecordingManager
 from v3xctrl_gst.Streamer import Streamer
 
 __all__ = [
-  "ControlClient",
-  "ControlServer",
-  "QPManager",
-  "RecordingManager",
-  "Streamer",
+    "ControlClient",
+    "ControlServer",
+    "QPManager",
+    "RecordingManager",
+    "Streamer",
 ]

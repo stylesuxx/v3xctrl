@@ -3,17 +3,11 @@ import logging
 
 from v3xctrl_relay.Peer import Peer
 
-logging.basicConfig(
-    level="DEBUG",
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level="DEBUG", format="%(asctime)s - %(levelname)s - %(message)s")
 
-LOCAL_BIND_PORTS = {
-    "video": 16384,
-    "control": 16386
-}
+LOCAL_BIND_PORTS = {"video": 16384, "control": 16386}
 
-DEFAULT_RENDEZVOUS_SERVER = 'rendezvous.websium.at'
+DEFAULT_RENDEZVOUS_SERVER = "rendezvous.websium.at"
 DEFAULT_RENDEZVOUS_PORT = 8888
 
 

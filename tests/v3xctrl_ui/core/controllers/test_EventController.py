@@ -1,4 +1,5 @@
 """Tests for EventController - handles pygame events and menu state."""
+
 # Required before importing pygame, otherwise screen might flicker during tests
 import os
 
@@ -20,11 +21,7 @@ def mock_settings():
     """Create a mock settings object."""
     settings = Mock(spec=Settings)
     settings.get.return_value = {
-        "keyboard": {
-            "trim_increase": pygame.K_LEFT,
-            "trim_decrease": pygame.K_RIGHT,
-            "rec_toggle": pygame.K_r
-        }
+        "keyboard": {"trim_increase": pygame.K_LEFT, "trim_decrease": pygame.K_RIGHT, "rec_toggle": pygame.K_r}
     }
     return settings
 
@@ -53,7 +50,7 @@ class TestEventControllerInitialization:
             on_menu_exit=on_menu_exit,
             send_command=send_command,
             settings=mock_settings,
-            telemetry_context=mock_telemetry
+            telemetry_context=mock_telemetry,
         )
 
         assert controller.on_quit == on_quit
@@ -74,7 +71,7 @@ class TestEventControllerInitialization:
             on_menu_exit=Mock(),
             send_command=Mock(),
             settings=mock_settings,
-            telemetry_context=mock_telemetry
+            telemetry_context=mock_telemetry,
         )
 
         assert controller.menu is not None
@@ -95,14 +92,14 @@ class TestEventHandling:
             on_menu_exit=Mock(),
             send_command=Mock(),
             settings=mock_settings,
-            telemetry_context=mock_telemetry
+            telemetry_context=mock_telemetry,
         )
 
     @pytest.fixture
     def mock_pygame(self, monkeypatch):
         """Mock pygame.event.get() for testing."""
         mock_get = Mock(return_value=[])
-        monkeypatch.setattr('pygame.event.get', mock_get)
+        monkeypatch.setattr("pygame.event.get", mock_get)
         return mock_get
 
     def test_handle_events_returns_true_when_no_events(self, controller, mock_pygame):
@@ -232,7 +229,7 @@ class TestEventControllerIntegration:
     def test_menu_lifecycle(self, monkeypatch, mock_settings, mock_telemetry):
         """Test complete menu lifecycle: show, interact, hide."""
         mock_get = Mock(return_value=[])
-        monkeypatch.setattr('pygame.event.get', mock_get)
+        monkeypatch.setattr("pygame.event.get", mock_get)
 
         on_menu_exit = Mock()
         mock_menu = Mock(visible=False, is_loading=False)
@@ -244,7 +241,7 @@ class TestEventControllerIntegration:
             on_menu_exit=on_menu_exit,
             send_command=Mock(),
             settings=mock_settings,
-            telemetry_context=mock_telemetry
+            telemetry_context=mock_telemetry,
         )
 
         # Initially menu not visible
@@ -267,7 +264,7 @@ class TestEventControllerIntegration:
     def test_fullscreen_toggle_during_menu(self, monkeypatch, mock_settings, mock_telemetry):
         """Test that F11 works even when menu is open."""
         mock_get = Mock(return_value=[])
-        monkeypatch.setattr('pygame.event.get', mock_get)
+        monkeypatch.setattr("pygame.event.get", mock_get)
 
         on_toggle_fullscreen = Mock()
         mock_menu = Mock(visible=True, is_loading=False)
@@ -279,7 +276,7 @@ class TestEventControllerIntegration:
             on_menu_exit=Mock(),
             send_command=Mock(),
             settings=mock_settings,
-            telemetry_context=mock_telemetry
+            telemetry_context=mock_telemetry,
         )
 
         # Press F11 while menu is open
@@ -297,7 +294,7 @@ class TestEventControllerIntegration:
     def test_quit_during_menu(self, monkeypatch, mock_settings, mock_telemetry):
         """Test that quit works even when menu is open."""
         mock_get = Mock(return_value=[])
-        monkeypatch.setattr('pygame.event.get', mock_get)
+        monkeypatch.setattr("pygame.event.get", mock_get)
 
         on_quit = Mock()
         mock_menu = Mock(visible=True, is_loading=False)
@@ -309,7 +306,7 @@ class TestEventControllerIntegration:
             on_menu_exit=Mock(),
             send_command=Mock(),
             settings=mock_settings,
-            telemetry_context=mock_telemetry
+            telemetry_context=mock_telemetry,
         )
 
         quit_event = Mock()
@@ -332,7 +329,7 @@ class TestEventControllerIntegration:
             on_menu_exit=Mock(),
             send_command=Mock(),
             settings=mock_settings,
-            telemetry_context=mock_telemetry
+            telemetry_context=mock_telemetry,
         )
 
         # Simulate connection established - tab enabling is now done directly on menu
@@ -377,16 +374,14 @@ class TestCommandAckCallback:
 
         assert "Received command ack: False" in caplog.text
 
-    def test_keyboard_command_uses_ack_callback(
-        self, controller, mock_telemetry, monkeypatch
-    ):
+    def test_keyboard_command_uses_ack_callback(self, controller, mock_telemetry, monkeypatch):
         mock_gst = Mock(recording=False)
         mock_telemetry.get_gst.return_value = mock_gst
 
         rec_event = Mock()
         rec_event.type = pygame.KEYUP
         rec_event.key = pygame.K_r
-        monkeypatch.setattr('pygame.event.get', Mock(return_value=[rec_event]))
+        monkeypatch.setattr("pygame.event.get", Mock(return_value=[rec_event]))
 
         controller.handle_events()
 
@@ -394,9 +389,7 @@ class TestCommandAckCallback:
         _, callback = controller.send_command.call_args[0]
         assert callback == controller._on_command_ack
 
-    def test_gamepad_command_uses_ack_callback(
-        self, controller, mock_telemetry, monkeypatch
-    ):
+    def test_gamepad_command_uses_ack_callback(self, controller, mock_telemetry, monkeypatch):
         mock_gst = Mock(recording=False)
         mock_telemetry.get_gst.return_value = mock_gst
 
@@ -407,7 +400,7 @@ class TestCommandAckCallback:
         btn_event = Mock()
         btn_event.type = pygame.JOYBUTTONUP
         btn_event.button = 5
-        monkeypatch.setattr('pygame.event.get', Mock(return_value=[btn_event]))
+        monkeypatch.setattr("pygame.event.get", Mock(return_value=[btn_event]))
 
         controller.handle_events()
 
@@ -438,8 +431,8 @@ class TestGamepadHatMapping:
         return controller
 
     def test_match_gamepad_mapping_button(self, controller):
-        controller.gamepad_controller.get_button_mapping.side_effect = (
-            lambda name: 5 if name == "trim_increase" else None
+        controller.gamepad_controller.get_button_mapping.side_effect = lambda name: (
+            5 if name == "trim_increase" else None
         )
 
         event = Mock()
@@ -451,8 +444,8 @@ class TestGamepadHatMapping:
 
     def test_match_gamepad_mapping_hat(self, controller):
         hat_mapping = {"hat": 0, "value": [0, 1]}
-        controller.gamepad_controller.get_button_mapping.side_effect = (
-            lambda name: hat_mapping if name == "trim_increase" else None
+        controller.gamepad_controller.get_button_mapping.side_effect = lambda name: (
+            hat_mapping if name == "trim_increase" else None
         )
 
         event = Mock()
@@ -465,8 +458,8 @@ class TestGamepadHatMapping:
 
     def test_match_gamepad_mapping_hat_wrong_direction(self, controller):
         hat_mapping = {"hat": 0, "value": [0, 1]}
-        controller.gamepad_controller.get_button_mapping.side_effect = (
-            lambda name: hat_mapping if name == "trim_increase" else None
+        controller.gamepad_controller.get_button_mapping.side_effect = lambda name: (
+            hat_mapping if name == "trim_increase" else None
         )
 
         event = Mock()
@@ -487,19 +480,17 @@ class TestGamepadHatMapping:
         result = controller._match_gamepad_mapping(event)
         assert result is None
 
-    def test_hat_trim_increase_sends_command(
-        self, controller, mock_telemetry, monkeypatch
-    ):
+    def test_hat_trim_increase_sends_command(self, controller, mock_telemetry, monkeypatch):
         hat_mapping = {"hat": 0, "value": [0, 1]}
-        controller.gamepad_controller.get_button_mapping.side_effect = (
-            lambda name: hat_mapping if name == "trim_increase" else None
+        controller.gamepad_controller.get_button_mapping.side_effect = lambda name: (
+            hat_mapping if name == "trim_increase" else None
         )
 
         event = Mock()
         event.type = pygame.JOYHATMOTION
         event.hat = 0
         event.value = (0, 1)
-        monkeypatch.setattr('pygame.event.get', Mock(return_value=[event]))
+        monkeypatch.setattr("pygame.event.get", Mock(return_value=[event]))
 
         controller.handle_events()
 

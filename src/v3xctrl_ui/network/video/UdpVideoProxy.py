@@ -44,18 +44,12 @@ class UdpVideoProxy(threading.Thread):
         Must be called before start().
         """
         try:
-            self._external_sock = socket.socket(
-                socket.AF_INET, socket.SOCK_DGRAM
-            )
-            self._external_sock.setsockopt(
-                socket.SOL_SOCKET, socket.SO_REUSEADDR, 1
-            )
+            self._external_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self._external_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self._external_sock.bind(("0.0.0.0", self.video_port))
             self._external_sock.setblocking(False)
         except OSError as e:
-            logging.error(
-                f"UdpVideoProxy: failed to bind port {self.video_port}: {e}"
-            )
+            logging.error(f"UdpVideoProxy: failed to bind port {self.video_port}: {e}")
             if self._external_sock:
                 self._external_sock.close()
                 self._external_sock = None
@@ -70,9 +64,7 @@ class UdpVideoProxy(threading.Thread):
 
         self._forward_addr = ("127.0.0.1", self.local_port)
 
-        self._forward_sock = socket.socket(
-            socket.AF_INET, socket.SOCK_DGRAM
-        )
+        self._forward_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         self.start()
         return True
@@ -108,18 +100,14 @@ class UdpVideoProxy(threading.Thread):
 
         while self._running.is_set():
             try:
-                readable, _, _ = select.select(
-                    [self._external_sock], [], [], 1.0
-                )
+                readable, _, _ = select.select([self._external_sock], [], [], 1.0)
             except (OSError, ValueError):
                 break
 
             if readable:
                 try:
                     while True:
-                        data, _ = self._external_sock.recvfrom(
-                            RECV_BUFFER_SIZE
-                        )
+                        data, _ = self._external_sock.recvfrom(RECV_BUFFER_SIZE)
                         self.packets_received += 1
                         self._forward_sock.sendto(data, self._forward_addr)
                         self.packets_forwarded += 1
@@ -127,25 +115,16 @@ class UdpVideoProxy(threading.Thread):
                     pass
                 except OSError as e:
                     if self._running.is_set():
-                        logging.warning(
-                            f"UdpVideoProxy: forward error: {e}"
-                        )
+                        logging.warning(f"UdpVideoProxy: forward error: {e}")
 
             now = time.monotonic()
             if now - last_heartbeat >= HEARTBEAT_INTERVAL_S:
                 try:
-                    self._external_sock.sendto(
-                        heartbeat_bytes, self.relay_address
-                    )
+                    self._external_sock.sendto(heartbeat_bytes, self.relay_address)
                     last_heartbeat = now
-                    logging.debug(
-                        f"UdpVideoProxy: heartbeat sent to "
-                        f"{self.relay_address}"
-                    )
+                    logging.debug(f"UdpVideoProxy: heartbeat sent to {self.relay_address}")
                 except OSError as e:
-                    logging.warning(
-                        f"UdpVideoProxy: heartbeat failed: {e}"
-                    )
+                    logging.warning(f"UdpVideoProxy: heartbeat failed: {e}")
 
         for sock in (self._external_sock, self._forward_sock):
             if sock:

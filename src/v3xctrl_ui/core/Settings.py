@@ -11,22 +11,17 @@ from platformdirs import user_config_dir
 class Settings:
     DEFAULTS: ClassVar[dict[str, Any]] = {
         "controls": {
-          "keyboard": {
-              "throttle_up": pygame.K_w,
-              "throttle_down": pygame.K_s,
-              "steering_left": pygame.K_a,
-              "steering_right": pygame.K_d,
-              "trim_increase": pygame.K_RIGHT,
-              "trim_decrease": pygame.K_LEFT,
-              "rec_toggle": pygame.K_r,
-          }
+            "keyboard": {
+                "throttle_up": pygame.K_w,
+                "throttle_down": pygame.K_s,
+                "steering_left": pygame.K_a,
+                "steering_right": pygame.K_d,
+                "trim_increase": pygame.K_RIGHT,
+                "trim_decrease": pygame.K_LEFT,
+                "rec_toggle": pygame.K_r,
+            }
         },
-        "relay": {
-            "enabled": False,
-            "server": "relay.v3xctrl.com:8888",
-            "id": "test123",
-            "spectator_mode": False
-        },
+        "relay": {"enabled": False, "server": "relay.v3xctrl.com:8888", "id": "test123", "spectator_mode": False},
         "transport": "udp",
         "ports": {
             "video": 16384,
@@ -48,85 +43,36 @@ class Settings:
             "latency_check_hz": 1,
         },
         "widgets": {
-            "debug": {
-                "display": False,
-                "align": "top-left",
-                "offset": [10, 10],
-                "padding": 5
-            },
-            "debug_fps_loop": {
-                "display": True
-            },
-            "debug_fps_video": {
-                "display": True
-            },
-            "debug_data": {
-                "display": True
-            },
-            "debug_latency": {
-                "display": True
-            },
+            "debug": {"display": False, "align": "top-left", "offset": [10, 10], "padding": 5},
+            "debug_fps_loop": {"display": True},
+            "debug_fps_video": {"display": True},
+            "debug_data": {"display": True},
+            "debug_latency": {"display": True},
             "fps": {
                 "width": 100,
                 "height": 75,
                 "average_window": 30,
                 "graph_frames": 300,
             },
-            "steering": {
-                "display": True,
-                "align": "bottom-center",
-                "offset": [10, 0]
-            },
-            "throttle": {
-                "display": True,
-                "align": "bottom-left",
-                "offset": [10, 10]
-            },
+            "steering": {"display": True, "align": "bottom-center", "offset": [10, 0]},
+            "throttle": {"display": True, "align": "bottom-left", "offset": [10, 10]},
             "signal": {
                 "display": True,
                 "align": "top-right",
                 "offset": [10, 10],
                 "padding": 0,
             },
-            "signal_quality": {
-                "display": True
-            },
-            "signal_band": {
-                "display": True
-            },
-            "signal_cell": {
-                "display": False
-            },
-            "battery": {
-                "display": True,
-                "align": "top-right",
-                "offset": [105, 10]
-            },
-            "battery_icon": {
-                "display": True
-            },
-            "battery_voltage": {
-                "display": True
-            },
-            "battery_average_voltage": {
-                "display": True
-            },
-            "battery_percent": {
-                "display": True
-            },
-            "battery_current": {
-                "display": False
-            },
-            "rec": {
-                "display": True,
-                "align": "bottom-right",
-                "offset": [10, 10]
-            },
-            "clock": {
-                "display": False,
-                "align": "bottom-right",
-                "offset": [0, 0]
-            },
+            "signal_quality": {"display": True},
+            "signal_band": {"display": True},
+            "signal_cell": {"display": False},
+            "battery": {"display": True, "align": "top-right", "offset": [105, 10]},
+            "battery_icon": {"display": True},
+            "battery_voltage": {"display": True},
+            "battery_average_voltage": {"display": True},
+            "battery_percent": {"display": True},
+            "battery_current": {"display": False},
+            "rec": {"display": True, "align": "bottom-right", "offset": [10, 10]},
+            "clock": {"display": False, "align": "bottom-right", "offset": [0, 0]},
         },
         "settings": {
             "throttle": {
@@ -179,11 +125,7 @@ class Settings:
 
     def _merge(self, base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
         for key, value in override.items():
-            if (
-                key in base
-                and isinstance(base[key], dict)
-                and isinstance(value, dict)
-            ):
+            if key in base and isinstance(base[key], dict) and isinstance(value, dict):
                 base[key] = self._merge(base[key], value)
             else:
                 base[key] = value
@@ -212,14 +154,12 @@ class Settings:
 
     def _serialize_controls(self, controls: dict[str, Any]) -> dict[str, Any]:
         return {
-            device: {k: self._key_to_string(v) for k, v in bindings.items()}
-            for device, bindings in controls.items()
+            device: {k: self._key_to_string(v) for k, v in bindings.items()} for device, bindings in controls.items()
         }
 
     def _deserialize_controls(self, controls: dict[str, Any]) -> dict[str, Any]:
         return {
-            device: {k: self._string_to_key(v) for k, v in bindings.items()}
-            for device, bindings in controls.items()
+            device: {k: self._string_to_key(v) for k, v in bindings.items()} for device, bindings in controls.items()
         }
 
     def _key_to_string(self, keycode: Any) -> str:

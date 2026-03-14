@@ -11,6 +11,7 @@ UDP proxy model:
 - Inbound: TCP data -> proxy sends from E to localhost:local_component_port
 - Responses: component replies to localhost:E -> proxy reads -> forwards over TCP
 """
+
 import logging
 import select
 import socket
@@ -87,9 +88,7 @@ class TcpTunnel:
         self._ephemeral_port = udp_sock.getsockname()[1]
         self._port_ready.set()
 
-        logger.info(
-            f"TcpTunnel UDP proxy bound on ephemeral port {self._ephemeral_port}"
-        )
+        logger.info(f"TcpTunnel UDP proxy bound on ephemeral port {self._ephemeral_port}")
 
         try:
             while not self._stop_event.is_set():
@@ -101,17 +100,14 @@ class TcpTunnel:
                     tcp_sock.close()
                     continue  # retry connection
 
-                logger.info(
-                    f"TcpTunnel connected to {self.remote_host}:{self.remote_port}"
-                )
+                logger.info(f"TcpTunnel connected to {self.remote_host}:{self.remote_port}")
 
                 self._bridge(tcp_sock, udp_sock)
 
                 tcp_sock.close()
                 if not self._stop_event.is_set():
                     logger.warning(
-                        f"TcpTunnel disconnected from "
-                        f"{self.remote_host}:{self.remote_port}, reconnecting..."
+                        f"TcpTunnel disconnected from {self.remote_host}:{self.remote_port}, reconnecting..."
                     )
         finally:
             udp_sock.close()
@@ -128,9 +124,7 @@ class TcpTunnel:
 
             try:
                 tcp_sock.connect((self.remote_host, self.remote_port))
-                tcp_sock.setsockopt(
-                    socket.IPPROTO_TCP, socket.TCP_NODELAY, 1
-                )
+                tcp_sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                 configure_keepalive(tcp_sock)
                 configure_send_timeout(tcp_sock, 200)
                 tcp_sock.settimeout(None)
@@ -150,9 +144,7 @@ class TcpTunnel:
                     warned = True
 
                 delay = _RETRY_DELAYS[min(attempt, len(_RETRY_DELAYS) - 1)]
-                logger.debug(
-                    f"TCP connect failed ({e}), retrying in {delay}s..."
-                )
+                logger.debug(f"TCP connect failed ({e}), retrying in {delay}s...")
 
                 # Sleep in small increments to check stop_event
                 deadline = time.monotonic() + delay
@@ -250,9 +242,7 @@ class TcpTunnel:
                 if data is None:
                     break
 
-                udp_sock.sendto(
-                    data, ("127.0.0.1", self.local_component_port)
-                )
+                udp_sock.sendto(data, ("127.0.0.1", self.local_component_port))
 
         except OSError:
             pass

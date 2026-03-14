@@ -24,7 +24,7 @@ class RelayClient:
             sock.connect(self.socket_path)
             sock.send(b"stats")
             data = sock.recv(65536)
-            return json.loads(data.decode('utf-8'))
+            return json.loads(data.decode("utf-8"))
         finally:
             if sock:
                 with contextlib.suppress(Exception):
@@ -32,18 +32,18 @@ class RelayClient:
 
 
 def create_stats_blueprint(relay_clients: dict[int, RelayClient]) -> Blueprint:
-    stats_blueprint = Blueprint('stats', __name__)
+    stats_blueprint = Blueprint("stats", __name__)
 
-    @stats_blueprint.route('/')
+    @stats_blueprint.route("/")
     @login_required
     def dashboard() -> str:
         return render_template(
-            'dashboard.html',
+            "dashboard.html",
             relay_ports=sorted(relay_clients.keys()),
-            username=session['username'],
+            username=session["username"],
         )
 
-    @stats_blueprint.route('/api/stats')
+    @stats_blueprint.route("/api/stats")
     @login_required
     def api_stats() -> tuple[Any, int]:
         relays: dict[str, dict[str, Any]] = {}
@@ -52,16 +52,16 @@ def create_stats_blueprint(relay_clients: dict[int, RelayClient]) -> Blueprint:
             try:
                 sessions = client.get_stats()
                 relays[str(port)] = {
-                    'status': 'ok',
-                    'sessions': sessions,
+                    "status": "ok",
+                    "sessions": sessions,
                 }
             except Exception as e:
                 logging.warning(f"Failed to get stats from relay on port {port}: {e}")
                 relays[str(port)] = {
-                    'status': 'error',
-                    'error': str(e),
+                    "status": "error",
+                    "error": str(e),
                 }
 
-        return jsonify({'relays': relays}), 200
+        return jsonify({"relays": relays}), 200
 
     return stats_blueprint

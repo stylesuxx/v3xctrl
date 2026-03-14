@@ -116,8 +116,12 @@ class TestMessageHandler(unittest.TestCase):
         generic handlers run before specific ones.
         """
         calls = []
-        def generic(m: Message, _addr): calls.append(("generic", type(m).__name__))
-        def specific(m: Heartbeat, _addr): calls.append(("specific", type(m).__name__))
+
+        def generic(m: Message, _addr):
+            calls.append(("generic", type(m).__name__))
+
+        def specific(m: Heartbeat, _addr):
+            calls.append(("specific", type(m).__name__))
 
         # Class insertion order: Message first, then Heartbeat
         self.handler.add_handler(Message, generic)
@@ -133,8 +137,12 @@ class TestMessageHandler(unittest.TestCase):
         If Heartbeat is registered before Message, class insertion order makes specific run first.
         """
         calls = []
-        def generic(m: Message, _addr): calls.append(("generic", type(m).__name__))
-        def specific(m: Heartbeat, _addr): calls.append(("specific", type(m).__name__))
+
+        def generic(m: Message, _addr):
+            calls.append(("generic", type(m).__name__))
+
+        def specific(m: Heartbeat, _addr):
+            calls.append(("specific", type(m).__name__))
 
         # Class insertion order: Heartbeat first, then Message
         self.handler.add_handler(Heartbeat, specific)

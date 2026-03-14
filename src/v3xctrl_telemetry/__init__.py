@@ -12,13 +12,13 @@ from .dataclasses import (
 )
 
 __all__ = [
-    'BatteryInfo',
-    'CellInfo',
-    'GstFlags',
-    'LocationInfo',
-    'ServiceFlags',
-    'SignalInfo',
-    'TelemetryPayload',
-    'ThrottleFlags',
-    'VideoCoreFlags',
+    "BatteryInfo",
+    "CellInfo",
+    "GstFlags",
+    "LocationInfo",
+    "ServiceFlags",
+    "SignalInfo",
+    "TelemetryPayload",
+    "ThrottleFlags",
+    "VideoCoreFlags",
 ]

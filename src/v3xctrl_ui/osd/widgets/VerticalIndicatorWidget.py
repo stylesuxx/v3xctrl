@@ -9,11 +9,7 @@ from v3xctrl_ui.utils.colors import WHITE
 
 class VerticalIndicatorWidget(BaseIndicatorWidget):
     def __init__(
-        self,
-        position: tuple[int, int],
-        size: tuple[int, int],
-        bar_width: int = 20,
-        **kwargs: dict[str, Any]
+        self, position: tuple[int, int], size: tuple[int, int], bar_width: int = 20, **kwargs: dict[str, Any]
     ) -> None:
         super().__init__(position, size, **kwargs)
         self.bar_width = bar_width

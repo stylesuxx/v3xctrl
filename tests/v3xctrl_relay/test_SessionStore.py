@@ -46,12 +46,12 @@ class TestSessionStore(unittest.TestCase):
             cur.execute(
                 "INSERT INTO allowed_sessions (id, spectator_id, discord_user_id, discord_username) "
                 "VALUES (?, ?, ?, ?)",
-                ("aaaaaaaaaa", "bbbbbbbbbb", "existing_user", "existing")
+                ("aaaaaaaaaa", "bbbbbbbbbb", "existing_user", "existing"),
             )
             conn.commit()
 
-        with patch('secrets.choice') as mock_choice:
-            mock_choice.return_value = 'a'
+        with patch("secrets.choice") as mock_choice:
+            mock_choice.return_value = "a"
 
             with self.assertRaises(RuntimeError) as context:
                 self.store.create("new_user", "new_username")
@@ -91,12 +91,12 @@ class TestSessionStore(unittest.TestCase):
             cur.execute(
                 "INSERT INTO allowed_sessions (id, spectator_id, discord_user_id, discord_username) "
                 "VALUES (?, ?, ?, ?)",
-                ("aaaaaaaaaa", "bbbbbbbbbb", "other_user", "other")
+                ("aaaaaaaaaa", "bbbbbbbbbb", "other_user", "other"),
             )
             conn.commit()
 
-        with patch('secrets.choice') as mock_choice:
-            mock_choice.return_value = 'a'
+        with patch("secrets.choice") as mock_choice:
+            mock_choice.return_value = "a"
 
             with self.assertRaises(RuntimeError) as context:
                 self.store.update("42", "updated_username")
@@ -125,7 +125,6 @@ class TestSessionStore(unittest.TestCase):
     def test_get_session_id_from_spectator_id_nonexistent(self):
         retrieved_session_id = self.store.get_session_id_from_spectator_id("nonexistent")
         self.assertIsNone(retrieved_session_id)
-
 
     def test_delete_existing_session(self):
         self.store.create("42", "tester")

@@ -111,9 +111,7 @@ class Bot(discord.Client):
         if channel and isinstance(channel, discord.TextChannel):
             await self.testdrive_handler.post_persistent_message(channel)
         else:
-            logging.error(
-                f"Testdrive channel {self.testdrive_channel_id} not found or not a text channel"
-            )
+            logging.error(f"Testdrive channel {self.testdrive_channel_id} not found or not a text channel")
 
     def _is_correct_channel(self, interaction: discord.Interaction) -> bool:
         return interaction.channel_id == self.channel_id
@@ -138,7 +136,9 @@ class Bot(discord.Client):
 
             except RuntimeError as e:
                 logging.error(f"ID generation failed for {username}: {e}")
-                await interaction.followup.send("Failed to generate a unique session ID. Try again later.", ephemeral=True)
+                await interaction.followup.send(
+                    "Failed to generate a unique session ID. Try again later.", ephemeral=True
+                )
                 return
 
         try:
@@ -152,7 +152,9 @@ class Bot(discord.Client):
             await interaction.followup.send("Session ID sent via DM!", ephemeral=True)
 
         except discord.Forbidden:
-            await interaction.followup.send("I couldn't DM you. Please enable DMs from server members and try again.", ephemeral=True)
+            await interaction.followup.send(
+                "I couldn't DM you. Please enable DMs from server members and try again.", ephemeral=True
+            )
 
     async def handle_renewid_command(self, interaction: discord.Interaction) -> None:
         # Silently ignore commands from other channels
@@ -188,4 +190,6 @@ class Bot(discord.Client):
             await interaction.followup.send("Failed to generate a unique session ID. Try again later.", ephemeral=True)
 
         except discord.Forbidden:
-            await interaction.followup.send("I couldn't DM you. Please enable DMs from server members and try again.", ephemeral=True)
+            await interaction.followup.send(
+                "I couldn't DM you. Please enable DMs from server members and try again.", ephemeral=True
+            )

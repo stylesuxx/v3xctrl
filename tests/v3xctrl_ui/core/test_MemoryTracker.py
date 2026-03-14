@@ -18,7 +18,9 @@ class TestMemoryTracker(unittest.TestCase):
         self.mock_tm.take_snapshot.return_value = fake_snapshot
 
         # Patch time.sleep to immediately trigger stop
-        self.patcher_sleep = patch("v3xctrl_ui.core.MemoryTracker.time.sleep", side_effect=lambda _: self.mt._stop_event.set())
+        self.patcher_sleep = patch(
+            "v3xctrl_ui.core.MemoryTracker.time.sleep", side_effect=lambda _: self.mt._stop_event.set()
+        )
         self.mock_sleep = self.patcher_sleep.start()
 
         self.mt = MemoryTracker(interval=1, top=2, enable_log=True)

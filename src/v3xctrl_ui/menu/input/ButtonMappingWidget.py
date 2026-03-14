@@ -53,7 +53,7 @@ class ButtonMappingWidget(BaseWidget):
         button_number: MappingValue,
         font: Font,
         on_button_change: Callable[[MappingValue], None],
-        on_remap_toggle: Callable[[bool], None]
+        on_remap_toggle: Callable[[bool], None],
     ) -> None:
         super().__init__()
 

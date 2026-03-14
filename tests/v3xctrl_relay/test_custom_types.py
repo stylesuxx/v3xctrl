@@ -41,7 +41,7 @@ class TestPortType(unittest.TestCase):
 class TestPeerEntry(unittest.TestCase):
     def test_initialization(self):
         addr = ("192.168.1.1", 8080)
-        with patch('time.time', return_value=1234567890.0):
+        with patch("time.time", return_value=1234567890.0):
             peer = PeerEntry(addr)
 
         self.assertEqual(peer.addr, addr)
@@ -102,7 +102,7 @@ class TestSession(unittest.TestCase):
     def test_register_stores_peer_entry(self):
         addr = ("192.168.1.1", 8080)
 
-        with patch('time.time', return_value=1234567890.0):
+        with patch("time.time", return_value=1234567890.0):
             self.session.register(Role.STREAMER, PortType.VIDEO, addr)
 
         peer_entry = self.session.roles[Role.STREAMER][PortType.VIDEO]
@@ -114,10 +114,10 @@ class TestSession(unittest.TestCase):
         addr1 = ("192.168.1.1", 8080)
         addr2 = ("192.168.1.2", 8081)
 
-        with patch('time.time', return_value=1000.0):
+        with patch("time.time", return_value=1000.0):
             self.session.register(Role.STREAMER, PortType.VIDEO, addr1)
 
-        with patch('time.time', return_value=2000.0):
+        with patch("time.time", return_value=2000.0):
             self.session.register(Role.STREAMER, PortType.VIDEO, addr2)
 
         peer_entry = self.session.roles[Role.STREAMER][PortType.VIDEO]
@@ -264,18 +264,18 @@ class TestSpectatorEntry(unittest.TestCase):
         self.assertIn(addr2, addresses)
 
     def test_register_port_updates_last_announcement(self):
-        with patch('time.time', return_value=1000.0):
+        with patch("time.time", return_value=1000.0):
             spectator = SpectatorEntry()
 
         initial_time = spectator.last_announcement_at
         self.assertEqual(initial_time, 1000.0)
 
-        with patch('time.time', return_value=2000.0):
+        with patch("time.time", return_value=2000.0):
             spectator.register_port(PortType.VIDEO, ("192.168.1.100", 5000))
 
         self.assertEqual(spectator.last_announcement_at, 2000.0)
 
-        with patch('time.time', return_value=3000.0):
+        with patch("time.time", return_value=3000.0):
             spectator.register_port(PortType.CONTROL, ("192.168.1.100", 5001))
 
         self.assertEqual(spectator.last_announcement_at, 3000.0)
@@ -316,21 +316,21 @@ class TestSessionSpectator(unittest.TestCase):
         self.assertEqual(len(self.session.spectators), 2)
 
     def test_register_spectator_does_not_update_last_announcement(self):
-        with patch('time.time', return_value=1000.0):
+        with patch("time.time", return_value=1000.0):
             session = Session("test")
 
         initial_time = session.last_announcement_at
 
-        with patch('time.time', return_value=2000.0):
+        with patch("time.time", return_value=2000.0):
             session.register(Role.SPECTATOR, PortType.VIDEO, ("192.168.1.100", 5000))
 
         self.assertEqual(session.last_announcement_at, initial_time)
 
     def test_register_viewer_updates_last_announcement(self):
-        with patch('time.time', return_value=1000.0):
+        with patch("time.time", return_value=1000.0):
             session = Session("test")
 
-        with patch('time.time', return_value=2000.0):
+        with patch("time.time", return_value=2000.0):
             session.register(Role.VIEWER, PortType.VIDEO, ("192.168.1.100", 5000))
 
         self.assertEqual(session.last_announcement_at, 2000.0)
@@ -376,5 +376,5 @@ class TestSessionNotFoundError(unittest.TestCase):
             raise SessionNotFoundError()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

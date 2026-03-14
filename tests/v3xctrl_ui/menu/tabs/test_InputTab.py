@@ -41,12 +41,7 @@ class DummyGamepad:
 
 class DummyGamepadManager:
     def __init__(self):
-        self.calibrations = {
-            "guid-123": {
-                "center": [0, 0],
-                "scale": [1, 1]
-            }
-        }
+        self.calibrations = {"guid-123": {"center": [0, 0], "scale": [1, 1]}}
         self._active_guid = "guid-123"
         self.observers = []
 
@@ -66,18 +61,13 @@ class DummyGamepadManager:
         return self._active_guid
 
     def get_gamepads(self):
-        return {
-            "guid-123": DummyGamepad(guid="guid-123", name="Dummy Gamepad", id_=0)
-        }
+        return {"guid-123": DummyGamepad(guid="guid-123", name="Dummy Gamepad", id_=0)}
 
     def add_observer(self, callback):
         self.observers.append(callback)
 
     def read_inputs(self, apply_deadband: bool = True):
-        return {
-            "throttle": 0.0,
-            "steering": 0.0
-        }
+        return {"throttle": 0.0, "steering": 0.0}
 
 
 class TestInputTab(unittest.TestCase):
@@ -89,7 +79,7 @@ class TestInputTab(unittest.TestCase):
             "controls": {
                 "keyboard": {
                     "forward": 119,  # W
-                    "backward": 115  # S
+                    "backward": 115,  # S
                 }
             }
         }
@@ -107,7 +97,7 @@ class TestInputTab(unittest.TestCase):
             padding=10,
             y_offset=0,
             gamepad_manager=self.manager,
-            on_active_toggle=on_active_toggle
+            on_active_toggle=on_active_toggle,
         )
 
     def test_initial_keyboard_controls_loaded(self):

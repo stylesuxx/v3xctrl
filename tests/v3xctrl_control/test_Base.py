@@ -10,6 +10,7 @@ from src.v3xctrl_helper import MessageFromAddress
 
 class DummyBase(Base):
     """Concrete implementation for testing Base."""
+
     def __init__(self) -> None:
         super().__init__()
         self.sent_messages = []
@@ -76,10 +77,7 @@ class TestBase(unittest.TestCase):
         hb = Heartbeat()
         self.base.all_handler(hb, ("127.0.0.1", 5000))
 
-        self.assertEqual(
-            calls,
-            [("generic", "Heartbeat"), ("specific", "Heartbeat")]
-        )
+        self.assertEqual(calls, [("generic", "Heartbeat"), ("specific", "Heartbeat")])
 
     def test_all_handler_no_match(self) -> None:
         handler_mock = Mock()

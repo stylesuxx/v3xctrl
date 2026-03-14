@@ -11,14 +11,14 @@ from flask_smorest import Blueprint
 
 from .response import error, success
 
-blueprint = Blueprint('config', 'config', url_prefix='/config', description='Configuration management')
+blueprint = Blueprint("config", "config", url_prefix="/config", description="Configuration management")
 
 
-@blueprint.route('/')
+@blueprint.route("/")
 class Config(MethodView):
     @blueprint.response(200, description="Return current configuration")
     def get(self) -> tuple[Response, int]:
-        config_path: str = str(current_app.config['CONFIG_PATH'])
+        config_path: str = str(current_app.config["CONFIG_PATH"])
         with open(config_path) as f:
             return success(json.load(f))
 
@@ -29,10 +29,10 @@ class Config(MethodView):
         if data is None:
             return error("No JSON data provided", status=400)
 
-        config_path: str = str(current_app.config['CONFIG_PATH'])
+        config_path: str = str(current_app.config["CONFIG_PATH"])
         config_path_obj = Path(config_path)
-        backup_path = config_path_obj.with_suffix(config_path_obj.suffix + '.old')
-        temp_path = config_path_obj.with_suffix(config_path_obj.suffix + '.tmp')
+        backup_path = config_path_obj.with_suffix(config_path_obj.suffix + ".old")
+        temp_path = config_path_obj.with_suffix(config_path_obj.suffix + ".tmp")
 
         try:
             # Backup existing config if it exists
@@ -40,7 +40,7 @@ class Config(MethodView):
                 shutil.copy2(config_path, backup_path)
 
             # Write to temporary file with fsync
-            with open(temp_path, 'w') as f:
+            with open(temp_path, "w") as f:
                 json.dump(data, f, indent=4)
                 f.flush()
                 os.fsync(f.fileno())
@@ -48,12 +48,7 @@ class Config(MethodView):
             # Atomic rename
             temp_path.rename(config_path)
 
-            result = subprocess.run(
-                ["sudo", "/usr/bin/v3xctrl-write-env"],
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
+            result = subprocess.run(["sudo", "/usr/bin/v3xctrl-write-env"], capture_output=True, text=True, timeout=10)
 
             if result.returncode != 0:
                 return error("Environment regeneration failed", result.stderr)
@@ -77,10 +72,10 @@ class Config(MethodView):
                     temp_path.unlink()
 
 
-@blueprint.route('/schema')
+@blueprint.route("/schema")
 class ConfigSchema(MethodView):
     @blueprint.response(200, description="Return configuration JSON schema")
     def get(self) -> tuple[Response, int]:
-        schema_path: str = str(current_app.config['SCHEMA_PATH'])
+        schema_path: str = str(current_app.config["SCHEMA_PATH"])
         with open(schema_path) as f:
             return success(json.load(f))

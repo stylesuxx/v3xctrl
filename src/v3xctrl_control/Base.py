@@ -2,6 +2,7 @@
 Base class for Server AND Client - disregard the name, they share more
 than you might think.
 """
+
 import logging
 import threading
 import time
@@ -22,6 +23,7 @@ from .State import State
 
 class InitializationError(Exception):
     """Raised when a subclass is not properly initialized"""
+
     pass
 
 
@@ -60,12 +62,12 @@ class Base(threading.Thread, ABC):
         """Validate that all required components are properly initialized."""
         missing: list[str] = []
 
-        if not hasattr(self, 'socket') or self.socket is None:
-            missing.append('socket')
-        if not hasattr(self, 'transmitter') or self.transmitter is None:
-            missing.append('transmitter')
-        if not hasattr(self, 'message_handler') or self.message_handler is None:
-            missing.append('message_handler')
+        if not hasattr(self, "socket") or self.socket is None:
+            missing.append("socket")
+        if not hasattr(self, "transmitter") or self.transmitter is None:
+            missing.append("transmitter")
+        if not hasattr(self, "message_handler") or self.message_handler is None:
+            missing.append("message_handler")
 
         if missing:
             raise InitializationError(f"Required components not initialized: {', '.join(missing)}")
@@ -127,7 +129,7 @@ class Base(threading.Thread, ABC):
         """
         self.last_message_timestamp = time.monotonic()
         self.message_history.append(MessageFromAddress(message, addr))
-        self.message_history = self.message_history[-self.message_history_length:]
+        self.message_history = self.message_history[-self.message_history_length :]
 
         for cls, handlers in self.subscriptions.items():
             if isinstance(message, cls):

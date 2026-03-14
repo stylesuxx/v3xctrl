@@ -19,13 +19,7 @@ class StatusWidget(Widget):
         "red": RED,
     }
 
-    def __init__(
-        self,
-        position: tuple[int, int],
-        size: int,
-        label: str,
-        padding: int = 8
-    ) -> None:
+    def __init__(self, position: tuple[int, int], size: int, label: str, padding: int = 8) -> None:
         super().__init__()
 
         self.position = position

@@ -9,7 +9,6 @@ from v3xctrl_ui.network.video.UdpVideoProxy import (
 
 
 class TestUdpVideoProxy(unittest.TestCase):
-
     def setUp(self):
         # Simulate a relay by listening on a random port
         self.relay_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

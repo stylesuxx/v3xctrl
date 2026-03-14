@@ -12,6 +12,7 @@ NOTE: The kernel avoids buildup by dropping older UDP packets when new ones
       interested in the most recent data, this behavior is beneficial and does
       not require special handling on our side.
 """
+
 import logging
 import queue
 import select

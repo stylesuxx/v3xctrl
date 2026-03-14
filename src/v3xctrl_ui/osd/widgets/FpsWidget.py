@@ -11,11 +11,7 @@ from v3xctrl_ui.utils.helpers import get_icon, round_corners
 
 class FpsWidget(Widget):
     def __init__(
-        self,
-        position: tuple[int, int],
-        size: tuple[int, int],
-        label: str,
-        smoothing_window: int = 15
+        self, position: tuple[int, int], size: tuple[int, int], label: str, smoothing_window: int = 15
     ) -> None:
         super().__init__()
 
@@ -58,11 +54,7 @@ class FpsWidget(Widget):
         self._status_icon: Surface | None = None
         self._status_icon_padding = 2
 
-    def set_status_icon(
-        self,
-        icon_name: str,
-        color: tuple[int, int, int] = (255, 255, 255)
-    ) -> None:
+    def set_status_icon(self, icon_name: str, color: tuple[int, int, int] = (255, 255, 255)) -> None:
         """Set a status icon to display in the bottom right corner.
 
         Args:
@@ -80,7 +72,7 @@ class FpsWidget(Widget):
         if len(self.history) < 2:
             return
 
-        recent_fps = list(self.history)[-self.average_window:]
+        recent_fps = list(self.history)[-self.average_window :]
         average_fps = int(sum(recent_fps) // len(recent_fps)) if recent_fps else 0
         self.smoothed_fps.append(average_fps)
         smoothed_fps = int(sum(self.smoothed_fps) // len(self.smoothed_fps))

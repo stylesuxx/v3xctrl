@@ -25,9 +25,9 @@ class AppState:
         self.settings = settings
 
         self.model = ApplicationModel(
-          fullscreen=self.settings.get("video", {"fullscreen": False}).get("fullscreen", False),
-          throttle=0,
-          steering=0
+            fullscreen=self.settings.get("video", {"fullscreen": False}).get("fullscreen", False),
+            throttle=0,
+            steering=0,
         )
 
         video = settings.get("video")
@@ -38,6 +38,7 @@ class AppState:
         self.control_port = ports.get("control", 16386)
 
         from v3xctrl_ui import __version__
+
         self.title = f"V3XCTRL ({__version__})"
 
         self.input_controller = InputController(settings)
@@ -115,9 +116,7 @@ class AppState:
     def update(self) -> None:
         self.network_coordinator.process_callbacks()
         self.settings_controller.check_network_restart_complete()
-        self.display_controller.update_cursor_visibility(
-            self.menu.visible or not self.model.user_connected
-        )
+        self.display_controller.update_cursor_visibility(self.menu.visible or not self.model.user_connected)
 
         if not self.model.user_connected:
             return
@@ -175,10 +174,7 @@ class AppState:
             )
 
         self.renderer.render_all(
-            self,
-            self.network_coordinator.network_controller,
-            self.model.fullscreen,
-            self.model.scale
+            self, self.network_coordinator.network_controller, self.model.fullscreen, self.model.scale
         )
 
     def shutdown(self) -> None:
@@ -229,12 +225,11 @@ class AppState:
             self.network_coordinator.send_command,
             self.update_settings,
             self._signal_handler,
-            self.telemetry_context
+            self.telemetry_context,
         )
 
         streamer_enabled = (
-            self.network_coordinator.is_control_connected() and
-            not self.network_coordinator.is_spectator()
+            self.network_coordinator.is_control_connected() and not self.network_coordinator.is_spectator()
         )
         menu.set_tab_enabled("Streamer", streamer_enabled)
 
@@ -286,20 +281,13 @@ class AppState:
         return self.network_coordinator.restart_network_controller(new_settings)
 
     def _on_connection_change(self, connected: bool) -> None:
-        streamer_enabled = (
-            connected and
-            not self.network_coordinator.is_spectator()
-        )
+        streamer_enabled = connected and not self.network_coordinator.is_spectator()
         self.event_controller.set_menu_tab_enabled("Streamer", streamer_enabled)
 
     def _setup_signal_handling(self) -> None:
         signal.signal(signal.SIGINT, self._signal_handler)
 
-    def _signal_handler(
-        self,
-        sig: int | None = None,
-        frame: Any | None = None
-    ) -> None:
+    def _signal_handler(self, sig: int | None = None, frame: Any | None = None) -> None:
         """Handle shutdown signals gracefully."""
         self.menu.hide()
         if self.model.running:

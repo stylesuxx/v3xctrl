@@ -17,7 +17,7 @@ class BaseIndicatorWidget(Widget):
         range_mode: str = "symmetric",
         color_fn: Callable[[float], tuple[int, int, int]] | None = None,
         bg_alpha: int = 150,
-        padding: int = 6
+        padding: int = 6,
     ) -> None:
         """
         position: (x, y) position of the indicator background

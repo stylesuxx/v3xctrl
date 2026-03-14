@@ -7,6 +7,7 @@ class UnauthorizedError(Exception):
 
 class PeerRegistrationAborted(Exception):
     """Raised when peer registration is aborted intentionally."""
+
     pass
 
 

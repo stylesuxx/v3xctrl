@@ -1,4 +1,5 @@
 """Protocol for telemetry data sources."""
+
 from typing import Any, Protocol, runtime_checkable
 
 

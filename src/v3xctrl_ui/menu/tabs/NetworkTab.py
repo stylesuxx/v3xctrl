@@ -16,7 +16,6 @@ from .VerticalLayout import VerticalLayout
 
 
 class NetworkTab(Tab):
-
     def __init__(
         self,
         settings: Settings,
@@ -24,7 +23,7 @@ class NetworkTab(Tab):
         height: int,
         padding: int,
         y_offset: int,
-        on_test_relay: Callable | None = None
+        on_test_relay: Callable | None = None,
     ) -> None:
         super().__init__(settings, width, height, padding, y_offset)
 
@@ -35,81 +34,87 @@ class NetworkTab(Tab):
 
         # Transport select
         self.transport_select = Select(
-            label=t("Transport"), label_width=90, length=120,
-            font=LABEL_FONT, callback=self._on_transport_change
+            label=t("Transport"), label_width=90, length=120, font=LABEL_FONT, callback=self._on_transport_change
         )
 
         # Port widgets
         self.video_input = NumberInput(
-            t("Video"), label_width=90, input_width=75, min_val=1, max_val=65535,
-            font=LABEL_FONT, mono_font=MONO_FONT,
-            on_change=lambda value: self._on_port_change("video", value)
+            t("Video"),
+            label_width=90,
+            input_width=75,
+            min_val=1,
+            max_val=65535,
+            font=LABEL_FONT,
+            mono_font=MONO_FONT,
+            on_change=lambda value: self._on_port_change("video", value),
         )
         self.control_input = NumberInput(
-            t("Control"), label_width=90, input_width=75, min_val=1, max_val=65535,
-            font=LABEL_FONT, mono_font=MONO_FONT,
-            on_change=lambda value: self._on_port_change("control", value)
+            t("Control"),
+            label_width=90,
+            input_width=75,
+            min_val=1,
+            max_val=65535,
+            font=LABEL_FONT,
+            mono_font=MONO_FONT,
+            on_change=lambda value: self._on_port_change("control", value),
         )
 
         # Relay server widgets
         self.relay_server_input = TextInput(
-            label=t("Server"), label_width=90, input_width=350,
-            font=LABEL_FONT, mono_font=MONO_FONT,
-            on_change=self._on_relay_server_change
+            label=t("Server"),
+            label_width=90,
+            input_width=350,
+            font=LABEL_FONT,
+            mono_font=MONO_FONT,
+            on_change=self._on_relay_server_change,
         )
         self.relay_id_input = TextInput(
-            label=t("ID"), label_width=90, input_width=350,
-            font=LABEL_FONT, mono_font=MONO_FONT,
-            on_change=self._on_relay_id_change
+            label=t("ID"),
+            label_width=90,
+            input_width=350,
+            font=LABEL_FONT,
+            mono_font=MONO_FONT,
+            on_change=self._on_relay_id_change,
         )
         self.paste_id_button = Button(
-            label=t("Paste ID"),
-            font=LABEL_FONT,
-            callback=self._on_paste_id,
-            height=self.relay_id_input.input_height
+            label=t("Paste ID"), font=LABEL_FONT, callback=self._on_paste_id, height=self.relay_id_input.input_height
         )
         self.test_relay_button = Button(
-            label=t("Test"),
-            font=LABEL_FONT,
-            callback=self._on_test_relay,
-            height=self.relay_id_input.input_height
+            label=t("Test"), font=LABEL_FONT, callback=self._on_test_relay, height=self.relay_id_input.input_height
         )
-        self.relay_id_row = WidgetRow([
-            self.relay_id_input, self.paste_id_button, self.test_relay_button
-        ])
+        self.relay_id_row = WidgetRow([self.relay_id_input, self.paste_id_button, self.test_relay_button])
 
         self.relay_enabled_checkbox = Checkbox(
-            label=t("Use UDP Relay"), font=LABEL_FONT,
-            checked=False,
-            on_change=self._on_relay_enable_change
+            label=t("Use UDP Relay"), font=LABEL_FONT, checked=False, on_change=self._on_relay_enable_change
         )
         self.relay_spectator_checkbox = Checkbox(
-            label=t("Spectator Mode"), font=LABEL_FONT,
-            checked=False,
-            on_change=self._on_relay_spectator_change
+            label=t("Spectator Mode"), font=LABEL_FONT, checked=False, on_change=self._on_relay_spectator_change
         )
 
         # Miscellaneous widgets
         self.udp_packet_ttl_input = NumberInput(
-            t("UDP packet TTL"), label_width=180, input_width=75, min_val=1, max_val=5000,
-            font=LABEL_FONT, mono_font=MONO_FONT,
-            on_change=lambda value: self._on_udp_packet_ttl_change(value)
+            t("UDP packet TTL"),
+            label_width=180,
+            input_width=75,
+            min_val=1,
+            max_val=5000,
+            font=LABEL_FONT,
+            mono_font=MONO_FONT,
+            on_change=lambda value: self._on_udp_packet_ttl_change(value),
         )
 
         self.general_widgets: list[BaseInput | BaseWidget] = [
             self.transport_select,
             self.video_input,
-            self.control_input
+            self.control_input,
         ]
         self.relay_widgets: list[BaseInput | BaseWidget] = [
             self.relay_server_input,
             self.relay_id_row,
             self.relay_enabled_checkbox,
-            self.relay_spectator_checkbox
+            self.relay_spectator_checkbox,
         ]
-        self.misc_widgets: list[BaseInput | BaseWidget] = [
-            self.udp_packet_ttl_input
-        ]
+        self.misc_widgets: list[BaseInput | BaseWidget] = [self.udp_packet_ttl_input]
 
         self.elements = self.general_widgets + self.relay_widgets + self.misc_widgets
 
@@ -155,9 +160,11 @@ class NetworkTab(Tab):
         self.udp_packet_ttl = self.settings.get("udp_packet_ttl", 100)
 
         # Transport select — defer set_options until positioned (rect != None)
-        transport_index = self._transport_options.index(
-            self.transport.upper()
-        ) if self.transport.upper() in self._transport_options else 0
+        transport_index = (
+            self._transport_options.index(self.transport.upper())
+            if self.transport.upper() in self._transport_options
+            else 0
+        )
         self.transport_select.options = self._transport_options
         self.transport_select.selected_index = transport_index
 
@@ -216,16 +223,13 @@ class NetworkTab(Tab):
 
         # Parse host:port
         relay_port = 8888
-        if ':' in server:
-            host, port_str = server.rsplit(':', 1)
+        if ":" in server:
+            host, port_str = server.rsplit(":", 1)
             if is_int(port_str):
                 relay_port = int(port_str)
                 server = host
 
-        self._on_test_relay_callback(
-            server, relay_port, session_id, spectator_mode,
-            self._set_test_status
-        )
+        self._on_test_relay_callback(server, relay_port, session_id, spectator_mode, self._set_test_status)
 
     def _set_test_status(self, success: bool, message: str) -> None:
         self._test_status = (success, message)

@@ -1,4 +1,5 @@
 """Tests for TelemetryContext."""
+
 import threading
 import time
 import unittest
@@ -140,12 +141,7 @@ class TestBatteryData(unittest.TestCase):
     def test_custom_values(self):
         """Test custom values."""
         battery = BatteryData(
-            icon=75,
-            voltage="12.34V",
-            average_voltage="12.30V",
-            percent="75%",
-            current="500mA",
-            warning=True
+            icon=75, voltage="12.34V", average_voltage="12.30V", percent="75%", current="500mA", warning=True
         )
         self.assertEqual(battery.icon, 75)
         self.assertEqual(battery.voltage, "12.34V")
@@ -167,11 +163,7 @@ class TestSignalData(unittest.TestCase):
 
     def test_custom_values(self):
         """Test custom values."""
-        signal = SignalData(
-            quality={"rsrq": 10, "rsrp": 20},
-            band="BAND 7",
-            cell="123:45"
-        )
+        signal = SignalData(quality={"rsrq": 10, "rsrp": 20}, band="BAND 7", cell="123:45")
         self.assertEqual(signal.quality, {"rsrq": 10, "rsrp": 20})
         self.assertEqual(signal.band, "BAND 7")
         self.assertEqual(signal.cell, "123:45")
@@ -258,12 +250,7 @@ class TestTelemetryContext(unittest.TestCase):
     def test_update_battery(self):
         """Test updating battery data."""
         self.context.update_battery(
-            icon=75,
-            voltage="12.34V",
-            average_voltage="12.30V",
-            percent="75%",
-            current="500mA",
-            warning=True
+            icon=75, voltage="12.34V", average_voltage="12.30V", percent="75%", current="500mA", warning=True
         )
         battery = self.context.get_battery()
         self.assertEqual(battery.icon, 75)
@@ -326,6 +313,7 @@ class TestTelemetryContext(unittest.TestCase):
 
     def test_thread_safety_concurrent_updates(self):
         """Test thread safety with concurrent updates."""
+
         def update_services():
             for _ in range(100):
                 self.context.update_services(0b00000001)
@@ -345,7 +333,7 @@ class TestTelemetryContext(unittest.TestCase):
         threads = [
             threading.Thread(target=update_services),
             threading.Thread(target=update_gst),
-            threading.Thread(target=update_battery)
+            threading.Thread(target=update_battery),
         ]
 
         for t in threads:
@@ -404,7 +392,7 @@ class TestTelemetryContextIntegration(unittest.TestCase):
 
         # Simulate receiving telemetry message
         context.update_services(0b00000001)  # video service active
-        context.update_gst(0b00000001)       # recording active
+        context.update_gst(0b00000001)  # recording active
         context.update_videocore(0b10100101)
         context.update_signal_quality(-10, -80)
         context.update_signal_band("BAND 7")
@@ -473,5 +461,5 @@ class TestTelemetryContextIntegration(unittest.TestCase):
             self.assertIsInstance(recording, bool)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

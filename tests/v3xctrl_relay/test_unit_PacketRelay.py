@@ -15,12 +15,7 @@ class TestPacketRelay(unittest.TestCase):
         self.mock_sock = Mock(spec=socket.socket)
         self.address = ("127.0.0.1", 12345)
         self.timeout = 5.0
-        self.relay = PacketRelay(
-            store=self.mock_store,
-            sock=self.mock_sock,
-            address=self.address,
-            timeout=self.timeout
-        )
+        self.relay = PacketRelay(store=self.mock_store, sock=self.mock_sock, address=self.address, timeout=self.timeout)
 
     def test_get_sid_for_address_unlocked_no_sessions(self) -> None:
         addr = ("192.168.1.10", 5000)
@@ -30,11 +25,7 @@ class TestPacketRelay(unittest.TestCase):
 
     def test_get_sid_for_address_unlocked_address_not_found(self) -> None:
         session = Session("test_session")
-        session.register(
-            Role.STREAMER,
-            PortType.VIDEO,
-            ("192.168.1.10", 5000)
-        )
+        session.register(Role.STREAMER, PortType.VIDEO, ("192.168.1.10", 5000))
         self.relay.sessions["test_session"] = session
 
         addr = ("192.168.1.99", 9999)
@@ -54,21 +45,9 @@ class TestPacketRelay(unittest.TestCase):
     def test_update_mappings_incomplete_streamer_ports(self) -> None:
         session = Session("test_session")
 
-        session.register(
-            Role.STREAMER,
-            PortType.VIDEO,
-            ("192.168.1.10", 5000)
-        )
-        session.register(
-            Role.VIEWER,
-            PortType.VIDEO,
-            ("192.168.1.20", 6000)
-        )
-        session.register(
-            Role.VIEWER,
-            PortType.CONTROL,
-            ("192.168.1.20", 6001)
-        )
+        session.register(Role.STREAMER, PortType.VIDEO, ("192.168.1.10", 5000))
+        session.register(Role.VIEWER, PortType.VIDEO, ("192.168.1.20", 6000))
+        session.register(Role.VIEWER, PortType.CONTROL, ("192.168.1.20", 6001))
 
         initial_mappings_count = len(self.relay.mappings)
         self.relay._update_mappings(session)
@@ -78,21 +57,9 @@ class TestPacketRelay(unittest.TestCase):
     def test_update_mappings_incomplete_viewer_ports(self) -> None:
         session = Session("test_session")
 
-        session.register(
-            Role.STREAMER,
-            PortType.VIDEO,
-            ("192.168.1.10", 5000)
-        )
-        session.register(
-            Role.STREAMER,
-            PortType.CONTROL,
-            ("192.168.1.10", 5001)
-        )
-        session.register(
-            Role.VIEWER,
-            PortType.VIDEO,
-            ("192.168.1.20", 6000)
-        )
+        session.register(Role.STREAMER, PortType.VIDEO, ("192.168.1.10", 5000))
+        session.register(Role.STREAMER, PortType.CONTROL, ("192.168.1.10", 5001))
+        session.register(Role.VIEWER, PortType.VIDEO, ("192.168.1.20", 6000))
 
         initial_mappings_count = len(self.relay.mappings)
         self.relay._update_mappings(session)
@@ -102,26 +69,10 @@ class TestPacketRelay(unittest.TestCase):
     def test_update_mappings_missing_port_type_in_roles(self) -> None:
         session = Session("test_session")
 
-        session.register(
-            Role.STREAMER,
-            PortType.VIDEO,
-            ("192.168.1.10", 5000)
-        )
-        session.register(
-            Role.STREAMER,
-            PortType.CONTROL,
-            ("192.168.1.10", 5001)
-        )
-        session.register(
-            Role.VIEWER,
-            PortType.VIDEO,
-            ("192.168.1.20", 6000)
-        )
-        session.register(
-            Role.VIEWER,
-            PortType.CONTROL,
-            ("192.168.1.20", 6001)
-        )
+        session.register(Role.STREAMER, PortType.VIDEO, ("192.168.1.10", 5000))
+        session.register(Role.STREAMER, PortType.CONTROL, ("192.168.1.10", 5001))
+        session.register(Role.VIEWER, PortType.VIDEO, ("192.168.1.20", 6000))
+        session.register(Role.VIEWER, PortType.CONTROL, ("192.168.1.20", 6001))
 
         del session.roles[Role.STREAMER][PortType.CONTROL]
 
@@ -154,7 +105,7 @@ class TestPacketRelay(unittest.TestCase):
         with self.relay.mapping_lock:
             self.relay.mappings[addr] = Mapping(target_addr, current_time)
 
-        with patch('logging.info') as _mock_log:
+        with patch("logging.info") as _mock_log:
             self.relay.cleanup_expired_mappings()
 
         with self.relay.mapping_lock:
@@ -164,35 +115,18 @@ class TestPacketRelay(unittest.TestCase):
         session = Session("test_session")
         old_time = time.time() - self.timeout - 1
 
-        session.register(
-            Role.STREAMER,
-            PortType.VIDEO,
-            ("192.168.1.10", 5000)
-        )
-        session.register(
-            Role.STREAMER,
-            PortType.CONTROL,
-            ("192.168.1.10", 5001)
-        )
-        session.register(
-            Role.VIEWER,
-            PortType.VIDEO,
-            ("192.168.1.20", 6000)
-        )
-        session.register(
-            Role.VIEWER,
-            PortType.CONTROL,
-            ("192.168.1.20", 6001)
-        )
+        session.register(Role.STREAMER, PortType.VIDEO, ("192.168.1.10", 5000))
+        session.register(Role.STREAMER, PortType.CONTROL, ("192.168.1.10", 5001))
+        session.register(Role.VIEWER, PortType.VIDEO, ("192.168.1.20", 6000))
+        session.register(Role.VIEWER, PortType.CONTROL, ("192.168.1.20", 6001))
 
         session.last_announcement_at = old_time
         self.relay.sessions["test_session"] = session
 
-        with patch('time.time', return_value=time.time()):
+        with patch("time.time", return_value=time.time()):
             self.relay.cleanup_expired_mappings()
 
         self.assertNotIn("test_session", self.relay.sessions)
-
 
     def test_remove_spectator_does_not_mutate_existing_targets_set(self) -> None:
         """Removing a spectator must create a new targets set, not mutate the
@@ -236,7 +170,6 @@ class TestPacketRelay(unittest.TestCase):
             new_targets = self.relay.mappings[streamer_video].targets
         self.assertNotIn(spectator_video, new_targets)
 
-
     def test_spectator_reverse_index_populated_on_register(self) -> None:
         self.mock_store.exists.return_value = True
         self.mock_store.get_session_id_from_spectator_id.return_value = "test_session"
@@ -259,20 +192,14 @@ class TestPacketRelay(unittest.TestCase):
         spectator_control = ("192.168.1.30", 7001)
 
         from v3xctrl_control.message import PeerAnnouncement
-        self.relay.register_peer(
-            PeerAnnouncement(r="spectator", i="test_session", p="video"),
-            spectator_video
-        )
-        self.relay.register_peer(
-            PeerAnnouncement(r="spectator", i="test_session", p="control"),
-            spectator_control
-        )
+
+        self.relay.register_peer(PeerAnnouncement(r="spectator", i="test_session", p="video"), spectator_video)
+        self.relay.register_peer(PeerAnnouncement(r="spectator", i="test_session", p="control"), spectator_control)
 
         self.assertIn(spectator_video, self.relay.spectator_by_address)
         self.assertIn(spectator_control, self.relay.spectator_by_address)
         self.assertIs(
-            self.relay.spectator_by_address[spectator_video],
-            self.relay.spectator_by_address[spectator_control]
+            self.relay.spectator_by_address[spectator_video], self.relay.spectator_by_address[spectator_control]
         )
 
     def test_spectator_reverse_index_cleared_on_removal(self) -> None:
@@ -297,22 +224,14 @@ class TestPacketRelay(unittest.TestCase):
         spectator_control = ("192.168.1.30", 7001)
 
         from v3xctrl_control.message import PeerAnnouncement
-        self.relay.register_peer(
-            PeerAnnouncement(r="spectator", i="test_session", p="video"),
-            spectator_video
-        )
-        self.relay.register_peer(
-            PeerAnnouncement(r="spectator", i="test_session", p="control"),
-            spectator_control
-        )
+
+        self.relay.register_peer(PeerAnnouncement(r="spectator", i="test_session", p="video"), spectator_video)
+        self.relay.register_peer(PeerAnnouncement(r="spectator", i="test_session", p="control"), spectator_control)
 
         self.assertIn(spectator_video, self.relay.spectator_by_address)
 
         # Re-register as viewer - should remove spectator from index
-        self.relay.register_peer(
-            PeerAnnouncement(r="viewer", i="test_session", p="video"),
-            spectator_video
-        )
+        self.relay.register_peer(PeerAnnouncement(r="viewer", i="test_session", p="video"), spectator_video)
 
         self.assertNotIn(spectator_video, self.relay.spectator_by_address)
         self.assertNotIn(spectator_control, self.relay.spectator_by_address)
@@ -339,18 +258,13 @@ class TestPacketRelay(unittest.TestCase):
         spectator_control = ("192.168.1.30", 7001)
 
         from v3xctrl_control.message import PeerAnnouncement
-        self.relay.register_peer(
-            PeerAnnouncement(r="spectator", i="test_session", p="video"),
-            spectator_video
-        )
-        self.relay.register_peer(
-            PeerAnnouncement(r="spectator", i="test_session", p="control"),
-            spectator_control
-        )
+
+        self.relay.register_peer(PeerAnnouncement(r="spectator", i="test_session", p="video"), spectator_video)
+        self.relay.register_peer(PeerAnnouncement(r="spectator", i="test_session", p="control"), spectator_control)
 
         old_time = self.relay.spectator_by_address[spectator_video].last_announcement_at
 
-        with patch('time.time', return_value=old_time + 10):
+        with patch("time.time", return_value=old_time + 10):
             self.relay.update_spectator_heartbeat(spectator_control)
 
         new_time = self.relay.spectator_by_address[spectator_video].last_announcement_at
@@ -367,12 +281,7 @@ class TestForwardPacket(unittest.TestCase):
         self.mock_sock = Mock(spec=socket.socket)
         self.address = ("127.0.0.1", 12345)
         self.timeout = 5.0
-        self.relay = PacketRelay(
-            store=self.mock_store,
-            sock=self.mock_sock,
-            address=self.address,
-            timeout=self.timeout
-        )
+        self.relay = PacketRelay(store=self.mock_store, sock=self.mock_sock, address=self.address, timeout=self.timeout)
 
         self.source_addr = ("192.168.1.10", 5000)
         self.target_udp_1 = ("192.168.1.20", 6000)
@@ -408,9 +317,7 @@ class TestForwardPacket(unittest.TestCase):
 
     def test_sends_to_all_udp_targets_inline(self) -> None:
         with self.relay.mapping_lock:
-            self.relay.mappings[self.source_addr] = Mapping(
-                {self.target_udp_1, self.target_udp_2}, time.time()
-            )
+            self.relay.mappings[self.source_addr] = Mapping({self.target_udp_1, self.target_udp_2}, time.time())
 
         self.relay.forward_packet(b"data", self.source_addr)
 

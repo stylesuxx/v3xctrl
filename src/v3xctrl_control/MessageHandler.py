@@ -19,11 +19,7 @@ from .UDPReceiver import UDPReceiver
 
 
 class MessageHandler(threading.Thread):
-    def __init__(
-        self,
-        sock: socket.socket,
-        valid_host_ip: str | None = None
-    ) -> None:
+    def __init__(self, sock: socket.socket, valid_host_ip: str | None = None) -> None:
         super().__init__(daemon=True)
 
         self.socket = sock

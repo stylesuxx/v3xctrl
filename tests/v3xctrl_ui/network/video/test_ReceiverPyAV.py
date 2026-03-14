@@ -12,7 +12,6 @@ from v3xctrl_ui.network.video.ReceiverPyAV import ReceiverPyAV
 
 
 class TestReceiverPyAVInit(unittest.TestCase):
-
     def test_initialization(self):
         keep_alive = Mock()
         receiver = ReceiverPyAV(5600, keep_alive)
@@ -21,22 +20,22 @@ class TestReceiverPyAVInit(unittest.TestCase):
         self.assertEqual(receiver.keep_alive, keep_alive)
         self.assertTrue(str(receiver.sdp_path).endswith("rtp_5600.sdp"))
         self.assertIsNone(receiver.container)
-        self.assertTrue(hasattr(receiver.container_lock, 'acquire'))
-        self.assertTrue(hasattr(receiver.container_lock, 'release'))
+        self.assertTrue(hasattr(receiver.container_lock, "acquire"))
+        self.assertTrue(hasattr(receiver.container_lock, "release"))
         self.assertEqual(receiver.max_age_seconds, 0.5)
         self.assertIsNone(receiver.latest_packet_pts)
         self.assertEqual(receiver.dropped_old_frames, 0)
 
     def test_thread_count_configuration(self):
-        with patch('os.cpu_count', return_value=8):
+        with patch("os.cpu_count", return_value=8):
             receiver = ReceiverPyAV(5600, Mock())
             self.assertEqual(receiver.thread_count, "4")
 
-        with patch('os.cpu_count', return_value=2):
+        with patch("os.cpu_count", return_value=2):
             receiver = ReceiverPyAV(5600, Mock())
             self.assertEqual(receiver.thread_count, "2")
 
-        with patch('os.cpu_count', return_value=None):
+        with patch("os.cpu_count", return_value=None):
             receiver = ReceiverPyAV(5600, Mock())
             self.assertEqual(receiver.thread_count, "1")
 
@@ -106,18 +105,17 @@ class TestReceiverPyAVInit(unittest.TestCase):
 
 
 class TestReceiverPyAVSdpFile(unittest.TestCase):
-
     def setUp(self):
         self.receiver = ReceiverPyAV(5600, Mock())
 
     def test_write_sdp_creates_correct_content(self):
-        with patch('builtins.open', mock_open()) as mock_file, patch('os.fsync') as mock_fsync:
+        with patch("builtins.open", mock_open()) as mock_file, patch("os.fsync") as mock_fsync:
             self.receiver._write_sdp()
 
             mock_file.assert_called_once_with(self.receiver.sdp_path, "w", newline="\n")
             handle = mock_file.return_value.__enter__.return_value
 
-            written_content = ''.join(call.args[0] for call in handle.write.call_args_list)
+            written_content = "".join(call.args[0] for call in handle.write.call_args_list)
 
             self.assertIn("m=video 5600 RTP/AVP 96", written_content)
             self.assertIn("a=rtpmap:96 H264/90000", written_content)
@@ -128,7 +126,7 @@ class TestReceiverPyAVSdpFile(unittest.TestCase):
             mock_fsync.assert_called_once()
 
     def test_setup_calls_write_sdp(self):
-        with patch.object(self.receiver, '_write_sdp') as mock_write_sdp:
+        with patch.object(self.receiver, "_write_sdp") as mock_write_sdp:
             self.receiver._setup()
             mock_write_sdp.assert_called_once()
 
@@ -142,7 +140,6 @@ class TestReceiverPyAVSdpFile(unittest.TestCase):
 
 
 class TestReceiverPyAVCleanup(unittest.TestCase):
-
     def setUp(self):
         self.receiver = ReceiverPyAV(5600, Mock())
 
@@ -160,23 +157,23 @@ class TestReceiverPyAVCleanup(unittest.TestCase):
         mock_container.close.side_effect = Exception("Close failed")
         self.receiver.container = mock_container
 
-        with patch('logging.warning') as mock_warning:
+        with patch("logging.warning") as mock_warning:
             self.receiver._cleanup()
 
             mock_warning.assert_called()
             self.assertIsNone(self.receiver.container)
 
     def test_cleanup_removes_sdp_file(self):
-        with patch.object(self.receiver, 'sdp_path') as mock_path:
+        with patch.object(self.receiver, "sdp_path") as mock_path:
             mock_path.exists.return_value = True
             self.receiver._cleanup()
             mock_path.unlink.assert_called_once()
 
     def test_cleanup_handles_sdp_removal_exception(self):
-        with patch.object(self.receiver, 'sdp_path') as mock_path:
+        with patch.object(self.receiver, "sdp_path") as mock_path:
             mock_path.exists.return_value = True
             mock_path.unlink.side_effect = Exception("Unlink failed")
-            with patch('logging.warning') as mock_warning:
+            with patch("logging.warning") as mock_warning:
                 self.receiver._cleanup()
                 mock_warning.assert_called()
 
@@ -185,17 +182,16 @@ class TestReceiverPyAVCleanup(unittest.TestCase):
         self.receiver._cleanup()  # Should not raise exception
 
     def test_cleanup_no_sdp_file(self):
-        with patch.object(self.receiver, 'sdp_path') as mock_path:
+        with patch.object(self.receiver, "sdp_path") as mock_path:
             mock_path.exists.return_value = False
             self.receiver._cleanup()  # Should not raise exception
 
 
 class TestReceiverPyAVRefreshLocalPort(unittest.TestCase):
-
     def test_refresh_local_port_noop_without_proxy(self):
         receiver = ReceiverPyAV(5600, Mock())
         receiver._proxy = None
-        with patch.object(ReceiverPyAV, '_write_sdp') as mock_write:
+        with patch.object(ReceiverPyAV, "_write_sdp") as mock_write:
             receiver._refresh_local_port()
             mock_write.assert_not_called()
 
@@ -205,10 +201,10 @@ class TestReceiverPyAVRefreshLocalPort(unittest.TestCase):
         mock_proxy.local_port = 40000
         receiver._proxy = mock_proxy
 
-        with patch(
-            'v3xctrl_ui.network.video.ReceiverPyAV.UdpVideoProxy._find_free_local_port',
-            return_value=50000
-        ), patch.object(receiver, '_write_sdp') as mock_write:
+        with (
+            patch("v3xctrl_ui.network.video.ReceiverPyAV.UdpVideoProxy._find_free_local_port", return_value=50000),
+            patch.object(receiver, "_write_sdp") as mock_write,
+        ):
             receiver._refresh_local_port()
 
             mock_proxy.update_forward_port.assert_called_once_with(50000)
@@ -219,10 +215,10 @@ class TestReceiverPyAVRefreshLocalPort(unittest.TestCase):
         mock_proxy = Mock()
         receiver._proxy = mock_proxy
 
-        with patch(
-            'v3xctrl_ui.network.video.ReceiverPyAV.UdpVideoProxy._find_free_local_port',
-            return_value=0
-        ), patch.object(receiver, '_write_sdp') as mock_write:
+        with (
+            patch("v3xctrl_ui.network.video.ReceiverPyAV.UdpVideoProxy._find_free_local_port", return_value=0),
+            patch.object(receiver, "_write_sdp") as mock_write,
+        ):
             receiver._refresh_local_port()
 
             mock_proxy.update_forward_port.assert_not_called()
@@ -230,7 +226,6 @@ class TestReceiverPyAVRefreshLocalPort(unittest.TestCase):
 
 
 class TestReceiverPyAVPacketDropping(unittest.TestCase):
-
     def setUp(self):
         self.receiver = ReceiverPyAV(5600, Mock())
         self.mock_stream = Mock(spec=av.VideoStream)
@@ -285,16 +280,17 @@ class TestReceiverPyAVPacketDropping(unittest.TestCase):
 
 
 class TestReceiverPyAVMainLoop(unittest.TestCase):
-
     def setUp(self):
         self.receiver = ReceiverPyAV(5600, Mock())
         self.receiver.running = threading.Event()
         self.receiver.running.set()
 
     def test_main_loop_container_open_failure_retry(self):
-        with (patch('av.open', side_effect=av.AVError(-1, "Open failed", "")),
-              patch('time.sleep') as mock_sleep,
-              patch('logging.warning') as mock_warning):
+        with (
+            patch("av.open", side_effect=av.AVError(-1, "Open failed", "")),
+            patch("time.sleep") as mock_sleep,
+            patch("logging.warning") as mock_warning,
+        ):
             # Stop after first retry
             def stop_after_retry(*args):
                 self.receiver.running.clear()
@@ -306,9 +302,12 @@ class TestReceiverPyAVMainLoop(unittest.TestCase):
             mock_sleep.assert_called_with(0.5)
 
     def test_main_loop_refreshes_port_on_open_failure(self):
-        with (patch('av.open', side_effect=av.AVError(-1, "Open failed", "")),
-              patch('time.sleep') as mock_sleep,
-              patch.object(self.receiver, '_refresh_local_port') as mock_refresh):
+        with (
+            patch("av.open", side_effect=av.AVError(-1, "Open failed", "")),
+            patch("time.sleep") as mock_sleep,
+            patch.object(self.receiver, "_refresh_local_port") as mock_refresh,
+        ):
+
             def stop_after_retry(*args):
                 self.receiver.running.clear()
 
@@ -330,8 +329,10 @@ class TestReceiverPyAVMainLoop(unittest.TestCase):
 
         mock_container.demux.side_effect = error_demux
 
-        with (patch('av.open', return_value=mock_container),
-              patch.object(self.receiver, '_refresh_local_port') as mock_refresh):
+        with (
+            patch("av.open", return_value=mock_container),
+            patch.object(self.receiver, "_refresh_local_port") as mock_refresh,
+        ):
             self.receiver._main_loop()
 
             mock_refresh.assert_not_called()
@@ -347,6 +348,7 @@ class TestReceiverPyAVMainLoop(unittest.TestCase):
         mock_container.demux.return_value = []
 
         call_count = 0
+
         def mock_open(*args, **kwargs):
             nonlocal call_count
             call_count += 1
@@ -355,7 +357,7 @@ class TestReceiverPyAVMainLoop(unittest.TestCase):
                 self.receiver.running.clear()
             return mock_container
 
-        with patch('av.open', side_effect=mock_open), patch('time.sleep'):
+        with patch("av.open", side_effect=mock_open), patch("time.sleep"):
             self.receiver._main_loop()
 
             # Container should have been set (briefly) during execution
@@ -380,20 +382,20 @@ class TestReceiverPyAVMainLoop(unittest.TestCase):
 
         def mock_open(*args, **kwargs):
             # Verify timeout is passed
-            self.assertIn('timeout', kwargs)
-            self.assertGreater(kwargs['timeout'], 0)
+            self.assertIn("timeout", kwargs)
+            self.assertGreater(kwargs["timeout"], 0)
             self.receiver.running.clear()
             return mock_container
 
-        with patch('av.open', side_effect=mock_open) as mock_av_open:
+        with patch("av.open", side_effect=mock_open) as mock_av_open:
             self.receiver._main_loop()
 
             # Verify av.open was called with timeout
             mock_av_open.assert_called()
             call_kwargs = mock_av_open.call_args[1]
-            self.assertIn('timeout', call_kwargs)
+            self.assertIn("timeout", call_kwargs)
             # Should be at least 2 seconds (was the original value in commit 1bc366b)
-            self.assertGreaterEqual(call_kwargs['timeout'], 2)
+            self.assertGreaterEqual(call_kwargs["timeout"], 2)
 
     def test_main_loop_packet_processing(self):
         mock_container = Mock()
@@ -421,6 +423,7 @@ class TestReceiverPyAVMainLoop(unittest.TestCase):
 
         # Make demux return packets once, then stop
         call_count = 0
+
         def mock_demux(*args):
             nonlocal call_count
             call_count += 1
@@ -432,9 +435,11 @@ class TestReceiverPyAVMainLoop(unittest.TestCase):
 
         mock_container.demux.side_effect = mock_demux
 
-        with (patch('av.open', return_value=mock_container),
-              patch.object(self.receiver, '_update_frame') as mock_update,
-              patch.object(self.receiver, '_log_stats_if_needed')):
+        with (
+            patch("av.open", return_value=mock_container),
+            patch.object(self.receiver, "_update_frame") as mock_update,
+            patch.object(self.receiver, "_log_stats_if_needed"),
+        ):
             self.receiver._main_loop()
 
             self.assertEqual(mock_update.call_count, 2)
@@ -453,6 +458,7 @@ class TestReceiverPyAVMainLoop(unittest.TestCase):
 
         # Make demux return packet once, then stop
         call_count = 0
+
         def mock_demux(*args):
             nonlocal call_count
             call_count += 1
@@ -464,7 +470,7 @@ class TestReceiverPyAVMainLoop(unittest.TestCase):
 
         mock_container.demux.side_effect = mock_demux
 
-        with patch('av.open', return_value=mock_container), patch.object(self.receiver, '_log_stats_if_needed'):
+        with patch("av.open", return_value=mock_container), patch.object(self.receiver, "_log_stats_if_needed"):
             self.receiver._main_loop()
 
             self.assertEqual(self.receiver.dropped_empty_frames, 1)
@@ -483,7 +489,7 @@ class TestReceiverPyAVMainLoop(unittest.TestCase):
 
         mock_container.demux.side_effect = error_demux
 
-        with patch('av.open', return_value=mock_container), patch('logging.exception') as mock_exception:
+        with patch("av.open", return_value=mock_container), patch("logging.exception") as mock_exception:
             self.receiver._main_loop()
 
             mock_exception.assert_called()
@@ -505,7 +511,7 @@ class TestReceiverPyAVMainLoop(unittest.TestCase):
 
         self.receiver.frame = np.zeros((100, 100, 3), dtype=np.uint8)
 
-        with patch('av.open', return_value=mock_container):
+        with patch("av.open", return_value=mock_container):
             self.receiver._main_loop()
 
             self.assertIsNone(self.receiver.frame)
@@ -530,7 +536,7 @@ class TestReceiverPyAVMainLoop(unittest.TestCase):
 
         mock_container.demux.side_effect = empty_demux
 
-        with patch('av.open', return_value=mock_container):
+        with patch("av.open", return_value=mock_container):
             self.receiver._main_loop()
 
             # Verify keep_alive was called after container closed
@@ -557,7 +563,7 @@ class TestReceiverPyAVMainLoop(unittest.TestCase):
 
         mock_container.demux.side_effect = error_demux
 
-        with patch('av.open', return_value=mock_container), patch('logging.warning'):
+        with patch("av.open", return_value=mock_container), patch("logging.warning"):
             self.receiver._main_loop()
 
             # Verify keep_alive was called after error
@@ -566,7 +572,6 @@ class TestReceiverPyAVMainLoop(unittest.TestCase):
 
 
 class TestReceiverPyAVIntegration(unittest.TestCase):
-
     def test_full_lifecycle_with_mocked_av(self):
         keep_alive = Mock()
         receiver = ReceiverPyAV(5600, keep_alive)
@@ -578,10 +583,12 @@ class TestReceiverPyAVIntegration(unittest.TestCase):
         mock_container.streams.video = [mock_stream]
         mock_container.demux.return_value = []
 
-        with (patch('builtins.open', mock_open()),
-              patch('os.fsync'),
-              patch('av.open', return_value=mock_container),
-              patch.object(receiver, 'sdp_path') as mock_path):
+        with (
+            patch("builtins.open", mock_open()),
+            patch("os.fsync"),
+            patch("av.open", return_value=mock_container),
+            patch.object(receiver, "sdp_path") as mock_path,
+        ):
             mock_path.exists.return_value = True
             receiver.start()
             time.sleep(0.1)

@@ -46,10 +46,8 @@ class TestHorizontalIndicatorWidget(unittest.TestCase):
     def test_color_function_usage(self, mock_draw_rect):
         def color_fn(v):
             return (255, 0, 0) if v < 0 else (0, 255, 0)
-        widget = HorizontalIndicatorWidget(
-            self.widget_pos, self.widget_size,
-            range_mode="symmetric", color_fn=color_fn
-        )
+
+        widget = HorizontalIndicatorWidget(self.widget_pos, self.widget_size, range_mode="symmetric", color_fn=color_fn)
 
         screen = MagicMock()
         widget.draw(screen, value=-0.5)

@@ -23,7 +23,7 @@ class InputTab(Tab):
         padding: int,
         y_offset: int,
         gamepad_manager: GamepadController,
-        on_active_toggle: Callable[[bool], None]
+        on_active_toggle: Callable[[bool], None],
     ) -> None:
         super().__init__(settings, width, height, padding, y_offset)
 
@@ -38,11 +38,8 @@ class InputTab(Tab):
                 control_name=name,
                 key_code=key,
                 font=LABEL_FONT,
-                on_key_change=(
-                    lambda new_key,
-                    name=name: self._on_control_key_change(name, new_key)
-                ),
-                on_remap_toggle=self._on_active_toggle
+                on_key_change=(lambda new_key, name=name: self._on_control_key_change(name, new_key)),
+                on_remap_toggle=self._on_active_toggle,
             )
             self.key_widgets.append(widget)
 
@@ -51,7 +48,7 @@ class InputTab(Tab):
             manager=self.gamepad_manager,
             on_calibration_start=self._on_calibration_start,
             on_calibration_done=self._on_calibration_done,
-            on_remap_toggle=self._on_active_toggle
+            on_remap_toggle=self._on_active_toggle,
         )
 
         self.elements = [*self.key_widgets, self.calibration_widget]
@@ -75,10 +72,8 @@ class InputTab(Tab):
 
     def get_settings(self) -> dict[str, Any]:
         return {
-            "input": {
-                "guid": self.calibration_widget.get_selected_guid()
-            },
-            "calibrations": self.gamepad_manager.get_calibrations()
+            "input": {"guid": self.calibration_widget.get_selected_guid()},
+            "calibrations": self.gamepad_manager.get_calibrations(),
         }
 
     def apply_settings(self) -> None:

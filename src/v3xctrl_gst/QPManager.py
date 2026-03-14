@@ -4,11 +4,12 @@ Manages adaptive QP (Quantization Parameter) adjustment based on I-frame sizes.
 Adjusts the minimum QP value to keep I-frame sizes within a target range,
 helping control bandwidth spikes during scene changes.
 """
+
 import logging
 
 import gi
 
-gi.require_version('Gst', '1.0')
+gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
 
 
@@ -22,7 +23,7 @@ class QPManager:
         min_step: int = 1,
         max_step: int = 5,
         cooldown_keyframes: int = 0,
-        lower_limit_percent: float = 0.85
+        lower_limit_percent: float = 0.85,
     ) -> None:
         self._encoder = encoder
 
@@ -90,15 +91,10 @@ class QPManager:
         """Apply the current QP settings to the encoder."""
         try:
             encoder_controls = (
-                f"controls,"
-                f"h264_minimum_qp_value={self._current_qp_min},"
-                f"h264_maximum_qp_value={self._qp_max_limit}"
+                f"controls,h264_minimum_qp_value={self._current_qp_min},h264_maximum_qp_value={self._qp_max_limit}"
             )
 
-            self._encoder.set_property(
-                "extra-controls",
-                Gst.Structure.from_string(encoder_controls)[0]
-            )
+            self._encoder.set_property("extra-controls", Gst.Structure.from_string(encoder_controls)[0])
 
             logging.info("QP min set to %d", self._current_qp_min)
 

@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 class ControlServer:
     """Unix socket-based control server for runtime pipeline control."""
 
-    def __init__(self, streamer: 'Streamer', socket_path: str = '/tmp/v3xctrl.sock') -> None:
+    def __init__(self, streamer: "Streamer", socket_path: str = "/tmp/v3xctrl.sock") -> None:
         """
         Initialize the control server.
 
@@ -28,12 +28,12 @@ class ControlServer:
 
         # Command registry - maps action names to handler methods
         self._command_handlers = {
-            'stop': self._handle_stop,
-            'list': self._handle_list,
-            'get': self._handle_get,
-            'set': self._handle_set,
-            'stats': self._handle_stats,
-            'recording': self._handle_recording,
+            "stop": self._handle_stop,
+            "list": self._handle_list,
+            "get": self._handle_get,
+            "set": self._handle_set,
+            "stats": self._handle_stats,
+            "recording": self._handle_recording,
         }
 
         self.server_socket: socket.socket | None = None
@@ -87,11 +87,7 @@ class ControlServer:
                     client_socket, _ = self.server_socket.accept()
 
                     # Handle client in separate thread
-                    client_thread = threading.Thread(
-                        target=self._handle_client,
-                        args=(client_socket,),
-                        daemon=True
-                    )
+                    client_thread = threading.Thread(target=self._handle_client, args=(client_socket,), daemon=True)
                     client_thread.start()
 
                 except TimeoutError:
@@ -125,21 +121,21 @@ class ControlServer:
                     break
 
                 try:
-                    command_dict = json.loads(data.decode('utf-8'))
+                    command_dict = json.loads(data.decode("utf-8"))
                     command = Command(**command_dict)
                     command.validate()
                     response = self._execute_command(command)
 
                 except json.JSONDecodeError as e:
-                    response = {'status': 'error', 'message': f'Invalid JSON: {e}'}
+                    response = {"status": "error", "message": f"Invalid JSON: {e}"}
 
                 except (TypeError, CommandValidationError) as e:
-                    response = {'status': 'error', 'message': str(e)}
+                    response = {"status": "error", "message": str(e)}
 
                 except Exception as e:
-                    response = {'status': 'error', 'message': str(e)}
+                    response = {"status": "error", "message": str(e)}
 
-                client_socket.sendall(json.dumps(response).encode('utf-8') + b'\n')
+                client_socket.sendall(json.dumps(response).encode("utf-8") + b"\n")
 
         except Exception as e:
             logging.error(f"Client handler error: {e}")
@@ -149,59 +145,52 @@ class ControlServer:
     def _handle_recording(self, command: Command) -> dict[str, Any]:
         value = command.value
         if value is None:
-            return {'status': 'error', 'message': 'Missing value'}
+            return {"status": "error", "message": "Missing value"}
 
-        if value == 'start':
+        if value == "start":
             status = self.streamer.start_recording()
-            return {'status': 'success' if status else 'error'}
+            return {"status": "success" if status else "error"}
 
-        elif value == 'stop':
+        elif value == "stop":
             status = self.streamer.stop_recording()
-            return {'status': 'success' if status else 'error'}
+            return {"status": "success" if status else "error"}
 
         else:
-            return {'status': 'error', 'message': 'Unrecognized value'}
+            return {"status": "error", "message": "Unrecognized value"}
 
     def _handle_stats(self, command: Command) -> dict[str, Any]:
         return self.streamer.get_stats()
 
     def _handle_stop(self, command: Command) -> dict[str, Any]:
         self.streamer.stop()
-        return {'status': 'success', 'message': 'Pipeline stopped'}
+        return {"status": "success", "message": "Pipeline stopped"}
 
     def _handle_list(self, command: Command) -> dict[str, Any]:
         properties = self.streamer.list_properties(command.element)
         return {
-            'status': 'success' if properties is not None else 'error',
-            'element': command.element,
-            'properties': self._serialize_properties(properties)
+            "status": "success" if properties is not None else "error",
+            "element": command.element,
+            "properties": self._serialize_properties(properties),
         }
 
     def _handle_get(self, command: Command) -> dict[str, Any]:
         value = self.streamer.get_property(command.element, command.property)
         return {
-            'status': 'success' if value is not None else 'error',
-            'element': command.element,
-            'property': command.property,
-            'value': self._serialize_value(value)
+            "status": "success" if value is not None else "error",
+            "element": command.element,
+            "property": command.property,
+            "value": self._serialize_value(value),
         }
 
     def _handle_set(self, command: Command) -> dict[str, Any]:
-        success = self.streamer.set_property(
-            command.element,
-            command.property,
-            command.value
-        )
-        value = self.streamer.get_property(
-            command.element,
-            command.property
-        )
+        success = self.streamer.set_property(command.element, command.property, command.value)
+        value = self.streamer.get_property(command.element, command.property)
 
         return {
-            'status': 'success' if success else 'error',
-            'element': command.element,
-            'property': command.property,
-            'value': self._serialize_value(value)
+            "status": "success" if success else "error",
+            "element": command.element,
+            "property": command.property,
+            "value": self._serialize_value(value),
         }
 
     def _execute_command(self, command: Command) -> dict[str, Any]:
@@ -209,10 +198,7 @@ class ControlServer:
         if handler:
             return handler(command)
         else:
-            return {
-                'status': 'error',
-                'message': f"Unknown action: '{command.action}'"
-            }
+            return {"status": "error", "message": f"Unknown action: '{command.action}'"}
 
     def _serialize_value(self, value: Any) -> Any:
         """

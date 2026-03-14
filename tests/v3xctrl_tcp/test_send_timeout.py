@@ -9,7 +9,7 @@ class TestConfigureSendTimeout:
 
     def _get_sndtimeo_ms(self, sock: socket.socket) -> int:
         raw = sock.getsockopt(socket.SOL_SOCKET, socket.SO_SNDTIMEO, 16)
-        sec, usec = struct.unpack('ll', raw)
+        sec, usec = struct.unpack("ll", raw)
         return sec * 1000 + usec // 1000
 
     def test_sets_timeout(self) -> None:

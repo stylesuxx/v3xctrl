@@ -28,10 +28,10 @@ class RelayServer(threading.Thread):
     COMMAND_SOCKET_TEMPLATE = "/tmp/udp_relay_command_{port}.sock"
 
     def __init__(
-            self,
-            ip: str,
-            port: int,
-            db_path: str,
+        self,
+        ip: str,
+        port: int,
+        db_path: str,
     ) -> None:
         super().__init__(daemon=True, name="RelayServer")
 
@@ -41,14 +41,9 @@ class RelayServer(threading.Thread):
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.bind(('0.0.0.0', self.port))
+        self.sock.bind(("0.0.0.0", self.port))
 
-        self.relay = PacketRelay(
-            SessionStore(db_path),
-            self.sock,
-            (self.ip, self.port),
-            self.TIMEOUT
-        )
+        self.relay = PacketRelay(SessionStore(db_path), self.sock, (self.ip, self.port), self.TIMEOUT)
 
         self.tcp_executor = ThreadPoolExecutor(max_workers=10)
         self.control_executor = ThreadPoolExecutor(max_workers=4)
@@ -73,8 +68,8 @@ class RelayServer(threading.Thread):
     # forwarded as data, preventing _send_peer_info from being called
     # again. Extracting control messages before forward_packet ensures
     # they are always handled, so PeerInfo can be (re-)sent reliably.
-    _PEER_ANNOUNCEMENT_PREFIX = b'\x83\xa1t\xb0PeerAnnouncement'
-    _CONNECTION_TEST_PREFIX = b'\x83\xa1t\xaeConnectionTest'
+    _PEER_ANNOUNCEMENT_PREFIX = b"\x83\xa1t\xb0PeerAnnouncement"
+    _CONNECTION_TEST_PREFIX = b"\x83\xa1t\xaeConnectionTest"
     _CONTROL_PREFIXES = (_PEER_ANNOUNCEMENT_PREFIX, _CONNECTION_TEST_PREFIX)
 
     def run(self) -> None:
@@ -115,7 +110,7 @@ class RelayServer(threading.Thread):
             logging.warning(f"Error closing socket: {e}")
 
         try:
-            if hasattr(self, 'command_sock'):
+            if hasattr(self, "command_sock"):
                 self.command_sock.close()
             if os.path.exists(self.command_socket_path):
                 os.unlink(self.command_socket_path)
@@ -139,11 +134,7 @@ class RelayServer(threading.Thread):
         while self.running.is_set():
             try:
                 client_sock, _ = self.command_sock.accept()
-                threading.Thread(
-                    target=self._process_command,
-                    args=(client_sock,),
-                    daemon=True
-                ).start()
+                threading.Thread(target=self._process_command, args=(client_sock,), daemon=True).start()
             except OSError:
                 if not self.running.is_set():
                     break
@@ -153,12 +144,12 @@ class RelayServer(threading.Thread):
     def _process_command(self, client_sock: socket.socket) -> None:
         """Process individual command connection"""
         try:
-            data = client_sock.recv(1024).decode('utf-8').strip()
+            data = client_sock.recv(1024).decode("utf-8").strip()
 
             if data == "stats":
                 stats = self._get_session_stats()
                 response = json.dumps(stats, indent=2)
-                client_sock.send(response.encode('utf-8'))
+                client_sock.send(response.encode("utf-8"))
             else:
                 client_sock.send(b"Unknown command")
 
@@ -195,13 +186,15 @@ class RelayServer(threading.Thread):
                     for role, port_dict in session.roles.items():
                         for port_type, peer_entry in port_dict.items():
                             addr = peer_entry.addr
-                            mappings.append({
-                                'address': f"{addr[0]}:{addr[1]}",
-                                'role': role.name,
-                                'port_type': port_type.name,
-                                'transport': peer_entry.transport.name,
-                                'timeout_in_sec': role_timeout.get(role, 0),
-                            })
+                            mappings.append(
+                                {
+                                    "address": f"{addr[0]}:{addr[1]}",
+                                    "role": role.name,
+                                    "port_type": port_type.name,
+                                    "transport": peer_entry.transport.name,
+                                    "timeout_in_sec": role_timeout.get(role, 0),
+                                }
+                            )
 
                     for spectator in session.spectators:
                         if self.relay._spectator_has_active_tcp(spectator):
@@ -214,27 +207,21 @@ class RelayServer(threading.Thread):
 
                         for port_type, peer_entry in spectator.ports.items():
                             addr = peer_entry.addr
-                            spectators.append({
-                                'address': f"{addr[0]}:{addr[1]}",
-                                'role': Role.SPECTATOR.name,
-                                'port_type': port_type.name,
-                                'transport': peer_entry.transport.name,
-                                'timeout_in_sec': timeout_in_sec,
-                            })
+                            spectators.append(
+                                {
+                                    "address": f"{addr[0]}:{addr[1]}",
+                                    "role": Role.SPECTATOR.name,
+                                    "port_type": port_type.name,
+                                    "transport": peer_entry.transport.name,
+                                    "timeout_in_sec": timeout_in_sec,
+                                }
+                            )
 
-                    result[sid] = {
-                        'created_at': session.created_at,
-                        'mappings': mappings,
-                        'spectators': spectators
-                    }
+                    result[sid] = {"created_at": session.created_at, "mappings": mappings, "spectators": spectators}
 
         return result
 
-    def _handle_peer_announcement(
-        self,
-        msg: PeerAnnouncement,
-        addr: Address
-    ) -> None:
+    def _handle_peer_announcement(self, msg: PeerAnnouncement, addr: Address) -> None:
         self.relay.register_peer(msg, addr)
 
     def _cleanup_expired_entries(self) -> None:

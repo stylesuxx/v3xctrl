@@ -34,16 +34,9 @@ class ReceiverPyAV(Receiver):
         history_size: int = 100,
         max_frame_age_ms: int = 500,
         render_ratio: int = 0,
-        relay_address: tuple[str, int] | None = None
+        relay_address: tuple[str, int] | None = None,
     ) -> None:
-        super().__init__(
-            port,
-            keep_alive,
-            log_interval,
-            history_size,
-            max_frame_age_ms,
-            render_ratio
-        )
+        super().__init__(port, keep_alive, log_interval, history_size, max_frame_age_ms, render_ratio)
 
         self.relay_address = relay_address
         self._proxy: UdpVideoProxy | None = None
@@ -65,26 +58,16 @@ class ReceiverPyAV(Receiver):
             "rw_timeout": "5000000",  # timeout for demux read operations (in us)
         }
 
-        self.codec_options = {
-            "threads": self.thread_count,
-            "flags": "low_delay",
-            "flags2": "fast"
-        }
+        self.codec_options = {"threads": self.thread_count, "flags": "low_delay", "flags2": "fast"}
 
     def _setup(self) -> None:
         """Setup UDP proxy (if relay) and SDP file."""
         if self.relay_address:
             self._proxy = UdpVideoProxy(self.port, self.relay_address)
             if self._proxy.start_proxy():
-                logging.info(
-                    f"UDP video proxy active: :{self.port} -> "
-                    f"localhost:{self._proxy.local_port}"
-                )
+                logging.info(f"UDP video proxy active: :{self.port} -> localhost:{self._proxy.local_port}")
             else:
-                logging.warning(
-                    "UDP video proxy failed to start, "
-                    "falling back to direct port"
-                )
+                logging.warning("UDP video proxy failed to start, falling back to direct port")
                 self._proxy = None
 
         self._write_sdp()
@@ -125,12 +108,7 @@ class ReceiverPyAV(Receiver):
             while self.running.is_set():
                 try:
                     start_time = time.monotonic()
-                    container = av.open(
-                        str(self.sdp_path),
-                        format="sdp",
-                        options=self.container_options,
-                        timeout=5
-                    )
+                    container = av.open(str(self.sdp_path), format="sdp", options=self.container_options, timeout=5)
                     open_time = time.monotonic() - start_time
                     logging.info(f"Container opened in {open_time:.3f}s")
 
@@ -150,10 +128,7 @@ class ReceiverPyAV(Receiver):
                             f"forwarded={self._proxy.packets_forwarded})"
                         )
                     else:
-                        logging.warning(
-                            f"av.open() failed: {e} "
-                            f"(direct mode, port={self.port})"
-                        )
+                        logging.warning(f"av.open() failed: {e} (direct mode, port={self.port})")
                     self._refresh_local_port()
                     time.sleep(0.5)
 
@@ -275,10 +250,7 @@ a=recvonly
             f.flush()
             os.fsync(f.fileno())
 
-        logging.debug(
-            f"SDP written: {self.sdp_path} "
-            f"(listen={listen_addr}:{listen_port})"
-        )
+        logging.debug(f"SDP written: {self.sdp_path} (listen={listen_addr}:{listen_port})")
 
     def _should_drop_packet_by_age(self, packet: av.Packet, stream: av.VideoStream) -> bool:
         if packet.pts is None:

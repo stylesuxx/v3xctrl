@@ -3,9 +3,12 @@ from .Message import Message
 
 class Error(Message):
     def __init__(self, e: str, timestamp: float | None = None) -> None:
-        super().__init__({
-            "e": e,
-        }, timestamp)
+        super().__init__(
+            {
+                "e": e,
+            },
+            timestamp,
+        )
 
         self.error = e
 

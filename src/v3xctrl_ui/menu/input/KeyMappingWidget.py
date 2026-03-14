@@ -21,7 +21,7 @@ class KeyMappingWidget(BaseWidget):
         key_code: int,
         font: Font,
         on_key_change: Callable[[int], None],
-        on_remap_toggle: Callable[[bool], None]
+        on_remap_toggle: Callable[[bool], None],
     ) -> None:
         super().__init__()
 

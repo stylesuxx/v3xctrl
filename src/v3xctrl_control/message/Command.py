@@ -7,24 +7,17 @@ from .Message import Message
 
 class Command(Message):
     """Message type for command data."""
+
     _command_counter = itertools.count()
 
     def __init__(
-        self,
-        c: str,
-        p: dict[str, Any] | None = None,
-        i: str | None = None,
-        timestamp: float | None = None
+        self, c: str, p: dict[str, Any] | None = None, i: str | None = None, timestamp: float | None = None
     ) -> None:
         if p is None:
             p = {}
         self.command_id = i or self._generate_command_id()
 
-        super().__init__({
-            "c": c,
-            "p": p,
-            "i": self.command_id
-        }, timestamp)
+        super().__init__({"c": c, "p": p, "i": self.command_id}, timestamp)
 
         self.command = c
         self.parameters = p

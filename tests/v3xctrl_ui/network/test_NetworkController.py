@@ -12,14 +12,11 @@ class TestNetworkController(unittest.TestCase):
         self.settings.get.side_effect = lambda key, default=None: {
             "relay": {"enabled": False},
             "ports": {"video": 5000, "control": 6000},
-            "udp_packet_ttl": 100
+            "udp_packet_ttl": 100,
         }.get(key, default)
 
         # Mock handlers
-        self.handlers = {
-            "messages": [("TestMessage", lambda msg, addr: None)],
-            "states": [("CONNECTED", lambda: None)]
-        }
+        self.handlers = {"messages": [("TestMessage", lambda msg, addr: None)], "states": [("CONNECTED", lambda: None)]}
 
         # Patch external dependencies
         self.server_patcher = patch("v3xctrl_ui.network.NetworkController.Server")
@@ -74,7 +71,7 @@ class TestNetworkController(unittest.TestCase):
         relay_settings.get.side_effect = lambda key, default=None: {
             "relay": {"enabled": True, "server": "relay.example.com:8080", "id": "test123"},
             "ports": {"video": 5000, "control": 6000},
-            "udp_packet_ttl": 100
+            "udp_packet_ttl": 100,
         }.get(key, default)
 
         nm = NetworkController(relay_settings, self.handlers)
@@ -129,14 +126,8 @@ class TestNetworkController(unittest.TestCase):
         # Mock NetworkSetup to return successful result
         mock_result = NetworkSetupResult(
             relay_result=None,
-            video_receiver_result=VideoReceiverSetupResult(
-                success=True,
-                video_receiver=self.mock_video_receiver
-            ),
-            server_result=ServerSetupResult(
-                success=True,
-                server=self.mock_server
-            )
+            video_receiver_result=VideoReceiverSetupResult(success=True, video_receiver=self.mock_video_receiver),
+            server_result=ServerSetupResult(success=True, server=self.mock_server),
         )
         self.mock_network_setup.orchestrate_setup.return_value = mock_result
 
@@ -147,7 +138,7 @@ class TestNetworkController(unittest.TestCase):
         self.mock_thread.start.assert_called_once()
 
         # Execute the task function manually to test it
-        task_func = self.mock_thread_cls.call_args[1]['target']
+        task_func = self.mock_thread_cls.call_args[1]["target"]
         task_func()
 
         # Verify NetworkSetup was instantiated and orchestrate_setup was called
@@ -176,30 +167,24 @@ class TestNetworkController(unittest.TestCase):
                 success=True,
                 video_address=("1.2.3.4", 1234),
             ),
-            video_receiver_result=VideoReceiverSetupResult(
-                success=True,
-                video_receiver=self.mock_video_receiver
-            ),
-            server_result=ServerSetupResult(
-                success=True,
-                server=self.mock_server
-            )
+            video_receiver_result=VideoReceiverSetupResult(success=True, video_receiver=self.mock_video_receiver),
+            server_result=ServerSetupResult(success=True, server=self.mock_server),
         )
         self.mock_network_setup.orchestrate_setup.return_value = mock_result
 
         nm.setup_ports()
 
         # Execute the task function
-        task_func = self.mock_thread_cls.call_args[1]['target']
+        task_func = self.mock_thread_cls.call_args[1]["target"]
         task_func()
 
         # Verify NetworkSetup orchestration was called with relay config
         call_args = self.mock_network_setup.orchestrate_setup.call_args[0]
         relay_config = call_args[0]
         self.assertIsNotNone(relay_config)
-        self.assertEqual(relay_config['server'], "relay.example.com")
-        self.assertEqual(relay_config['port'], 8080)
-        self.assertEqual(relay_config['id'], "testid")
+        self.assertEqual(relay_config["server"], "relay.example.com")
+        self.assertEqual(relay_config["port"], 8080)
+        self.assertEqual(relay_config["id"], "testid")
 
         # Verify setup instance was stored
         self.assertEqual(nm._setup, self.mock_network_setup)
@@ -219,24 +204,17 @@ class TestNetworkController(unittest.TestCase):
         # Mock NetworkSetup to return relay error
         mock_result = NetworkSetupResult(
             relay_result=RelaySetupResult(
-                success=False,
-                error_message="Peer registration failed - check server and ID!"
+                success=False, error_message="Peer registration failed - check server and ID!"
             ),
-            video_receiver_result=VideoReceiverSetupResult(
-                success=True,
-                video_receiver=self.mock_video_receiver
-            ),
-            server_result=ServerSetupResult(
-                success=True,
-                server=self.mock_server
-            )
+            video_receiver_result=VideoReceiverSetupResult(success=True, video_receiver=self.mock_video_receiver),
+            server_result=ServerSetupResult(success=True, server=self.mock_server),
         )
         self.mock_network_setup.orchestrate_setup.return_value = mock_result
 
         nm.setup_ports()
 
         # Execute the task function
-        task_func = self.mock_thread_cls.call_args[1]['target']
+        task_func = self.mock_thread_cls.call_args[1]["target"]
         task_func()
 
         # Verify error message was set
@@ -251,21 +229,15 @@ class TestNetworkController(unittest.TestCase):
         # Mock NetworkSetup to return server error
         mock_result = NetworkSetupResult(
             relay_result=None,
-            video_receiver_result=VideoReceiverSetupResult(
-                success=True,
-                video_receiver=self.mock_video_receiver
-            ),
-            server_result=ServerSetupResult(
-                success=False,
-                error_message="Control port already in use"
-            )
+            video_receiver_result=VideoReceiverSetupResult(success=True, video_receiver=self.mock_video_receiver),
+            server_result=ServerSetupResult(success=False, error_message="Control port already in use"),
         )
         self.mock_network_setup.orchestrate_setup.return_value = mock_result
 
         nm.setup_ports()
 
         # Execute the task function
-        task_func = self.mock_thread_cls.call_args[1]['target']
+        task_func = self.mock_thread_cls.call_args[1]["target"]
         task_func()
 
         # Verify error was stored
@@ -286,7 +258,7 @@ class TestNetworkController(unittest.TestCase):
         mock_server.send.assert_called_once()
         # Check that the argument is a Latency instance
         call_args = mock_server.send.call_args[0]
-        self.assertEqual(call_args[0].__class__.__name__, 'Latency')
+        self.assertEqual(call_args[0].__class__.__name__, "Latency")
 
     def test_send_latency_check_no_server(self):
         """Test send_latency_check when no server is available."""
@@ -429,7 +401,7 @@ class TestNetworkController(unittest.TestCase):
         relay_settings.get.side_effect = lambda key, default=None: {
             "relay": {"enabled": True, "id": "test123"},  # Missing server
             "ports": {"video": 5000, "control": 6000},
-            "udp_packet_ttl": 100
+            "udp_packet_ttl": 100,
         }.get(key, default)
 
         nm = NetworkController(relay_settings, self.handlers)
@@ -445,7 +417,7 @@ class TestNetworkController(unittest.TestCase):
         relay_settings.get.side_effect = lambda key, default=None: {
             "relay": {"enabled": True, "server": "relay.example.com:8080"},  # Missing ID
             "ports": {"video": 5000, "control": 6000},
-            "udp_packet_ttl": 100
+            "udp_packet_ttl": 100,
         }.get(key, default)
 
         nm = NetworkController(relay_settings, self.handlers)
@@ -467,5 +439,5 @@ class TestNetworkController(unittest.TestCase):
         self.assertEqual(nm.relay_id, "testid")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -47,15 +47,14 @@ class NetworkController:
         self.relay_enable = True
         self.relay_id = relay_id
 
-        if relay_server and ':' in relay_server:
-            host, port = relay_server.rsplit(':', 1)
+        if relay_server and ":" in relay_server:
+            host, port = relay_server.rsplit(":", 1)
             self.relay_server = host
             try:
                 self.relay_port = int(port)
             except ValueError:
                 logging.warning(
-                    f"Invalid port in relay_server: '{relay_server}', "
-                    f"falling back to default {self.relay_port}"
+                    f"Invalid port in relay_server: '{relay_server}', falling back to default {self.relay_port}"
                 )
         else:
             self.relay_server = relay_server
@@ -156,10 +155,10 @@ class NetworkController:
         relay_config = None
         if self.relay_enable and self.relay_server and self.relay_id:
             relay_config = {
-                'server': self.relay_server,
-                'port': self.relay_port,
-                'id': self.relay_id,
-                'spectator_mode': self.relay_spectator_mode
+                "server": self.relay_server,
+                "port": self.relay_port,
+                "id": self.relay_id,
+                "spectator_mode": self.relay_spectator_mode,
             }
 
         # Run orchestrated setup

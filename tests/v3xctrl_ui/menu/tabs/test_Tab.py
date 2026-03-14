@@ -44,7 +44,7 @@ class TestTab(unittest.TestCase):
             width=self.width,
             height=self.height,
             padding=self.padding,
-            y_offset=self.y_offset
+            y_offset=self.y_offset,
         )
 
     def test_initialization(self):
@@ -72,7 +72,7 @@ class TestTab(unittest.TestCase):
                 width=self.width,
                 height=self.height,
                 padding=self.padding,
-                y_offset=self.y_offset
+                y_offset=self.y_offset,
             )
 
     def test_headline_surfaces_initialized(self):
@@ -85,7 +85,7 @@ class TestTab(unittest.TestCase):
         headline_surface = self.tab.headlines["main"].get_surface()
         self.assertIsInstance(headline_surface, Surface)
 
-    @patch('pygame.draw.line')
+    @patch("pygame.draw.line")
     def test_create_headline_without_top_line(self, mock_draw_line):
         """Test _add_headline creates a headline without top line"""
         self.tab._add_headline("test1", "Test Title", draw_top_line=False)
@@ -97,7 +97,7 @@ class TestTab(unittest.TestCase):
         # Should draw only 1 line (bottom line)
         self.assertEqual(mock_draw_line.call_count, 1)
 
-    @patch('pygame.draw.line')
+    @patch("pygame.draw.line")
     def test_create_headline_with_top_line(self, mock_draw_line):
         """Test _add_headline creates a headline with top line"""
         self.tab._add_headline("test2", "Test Title", draw_top_line=True)
@@ -151,7 +151,7 @@ class TestTab(unittest.TestCase):
         self.assertIn("nonexistent", error_message)
         self.assertIn("not found", error_message.lower())
 
-    @patch('v3xctrl_ui.menu.tabs.Tab.TEXT_FONT')
+    @patch("v3xctrl_ui.menu.tabs.Tab.TEXT_FONT")
     def test_draw_note(self, mock_font):
         mock_note_surface = MagicMock()
         mock_note_rect = MagicMock()
@@ -163,10 +163,7 @@ class TestTab(unittest.TestCase):
         text = "Test note"
         y = 100
 
-        self.assertEqual(
-            self.tab._draw_note(surface, text, y),
-            y + mock_note_rect.height
-        )
+        self.assertEqual(self.tab._draw_note(surface, text, y), y + mock_note_rect.height)
 
         mock_font.render.assert_called_once_with(text, unittest.mock.ANY)
 
@@ -246,7 +243,7 @@ class TestTab(unittest.TestCase):
         surface_with_top = self.tab.headlines["test_with_top"].get_surface()
         self.assertGreater(surface_with_top.get_height(), surface.get_height())
 
-    @patch('pygame.draw.line')
+    @patch("pygame.draw.line")
     def test_create_headline_draws_lines_correctly(self, mock_draw_line):
         """Test that _add_headline draws lines at correct positions"""
         # Test with top line
@@ -325,17 +322,11 @@ class TestTabAbstractMethods(unittest.TestCase):
 
     def test_cannot_instantiate_incomplete_tab(self):
         with self.assertRaises(TypeError) as context:
-            IncompleteTab(
-                settings=self.mock_settings,
-                width=800,
-                height=600,
-                padding=10,
-                y_offset=20
-            )
+            IncompleteTab(settings=self.mock_settings, width=800, height=600, padding=10, y_offset=20)
 
         error_message = str(context.exception)
         self.assertIn("abstract", error_message.lower())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

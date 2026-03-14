@@ -38,7 +38,7 @@ class TestNumberInput(unittest.TestCase):
             max_val=99999,
             font=self.font,
             mono_font=self.font,
-            on_change=self.mock_on_change
+            on_change=self.mock_on_change,
         )
         self.input.set_position(0, 0)
 
@@ -57,13 +57,7 @@ class TestNumberInput(unittest.TestCase):
 
     def test_initialization_without_callback(self):
         widget = NumberInput(
-            label="Test",
-            label_width=50,
-            input_width=100,
-            min_val=0,
-            max_val=100,
-            font=self.font,
-            mono_font=self.font
+            label="Test", label_width=50, input_width=100, min_val=0, max_val=100, font=self.font, mono_font=self.font
         )
         self.assertIsNone(widget.on_change)
 
@@ -336,8 +330,8 @@ class TestNumberInput(unittest.TestCase):
         self.input.focused = True
 
         event = Event(KEYDOWN, {"key": pygame.K_5})
-        if hasattr(event, 'unicode'):
-            delattr(event, 'unicode')
+        if hasattr(event, "unicode"):
+            delattr(event, "unicode")
 
         self.assertTrue(self.input.handle_event(event))
         self.assertEqual(self.input.value, "")
@@ -380,7 +374,7 @@ class TestNumberInput(unittest.TestCase):
         self.assertIsInstance(self.input, BaseInput)
 
     def test_cursor_blink_functionality(self):
-        with patch('pygame.time.get_ticks') as mock_ticks:
+        with patch("pygame.time.get_ticks") as mock_ticks:
             mock_ticks.return_value = self.input.cursor_timer + self.input.CURSOR_INTERVAL + 1
 
             old_visibility = self.input.cursor_visible
@@ -391,13 +385,7 @@ class TestNumberInput(unittest.TestCase):
 
     def test_multiple_inputs_independence(self):
         second_input = NumberInput(
-            label="Second",
-            label_width=50,
-            input_width=150,
-            min_val=0,
-            max_val=100,
-            font=self.font,
-            mono_font=self.font
+            label="Second", label_width=50, input_width=150, min_val=0, max_val=100, font=self.font, mono_font=self.font
         )
 
         self.input.value = "42"
@@ -408,13 +396,7 @@ class TestNumberInput(unittest.TestCase):
 
     def test_edge_case_values(self):
         zero_input = NumberInput(
-            label="Zero",
-            label_width=50,
-            input_width=100,
-            min_val=0,
-            max_val=10,
-            font=self.font,
-            mono_font=self.font
+            label="Zero", label_width=50, input_width=100, min_val=0, max_val=10, font=self.font, mono_font=self.font
         )
         zero_input.focused = True
 

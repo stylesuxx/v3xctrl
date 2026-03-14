@@ -9,7 +9,7 @@ pygame.freetype.init()
 
 
 def _get_resource_path(relative_path: str) -> Path:
-    base_path = Path(sys._MEIPASS) if getattr(sys, 'frozen', False) else Path(__file__).parent.parent
+    base_path = Path(sys._MEIPASS) if getattr(sys, "frozen", False) else Path(__file__).parent.parent
     return base_path / relative_path
 
 

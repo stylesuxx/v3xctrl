@@ -10,14 +10,14 @@ from .TextInput import TextInput
 from .WidgetRow import WidgetRow
 
 __all__ = [
-  "BaseInput",
-  "BaseWidget",
-  "Button",
-  "ButtonMappingWidget",
-  "Checkbox",
-  "KeyMappingWidget",
-  "NumberInput",
-  "Select",
-  "TextInput",
-  "WidgetRow",
+    "BaseInput",
+    "BaseWidget",
+    "Button",
+    "ButtonMappingWidget",
+    "Checkbox",
+    "KeyMappingWidget",
+    "NumberInput",
+    "Select",
+    "TextInput",
+    "WidgetRow",
 ]

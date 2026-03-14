@@ -52,25 +52,36 @@ class ReceiverVLC(Receiver):
         self._write_sdp()
 
         vlc_args = [
-            '--intf', 'dummy',
-            '--no-audio',
-            '--no-video-title-show',
-            '--no-osd',
-            '--verbose', '2',
-            '--demux', 'sdp',
-            '--network-caching', '50',
-            '--live-caching', '50',
-            '--clock-jitter', '0',
-            '--clock-synchro', '0',
-            '--rtp-max-src', '1',
-            '--rtp-timeout', '5000000',
-            '--drop-late-frames',
-            '--no-skip-frames',
-            '--avcodec-fast',
-            '--avcodec-threads', '2',
-            '--vout', 'dummy',
-            '--no-video-deco',
-            '--no-embedded-video',
+            "--intf",
+            "dummy",
+            "--no-audio",
+            "--no-video-title-show",
+            "--no-osd",
+            "--verbose",
+            "2",
+            "--demux",
+            "sdp",
+            "--network-caching",
+            "50",
+            "--live-caching",
+            "50",
+            "--clock-jitter",
+            "0",
+            "--clock-synchro",
+            "0",
+            "--rtp-max-src",
+            "1",
+            "--rtp-timeout",
+            "5000000",
+            "--drop-late-frames",
+            "--no-skip-frames",
+            "--avcodec-fast",
+            "--avcodec-threads",
+            "2",
+            "--vout",
+            "dummy",
+            "--no-video-deco",
+            "--no-embedded-video",
         ]
 
         try:
@@ -138,12 +149,8 @@ class ReceiverVLC(Receiver):
     def _setup_video_callbacks(self) -> None:
         """Setup VLC video callbacks using ctypes."""
 
-        LOCK_CB = ctypes.CFUNCTYPE(
-            ctypes.c_void_p, ctypes.c_void_p, ctypes.POINTER(ctypes.c_void_p)
-        )
-        UNLOCK_CB = ctypes.CFUNCTYPE(
-            None, ctypes.c_void_p, ctypes.c_void_p, ctypes.POINTER(ctypes.c_void_p)
-        )
+        LOCK_CB = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_void_p, ctypes.POINTER(ctypes.c_void_p))
+        UNLOCK_CB = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_void_p, ctypes.POINTER(ctypes.c_void_p))
         DISPLAY_CB = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_void_p)
         FORMAT_CB = ctypes.CFUNCTYPE(
             ctypes.c_uint,
@@ -151,7 +158,7 @@ class ReceiverVLC(Receiver):
             ctypes.POINTER(ctypes.c_uint),
             ctypes.POINTER(ctypes.c_uint),
             ctypes.POINTER(ctypes.c_uint),
-            ctypes.POINTER(ctypes.c_uint)
+            ctypes.POINTER(ctypes.c_uint),
         )
 
         self.lock_cb = LOCK_CB(self._lock_callback)
@@ -159,12 +166,7 @@ class ReceiverVLC(Receiver):
         self.display_cb = DISPLAY_CB(self._display_callback)
         self.format_cb = FORMAT_CB(self._format_callback)
 
-        self.player.video_set_callbacks(
-            self.lock_cb,
-            self.unlock_cb,
-            self.display_cb,
-            self.opaque
-        )
+        self.player.video_set_callbacks(self.lock_cb, self.unlock_cb, self.display_cb, self.opaque)
         self.player.video_set_format_callbacks(self.format_cb, None)
 
     def _format_callback(self, chroma, width, height, pitches, lines):
@@ -173,7 +175,7 @@ class ReceiverVLC(Receiver):
         self.width, self.height = w, h
         self.pitch = w * 4
 
-        chroma[0] = b'RV32'
+        chroma[0] = b"RV32"
         pitches[0] = self.pitch
         lines[0] = h
 
@@ -211,9 +213,7 @@ class ReceiverVLC(Receiver):
                         expected_size = self.width * self.height * 4
 
                         if len(buffer_array) >= expected_size:
-                            rgba_frame = buffer_array[:expected_size].reshape(
-                                (self.height, self.width, 4)
-                            )
+                            rgba_frame = buffer_array[:expected_size].reshape((self.height, self.width, 4))
                             rgb_frame = rgba_frame[:, :, :3].copy()
                             self.last_frame_time = current_time
                             self._update_frame(rgb_frame)

@@ -30,6 +30,7 @@ def _get_gstreamer_receiver() -> type[Receiver] | None:
     global _ReceiverGst
     if _ReceiverGst is None and is_gstreamer_available():
         from v3xctrl_ui.network.video.ReceiverGst import ReceiverGst
+
         _ReceiverGst = ReceiverGst
     return _ReceiverGst
 
@@ -37,6 +38,7 @@ def _get_gstreamer_receiver() -> type[Receiver] | None:
 @dataclass
 class RelaySetupResult:
     """Result of relay connection setup."""
+
     success: bool
     video_address: tuple[str, int] | None = None
     error_message: str | None = None
@@ -45,6 +47,7 @@ class RelaySetupResult:
 @dataclass
 class VideoReceiverSetupResult:
     """Result of video receiver setup."""
+
     success: bool
     video_receiver: Receiver | None = None
     error: Exception | None = None
@@ -53,6 +56,7 @@ class VideoReceiverSetupResult:
 @dataclass
 class ServerSetupResult:
     """Result of control server setup."""
+
     success: bool
     server: Server | None = None
     error_message: str | None = None
@@ -61,6 +65,7 @@ class ServerSetupResult:
 @dataclass
 class NetworkSetupResult:
     """Complete result of network setup process."""
+
     relay_result: RelaySetupResult | None = None
     video_receiver_result: VideoReceiverSetupResult | None = None
     server_result: ServerSetupResult | None = None
@@ -72,11 +77,7 @@ class NetworkSetupResult:
     @property
     def has_errors(self) -> bool:
         """Check if any setup step failed."""
-        results = [
-            self.relay_result,
-            self.video_receiver_result,
-            self.server_result
-        ]
+        results = [self.relay_result, self.video_receiver_result, self.server_result]
         return any(r and not r.success for r in results)
 
 
@@ -135,37 +136,38 @@ class NetworkSetup:
 
         if self.transport == Transport.TCP and relay_config:
             # TCP relay mode: two TcpTunnels to relay, skip Peer.setup()
-            relay_host = relay_config['server']
-            relay_port = relay_config['port']
-            session_id = relay_config['id']
-            spectator_mode = relay_config.get('spectator_mode', False)
+            relay_host = relay_config["server"]
+            relay_port = relay_config["port"]
+            session_id = relay_config["id"]
+            spectator_mode = relay_config.get("spectator_mode", False)
             role = Role.SPECTATOR if spectator_mode else Role.VIEWER
 
             video_handshake = PeerAnnouncement(r=role.value, i=session_id, p="video").to_bytes()
             result.tcp_video_tunnel = TcpTunnel(
-                remote_host=relay_host, remote_port=relay_port,
+                remote_host=relay_host,
+                remote_port=relay_port,
                 local_component_port=self.video_port,
-                bidirectional=True, handshake=video_handshake,
+                bidirectional=True,
+                handshake=video_handshake,
             )
             result.tcp_video_tunnel.start()
 
             control_handshake = PeerAnnouncement(r=role.value, i=session_id, p="control").to_bytes()
             result.tcp_control_tunnel = TcpTunnel(
-                remote_host=relay_host, remote_port=relay_port,
+                remote_host=relay_host,
+                remote_port=relay_port,
                 local_component_port=self.control_port,
-                bidirectional=True, handshake=control_handshake,
+                bidirectional=True,
+                handshake=control_handshake,
             )
             result.tcp_control_tunnel.start()
 
             logging.info("TCP relay tunnels started (video + control)")
 
         elif relay_config:
-            spectator_mode = relay_config.get('spectator_mode', False)
+            spectator_mode = relay_config.get("spectator_mode", False)
             relay_result = self.setup_relay(
-                relay_config['server'],
-                relay_config['port'],
-                relay_config['id'],
-                spectator_mode
+                relay_config["server"], relay_config["port"], relay_config["id"], spectator_mode
             )
             result.relay_result = relay_result
 
@@ -193,28 +195,18 @@ class NetworkSetup:
 
         # Step 2: Create keep-alive callback and setup video receiver
         keep_alive_callback = self.create_keep_alive_callback(video_address)
-        video_result = self.setup_video_receiver(
-            keep_alive_callback, video_address
-        )
+        video_result = self.setup_video_receiver(keep_alive_callback, video_address)
         result.video_receiver_result = video_result
 
         # Step 3: Setup control server
-        server_result = self.setup_server(
-            handlers.get("messages", []),
-            handlers.get("states", []),
-            spectator_mode
-        )
+        server_result = self.setup_server(handlers.get("messages", []), handlers.get("states", []), spectator_mode)
         result.server_result = server_result
 
         return result
 
     # Step 1
     def setup_relay(
-        self,
-        relay_server: str,
-        relay_port: int,
-        relay_id: str,
-        spectator_mode: bool = False
+        self, relay_server: str, relay_port: int, relay_id: str, spectator_mode: bool = False
     ) -> RelaySetupResult:
         """
         Setup relay connection.
@@ -228,10 +220,7 @@ class NetworkSetup:
         Returns:
             RelaySetupResult with connection details or error
         """
-        local_bind_ports = {
-            "video": self.video_port,
-            "control": self.control_port
-        }
+        local_bind_ports = {"video": self.video_port, "control": self.control_port}
 
         self._peer = Peer(relay_server, relay_port, relay_id)
 
@@ -258,21 +247,14 @@ class NetworkSetup:
             )
 
         except OSError as e:
-            error_msg = (
-                "Port already in use"
-                if e.errno == errno.EADDRINUSE
-                else "Network error"
-            )
+            error_msg = "Port already in use" if e.errno == errno.EADDRINUSE else "Network error"
             return RelaySetupResult(
                 success=False,
                 error_message=error_msg,
             )
 
     # Step 2.a
-    def create_keep_alive_callback(
-        self,
-        video_address: tuple[str, int] | None
-    ) -> Callable[[], None]:
+    def create_keep_alive_callback(self, video_address: tuple[str, int] | None) -> Callable[[], None]:
         """
         Create a keep-alive callback for relay connections.
 
@@ -303,7 +285,7 @@ class NetworkSetup:
                         sock.sendto(Heartbeat().to_bytes(), video_address)
                         time.sleep(0.1)
                     except Exception as e:
-                        logging.warning(f"Poke {i+1}/{retries} failed: {e}")
+                        logging.warning(f"Poke {i + 1}/{retries} failed: {e}")
 
             except Exception as e:
                 logging.error(f"Failed to poke peer: {e}", exc_info=True)
@@ -362,23 +344,17 @@ class NetworkSetup:
 
             video_receiver.start()
 
-            return VideoReceiverSetupResult(
-                success=True,
-                video_receiver=video_receiver
-            )
+            return VideoReceiverSetupResult(success=True, video_receiver=video_receiver)
 
         except Exception as e:
-            return VideoReceiverSetupResult(
-                success=False,
-                error=e
-            )
+            return VideoReceiverSetupResult(success=False, error=e)
 
     # Step 3
     def setup_server(
         self,
         message_handlers: list[tuple[Any, Callable]],
         state_handlers: list[tuple[Any, Callable]],
-        spectator_mode: bool = False
+        spectator_mode: bool = False,
     ) -> ServerSetupResult:
         """
         Setup control server.
@@ -407,19 +383,9 @@ class NetworkSetup:
 
             server.start()
 
-            return ServerSetupResult(
-                success=True,
-                server=server
-            )
+            return ServerSetupResult(success=True, server=server)
 
         except OSError as e:
-            error_msg = (
-                "Control port already in use"
-                if e.errno == errno.EADDRINUSE
-                else "Server error"
-            )
+            error_msg = "Control port already in use" if e.errno == errno.EADDRINUSE else "Server error"
 
-            return ServerSetupResult(
-                success=False,
-                error_message=error_msg
-            )
+            return ServerSetupResult(success=False, error_message=error_msg)

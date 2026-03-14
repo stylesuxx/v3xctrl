@@ -110,12 +110,7 @@ class TestTextWidget(unittest.TestCase):
 
     def test_custom_padding_initialization(self):
         widget = TextWidget(
-            position=(0, 0),
-            length=200,
-            top_padding=10,
-            bottom_padding=15,
-            left_padding=8,
-            right_padding=12
+            position=(0, 0), length=200, top_padding=10, bottom_padding=15, left_padding=8, right_padding=12
         )
 
         self.assertEqual(widget.top_padding, 10)

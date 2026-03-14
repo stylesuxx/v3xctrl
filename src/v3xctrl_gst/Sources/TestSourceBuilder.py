@@ -2,7 +2,7 @@ import logging
 
 import gi
 
-gi.require_version('Gst', '1.0')
+gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
 
 from .SourceBuilder import SourceBuilder  # noqa: E402

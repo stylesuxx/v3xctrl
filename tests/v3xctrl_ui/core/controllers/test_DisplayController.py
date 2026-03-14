@@ -165,5 +165,5 @@ class TestDisplayController(unittest.TestCase):
         self.assertEqual(self.model.scale, 2.0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

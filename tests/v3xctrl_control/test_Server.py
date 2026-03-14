@@ -100,7 +100,7 @@ class TestServer(unittest.TestCase):
         self.server.send(msg)
         self.mock_base_send.assert_not_called()
 
-    @patch('src.v3xctrl_control.Server.Base.heartbeat')  # Mock the heartbeat method
+    @patch("src.v3xctrl_control.Server.Base.heartbeat")  # Mock the heartbeat method
     def test_heartbeat_triggers_send(self, mock_heartbeat):
         # Mock heartbeat to avoid background sends
         mock_heartbeat.return_value = None
@@ -113,7 +113,7 @@ class TestServer(unittest.TestCase):
         mock_heartbeat.assert_called_once()
 
     def test_heartbeat_does_not_send_too_early(self):
-        with patch('src.v3xctrl_control.Server.Base.heartbeat') as mock_heartbeat:
+        with patch("src.v3xctrl_control.Server.Base.heartbeat") as mock_heartbeat:
             self.server.last_sent_timestamp = time.time()
             self.server.last_sent_timeout = 10
 
@@ -136,7 +136,7 @@ class TestServer(unittest.TestCase):
         self.server.started.set()
         self.server.running.set()
 
-        with patch.object(self.server.thread_pool, 'shutdown') as mock_shutdown:
+        with patch.object(self.server.thread_pool, "shutdown") as mock_shutdown:
             self.server.stop()
             mock_shutdown.assert_called_once_with(wait=False)
 
@@ -144,7 +144,7 @@ class TestServer(unittest.TestCase):
         command = Command("ping", {})
         callback = MagicMock()
 
-        with patch.object(self.server.thread_pool, 'submit') as mock_submit:
+        with patch.object(self.server.thread_pool, "submit") as mock_submit:
             self.server.send_command(command, callback=callback)
             mock_submit.assert_called_once()
 
@@ -237,7 +237,7 @@ class TestServer(unittest.TestCase):
 
     def test_socket_bind_error(self):
         # Test socket binding error handling (lines 82->exit, 84->exit)
-        with patch('socket.socket') as mock_socket:
+        with patch("socket.socket") as mock_socket:
             mock_sock = MagicMock()
             mock_socket.return_value = mock_sock
             mock_sock.bind.side_effect = OSError("Port already in use")
@@ -250,9 +250,9 @@ class TestServer(unittest.TestCase):
             # The original code doesn't call close() on bind failure - this is a bug!
             mock_sock.close.assert_not_called()
 
-    @patch('src.v3xctrl_control.Server.Server.handle_state_change')
-    @patch('src.v3xctrl_control.Server.Server.check_timeout')
-    @patch('src.v3xctrl_control.Server.Server.heartbeat')
+    @patch("src.v3xctrl_control.Server.Server.handle_state_change")
+    @patch("src.v3xctrl_control.Server.Server.check_timeout")
+    @patch("src.v3xctrl_control.Server.Server.heartbeat")
     def test_run_method_state_machine(self, mock_heartbeat, mock_check_timeout, mock_handle_state_change):
         # Test the main run loop (lines 93-119)
         self.server.STATE_CHECK_INTERVAL_MS = 10  # Fast for testing
@@ -285,9 +285,9 @@ class TestServer(unittest.TestCase):
         self.mock_transmitter.start_task.assert_called_once()
         self.mock_handler.start.assert_called_once()
 
-    @patch('src.v3xctrl_control.Server.Server.handle_state_change')
-    @patch('src.v3xctrl_control.Server.Server.check_timeout')
-    @patch('src.v3xctrl_control.Server.Server.heartbeat')
+    @patch("src.v3xctrl_control.Server.Server.handle_state_change")
+    @patch("src.v3xctrl_control.Server.Server.check_timeout")
+    @patch("src.v3xctrl_control.Server.Server.heartbeat")
     def test_run_method_connected_state(self, mock_heartbeat, mock_check_timeout, mock_handle_state_change):
         # Test CONNECTED state path in run loop
         self.server.STATE_CHECK_INTERVAL_MS = 10

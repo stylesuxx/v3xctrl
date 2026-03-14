@@ -20,12 +20,7 @@ class TestPacketRelayIntegration(unittest.TestCase):
         self.mock_sock = Mock(spec=socket.socket)
         self.address = ("127.0.0.1", 12345)
         self.timeout = 5.0
-        self.relay = PacketRelay(
-            store=self.mock_store,
-            sock=self.mock_sock,
-            address=self.address,
-            timeout=self.timeout
-        )
+        self.relay = PacketRelay(store=self.mock_store, sock=self.mock_sock, address=self.address, timeout=self.timeout)
 
         self.streamer_video_addr = ("192.168.1.10", 5000)
         self.streamer_control_addr = ("192.168.1.10", 5001)
@@ -125,7 +120,7 @@ class TestPacketRelayIntegration(unittest.TestCase):
 
         initial_time = 1_600_000_000.0
         # create mappings with a deterministic timestamp
-        with patch('time.time', return_value=initial_time):
+        with patch("time.time", return_value=initial_time):
             self._announce(self.session_id, Role.STREAMER, PortType.VIDEO, self.streamer_video_addr)
             self._announce(self.session_id, Role.STREAMER, PortType.CONTROL, self.streamer_control_addr)
             self._announce(self.session_id, Role.VIEWER, PortType.VIDEO, self.viewer_video_addr)
@@ -138,7 +133,7 @@ class TestPacketRelayIntegration(unittest.TestCase):
 
         # Forward packet at a later time and ensure timestamp is updated and packet sent
         later_time = initial_time + 2.0
-        with patch('time.time', return_value=later_time):
+        with patch("time.time", return_value=later_time):
             self.mock_sock.reset_mock()
             self.relay.forward_packet(b"data", self.streamer_video_addr)
             self.mock_sock.sendto.assert_called_once_with(b"data", self.viewer_video_addr)
@@ -170,7 +165,7 @@ class TestPacketRelayIntegration(unittest.TestCase):
 
         # Advance time past timeout so orphaned session will be removed
         future = time.time() + self.timeout + 1
-        with patch('time.time', return_value=future), patch('v3xctrl_relay.PacketRelay.logger') as mock_logger:
+        with patch("time.time", return_value=future), patch("v3xctrl_relay.PacketRelay.logger") as mock_logger:
             self.relay.cleanup_expired_mappings()
             mock_logger.info.assert_called()
 
@@ -183,7 +178,7 @@ class TestPacketRelayIntegration(unittest.TestCase):
         self.mock_store.exists.return_value = True
 
         initial_time = 1_600_000_000.0
-        with patch('time.time', return_value=initial_time):
+        with patch("time.time", return_value=initial_time):
             self._announce(self.session_id, Role.STREAMER, PortType.VIDEO, self.streamer_video_addr)
             self._announce(self.session_id, Role.STREAMER, PortType.CONTROL, self.streamer_control_addr)
             self._announce(self.session_id, Role.VIEWER, PortType.VIDEO, self.viewer_video_addr)
@@ -194,15 +189,14 @@ class TestPacketRelayIntegration(unittest.TestCase):
             self.assertIn(self.streamer_video_addr, self.relay.mappings)
 
         # Forward a packet at the same patched time (so timestamp stays predictable)
-        with patch('time.time', return_value=initial_time):
+        with patch("time.time", return_value=initial_time):
             self.mock_sock.reset_mock()
             self.relay.forward_packet(b"data", self.streamer_video_addr)
             self.assertEqual(self.mock_sock.sendto.call_count, 1)
 
         # Fast forward past timeout so mappings expire
         expired_time = initial_time + self.timeout + 1
-        with (patch('time.time', return_value=expired_time),
-              patch('v3xctrl_relay.PacketRelay.logger') as mock_logger):
+        with patch("time.time", return_value=expired_time), patch("v3xctrl_relay.PacketRelay.logger") as mock_logger:
             self.relay.cleanup_expired_mappings()
             self.assertGreater(mock_logger.info.call_count, 0)
 
@@ -356,7 +350,7 @@ class TestPacketRelayIntegration(unittest.TestCase):
         old_time = time.time() - self.timeout - 1
 
         # register while patching time to old_time
-        with patch('time.time', return_value=old_time):
+        with patch("time.time", return_value=old_time):
             self._announce(orphaned_session_id, Role.STREAMER, PortType.VIDEO, ("10.0.0.1", 5000))
 
         # Both sessions should exist initially
@@ -366,7 +360,7 @@ class TestPacketRelayIntegration(unittest.TestCase):
         self.assertGreater(len(orphaned_peers), 0)
 
         # Cleanup should remove only orphaned session
-        with patch('v3xctrl_relay.PacketRelay.logger') as mock_logger:
+        with patch("v3xctrl_relay.PacketRelay.logger") as mock_logger:
             self.relay.cleanup_expired_mappings()
             mock_logger.info.assert_called()
 

@@ -1,4 +1,5 @@
 """Tests for VideoCore telemetry."""
+
 import unittest
 from unittest.mock import patch
 
@@ -11,7 +12,7 @@ class TestVideoCoreTelemetry(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures with mocked subprocess."""
-        self.subprocess_patcher = patch('v3xctrl_telemetry.VideoCoreTelemetry.subprocess')
+        self.subprocess_patcher = patch("v3xctrl_telemetry.VideoCoreTelemetry.subprocess")
         self.mock_subprocess = self.subprocess_patcher.start()
 
     def tearDown(self):
@@ -265,5 +266,5 @@ class TestVideoCoreTelemetry(unittest.TestCase):
         )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

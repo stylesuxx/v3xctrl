@@ -18,7 +18,7 @@ class GamepadCalibrator:
         CalibrationStage.STEERING: "Move the steering axis to its left and right maxima...",
         CalibrationStage.STEERING_CENTER: "Let go of steering to detect center position...",
         CalibrationStage.THROTTLE: "Move the throttle axis to its minimum and maximum positions...",
-        CalibrationStage.BRAKE: "Move the brake axis to its minimum and maximum positions..."
+        CalibrationStage.BRAKE: "Move the brake axis to its minimum and maximum positions...",
     }
 
     def __init__(
@@ -26,7 +26,7 @@ class GamepadCalibrator:
         on_start: Callable[[], None] | None = None,
         on_done: Callable[[], None] | None = None,
         dialog: DialogBox | None = None,
-        clock: Callable[[], float] | None = None
+        clock: Callable[[], float] | None = None,
     ) -> None:
         self.on_start = on_start
         self.on_done = on_done
@@ -41,7 +41,7 @@ class GamepadCalibrator:
         self.axes: dict[str, AxisCalibrationData] = {
             "steering": AxisCalibrationData(),
             "throttle": AxisCalibrationData(),
-            "brake": AxisCalibrationData()
+            "brake": AxisCalibrationData(),
         }
 
     def start(self) -> None:
@@ -69,13 +69,13 @@ class GamepadCalibrator:
             return
 
         if self.stage == CalibrationStage.STEERING:
-            self._detect_and_record_axis('steering', axes, next_stage=CalibrationStage.STEERING_CENTER)
+            self._detect_and_record_axis("steering", axes, next_stage=CalibrationStage.STEERING_CENTER)
         elif self.stage == CalibrationStage.STEERING_CENTER:
-            self._record_center_idle('steering', axes, next_stage=CalibrationStage.THROTTLE)
+            self._record_center_idle("steering", axes, next_stage=CalibrationStage.THROTTLE)
         elif self.stage == CalibrationStage.THROTTLE:
-            self._detect_and_record_axis('throttle', axes, exclude=['steering'], next_stage=CalibrationStage.BRAKE)
+            self._detect_and_record_axis("throttle", axes, exclude=["steering"], next_stage=CalibrationStage.BRAKE)
         elif self.stage == CalibrationStage.BRAKE:
-            self._detect_and_record_axis('brake', axes, exclude=['steering'], on_complete=self._complete)
+            self._detect_and_record_axis("brake", axes, exclude=["steering"], on_complete=self._complete)
 
     def get_settings(self) -> dict[str, dict[str, float | int | None]]:
         return {
@@ -83,20 +83,18 @@ class GamepadCalibrator:
                 "axis": axis.axis,
                 "min": min(axis.max_values) if axis.max_values else 0,
                 "max": max(axis.max_values) if axis.max_values else 0,
-                "center": (
-                    sum(axis.idle_samples) / len(axis.idle_samples)
-                    if axis.idle_samples else None
-                ) if name == "steering" else None
-            } for name, axis in self.axes.items()
+                "center": (sum(axis.idle_samples) / len(axis.idle_samples) if axis.idle_samples else None)
+                if name == "steering"
+                else None,
+            }
+            for name, axis in self.axes.items()
         }
 
     def _queue_next_stage_with_dialog(self, next_stage: CalibrationStage) -> None:
         if self.dialog:
             step_label = CalibrationSteps.get_label(next_stage)
 
-            self.dialog.set_text([
-                step_label
-            ])
+            self.dialog.set_text([step_label])
             self.dialog.on_confirm = self._resume_calibration
             self.dialog.show()
 
@@ -112,12 +110,14 @@ class GamepadCalibrator:
         if self.dialog:
             self.dialog.hide()
 
-    def _detect_and_record_axis(self,
-                                name: str,
-                                axes: list[float],
-                                exclude: list[str] | None = None,
-                                next_stage: CalibrationStage | None = None,
-                                on_complete: Callable[[], None] | None = None) -> None:
+    def _detect_and_record_axis(
+        self,
+        name: str,
+        axes: list[float],
+        exclude: list[str] | None = None,
+        next_stage: CalibrationStage | None = None,
+        on_complete: Callable[[], None] | None = None,
+    ) -> None:
         if exclude is None:
             exclude = []
         axis_data = self.axes[name]
@@ -161,9 +161,9 @@ class GamepadCalibrator:
             max_val = max(axis_data.max_values)
 
             if (
-                max_val - min_val >= self.AXIS_MOVEMENT_THRESHOLD and
-                now - axis_data.min_stable_since >= self.STABLE_TIME and
-                now - axis_data.max_stable_since >= self.STABLE_TIME
+                max_val - min_val >= self.AXIS_MOVEMENT_THRESHOLD
+                and now - axis_data.min_stable_since >= self.STABLE_TIME
+                and now - axis_data.max_stable_since >= self.STABLE_TIME
             ):
                 logging.info(f"{name.capitalize()} axis min/max: {min_val:.2f}/{max_val:.2f}")
 

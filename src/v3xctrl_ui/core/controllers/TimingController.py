@@ -1,4 +1,5 @@
 """Timing controller for managing frame rates and update intervals."""
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -12,7 +13,7 @@ class TimingController:
     # Epsilon for floating-point comparison tolerance
     TIMING_EPSILON = 1e-9
 
-    def __init__(self, settings: 'Settings', model: 'ApplicationModel'):
+    def __init__(self, settings: "Settings", model: "ApplicationModel"):
         """Initialize timing controller with settings.
 
         Args:

@@ -2,18 +2,15 @@ from .Message import Message
 
 
 class PeerAnnouncement(Message):
-    def __init__(
-        self,
-        r: str,
-        i: str,
-        p: str,
-        timestamp: float | None = None
-    ) -> None:
-        super().__init__({
-            "r": r,
-            "i": i,
-            "p": p,
-        }, timestamp)
+    def __init__(self, r: str, i: str, p: str, timestamp: float | None = None) -> None:
+        super().__init__(
+            {
+                "r": r,
+                "i": i,
+                "p": p,
+            },
+            timestamp,
+        )
 
         self.role = r
         self.id = i

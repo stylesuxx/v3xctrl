@@ -23,14 +23,14 @@ running = True
 
 
 def telemetry_handler(message: Message) -> None:
-    """ TODO: Implement control message handling. """
+    """TODO: Implement control message handling."""
     message = cast(Telemetry, message)
     values = message.get_values()
     logging.debug(f"Received telemetry message: {values}")
 
 
 def disconnect_handler() -> None:
-    """ TODO: Implement disconnect handling. """
+    """TODO: Implement disconnect handling."""
     logging.debug("Disconnected from client...")
 
 
@@ -56,10 +56,7 @@ signal.signal(signal.SIGINT, signal_handler)
 try:
     while running:
         """ TODO: Implement your functionality to communicat with the server. """
-        server.send(Control({
-            "ste": 50,
-            "thr": 0
-        }))
+        server.send(Control({"ste": 50, "thr": 0}))
 
         time.sleep(10)
 

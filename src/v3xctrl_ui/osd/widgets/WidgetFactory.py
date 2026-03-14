@@ -1,4 +1,3 @@
-
 from v3xctrl_ui.osd.widgets import (
     Alignment,
     BatteryIconWidget,
@@ -21,25 +20,14 @@ from v3xctrl_ui.utils.helpers import (
 
 def create_steering_widgets() -> dict[str, Widget]:
     steering_widget = HorizontalIndicatorWidget(
-        position=(0, 0),
-        size=(412, 22),
-        bar_size=(20, 10),
-        range_mode="symmetric",
-        color_fn=interpolate_steering_color
+        position=(0, 0), size=(412, 22), bar_size=(20, 10), range_mode="symmetric", color_fn=interpolate_steering_color
     )
 
     throttle_widget = VerticalIndicatorWidget(
-        position=(0, 0),
-        size=(32, 212),
-        bar_width=20,
-        range_mode="symmetric",
-        color_fn=interpolate_throttle_color
+        position=(0, 0), size=(32, 212), bar_width=20, range_mode="symmetric", color_fn=interpolate_throttle_color
     )
 
-    return {
-        "steering": steering_widget,
-        "throttle": throttle_widget
-    }
+    return {"steering": steering_widget, "throttle": throttle_widget}
 
 
 def create_battery_widgets() -> dict[str, Widget]:
@@ -62,7 +50,7 @@ def create_battery_widgets() -> dict[str, Widget]:
         "battery_voltage": battery_voltage_widget,
         "battery_average_voltage": battery_average_voltage_widget,
         "battery_percent": battery_percent_widget,
-        "battery_current": battery_current_widget
+        "battery_current": battery_current_widget,
     }
 
 
@@ -77,7 +65,7 @@ def create_signal_widgets() -> dict[str, Widget]:
     return {
         "signal_quality": signal_quality_widget,
         "signal_band": signal_band_widget,
-        "signal_cell": signal_cell_widget
+        "signal_cell": signal_cell_widget,
     }
 
 
@@ -95,7 +83,7 @@ def create_debug_widgets(fps_width: int, fps_height: int) -> dict[str, Widget]:
         "debug_fps_video": debug_fps_video_widget,
         "debug_data": debug_data_widget,
         "debug_latency": debug_latency_widget,
-        "debug_buffer": debug_buffer_widget
+        "debug_buffer": debug_buffer_widget,
     }
 
 
@@ -103,15 +91,11 @@ def create_rec_widget() -> dict[str, Widget]:
     position = (0, 0)
     rec_widget = RecWidget(position)
 
-    return {
-        "rec": rec_widget
-    }
+    return {"rec": rec_widget}
 
 
 def create_clock_widget() -> dict[str, Widget]:
     position = (0, 0)
     clock_widget = ClockWidget(position)
 
-    return {
-        "clock": clock_widget
-    }
+    return {"clock": clock_widget}

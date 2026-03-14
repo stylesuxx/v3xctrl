@@ -1,4 +1,5 @@
 """Event handling controller for pygame events."""
+
 import logging
 from collections.abc import Callable
 from typing import TYPE_CHECKING
@@ -28,7 +29,7 @@ class EventController:
         telemetry_context: TelemetryContext,
         gamepad_controller: GamepadController | None = None,
         connect_button: Button | None = None,
-        model: 'ApplicationModel | None' = None,
+        model: "ApplicationModel | None" = None,
     ):
         self.on_quit = on_quit
         self.on_toggle_fullscreen = on_toggle_fullscreen
@@ -95,11 +96,7 @@ class EventController:
                         self.send_command(Commands.recording_start(), self._on_command_ack)
 
             # Route events to connect button when on connect screen
-            if (
-                self.connect_button is not None
-                and not self._is_connected()
-                and not self.menu.visible
-            ):
+            if self.connect_button is not None and not self._is_connected() and not self.menu.visible:
                 self.connect_button.handle_event(event)
 
                 if event.type == pygame.MOUSEMOTION:
@@ -133,12 +130,17 @@ class EventController:
             if mapping is None:
                 continue
 
-            if (isinstance(mapping, int) and event.type == pygame.JOYBUTTONUP  # noqa: SIM114
-                    and event.button == mapping):
+            if (  # noqa: SIM114
+                isinstance(mapping, int) and event.type == pygame.JOYBUTTONUP and event.button == mapping
+            ):
                 return name
 
-            elif (isinstance(mapping, dict) and event.type == pygame.JOYHATMOTION
-                    and event.hat == mapping["hat"] and list(event.value) == mapping["value"]):
+            elif (
+                isinstance(mapping, dict)
+                and event.type == pygame.JOYHATMOTION
+                and event.hat == mapping["hat"]
+                and list(event.value) == mapping["value"]
+            ):
                 return name
 
         return None

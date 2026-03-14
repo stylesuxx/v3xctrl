@@ -8,7 +8,7 @@ from v3xctrl_control.message import ConnectionTest, ConnectionTestAck, Message
 def init_db(path: str) -> None:
     with sqlite3.connect(path) as conn:
         cur = conn.cursor()
-        cur.execute('''
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS allowed_sessions (
                 id TEXT PRIMARY KEY,
                 spectator_id TEXT NOT NULL UNIQUE,
@@ -16,17 +16,12 @@ def init_db(path: str) -> None:
                 discord_username TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-        ''')
+        """)
         conn.commit()
     logging.info("Database initialized or already exists.")
 
 
-def test_relay_connection(
-    server: str,
-    port: int,
-    session_id: str,
-    spectator_mode: bool = False
-) -> tuple[bool, str]:
+def test_relay_connection(server: str, port: int, session_id: str, spectator_mode: bool = False) -> tuple[bool, str]:
     """
     Test connectivity to relay server and validate session/spectator ID.
 

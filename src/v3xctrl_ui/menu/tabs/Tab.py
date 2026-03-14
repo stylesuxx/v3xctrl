@@ -1,4 +1,3 @@
-
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -11,14 +10,7 @@ from v3xctrl_ui.utils.fonts import TEXT_FONT
 
 
 class Tab(ABC):
-    def __init__(
-        self,
-        settings: Settings,
-        width: int,
-        height: int,
-        padding: int,
-        y_offset: int
-    ) -> None:
+    def __init__(self, settings: Settings, width: int, height: int, padding: int, y_offset: int) -> None:
         self.settings = settings
         self.width = width
         self.height = height
@@ -74,12 +66,7 @@ class Tab(ABC):
         headline.render(self.width, self.padding)
         self.headlines[key] = headline
 
-    def _draw_headline(
-        self,
-        surface: Surface,
-        headline_key: str,
-        y: int
-    ) -> int:
+    def _draw_headline(self, surface: Surface, headline_key: str, y: int) -> int:
         if headline_key not in self.headlines:
             raise KeyError(f"Headline '{headline_key}' not found. Did you forget to add it with _add_headline()?")
 

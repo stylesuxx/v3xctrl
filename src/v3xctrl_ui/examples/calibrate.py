@@ -17,7 +17,7 @@ calibrations: dict[str, Any] = {
         "steering": {"axis": 0, "min": -1.0, "max": 1.0, "center": 0.0},
         "throttle": {"axis": 5, "min": -1.0, "max": 1.0, "center": None},
         "brake": {"axis": 2, "min": -1.0, "max": 1.0, "center": None},
-    }
+    },
 }
 
 
@@ -47,7 +47,7 @@ calibration_widget = GamepadCalibrationWidget(
     font=LABEL_FONT,
     manager=gamepad_manager,
     on_calibration_start=on_calibration_start,
-    on_calibration_done=on_calibration_done
+    on_calibration_done=on_calibration_done,
 )
 calibration_widget.set_position(50, 50)
 

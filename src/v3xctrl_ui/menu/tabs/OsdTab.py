@@ -29,23 +29,17 @@ CHECKBOX_CONFIG: list[tuple[str, str]] = [
 
 
 class OsdTab(Tab):
-    def __init__(
-        self,
-        settings: Settings,
-        width: int,
-        height: int,
-        padding: int,
-        y_offset: int
-    ) -> None:
+    def __init__(self, settings: Settings, width: int, height: int, padding: int, y_offset: int) -> None:
         super().__init__(settings, width, height, padding, y_offset)
 
         # Create checkboxes from config
         self.checkboxes: dict[str, Checkbox] = {}
         for key, label in CHECKBOX_CONFIG:
             self.checkboxes[key] = Checkbox(
-                label=t(label), font=LABEL_FONT,
+                label=t(label),
+                font=LABEL_FONT,
                 checked=False,
-                on_change=lambda value, k=key: self._on_widget_toggle(k, value)
+                on_change=lambda value, k=key: self._on_widget_toggle(k, value),
             )
 
         self.elements = list(self.checkboxes.values())
@@ -62,9 +56,7 @@ class OsdTab(Tab):
         _ = self._draw_debug_section(surface, 0)
 
     def get_settings(self) -> dict[str, Any]:
-        return {
-            "widgets": self.widgets
-        }
+        return {"widgets": self.widgets}
 
     def apply_settings(self) -> None:
         self.widgets = self.settings.get("widgets", {})

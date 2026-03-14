@@ -4,6 +4,7 @@ Manages dynamic recording branch for a GStreamer pipeline.
 Handles adding/removing recording elements to/from a running pipeline
 via a tee element.
 """
+
 import logging
 import os
 import threading
@@ -13,7 +14,7 @@ from typing import Any
 
 import gi
 
-gi.require_version('Gst', '1.0')
+gi.require_version("Gst", "1.0")
 from gi.repository import GLib, Gst  # noqa: E402
 
 
@@ -26,7 +27,7 @@ class RecordingManager:
         tee: Gst.Element,
         recording_dir: str,
         sizebuffers: int = 30,
-        on_queue_overrun: Callable[[Gst.Element], None] | None = None
+        on_queue_overrun: Callable[[Gst.Element], None] | None = None,
     ) -> None:
         self._pipeline = pipeline
         self._tee = tee
@@ -64,7 +65,7 @@ class RecordingManager:
 
         os.makedirs(self._recording_dir, exist_ok=True)
 
-        timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
+        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         filename = f"{self._recording_dir}/stream-{timestamp}.ts"
 
         queue_rec = Gst.ElementFactory.make("queue", "queue_rec")
@@ -101,11 +102,11 @@ class RecordingManager:
         filesink.set_property("async", False)
 
         self._elements = {
-            'queue': queue_rec,
-            'parser': parser,
-            'muxer': muxer,
-            'filesink': filesink,
-            'filename': filename
+            "queue": queue_rec,
+            "parser": parser,
+            "muxer": muxer,
+            "filesink": filesink,
+            "filename": filename,
         }
 
         self._pipeline.add(queue_rec)
@@ -185,10 +186,7 @@ class RecordingManager:
 
         self._stop_complete = threading.Event()
 
-        self._tee_pad.add_probe(
-            Gst.PadProbeType.BLOCK_DOWNSTREAM,
-            self._on_tee_pad_blocked
-        )
+        self._tee_pad.add_probe(Gst.PadProbeType.BLOCK_DOWNSTREAM, self._on_tee_pad_blocked)
 
         if not self._stop_complete.wait(timeout=self.STOP_TIMEOUT):
             logging.error("Recording stop timed out, forcing teardown")
@@ -204,7 +202,7 @@ class RecordingManager:
         """
         # Unlink from tee — the main pipeline can continue pushing to other
         # branches (UDP) without being affected by the recording teardown.
-        queue_sink_pad = self._elements['queue'].get_static_pad("sink")
+        queue_sink_pad = self._elements["queue"].get_static_pad("sink")
         if queue_sink_pad:
             pad.unlink(queue_sink_pad)
 
@@ -217,14 +215,11 @@ class RecordingManager:
             queue_sink_pad.send_event(Gst.Event.new_eos())
 
         # Listen for EOS on filesink to know when flushing is complete
-        filesink = self._elements.get('filesink')
+        filesink = self._elements.get("filesink")
         if filesink:
             filesink_pad = filesink.get_static_pad("sink")
             if filesink_pad:
-                filesink_pad.add_probe(
-                    Gst.PadProbeType.EVENT_DOWNSTREAM,
-                    self._on_recording_eos
-                )
+                filesink_pad.add_probe(Gst.PadProbeType.EVENT_DOWNSTREAM, self._on_recording_eos)
             else:
                 GLib.idle_add(self._teardown)
         else:
@@ -248,13 +243,13 @@ class RecordingManager:
     def _teardown(self):
         """Remove recording elements from the pipeline. Runs on main thread."""
         for name, element in self._elements.items():
-            if name == 'filename':
+            if name == "filename":
                 continue
             if isinstance(element, Gst.Element):
                 element.set_state(Gst.State.NULL)
                 self._pipeline.remove(element)
 
-        filename = self._elements.get('filename', 'unknown')
+        filename = self._elements.get("filename", "unknown")
         logging.info(f"Recording stopped: {filename}")
 
         self._elements = {}
@@ -267,7 +262,7 @@ class RecordingManager:
     def _force_teardown(self):
         """Fallback teardown when the probe-based approach times out."""
         if self._tee_pad:
-            queue = self._elements.get('queue')
+            queue = self._elements.get("queue")
             if queue:
                 queue_sink_pad = queue.get_static_pad("sink")
                 if queue_sink_pad:
@@ -276,14 +271,14 @@ class RecordingManager:
             self._tee_pad = None
 
         for name, element in self._elements.items():
-            if name == 'filename':
+            if name == "filename":
                 continue
             if isinstance(element, Gst.Element):
                 element.set_state(Gst.State.NULL)
                 if element.get_parent():
                     self._pipeline.remove(element)
 
-        filename = self._elements.get('filename', 'unknown')
+        filename = self._elements.get("filename", "unknown")
         logging.warning(f"Recording stopped (forced): {filename}")
 
         self._elements = {}
@@ -297,7 +292,7 @@ class RecordingManager:
             self._tee_pad = None
 
         for name, element in self._elements.items():
-            if name == 'filename':
+            if name == "filename":
                 continue
             if isinstance(element, Gst.Element):
                 element.set_state(Gst.State.NULL)

@@ -1,4 +1,3 @@
-
 from pygame import Surface
 
 from v3xctrl_ui.menu.input import BaseWidget

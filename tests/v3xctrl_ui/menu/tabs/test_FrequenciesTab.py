@@ -16,13 +16,7 @@ class TestFrequenciesTab(unittest.TestCase):
         pygame.display.set_mode((1, 1))
 
     def setUp(self):
-        self.settings = {
-            "timing": {
-                "main_loop_fps": 60,
-                "control_update_hz": 30,
-                "latency_check_hz": 10
-            }
-        }
+        self.settings = {"timing": {"main_loop_fps": 60, "control_update_hz": 30, "latency_check_hz": 10}}
         self.tab = FrequenciesTab(self.settings.copy(), width=640, height=480, padding=10, y_offset=0)
 
     def test_initial_values_from_settings(self):

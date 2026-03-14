@@ -181,10 +181,10 @@ class TestWidgetFactory(unittest.TestCase):
         debug_widgets = create_debug_widgets(100, 50)
 
         all_widgets = (
-            list(steering_widgets.values()) +
-            list(battery_widgets.values()) +
-            list(signal_widgets.values()) +
-            list(debug_widgets.values())
+            list(steering_widgets.values())
+            + list(battery_widgets.values())
+            + list(signal_widgets.values())
+            + list(debug_widgets.values())
         )
 
         for widget in all_widgets:

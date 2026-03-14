@@ -73,7 +73,7 @@ class Receiver(ABC, threading.Thread):
         max_frame_age_ms: int = 500,
         frame_ratio: int = 100,
         target_fps: int = 30,
-        timeout_seconds: float = 5.0
+        timeout_seconds: float = 5.0,
     ) -> None:
         super().__init__()
 
@@ -254,11 +254,7 @@ class Receiver(ABC, threading.Thread):
 
         return result
 
-    def _update_frame(
-        self,
-        new_frame: npt.NDArray[np.uint8],
-        decode_duration: float = 0.0
-    ) -> None:
+    def _update_frame(self, new_frame: npt.NDArray[np.uint8], decode_duration: float = 0.0) -> None:
         """Append new frame to frame buffer"""
         now = time.monotonic()
 
@@ -325,7 +321,7 @@ class Receiver(ABC, threading.Thread):
         # Calculate inter-frame intervals
         timestamps = list(self.frame_receive_history)
         for i in range(1, len(timestamps)):
-            interval = timestamps[i] - timestamps[i-1]
+            interval = timestamps[i] - timestamps[i - 1]
             jitter = abs(interval - expected_interval)
             jitter_values.append(jitter * 1000)
 

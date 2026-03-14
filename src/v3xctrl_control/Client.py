@@ -11,6 +11,7 @@ sequentially:
   Either the client is no longer reaching the server or has not received
   messages from the server for a certain amount of time.
 """
+
 import socket
 import time
 
@@ -27,12 +28,7 @@ class Client(Base):
     SYN_INTERNAL = 1
 
     def __init__(
-        self,
-        host: str,
-        port: int,
-        bind_port: int | None = None,
-        failsafe_ms: int = 500,
-        bind_address: str = "0.0.0.0"
+        self, host: str, port: int, bind_port: int | None = None, failsafe_ms: int = 500, bind_address: str = "0.0.0.0"
     ) -> None:
         super().__init__()
 

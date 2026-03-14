@@ -1,4 +1,5 @@
 """Tests for GeneralTab."""
+
 import os
 import unittest
 from unittest.mock import MagicMock
@@ -6,7 +7,7 @@ from unittest.mock import MagicMock
 import pygame
 
 # Set SDL to use dummy video driver
-os.environ['SDL_VIDEODRIVER'] = 'dummy'
+os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.menu.tabs.GeneralTab import GeneralTab
@@ -26,16 +27,10 @@ class TestGeneralTab(unittest.TestCase):
         self.settings = MagicMock(spec=Settings)
         self.settings.get.side_effect = lambda key, default=None: {
             "video": {"fullscreen": False, "render_ratio": 0},
-            "show_connection_info": True
+            "show_connection_info": True,
         }.get(key, default)
 
-        self.tab = GeneralTab(
-            settings=self.settings,
-            width=400,
-            height=600,
-            padding=10,
-            y_offset=20
-        )
+        self.tab = GeneralTab(settings=self.settings, width=400, height=600, padding=10, y_offset=20)
 
     def test_initialization(self):
         """Test GeneralTab initializes correctly."""
@@ -96,7 +91,7 @@ class TestGeneralTab(unittest.TestCase):
         # Change settings mock to return different values
         self.settings.get.side_effect = lambda key, default=None: {
             "video": {"fullscreen": True, "render_ratio": 50},
-            "show_connection_info": False
+            "show_connection_info": False,
         }.get(key, default)
 
         # Call refresh
@@ -115,5 +110,5 @@ class TestGeneralTab(unittest.TestCase):
         assert self.tab.render_ratio_input.value == "50"
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

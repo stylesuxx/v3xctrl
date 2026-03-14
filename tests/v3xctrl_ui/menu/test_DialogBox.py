@@ -26,7 +26,7 @@ class TestDialogBox(unittest.TestCase):
             title="Test Title",
             lines=["This is a line that should wrap properly when drawn." * 3],
             button_label="OK",
-            on_confirm=on_confirm
+            on_confirm=on_confirm,
         )
 
     def test_initial_state(self):
@@ -75,7 +75,7 @@ class TestDialogBox(unittest.TestCase):
     def test_draw_when_hidden(self):
         self.dialog.hide()
         self.dialog.draw(self.surface)
-        self.assertIsNone(getattr(self.dialog, 'box_rect', None))
+        self.assertIsNone(getattr(self.dialog, "box_rect", None))
 
     def test_draw_when_visible_sets_positions(self):
         self.dialog.show()
@@ -107,16 +107,10 @@ class TestDialogBox(unittest.TestCase):
 
         click_pos = self.dialog.button.rect.center
 
-        down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-            'button': 1,
-            'pos': click_pos
-        })
+        down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"button": 1, "pos": click_pos})
         self.dialog.handle_event(down_event)
 
-        up_event = pygame.event.Event(pygame.MOUSEBUTTONUP, {
-            'button': 1,
-            'pos': click_pos
-        })
+        up_event = pygame.event.Event(pygame.MOUSEBUTTONUP, {"button": 1, "pos": click_pos})
         self.dialog.handle_event(up_event)
 
         self.assertTrue(self.confirm_called)
@@ -128,14 +122,8 @@ class TestDialogBox(unittest.TestCase):
         self.dialog.draw(self.surface)
 
         outside_pos = (0, 0)
-        down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-            'button': 1,
-            'pos': outside_pos
-        })
-        up_event = pygame.event.Event(pygame.MOUSEBUTTONUP, {
-            'button': 1,
-            'pos': outside_pos
-        })
+        down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"button": 1, "pos": outside_pos})
+        up_event = pygame.event.Event(pygame.MOUSEBUTTONUP, {"button": 1, "pos": outside_pos})
 
         self.dialog.handle_event(down_event)
         self.dialog.handle_event(up_event)
@@ -147,17 +135,11 @@ class TestDialogBox(unittest.TestCase):
         self.dialog.draw(self.surface)
 
         button_pos = self.dialog.button.rect.center
-        down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-            'button': 1,
-            'pos': button_pos
-        })
+        down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"button": 1, "pos": button_pos})
         self.dialog.handle_event(down_event)
 
         outside_pos = (0, 0)
-        up_event = pygame.event.Event(pygame.MOUSEBUTTONUP, {
-            'button': 1,
-            'pos': outside_pos
-        })
+        up_event = pygame.event.Event(pygame.MOUSEBUTTONUP, {"button": 1, "pos": outside_pos})
         self.dialog.handle_event(up_event)
 
         self.assertFalse(self.confirm_called)
@@ -166,14 +148,8 @@ class TestDialogBox(unittest.TestCase):
         self.dialog.hide()
 
         click_pos = (400, 300)
-        down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-            'button': 1,
-            'pos': click_pos
-        })
-        up_event = pygame.event.Event(pygame.MOUSEBUTTONUP, {
-            'button': 1,
-            'pos': click_pos
-        })
+        down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"button": 1, "pos": click_pos})
+        up_event = pygame.event.Event(pygame.MOUSEBUTTONUP, {"button": 1, "pos": click_pos})
 
         self.dialog.handle_event(down_event)
         self.dialog.handle_event(up_event)
@@ -187,14 +163,8 @@ class TestDialogBox(unittest.TestCase):
 
             click_pos = self.dialog.button.rect.center
 
-            down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-                'button': 1,
-                'pos': click_pos
-            })
-            up_event = pygame.event.Event(pygame.MOUSEBUTTONUP, {
-                'button': 1,
-                'pos': click_pos
-            })
+            down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"button": 1, "pos": click_pos})
+            up_event = pygame.event.Event(pygame.MOUSEBUTTONUP, {"button": 1, "pos": click_pos})
 
             self.dialog.handle_event(down_event)
             self.dialog.handle_event(up_event)
@@ -205,25 +175,14 @@ class TestDialogBox(unittest.TestCase):
         self.assertEqual(self.confirm_call_count, 3)
 
     def test_dialog_with_none_callback(self):
-        dialog = DialogBox(
-            title="Test",
-            lines=["Test"],
-            button_label="OK",
-            on_confirm=None
-        )
+        dialog = DialogBox(title="Test", lines=["Test"], button_label="OK", on_confirm=None)
         dialog.show()
         dialog.draw(self.surface)
 
         click_pos = dialog.button.rect.center
 
-        down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-            'button': 1,
-            'pos': click_pos
-        })
-        up_event = pygame.event.Event(pygame.MOUSEBUTTONUP, {
-            'button': 1,
-            'pos': click_pos
-        })
+        down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"button": 1, "pos": click_pos})
+        up_event = pygame.event.Event(pygame.MOUSEBUTTONUP, {"button": 1, "pos": click_pos})
 
         dialog.handle_event(down_event)
 
@@ -232,35 +191,20 @@ class TestDialogBox(unittest.TestCase):
 
     def test_dialog_with_very_long_title(self):
         long_title = "This is a very long title that might cause issues" * 5
-        dialog = DialogBox(
-            title=long_title,
-            lines=["Test"],
-            button_label="OK",
-            on_confirm=lambda: None
-        )
+        dialog = DialogBox(title=long_title, lines=["Test"], button_label="OK", on_confirm=lambda: None)
         dialog.show()
         dialog.draw(self.surface)
         self.assertIsNotNone(dialog.box_rect)
 
     def test_dialog_with_many_lines(self):
         many_lines = [f"Line {i}" for i in range(50)]
-        dialog = DialogBox(
-            title="Test",
-            lines=many_lines,
-            button_label="OK",
-            on_confirm=lambda: None
-        )
+        dialog = DialogBox(title="Test", lines=many_lines, button_label="OK", on_confirm=lambda: None)
         dialog.show()
         dialog.draw(self.surface)
         self.assertIsNotNone(dialog.box_rect)
 
     def test_dialog_with_empty_title(self):
-        dialog = DialogBox(
-            title="",
-            lines=["Test"],
-            button_label="OK",
-            on_confirm=lambda: None
-        )
+        dialog = DialogBox(title="", lines=["Test"], button_label="OK", on_confirm=lambda: None)
         dialog.show()
         dialog.draw(self.surface)
         self.assertIsNotNone(dialog.box_rect)
@@ -270,7 +214,7 @@ class TestDialogBox(unittest.TestCase):
             title="Special: àáâãäå ñ ☺",
             lines=["Special chars: àáâãäå ñ ☺ €"],
             button_label="Öķ",
-            on_confirm=lambda: None
+            on_confirm=lambda: None,
         )
         dialog.show()
         dialog.draw(self.surface)
@@ -280,9 +224,7 @@ class TestDialogBox(unittest.TestCase):
         self.dialog.show()
         self.dialog.draw(self.surface)
 
-        hover_event = pygame.event.Event(pygame.MOUSEMOTION, {
-            'pos': self.dialog.button.rect.center
-        })
+        hover_event = pygame.event.Event(pygame.MOUSEMOTION, {"pos": self.dialog.button.rect.center})
         self.dialog.handle_event(hover_event)
 
         self.assertIsNotNone(self.dialog.button)
@@ -294,14 +236,8 @@ class TestDialogBox(unittest.TestCase):
 
         click_pos = self.dialog.button.rect.center
 
-        down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-            'button': 3,
-            'pos': click_pos
-        })
-        up_event = pygame.event.Event(pygame.MOUSEBUTTONUP, {
-            'button': 3,
-            'pos': click_pos
-        })
+        down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"button": 3, "pos": click_pos})
+        up_event = pygame.event.Event(pygame.MOUSEBUTTONUP, {"button": 3, "pos": click_pos})
 
         self.dialog.handle_event(down_event)
         self.dialog.handle_event(up_event)
@@ -342,12 +278,7 @@ class TestDialogBoxCreation(unittest.TestCase):
         pygame.init()
 
     def test_create_minimal_dialog(self):
-        dialog = DialogBox(
-            title="Test",
-            lines=["Test line"],
-            button_label="OK",
-            on_confirm=lambda: None
-        )
+        dialog = DialogBox(title="Test", lines=["Test line"], button_label="OK", on_confirm=lambda: None)
         self.assertEqual(dialog.title, "Test")
         self.assertEqual(dialog.original_lines, ["Test line"])
 
@@ -356,13 +287,10 @@ class TestDialogBoxCreation(unittest.TestCase):
             "Short line",
             "This is a much longer line that will definitely need to be wrapped when displayed",
             "",
-            "Final line"
+            "Final line",
         ]
         dialog = DialogBox(
-            title="Complex Dialog",
-            lines=complex_lines,
-            button_label="Continue",
-            on_confirm=lambda: None
+            title="Complex Dialog", lines=complex_lines, button_label="Continue", on_confirm=lambda: None
         )
         self.assertEqual(len(dialog.original_lines), 4)
         self.assertEqual(dialog.button_label, "Continue")

@@ -15,7 +15,7 @@ class RecWidget(TextWidget):
         bottom_padding: int = 3,
         left_padding: int = 8,
         right_padding: int = 8,
-        border_radius: int = 5
+        border_radius: int = 5,
     ) -> None:
         self.border_radius = border_radius
 
@@ -29,7 +29,7 @@ class RecWidget(TextWidget):
             top_padding=top_padding,
             bottom_padding=bottom_padding,
             left_padding=left_padding,
-            right_padding=right_padding
+            right_padding=right_padding,
         )
 
         self.set_background_color(RED, alpha=255)

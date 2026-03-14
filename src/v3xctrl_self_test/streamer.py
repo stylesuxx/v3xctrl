@@ -5,24 +5,9 @@ import struct
 parser = argparse.ArgumentParser(description="Test connection performance.")
 parser.add_argument("host", help="The target IP address")
 parser.add_argument("port", type=int, help="The target port number")
-parser.add_argument(
-    "--increment",
-    type=int,
-    default=30,
-    help="Timeout increment in seconds (default: 10)"
-)
-parser.add_argument(
-    "--min-timeout",
-    type=int,
-    default=30,
-    help="Minimum timeout in seconds (default: 10)"
-)
-parser.add_argument(
-    "--max-timeout",
-    type=int,
-    default=3600,
-    help="Maximum timeout in seconds (default: 3600)"
-)
+parser.add_argument("--increment", type=int, default=30, help="Timeout increment in seconds (default: 10)")
+parser.add_argument("--min-timeout", type=int, default=30, help="Minimum timeout in seconds (default: 10)")
+parser.add_argument("--max-timeout", type=int, default=3600, help="Maximum timeout in seconds (default: 3600)")
 args = parser.parse_args()
 
 HOST = args.host
@@ -46,7 +31,7 @@ class SelfTestClient:
         DONE_MARKER = b"DONE"
 
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as client_socket:
-            print("Establishing UDP hole punch...", end='', flush=True)
+            print("Establishing UDP hole punch...", end="", flush=True)
             client_socket.settimeout(5)
             ready = False
             max_attempts = 5
@@ -60,7 +45,7 @@ class SelfTestClient:
                         print(" OK")
                         break
                 except TimeoutError:
-                    print(".", end='', flush=True)
+                    print(".", end="", flush=True)
 
             if not ready:
                 print(" FAILED")
@@ -96,11 +81,13 @@ class SelfTestClient:
 
                     except TimeoutError:
                         if attempt < max_request_attempts - 1:
-                            print(".", end='', flush=True)
+                            print(".", end="", flush=True)
                         continue
 
                 if not confirmed:
-                    print(f"\n! No confirmation received for timeout {timeout_value:.2f} after {max_request_attempts} attempts")
+                    print(
+                        f"\n! No confirmation received for timeout {timeout_value:.2f} after {max_request_attempts} attempts"
+                    )
                     break
 
                 # Drain any duplicate confirmations

@@ -26,11 +26,7 @@ class Message(abc.ABC):  # noqa: B024
         """Automatically register subclasses using their class name."""
         Message._registry[cls.__name__] = cls
 
-    def __init__(
-        self,
-        payload: dict[str, Any],
-        timestamp: float | None = None
-    ) -> None:
+    def __init__(self, payload: dict[str, Any], timestamp: float | None = None) -> None:
         """Initialize message with a dictionary payload."""
         self.timestamp = time.time() if timestamp is None else timestamp
         self.payload = payload

@@ -28,13 +28,7 @@ class TestRecWidget(unittest.TestCase):
         self.assertEqual(self.widget.background_alpha, 255)
 
     def test_custom_padding(self):
-        widget = RecWidget(
-            position=(0, 0),
-            top_padding=10,
-            bottom_padding=8,
-            left_padding=12,
-            right_padding=14
-        )
+        widget = RecWidget(position=(0, 0), top_padding=10, bottom_padding=8, left_padding=12, right_padding=14)
         self.assertEqual(widget.top_padding, 10)
         self.assertEqual(widget.bottom_padding, 8)
         self.assertEqual(widget.left_padding, 12)
@@ -62,6 +56,7 @@ class TestRecWidget(unittest.TestCase):
 
     def test_inherits_from_textwidget(self):
         from v3xctrl_ui.osd.widgets import TextWidget
+
         self.assertIsInstance(self.widget, TextWidget)
 
     def test_width_calculated_from_text(self):

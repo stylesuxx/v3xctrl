@@ -139,9 +139,11 @@ class TestClient(unittest.TestCase):
     def test_run_branches(self, mock_send):
         # DISCONNECTED branch
         self.client.state = State.DISCONNECTED
-        with patch.object(self.client, "re_initialize") as mock_reinit, \
-             patch.object(self.client, "handle_state_change") as mock_handle, \
-             patch("time.sleep", return_value=None):
+        with (
+            patch.object(self.client, "re_initialize") as mock_reinit,
+            patch.object(self.client, "handle_state_change") as mock_handle,
+            patch("time.sleep", return_value=None),
+        ):
             self.client.running.set()
             mock_reinit.side_effect = lambda: self.client.running.clear()
             self.client.run()
@@ -159,9 +161,11 @@ class TestClient(unittest.TestCase):
 
         # CONNECTED branch
         self.client.state = State.CONNECTED
-        with patch.object(self.client, "heartbeat") as mock_hb, \
-             patch.object(self.client, "check_timeout") as mock_ct, \
-             patch("time.sleep", return_value=None):
+        with (
+            patch.object(self.client, "heartbeat") as mock_hb,
+            patch.object(self.client, "check_timeout") as mock_ct,
+            patch("time.sleep", return_value=None),
+        ):
             self.client.running.set()
             mock_hb.side_effect = lambda: self.client.running.clear()
             self.client.run()

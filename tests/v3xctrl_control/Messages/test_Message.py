@@ -17,11 +17,7 @@ class TestMessages(unittest.TestCase):
         self.assertEqual(msg.payload, deserialized.payload)
 
     def test_unknown_type_raises(self):
-        bad_data = {
-            "t": "NonexistentType",
-            "p": {},
-            "d": time.time()
-        }
+        bad_data = {"t": "NonexistentType", "p": {}, "d": time.time()}
         packed = msgpack.packb(bad_data)
         with self.assertRaises(ValueError) as ctx:
             Message.from_bytes(packed)

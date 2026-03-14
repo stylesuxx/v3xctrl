@@ -4,18 +4,15 @@ from .Message import Message
 class PeerInfo(Message):
     """Message for transmitting peer connection details (IP and ports)."""
 
-    def __init__(
-        self,
-        ip: str,
-        video_port: int,
-        control_port: int,
-        timestamp: float | None = None
-    ) -> None:
-        super().__init__({
-            "ip": ip,
-            "video_port": video_port,
-            "control_port": control_port,
-        }, timestamp)
+    def __init__(self, ip: str, video_port: int, control_port: int, timestamp: float | None = None) -> None:
+        super().__init__(
+            {
+                "ip": ip,
+                "video_port": video_port,
+                "control_port": control_port,
+            },
+            timestamp,
+        )
 
         self.ip = ip
         self.video_port = video_port

@@ -26,7 +26,7 @@ class TestOsdTab(unittest.TestCase):
                 "battery_current": {"display": False},
                 "signal_quality": {"display": True},
                 "signal_band": {"display": False},
-                "signal_cell": {"display": True}
+                "signal_cell": {"display": True},
             }
         }
 

@@ -1,4 +1,5 @@
 """Tests for Battery monitoring."""
+
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -13,7 +14,7 @@ class TestBattery(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures with mocked hardware."""
-        self.mock_smbus_patcher = patch('v3xctrl_telemetry.INA.SMBus')
+        self.mock_smbus_patcher = patch("v3xctrl_telemetry.INA.SMBus")
         self.mock_smbus_class = self.mock_smbus_patcher.start()
         self.mock_bus = MagicMock()
         self.mock_smbus_class.return_value = self.mock_bus
@@ -49,11 +50,7 @@ class TestBattery(unittest.TestCase):
         """Test Battery initializes with custom voltage thresholds."""
         self._mock_voltage(12000)
 
-        battery = Battery(
-            min_cell_voltage=3000,
-            max_cell_voltage=4100,
-            warn_cell_voltage=3200
-        )
+        battery = Battery(min_cell_voltage=3000, max_cell_voltage=4100, warn_cell_voltage=3200)
 
         assert battery.min_cell_voltage == 3000
         assert battery.max_cell_voltage == 4100
@@ -183,11 +180,7 @@ class TestBattery(unittest.TestCase):
     def test_warning_triggered_below_threshold(self):
         """Test warning is set when cell voltage drops below threshold."""
         self._mock_voltage(12000)
-        battery = Battery(
-            min_cell_voltage=3500,
-            max_cell_voltage=4200,
-            warn_cell_voltage=3700
-        )
+        battery = Battery(min_cell_voltage=3500, max_cell_voltage=4200, warn_cell_voltage=3700)
         assert battery.get_state().cell_count == 3
 
         # 3S with cells at 3650mV (below 3700 warning)
@@ -199,11 +192,7 @@ class TestBattery(unittest.TestCase):
     def test_warning_not_triggered_above_threshold(self):
         """Test warning is not set when cell voltage is above threshold."""
         self._mock_voltage(12000)
-        battery = Battery(
-            min_cell_voltage=3500,
-            max_cell_voltage=4200,
-            warn_cell_voltage=3700
-        )
+        battery = Battery(min_cell_voltage=3500, max_cell_voltage=4200, warn_cell_voltage=3700)
         assert battery.get_state().cell_count == 3
 
         # 3S with cells at 3900mV (above 3700 warning)
@@ -263,5 +252,5 @@ class TestBattery(unittest.TestCase):
         assert state.warning is True
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

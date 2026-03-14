@@ -73,7 +73,7 @@ class Button(BaseWidget):
 
         self.cached_surfaces: dict[str, Surface] = {}
         self._render_all_button_states()
-        self._current_state = 'normal'
+        self._current_state = "normal"
 
     def get_size(self) -> tuple[int, int]:
         return self.rect.width, self.rect.height
@@ -131,13 +131,13 @@ class Button(BaseWidget):
     def _update_state(self) -> None:
         """Determine the current visual state"""
         if self.disabled:
-            self._current_state = 'disabled'
+            self._current_state = "disabled"
         elif self.focused:
-            self._current_state = 'active'
+            self._current_state = "active"
         elif self.hovered:
-            self._current_state = 'hover'
+            self._current_state = "hover"
         else:
-            self._current_state = 'normal'
+            self._current_state = "normal"
 
     def _update_label_position(self) -> None:
         self.label_rect.center = self.rect.center
@@ -153,24 +153,27 @@ class Button(BaseWidget):
     def _render_all_button_states(self) -> None:
         """Pre-render all button states WITH labels (EXPENSIVE - only called once)"""
         states = {
-            'normal': (self.BG_COLOR, self.FONT_COLOR),
-            'hover': (self.HOVER_COLOR, self.FONT_COLOR),
-            'active': (self.ACTIVE_COLOR, self.FONT_COLOR),
-            'disabled': (self.BG_COLOR_DISABLED, self.FONT_COLOR_DISABLED),
+            "normal": (self.BG_COLOR, self.FONT_COLOR),
+            "hover": (self.HOVER_COLOR, self.FONT_COLOR),
+            "active": (self.ACTIVE_COLOR, self.FONT_COLOR),
+            "disabled": (self.BG_COLOR_DISABLED, self.FONT_COLOR_DISABLED),
         }
 
         for state_name, (bg_color, font_color) in states.items():
-            temp_surface = Surface((
-                self.width * self.ANTI_ALIAS_SCALE,
-                self.height * self.ANTI_ALIAS_SCALE,
-            ), pygame.SRCALPHA)
+            temp_surface = Surface(
+                (
+                    self.width * self.ANTI_ALIAS_SCALE,
+                    self.height * self.ANTI_ALIAS_SCALE,
+                ),
+                pygame.SRCALPHA,
+            )
 
             # Background
             pygame.draw.rect(
                 temp_surface,
                 bg_color,
                 temp_surface.get_rect(),
-                border_radius=self._border_radius * self.ANTI_ALIAS_SCALE
+                border_radius=self._border_radius * self.ANTI_ALIAS_SCALE,
             )
 
             # Border
@@ -179,7 +182,7 @@ class Button(BaseWidget):
                 self.BORDER_COLOR,
                 temp_surface.get_rect(),
                 width=self.BORDER_WIDTH * self.ANTI_ALIAS_SCALE,
-                border_radius=self._border_radius * self.ANTI_ALIAS_SCALE
+                border_radius=self._border_radius * self.ANTI_ALIAS_SCALE,
             )
 
             # Smoothscale down (expensive operation)

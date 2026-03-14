@@ -61,7 +61,7 @@ class TestGamepadCalibrationWidgetIntegration(unittest.TestCase):
             font=self.font,
             manager=self.mock_manager,
             on_calibration_start=self.mock_on_start,
-            on_calibration_done=self.mock_on_done
+            on_calibration_done=self.mock_on_done,
         )
 
     def test_widget_creates_real_calibrator_with_proper_callbacks(self):
@@ -87,7 +87,7 @@ class TestGamepadCalibrationWidgetIntegration(unittest.TestCase):
         dialog = self.widget.dialog
 
         # Initially dialog should not be visible
-        self.assertFalse(getattr(dialog, 'visible', True))
+        self.assertFalse(getattr(dialog, "visible", True))
 
         # Test initial stage
         self.assertEqual(calibrator.stage, CalibrationStage.STEERING)
@@ -100,7 +100,7 @@ class TestGamepadCalibrationWidgetIntegration(unittest.TestCase):
         self.assertEqual(calibrator.state, CalibratorState.PAUSE)
         self.assertEqual(calibrator.pending_stage, CalibrationStage.STEERING_CENTER)
 
-        self.assertTrue(getattr(dialog, 'visible', False))
+        self.assertTrue(getattr(dialog, "visible", False))
         self._click_dialog_ok_button()
 
         self.assertEqual(calibrator.stage, CalibrationStage.STEERING_CENTER)
@@ -185,7 +185,7 @@ class TestGamepadCalibrationWidgetIntegration(unittest.TestCase):
         existing_settings = {
             "steering": {"center": 0.0, "min": -1.0, "max": 1.0, "invert": False},
             "throttle": {"min": -1.0, "max": 1.0, "invert": False},
-            "brake": {"min": -1.0, "max": 1.0, "invert": False}
+            "brake": {"min": -1.0, "max": 1.0, "invert": False},
         }
 
         self.mock_manager.get_calibration.return_value = existing_settings
@@ -229,7 +229,7 @@ class TestGamepadCalibrationWidgetIntegration(unittest.TestCase):
         calibrator.update(stable_axes)
 
         # If this is the final stage (brake), complete automatically
-        if auto_complete and hasattr(calibrator, '_complete'):
+        if auto_complete and hasattr(calibrator, "_complete"):
             calibrator._complete()
 
     def _simulate_steering_center_detection(self, calibrator):
@@ -268,19 +268,13 @@ class TestGamepadCalibrationWidgetIntegration(unittest.TestCase):
         click_x = x + width // 2
         click_y = y + height // 2
 
-        mouse_down_event = pygame.event.Event(
-            pygame.MOUSEBUTTONDOWN,
-            {'pos': (click_x, click_y), 'button': 1}
-        )
+        mouse_down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": (click_x, click_y), "button": 1})
 
-        mouse_up_event = pygame.event.Event(
-            pygame.MOUSEBUTTONUP,
-            {'pos': (click_x, click_y), 'button': 1}
-        )
+        mouse_up_event = pygame.event.Event(pygame.MOUSEBUTTONUP, {"pos": (click_x, click_y), "button": 1})
 
         self.widget.handle_event(mouse_down_event)
         self.widget.handle_event(mouse_up_event)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

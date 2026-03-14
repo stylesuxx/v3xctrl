@@ -22,7 +22,7 @@ class TestNetworkSetup(unittest.TestCase):
         self.settings.get.side_effect = lambda key, default=None: {
             "ports": {"video": 5000, "control": 6000},
             "udp_packet_ttl": 100,
-            "video": {"render_ratio": 0}
+            "video": {"render_ratio": 0},
         }.get(key, default)
 
         # Patch external dependencies
@@ -66,10 +66,7 @@ class TestNetworkSetup(unittest.TestCase):
 
         # Verify peer was called correctly
         self.mock_peer_cls.assert_called_once_with("relay.example.com", 8080, "test123")
-        mock_peer.setup.assert_called_once_with(
-            "viewer",
-            {"video": 5000, "control": 6000}
-        )
+        mock_peer.setup.assert_called_once_with("viewer", {"video": 5000, "control": 6000})
 
     def test_setup_relay_registration_error(self):
         """Test relay setup with registration error."""
@@ -232,10 +229,7 @@ class TestNetworkSetup(unittest.TestCase):
         self.mock_server_cls.return_value = mock_server
         self.mock_video_receiver_cls.return_value = mock_receiver
 
-        handlers = {
-            "messages": [("TestMessage", lambda m, a: None)],
-            "states": [("CONNECTED", lambda: None)]
-        }
+        handlers = {"messages": [("TestMessage", lambda m, a: None)], "states": [("CONNECTED", lambda: None)]}
 
         result = setup.orchestrate_setup(None, handlers)
 
@@ -291,15 +285,8 @@ class TestNetworkSetup(unittest.TestCase):
         self.mock_server_cls.return_value = mock_server
         self.mock_video_receiver_cls.return_value = mock_receiver
 
-        relay_config = {
-            'server': 'relay.example.com',
-            'port': 8080,
-            'id': 'test123'
-        }
-        handlers = {
-            "messages": [],
-            "states": []
-        }
+        relay_config = {"server": "relay.example.com", "port": 8080, "id": "test123"}
+        handlers = {"messages": [], "states": []}
 
         result = setup.orchestrate_setup(relay_config, handlers)
 
@@ -330,10 +317,7 @@ class TestNetworkSetup(unittest.TestCase):
         mock_receiver = MagicMock()
         self.mock_video_receiver_cls.return_value = mock_receiver
 
-        handlers = {
-            "messages": [],
-            "states": []
-        }
+        handlers = {"messages": [], "states": []}
 
         result = setup.orchestrate_setup(None, handlers)
 
@@ -353,7 +337,7 @@ class TestNetworkSetup(unittest.TestCase):
         result = NetworkSetupResult(
             relay_result=RelaySetupResult(success=True, video_address=("1.2.3.4", 1234)),
             video_receiver_result=VideoReceiverSetupResult(success=True),
-            server_result=ServerSetupResult(success=True)
+            server_result=ServerSetupResult(success=True),
         )
         self.assertFalse(result.has_errors)
 
@@ -361,7 +345,7 @@ class TestNetworkSetup(unittest.TestCase):
         result = NetworkSetupResult(
             relay_result=RelaySetupResult(success=False, error_message="Failed"),
             video_receiver_result=VideoReceiverSetupResult(success=True),
-            server_result=ServerSetupResult(success=True)
+            server_result=ServerSetupResult(success=True),
         )
         self.assertTrue(result.has_errors)
 
@@ -369,7 +353,7 @@ class TestNetworkSetup(unittest.TestCase):
         result = NetworkSetupResult(
             relay_result=None,
             video_receiver_result=VideoReceiverSetupResult(success=True),
-            server_result=ServerSetupResult(success=False, error_message="Failed")
+            server_result=ServerSetupResult(success=False, error_message="Failed"),
         )
         self.assertTrue(result.has_errors)
 
@@ -410,15 +394,8 @@ class TestNetworkSetup(unittest.TestCase):
         mock_peer.setup.side_effect = PeerRegistrationError({}, {})
         self.mock_peer_cls.return_value = mock_peer
 
-        relay_config = {
-            'server': 'relay.example.com',
-            'port': 8080,
-            'id': 'badid'
-        }
-        handlers = {
-            "messages": [],
-            "states": []
-        }
+        relay_config = {"server": "relay.example.com", "port": 8080, "id": "badid"}
+        handlers = {"messages": [], "states": []}
 
         result = setup.orchestrate_setup(relay_config, handlers)
 
@@ -481,10 +458,10 @@ class TestTcpRelayHandshakeRole(unittest.TestCase):
         setup = NetworkSetup(self._make_settings())
 
         relay_config = {
-            'server': 'relay.example.com',
-            'port': 8080,
-            'id': 'session123',
-            'spectator_mode': False,
+            "server": "relay.example.com",
+            "port": 8080,
+            "id": "session123",
+            "spectator_mode": False,
         }
         handlers = {"messages": [], "states": []}
 
@@ -500,10 +477,10 @@ class TestTcpRelayHandshakeRole(unittest.TestCase):
         setup = NetworkSetup(self._make_settings())
 
         relay_config = {
-            'server': 'relay.example.com',
-            'port': 8080,
-            'id': 'spectator123',
-            'spectator_mode': True,
+            "server": "relay.example.com",
+            "port": 8080,
+            "id": "spectator123",
+            "spectator_mode": True,
         }
         handlers = {"messages": [], "states": []}
 
@@ -520,9 +497,9 @@ class TestTcpRelayHandshakeRole(unittest.TestCase):
         setup = NetworkSetup(self._make_settings())
 
         relay_config = {
-            'server': 'relay.example.com',
-            'port': 8080,
-            'id': 'session123',
+            "server": "relay.example.com",
+            "port": 8080,
+            "id": "session123",
         }
         handlers = {"messages": [], "states": []}
 
@@ -534,5 +511,5 @@ class TestTcpRelayHandshakeRole(unittest.TestCase):
             self.assertEqual(c.kwargs.get("r", c.args[0] if c.args else None), Role.VIEWER.value)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

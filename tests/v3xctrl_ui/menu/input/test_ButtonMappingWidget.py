@@ -25,7 +25,7 @@ class TestButtonMappingWidget(unittest.TestCase):
             button_number=3,
             font=self.font,
             on_button_change=self.on_button_change,
-            on_remap_toggle=self.on_remap_toggle
+            on_remap_toggle=self.on_remap_toggle,
         )
         self.widget.set_position(10, 20)
 
@@ -43,7 +43,7 @@ class TestButtonMappingWidget(unittest.TestCase):
             button_number=None,
             font=self.font,
             on_button_change=self.on_button_change,
-            on_remap_toggle=self.on_remap_toggle
+            on_remap_toggle=self.on_remap_toggle,
         )
         widget.set_position(10, 20)
 
@@ -53,15 +53,9 @@ class TestButtonMappingWidget(unittest.TestCase):
 
     def test_click_assign_starts_remapping(self):
         pos = self.widget.remap_button.rect.center
-        self.widget.handle_event(pygame.event.Event(pygame.MOUSEMOTION, {'pos': pos}))
-        self.widget.handle_event(pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-            'pos': pos,
-            'button': 1
-        }))
-        self.widget.handle_event(pygame.event.Event(pygame.MOUSEBUTTONUP, {
-            'pos': pos,
-            'button': 1
-        }))
+        self.widget.handle_event(pygame.event.Event(pygame.MOUSEMOTION, {"pos": pos}))
+        self.widget.handle_event(pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": pos, "button": 1}))
+        self.widget.handle_event(pygame.event.Event(pygame.MOUSEBUTTONUP, {"pos": pos, "button": 1}))
 
         self.assertTrue(self.widget.waiting_for_button)
         self.assertIsNone(self.widget.button_number)
@@ -70,7 +64,7 @@ class TestButtonMappingWidget(unittest.TestCase):
     def test_button_assignment_after_remap(self):
         self.widget._on_remap_click()
 
-        event = pygame.event.Event(pygame.JOYBUTTONDOWN, {'button': 5})
+        event = pygame.event.Event(pygame.JOYBUTTONDOWN, {"button": 5})
         result = self.widget.handle_event(event)
 
         self.assertTrue(result)
@@ -164,7 +158,6 @@ class TestButtonMappingWidget(unittest.TestCase):
         expected_reset_x = expected_remap_x + self.widget.remap_button.get_size()[0] + self.widget.PADDING
         self.assertEqual(self.widget.reset_button.rect.x, expected_reset_x)
 
-
     def test_hover_children_contains_both_buttons(self):
         children = self.widget.hover_children
         self.assertEqual(len(children), 2)
@@ -173,14 +166,14 @@ class TestButtonMappingWidget(unittest.TestCase):
 
     def test_remap_button_hover_tracked(self):
         pos = self.widget.remap_button.rect.center
-        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {'pos': pos})
+        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {"pos": pos})
         self.widget.handle_event(motion_event)
 
         self.assertTrue(self.widget.remap_button.hovered)
 
     def test_reset_button_hover_tracked(self):
         pos = self.widget.reset_button.rect.center
-        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {'pos': pos})
+        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {"pos": pos})
         self.widget.handle_event(motion_event)
 
         self.assertTrue(self.widget.reset_button.hovered)
@@ -188,7 +181,7 @@ class TestButtonMappingWidget(unittest.TestCase):
     def test_hat_assignment_after_remap(self):
         self.widget._on_remap_click()
 
-        event = pygame.event.Event(pygame.JOYHATMOTION, {'hat': 0, 'value': (0, 1)})
+        event = pygame.event.Event(pygame.JOYHATMOTION, {"hat": 0, "value": (0, 1)})
         result = self.widget.handle_event(event)
 
         self.assertTrue(result)
@@ -201,7 +194,7 @@ class TestButtonMappingWidget(unittest.TestCase):
     def test_hat_release_ignored_during_remap(self):
         self.widget._on_remap_click()
 
-        event = pygame.event.Event(pygame.JOYHATMOTION, {'hat': 0, 'value': (0, 0)})
+        event = pygame.event.Event(pygame.JOYHATMOTION, {"hat": 0, "value": (0, 0)})
         result = self.widget.handle_event(event)
 
         self.assertFalse(result)
@@ -215,7 +208,7 @@ class TestButtonMappingWidget(unittest.TestCase):
             button_number=hat_mapping,
             font=self.font,
             on_button_change=self.on_button_change,
-            on_remap_toggle=self.on_remap_toggle
+            on_remap_toggle=self.on_remap_toggle,
         )
         widget.set_position(10, 20)
 
@@ -242,30 +235,37 @@ class TestButtonMappingWidget(unittest.TestCase):
 class TestFormatMapping(unittest.TestCase):
     def test_format_none(self):
         from v3xctrl_ui.menu.input.ButtonMappingWidget import format_mapping
+
         self.assertEqual(format_mapping(None), "N/A")
 
     def test_format_button(self):
         from v3xctrl_ui.menu.input.ButtonMappingWidget import format_mapping
+
         self.assertEqual(format_mapping(5), "Button 5")
 
     def test_format_hat_up(self):
         from v3xctrl_ui.menu.input.ButtonMappingWidget import format_mapping
+
         self.assertEqual(format_mapping({"hat": 0, "value": [0, 1]}), "Hat 0 Up")
 
     def test_format_hat_down(self):
         from v3xctrl_ui.menu.input.ButtonMappingWidget import format_mapping
+
         self.assertEqual(format_mapping({"hat": 0, "value": [0, -1]}), "Hat 0 Down")
 
     def test_format_hat_left(self):
         from v3xctrl_ui.menu.input.ButtonMappingWidget import format_mapping
+
         self.assertEqual(format_mapping({"hat": 0, "value": [-1, 0]}), "Hat 0 Left")
 
     def test_format_hat_right(self):
         from v3xctrl_ui.menu.input.ButtonMappingWidget import format_mapping
+
         self.assertEqual(format_mapping({"hat": 0, "value": [1, 0]}), "Hat 0 Right")
 
     def test_format_hat_diagonal(self):
         from v3xctrl_ui.menu.input.ButtonMappingWidget import format_mapping
+
         self.assertEqual(format_mapping({"hat": 0, "value": [1, 1]}), "Hat 0 Up-Right")
 
 
