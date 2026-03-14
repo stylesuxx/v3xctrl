@@ -16,60 +16,69 @@ if sys.platform == "win32" and sys.stdout is None:
 if sys.stderr is not None:
     faulthandler.enable()
 
-from v3xctrl_ui.core.AppState import AppState
-from v3xctrl_ui.core.MemoryTracker import MemoryTracker
-from v3xctrl_ui.core.Settings import Settings
 
-parser = argparse.ArgumentParser(description="RC Streamer")
-parser.add_argument(
-    "--log", default="ERROR", help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). Default is ERROR."
-)
-parser.add_argument("--mem-profile", action="store_true", help="Enable periodic memory tracking using tracemalloc.")
-parser.add_argument("--log-to-file", action="store_true", help="Save logs to txt file.")
-parser.add_argument(
-    "--config", default=None, help="Path to custom config file. If not specified, uses default location."
-)
-args, unknown = parser.parse_known_args()
+def main() -> None:
+    from v3xctrl_ui.core.AppState import AppState
+    from v3xctrl_ui.core.MemoryTracker import MemoryTracker
+    from v3xctrl_ui.core.Settings import Settings
 
-level_name = args.log.upper()
-level = getattr(logging, level_name, None)
+    parser = argparse.ArgumentParser(description="RC Streamer")
+    parser.add_argument(
+        "--log", default="ERROR", help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). Default is ERROR."
+    )
+    parser.add_argument("--mem-profile", action="store_true", help="Enable periodic memory tracking using tracemalloc.")
+    parser.add_argument("--log-to-file", action="store_true", help="Save logs to txt file.")
+    parser.add_argument(
+        "--config", default=None, help="Path to custom config file. If not specified, uses default location."
+    )
 
-if not isinstance(level, int):
-    raise ValueError(f"Invalid log level: {args.log}")
+    args, unknown = parser.parse_known_args()
 
-log_format = "%(asctime)s - %(levelname)s - %(message)s"
-handlers = [logging.StreamHandler()]
+    level_name = args.log.upper()
+    level = getattr(logging, level_name, None)
 
-if args.log_to_file:
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    log_filename = f"{timestamp}.txt"
-    handlers.append(logging.FileHandler(log_filename))
+    if not isinstance(level, int):
+        raise ValueError(f"Invalid log level: {args.log}")
 
-logging.basicConfig(level=level, format=log_format, handlers=handlers)
+    log_format = "%(asctime)s - %(levelname)s - %(message)s"
+    handlers: list[logging.Handler] = [logging.StreamHandler()]
 
-from v3xctrl_ui.utils.gstreamer import is_gstreamer_available  # noqa: E402
+    if args.log_to_file:
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        log_filename = f"{timestamp}.txt"
+        handlers.append(logging.FileHandler(log_filename))
 
-if is_gstreamer_available():
-    print('GStreamer receiver available. Set video.receiver = "gst" in settings to use it.')
+    logging.basicConfig(level=level, format=log_format, handlers=handlers)
 
-mem_tracker = None
-if args.mem_profile:
-    mem_tracker = MemoryTracker(interval=10, top=5)
-    mem_tracker.start()
+    from v3xctrl_ui.utils.gstreamer import is_gstreamer_available
 
-settings = Settings(args.config)
-state = AppState(settings)
+    if is_gstreamer_available():
+        logging.info("GStreamer receiver available, will be used by default")
+    else:
+        logging.info("GStreamer not available, using PyAV receiver")
 
-while state.model.running:
-    if not state.handle_events():
-        break
+    mem_tracker = None
+    if args.mem_profile:
+        mem_tracker = MemoryTracker(interval=10, top=5)
+        mem_tracker.start()
 
-    state.update()
-    state.render()
+    settings = Settings(args.config)
+    state = AppState(settings)
 
-    state.tick()
+    while state.model.running:
+        if not state.handle_events():
+            break
 
-state.shutdown()
+        state.update()
+        state.render()
 
-if mem_tracker:
-    mem_tracker.stop()
+        state.tick()
+
+    state.shutdown()
+
+    if mem_tracker:
+        mem_tracker.stop()
+
+
+if __name__ == "__main__":
+    main()

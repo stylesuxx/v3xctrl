@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=V3XCTRL
+Comment=4G RC Car Viewer
+Exec=v3xctrl
+Icon=com.v3xctrl.viewer
+Type=Application
+Categories=Utility;
+StartupWMClass=v3xctrl

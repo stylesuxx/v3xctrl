@@ -44,3 +44,8 @@ follow_imports = "skip"
 [[tool.mypy.overrides]]
 module = "v3xctrl_relay.discord_bot.*"
 ignore_errors = true
+[project.scripts]
+v3xctrl = "v3xctrl_ui.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

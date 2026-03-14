@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.v3xctrl.viewer</id>
+  <name>V3XCTRL</name>
+  <summary>4G RC Car Viewer</summary>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <description>
+    <p>Desktop viewer for controlling a 4G-connected RC car with live H.264 video streaming.</p>
+  </description>
+  <launchable type="desktop-id">com.v3xctrl.viewer.desktop</launchable>
+  <url type="homepage">https://v3xctrl.com</url>
+  <content_rating type="oars-1.1" />
+  <releases>
+    <release version="0.1.0" date="2026-03-13" />
+  </releases>
+</component>

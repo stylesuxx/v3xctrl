@@ -318,26 +318,45 @@ class NetworkSetup:
         """
         video_settings = self.settings.get("video", {})
         render_ratio = video_settings.get("render_ratio", 0)
-        receiver_type = video_settings.get("receiver", "pyav")
+        receiver_type = video_settings.get("receiver", "auto")
 
         try:
             match receiver_type:
+                case "auto":
+                    gst_receiver = _get_gstreamer_receiver()
+                    if gst_receiver:
+                        video_receiver: Receiver = gst_receiver(
+                            self.video_port,
+                            keep_alive_callback,
+                            render_ratio=render_ratio,
+                        )
+                        receiver_type = "gst"
+                    else:
+                        video_receiver = ReceiverPyAV(
+                            self.video_port,
+                            keep_alive_callback,
+                            render_ratio=render_ratio,
+                            relay_address=video_address,
+                        )
+                        receiver_type = "pyav"
                 case "gst":
                     gst_receiver = _get_gstreamer_receiver()
                     if not gst_receiver:
                         raise RuntimeError("GStreamer receiver requested but not available")
-                    video_receiver: Receiver = gst_receiver(
+                    video_receiver = gst_receiver(
                         self.video_port,
                         keep_alive_callback,
                         render_ratio=render_ratio,
                     )
-                case _:
+                case "pyav":
                     video_receiver = ReceiverPyAV(
                         self.video_port,
                         keep_alive_callback,
                         render_ratio=render_ratio,
                         relay_address=video_address,
                     )
+                case _:
+                    raise ValueError(f"Unknown receiver type: {receiver_type}")
 
             logger.info(f"Using {receiver_type} video receiver")
 
