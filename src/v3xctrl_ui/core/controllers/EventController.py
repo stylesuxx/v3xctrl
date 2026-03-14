@@ -133,13 +133,13 @@ class EventController:
             if mapping is None:
                 continue
 
-            if isinstance(mapping, int) and event.type == pygame.JOYBUTTONUP:
-                if event.button == mapping:
-                    return name
+            if (isinstance(mapping, int) and event.type == pygame.JOYBUTTONUP
+                    and event.button == mapping):
+                return name
 
-            elif isinstance(mapping, dict) and event.type == pygame.JOYHATMOTION:
-                if event.hat == mapping["hat"] and list(event.value) == mapping["value"]:
-                    return name
+            elif (isinstance(mapping, dict) and event.type == pygame.JOYHATMOTION
+                    and event.hat == mapping["hat"] and list(event.value) == mapping["value"]):
+                return name
 
         return None
 

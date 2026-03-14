@@ -55,9 +55,8 @@ class SettingsController:
         # Handle fullscreen changes
         fullscreen_previous = self.model.fullscreen
         fullscreen_new = new_settings.get("video", {}).get("fullscreen", False)
-        if fullscreen_previous != fullscreen_new:
-            if self.on_display_update:
-                self.on_display_update(fullscreen_new)
+        if fullscreen_previous != fullscreen_new and self.on_display_update:
+            self.on_display_update(fullscreen_new)
 
         # Skip network restart if user hasn't connected yet
         if not self.model.user_connected:
@@ -204,11 +203,7 @@ class SettingsController:
         if new_section.keys() != old_section.keys():
             return False
 
-        for section_key in old_section:
-            if new_section.get(section_key) != old_section.get(section_key):
-                return False
-
-        return True
+        return all(new_section.get(section_key) == old_section.get(section_key) for section_key in old_section)
 
     def wait_for_network_restart(self, timeout: float = 5.0) -> bool:
         """Wait for pending network restart to complete.

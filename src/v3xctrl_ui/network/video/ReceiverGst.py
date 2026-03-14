@@ -6,10 +6,10 @@ import gi
 
 gi.require_version('Gst', '1.0')
 gi.require_version('GstApp', '1.0')
-import numpy as np
-from gi.repository import GLib, Gst, GstApp
+import numpy as np  # noqa: E402
+from gi.repository import GLib, Gst, GstApp  # noqa: E402
 
-from v3xctrl_ui.network.video.Receiver import Receiver
+from v3xctrl_ui.network.video.Receiver import Receiver  # noqa: E402
 
 
 class ReceiverGst(Receiver):
@@ -372,7 +372,7 @@ class ReceiverGst(Receiver):
         if message.src != self.pipeline:
             return
 
-        old, new, pending = message.parse_state_changed()
+        _old, new, _pending = message.parse_state_changed()
         if new == Gst.State.PLAYING:
             logging.info("Pipeline is now PLAYING")
 
@@ -458,8 +458,8 @@ class ReceiverGst(Receiver):
         buffer_samples = list(self.timing_buffer_samples)
         receive_samples = list(self._timing_receive_samples) if self._timing_receive_samples else []
 
-        rec_min, rec_avg, rec_max = stats(receive_samples)
-        dec_min, dec_avg, dec_max = stats(decode_samples)
+        _rec_min, rec_avg, _rec_max = stats(receive_samples)
+        _dec_min, dec_avg, _dec_max = stats(decode_samples)
         buf_min, buf_avg, buf_max = stats(buffer_samples)
 
         # Convert to ms for display (receive/decode/buffer are in seconds)

@@ -9,8 +9,8 @@ from datetime import datetime
 if sys.platform == "win32" and sys.stdout is None:
     import ctypes
     if ctypes.windll.kernel32.AttachConsole(-1):
-        sys.stdout = open("CONOUT$", "w")
-        sys.stderr = open("CONOUT$", "w")
+        sys.stdout = open("CONOUT$", "w")  # noqa: SIM115
+        sys.stderr = open("CONOUT$", "w")  # noqa: SIM115
 
 if sys.stderr is not None:
     faulthandler.enable()
@@ -64,7 +64,7 @@ logging.basicConfig(
 )
 
 # Check GStreamer availability and inform user
-from v3xctrl_ui.utils.gstreamer import is_gstreamer_available
+from v3xctrl_ui.utils.gstreamer import is_gstreamer_available  # noqa: E402
 
 if is_gstreamer_available():
     print("GStreamer receiver available. Set video.receiver = \"gst\" in settings to use it.")

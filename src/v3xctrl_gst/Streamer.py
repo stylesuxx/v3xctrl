@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import sys
 import time
@@ -7,12 +8,12 @@ from typing import Any
 import gi
 
 gi.require_version('Gst', '1.0')
-from gi.repository import GLib, Gst
+from gi.repository import GLib, Gst  # noqa: E402
 
-from v3xctrl_gst.ControlServer import ControlServer
-from v3xctrl_gst.QPManager import QPManager
-from v3xctrl_gst.RecordingManager import RecordingManager
-from v3xctrl_gst.SourceRegistry import SourceRegistry
+from v3xctrl_gst.ControlServer import ControlServer  # noqa: E402
+from v3xctrl_gst.QPManager import QPManager  # noqa: E402
+from v3xctrl_gst.RecordingManager import RecordingManager  # noqa: E402
+from v3xctrl_gst.SourceRegistry import SourceRegistry  # noqa: E402
 
 
 class Streamer:
@@ -239,7 +240,7 @@ class Streamer:
             result = {'success': False}
             event = Event()
 
-            def _do_set():
+            def _do_set(result=result, event=event):
                 element = self.get_element(element_name)
                 if element:
                     try:
@@ -264,13 +265,11 @@ class Streamer:
             verify_result = {'actual': None}
             verify_event = Event()
 
-            def _do_verify():
+            def _do_verify(verify_result=verify_result, verify_event=verify_event):
                 element = self.get_element(element_name)
                 if element:
-                    try:
+                    with contextlib.suppress(Exception):
                         verify_result['actual'] = element.get_property(property_name)
-                    except Exception:
-                        pass
                 verify_event.set()
                 return False
 
@@ -740,9 +739,9 @@ class Streamer:
                 return 0, 0, 0
             return min(data), sum(data) / len(data), max(data)
 
-        cap_min, cap_avg, cap_max = stats(self.timing_stats['capture'])
-        enc_min, enc_avg, enc_max = stats(self.timing_stats['encode'])
-        pkg_min, pkg_avg, pkg_max = stats(self.timing_stats['package'])
+        _cap_min, cap_avg, _cap_max = stats(self.timing_stats['capture'])
+        _enc_min, enc_avg, _enc_max = stats(self.timing_stats['encode'])
+        _pkg_min, pkg_avg, _pkg_max = stats(self.timing_stats['package'])
 
         total_avg = cap_avg + enc_avg + pkg_avg
         frame_count = len(self.timing_stats['capture'])

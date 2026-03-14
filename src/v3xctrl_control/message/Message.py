@@ -6,7 +6,6 @@ only part the devs need to interact with, so this should not be too confusing.
 
 import abc
 import time
-from abc import abstractmethod
 from typing import Any, ClassVar, TypedDict, cast
 
 import msgpack
@@ -18,7 +17,7 @@ class MessageDict(TypedDict):
     d: float
 
 
-class Message(abc.ABC):
+class Message(abc.ABC):  # noqa: B024
     """Abstract Base Class for all messages with built-in serialization."""
 
     _registry: ClassVar[dict[str, Any]] = {}
@@ -27,7 +26,6 @@ class Message(abc.ABC):
         """Automatically register subclasses using their class name."""
         Message._registry[cls.__name__] = cls
 
-    @abstractmethod
     def __init__(
         self,
         payload: dict[str, Any],

@@ -115,11 +115,7 @@ class Session:
         return None
 
     def is_role_ready(self, role: Role) -> bool:
-        for port_type in PortType:
-            if port_type not in self.roles[role]:
-                return False
-
-        return True
+        return all(port_type in self.roles[role] for port_type in PortType)
 
     def is_ready(self) -> bool:
         return (
