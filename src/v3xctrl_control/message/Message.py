@@ -68,5 +68,5 @@ class Message(abc.ABC):  # noqa: B024
         try:
             obj = cast(MessageDict, msgpack.unpackb(data, strict_map_key=False))  # type: ignore[arg-type]
             return obj.get("t", "Unknown")
-        except Exception:
+        except (msgpack.exceptions.UnpackException, TypeError, AttributeError, ValueError):
             return "Unknown"

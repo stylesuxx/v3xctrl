@@ -34,13 +34,16 @@ def create_app(schema_path: str, config_path: str, modems_path: str) -> Flask:
     register_routes(api)
 
     @app.route("/")
-    def index() -> str:
-        with open(schema_path) as f:
-            schema = json.load(f)
-        with open(config_path) as f:
-            config = json.load(f)
-        with open(modems_path) as f:
-            modems = json.load(f)
+    def index() -> str | tuple[str, int]:
+        try:
+            with open(schema_path) as f:
+                schema = json.load(f)
+            with open(config_path) as f:
+                config = json.load(f)
+            with open(modems_path) as f:
+                modems = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            return f"Failed to load configuration: {e}", 500
 
         return render_template("index.html", schema=schema, config=config, modems=modems)
 
