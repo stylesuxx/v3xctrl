@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import select
 import socket
@@ -148,10 +149,8 @@ class UdpVideoProxy(threading.Thread):
 
         for sock in (self._external_sock, self._forward_sock):
             if sock:
-                try:
+                with contextlib.suppress(OSError):
                     sock.close()
-                except OSError:
-                    pass
 
         logging.info("UdpVideoProxy: stopped")
 

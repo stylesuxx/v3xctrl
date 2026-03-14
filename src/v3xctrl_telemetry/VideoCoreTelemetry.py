@@ -17,13 +17,13 @@ class VideoCoreTelemetry:
         except (ValueError, IndexError):
             raise RuntimeError(f"Unexpected vcgencmd output: {out}") from None
 
-        # Current flags (bits 0–3)
+        # Current flags (bits 0-3)
         self._state.current.undervolt = bool(value & (1 << 0))
         self._state.current.freq_capped = bool(value & (1 << 1))
         self._state.current.throttled = bool(value & (1 << 2))
         self._state.current.soft_temp_limit = bool(value & (1 << 3))
 
-        # Historical flags (bits 16–19)
+        # Historical flags (bits 16-19)
         self._state.history.undervolt = bool(value & (1 << 16))
         self._state.history.freq_capped = bool(value & (1 << 17))
         self._state.history.throttled = bool(value & (1 << 18))

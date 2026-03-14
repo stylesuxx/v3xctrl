@@ -3,9 +3,9 @@ import logging
 import gi
 
 gi.require_version('Gst', '1.0')
-from gi.repository import Gst
+from gi.repository import Gst  # noqa: E402
 
-from .SourceBuilder import SourceBuilder
+from .SourceBuilder import SourceBuilder  # noqa: E402
 
 
 class FileSourceBuilder(SourceBuilder):

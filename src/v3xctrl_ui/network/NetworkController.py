@@ -175,9 +175,8 @@ class NetworkController:
         if result.tcp_control_tunnel:
             self.tcp_control_tunnel = result.tcp_control_tunnel
 
-        if result.relay_result:
-            if not result.relay_result.success:
-                self.relay_status_message = result.relay_result.error_message
+        if result.relay_result and not result.relay_result.success:
+            self.relay_status_message = result.relay_result.error_message
 
         if result.video_keep_alive:
             self.video_keep_alive = result.video_keep_alive

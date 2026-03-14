@@ -292,28 +292,30 @@ class TestReceiverPyAVMainLoop(unittest.TestCase):
         self.receiver.running.set()
 
     def test_main_loop_container_open_failure_retry(self):
-        with patch('av.open', side_effect=av.AVError(-1, "Open failed", "")), patch('time.sleep') as mock_sleep:
-            with patch('logging.warning') as mock_warning:
-                # Stop after first retry
-                def stop_after_retry(*args):
-                    self.receiver.running.clear()
+        with (patch('av.open', side_effect=av.AVError(-1, "Open failed", "")),
+              patch('time.sleep') as mock_sleep,
+              patch('logging.warning') as mock_warning):
+            # Stop after first retry
+            def stop_after_retry(*args):
+                self.receiver.running.clear()
 
-                mock_sleep.side_effect = stop_after_retry
-                self.receiver._main_loop()
+            mock_sleep.side_effect = stop_after_retry
+            self.receiver._main_loop()
 
-                mock_warning.assert_called()
-                mock_sleep.assert_called_with(0.5)
+            mock_warning.assert_called()
+            mock_sleep.assert_called_with(0.5)
 
     def test_main_loop_refreshes_port_on_open_failure(self):
-        with patch('av.open', side_effect=av.AVError(-1, "Open failed", "")), patch('time.sleep') as mock_sleep:
-            with patch.object(self.receiver, '_refresh_local_port') as mock_refresh:
-                def stop_after_retry(*args):
-                    self.receiver.running.clear()
+        with (patch('av.open', side_effect=av.AVError(-1, "Open failed", "")),
+              patch('time.sleep') as mock_sleep,
+              patch.object(self.receiver, '_refresh_local_port') as mock_refresh):
+            def stop_after_retry(*args):
+                self.receiver.running.clear()
 
-                mock_sleep.side_effect = stop_after_retry
-                self.receiver._main_loop()
+            mock_sleep.side_effect = stop_after_retry
+            self.receiver._main_loop()
 
-                mock_refresh.assert_called()
+            mock_refresh.assert_called()
 
     def test_main_loop_does_not_refresh_port_after_container_close(self):
         mock_container = Mock()
@@ -328,11 +330,11 @@ class TestReceiverPyAVMainLoop(unittest.TestCase):
 
         mock_container.demux.side_effect = error_demux
 
-        with patch('av.open', return_value=mock_container):
-            with patch.object(self.receiver, '_refresh_local_port') as mock_refresh:
-                self.receiver._main_loop()
+        with (patch('av.open', return_value=mock_container),
+              patch.object(self.receiver, '_refresh_local_port') as mock_refresh):
+            self.receiver._main_loop()
 
-                mock_refresh.assert_not_called()
+            mock_refresh.assert_not_called()
 
     def test_main_loop_container_open_success(self):
         mock_container = Mock()
@@ -430,13 +432,13 @@ class TestReceiverPyAVMainLoop(unittest.TestCase):
 
         mock_container.demux.side_effect = mock_demux
 
-        with patch('av.open', return_value=mock_container):
-            with patch.object(self.receiver, '_update_frame') as mock_update:
-                with patch.object(self.receiver, '_log_stats_if_needed'):
-                    self.receiver._main_loop()
+        with (patch('av.open', return_value=mock_container),
+              patch.object(self.receiver, '_update_frame') as mock_update,
+              patch.object(self.receiver, '_log_stats_if_needed')):
+            self.receiver._main_loop()
 
-                    self.assertEqual(mock_update.call_count, 2)
-                    self.assertEqual(self.receiver.packet_count, 2)
+            self.assertEqual(mock_update.call_count, 2)
+            self.assertEqual(self.receiver.packet_count, 2)
 
     def test_main_loop_empty_decode(self):
         mock_container = Mock()
@@ -576,14 +578,15 @@ class TestReceiverPyAVIntegration(unittest.TestCase):
         mock_container.streams.video = [mock_stream]
         mock_container.demux.return_value = []
 
-        with patch('builtins.open', mock_open()), patch('os.fsync'):
-            with patch('av.open', return_value=mock_container):
-                with patch.object(receiver, 'sdp_path') as mock_path:
-                    mock_path.exists.return_value = True
-                    receiver.start()
-                    time.sleep(0.1)
-                    receiver.stop()
-                    receiver.join()
+        with (patch('builtins.open', mock_open()),
+              patch('os.fsync'),
+              patch('av.open', return_value=mock_container),
+              patch.object(receiver, 'sdp_path') as mock_path):
+            mock_path.exists.return_value = True
+            receiver.start()
+            time.sleep(0.1)
+            receiver.stop()
+            receiver.join()
 
         # keep_alive is called in the finally block when stream ends
         keep_alive.assert_called()

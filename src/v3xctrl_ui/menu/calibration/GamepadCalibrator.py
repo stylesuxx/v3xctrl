@@ -1,6 +1,7 @@
 import logging
 import time
 from collections.abc import Callable
+from typing import ClassVar
 
 from v3xctrl_ui.menu.calibration.CalibrationSteps import CalibrationSteps
 from v3xctrl_ui.menu.calibration.defs import AxisCalibrationData, CalibrationStage, CalibratorState
@@ -13,7 +14,7 @@ class GamepadCalibrator:
     STABLE_TIME = 1.5
     IDLE_SAMPLE_COUNT = 10
 
-    STEP_LABELS: dict[CalibrationStage, str] = {
+    STEP_LABELS: ClassVar[dict[CalibrationStage, str]] = {
         CalibrationStage.STEERING: "Move the steering axis to its left and right maxima...",
         CalibrationStage.STEERING_CENTER: "Let go of steering to detect center position...",
         CalibrationStage.THROTTLE: "Move the throttle axis to its minimum and maximum positions...",

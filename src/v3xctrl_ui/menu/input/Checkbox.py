@@ -97,7 +97,7 @@ class Checkbox(BaseWidget):
         }
 
         # Render label once
-        label_surface, label_rect = self.font.render(self.label, self.LABEL_COLOR)
+        label_surface, _label_rect = self.font.render(self.label, self.LABEL_COLOR)
 
         # Calculate positions relative to the surface (not screen)
         icon_x = 0

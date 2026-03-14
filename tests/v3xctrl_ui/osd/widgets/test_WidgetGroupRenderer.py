@@ -181,76 +181,76 @@ class TestWidgetGroupRenderer(unittest.TestCase):
     def test_render_group_uses_default_alignment(self):
         settings = {"display": True}
 
-        with patch('pygame.display.get_window_size', return_value=(800, 600)):
-            with patch('v3xctrl_ui.osd.widgets.WidgetGroupRenderer.calculate_widget_position') as mock_calc:
-                mock_calc.return_value = (0, 0)
+        with (patch('pygame.display.get_window_size', return_value=(800, 600)),
+              patch('v3xctrl_ui.osd.widgets.WidgetGroupRenderer.calculate_widget_position') as mock_calc):
+            mock_calc.return_value = (0, 0)
 
-                render_group(
-                    self.screen,
-                    self.widgets,
-                    settings,
-                    self.widget_settings,
-                    self.get_value
-                )
+            render_group(
+                self.screen,
+                self.widgets,
+                settings,
+                self.widget_settings,
+                self.get_value
+            )
 
-                args = mock_calc.call_args[0]
-                self.assertEqual(args[0], "top-left")
+            args = mock_calc.call_args[0]
+            self.assertEqual(args[0], "top-left")
 
     def test_render_group_uses_custom_alignment(self):
         settings = {"display": True, "align": "bottom-right", "offset": (10, 20)}
 
-        with patch('pygame.display.get_window_size', return_value=(800, 600)):
-            with patch('v3xctrl_ui.osd.widgets.WidgetGroupRenderer.calculate_widget_position') as mock_calc:
-                mock_calc.return_value = (100, 200)
+        with (patch('pygame.display.get_window_size', return_value=(800, 600)),
+              patch('v3xctrl_ui.osd.widgets.WidgetGroupRenderer.calculate_widget_position') as mock_calc):
+            mock_calc.return_value = (100, 200)
 
-                render_group(
-                    self.screen,
-                    self.widgets,
-                    settings,
-                    self.widget_settings,
-                    self.get_value
-                )
+            render_group(
+                self.screen,
+                self.widgets,
+                settings,
+                self.widget_settings,
+                self.get_value
+            )
 
-                args = mock_calc.call_args[0]
-                self.assertEqual(args[0], "bottom-right")
+            args = mock_calc.call_args[0]
+            self.assertEqual(args[0], "bottom-right")
 
     def test_render_group_applies_rounded_corners(self):
         settings = {"display": True}
 
-        with patch('pygame.display.get_window_size', return_value=(800, 600)):
-            with patch('v3xctrl_ui.osd.widgets.WidgetGroupRenderer.round_corners') as mock_round:
-                mock_surface = pygame.Surface((100, 50), pygame.SRCALPHA)
-                mock_round.return_value = mock_surface
+        with (patch('pygame.display.get_window_size', return_value=(800, 600)),
+              patch('v3xctrl_ui.osd.widgets.WidgetGroupRenderer.round_corners') as mock_round):
+            mock_surface = pygame.Surface((100, 50), pygame.SRCALPHA)
+            mock_round.return_value = mock_surface
 
-                render_group(
-                    self.screen,
-                    self.widgets,
-                    settings,
-                    self.widget_settings,
-                    self.get_value
-                )
+            render_group(
+                self.screen,
+                self.widgets,
+                settings,
+                self.widget_settings,
+                self.get_value
+            )
 
-                mock_round.assert_called_once()
-                self.assertEqual(mock_round.call_args[0][1], 4)
+            mock_round.assert_called_once()
+            self.assertEqual(mock_round.call_args[0][1], 4)
 
     def test_render_group_with_custom_corner_radius(self):
         settings = {"display": True}
 
-        with patch('pygame.display.get_window_size', return_value=(800, 600)):
-            with patch('v3xctrl_ui.osd.widgets.WidgetGroupRenderer.round_corners') as mock_round:
-                mock_surface = pygame.Surface((100, 50), pygame.SRCALPHA)
-                mock_round.return_value = mock_surface
+        with (patch('pygame.display.get_window_size', return_value=(800, 600)),
+              patch('v3xctrl_ui.osd.widgets.WidgetGroupRenderer.round_corners') as mock_round):
+            mock_surface = pygame.Surface((100, 50), pygame.SRCALPHA)
+            mock_round.return_value = mock_surface
 
-                render_group(
-                    self.screen,
-                    self.widgets,
-                    settings,
-                    self.widget_settings,
-                    self.get_value,
-                    corner_radius=10
-                )
+            render_group(
+                self.screen,
+                self.widgets,
+                settings,
+                self.widget_settings,
+                self.get_value,
+                corner_radius=10
+            )
 
-                self.assertEqual(mock_round.call_args[0][1], 10)
+            self.assertEqual(mock_round.call_args[0][1], 10)
 
     def test_render_individual_widgets(self):
         """Test _render_individual_widgets renders widgets at their individual positions."""
@@ -260,21 +260,21 @@ class TestWidgetGroupRenderer(unittest.TestCase):
             "widget3": {"display": False, "align": "bottom-left", "offset": (0, 0)}
         }
 
-        with patch('pygame.display.get_window_size', return_value=(800, 600)):
-            with patch('v3xctrl_ui.osd.widgets.WidgetGroupRenderer.calculate_widget_position') as mock_calc:
-                mock_calc.side_effect = [(10, 10), (780, 20)]
+        with (patch('pygame.display.get_window_size', return_value=(800, 600)),
+              patch('v3xctrl_ui.osd.widgets.WidgetGroupRenderer.calculate_widget_position') as mock_calc):
+            mock_calc.side_effect = [(10, 10), (780, 20)]
 
-                _render_individual_widgets(
-                    self.screen,
-                    self.widgets,
-                    widget_settings,
-                    self.get_value
-                )
+            _render_individual_widgets(
+                self.screen,
+                self.widgets,
+                widget_settings,
+                self.get_value
+            )
 
-                # Should only position visible widgets (widget1 and widget2)
-                self.assertEqual(mock_calc.call_count, 2)
-                self.assertEqual(self.widget1.position, (10, 10))
-                self.assertEqual(self.widget2.position, (780, 20))
+            # Should only position visible widgets (widget1 and widget2)
+            self.assertEqual(mock_calc.call_count, 2)
+            self.assertEqual(self.widget1.position, (10, 10))
+            self.assertEqual(self.widget2.position, (780, 20))
 
     def test_render_widget_group_composition_mode(self):
         """Test render_widget_group with composition mode."""
@@ -296,18 +296,18 @@ class TestWidgetGroupRenderer(unittest.TestCase):
             corner_radius=6
         )
 
-        with patch('pygame.display.get_window_size', return_value=(800, 600)):
-            with patch('v3xctrl_ui.osd.widgets.WidgetGroupRenderer.render_group') as mock_render:
-                render_widget_group(
-                    self.screen,
-                    group,
-                    widget_settings
-                )
+        with (patch('pygame.display.get_window_size', return_value=(800, 600)),
+              patch('v3xctrl_ui.osd.widgets.WidgetGroupRenderer.render_group') as mock_render):
+            render_widget_group(
+                self.screen,
+                group,
+                widget_settings
+            )
 
-                mock_render.assert_called_once()
-                call_args = mock_render.call_args[0]
-                self.assertEqual(call_args[0], self.screen)
-                self.assertEqual(call_args[5], 6)  # corner_radius
+            mock_render.assert_called_once()
+            call_args = mock_render.call_args[0]
+            self.assertEqual(call_args[0], self.screen)
+            self.assertEqual(call_args[5], 6)  # corner_radius
 
     def test_render_widget_group_individual_mode(self):
         """Test render_widget_group with individual rendering mode."""
@@ -326,15 +326,15 @@ class TestWidgetGroupRenderer(unittest.TestCase):
             use_composition=False
         )
 
-        with patch('pygame.display.get_window_size', return_value=(800, 600)):
-            with patch('v3xctrl_ui.osd.widgets.WidgetGroupRenderer._render_individual_widgets') as mock_render:
-                render_widget_group(
-                    self.screen,
-                    group,
-                    widget_settings
-                )
+        with (patch('pygame.display.get_window_size', return_value=(800, 600)),
+              patch('v3xctrl_ui.osd.widgets.WidgetGroupRenderer._render_individual_widgets') as mock_render):
+            render_widget_group(
+                self.screen,
+                group,
+                widget_settings
+            )
 
-                mock_render.assert_called_once()
+            mock_render.assert_called_once()
 
 
 if __name__ == "__main__":

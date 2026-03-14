@@ -77,9 +77,8 @@ class Bot(discord.Client):
         if interaction.type == discord.InteractionType.application_command:
             return
 
-        if interaction.type == discord.InteractionType.component:
-            if self.testdrive_handler:
-                await self.testdrive_handler.handle_interaction(interaction)
+        if interaction.type == discord.InteractionType.component and self.testdrive_handler:
+            await self.testdrive_handler.handle_interaction(interaction)
 
     async def _announce_presence(self) -> None:
         announcement = (

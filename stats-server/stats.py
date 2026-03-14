@@ -1,3 +1,4 @@
+import contextlib
 import json
 import logging
 import socket
@@ -26,10 +27,8 @@ class RelayClient:
             return json.loads(data.decode('utf-8'))
         finally:
             if sock:
-                try:
+                with contextlib.suppress(Exception):
                     sock.close()
-                except Exception:
-                    pass
 
 
 def create_stats_blueprint(relay_clients: dict[int, RelayClient]) -> Blueprint:

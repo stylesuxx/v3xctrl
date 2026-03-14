@@ -1,3 +1,4 @@
+import contextlib
 import threading
 import time
 import unittest
@@ -47,10 +48,8 @@ class TestServer(unittest.TestCase):
             self.server.pending_commands.clear()
 
         # Call stop with error handling
-        try:
+        with contextlib.suppress(Exception):
             self.server.stop()
-        except Exception:
-            pass  # Ignore cleanup errors in tests
 
         # Don't join mocked objects - they're not real threads
         # The original tearDown was trying to join mocked transmitter/handler

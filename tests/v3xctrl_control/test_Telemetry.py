@@ -11,8 +11,8 @@ sys.modules['gi.repository.Gst'] = MagicMock()
 sys.modules['gi.repository.GLib'] = MagicMock()
 
 # Import the actual Telemetry class and dataclasses
-from src.v3xctrl_control.Telemetry import Telemetry
-from src.v3xctrl_telemetry import BatteryInfo, CellInfo, SignalInfo, TelemetryPayload
+from src.v3xctrl_control.Telemetry import Telemetry  # noqa: E402
+from src.v3xctrl_telemetry import BatteryInfo, CellInfo, SignalInfo, TelemetryPayload  # noqa: E402
 
 
 class TestTelemetry(unittest.TestCase):

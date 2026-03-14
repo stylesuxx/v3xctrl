@@ -407,17 +407,17 @@ class TestRelayServerIntegration(unittest.TestCase):
         client_addr = ("192.168.1.100", 54321)
 
         # Ensure Message.from_bytes returns a real PeerAnnouncement (so isinstance() is True)
-        with patch.object(server, '_handle_peer_announcement') as mock_handle_announcement:
-            with patch('v3xctrl_relay.RelayServer.Message') as mock_message_class:
-                # return a real PeerAnnouncement instance (use your helper)
-                real_peer_msg = self._build_announce("test_session_1", Role.STREAMER, PortType.VIDEO)
-                mock_message_class.from_bytes.return_value = real_peer_msg
+        with (patch.object(server, '_handle_peer_announcement') as mock_handle_announcement,
+              patch('v3xctrl_relay.RelayServer.Message') as mock_message_class):
+            # return a real PeerAnnouncement instance (use your helper)
+            real_peer_msg = self._build_announce("test_session_1", Role.STREAMER, PortType.VIDEO)
+            mock_message_class.from_bytes.return_value = real_peer_msg
 
-                # Handle peer announcement packet
-                server._handle_slow_packet(peer_announcement_data, client_addr)
+            # Handle peer announcement packet
+            server._handle_slow_packet(peer_announcement_data, client_addr)
 
-                # Verify peer announcement handler was called with the real object
-                mock_handle_announcement.assert_called_once_with(real_peer_msg, client_addr)
+            # Verify peer announcement handler was called with the real object
+            mock_handle_announcement.assert_called_once_with(real_peer_msg, client_addr)
 
         # For regular packets, _handle_slow_packet treats them as spectator heartbeats
         with patch.object(server.relay, 'update_spectator_heartbeat') as mock_heartbeat:
@@ -492,18 +492,17 @@ class TestRelayServerIntegration(unittest.TestCase):
         )
 
         # Mock the cleanup method to verify it's called
-        with patch.object(server.relay, 'cleanup_expired_mappings') as _mock_cleanup:
-            # Start the server threads
-            with patch('threading.Thread') as mock_thread:
-                mock_thread_instance = Mock()
-                mock_thread.return_value = mock_thread_instance
+        with (patch.object(server.relay, 'cleanup_expired_mappings') as _mock_cleanup,
+              patch('threading.Thread') as mock_thread):
+            mock_thread_instance = Mock()
+            mock_thread.return_value = mock_thread_instance
 
-                server.start()
+            server.start()
 
-                # Verify cleanup thread was created
-                cleanup_calls = [call for call in mock_thread.call_args_list
-                               if call[1]['target'] == server._cleanup_expired_entries]
-                self.assertEqual(len(cleanup_calls), 1)
+            # Verify cleanup thread was created
+            cleanup_calls = [call for call in mock_thread.call_args_list
+                           if call[1]['target'] == server._cleanup_expired_entries]
+            self.assertEqual(len(cleanup_calls), 1)
 
         server.shutdown()
 

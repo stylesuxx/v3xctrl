@@ -201,10 +201,10 @@ class TestPacketRelayIntegration(unittest.TestCase):
 
         # Fast forward past timeout so mappings expire
         expired_time = initial_time + self.timeout + 1
-        with patch('time.time', return_value=expired_time):
-            with patch('v3xctrl_relay.PacketRelay.logger') as mock_logger:
-                self.relay.cleanup_expired_mappings()
-                self.assertGreater(mock_logger.info.call_count, 0)
+        with (patch('time.time', return_value=expired_time),
+              patch('v3xctrl_relay.PacketRelay.logger') as mock_logger):
+            self.relay.cleanup_expired_mappings()
+            self.assertGreater(mock_logger.info.call_count, 0)
 
         # Mappings should be removed (no forwarding)
         self.mock_sock.reset_mock()

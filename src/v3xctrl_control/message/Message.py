@@ -6,7 +6,8 @@ only part the devs need to interact with, so this should not be too confusing.
 
 import abc
 import time
-from typing import Any, TypedDict, cast
+from abc import abstractmethod
+from typing import Any, ClassVar, TypedDict, cast
 
 import msgpack
 
@@ -20,12 +21,13 @@ class MessageDict(TypedDict):
 class Message(abc.ABC):
     """Abstract Base Class for all messages with built-in serialization."""
 
-    _registry: dict[str, Any] = {}
+    _registry: ClassVar[dict[str, Any]] = {}
 
     def __init_subclass__(cls, **kwargs: object) -> None:
         """Automatically register subclasses using their class name."""
         Message._registry[cls.__name__] = cls
 
+    @abstractmethod
     def __init__(
         self,
         payload: dict[str, Any],

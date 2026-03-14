@@ -97,10 +97,9 @@ class TcpTunnel:
                 if tcp_sock is None:
                     break  # stop was requested
 
-                if self.handshake is not None:
-                    if not self._do_handshake(tcp_sock):
-                        tcp_sock.close()
-                        continue  # retry connection
+                if self.handshake is not None and not self._do_handshake(tcp_sock):
+                    tcp_sock.close()
+                    continue  # retry connection
 
                 logger.info(
                     f"TcpTunnel connected to {self.remote_host}:{self.remote_port}"

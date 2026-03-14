@@ -92,7 +92,7 @@ class TestAppState(unittest.TestCase):
         self, mock_coordinator_cls, mock_renderer_cls,
         mock_osd_cls, mock_input_cls, mock_display_cls
     ):
-        app, mock_input, mock_osd, mock_renderer, mock_coordinator = self._create_app(
+        _app, _mock_input, _mock_osd, _mock_renderer, mock_coordinator = self._create_app(
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
             mock_input_cls, mock_display_cls
         )
@@ -137,7 +137,7 @@ class TestAppState(unittest.TestCase):
     ):
         mock_set_mode.return_value = MagicMock()
 
-        app, mock_input, mock_osd, mock_renderer, mock_coordinator = self._create_app(
+        app, mock_input, mock_osd, mock_renderer, _mock_coordinator = self._create_app(
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
             mock_input_cls, mock_display_cls
         )
@@ -171,7 +171,7 @@ class TestAppState(unittest.TestCase):
         self, mock_coordinator_cls, mock_renderer_cls,
         mock_osd_cls, mock_input_cls, mock_display_cls
     ):
-        app, mock_input, mock_osd, mock_renderer, mock_coordinator = self._create_app(
+        app, mock_input, _mock_osd, _mock_renderer, mock_coordinator = self._create_app(
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
             mock_input_cls, mock_display_cls
         )
@@ -196,7 +196,7 @@ class TestAppState(unittest.TestCase):
         self, mock_coordinator_cls, mock_renderer_cls,
         mock_osd_cls, mock_input_cls, mock_display_cls
     ):
-        app, mock_input, mock_osd, mock_renderer, mock_coordinator = self._create_app(
+        app, mock_input, _mock_osd, _mock_renderer, mock_coordinator = self._create_app(
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
             mock_input_cls, mock_display_cls
         )
@@ -216,7 +216,7 @@ class TestAppState(unittest.TestCase):
         self, mock_coordinator_cls, mock_renderer_cls,
         mock_osd_cls, mock_input_cls, mock_display_cls
     ):
-        app, mock_input, mock_osd, mock_renderer, mock_coordinator = self._create_app(
+        app, _mock_input, mock_osd, mock_renderer, mock_coordinator = self._create_app(
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
             mock_input_cls, mock_display_cls
         )
@@ -235,7 +235,7 @@ class TestAppState(unittest.TestCase):
         self, mock_coordinator_cls, mock_renderer_cls,
         mock_osd_cls, mock_input_cls, mock_display_cls
     ):
-        app, mock_input, mock_osd, mock_renderer, mock_coordinator = self._create_app(
+        app, _mock_input, mock_osd, _mock_renderer, mock_coordinator = self._create_app(
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
             mock_input_cls, mock_display_cls
         )
@@ -252,7 +252,7 @@ class TestAppState(unittest.TestCase):
         mock_renderer_cls, mock_osd_cls,
         mock_input_cls, mock_display_cls
     ):
-        app, mock_input, mock_osd, mock_renderer, mock_coordinator = self._create_app(
+        app, mock_input, _mock_osd, _mock_renderer, mock_coordinator = self._create_app(
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
             mock_input_cls, mock_display_cls
         )
@@ -269,7 +269,7 @@ class TestAppState(unittest.TestCase):
         mock_renderer_cls, mock_osd_cls,
         mock_input_cls, mock_display_cls
     ):
-        app, mock_input, mock_osd, mock_renderer, mock_coordinator = self._create_app(
+        app, _mock_input, _mock_osd, _mock_renderer, _mock_coordinator = self._create_app(
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
             mock_input_cls, mock_display_cls
         )
@@ -287,7 +287,7 @@ class TestAppState(unittest.TestCase):
         mock_renderer_cls, mock_osd_cls,
         mock_input_cls, mock_display_cls
     ):
-        app, mock_input, mock_osd, mock_renderer, mock_coordinator = self._create_app(
+        app, _mock_input, _mock_osd, _mock_renderer, _mock_coordinator = self._create_app(
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
             mock_input_cls, mock_display_cls
         )
@@ -311,7 +311,7 @@ class TestAppState(unittest.TestCase):
     ):
         mock_set_mode.return_value = MagicMock()
 
-        app, mock_input, mock_osd, mock_renderer, mock_coordinator = self._create_app(
+        app, _mock_input, _mock_osd, _mock_renderer, _mock_coordinator = self._create_app(
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
             mock_input_cls, mock_display_cls
         )
@@ -342,7 +342,7 @@ class TestAppState(unittest.TestCase):
         mock_osd_cls, mock_input_cls, mock_display_cls
     ):
         """Test that network coordinator is properly set up with handlers."""
-        app, mock_input, mock_osd, mock_renderer, mock_coordinator = self._create_app(
+        app, _mock_input, _mock_osd, _mock_renderer, _mock_coordinator = self._create_app(
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
             mock_input_cls, mock_display_cls
         )
@@ -383,7 +383,7 @@ class TestAppState(unittest.TestCase):
         mock_osd_cls, mock_input_cls, mock_display_cls
     ):
         """Test that connection change callback updates menu tab state"""
-        app, _, _, _, mock_coordinator = self._create_app(
+        app, _, _, _, _mock_coordinator = self._create_app(
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls,
             mock_input_cls, mock_display_cls
         )

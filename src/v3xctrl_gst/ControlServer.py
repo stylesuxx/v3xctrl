@@ -1,3 +1,4 @@
+import contextlib
 import json
 import logging
 import os
@@ -51,10 +52,8 @@ class ControlServer:
         """Stop the control server."""
         self.running = False
         if self.server_socket:
-            try:
+            with contextlib.suppress(Exception):
                 self.server_socket.close()
-            except Exception:
-                pass
 
         try:
             if os.path.exists(self.socket_path):

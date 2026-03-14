@@ -291,7 +291,7 @@ class Receiver(ABC, threading.Thread):
         decode_samples = list(self.timing_decode_samples)
         buffer_samples = list(self.timing_buffer_samples)
 
-        dec_min, dec_avg, dec_max = stats(decode_samples)
+        _dec_min, dec_avg, _dec_max = stats(decode_samples)
         buf_min, buf_avg, buf_max = stats(buffer_samples)
 
         # Convert to ms for display

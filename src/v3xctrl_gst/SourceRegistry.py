@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, ClassVar
 
 from v3xctrl_gst.Sources import (
     CameraSourceBuilder,
@@ -9,7 +9,7 @@ from v3xctrl_gst.Sources import (
 
 
 class SourceRegistry:
-    _builders: dict[str, type[SourceBuilder]] = {
+    _builders: ClassVar[dict[str, type[SourceBuilder]]] = {
         'camera': CameraSourceBuilder,
         'file': FileSourceBuilder,
         'test': TestSourceBuilder,

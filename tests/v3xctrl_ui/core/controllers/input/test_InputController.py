@@ -59,7 +59,7 @@ class TestInputController(unittest.TestCase):
         self.assertEqual(steering_call[1]["max_val"], 1.0)
 
     def test_initialization_no_keyboard_controls(self, mock_pygame, mock_keyaxis_cls, mock_gamepad_cls):
-        mock_gamepad, _, _ = self._setup_mocks(mock_pygame, mock_keyaxis_cls, mock_gamepad_cls)
+        _mock_gamepad, _, _ = self._setup_mocks(mock_pygame, mock_keyaxis_cls, mock_gamepad_cls)
 
         no_controls_settings = MagicMock()
         no_controls_settings.get.side_effect = lambda key, default=None: {
@@ -168,7 +168,7 @@ class TestInputController(unittest.TestCase):
         self.assertTrue(mock_keyaxis_cls.called)
 
     def test_update_settings_recreates_key_handlers(self, mock_pygame, mock_keyaxis_cls, mock_gamepad_cls):
-        mock_gamepad, _, _ = self._setup_mocks(mock_pygame, mock_keyaxis_cls, mock_gamepad_cls)
+        _mock_gamepad, _, _ = self._setup_mocks(mock_pygame, mock_keyaxis_cls, mock_gamepad_cls)
 
         initial_throttle = MagicMock()
         initial_steering = MagicMock()

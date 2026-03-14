@@ -161,10 +161,7 @@ class ButtonMappingWidget(BaseWidget):
 
         surface.blit(self.label_surface, self.label_rect)
 
-        if self.waiting_for_button:
-            button_label = "---"
-        else:
-            button_label = format_mapping(self.button_number)
+        button_label = "---" if self.waiting_for_button else format_mapping(self.button_number)
 
         button_surface, button_rect = self.font.render(button_label, self.FONT_COLOR)
         button_rect.midleft = self.button_text_center

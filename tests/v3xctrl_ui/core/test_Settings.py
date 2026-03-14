@@ -15,9 +15,8 @@ from v3xctrl_ui.core.Settings import Settings
 
 class TestSettings(unittest.TestCase):
     def setUp(self):
-        self.tempfile = tempfile.NamedTemporaryFile(delete=False, suffix=".toml")
-        self.path = self.tempfile.name
-        self.tempfile.close()
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".toml") as tmp:
+            self.path = tmp.name
 
     def tearDown(self):
         Path(self.path).unlink(missing_ok=True)

@@ -1,3 +1,4 @@
+import contextlib
 import json
 import os
 import shutil
@@ -65,19 +66,15 @@ class Config(MethodView):
         except Exception as e:
             # If something went wrong, try to restore from backup
             if backup_path.exists():
-                try:
+                with contextlib.suppress(Exception):
                     shutil.copy2(backup_path, config_path)
-                except Exception:
-                    pass
 
             return error(f"Failed to save configuration: {e!s}")
 
         finally:
             if temp_path.exists():
-                try:
+                with contextlib.suppress(Exception):
                     temp_path.unlink()
-                except Exception:
-                    pass
 
 
 @blueprint.route('/schema')

@@ -286,9 +286,9 @@ class TestPeer(unittest.TestCase):
 
     def test_register_all_with_exception(self):
         mock_sock = MagicMock()
-        with patch.object(self.peer, "_register_with_relay", side_effect=RuntimeError("fail")):
-            with self.assertRaises(PeerRegistrationError):
-                self.peer._register_all({"video": mock_sock}, "client")
+        with (patch.object(self.peer, "_register_with_relay", side_effect=RuntimeError("fail")),
+              self.assertRaises(PeerRegistrationError)):
+            self.peer._register_all({"video": mock_sock}, "client")
 
     def test_register_all_mixed_success_and_failure(self):
         """Test partial success scenario"""

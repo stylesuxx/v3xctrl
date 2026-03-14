@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import select
 import socket
@@ -36,10 +37,8 @@ class TCPAcceptor:
 
     def stop(self) -> None:
         if self._listener:
-            try:
+            with contextlib.suppress(OSError):
                 self._listener.close()
-            except OSError:
-                pass
         if self._thread:
             self._thread.join(timeout=5.0)
 

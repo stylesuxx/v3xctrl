@@ -21,9 +21,8 @@ class TestOSD(unittest.TestCase):
     def setUp(self):
         pygame.init()
         # Create a temp settings file
-        self.tempfile = tempfile.NamedTemporaryFile(delete=False, suffix=".toml")
-        self.path = self.tempfile.name
-        self.tempfile.close()
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".toml") as tmp:
+            self.path = tmp.name
 
         self.settings = Settings(self.path)
         self.telemetry_context = TelemetryContext()

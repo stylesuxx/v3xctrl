@@ -77,15 +77,11 @@ class UDPReceiver(threading.Thread):
 
         # By default all Messages are order critical, we exempt this ones since
         # order does not matter, we need them processed in any case
-        if (
-            isinstance(message, Command) or
-            isinstance(message, CommandAck) or
-            isinstance(message, Latency)
-        ):
+        if isinstance(message, Command | CommandAck | Latency):
             return True
 
         # Reset timestamps on Syn or Ack
-        if isinstance(message, Syn) or isinstance(message, Ack):
+        if isinstance(message, Syn | Ack):
             logging.debug("Resetting timestamps...")
             self.reset()
             return True

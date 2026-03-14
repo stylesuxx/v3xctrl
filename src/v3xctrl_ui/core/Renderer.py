@@ -173,10 +173,7 @@ class Renderer:
     def _get_splash_logo(self) -> pygame.Surface | None:
         if not self._splash_logo_loaded:
             self._splash_logo_loaded = True
-            if getattr(sys, 'frozen', False):
-                base_path = Path(sys._MEIPASS)
-            else:
-                base_path = Path(__file__).parent.parent
+            base_path = Path(sys._MEIPASS) if getattr(sys, 'frozen', False) else Path(__file__).parent.parent
 
             logo_path = base_path / "assets" / "images" / "v3xctrl_logo.png"
             try:

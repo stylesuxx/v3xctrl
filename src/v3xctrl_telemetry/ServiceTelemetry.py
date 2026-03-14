@@ -1,11 +1,12 @@
 import subprocess
+from typing import ClassVar
 
 from v3xctrl_telemetry.dataclasses import ServiceFlags
 
 
 class ServiceTelemetry:
     # Service name mapping: field name -> systemd service name
-    SERVICE_NAMES = {
+    SERVICE_NAMES: ClassVar[dict[str, str]] = {
         'video': 'v3xctrl-video.service',
         'reverse_shell': 'v3xctrl-reverse-shell.service',
         'debug': 'v3xctrl-debug.service',

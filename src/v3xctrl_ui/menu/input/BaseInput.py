@@ -171,10 +171,7 @@ class BaseInput(BaseWidget):
                 data = pygame.scrap.get(type)
                 if data:
                     try:
-                        if isinstance(data, bytes):
-                            text = data.decode("utf-8", errors="ignore")
-                        else:
-                            text = data
+                        text = data.decode("utf-8", errors="ignore") if isinstance(data, bytes) else data
 
                         # Only keep printable characters
                         cleaned_text = ''.join(char for char in text if char.isprintable()).strip()

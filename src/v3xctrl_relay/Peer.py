@@ -158,9 +158,9 @@ class Peer:
                 last_announce = now
 
             try:
-                data, addr = sock.recvfrom(65535)
+                data, _addr = sock.recvfrom(65535)
                 if data:
-                    if not data[:3] == self._MESSAGE_PREFIX:
+                    if data[:3] != self._MESSAGE_PREFIX:
                         skipped_data_packets += 1
                         continue
 

@@ -3,8 +3,6 @@ import socket
 import threading
 import time
 
-logger = logging.getLogger(__name__)
-
 from v3xctrl_control.message import Error, PeerAnnouncement, PeerInfo
 from v3xctrl_helper import Address
 from v3xctrl_relay.custom_types import (
@@ -17,6 +15,8 @@ from v3xctrl_relay.ForwardTarget import ForwardTarget, TcpTarget, UdpTarget
 from v3xctrl_relay.Role import Role
 from v3xctrl_relay.SessionStore import SessionStore
 from v3xctrl_tcp import Transport
+
+logger = logging.getLogger(__name__)
 
 
 class Mapping:

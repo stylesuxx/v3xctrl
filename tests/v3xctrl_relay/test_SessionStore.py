@@ -111,7 +111,7 @@ class TestSessionStore(unittest.TestCase):
         self.assertNotEqual(session_id, spectator_id)
 
     def test_exists_true_for_existing_session(self):
-        session_id, spectator_id = self.store.create("user", "username")
+        session_id, _spectator_id = self.store.create("user", "username")
         self.assertTrue(self.store.exists(session_id))
 
     def test_exists_false_for_nonexistent_session(self):

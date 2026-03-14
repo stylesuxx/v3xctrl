@@ -3,9 +3,9 @@ import logging
 import gi
 
 gi.require_version('Gst', '1.0')
-from gi.repository import Gst
+from gi.repository import Gst  # noqa: E402
 
-from v3xctrl_gst.Sources.SourceBuilder import SourceBuilder
+from v3xctrl_gst.Sources.SourceBuilder import SourceBuilder  # noqa: E402
 
 
 class CameraSourceBuilder(SourceBuilder):

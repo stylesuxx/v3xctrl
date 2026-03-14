@@ -577,7 +577,7 @@ class TestRelayServerUnitTests(unittest.TestCase):
     def test_tcp_spectator_timeout_stays_full_with_active_connection(self, mock_socket_class):
         """TCP spectator with active connection shows full SPECTATOR_TIMEOUT."""
         server, _ = self._create_server_with_mock_socket(mock_socket_class)
-        spectator_video_addr, spectator_control_addr = self._setup_session_with_spectator(
+        spectator_video_addr, _spectator_control_addr = self._setup_session_with_spectator(
             server, Transport.TCP
         )
 

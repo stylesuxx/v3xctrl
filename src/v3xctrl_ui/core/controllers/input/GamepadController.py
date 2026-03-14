@@ -80,14 +80,10 @@ class GamepadController(threading.Thread):
                         matching one.
                         """
                         for id in guids:
-                            if id in self._settings:
-                                if (
-                                    not self._active_gamepad or
-                                    not self._active_settings
-                                ):
-                                    self._set_active_unlocked(id)
-                                    logging.info("Found gamepad with calibration")
-                                    break
+                            if id in self._settings and (not self._active_gamepad or not self._active_settings):
+                                self._set_active_unlocked(id)
+                                logging.info("Found gamepad with calibration")
+                                break
 
                     # No known gamepad found (gamepad disconnected)
                     if self._active_guid not in guids:

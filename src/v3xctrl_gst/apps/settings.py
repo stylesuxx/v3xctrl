@@ -1,4 +1,5 @@
 import argparse
+import contextlib
 import json
 from typing import Any
 
@@ -37,9 +38,8 @@ def main() -> None:
         if not args.element:
             parser.error("list requires: element")
 
-    elif args.action == 'record':
-        if not args.element:
-            parser.error("record requires: element")
+    elif args.action == 'record' and not args.element:
+        parser.error("record requires: element")
 
     client = ControlClient(args.socket_path)
 
@@ -50,10 +50,8 @@ def main() -> None:
         try:
             value = int(value)
         except ValueError:
-            try:
+            with contextlib.suppress(ValueError):
                 value = float(value)
-            except ValueError:
-                pass  # Keep as string
         response = client.set_property(args.element, args.property, value)
 
     elif args.action == 'get':

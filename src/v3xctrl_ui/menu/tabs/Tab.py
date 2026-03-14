@@ -58,7 +58,7 @@ class Tab(ABC):
         Called during initialization and when menu is shown.
         Override this method in subclasses to update widget states.
         """
-        pass
+        return
 
     @abstractmethod
     def get_settings(self) -> dict[str, Any]:

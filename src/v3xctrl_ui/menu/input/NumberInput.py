@@ -64,11 +64,10 @@ class NumberInput(BaseInput):
         ):
             try:
                 new_val = str(self.value[:self.cursor_pos] + event.unicode + self.value[self.cursor_pos:])
-                if new_val != self.value:
-                    if self.min_val <= int(new_val) <= self.max_val:
-                        self.value = new_val
-                        self.cursor_pos += 1
-                        if self.on_change:
-                            self.on_change(self.value)
+                if new_val != self.value and self.min_val <= int(new_val) <= self.max_val:
+                    self.value = new_val
+                    self.cursor_pos += 1
+                    if self.on_change:
+                        self.on_change(self.value)
             except ValueError:
                 pass

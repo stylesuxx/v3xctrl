@@ -1,7 +1,7 @@
 import copy
 import tomllib
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import pygame
 import tomli_w
@@ -9,7 +9,7 @@ from platformdirs import user_config_dir
 
 
 class Settings:
-    DEFAULTS: dict[str, Any] = {
+    DEFAULTS: ClassVar[dict[str, Any]] = {
         "controls": {
           "keyboard": {
               "throttle_up": pygame.K_w,

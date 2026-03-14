@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, ClassVar
 
 from pygame import SRCALPHA, Rect, Surface, draw
 
@@ -9,7 +9,7 @@ from v3xctrl_ui.utils.helpers import round_corners
 
 
 class StatusWidget(Widget):
-    STATUS_COLORS: dict[str, Any] = {
+    STATUS_COLORS: ClassVar[dict[str, Any]] = {
         "waiting": YELLOW,
         "success": GREEN,
         "fail": RED,

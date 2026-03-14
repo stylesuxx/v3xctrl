@@ -33,7 +33,7 @@ class ClockWidget(Widget):
 
         # Calculate size based on time format "HH:MM:SS.mmm"
         reference_text = "00:00:00.000"
-        text_surface, text_rect = self.font.render(reference_text)
+        _text_surface, text_rect = self.font.render(reference_text)
         self.text_width = text_rect.width
         self.text_height = text_rect.height
 
@@ -47,7 +47,7 @@ class ClockWidget(Widget):
         now = datetime.now()
         time_str = now.strftime("%H:%M:%S") + f".{now.microsecond // 1000:03d}"
 
-        text_surface, text_rect = self.font.render(time_str, self.color)
+        text_surface, _text_rect = self.font.render(time_str, self.color)
 
         self.surface = self.bg_surface.copy()
         text_x = self.left_padding

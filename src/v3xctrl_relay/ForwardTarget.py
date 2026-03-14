@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import socket
 import threading
@@ -58,7 +59,5 @@ class TcpTarget(ForwardTarget):
 
     def close(self) -> None:
         self._alive = False
-        try:
+        with contextlib.suppress(OSError):
             self._sock.close()
-        except OSError:
-            pass
