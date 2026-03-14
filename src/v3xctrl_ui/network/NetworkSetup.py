@@ -18,14 +18,15 @@ from v3xctrl_tcp.TcpTunnel import TcpTunnel
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.network.TcpServer import TcpServer
 from v3xctrl_ui.network.video.Receiver import Receiver
-from v3xctrl_ui.network.video.ReceiverPyAV import ReceiverPyAV
 from v3xctrl_ui.network.VideoPortKeepAlive import VideoPortKeepAlive
 from v3xctrl_ui.utils.gstreamer import is_gstreamer_available
 
 # GStreamer receiver is loaded lazily if available
 logger = logging.getLogger(__name__)
 
+# Receivers are loaded lazily to avoid hard dependencies on optional backends
 _ReceiverGst: type[Receiver] | None = None
+_ReceiverPyAV: type[Receiver] | None = None
 
 
 def _get_gstreamer_receiver() -> type[Receiver] | None:
@@ -36,6 +37,18 @@ def _get_gstreamer_receiver() -> type[Receiver] | None:
 
         _ReceiverGst = ReceiverGst
     return _ReceiverGst
+
+
+def _get_pyav_receiver() -> type[Receiver] | None:
+    """Get the PyAV receiver class, loading it lazily."""
+    global _ReceiverPyAV
+    if _ReceiverPyAV is None:
+        try:
+            from v3xctrl_ui.network.video.ReceiverPyAV import ReceiverPyAV
+            _ReceiverPyAV = ReceiverPyAV
+        except ImportError:
+            pass
+    return _ReceiverPyAV
 
 
 @dataclass
@@ -324,6 +337,7 @@ class NetworkSetup:
             match receiver_type:
                 case "auto":
                     gst_receiver = _get_gstreamer_receiver()
+                    pyav_receiver = _get_pyav_receiver()
                     if gst_receiver:
                         video_receiver: Receiver = gst_receiver(
                             self.video_port,
@@ -331,14 +345,16 @@ class NetworkSetup:
                             render_ratio=render_ratio,
                         )
                         receiver_type = "gst"
-                    else:
-                        video_receiver = ReceiverPyAV(
+                    elif pyav_receiver:
+                        video_receiver = pyav_receiver(
                             self.video_port,
                             keep_alive_callback,
                             render_ratio=render_ratio,
                             relay_address=video_address,
                         )
                         receiver_type = "pyav"
+                    else:
+                        raise RuntimeError("No video receiver available (neither GStreamer nor PyAV found)")
                 case "gst":
                     gst_receiver = _get_gstreamer_receiver()
                     if not gst_receiver:
@@ -349,7 +365,10 @@ class NetworkSetup:
                         render_ratio=render_ratio,
                     )
                 case "pyav":
-                    video_receiver = ReceiverPyAV(
+                    pyav_receiver = _get_pyav_receiver()
+                    if not pyav_receiver:
+                        raise RuntimeError("PyAV receiver requested but not available")
+                    video_receiver = pyav_receiver(
                         self.video_port,
                         keep_alive_callback,
                         render_ratio=render_ratio,

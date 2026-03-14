@@ -23,7 +23,7 @@ class TestNetworkSetup(unittest.TestCase):
         self.settings.get.side_effect = lambda key, default=None: {
             "ports": {"video": 5000, "control": 6000},
             "udp_packet_ttl": 100,
-            "video": {"render_ratio": 0},
+            "video": {"render_ratio": 0, "receiver": "pyav"}
         }.get(key, default)
 
         # Patch external dependencies
@@ -33,8 +33,12 @@ class TestNetworkSetup(unittest.TestCase):
         self.server_patcher = patch("v3xctrl_ui.network.NetworkSetup.Server")
         self.mock_server_cls = self.server_patcher.start()
 
-        self.video_receiver_patcher = patch("v3xctrl_ui.network.NetworkSetup.ReceiverPyAV")
-        self.mock_video_receiver_cls = self.video_receiver_patcher.start()
+        self.mock_video_receiver_cls = MagicMock()
+        self.video_receiver_patcher = patch(
+            "v3xctrl_ui.network.NetworkSetup._get_pyav_receiver",
+            return_value=self.mock_video_receiver_cls,
+        )
+        self.video_receiver_patcher.start()
 
         self.socket_patcher = patch("v3xctrl_ui.network.NetworkSetup.socket")
         self.mock_socket = self.socket_patcher.start()
