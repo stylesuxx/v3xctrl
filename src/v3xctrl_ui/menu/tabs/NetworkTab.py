@@ -159,7 +159,7 @@ class NetworkTab(Tab):
         self.relay = self.settings.get("relay", {})
         self.udp_packet_ttl = self.settings.get("udp_packet_ttl", 100)
 
-        # Transport select — defer set_options until positioned (rect != None)
+        # Transport select - defer set_options until positioned (rect != None)
         transport_index = (
             self._transport_options.index(self.transport.upper())
             if self.transport.upper() in self._transport_options

@@ -10,6 +10,7 @@ from v3xctrl_control import Server
 from v3xctrl_control.message import Heartbeat, PeerAnnouncement
 from v3xctrl_control.State import State
 from v3xctrl_helper.exceptions import PeerRegistrationAborted, PeerRegistrationError
+from v3xctrl_relay.custom_types import PortType
 from v3xctrl_relay.Peer import Peer
 from v3xctrl_relay.Role import Role
 from v3xctrl_tcp import Transport
@@ -142,7 +143,7 @@ class NetworkSetup:
             spectator_mode = relay_config.get("spectator_mode", False)
             role = Role.SPECTATOR if spectator_mode else Role.VIEWER
 
-            video_handshake = PeerAnnouncement(r=role.value, i=session_id, p="video").to_bytes()
+            video_handshake = PeerAnnouncement(r=role.value, i=session_id, p=PortType.VIDEO.value).to_bytes()
             result.tcp_video_tunnel = TcpTunnel(
                 remote_host=relay_host,
                 remote_port=relay_port,
@@ -152,7 +153,7 @@ class NetworkSetup:
             )
             result.tcp_video_tunnel.start()
 
-            control_handshake = PeerAnnouncement(r=role.value, i=session_id, p="control").to_bytes()
+            control_handshake = PeerAnnouncement(r=role.value, i=session_id, p=PortType.CONTROL.value).to_bytes()
             result.tcp_control_tunnel = TcpTunnel(
                 remote_host=relay_host,
                 remote_port=relay_port,
@@ -220,14 +221,14 @@ class NetworkSetup:
         Returns:
             RelaySetupResult with connection details or error
         """
-        local_bind_ports = {"video": self.video_port, "control": self.control_port}
+        local_bind_ports = {PortType.VIDEO.value: self.video_port, PortType.CONTROL.value: self.control_port}
 
         self._peer = Peer(relay_server, relay_port, relay_id)
 
         try:
             role = Role.SPECTATOR if spectator_mode else Role.VIEWER
             addresses = self._peer.setup(role.value, local_bind_ports)
-            video_address = addresses["video"]
+            video_address = addresses[PortType.VIDEO.value]
 
             return RelaySetupResult(
                 success=True,

@@ -158,7 +158,7 @@ class Streamer:
 
         state = self.pipeline.set_state(Gst.State.PLAYING)
         if state == Gst.StateChangeReturn.FAILURE:
-            print("Unable to set the pipeline to the playing state.")
+            logging.error("Unable to set the pipeline to the playing state.")
             sys.exit(1)
 
         logging.info("Pipeline running. Press Ctrl+C to stop.")

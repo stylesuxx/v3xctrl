@@ -158,9 +158,9 @@ class Telemetry(threading.Thread):
     def _update_cell(self) -> None:
         try:
             band = self._modem.get_active_band()
-            id = self._modem.get_cell_location()[3]
+            cell_id = self._modem.get_cell_location()[3]
             with self._lock:
-                self.payload.cell.id = id
+                self.payload.cell.id = cell_id
                 self.payload.cell.band = band
         except Exception as e:
             self._set_cell_unknown()

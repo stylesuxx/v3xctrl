@@ -200,7 +200,7 @@ class RecordingManager:
         is blocked. No buffer is in-flight to the recording branch, so it is
         safe to unlink and send EOS.
         """
-        # Unlink from tee — the main pipeline can continue pushing to other
+        # Unlink from tee - the main pipeline can continue pushing to other
         # branches (UDP) without being affected by the recording teardown.
         queue_sink_pad = self._elements["queue"].get_static_pad("sink")
         if queue_sink_pad:

@@ -18,8 +18,8 @@ def main() -> None:
     # Delete all available contexts
     contexts = gsm.get_contexts()
     for context in contexts:
-        id = context.id
-        gsm.delete_context(id)
+        context_id = context.id
+        gsm.delete_context(context_id)
 
     # Reboots the modem, serial connection will be lost, radio will be powered
     # back on during a reboot cycle.

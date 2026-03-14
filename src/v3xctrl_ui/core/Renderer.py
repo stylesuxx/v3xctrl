@@ -216,7 +216,7 @@ class Renderer:
             screen.blit(logo, (self.center_x - logo.get_width() // 2, y))
             y += logo_h + spacing
 
-        # Breathing glow behind connect button — bright at center, fades to black
+        # Breathing glow behind connect button - bright at center, fades to black
         breath = math.sin(time.monotonic() * 2) * 0.5 + 0.5
         glow_expand = int(breath * 6)
         glow_pad = 50 + glow_expand

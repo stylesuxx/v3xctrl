@@ -5,20 +5,14 @@ import time
 
 from v3xctrl_control.message import Heartbeat
 
-# Keepalive interval when video is not running (NAT hole punch)
-INTERVAL_IDLE_S = 1.0
-
 # Keepalive interval during active streaming (NAT mapping refresh)
 INTERVAL_STREAMING_S = 30.0
 
 
 class VideoPortKeepAlive(threading.Thread):
     """
-    Send periodic Heartbeat packets from the video port to the relay.
-
-    Uses a faster interval when video is not yet running (to punch the NAT
-    hole) and a slower interval during active streaming (to prevent the
-    mapping from expiring).
+    Send periodic Heartbeat packets from the video port to the relay
+    to prevent the NAT mapping from expiring.
     """
 
     def __init__(
@@ -39,7 +33,7 @@ class VideoPortKeepAlive(threading.Thread):
         """Create a transient socket to send one heartbeat.
 
         The socket is opened and closed each time so it does not hold
-        the video port permanently — ffmpeg (PyAV) needs exclusive
+        the video port permanently - ffmpeg (PyAV) needs exclusive
         access to the port while its container is open.
         """
         sock = None

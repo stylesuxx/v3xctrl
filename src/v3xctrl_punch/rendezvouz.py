@@ -37,7 +37,7 @@ def handle_peer_announcement(msg: PeerAnnouncement, addr: Address, sock: socket.
     port_type = msg.get_port_type()
 
     if role not in roles or port_type not in valid_types:
-        print(f"[!] Invalid announcement from {addr} — role={role}, port_type={port_type}")
+        print(f"[!] Invalid announcement from {addr} - role={role}, port_type={port_type}")
         return
 
     with lock:

@@ -48,8 +48,8 @@ class SpectatorEntry:
 
 
 class Session:
-    def __init__(self, id: str) -> None:
-        self.id = id
+    def __init__(self, session_id: str) -> None:
+        self.id = session_id
         self.roles: dict[Role, dict[PortType, PeerEntry]] = {Role.STREAMER: {}, Role.VIEWER: {}}
         self.spectators: list[SpectatorEntry] = []
         self.addresses: set[Address] = set()

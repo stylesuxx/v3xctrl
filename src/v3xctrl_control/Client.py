@@ -25,7 +25,7 @@ from .UDPTransmitter import UDPTransmitter
 
 
 class Client(Base):
-    SYN_INTERNAL = 1
+    SYN_INTERVAL = 1
 
     def __init__(
         self, host: str, port: int, bind_port: int | None = None, failsafe_ms: int = 500, bind_address: str = "0.0.0.0"
@@ -134,6 +134,6 @@ class Client(Base):
     def _send_syn(self) -> None:
         """Send SYN message at max every SYN_INTERVAL."""
         now = time.time()
-        if now - self.last_syn > self.SYN_INTERNAL:
+        if now - self.last_syn > self.SYN_INTERVAL:
             self.send(Syn())
             self.last_syn = now

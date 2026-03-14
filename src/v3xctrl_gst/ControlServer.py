@@ -6,7 +6,7 @@ import socket
 import threading
 from typing import TYPE_CHECKING, Any
 
-from v3xctrl_gst.Command import Command, CommandValidationError
+from v3xctrl_gst.Command import ActionType, Command, CommandValidationError, RecordingAction
 
 if TYPE_CHECKING:
     from v3xctrl_gst.Streamer import Streamer
@@ -28,12 +28,12 @@ class ControlServer:
 
         # Command registry - maps action names to handler methods
         self._command_handlers = {
-            "stop": self._handle_stop,
-            "list": self._handle_list,
-            "get": self._handle_get,
-            "set": self._handle_set,
-            "stats": self._handle_stats,
-            "recording": self._handle_recording,
+            ActionType.STOP: self._handle_stop,
+            ActionType.LIST: self._handle_list,
+            ActionType.GET: self._handle_get,
+            ActionType.SET: self._handle_set,
+            ActionType.STATS: self._handle_stats,
+            ActionType.RECORDING: self._handle_recording,
         }
 
         self.server_socket: socket.socket | None = None
@@ -52,14 +52,12 @@ class ControlServer:
         """Stop the control server."""
         self.running = False
         if self.server_socket:
-            with contextlib.suppress(Exception):
+            with contextlib.suppress(OSError):
                 self.server_socket.close()
 
-        try:
+        with contextlib.suppress(OSError):
             if os.path.exists(self.socket_path):
                 os.unlink(self.socket_path)
-        except Exception:
-            pass
 
     def _run_server(self) -> None:
         """Main server loop."""
@@ -101,11 +99,9 @@ class ControlServer:
             if self.server_socket:
                 self.server_socket.close()
 
-            try:
+            with contextlib.suppress(OSError):
                 if os.path.exists(self.socket_path):
                     os.unlink(self.socket_path)
-            except Exception:
-                pass
 
     def _handle_client(self, client_socket: socket.socket) -> None:
         """
@@ -147,11 +143,11 @@ class ControlServer:
         if value is None:
             return {"status": "error", "message": "Missing value"}
 
-        if value == "start":
+        if value == RecordingAction.START:
             status = self.streamer.start_recording()
             return {"status": "success" if status else "error"}
 
-        elif value == "stop":
+        elif value == RecordingAction.STOP:
             status = self.streamer.stop_recording()
             return {"status": "success" if status else "error"}
 

@@ -87,8 +87,8 @@ class ThrottleFlags:
 class VideoCoreFlags:
     """VideoCore throttling flags for telemetry."""
 
-    current: ThrottleFlags = None
-    history: ThrottleFlags = None
+    current: ThrottleFlags | None = None
+    history: ThrottleFlags | None = None
 
     def __post_init__(self):
         if self.current is None:

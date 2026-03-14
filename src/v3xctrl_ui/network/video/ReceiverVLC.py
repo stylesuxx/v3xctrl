@@ -38,6 +38,8 @@ class ReceiverVLC(Receiver):
 
         # VLC ready event
         self.vlc_ready = threading.Event()
+
+        self.empty_decode_count = 0
         self.last_vlc_error = None
 
         # opaque pointer for VLC callbacks

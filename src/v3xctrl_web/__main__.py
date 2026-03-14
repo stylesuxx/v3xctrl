@@ -48,8 +48,6 @@ def create_app(schema_path: str, config_path: str, modems_path: str) -> Flask:
 
 
 def main() -> None:
-    global schema_path, config_path, modems_path
-
     parser = argparse.ArgumentParser(description="Run the Form Editor server.")
     parser.add_argument("--schema", required=True, help="Path to schema.json")
     parser.add_argument("--config", required=True, help="Path to config.json")
@@ -59,7 +57,7 @@ def main() -> None:
     args = parser.parse_args()
 
     app = create_app(args.schema, args.config, args.modems)
-    app.run(debug=True, host=args.host, port=args.port)
+    app.run(debug=False, host=args.host, port=args.port)
 
 
 if __name__ == "__main__":

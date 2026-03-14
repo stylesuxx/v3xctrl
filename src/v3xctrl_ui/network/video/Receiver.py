@@ -71,7 +71,7 @@ class Receiver(ABC, threading.Thread):
         log_interval: int = 10,
         history_size: int = 100,
         max_frame_age_ms: int = 500,
-        frame_ratio: int = 100,
+        render_ratio: int = 0,
         target_fps: int = 30,
         timeout_seconds: float = 5.0,
     ) -> None:
@@ -89,7 +89,7 @@ class Receiver(ABC, threading.Thread):
         # 50  Render 50% of the available frame by always removing 50% of the
         #     frame_buffer before rendering
         # 0   Render everything in frame buffer
-        self.frame_ratio = frame_ratio
+        self.render_ratio = render_ratio
 
         self.running = threading.Event()
         self.frame_lock = threading.Lock()
@@ -175,7 +175,7 @@ class Receiver(ABC, threading.Thread):
                 # Get latest frame (when available) and count rest as dropped
                 self.render_history.append(time.monotonic())
 
-                if self.frame_ratio == 100:
+                if self.render_ratio == 100:
                     # Render oldest (maximum smoothness)
                     self.frame = self.frame_buffer.popleft()
 
@@ -185,7 +185,7 @@ class Receiver(ABC, threading.Thread):
                         if self.decode_durations:
                             decode_duration = self.decode_durations.popleft()
 
-                elif self.frame_ratio == 0:
+                elif self.render_ratio == 0:
                     # Render newest (minimum latency)
                     self.frame = self.frame_buffer.pop()
 
@@ -203,7 +203,7 @@ class Receiver(ABC, threading.Thread):
 
                 else:
                     # Adaptive: render frame at ratio position
-                    target_buffer_size = round(self.max_frame_buffer_size * self.frame_ratio / 100)
+                    target_buffer_size = round(self.max_frame_buffer_size * self.render_ratio / 100)
 
                     frames_to_drop = max(0, length - target_buffer_size - 1)
 

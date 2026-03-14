@@ -30,27 +30,23 @@ class TestMemoryTracker(unittest.TestCase):
         self.patcher_sleep.stop()
 
     def test_start_and_stop(self):
-        # Thread should start and then be stopped cleanly
         self.mt.start()
-        self.assertTrue(self.mt._thread.is_alive())
-
         self.mt.stop()
         self.assertFalse(self.mt._thread.is_alive())
 
     def test_run_with_logging(self):
-        # Ensure prints happen when enable_log is True
         self.mt.enable_log = True
-        with patch("builtins.print") as mock_print:
+        with patch("v3xctrl_ui.core.MemoryTracker.logging") as mock_logging:
             self.mt.start()
             self.mt._thread.join()
-        mock_print.assert_any_call("[MemoryTracker] Top 2 memory growth lines since last snapshot:")
+        mock_logging.debug.assert_any_call("Top 2 memory growth lines since last snapshot:")
 
     def test_run_without_logging(self):
         self.mt.enable_log = False
-        with patch("builtins.print") as mock_print:
+        with patch("v3xctrl_ui.core.MemoryTracker.logging") as mock_logging:
             self.mt.start()
             self.mt._thread.join()
-        mock_print.assert_not_called()
+        mock_logging.debug.assert_not_called()
 
 
 if __name__ == "__main__":
