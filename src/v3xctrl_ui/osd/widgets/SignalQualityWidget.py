@@ -1,20 +1,19 @@
 from enum import IntEnum
 from typing import Any
 
-from pygame import Surface, SRCALPHA
 from material_icons import IconStyle
-
-from v3xctrl_ui.utils.colors import (
-  WHITE,
-  GREEN,
-  RED,
-  YELLOW,
-  ORANGE,
-  GREY,
-)
-from v3xctrl_ui.utils.helpers import get_icon
+from pygame import SRCALPHA, Surface
 
 from v3xctrl_ui.osd.widgets.Widget import Widget
+from v3xctrl_ui.utils.colors import (
+    GREEN,
+    GREY,
+    ORANGE,
+    RED,
+    WHITE,
+    YELLOW,
+)
+from v3xctrl_ui.utils.helpers import get_icon
 
 
 class SignalQuality(IntEnum):
@@ -39,12 +38,7 @@ class SignalQualityWidget(Widget):
         self.x_offset = (self.width - self.icon_size) // 2
         self.y_offset = (self.height - self.icon_size) // 2
 
-        self.no_data = get_icon(
-            "block",
-            size=self.icon_size,
-            color=RED,
-            style=IconStyle.OUTLINED
-        )
+        self.no_data = get_icon("block", size=self.icon_size, color=RED, style=IconStyle.OUTLINED)
 
         # First calculate spacing from ratio
         self.bar_spacing = int(self.width * self.SPACING_RATIO)
@@ -54,10 +48,7 @@ class SignalQualityWidget(Widget):
         self.bar_width = available_width // self.BAR_COUNT
 
         # Adjust right padding to perfectly fill the widget
-        used_width = (
-            self.BAR_COUNT * self.bar_width
-            + (self.BAR_COUNT - 1) * self.bar_spacing
-        )
+        used_width = self.BAR_COUNT * self.bar_width + (self.BAR_COUNT - 1) * self.bar_spacing
         self.side_padding = (self.width - used_width) / 2
 
         # Vertical layout
@@ -65,15 +56,12 @@ class SignalQualityWidget(Widget):
         self.bar_max_height = self.height - 2 * self.top_bottom_padding
 
     def draw(self, screen: Surface, signal: dict[str, Any]) -> None:
-        rsrp = signal.get('rsrp')
-        rsrq = signal.get('rsrq')
+        rsrp = signal.get("rsrp")
+        rsrq = signal.get("rsrq")
 
         # No signal
         if rsrp in (-1, 255) or rsrq in (-1, 255):
-            position = (
-                self.position[0] + self.x_offset,
-                self.position[1] + self.y_offset
-            )
+            position = (self.position[0] + self.x_offset, self.position[1] + self.y_offset)
             screen.blit(self.no_data, position)
 
             return

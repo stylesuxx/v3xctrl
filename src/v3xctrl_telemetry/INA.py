@@ -1,4 +1,5 @@
-from enum import IntEnum, Enum
+from enum import Enum, IntEnum
+
 from smbus3 import SMBus
 
 
@@ -25,11 +26,7 @@ class INA:
     """
 
     def __init__(
-        self,
-        address: int = 0x40,
-        bus: int = 1,
-        r_shunt_ohms: float = 0.1,
-        max_expected_current_A: float = 0.8
+        self, address: int = 0x40, bus: int = 1, r_shunt_ohms: float = 0.1, max_expected_current_A: float = 0.8
     ) -> None:
         """
         Initalize the INA object.
@@ -63,11 +60,7 @@ class INA:
         swapped = self._swap_bytes(value)
         self.bus.write_word_data(self.address, register, swapped)
 
-    def set_calibration(
-        self,
-        r_shunt_ohms: float = 0.1,
-        max_expected_current_A: float = 0.8
-    ) -> None:
+    def set_calibration(self, r_shunt_ohms: float = 0.1, max_expected_current_A: float = 0.8) -> None:
         """
         Set calibration register based on shunt resistor and expected max
         current.

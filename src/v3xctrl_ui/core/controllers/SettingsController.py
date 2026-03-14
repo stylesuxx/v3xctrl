@@ -1,23 +1,20 @@
 """Settings manager for handling configuration updates and hot-reload."""
+
 import copy
 import logging
 import threading
-from typing import TYPE_CHECKING
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from v3xctrl_ui.core.Settings import Settings
     from v3xctrl_ui.core.dataclasses import ApplicationModel
+    from v3xctrl_ui.core.Settings import Settings
 
 
 class SettingsController:
     """Manages settings updates, comparison, and component coordination."""
 
-    def __init__(
-        self,
-        settings: 'Settings',
-        model: 'ApplicationModel'
-    ):
+    def __init__(self, settings: "Settings", model: "ApplicationModel"):
         """Initialize settings manager.
 
         Args:
@@ -33,17 +30,17 @@ class SettingsController:
         self.network_restart_complete = threading.Event()
 
         # Callbacks for component updates
-        self.on_timing_update: Callable[['Settings'], None] | None = None
-        self.on_network_update: Callable[['Settings'], None] | None = None
-        self.on_input_update: Callable[['Settings'], None] | None = None
-        self.on_osd_update: Callable[['Settings'], None] | None = None
-        self.on_renderer_update: Callable[['Settings'], None] | None = None
+        self.on_timing_update: Callable[[Settings], None] | None = None
+        self.on_network_update: Callable[[Settings], None] | None = None
+        self.on_input_update: Callable[[Settings], None] | None = None
+        self.on_osd_update: Callable[[Settings], None] | None = None
+        self.on_renderer_update: Callable[[Settings], None] | None = None
         self.on_display_update: Callable[[bool], None] | None = None
 
         # Callback for network restart
-        self.create_network_restart_thread: Callable[['Settings'], threading.Thread] | None = None
+        self.create_network_restart_thread: Callable[[Settings], threading.Thread] | None = None
 
-    def update_settings(self, new_settings: 'Settings') -> bool:
+    def update_settings(self, new_settings: "Settings") -> bool:
         """Update settings and coordinate component updates.
 
         Args:
@@ -55,9 +52,8 @@ class SettingsController:
         # Handle fullscreen changes
         fullscreen_previous = self.model.fullscreen
         fullscreen_new = new_settings.get("video", {}).get("fullscreen", False)
-        if fullscreen_previous != fullscreen_new:
-            if self.on_display_update:
-                self.on_display_update(fullscreen_new)
+        if fullscreen_previous != fullscreen_new and self.on_display_update:
+            self.on_display_update(fullscreen_new)
 
         # Skip network restart if user hasn't connected yet
         if not self.model.user_connected:
@@ -66,9 +62,9 @@ class SettingsController:
 
         # Check if network manager needs to be restarted
         if (
-            not self.settings_equal(new_settings, "ports") or
-            self._needs_relay_restart(new_settings) or
-            self._transport_changed(new_settings)
+            not self.settings_equal(new_settings, "ports")
+            or self._needs_relay_restart(new_settings)
+            or self._transport_changed(new_settings)
         ):
             self.model.pending_settings = new_settings
 
@@ -99,7 +95,7 @@ class SettingsController:
 
         return False
 
-    def apply_settings(self, new_settings: 'Settings') -> None:
+    def apply_settings(self, new_settings: "Settings") -> None:
         """Apply new settings to all components.
 
         Args:
@@ -125,7 +121,7 @@ class SettingsController:
         if self.on_renderer_update:
             self.on_renderer_update(new_settings)
 
-    def _needs_relay_restart(self, new_settings: 'Settings') -> bool:
+    def _needs_relay_restart(self, new_settings: "Settings") -> bool:
         """Check if relay settings changes require a network restart.
 
         Restart is needed when:
@@ -161,26 +157,22 @@ class SettingsController:
             return True
 
         # Relay enabled: check if connection settings changed
-        if new_enabled and (
-            old_id != new_id or
-            old_server != new_server or
-            old_spectator != new_spectator
-        ):
+        if new_enabled and (old_id != new_id or old_server != new_server or old_spectator != new_spectator):
             return True
 
         # Direct mode: spectator enabled (requires session ID for relay connection)
-        if not new_enabled and not old_spectator and new_spectator and has_session_id:
+        if not new_enabled and not old_spectator and new_spectator and has_session_id:  # noqa: SIM103
             return True
 
         return False
 
-    def _transport_changed(self, new_settings: 'Settings') -> bool:
+    def _transport_changed(self, new_settings: "Settings") -> bool:
         """Check if transport setting changed (udp <-> tcp)."""
         old_transport = self.old_settings.get("transport", "udp")
         new_transport = new_settings.get("transport", "udp")
         return old_transport != new_transport
 
-    def settings_equal(self, new_settings: 'Settings', key: str) -> bool:
+    def settings_equal(self, new_settings: "Settings", key: str) -> bool:
         """Compare a section of settings with the old settings.
 
         Args:
@@ -204,11 +196,7 @@ class SettingsController:
         if new_section.keys() != old_section.keys():
             return False
 
-        for section_key in old_section:
-            if new_section.get(section_key) != old_section.get(section_key):
-                return False
-
-        return True
+        return all(new_section.get(section_key) == old_section.get(section_key) for section_key in old_section)
 
     def wait_for_network_restart(self, timeout: float = 5.0) -> bool:
         """Wait for pending network restart to complete.

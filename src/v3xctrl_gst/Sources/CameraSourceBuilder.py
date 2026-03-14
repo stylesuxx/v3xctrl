@@ -1,10 +1,11 @@
 import logging
 
 import gi
-gi.require_version('Gst', '1.0')
-from gi.repository import Gst
 
-from v3xctrl_gst.Sources.SourceBuilder import SourceBuilder
+gi.require_version("Gst", "1.0")
+from gi.repository import Gst  # noqa: E402
+
+from v3xctrl_gst.Sources.SourceBuilder import SourceBuilder  # noqa: E402
 
 
 class CameraSourceBuilder(SourceBuilder):
@@ -26,33 +27,30 @@ class CameraSourceBuilder(SourceBuilder):
         if not source:
             raise RuntimeError("Failed to create libcamerasrc")
 
-        source.set_property("af-mode", self.settings['af_mode'])
-        source.set_property("lens-position", self.settings['lens_position'])
+        source.set_property("af-mode", self.settings["af_mode"])
+        source.set_property("lens-position", self.settings["lens_position"])
 
-        source.set_property("brightness", self.settings['brightness'])
-        source.set_property("contrast", self.settings['contrast'])
-        source.set_property("saturation", self.settings['saturation'])
-        source.set_property("sharpness", self.settings['sharpness'])
+        source.set_property("brightness", self.settings["brightness"])
+        source.set_property("contrast", self.settings["contrast"])
+        source.set_property("saturation", self.settings["saturation"])
+        source.set_property("sharpness", self.settings["sharpness"])
 
-        if (
-            self.settings['analogue_gain_mode'] == 1 or
-            self.settings['exposure_time_mode'] == 1
-        ):
+        if self.settings["analogue_gain_mode"] == 1 or self.settings["exposure_time_mode"] == 1:
             # Disable auto exposure if gain or exposure are set to manual
             source.set_property("ae-enable", 0)
 
-            source.set_property("analogue-gain-mode", self.settings['analogue_gain_mode'])
-            source.set_property("analogue-gain", self.settings['analogue_gain'])
+            source.set_property("analogue-gain-mode", self.settings["analogue_gain_mode"])
+            source.set_property("analogue-gain", self.settings["analogue_gain"])
 
-            source.set_property("exposure-time-mode", self.settings['exposure_time_mode'])
-            source.set_property("exposure-time", self.settings['exposure_time'])
+            source.set_property("exposure-time-mode", self.settings["exposure_time_mode"])
+            source.set_property("exposure-time", self.settings["exposure_time"])
 
         # Add source to pipeline FIRST (before requesting pads)
         pipeline.add(source)
 
         # Check if sensor mode control is requested
-        sensor_width = self.settings.get('sensor_mode_width', 0)
-        sensor_height = self.settings.get('sensor_mode_height', 0)
+        sensor_width = self.settings.get("sensor_mode_width", 0)
+        sensor_height = self.settings.get("sensor_mode_height", 0)
 
         if sensor_width > 0 and sensor_height > 0:
             # Force specific sensor mode
@@ -63,13 +61,7 @@ class CameraSourceBuilder(SourceBuilder):
 
         return source
 
-    def _setup_sensor_mode(
-        self,
-        pipeline: Gst.Pipeline,
-        source: Gst.Element,
-        width: int,
-        height: int
-    ) -> None:
+    def _setup_sensor_mode(self, pipeline: Gst.Pipeline, source: Gst.Element, width: int, height: int) -> None:
         """
         Setup dual-stream sensor mode control.
 
@@ -89,9 +81,7 @@ class CameraSourceBuilder(SourceBuilder):
         raw_pad = source.get_request_pad("src_%u")
 
         if not main_pad or not raw_pad:
-            raise RuntimeError(
-                f"Failed to get camera pads (main_pad={main_pad}, raw_pad={raw_pad})"
-            )
+            raise RuntimeError(f"Failed to get camera pads (main_pad={main_pad}, raw_pad={raw_pad})")
 
         queue_camera = Gst.ElementFactory.make("queue", "queue_camera")
         if not queue_camera:

@@ -11,13 +11,14 @@ sequentially:
   Either the client is no longer reaching the server or has not received
   messages from the server for a certain amount of time.
 """
+
 import socket
 import time
 
 from v3xctrl_helper import Address
 
 from .Base import Base
-from .message import Message, Syn, Ack, Command, CommandAck
+from .message import Ack, Command, CommandAck, Message, Syn
 from .MessageHandler import MessageHandler
 from .State import State
 from .UDPTransmitter import UDPTransmitter
@@ -27,12 +28,7 @@ class Client(Base):
     SYN_INTERNAL = 1
 
     def __init__(
-        self,
-        host: str,
-        port: int,
-        bind_port: int | None = None,
-        failsafe_ms: int = 500,
-        bind_address: str = "0.0.0.0"
+        self, host: str, port: int, bind_port: int | None = None, failsafe_ms: int = 500, bind_address: str = "0.0.0.0"
     ) -> None:
         super().__init__()
 

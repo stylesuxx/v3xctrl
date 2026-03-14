@@ -1,4 +1,3 @@
-
 import pygame
 from pygame import Surface
 
@@ -33,10 +32,7 @@ class WidgetRow(BaseWidget):
         return total_w, max_h
 
     def handle_event(self, event: pygame.event.Event) -> bool:
-        for child in self.children:
-            if child.handle_event(event):
-                return True
-        return False
+        return any(child.handle_event(event) for child in self.children)
 
     def _draw(self, surface: Surface) -> None:
         for child in self.children:

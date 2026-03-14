@@ -1,17 +1,16 @@
 import logging
-from typing import Any
 from collections.abc import Callable
+from typing import Any
 
 from pygame import Surface
 
 from v3xctrl_control.message import Command
-
+from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.core.TelemetryContext import TelemetryContext
+from v3xctrl_ui.menu.input import Button
 from v3xctrl_ui.network.Commands import Commands
 from v3xctrl_ui.utils.fonts import LABEL_FONT
 from v3xctrl_ui.utils.i18n import t
-from v3xctrl_ui.menu.input import Button
-from v3xctrl_ui.core.Settings import Settings
-from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 
 from .Tab import Tab
 from .VerticalLayout import VerticalLayout
@@ -27,7 +26,7 @@ class StreamerTab(Tab):
         y_offset: int,
         on_active_toggle: Callable[[bool], None],
         send_command: Callable[[Command, Callable[[bool], None]], None],
-        telemetry_context: TelemetryContext
+        telemetry_context: TelemetryContext,
     ) -> None:
         super().__init__(settings, width, height, padding, y_offset)
 
@@ -38,69 +37,36 @@ class StreamerTab(Tab):
         self.button_width = 200
 
         self.video_stop_button = Button(
-            t("Stop Video"),
-            font=LABEL_FONT,
-            callback=self._on_stop_video,
-            width=self.button_width
+            t("Stop Video"), font=LABEL_FONT, callback=self._on_stop_video, width=self.button_width
         )
         self.video_start_button = Button(
-            t("Start Video"),
-            font=LABEL_FONT,
-            callback=self._on_start_video,
-            width=self.button_width
+            t("Start Video"), font=LABEL_FONT, callback=self._on_start_video, width=self.button_width
         )
 
         self.recording_stop_button = Button(
-            t("Stop Recording"),
-            font=LABEL_FONT,
-            callback=self._on_stop_recording,
-            width=self.button_width
+            t("Stop Recording"), font=LABEL_FONT, callback=self._on_stop_recording, width=self.button_width
         )
         self.recording_start_button = Button(
-            t("Start Recording"),
-            font=LABEL_FONT,
-            callback=self._on_start_recording,
-            width=self.button_width
+            t("Start Recording"), font=LABEL_FONT, callback=self._on_start_recording, width=self.button_width
         )
 
         self.trim_decrease_button = Button(
-            "Trim -",
-            font=LABEL_FONT,
-            callback=self._on_trim_decrease,
-            width=self.button_width
+            "Trim -", font=LABEL_FONT, callback=self._on_trim_decrease, width=self.button_width
         )
         self.trim_increase_button = Button(
-            "Trim +",
-            font=LABEL_FONT,
-            callback=self._on_trim_increase,
-            width=self.button_width
+            "Trim +", font=LABEL_FONT, callback=self._on_trim_increase, width=self.button_width
         )
 
         self.shutdown_button = Button(
-            t("Shutdown"),
-            font=LABEL_FONT,
-            callback=self._on_shutdown,
-            width=self.button_width
+            t("Shutdown"), font=LABEL_FONT, callback=self._on_shutdown, width=self.button_width
         )
-        self.restart_button = Button(
-            t("Restart"),
-            font=LABEL_FONT,
-            callback=self._on_restart,
-            width=self.button_width
-
-        )
+        self.restart_button = Button(t("Restart"), font=LABEL_FONT, callback=self._on_restart, width=self.button_width)
 
         self.shell_stop_button = Button(
-            "Stop Reverse Shell",
-            font=LABEL_FONT,
-            callback=self._on_stop_shell,
-            width=self.button_width
+            "Stop Reverse Shell", font=LABEL_FONT, callback=self._on_stop_shell, width=self.button_width
         )
         self.shell_start_button = Button(
-            "Start Reverse Shell",
-            font=LABEL_FONT,
-            callback=self._on_start_shell,
-            width=self.button_width
+            "Start Reverse Shell", font=LABEL_FONT, callback=self._on_start_shell, width=self.button_width
         )
 
         self.elements_col_1 = [
@@ -206,6 +172,7 @@ class StreamerTab(Tab):
         self.on_active_toggle(True)
         command = Command("restart")
         self.send_command(command, self._on_command_callback)
+
     def _draw_actions_section(self, surface: Surface, y: int) -> int:
         y += self.y_offset + self.padding
         y += self._draw_headline(surface, "actions", y)

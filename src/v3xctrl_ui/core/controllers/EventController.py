@@ -1,16 +1,17 @@
 """Event handling controller for pygame events."""
+
 import logging
-from typing import TYPE_CHECKING
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 import pygame
 
 from v3xctrl_ui.core.controllers.input.GamepadController import GamepadController
-from v3xctrl_ui.core.TelemetryContext import TelemetryContext
-from v3xctrl_ui.menu.Menu import Menu
-from v3xctrl_ui.menu.input.Button import Button
-from v3xctrl_ui.network.Commands import Commands
 from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.core.TelemetryContext import TelemetryContext
+from v3xctrl_ui.menu.input.Button import Button
+from v3xctrl_ui.menu.Menu import Menu
+from v3xctrl_ui.network.Commands import Commands
 
 if TYPE_CHECKING:
     from v3xctrl_ui.core.dataclasses import ApplicationModel
@@ -28,7 +29,7 @@ class EventController:
         telemetry_context: TelemetryContext,
         gamepad_controller: GamepadController | None = None,
         connect_button: Button | None = None,
-        model: 'ApplicationModel | None' = None,
+        model: "ApplicationModel | None" = None,
     ):
         self.on_quit = on_quit
         self.on_toggle_fullscreen = on_toggle_fullscreen
@@ -95,11 +96,7 @@ class EventController:
                         self.send_command(Commands.recording_start(), self._on_command_ack)
 
             # Route events to connect button when on connect screen
-            if (
-                self.connect_button is not None
-                and not self._is_connected()
-                and not self.menu.visible
-            ):
+            if self.connect_button is not None and not self._is_connected() and not self.menu.visible:
                 self.connect_button.handle_event(event)
 
                 if event.type == pygame.MOUSEMOTION:
@@ -133,13 +130,18 @@ class EventController:
             if mapping is None:
                 continue
 
-            if isinstance(mapping, int) and event.type == pygame.JOYBUTTONUP:
-                if event.button == mapping:
-                    return name
+            if (  # noqa: SIM114
+                isinstance(mapping, int) and event.type == pygame.JOYBUTTONUP and event.button == mapping
+            ):
+                return name
 
-            elif isinstance(mapping, dict) and event.type == pygame.JOYHATMOTION:
-                if event.hat == mapping["hat"] and list(event.value) == mapping["value"]:
-                    return name
+            elif (
+                isinstance(mapping, dict)
+                and event.type == pygame.JOYHATMOTION
+                and event.hat == mapping["hat"]
+                and list(event.value) == mapping["value"]
+            ):
+                return name
 
         return None
 

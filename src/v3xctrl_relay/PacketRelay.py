@@ -3,28 +3,24 @@ import socket
 import threading
 import time
 
-logger = logging.getLogger(__name__)
-
+from v3xctrl_control.message import Error, PeerAnnouncement, PeerInfo
 from v3xctrl_helper import Address
-from v3xctrl_control.message import (
-    Error,
-    PeerInfo,
-    PeerAnnouncement
-)
-from v3xctrl_relay.SessionStore import SessionStore
-from v3xctrl_relay.Role import Role
-from v3xctrl_relay.ForwardTarget import ForwardTarget, UdpTarget, TcpTarget
-from v3xctrl_tcp import Transport
 from v3xctrl_relay.custom_types import (
+    PeerEntry,
     PortType,
     Session,
-    PeerEntry,
     SpectatorEntry,
 )
+from v3xctrl_relay.ForwardTarget import ForwardTarget, TcpTarget, UdpTarget
+from v3xctrl_relay.Role import Role
+from v3xctrl_relay.SessionStore import SessionStore
+from v3xctrl_tcp import Transport
+
+logger = logging.getLogger(__name__)
 
 
 class Mapping:
-    __slots__ = ('targets', 'timestamp')
+    __slots__ = ("targets", "timestamp")
 
     def __init__(self, targets: set[Address], timestamp: float) -> None:
         self.targets = targets
@@ -71,13 +67,7 @@ class PacketRelay:
 
     SPECTATOR_TIMEOUT = 30
 
-    def __init__(
-        self,
-        store: SessionStore,
-        sock: socket.socket,
-        address: Address,
-        timeout: float
-    ) -> None:
+    def __init__(self, store: SessionStore, sock: socket.socket, address: Address, timeout: float) -> None:
         self.store = store
         self.sock = sock
         self.ip = address[0]
@@ -111,17 +101,15 @@ class PacketRelay:
 
         return UdpTarget(self.sock, addr)
 
-    def register_peer(
-        self,
-        msg: PeerAnnouncement,
-        addr: Address
-    ) -> None:
+    def register_peer(self, msg: PeerAnnouncement, addr: Address) -> None:
         """Register a peer and automatically update relay mappings when session is ready."""
         try:
             role = Role(msg.get_role())
             port_type = PortType(msg.get_port_type())
         except ValueError:
-            logger.warning(f"Invalid announcement from {addr}: role='{msg.get_role()}', port_type='{msg.get_port_type()}'")
+            logger.warning(
+                f"Invalid announcement from {addr}: role='{msg.get_role()}', port_type='{msg.get_port_type()}'"
+            )
             return
 
         sid = msg.get_id()
@@ -185,7 +173,9 @@ class PacketRelay:
             if is_new_peer:
                 logger.info(f"{sid}: Registered {role.name}:{port_type.name} ({new_transport.name}) from {addr}")
             elif old_transport and old_transport != new_transport:
-                logger.info(f"{sid}: {role.name}:{port_type.name} switched {old_transport.name} -> {new_transport.name}")
+                logger.info(
+                    f"{sid}: {role.name}:{port_type.name} switched {old_transport.name} -> {new_transport.name}"
+                )
 
             if session.is_ready():
                 self._update_mappings(session)
@@ -224,11 +214,7 @@ class PacketRelay:
                 logger.info(f"{sid}: Removed spectator at {addr}")
                 return
 
-    def forward_packet(
-        self,
-        data: bytes,
-        addr: Address
-    ) -> list[TcpTarget] | None:
+    def forward_packet(self, data: bytes, addr: Address) -> list[TcpTarget] | None:
         """
         Forward a packet to its mapped targets.
 
@@ -272,8 +258,7 @@ class PacketRelay:
         """Remove TCP targets that are dead and have no active mapping."""
         with self.mapping_lock:
             dead = [
-                addr for addr, target in self.tcp_targets.items()
-                if not target.is_alive() and addr not in self.mappings
+                addr for addr, target in self.tcp_targets.items() if not target.is_alive() and addr not in self.mappings
             ]
             for addr in dead:
                 del self.tcp_targets[addr]
@@ -292,8 +277,7 @@ class PacketRelay:
 
                 with self.mapping_lock:
                     all_expired = all(
-                        (mapping := self.mappings.get(peer.addr)) is None
-                        or (now - mapping.timestamp) >= self.timeout
+                        (mapping := self.mappings.get(peer.addr)) is None or (now - mapping.timestamp) >= self.timeout
                         for peer in peers_by_port.values()
                     )
 
@@ -315,7 +299,8 @@ class PacketRelay:
     def _cleanup_inactive_spectators(self, now: float) -> None:
         """Remove spectators that stopped sending heartbeats and have no active TCP. Caller must hold session_lock."""
         expired_session_ids = {
-            sid for sid, session in self.sessions.items()
+            sid
+            for sid, session in self.sessions.items()
             if all(len(peers_by_port) == 0 for peers_by_port in session.roles.values())
         }
 
@@ -343,7 +328,8 @@ class PacketRelay:
     def _cleanup_empty_sessions(self) -> None:
         """Remove sessions where all roles are empty, cleaning up their spectators. Caller must hold session_lock."""
         expired_session_ids = [
-            sid for sid, session in self.sessions.items()
+            sid
+            for sid, session in self.sessions.items()
             if all(len(peers_by_port) == 0 for peers_by_port in session.roles.values())
         ]
 
@@ -399,10 +385,7 @@ class PacketRelay:
         streamer_peers = session.roles.get(Role.STREAMER, {})
         viewer_peers = session.roles.get(Role.VIEWER, {})
 
-        if (
-            len(streamer_peers) != len(PortType) or
-            len(viewer_peers) != len(PortType)
-        ):
+        if len(streamer_peers) != len(PortType) or len(viewer_peers) != len(PortType):
             return
 
         now = time.time()
@@ -410,10 +393,7 @@ class PacketRelay:
         session_addresses: set[Address] = set()
 
         for port_type in PortType:
-            if (
-                port_type in streamer_peers and
-                port_type in viewer_peers
-            ):
+            if port_type in streamer_peers and port_type in viewer_peers:
                 streamer_addr = streamer_peers[port_type].addr
                 viewer_addr = viewer_peers[port_type].addr
 

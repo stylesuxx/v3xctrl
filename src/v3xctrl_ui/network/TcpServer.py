@@ -93,12 +93,10 @@ class TcpServer:
                 # Accept a connection (with timeout so we can check stop_event)
                 try:
                     client_sock, addr = tcp_sock.accept()
-                except socket.timeout:
+                except TimeoutError:
                     continue
 
-                client_sock.setsockopt(
-                    socket.IPPROTO_TCP, socket.TCP_NODELAY, 1
-                )
+                client_sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                 configure_keepalive(client_sock)
                 configure_send_timeout(client_sock, 200)
                 logger.info(f"TCP client connected on port {port} from {addr}")
@@ -114,9 +112,7 @@ class TcpServer:
                 else:
                     self._video_udp_port = ephemeral_port
 
-                self._handle_connection(
-                    client_sock, udp_sock, port, bidirectional
-                )
+                self._handle_connection(client_sock, udp_sock, port, bidirectional)
 
                 udp_sock.close()
                 logger.info(f"TCP client disconnected on port {port}")

@@ -50,7 +50,6 @@ class MockReceiver(Receiver):
 
 
 class TestReceiver(unittest.TestCase):
-
     def test_cannot_instantiate_abstract_class(self):
         """Abstract class should not be instantiable."""
         with self.assertRaises(TypeError):
@@ -72,11 +71,11 @@ class TestReceiver(unittest.TestCase):
         self.assertEqual(receiver.log_interval, 10.0)
         self.assertEqual(len(receiver.render_history), 0)
         self.assertEqual(receiver.render_history.maxlen, 100)
-        self.assertTrue(hasattr(receiver.running, 'is_set'))
-        self.assertTrue(hasattr(receiver.running, 'set'))
-        self.assertTrue(hasattr(receiver.running, 'clear'))
-        self.assertTrue(hasattr(receiver.frame_lock, 'acquire'))
-        self.assertTrue(hasattr(receiver.frame_lock, 'release'))
+        self.assertTrue(hasattr(receiver.running, "is_set"))
+        self.assertTrue(hasattr(receiver.running, "set"))
+        self.assertTrue(hasattr(receiver.running, "clear"))
+        self.assertTrue(hasattr(receiver.frame_lock, "acquire"))
+        self.assertTrue(hasattr(receiver.frame_lock, "release"))
         self.assertFalse(receiver.running.is_set())
 
     def test_update_frame_thread_safety(self):
@@ -114,7 +113,7 @@ class TestReceiver(unittest.TestCase):
         """Test history deque respects maxlen of 100."""
         receiver = MockReceiver(5600, Mock())
 
-        for i in range(150):
+        for _i in range(150):
             receiver._update_frame(np.zeros((10, 10, 3), dtype=np.uint8))
             receiver.get_frame()
 
@@ -138,7 +137,7 @@ class TestReceiver(unittest.TestCase):
 
     def test_setup_failure_handling(self):
         """Test setup failure is handled gracefully."""
-        with patch('logging.exception') as mock_log:
+        with patch("logging.exception") as mock_log:
             receiver = MockReceiver(5600, Mock(), setup_fail=True)
 
             receiver.start()
@@ -152,7 +151,7 @@ class TestReceiver(unittest.TestCase):
 
     def test_main_loop_failure_handling(self):
         """Test main loop failure is handled gracefully."""
-        with patch('logging.exception') as mock_log:
+        with patch("logging.exception") as mock_log:
             receiver = MockReceiver(5600, Mock(), main_loop_fail=True)
 
             receiver.start()
@@ -166,7 +165,7 @@ class TestReceiver(unittest.TestCase):
 
     def test_cleanup_failure_in_run(self):
         """Test cleanup failure in run() finally block is handled."""
-        with patch('logging.exception') as mock_log:
+        with patch("logging.exception") as mock_log:
             receiver = MockReceiver(5600, Mock(), cleanup_fail=True)
 
             receiver.start()
@@ -177,7 +176,7 @@ class TestReceiver(unittest.TestCase):
 
     def test_cleanup_failure_in_stop(self):
         """Test cleanup failure in stop() is handled."""
-        with patch('logging.exception') as mock_log:
+        with patch("logging.exception") as mock_log:
             receiver = MockReceiver(5600, Mock(), cleanup_fail=True)
 
             receiver.start()
@@ -197,6 +196,7 @@ class TestReceiver(unittest.TestCase):
 
     def test_stop_timeout_handling(self):
         """Test stop() respects timeout when thread doesn't join."""
+
         class SlowReceiver(MockReceiver):
             def _main_loop(self):
                 time.sleep(10)
@@ -214,7 +214,7 @@ class TestReceiver(unittest.TestCase):
 
     def test_log_stats_no_packets(self):
         """Test logging when no packets have been processed."""
-        with patch('logging.info') as mock_log:
+        with patch("logging.info") as mock_log:
             receiver = MockReceiver(5600, Mock())
             receiver.packet_count = 0
             receiver.last_log_time = time.monotonic() - 11.0
@@ -226,7 +226,7 @@ class TestReceiver(unittest.TestCase):
 
     def test_log_stats_with_packets(self):
         """Test statistics logging with packet data."""
-        with patch('logging.info') as mock_log:
+        with patch("logging.info") as mock_log:
             receiver = MockReceiver(5600, Mock())
             receiver.log_interval = 0.01
             receiver.packet_count = 10
@@ -249,7 +249,7 @@ class TestReceiver(unittest.TestCase):
 
     def test_log_stats_interval_not_reached(self):
         """Test no logging when interval hasn't passed."""
-        with patch('logging.info') as mock_log:
+        with patch("logging.info") as mock_log:
             receiver = MockReceiver(5600, Mock())
             receiver.packet_count = 10
             receiver.last_log_time = time.monotonic() - 5.0
@@ -260,7 +260,7 @@ class TestReceiver(unittest.TestCase):
 
     def test_log_stats_calculates_correct_drop_rate(self):
         """Test drop rate calculation includes both empty decodes and dropped old frames."""
-        with patch('logging.info') as mock_log:
+        with patch("logging.info") as mock_log:
             receiver = MockReceiver(5600, Mock())
             receiver.log_interval = 0.01
             receiver.packet_count = 100
@@ -276,7 +276,7 @@ class TestReceiver(unittest.TestCase):
 
     def test_log_stats_avg_fps_calculation(self):
         """Test average FPS calculation."""
-        with patch('logging.info') as mock_log:
+        with patch("logging.info") as mock_log:
             receiver = MockReceiver(5600, Mock())
             receiver.log_interval = 2.0
             receiver.packet_count = 60
@@ -290,7 +290,7 @@ class TestReceiver(unittest.TestCase):
 
     def test_log_stats_first_time_uses_interval(self):
         """Test first logging uses log_interval for time calculation."""
-        with patch('logging.info') as mock_log:
+        with patch("logging.info") as mock_log:
             receiver = MockReceiver(5600, Mock())
             receiver.log_interval = 5.0
             receiver.packet_count = 50
@@ -306,15 +306,17 @@ class TestReceiver(unittest.TestCase):
         """Test Receiver properly inherits from threading.Thread."""
         receiver = MockReceiver(5600, Mock())
         self.assertIsInstance(receiver, threading.Thread)
-        self.assertTrue(hasattr(receiver, 'start'))
-        self.assertTrue(hasattr(receiver, 'join'))
-        self.assertTrue(hasattr(receiver, 'is_alive'))
+        self.assertTrue(hasattr(receiver, "start"))
+        self.assertTrue(hasattr(receiver, "join"))
+        self.assertTrue(hasattr(receiver, "is_alive"))
 
     def test_abstract_methods_enforced(self):
         """Test that abstract methods must be implemented."""
+
         class IncompleteReceiver(Receiver):
             def _setup(self):
                 pass
+
             # Missing _main_loop and _cleanup
 
         with self.assertRaises(TypeError):

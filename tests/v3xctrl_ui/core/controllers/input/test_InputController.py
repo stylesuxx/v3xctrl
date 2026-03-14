@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, call, patch
 
 from v3xctrl_ui.core.controllers.input.InputController import InputController
 
@@ -14,13 +14,8 @@ class TestInputController(unittest.TestCase):
             "calibrations": {"gamepad1": {"deadzone": 0.1}},
             "input": {"guid": "gamepad1"},
             "controls": {
-                "keyboard": {
-                    "throttle_up": "w",
-                    "throttle_down": "s",
-                    "steering_right": "d",
-                    "steering_left": "a"
-                }
-            }
+                "keyboard": {"throttle_up": "w", "throttle_down": "s", "steering_right": "d", "steering_left": "a"}
+            },
         }.get(key, default)
 
     def _setup_mocks(self, mock_pygame, mock_keyaxis_cls, mock_gamepad_cls):
@@ -34,10 +29,11 @@ class TestInputController(unittest.TestCase):
 
     def test_initialization_creates_components(self, mock_pygame, mock_keyaxis_cls, mock_gamepad_cls):
         mock_gamepad, mock_throttle_handler, mock_steering_handler = self._setup_mocks(
-            mock_pygame, mock_keyaxis_cls, mock_gamepad_cls)
+            mock_pygame, mock_keyaxis_cls, mock_gamepad_cls
+        )
         mock_keyaxis_cls.side_effect = [mock_throttle_handler, mock_steering_handler]
 
-        input_manager = InputController(self.settings)
+        _input_manager = InputController(self.settings)
 
         mock_gamepad_cls.assert_called_once()
         mock_gamepad.set_calibration.assert_called_with("gamepad1", {"deadzone": 0.1})
@@ -59,13 +55,13 @@ class TestInputController(unittest.TestCase):
         self.assertEqual(steering_call[1]["max_val"], 1.0)
 
     def test_initialization_no_keyboard_controls(self, mock_pygame, mock_keyaxis_cls, mock_gamepad_cls):
-        mock_gamepad, _, _ = self._setup_mocks(mock_pygame, mock_keyaxis_cls, mock_gamepad_cls)
+        _mock_gamepad, _, _ = self._setup_mocks(mock_pygame, mock_keyaxis_cls, mock_gamepad_cls)
 
         no_controls_settings = MagicMock()
         no_controls_settings.get.side_effect = lambda key, default=None: {
             "calibrations": {},
             "input": {},
-            "controls": {}
+            "controls": {},
         }.get(key, default)
 
         input_manager = InputController(no_controls_settings)
@@ -75,7 +71,8 @@ class TestInputController(unittest.TestCase):
 
     def test_read_inputs_keyboard_only(self, mock_pygame, mock_keyaxis_cls, mock_gamepad_cls):
         mock_gamepad, mock_throttle_handler, mock_steering_handler = self._setup_mocks(
-            mock_pygame, mock_keyaxis_cls, mock_gamepad_cls)
+            mock_pygame, mock_keyaxis_cls, mock_gamepad_cls
+        )
         mock_keyaxis_cls.side_effect = [mock_throttle_handler, mock_steering_handler]
         mock_throttle_handler.update.return_value = 0.8
         mock_steering_handler.update.return_value = -0.5
@@ -97,16 +94,13 @@ class TestInputController(unittest.TestCase):
 
     def test_read_inputs_gamepad_overrides_keyboard(self, mock_pygame, mock_keyaxis_cls, mock_gamepad_cls):
         mock_gamepad, mock_throttle_handler, mock_steering_handler = self._setup_mocks(
-            mock_pygame, mock_keyaxis_cls, mock_gamepad_cls)
+            mock_pygame, mock_keyaxis_cls, mock_gamepad_cls
+        )
         mock_keyaxis_cls.side_effect = [mock_throttle_handler, mock_steering_handler]
         mock_throttle_handler.update.return_value = 0.3
         mock_steering_handler.update.return_value = 0.2
 
-        gamepad_inputs = {
-            "steering": 0.9,
-            "throttle": 0.7,
-            "brake": 0.1
-        }
+        gamepad_inputs = {"steering": 0.9, "throttle": 0.7, "brake": 0.1}
         mock_gamepad.read_inputs.return_value = gamepad_inputs
 
         input_manager = InputController(self.settings)
@@ -123,7 +117,7 @@ class TestInputController(unittest.TestCase):
         no_controls_settings.get.side_effect = lambda key, default=None: {
             "calibrations": {},
             "input": {},
-            "controls": {}
+            "controls": {},
         }.get(key, default)
 
         mock_gamepad.read_inputs.return_value = None
@@ -142,43 +136,34 @@ class TestInputController(unittest.TestCase):
 
         new_settings = MagicMock()
         new_settings.get.side_effect = lambda key, default=None: {
-            "calibrations": {
-                "gamepad1": {"deadzone": 0.2},
-                "gamepad2": {"deadzone": 0.15}
-            },
+            "calibrations": {"gamepad1": {"deadzone": 0.2}, "gamepad2": {"deadzone": 0.15}},
             "input": {"guid": "gamepad2"},
             "controls": {
                 "keyboard": {
                     "throttle_up": "up",
                     "throttle_down": "down",
                     "steering_right": "right",
-                    "steering_left": "left"
+                    "steering_left": "left",
                 }
-            }
+            },
         }.get(key, default)
 
         input_manager.update_settings(new_settings)
 
-        expected_calls = [
-            call("gamepad1", {"deadzone": 0.2}),
-            call("gamepad2", {"deadzone": 0.15})
-        ]
+        expected_calls = [call("gamepad1", {"deadzone": 0.2}), call("gamepad2", {"deadzone": 0.15})]
         mock_gamepad.set_calibration.assert_has_calls(expected_calls, any_order=True)
         mock_gamepad.set_active.assert_called_with("gamepad2")
         self.assertTrue(mock_keyaxis_cls.called)
 
     def test_update_settings_recreates_key_handlers(self, mock_pygame, mock_keyaxis_cls, mock_gamepad_cls):
-        mock_gamepad, _, _ = self._setup_mocks(mock_pygame, mock_keyaxis_cls, mock_gamepad_cls)
+        _mock_gamepad, _, _ = self._setup_mocks(mock_pygame, mock_keyaxis_cls, mock_gamepad_cls)
 
         initial_throttle = MagicMock()
         initial_steering = MagicMock()
         new_throttle = MagicMock()
         new_steering = MagicMock()
 
-        mock_keyaxis_cls.side_effect = [
-            initial_throttle, initial_steering,
-            new_throttle, new_steering
-        ]
+        mock_keyaxis_cls.side_effect = [initial_throttle, initial_steering, new_throttle, new_steering]
 
         input_manager = InputController(self.settings)
 
@@ -194,9 +179,9 @@ class TestInputController(unittest.TestCase):
                     "throttle_up": "space",
                     "throttle_down": "shift",
                     "steering_right": "l",
-                    "steering_left": "j"
+                    "steering_left": "j",
                 }
-            }
+            },
         }.get(key, default)
 
         input_manager.update_settings(new_settings)
@@ -224,7 +209,9 @@ class TestInputController(unittest.TestCase):
         no_guid_settings.get.side_effect = lambda key, default=None: {
             "calibrations": {"gamepad1": {"deadzone": 0.1}},
             "input": {},
-            "controls": {"keyboard": {"throttle_up": "w", "throttle_down": "s", "steering_right": "d", "steering_left": "a"}}
+            "controls": {
+                "keyboard": {"throttle_up": "w", "throttle_down": "s", "steering_right": "d", "steering_left": "a"}
+            },
         }.get(key, default)
 
         input_manager.update_settings(no_guid_settings)
@@ -246,14 +233,11 @@ class TestInputController(unittest.TestCase):
 
     def test_gamepad_inputs_with_zero_brake(self, mock_pygame, mock_keyaxis_cls, mock_gamepad_cls):
         mock_gamepad, mock_throttle_handler, mock_steering_handler = self._setup_mocks(
-            mock_pygame, mock_keyaxis_cls, mock_gamepad_cls)
+            mock_pygame, mock_keyaxis_cls, mock_gamepad_cls
+        )
         mock_keyaxis_cls.side_effect = [mock_throttle_handler, mock_steering_handler]
 
-        gamepad_inputs = {
-            "steering": 0.5,
-            "throttle": 0.8,
-            "brake": 0.0
-        }
+        gamepad_inputs = {"steering": 0.5, "throttle": 0.8, "brake": 0.0}
         mock_gamepad.read_inputs.return_value = gamepad_inputs
 
         input_manager = InputController(self.settings)
@@ -265,14 +249,11 @@ class TestInputController(unittest.TestCase):
 
     def test_gamepad_inputs_with_full_brake(self, mock_pygame, mock_keyaxis_cls, mock_gamepad_cls):
         mock_gamepad, mock_throttle_handler, mock_steering_handler = self._setup_mocks(
-            mock_pygame, mock_keyaxis_cls, mock_gamepad_cls)
+            mock_pygame, mock_keyaxis_cls, mock_gamepad_cls
+        )
         mock_keyaxis_cls.side_effect = [mock_throttle_handler, mock_steering_handler]
 
-        gamepad_inputs = {
-            "steering": -0.3,
-            "throttle": 0.6,
-            "brake": 1.0
-        }
+        gamepad_inputs = {"steering": -0.3, "throttle": 0.6, "brake": 1.0}
         mock_gamepad.read_inputs.return_value = gamepad_inputs
 
         input_manager = InputController(self.settings)
@@ -283,5 +264,5 @@ class TestInputController(unittest.TestCase):
         self.assertEqual(steering, -0.3)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

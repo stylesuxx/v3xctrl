@@ -8,21 +8,34 @@ on:
     paths:
       - 'src/**'
       - 'tests/**'
+      - 'ruff.toml'
   pull_request:
     paths:
       - 'src/**'
       - 'tests/**'
+      - 'ruff.toml'
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - run: pip install ruff==0.15.6
+      - run: ruff check src/ tests/ stats-server/
+      - run: ruff format --check src/ tests/ stats-server/
+
   test:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11.11'
 

@@ -1,10 +1,12 @@
 """Tests for BatteryIconWidget."""
+
 import os
 import unittest
+
 import pygame
 
 # Set SDL to use dummy video driver before importing pygame
-os.environ['SDL_VIDEODRIVER'] = 'dummy'
+os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 from v3xctrl_ui.osd.widgets.BatteryIconWidget import BatteryIconWidget
 
@@ -72,5 +74,5 @@ class TestBatteryIconWidget(unittest.TestCase):
         # Renders state 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

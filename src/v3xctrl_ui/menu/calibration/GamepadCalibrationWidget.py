@@ -1,26 +1,26 @@
+from collections.abc import Callable
+from typing import Any
+
 import pygame
 from pygame import Surface
 from pygame.freetype import Font
-from typing import Any
-from collections.abc import Callable
 
-from v3xctrl_ui.utils.colors import WHITE, GREY, TRANSPARENT_GREY
-from v3xctrl_ui.utils.fonts import MONO_FONT
 from v3xctrl_ui.core.controllers.input.GamepadController import GamepadController
-
 from v3xctrl_ui.menu.calibration.GamepadCalibrator import (
-  GamepadCalibrator,
-  CalibratorState,
+    CalibratorState,
+    GamepadCalibrator,
 )
 from v3xctrl_ui.menu.DialogBox import DialogBox
 from v3xctrl_ui.menu.input import (
-  BaseWidget,
-  Button,
-  ButtonMappingWidget,
-  Checkbox,
-  NumberInput,
-  Select,
+    BaseWidget,
+    Button,
+    ButtonMappingWidget,
+    Checkbox,
+    NumberInput,
+    Select,
 )
+from v3xctrl_ui.utils.colors import GREY, TRANSPARENT_GREY, WHITE
+from v3xctrl_ui.utils.fonts import MONO_FONT
 
 
 class GamepadCalibrationWidget(BaseWidget):
@@ -54,11 +54,7 @@ class GamepadCalibrationWidget(BaseWidget):
         self.calibrator: GamepadCalibrator | None = None
         self.invert_axes: dict[str, bool] = {k: False for k in ["steering", "throttle", "brake"]}
         self.deadband_values: dict[str, int] = {k: 0 for k in ["steering", "throttle", "brake"]}
-        self.button_mappings: dict[str, Any] = {
-            "trim_increase": None,
-            "trim_decrease": None,
-            "rec_toggle": None
-        }
+        self.button_mappings: dict[str, Any] = {"trim_increase": None, "trim_decrease": None, "rec_toggle": None}
 
         self.controller_select: Select
         self.calibrate_button: Button
@@ -209,26 +205,16 @@ class GamepadCalibrationWidget(BaseWidget):
 
     def _create_ui(self, font: Font) -> None:
         self.controller_select = Select(
-            label="Controller",
-            label_width=-10,
-            length=400,
-            font=font,
-            callback=self.set_selected_gamepad
+            label="Controller", label_width=-10, length=400, font=font, callback=self.set_selected_gamepad
         )
 
-        self.calibrate_button = Button(
-            "Start Calibration",
-            font,
-            self._start_calibration
-        )
+        self.calibrate_button = Button("Start Calibration", font, self._start_calibration)
 
         self.invert_checkboxes = {
             name: Checkbox(
-                label="Invert",
-                font=font,
-                checked=False,
-                on_change=lambda state, k=name: self.toggle_invert(k, state)
-            ) for name in ["steering", "throttle", "brake"]
+                label="Invert", font=font, checked=False, on_change=lambda state, k=name: self.toggle_invert(k, state)
+            )
+            for name in ["steering", "throttle", "brake"]
         }
 
         self.deadband_inputs = {
@@ -240,8 +226,9 @@ class GamepadCalibrationWidget(BaseWidget):
                 max_val=100,
                 font=font,
                 mono_font=MONO_FONT,
-                on_change=lambda value, k=name: self.update_deadband(k, value)
-            ) for name in ["steering", "throttle", "brake"]
+                on_change=lambda value, k=name: self.update_deadband(k, value),
+            )
+            for name in ["steering", "throttle", "brake"]
         }
 
         self.button_mapping_widgets = {
@@ -250,28 +237,25 @@ class GamepadCalibrationWidget(BaseWidget):
                 button_number=None,
                 font=font,
                 on_button_change=lambda button: self.update_button_mapping("trim_increase", button),
-                on_remap_toggle=self.toggle_button_remap
+                on_remap_toggle=self.toggle_button_remap,
             ),
             "trim_decrease": ButtonMappingWidget(
                 control_name="trim_decrease",
                 button_number=None,
                 font=font,
                 on_button_change=lambda button: self.update_button_mapping("trim_decrease", button),
-                on_remap_toggle=self.toggle_button_remap
+                on_remap_toggle=self.toggle_button_remap,
             ),
             "rec_toggle": ButtonMappingWidget(
                 control_name="rec_toggle",
                 button_number=None,
                 font=font,
                 on_button_change=lambda button: self.update_button_mapping("rec_toggle", button),
-                on_remap_toggle=self.toggle_button_remap
-            )
+                on_remap_toggle=self.toggle_button_remap,
+            ),
         }
 
-    def _on_gamepads_changed(
-        self,
-        gamepads: dict[str, pygame.joystick.Joystick]
-    ) -> None:
+    def _on_gamepads_changed(self, gamepads: dict[str, pygame.joystick.Joystick]) -> None:
         self.gamepads = gamepads
 
         if not self.selected_guid:
@@ -321,10 +305,10 @@ class GamepadCalibrationWidget(BaseWidget):
             on_start=lambda: (
                 self.calibrate_button.disable(),
                 self.controller_select.disable(),
-                self.on_calibration_start()
+                self.on_calibration_start(),
             ),
             on_done=on_done,
-            dialog=self.dialog
+            dialog=self.dialog,
         )
         self.calibrator.start()
 
@@ -402,9 +386,7 @@ class GamepadCalibrationWidget(BaseWidget):
             return
 
         y_base = self.y + self.INSTRUCTION_Y_OFFSET
-        for i, (label, key) in enumerate([("Steering", "steering"),
-                                          ("Throttle", "throttle"),
-                                          ("Brake", "brake")]):
+        for i, (label, key) in enumerate([("Steering", "steering"), ("Throttle", "throttle"), ("Brake", "brake")]):
             value = inputs.get(key, 0.0)
             config = settings.get(key, {})
 
@@ -419,10 +401,15 @@ class GamepadCalibrationWidget(BaseWidget):
             deadband_pct = config.get("deadband", 0) / 100.0
 
             self._draw_bar(
-                surface, label, value,
-                min_val, max_val, center_val,
+                surface,
+                label,
+                value,
+                min_val,
+                max_val,
+                center_val,
                 deadband_pct=deadband_pct,
-                x=self.x + self.BARS_X_OFFSSET, y=y_base + i * self.BAR_SPACING
+                x=self.x + self.BARS_X_OFFSSET,
+                y=y_base + i * self.BAR_SPACING,
             )
 
             # Calculate y position for the row - align to bar center
@@ -469,7 +456,7 @@ class GamepadCalibrationWidget(BaseWidget):
         x: int = 0,
         y: int = 0,
         width: int = BAR_WIDTH,
-        height: int = BAR_HEIGHT
+        height: int = BAR_HEIGHT,
     ) -> None:
         label_surf, label_rect = self.font.render(label, WHITE)
         label_rect.topleft = (x - 10 - label_rect.width, y + (height - label_rect.height) // 2)

@@ -1,5 +1,6 @@
 # Required before importing pygame, otherwise screen might flicker during tests
 import os
+
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 import unittest
@@ -38,51 +39,42 @@ class TestButton(unittest.TestCase):
 
     def test_cached_surfaces_created(self):
         """Test that all button states are pre-rendered and cached"""
-        expected_states = {'normal', 'hover', 'active', 'disabled'}
+        expected_states = {"normal", "hover", "active", "disabled"}
         self.assertEqual(set(self.button.cached_surfaces.keys()), expected_states)
 
-        for state, surface in self.button.cached_surfaces.items():
+        for _state, surface in self.button.cached_surfaces.items():
             self.assertIsInstance(surface, pygame.Surface)
             self.assertEqual(surface.get_size(), (100, 40))
 
     def test_initial_state(self):
         """Test that button starts in normal state"""
-        self.assertEqual(self.button._current_state, 'normal')
+        self.assertEqual(self.button._current_state, "normal")
 
     def test_hover_state_true(self):
-        event = pygame.event.Event(pygame.MOUSEMOTION, {'pos': (75, 70)})
+        event = pygame.event.Event(pygame.MOUSEMOTION, {"pos": (75, 70)})
         self.assertTrue(self.button.handle_event(event))
         self.assertTrue(self.button.hovered)
-        self.assertEqual(self.button._current_state, 'hover')
+        self.assertEqual(self.button._current_state, "hover")
 
     def test_hover_state_false(self):
-        event = pygame.event.Event(pygame.MOUSEMOTION, {'pos': (10, 10)})
+        event = pygame.event.Event(pygame.MOUSEMOTION, {"pos": (10, 10)})
         self.assertFalse(self.button.handle_event(event))
         self.assertFalse(self.button.hovered)
-        self.assertEqual(self.button._current_state, 'normal')
+        self.assertEqual(self.button._current_state, "normal")
 
     def test_focused_on_click_inside(self):
-        event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-            'pos': (75, 70),
-            'button': 1
-        })
+        event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": (75, 70), "button": 1})
         self.assertTrue(self.button.handle_event(event))
         self.assertTrue(self.button.focused)
-        self.assertEqual(self.button._current_state, 'active')
+        self.assertEqual(self.button._current_state, "active")
 
     def test_no_focused_on_click_outside(self):
-        event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-            'pos': (10, 10),
-            'button': 1
-        })
+        event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": (10, 10), "button": 1})
         self.assertFalse(self.button.handle_event(event))
         self.assertFalse(self.button.focused)
 
     def test_callback_on_release_inside(self):
-        position = {
-            'pos': (75, 70),
-            'button': 1
-        }
+        position = {"pos": (75, 70), "button": 1}
         down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, position)
         up_event = pygame.event.Event(pygame.MOUSEBUTTONUP, position)
 
@@ -93,14 +85,8 @@ class TestButton(unittest.TestCase):
         self.assertFalse(self.button.focused)
 
     def test_no_callback_on_release_outside(self):
-        down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-            'pos': (75, 70),
-            'button': 1
-        })
-        up_event = pygame.event.Event(pygame.MOUSEBUTTONUP, {
-            'pos': (10, 10),
-            'button': 1
-        })
+        down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": (75, 70), "button": 1})
+        up_event = pygame.event.Event(pygame.MOUSEBUTTONUP, {"pos": (10, 10), "button": 1})
 
         self.assertTrue(self.button.handle_event(down_event))
         self.assertTrue(self.button.handle_event(up_event))
@@ -109,20 +95,14 @@ class TestButton(unittest.TestCase):
         self.assertFalse(self.button.focused)
 
     def test_no_callback_on_release_when_not_focused(self):
-        up_event = pygame.event.Event(pygame.MOUSEBUTTONUP, {
-            'pos': (75, 70),
-            'button': 1
-        })
+        up_event = pygame.event.Event(pygame.MOUSEBUTTONUP, {"pos": (75, 70), "button": 1})
         self.assertFalse(self.button.handle_event(up_event))
 
         self.callback.assert_not_called()
         self.assertFalse(self.button.focused)
 
     def test_right_click_ignored(self):
-        down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-            'pos': (75, 70),
-            'button': 3
-        })
+        down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": (75, 70), "button": 3})
         self.assertFalse(self.button.handle_event(down_event))
 
         self.assertFalse(self.button.focused)
@@ -130,14 +110,8 @@ class TestButton(unittest.TestCase):
     def test_disabled_button_ignores_click_events(self):
         self.button.disable()
 
-        down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-            'pos': (75, 70),
-            'button': 1
-        })
-        up_event = pygame.event.Event(pygame.MOUSEBUTTONUP, {
-            'pos': (75, 70),
-            'button': 1
-        })
+        down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": (75, 70), "button": 1})
+        up_event = pygame.event.Event(pygame.MOUSEBUTTONUP, {"pos": (75, 70), "button": 1})
 
         self.assertFalse(self.button.handle_event(down_event))
         self.assertFalse(self.button.handle_event(up_event))
@@ -148,11 +122,11 @@ class TestButton(unittest.TestCase):
     def test_disabled_button_still_tracks_hover(self):
         self.button.disable()
 
-        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {'pos': (75, 70)})
+        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {"pos": (75, 70)})
         self.assertTrue(self.button.handle_event(motion_event))
         self.assertTrue(self.button.hovered)
 
-        motion_outside = pygame.event.Event(pygame.MOUSEMOTION, {'pos': (10, 10)})
+        motion_outside = pygame.event.Event(pygame.MOUSEMOTION, {"pos": (10, 10)})
         self.assertFalse(self.button.handle_event(motion_outside))
         self.assertFalse(self.button.hovered)
 
@@ -166,7 +140,7 @@ class TestButton(unittest.TestCase):
         self.assertFalse(self.button.disabled)
 
     def test_label_rendering_on_disable_enable(self):
-        with patch.object(self.button, '_render_label') as mock_render:
+        with patch.object(self.button, "_render_label") as mock_render:
             self.button.disable()
             mock_render.assert_called_with(Button.FONT_COLOR_DISABLED)
 
@@ -175,23 +149,23 @@ class TestButton(unittest.TestCase):
 
     def test_disable_updates_state(self):
         """Test that disable() updates the visual state to 'disabled'"""
-        self.assertEqual(self.button._current_state, 'normal')
+        self.assertEqual(self.button._current_state, "normal")
 
         self.button.disable()
-        self.assertEqual(self.button._current_state, 'disabled')
+        self.assertEqual(self.button._current_state, "disabled")
         self.assertTrue(self.button.disabled)
 
     def test_enable_updates_state(self):
         """Test that enable() updates the visual state from 'disabled'"""
         self.button.disable()
-        self.assertEqual(self.button._current_state, 'disabled')
+        self.assertEqual(self.button._current_state, "disabled")
 
         self.button.enable()
-        self.assertEqual(self.button._current_state, 'normal')
+        self.assertEqual(self.button._current_state, "normal")
         self.assertFalse(self.button.disabled)
 
     def test_other_event_types_ignored(self):
-        event = pygame.event.Event(pygame.KEYDOWN, {'key': pygame.K_SPACE})
+        event = pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_SPACE})
         self.assertFalse(self.button.handle_event(event))
 
     def test_draw_does_not_crash(self):
@@ -234,10 +208,10 @@ class TestButton(unittest.TestCase):
         surface = pygame.Surface((200, 100))
 
         test_states = [
-            (False, False, False, 'normal'),
-            (True, False, False, 'hover'),
-            (True, True, False, 'active'),
-            (False, False, True, 'disabled'),
+            (False, False, False, "normal"),
+            (True, False, False, "hover"),
+            (True, True, False, "active"),
+            (False, False, True, "disabled"),
         ]
 
         for hovered, focused, disabled, expected_state in test_states:
@@ -261,28 +235,28 @@ class TestButton(unittest.TestCase):
         self.button.focused = False
         self.button.disabled = False
         self.button._update_state()
-        self.assertEqual(self.button._current_state, 'normal')
+        self.assertEqual(self.button._current_state, "normal")
 
         # Hover state
         self.button.hovered = True
         self.button.focused = False
         self.button.disabled = False
         self.button._update_state()
-        self.assertEqual(self.button._current_state, 'hover')
+        self.assertEqual(self.button._current_state, "hover")
 
         # Active state (takes precedence over hover)
         self.button.hovered = True
         self.button.focused = True
         self.button.disabled = False
         self.button._update_state()
-        self.assertEqual(self.button._current_state, 'active')
+        self.assertEqual(self.button._current_state, "active")
 
         # Disabled state (takes precedence over everything)
         self.button.hovered = True
         self.button.focused = True
         self.button.disabled = True
         self.button._update_state()
-        self.assertEqual(self.button._current_state, 'disabled')
+        self.assertEqual(self.button._current_state, "disabled")
 
     def test_draw_uses_cached_surface(self):
         """Test that _draw uses the cached surface for current state"""
@@ -290,7 +264,7 @@ class TestButton(unittest.TestCase):
 
         # Verify that the correct cached surface exists for each state
         # and that drawing completes without error
-        for state in ['normal', 'hover', 'active', 'disabled']:
+        for state in ["normal", "hover", "active", "disabled"]:
             with self.subTest(state=state):
                 self.button._current_state = state
 
@@ -309,12 +283,12 @@ class TestButton(unittest.TestCase):
         surface = pygame.Surface((200, 100))
 
         self.button.visible = True
-        with patch.object(self.button, '_draw') as mock_private_draw:
+        with patch.object(self.button, "_draw") as mock_private_draw:
             self.button.draw(surface)
             mock_private_draw.assert_called_once_with(surface)
 
         self.button.visible = False
-        with patch.object(self.button, '_draw') as mock_private_draw:
+        with patch.object(self.button, "_draw") as mock_private_draw:
             self.button.draw(surface)
             mock_private_draw.assert_not_called()
 
@@ -327,55 +301,40 @@ class TestButton(unittest.TestCase):
         self.assertEqual(button2.height, 54)
 
     def test_mouse_drag_behavior(self):
-        down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-            'pos': (75, 70),
-            'button': 1
-        })
+        down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": (75, 70), "button": 1})
         self.assertTrue(self.button.handle_event(down_event))
         self.assertTrue(self.button.focused)
 
-        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {'pos': (10, 10)})
+        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {"pos": (10, 10)})
         self.assertFalse(self.button.handle_event(motion_event))
         self.assertFalse(self.button.hovered)
         self.assertTrue(self.button.focused)
 
-        up_event = pygame.event.Event(pygame.MOUSEBUTTONUP, {
-            'pos': (10, 10),
-            'button': 1
-        })
+        up_event = pygame.event.Event(pygame.MOUSEBUTTONUP, {"pos": (10, 10), "button": 1})
         self.assertTrue(self.button.handle_event(up_event))
         self.assertFalse(self.button.focused)
         self.callback.assert_not_called()
 
     def test_multiple_mouse_downs(self):
-        down_event1 = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-            'pos': (75, 70),
-            'button': 1
-        })
+        down_event1 = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": (75, 70), "button": 1})
         self.assertTrue(self.button.handle_event(down_event1))
         self.assertTrue(self.button.focused)
 
-        down_event2 = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-            'pos': (75, 70),
-            'button': 1
-        })
+        down_event2 = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": (75, 70), "button": 1})
         self.assertTrue(self.button.handle_event(down_event2))
         self.assertTrue(self.button.focused)
 
     def test_hover_while_focused(self):
-        down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-            'pos': (75, 70),
-            'button': 1
-        })
+        down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": (75, 70), "button": 1})
         self.button.handle_event(down_event)
         self.assertTrue(self.button.focused)
 
-        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {'pos': (10, 10)})
+        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {"pos": (10, 10)})
         self.assertFalse(self.button.handle_event(motion_event))
         self.assertFalse(self.button.hovered)
         self.assertTrue(self.button.focused)
 
-        motion_event2 = pygame.event.Event(pygame.MOUSEMOTION, {'pos': (75, 70)})
+        motion_event2 = pygame.event.Event(pygame.MOUSEMOTION, {"pos": (75, 70)})
         self.assertTrue(self.button.handle_event(motion_event2))
         self.assertTrue(self.button.hovered)
         self.assertTrue(self.button.focused)
@@ -387,57 +346,41 @@ class TestButton(unittest.TestCase):
         self.assertEqual(self.button.label_rect.center, self.button.rect.center)
 
     def test_callback_only_called_once_per_click(self):
-        down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-            'pos': (75, 70),
-            'button': 1
-        })
-        up_event = pygame.event.Event(pygame.MOUSEBUTTONUP, {
-            'pos': (75, 70),
-            'button': 1
-        })
+        down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": (75, 70), "button": 1})
+        up_event = pygame.event.Event(pygame.MOUSEBUTTONUP, {"pos": (75, 70), "button": 1})
 
         self.button.handle_event(down_event)
         self.button.handle_event(up_event)
         self.assertEqual(self.callback.call_count, 1)
 
-        up_event2 = pygame.event.Event(pygame.MOUSEBUTTONUP, {
-            'pos': (75, 70),
-            'button': 1
-        })
+        up_event2 = pygame.event.Event(pygame.MOUSEBUTTONUP, {"pos": (75, 70), "button": 1})
         self.button.handle_event(up_event2)
         self.assertEqual(self.callback.call_count, 1)
 
     def test_state_transitions(self):
         """Test state transitions happen correctly during user interactions"""
         # Start in normal state
-        self.assertEqual(self.button._current_state, 'normal')
+        self.assertEqual(self.button._current_state, "normal")
 
         # Mouse enters -> hover state
-        hover_event = pygame.event.Event(pygame.MOUSEMOTION, {'pos': (75, 70)})
+        hover_event = pygame.event.Event(pygame.MOUSEMOTION, {"pos": (75, 70)})
         self.button.handle_event(hover_event)
-        self.assertEqual(self.button._current_state, 'hover')
+        self.assertEqual(self.button._current_state, "hover")
 
         # Mouse clicks -> active state
-        down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {
-            'pos': (75, 70),
-            'button': 1
-        })
+        down_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": (75, 70), "button": 1})
         self.button.handle_event(down_event)
-        self.assertEqual(self.button._current_state, 'active')
+        self.assertEqual(self.button._current_state, "active")
 
         # Mouse releases -> back to hover (since mouse is still over button)
-        up_event = pygame.event.Event(pygame.MOUSEBUTTONUP, {
-            'pos': (75, 70),
-            'button': 1
-        })
+        up_event = pygame.event.Event(pygame.MOUSEBUTTONUP, {"pos": (75, 70), "button": 1})
         self.button.handle_event(up_event)
-        self.assertEqual(self.button._current_state, 'hover')
+        self.assertEqual(self.button._current_state, "hover")
 
         # Mouse leaves -> normal state
-        leave_event = pygame.event.Event(pygame.MOUSEMOTION, {'pos': (10, 10)})
+        leave_event = pygame.event.Event(pygame.MOUSEMOTION, {"pos": (10, 10)})
         self.button.handle_event(leave_event)
-        self.assertEqual(self.button._current_state, 'normal')
-
+        self.assertEqual(self.button._current_state, "normal")
 
     def test_hover_cursor_class_attribute(self):
         self.assertEqual(Button.HOVER_CURSOR, pygame.SYSTEM_CURSOR_HAND)
@@ -446,11 +389,11 @@ class TestButton(unittest.TestCase):
         """Hovering a disabled button should set 'disabled' state, not 'hover'"""
         self.button.disable()
 
-        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {'pos': (75, 70)})
+        motion_event = pygame.event.Event(pygame.MOUSEMOTION, {"pos": (75, 70)})
         self.button.handle_event(motion_event)
 
         self.assertTrue(self.button.hovered)
-        self.assertEqual(self.button._current_state, 'disabled')
+        self.assertEqual(self.button._current_state, "disabled")
 
 
 if __name__ == "__main__":

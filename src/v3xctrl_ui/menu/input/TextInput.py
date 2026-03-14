@@ -16,17 +16,9 @@ class TextInput(BaseInput):
         mono_font: Font,
         max_length: int = 32,
         on_change: Callable[[str], None] | None = None,
-        input_padding: int = 10
+        input_padding: int = 10,
     ) -> None:
-        super().__init__(
-            label,
-            label_width,
-            input_width,
-            font,
-            mono_font,
-            on_change,
-            input_padding
-        )
+        super().__init__(label, label_width, input_width, font, mono_font, on_change, input_padding)
         self.max_length = max_length
 
     def _handle_keydown(self, event: pygame.event.Event) -> None:
@@ -36,12 +28,12 @@ class TextInput(BaseInput):
             if self.on_change:
                 self.on_change(self.value)
         elif (
-            hasattr(event, 'unicode') and
-            event.unicode and
-            event.unicode.isprintable() and
-            len(self.value) < self.max_length
+            hasattr(event, "unicode")
+            and event.unicode
+            and event.unicode.isprintable()
+            and len(self.value) < self.max_length
         ):
-            self.value = self.value[:self.cursor_pos] + event.unicode + self.value[self.cursor_pos:]
+            self.value = self.value[: self.cursor_pos] + event.unicode + self.value[self.cursor_pos :]
             self.cursor_pos += 1
             if self.on_change:
                 self.on_change(self.value)

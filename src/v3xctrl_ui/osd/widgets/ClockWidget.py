@@ -1,10 +1,10 @@
 from datetime import datetime
-import pygame.freetype
-from pygame import Surface, SRCALPHA
 
-from v3xctrl_ui.utils.colors import WHITE, BLACK
+import pygame.freetype
+from pygame import SRCALPHA, Surface
 
 from v3xctrl_ui.osd.widgets.Widget import Widget
+from v3xctrl_ui.utils.colors import BLACK, WHITE
 
 
 class ClockWidget(Widget):
@@ -16,7 +16,7 @@ class ClockWidget(Widget):
         top_padding: int = 16,
         bottom_padding: int = 14,
         left_padding: int = 20,
-        right_padding: int = 20
+        right_padding: int = 20,
     ) -> None:
         super().__init__()
 
@@ -33,7 +33,7 @@ class ClockWidget(Widget):
 
         # Calculate size based on time format "HH:MM:SS.mmm"
         reference_text = "00:00:00.000"
-        text_surface, text_rect = self.font.render(reference_text)
+        _text_surface, text_rect = self.font.render(reference_text)
         self.text_width = text_rect.width
         self.text_height = text_rect.height
 
@@ -47,7 +47,7 @@ class ClockWidget(Widget):
         now = datetime.now()
         time_str = now.strftime("%H:%M:%S") + f".{now.microsecond // 1000:03d}"
 
-        text_surface, text_rect = self.font.render(time_str, self.color)
+        text_surface, _text_rect = self.font.render(time_str, self.color)
 
         self.surface = self.bg_surface.copy()
         text_x = self.left_padding

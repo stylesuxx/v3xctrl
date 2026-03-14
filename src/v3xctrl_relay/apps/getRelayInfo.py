@@ -14,8 +14,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--port", default=8888, type=int, help="Rendezvous server port")
     parser.add_argument("--port-video", default=16384, type=int, help="Local video port")
     parser.add_argument("--port-control", default=16386, type=int, help="Local control port")
-    parser.add_argument("--log", default="ERROR",
-                        help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). (default: ERROR")
+    parser.add_argument(
+        "--log", default="ERROR", help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). (default: ERROR"
+    )
 
     return parser.parse_args()
 
@@ -29,15 +30,9 @@ if __name__ == "__main__":
     if not isinstance(level, int):
         raise ValueError(f"Invalid log level: {args.log}")
 
-    logging.basicConfig(
-        level=level,
-        format="%(asctime)s - %(levelname)s - %(message)s"
-    )
+    logging.basicConfig(level=level, format="%(asctime)s - %(levelname)s - %(message)s")
 
-    ports = {
-        "video": args.port_video,
-        "control": args.port_control
-    }
+    ports = {"video": args.port_video, "control": args.port_control}
 
     peer = Peer(args.server, args.port, args.id)
     try:
@@ -49,18 +44,15 @@ if __name__ == "__main__":
     video = peer_addresses["video"]
     control = peer_addresses["control"]
 
-    print(json.dumps({
-        "network": {
-            "server": {
-                "direct": {
-                    "host": video[0]
-                },
-                "ports": {
-                    "video": video[1],
-                    "control": control[1]
+    print(
+        json.dumps(
+            {
+                "network": {
+                    "server": {"direct": {"host": video[0]}, "ports": {"video": video[1], "control": control[1]}}
                 }
-            }
-        }
-    }, indent=2))
+            },
+            indent=2,
+        )
+    )
 
     sys.exit(0)

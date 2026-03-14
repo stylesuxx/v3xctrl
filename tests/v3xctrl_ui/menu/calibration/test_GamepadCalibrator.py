@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
+from v3xctrl_ui.menu.calibration.defs import AxisCalibrationData, CalibrationStage, CalibratorState
 from v3xctrl_ui.menu.calibration.GamepadCalibrator import GamepadCalibrator
-from v3xctrl_ui.menu.calibration.defs import CalibrationStage, CalibratorState, AxisCalibrationData
 from v3xctrl_ui.menu.DialogBox import DialogBox
 
 
@@ -25,10 +25,7 @@ class TestGamepadCalibrator(unittest.TestCase):
         self.clock = MockClock()
 
         self.calibrator = GamepadCalibrator(
-            on_start=self.mock_on_start,
-            on_done=self.mock_on_done,
-            dialog=self.mock_dialog,
-            clock=self.clock
+            on_start=self.mock_on_start, on_done=self.mock_on_done, dialog=self.mock_dialog, clock=self.clock
         )
 
     def test_initialization(self):
@@ -76,7 +73,7 @@ class TestGamepadCalibrator(unittest.TestCase):
         steps = self.calibrator.get_steps()
         self.assertEqual(len(steps), 4)
 
-        for label, is_active in steps:
+        for _label, is_active in steps:
             self.assertFalse(is_active)
 
         self.calibrator.stage = CalibrationStage.STEERING
@@ -155,7 +152,7 @@ class TestGamepadCalibrator(unittest.TestCase):
         self.assertEqual(axis_data.baseline, axes)
         self.assertIsNone(axis_data.axis)
 
-    @patch('logging.info')
+    @patch("logging.info")
     def test_detect_and_record_axis_detection(self, mock_logging):
         axis_data = self.calibrator.axes["steering"]
         axis_data.baseline = [0.0, 0.0, 0.0]
@@ -180,7 +177,7 @@ class TestGamepadCalibrator(unittest.TestCase):
         self.assertIsNone(axis_data.axis)
         self.assertIsNone(axis_data.detection_start)
 
-    @patch('logging.info')
+    @patch("logging.info")
     def test_detect_and_record_axis_recording_values(self, mock_logging):
         axis_data = self.calibrator.axes["steering"]
         axis_data.axis = 0
@@ -193,9 +190,7 @@ class TestGamepadCalibrator(unittest.TestCase):
         self.clock.advance(GamepadCalibrator.STABLE_TIME)
 
         axes = [0.8, 0.0, 0.0]
-        self.calibrator._detect_and_record_axis(
-            "steering", axes, next_stage=CalibrationStage.STEERING_CENTER
-        )
+        self.calibrator._detect_and_record_axis("steering", axes, next_stage=CalibrationStage.STEERING_CENTER)
 
         mock_logging.assert_called_with("Steering axis min/max: -0.80/0.80")
 
@@ -222,7 +217,7 @@ class TestGamepadCalibrator(unittest.TestCase):
 
         self.assertEqual(axis_data.idle_last, 0.2)
 
-    @patch('logging.info')
+    @patch("logging.info")
     def test_record_center_idle_stable_detection(self, mock_logging):
         axis_data = self.calibrator.axes["steering"]
         axis_data.axis = 0
@@ -269,55 +264,51 @@ class TestGamepadCalibrator(unittest.TestCase):
     def test_update_steering_stage(self):
         self.calibrator.start()
 
-        with patch.object(self.calibrator, '_detect_and_record_axis') as mock_detect:
+        with patch.object(self.calibrator, "_detect_and_record_axis") as mock_detect:
             axes = [0.5, 0.0, 0.0]
             self.calibrator.update(axes)
 
-            mock_detect.assert_called_once_with(
-                'steering', axes, next_stage=CalibrationStage.STEERING_CENTER
-            )
+            mock_detect.assert_called_once_with("steering", axes, next_stage=CalibrationStage.STEERING_CENTER)
 
     def test_update_steering_center_stage(self):
         self.calibrator.stage = CalibrationStage.STEERING_CENTER
         self.calibrator.state = CalibratorState.ACTIVE
 
-        with patch.object(self.calibrator, '_record_center_idle') as mock_record:
+        with patch.object(self.calibrator, "_record_center_idle") as mock_record:
             axes = [0.2, 0.0, 0.0]
             self.calibrator.update(axes)
 
-            mock_record.assert_called_once_with(
-                'steering', axes, next_stage=CalibrationStage.THROTTLE
-            )
+            mock_record.assert_called_once_with("steering", axes, next_stage=CalibrationStage.THROTTLE)
 
     def test_update_throttle_stage(self):
         self.calibrator.stage = CalibrationStage.THROTTLE
         self.calibrator.state = CalibratorState.ACTIVE
 
-        with patch.object(self.calibrator, '_detect_and_record_axis') as mock_detect:
+        with patch.object(self.calibrator, "_detect_and_record_axis") as mock_detect:
             axes = [0.0, 0.8, 0.0]
             self.calibrator.update(axes)
 
             mock_detect.assert_called_once_with(
-                'throttle', axes, exclude=['steering'], next_stage=CalibrationStage.BRAKE
+                "throttle", axes, exclude=["steering"], next_stage=CalibrationStage.BRAKE
             )
 
     def test_update_brake_stage(self):
         self.calibrator.stage = CalibrationStage.BRAKE
         self.calibrator.state = CalibratorState.ACTIVE
 
-        with patch.object(self.calibrator, '_detect_and_record_axis') as mock_detect:
+        with patch.object(self.calibrator, "_detect_and_record_axis") as mock_detect:
             axes = [0.0, 0.0, 0.9]
             self.calibrator.update(axes)
 
             mock_detect.assert_called_once_with(
-                'brake', axes, exclude=['steering'], on_complete=self.calibrator._complete
+                "brake", axes, exclude=["steering"], on_complete=self.calibrator._complete
             )
 
     def test_get_settings_empty(self):
         expected = {
             "steering": {"axis": None, "min": 0, "max": 0, "center": None},
             "throttle": {"axis": None, "min": 0, "max": 0, "center": None},
-            "brake": {"axis": None, "min": 0, "max": 0, "center": None}
+            "brake": {"axis": None, "min": 0, "max": 0, "center": None},
         }
 
         self.assertEqual(self.calibrator.get_settings(), expected)
@@ -357,8 +348,10 @@ class TestGamepadCalibrator(unittest.TestCase):
         self.calibrator.start()
         self.assertEqual(self.calibrator.stage, CalibrationStage.STEERING)
 
-        with patch.object(self.calibrator, '_detect_and_record_axis') as mock_detect, \
-             patch.object(self.calibrator, '_record_center_idle'):
+        with (
+            patch.object(self.calibrator, "_detect_and_record_axis") as mock_detect,
+            patch.object(self.calibrator, "_record_center_idle"),
+        ):
 
             def steering_complete(*args, **kwargs):
                 self.calibrator._queue_next_stage_with_dialog(CalibrationStage.STEERING_CENTER)
@@ -431,7 +424,7 @@ class TestGamepadCalibrator(unittest.TestCase):
 
         steps = self.calibrator.get_steps()
 
-        for label, is_active in steps:
+        for _label, is_active in steps:
             self.assertFalse(is_active)
 
     def test_get_settings_empty_max_values(self):
@@ -517,7 +510,7 @@ class TestGamepadCalibrator(unittest.TestCase):
 
         self.clock.advance(GamepadCalibrator.STABLE_TIME)
 
-        with patch.object(self.calibrator, '_queue_next_stage_with_dialog') as mock_queue:
+        with patch.object(self.calibrator, "_queue_next_stage_with_dialog") as mock_queue:
             axes = [0.5, 0.0, 0.0]
             self.calibrator._detect_and_record_axis("steering", axes, next_stage=CalibrationStage.STEERING_CENTER)
 
@@ -565,7 +558,7 @@ class TestGamepadCalibrator(unittest.TestCase):
 
         self.clock.advance(GamepadCalibrator.STABLE_TIME - 0.1)
 
-        with patch.object(self.calibrator, '_queue_next_stage_with_dialog') as mock_queue:
+        with patch.object(self.calibrator, "_queue_next_stage_with_dialog") as mock_queue:
             axes = [0.5, 0.0, 0.0]
             self.calibrator._detect_and_record_axis("steering", axes, next_stage=CalibrationStage.STEERING_CENTER)
             mock_queue.assert_not_called()
@@ -596,12 +589,12 @@ class TestGamepadCalibrator(unittest.TestCase):
 
         self.clock.advance(GamepadCalibrator.STABLE_TIME)
 
-        with patch.object(self.calibrator, '_queue_next_stage_with_dialog') as mock_queue:
+        with patch.object(self.calibrator, "_queue_next_stage_with_dialog") as mock_queue:
             axes = [0.8, 0.0, 0.0]
             self.calibrator._detect_and_record_axis("steering", axes, next_stage=CalibrationStage.STEERING_CENTER)
 
             mock_queue.assert_not_called()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

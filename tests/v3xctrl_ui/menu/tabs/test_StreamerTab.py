@@ -1,14 +1,16 @@
 # Required before importing pygame, otherwise screen might flicker during tests
 import os
+
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 import unittest
 from unittest.mock import MagicMock, patch
+
 import pygame
 
-from v3xctrl_ui.menu.tabs.StreamerTab import StreamerTab
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext
+from v3xctrl_ui.menu.tabs.StreamerTab import StreamerTab
 
 
 class TestStreamerTab(unittest.TestCase):
@@ -38,7 +40,7 @@ class TestStreamerTab(unittest.TestCase):
             y_offset=self.y_offset,
             on_active_toggle=self.mock_on_active_toggle,
             send_command=self.mock_send_command,
-            telemetry_context=self.telemetry_context
+            telemetry_context=self.telemetry_context,
         )
 
     def test_initialization(self):
@@ -94,10 +96,13 @@ class TestStreamerTab(unittest.TestCase):
 
         # Compare command and parameters separately (ignore auto-generated ID)
         self.assertEqual(sent_command.command, "service")
-        self.assertEqual(sent_command.parameters, {
-            "action": "stop",
-            "name": "v3xctrl-video",
-        })
+        self.assertEqual(
+            sent_command.parameters,
+            {
+                "action": "stop",
+                "name": "v3xctrl-video",
+            },
+        )
         self.assertEqual(callback, self.tab._on_command_callback)
 
     def test_start_video_action(self):
@@ -117,10 +122,13 @@ class TestStreamerTab(unittest.TestCase):
 
         # Compare command and parameters separately (ignore auto-generated ID)
         self.assertEqual(sent_command.command, "service")
-        self.assertEqual(sent_command.parameters, {
-            "action": "start",
-            "name": "v3xctrl-video",
-        })
+        self.assertEqual(
+            sent_command.parameters,
+            {
+                "action": "start",
+                "name": "v3xctrl-video",
+            },
+        )
 
     def test_shutdown_action(self):
         """Test shutdown button functionality"""
@@ -193,10 +201,13 @@ class TestStreamerTab(unittest.TestCase):
         sent_command = call_args[0][0]
 
         self.assertEqual(sent_command.command, "service")
-        self.assertEqual(sent_command.parameters, {
-            "action": "start",
-            "name": "v3xctrl-reverse-shell",
-        })
+        self.assertEqual(
+            sent_command.parameters,
+            {
+                "action": "start",
+                "name": "v3xctrl-reverse-shell",
+            },
+        )
 
     def test_stop_shell_action(self):
         """Test stop reverse shell button functionality"""
@@ -211,10 +222,13 @@ class TestStreamerTab(unittest.TestCase):
         sent_command = call_args[0][0]
 
         self.assertEqual(sent_command.command, "service")
-        self.assertEqual(sent_command.parameters, {
-            "action": "stop",
-            "name": "v3xctrl-reverse-shell",
-        })
+        self.assertEqual(
+            sent_command.parameters,
+            {
+                "action": "stop",
+                "name": "v3xctrl-reverse-shell",
+            },
+        )
 
     def test_shutdown_disables_elements(self):
         """Test that shutdown triggers on_active_toggle"""
@@ -241,8 +255,8 @@ class TestStreamerTab(unittest.TestCase):
         # Check that UI is re-enabled regardless of status
         self.mock_on_active_toggle.assert_called_with(False)
 
-    @patch('time.sleep')
-    @patch('logging.info')
+    @patch("time.sleep")
+    @patch("logging.info")
     def test_command_callback_logs_status(self, mock_log_info, mock_sleep):
         """Test that command callback logs the status"""
         self.tab._on_command_callback(True)
@@ -302,5 +316,5 @@ class TestStreamerTab(unittest.TestCase):
         self.assertEqual(self.mock_send_command.call_count, 2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

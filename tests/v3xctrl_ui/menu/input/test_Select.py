@@ -1,12 +1,13 @@
 # Required before importing pygame, otherwise screen might flicker during tests
 import os
+
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 import unittest
 
 import pygame
-from pygame.freetype import SysFont
 from pygame.event import Event
+from pygame.freetype import SysFont
 from pygame.locals import MOUSEBUTTONDOWN, MOUSEMOTION
 
 from v3xctrl_ui.menu.input import Select
@@ -22,13 +23,7 @@ class TestSelect(unittest.TestCase):
         def callback(i):
             self.selected_index = i
 
-        self.select = Select(
-            label="Quality",
-            label_width=100,
-            length=200,
-            font=self.font,
-            callback=callback
-        )
+        self.select = Select(label="Quality", label_width=100, length=200, font=self.font, callback=callback)
         self.select.set_position(10, 10)
         self.select.set_options(["Low", "Medium", "High"], selected_index=1)
 
@@ -36,23 +31,17 @@ class TestSelect(unittest.TestCase):
         self.assertEqual(self.select.selected_index, 1)
 
     def test_get_size(self):
-        self.assertEqual(self.select.get_size(), (
-            self.select.label_width + self.select.LABEL_PADDING + self.select.length,
-            self.select.rect.height
-        ))
+        self.assertEqual(
+            self.select.get_size(),
+            (self.select.label_width + self.select.LABEL_PADDING + self.select.length, self.select.rect.height),
+        )
 
     def test_click_to_expand_and_select(self):
-        click_expand = Event(MOUSEBUTTONDOWN, {
-            "pos": self.select.rect.center,
-            "button": 1
-        })
+        click_expand = Event(MOUSEBUTTONDOWN, {"pos": self.select.rect.center, "button": 1})
         self.select.handle_event(click_expand)
         self.assertTrue(self.select.expanded)
 
-        click_low = Event(MOUSEBUTTONDOWN, {
-            "pos": self.select.option_rects[0].center,
-            "button": 1
-        })
+        click_low = Event(MOUSEBUTTONDOWN, {"pos": self.select.option_rects[0].center, "button": 1})
         self.select.handle_event(click_low)
         self.assertEqual(self.select.selected_index, 0)
         self.assertEqual(self.selected_index, 0)
@@ -60,10 +49,7 @@ class TestSelect(unittest.TestCase):
 
     def test_click_outside_closes_dropdown(self):
         self.select.expanded = True
-        click_outside = Event(MOUSEBUTTONDOWN, {
-            "pos": (0, 0),
-            "button": 1
-        })
+        click_outside = Event(MOUSEBUTTONDOWN, {"pos": (0, 0), "button": 1})
         self.select.handle_event(click_outside)
         self.assertFalse(self.select.expanded)
 
@@ -91,28 +77,19 @@ class TestSelect(unittest.TestCase):
 
     def test_disable_prevents_expansion_and_selection(self):
         self.select.disable()
-        click_expand = Event(MOUSEBUTTONDOWN, {
-            "pos": self.select.rect.center,
-            "button": 1
-        })
+        click_expand = Event(MOUSEBUTTONDOWN, {"pos": self.select.rect.center, "button": 1})
         self.select.handle_event(click_expand)
         self.assertFalse(self.select.expanded)
 
         self.select.expanded = True
-        click_select = Event(MOUSEBUTTONDOWN, {
-            "pos": self.select.option_rects[1].center,
-            "button": 1
-        })
+        click_select = Event(MOUSEBUTTONDOWN, {"pos": self.select.option_rects[1].center, "button": 1})
         self.select.handle_event(click_select)
         self.assertIsNone(self.selected_index)
 
     def test_enable_restores_interaction(self):
         self.select.disable()
         self.select.enable()
-        click_expand = Event(MOUSEBUTTONDOWN, {
-            "pos": self.select.rect.center,
-            "button": 1
-        })
+        click_expand = Event(MOUSEBUTTONDOWN, {"pos": self.select.rect.center, "button": 1})
         self.select.handle_event(click_expand)
         self.assertTrue(self.select.expanded)
 
@@ -146,20 +123,14 @@ class TestSelect(unittest.TestCase):
             self.fail(f"Draw failed with no options: {e}")
 
         self.select.expanded = True
-        event = Event(MOUSEBUTTONDOWN, {
-            "pos": self.select.rect.center,
-            "button": 1
-        })
+        event = Event(MOUSEBUTTONDOWN, {"pos": self.select.rect.center, "button": 1})
         self.select.handle_event(event)
         self.assertTrue(self.select.expanded)
 
     def test_handle_event_with_empty_options(self):
         self.select.set_options([])
 
-        click_event = Event(MOUSEBUTTONDOWN, {
-            "pos": self.select.rect.center,
-            "button": 1
-        })
+        click_event = Event(MOUSEBUTTONDOWN, {"pos": self.select.rect.center, "button": 1})
         self.assertFalse(self.select.handle_event(click_event))
 
     def test_handle_event_with_empty_options_still_tracks_hover(self):
@@ -172,10 +143,7 @@ class TestSelect(unittest.TestCase):
     def test_handle_event_when_disabled(self):
         self.select.disable()
 
-        click_event = Event(MOUSEBUTTONDOWN, {
-            "pos": self.select.rect.center,
-            "button": 1
-        })
+        click_event = Event(MOUSEBUTTONDOWN, {"pos": self.select.rect.center, "button": 1})
         self.assertFalse(self.select.handle_event(click_event))
 
     def test_handle_event_when_disabled_still_tracks_hover(self):
@@ -220,26 +188,14 @@ class TestSelect(unittest.TestCase):
         self.assertEqual(self.select.selected_index, 0)
 
     def test_render_label_and_caret_without_position_set(self):
-        new_select = Select(
-            label="Test",
-            label_width=100,
-            length=200,
-            font=self.font,
-            callback=lambda x: None
-        )
+        new_select = Select(label="Test", label_width=100, length=200, font=self.font, callback=lambda x: None)
 
         new_select._render_label_and_caret()
         self.assertIsNotNone(new_select.label_surface)
         self.assertIsNone(new_select.rect)
 
     def test_text_truncation_edge_cases(self):
-        short_select = Select(
-            label="Test",
-            label_width=50,
-            length=50,
-            font=self.font,
-            callback=lambda x: None
-        )
+        short_select = Select(label="Test", label_width=50, length=50, font=self.font, callback=lambda x: None)
         short_select.set_position(0, 0)
 
         long_options = ["This is an extremely long option name that will definitely be truncated"]
@@ -249,13 +205,7 @@ class TestSelect(unittest.TestCase):
         self.assertIsNotNone(rendered_text)
 
     def test_text_truncation_single_character(self):
-        tiny_select = Select(
-            label="T",
-            label_width=10,
-            length=20,
-            font=self.font,
-            callback=lambda x: None
-        )
+        tiny_select = Select(label="T", label_width=10, length=20, font=self.font, callback=lambda x: None)
         tiny_select.set_position(0, 0)
 
         options = ["VeryLongOption"]
@@ -291,10 +241,7 @@ class TestSelect(unittest.TestCase):
     def test_select_option_when_expanded_false(self):
         self.select.expanded = False
 
-        click_option = Event(MOUSEBUTTONDOWN, {
-            "pos": (self.select.rect.x + 50, self.select.rect.y + 50),
-            "button": 1
-        })
+        click_option = Event(MOUSEBUTTONDOWN, {"pos": (self.select.rect.x + 50, self.select.rect.y + 50), "button": 1})
 
         original_index = self.select.selected_index
         self.select.handle_event(click_option)
@@ -318,19 +265,17 @@ class TestSelect(unittest.TestCase):
     def test_hover_with_exact_option_boundaries(self):
         self.select.expanded = True
 
-        top_edge = Event(MOUSEMOTION, {
-            "pos": (self.select.option_rects[0].centerx, self.select.option_rects[0].top)
-        })
+        top_edge = Event(MOUSEMOTION, {"pos": (self.select.option_rects[0].centerx, self.select.option_rects[0].top)})
         self.select.handle_event(top_edge)
         self.assertEqual(self.select.hover_index, 0)
 
         last_idx = len(self.select.option_rects) - 1
-        bottom_edge = Event(MOUSEMOTION, {
-            "pos": (self.select.option_rects[last_idx].centerx, self.select.option_rects[last_idx].bottom - 1)
-        })
+        bottom_edge = Event(
+            MOUSEMOTION,
+            {"pos": (self.select.option_rects[last_idx].centerx, self.select.option_rects[last_idx].bottom - 1)},
+        )
         self.select.handle_event(bottom_edge)
         self.assertEqual(self.select.hover_index, last_idx)
-
 
     def test_hover_cursor_class_attribute(self):
         self.assertEqual(Select.HOVER_CURSOR, pygame.SYSTEM_CURSOR_HAND)
@@ -347,13 +292,7 @@ class TestSelect(unittest.TestCase):
 
     def test_hover_no_rect(self):
         """Select without set_position has no rect — hover should be False"""
-        new_select = Select(
-            label="Test",
-            label_width=100,
-            length=200,
-            font=self.font,
-            callback=lambda x: None
-        )
+        new_select = Select(label="Test", label_width=100, length=200, font=self.font, callback=lambda x: None)
         motion_event = Event(MOUSEMOTION, {"pos": (50, 50)})
         self.assertFalse(new_select.handle_event(motion_event))
         self.assertFalse(new_select.hovered)

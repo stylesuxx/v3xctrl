@@ -3,7 +3,7 @@ import time
 from v3xctrl_control.Telemetry import Telemetry
 
 
-telemetry = Telemetry('/dev/ttyACM0')
+telemetry = Telemetry("/dev/ttyACM0")
 telemetry.start()
 
 while True:

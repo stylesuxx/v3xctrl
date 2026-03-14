@@ -5,11 +5,10 @@ from typing import Any
 
 from v3xctrl_control import Server
 from v3xctrl_control.message import Latency
-
-from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_tcp.TcpTunnel import TcpTunnel
-from v3xctrl_ui.network.TcpServer import TcpServer
+from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.network.NetworkSetup import NetworkSetup
+from v3xctrl_ui.network.TcpServer import TcpServer
 
 
 class NetworkController:
@@ -48,15 +47,14 @@ class NetworkController:
         self.relay_enable = True
         self.relay_id = relay_id
 
-        if relay_server and ':' in relay_server:
-            host, port = relay_server.rsplit(':', 1)
+        if relay_server and ":" in relay_server:
+            host, port = relay_server.rsplit(":", 1)
             self.relay_server = host
             try:
                 self.relay_port = int(port)
             except ValueError:
                 logging.warning(
-                    f"Invalid port in relay_server: '{relay_server}', "
-                    f"falling back to default {self.relay_port}"
+                    f"Invalid port in relay_server: '{relay_server}', falling back to default {self.relay_port}"
                 )
         else:
             self.relay_server = relay_server
@@ -157,10 +155,10 @@ class NetworkController:
         relay_config = None
         if self.relay_enable and self.relay_server and self.relay_id:
             relay_config = {
-                'server': self.relay_server,
-                'port': self.relay_port,
-                'id': self.relay_id,
-                'spectator_mode': self.relay_spectator_mode
+                "server": self.relay_server,
+                "port": self.relay_port,
+                "id": self.relay_id,
+                "spectator_mode": self.relay_spectator_mode,
             }
 
         # Run orchestrated setup
@@ -176,9 +174,8 @@ class NetworkController:
         if result.tcp_control_tunnel:
             self.tcp_control_tunnel = result.tcp_control_tunnel
 
-        if result.relay_result:
-            if not result.relay_result.success:
-                self.relay_status_message = result.relay_result.error_message
+        if result.relay_result and not result.relay_result.success:
+            self.relay_status_message = result.relay_result.error_message
 
         if result.video_keep_alive:
             self.video_keep_alive = result.video_keep_alive

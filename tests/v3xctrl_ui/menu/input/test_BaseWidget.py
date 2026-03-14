@@ -1,10 +1,12 @@
 """Tests for BaseWidget."""
+
 import os
 import unittest
+
 import pygame
 
 # Set SDL to use dummy video driver
-os.environ['SDL_VIDEODRIVER'] = 'dummy'
+os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 from v3xctrl_ui.menu.input.BaseWidget import BaseWidget
 
@@ -94,5 +96,5 @@ class TestBaseWidget(unittest.TestCase):
         assert self.widget.draw_called is False
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

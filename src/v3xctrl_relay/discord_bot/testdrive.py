@@ -36,13 +36,9 @@ class TestdriveHandler:
         try:
             await channel.send(announcement, view=self._make_request_view())
         except discord.Forbidden:
-            logging.error(
-                f"Cannot send testdrive message to channel {self.testdrive_channel_id} - missing permissions"
-            )
+            logging.error(f"Cannot send testdrive message to channel {self.testdrive_channel_id} - missing permissions")
         except Exception as e:
-            logging.error(
-                f"Failed to post testdrive message in channel {self.testdrive_channel_id}: {e}"
-            )
+            logging.error(f"Failed to post testdrive message in channel {self.testdrive_channel_id}: {e}")
 
     async def _delete_old_announcement(self, channel: discord.TextChannel) -> None:
         try:
@@ -59,7 +55,7 @@ class TestdriveHandler:
     def _is_announcement_message(message: discord.Message) -> bool:
         for row in message.components:
             for child in row.children:
-                if getattr(child, 'custom_id', None) == CUSTOM_ID_REQUEST:
+                if getattr(child, "custom_id", None) == CUSTOM_ID_REQUEST:
                     return True
         return False
 
@@ -75,18 +71,18 @@ class TestdriveHandler:
         if custom_id == CUSTOM_ID_REQUEST:
             await self._handle_request(interaction)
         elif custom_id.startswith(CUSTOM_ID_CANCEL_PREFIX):
-            requester_id = custom_id[len(CUSTOM_ID_CANCEL_PREFIX):]
+            requester_id = custom_id[len(CUSTOM_ID_CANCEL_PREFIX) :]
             await self._handle_cancel(interaction, requester_id)
         elif custom_id.startswith(CUSTOM_ID_ACCEPT_PREFIX):
-            requester_id = custom_id[len(CUSTOM_ID_ACCEPT_PREFIX):]
+            requester_id = custom_id[len(CUSTOM_ID_ACCEPT_PREFIX) :]
             await self._handle_accept(interaction, requester_id)
         elif custom_id.startswith(CUSTOM_ID_INVALIDATE_PREFIX):
-            parts = custom_id[len(CUSTOM_ID_INVALIDATE_PREFIX):].split(":", 1)
+            parts = custom_id[len(CUSTOM_ID_INVALIDATE_PREFIX) :].split(":", 1)
             if len(parts) == 2:
                 guest_id, host_id = parts
                 await self._handle_invalidate(interaction, guest_id, host_id)
         elif custom_id.startswith(CUSTOM_ID_RATE_PREFIX):
-            parts = custom_id[len(CUSTOM_ID_RATE_PREFIX):].split(":", 2)
+            parts = custom_id[len(CUSTOM_ID_RATE_PREFIX) :].split(":", 2)
             if len(parts) == 3:
                 guest_id, host_id, stars = parts
                 await self._handle_rate(interaction, guest_id, host_id, int(stars))
@@ -101,15 +97,11 @@ class TestdriveHandler:
         requester_id = str(interaction.user.id)
 
         if self._has_pending_or_active_testdrive(requester_id):
-            await interaction.response.send_message(
-                "You already have a pending or active test drive.", ephemeral=True
-            )
+            await interaction.response.send_message("You already have a pending or active test drive.", ephemeral=True)
             return
 
         if interaction.guild is None:
-            await interaction.response.send_message(
-                "This can only be used in a server.", ephemeral=True
-            )
+            await interaction.response.send_message("This can only be used in a server.", ephemeral=True)
             return
 
         await interaction.response.defer(ephemeral=True)
@@ -118,19 +110,16 @@ class TestdriveHandler:
         role_mention = host_role.mention if host_role else "@host"
 
         message = await interaction.channel.send(
-            f"Hey {role_mention}, {interaction.user.mention} would like a test ride "
-            f"- who wants to host them?",
+            f"Hey {role_mention}, {interaction.user.mention} would like a test ride - who wants to host them?",
             view=self._make_pending_view(requester_id),
-            allowed_mentions=discord.AllowedMentions(roles=True, users=True)
+            allowed_mentions=discord.AllowedMentions(roles=True, users=True),
         )
 
         self.pending_requests[requester_id] = message.id
 
     async def _handle_cancel(self, interaction: discord.Interaction, requester_id: str) -> None:
         if str(interaction.user.id) != requester_id:
-            await interaction.response.send_message(
-                "Only the requester can cancel this request.", ephemeral=True
-            )
+            await interaction.response.send_message("Only the requester can cancel this request.", ephemeral=True)
             return
 
         await interaction.response.defer(ephemeral=True)
@@ -138,23 +127,18 @@ class TestdriveHandler:
         self.pending_requests.pop(requester_id, None)
 
         await interaction.message.edit(
-            content=f"{interaction.user.mention}'s test drive request was cancelled.",
-            view=None
+            content=f"{interaction.user.mention}'s test drive request was cancelled.", view=None
         )
 
     async def _handle_accept(self, interaction: discord.Interaction, requester_id: str) -> None:
         if requester_id not in self.pending_requests:
-            await interaction.response.send_message(
-                "This request is no longer available.", ephemeral=True
-            )
+            await interaction.response.send_message("This request is no longer available.", ephemeral=True)
             return
 
         host_id = str(interaction.user.id)
 
         if host_id == requester_id:
-            await interaction.response.send_message(
-                "You cannot accept your own request.", ephemeral=True
-            )
+            await interaction.response.send_message("You cannot accept your own request.", ephemeral=True)
             return
 
         await interaction.response.defer(ephemeral=True)
@@ -166,9 +150,7 @@ class TestdriveHandler:
             session_id, spectator_id = self.store.create(composed_key, username)
         except RuntimeError as e:
             logging.error(f"Failed to create testdrive session: {e}")
-            await interaction.followup.send(
-                "Failed to create session. Please try again.", ephemeral=True
-            )
+            await interaction.followup.send("Failed to create session. Please try again.", ephemeral=True)
             return
 
         self.pending_requests.pop(requester_id, None)
@@ -217,12 +199,12 @@ class TestdriveHandler:
                     f"but session IDs could not be delivered via DM. "
                     f"Please make sure DMs from server members are enabled and try again."
                 ),
-                view=None
+                view=None,
             )
             await interaction.followup.send(
                 "Could not deliver session IDs via DM. The session has been rolled back. "
                 "Ensure both you and the requester have DMs enabled from server members.",
-                ephemeral=True
+                ephemeral=True,
             )
             return
 
@@ -233,14 +215,12 @@ class TestdriveHandler:
                 f"Have fun!\n\n"
                 f"<@{requester_id}>, let us know how you liked it!"
             ),
-            view=self._make_active_view(requester_id, host_id)
+            view=self._make_active_view(requester_id, host_id),
         )
 
     async def _handle_invalidate(self, interaction: discord.Interaction, guest_id: str, host_id: str) -> None:
         if str(interaction.user.id) != host_id:
-            await interaction.response.send_message(
-                "Only the host can invalidate this session.", ephemeral=True
-            )
+            await interaction.response.send_message("Only the host can invalidate this session.", ephemeral=True)
             return
 
         await interaction.response.defer(ephemeral=True)
@@ -271,9 +251,7 @@ class TestdriveHandler:
 
     async def _handle_rate(self, interaction: discord.Interaction, guest_id: str, host_id: str, stars: int) -> None:
         if str(interaction.user.id) != guest_id:
-            await interaction.response.send_message(
-                "Only the guest can rate this test drive.", ephemeral=True
-            )
+            await interaction.response.send_message("Only the guest can rate this test drive.", ephemeral=True)
             return
 
         if not 1 <= stars <= 5:
@@ -305,9 +283,7 @@ class TestdriveHandler:
     def _make_request_view(self) -> discord.ui.View:
         view = discord.ui.View(timeout=None)
         button = discord.ui.Button(
-            label="Request Test Drive",
-            style=discord.ButtonStyle.green,
-            custom_id=CUSTOM_ID_REQUEST
+            label="Request Test Drive", style=discord.ButtonStyle.green, custom_id=CUSTOM_ID_REQUEST
         )
         view.add_item(button)
         return view
@@ -315,14 +291,10 @@ class TestdriveHandler:
     def _make_pending_view(self, requester_id: str) -> discord.ui.View:
         view = discord.ui.View(timeout=None)
         accept = discord.ui.Button(
-            label="Accept",
-            style=discord.ButtonStyle.green,
-            custom_id=f"{CUSTOM_ID_ACCEPT_PREFIX}{requester_id}"
+            label="Accept", style=discord.ButtonStyle.green, custom_id=f"{CUSTOM_ID_ACCEPT_PREFIX}{requester_id}"
         )
         cancel = discord.ui.Button(
-            label="Cancel",
-            style=discord.ButtonStyle.red,
-            custom_id=f"{CUSTOM_ID_CANCEL_PREFIX}{requester_id}"
+            label="Cancel", style=discord.ButtonStyle.red, custom_id=f"{CUSTOM_ID_CANCEL_PREFIX}{requester_id}"
         )
         view.add_item(accept)
         view.add_item(cancel)
@@ -334,13 +306,13 @@ class TestdriveHandler:
             button = discord.ui.Button(
                 label="★" * i,
                 style=discord.ButtonStyle.secondary,
-                custom_id=f"{CUSTOM_ID_RATE_PREFIX}{guest_id}:{host_id}:{i}"
+                custom_id=f"{CUSTOM_ID_RATE_PREFIX}{guest_id}:{host_id}:{i}",
             )
             view.add_item(button)
         invalidate = discord.ui.Button(
             label="Invalidate",
             style=discord.ButtonStyle.red,
-            custom_id=f"{CUSTOM_ID_INVALIDATE_PREFIX}{guest_id}:{host_id}"
+            custom_id=f"{CUSTOM_ID_INVALIDATE_PREFIX}{guest_id}:{host_id}",
         )
         view.add_item(invalidate)
         return view
@@ -351,7 +323,7 @@ class TestdriveHandler:
             button = discord.ui.Button(
                 label="★" * i,
                 style=discord.ButtonStyle.secondary,
-                custom_id=f"{CUSTOM_ID_RATE_PREFIX}{guest_id}:{host_id}:{i}"
+                custom_id=f"{CUSTOM_ID_RATE_PREFIX}{guest_id}:{host_id}:{i}",
             )
             view.add_item(button)
         return view
@@ -361,7 +333,7 @@ class TestdriveHandler:
         button = discord.ui.Button(
             label="Invalidate",
             style=discord.ButtonStyle.red,
-            custom_id=f"{CUSTOM_ID_INVALIDATE_PREFIX}{guest_id}:{host_id}"
+            custom_id=f"{CUSTOM_ID_INVALIDATE_PREFIX}{guest_id}:{host_id}",
         )
         view.add_item(button)
         return view

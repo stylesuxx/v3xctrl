@@ -14,18 +14,19 @@ tx.start_task()
 tx.stop()
 tx.join()
 """
+
 import asyncio
+import concurrent.futures
 import logging
-from queue import Queue, Empty
 import socket
 import threading
 import time
-import concurrent.futures
+from queue import Empty, Queue
 
 from v3xctrl_helper import Address
 
-from .UDPPacket import UDPPacket
 from .message import Message
+from .UDPPacket import UDPPacket
 
 
 class UDPTransmitter(threading.Thread):
@@ -45,7 +46,7 @@ class UDPTransmitter(threading.Thread):
         self.ttl = ttl_ms / 1000
 
     def add_message(self, message: Message, addr: Address) -> None:
-        """ Convenience function to add a message to the queue."""
+        """Convenience function to add a message to the queue."""
         packet = UDPPacket(message.to_bytes(), addr[0], addr[1])
         self.add(packet)
 

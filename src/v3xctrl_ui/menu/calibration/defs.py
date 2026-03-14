@@ -1,5 +1,5 @@
-from enum import Enum, auto
 from dataclasses import dataclass, field
+from enum import Enum, auto
 
 
 class CalibrationStage(Enum):

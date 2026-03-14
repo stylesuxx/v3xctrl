@@ -1,13 +1,14 @@
 from abc import abstractmethod
 from collections.abc import Callable
+from typing import ClassVar
 
-from pygame import Surface, SRCALPHA
+from pygame import SRCALPHA, Surface
 
 from v3xctrl_ui.osd.widgets.Widget import Widget
 
 
 class BaseIndicatorWidget(Widget):
-    VALID_RANGE_MODES = {"symmetric", "positive"}
+    VALID_RANGE_MODES: ClassVar[set[str]] = {"symmetric", "positive"}
 
     def __init__(
         self,
@@ -16,7 +17,7 @@ class BaseIndicatorWidget(Widget):
         range_mode: str = "symmetric",
         color_fn: Callable[[float], tuple[int, int, int]] | None = None,
         bg_alpha: int = 150,
-        padding: int = 6
+        padding: int = 6,
     ) -> None:
         """
         position: (x, y) position of the indicator background

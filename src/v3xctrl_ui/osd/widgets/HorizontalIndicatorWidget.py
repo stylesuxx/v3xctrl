@@ -1,11 +1,10 @@
 from typing import Any
 
-from pygame import draw, Surface, Rect
+from pygame import Rect, Surface, draw
 
 from v3xctrl_helper import clamp
-from v3xctrl_ui.utils.colors import WHITE
-
 from v3xctrl_ui.osd.widgets.BaseIndicatorWidget import BaseIndicatorWidget
+from v3xctrl_ui.utils.colors import WHITE
 
 
 class HorizontalIndicatorWidget(BaseIndicatorWidget):
@@ -13,9 +12,9 @@ class HorizontalIndicatorWidget(BaseIndicatorWidget):
         self,
         position: tuple[int, int],
         size: tuple[int, int],
-        bar_size:  tuple[int, int] = (20, 10),
-        **kwargs: dict[str, Any]
-      ) -> None:
+        bar_size: tuple[int, int] = (20, 10),
+        **kwargs: dict[str, Any],
+    ) -> None:
         super().__init__(position, size, **kwargs)
 
         self.bar_width, self.bar_height = bar_size

@@ -1,11 +1,13 @@
 from dataclasses import dataclass
-from v3xctrl_telemetry.INA import INA
+
 from v3xctrl_helper import clamp
+from v3xctrl_telemetry.INA import INA
 
 
 @dataclass
 class BatteryState:
     """Battery telemetry state."""
+
     voltage: int = 0
     average_voltage: int = 0
     percentage: int = 100
@@ -23,7 +25,7 @@ class BatteryTelemetry:
         address: int = 0x40,
         bus: int = 1,
         r_shunt_mohms: int = 100,
-        max_expected_current_A: float = 0.8
+        max_expected_current_A: float = 0.8,
     ) -> None:
         r_shunt_ohms = r_shunt_mohms / 1000
         self._sensor = INA(address, bus, r_shunt_ohms, max_expected_current_A)
@@ -32,12 +34,7 @@ class BatteryTelemetry:
         self.warn_cell_voltage = warn_cell_voltage
 
         self._state = BatteryState(
-            voltage=0,
-            average_voltage=0,
-            percentage=100,
-            warning=False,
-            cell_count=self._guess_cell_count(),
-            current=0
+            voltage=0, average_voltage=0, percentage=100, warning=False, cell_count=self._guess_cell_count(), current=0
         )
 
     def _guess_cell_count(self) -> int:

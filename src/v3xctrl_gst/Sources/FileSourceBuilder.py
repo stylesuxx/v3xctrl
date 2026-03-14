@@ -1,10 +1,11 @@
 import logging
 
 import gi
-gi.require_version('Gst', '1.0')
-from gi.repository import Gst
 
-from .SourceBuilder import SourceBuilder
+gi.require_version("Gst", "1.0")
+from gi.repository import Gst  # noqa: E402
+
+from .SourceBuilder import SourceBuilder  # noqa: E402
 
 
 class FileSourceBuilder(SourceBuilder):
@@ -32,7 +33,7 @@ class FileSourceBuilder(SourceBuilder):
         if not filesrc:
             raise RuntimeError("Failed to create filesrc")
 
-        file_location = self.settings.get('file_src')
+        file_location = self.settings.get("file_src")
         if not file_location:
             raise ValueError("file_src setting is required for FileSourceBuilder")
 
@@ -67,15 +68,7 @@ class FileSourceBuilder(SourceBuilder):
 
         identity.set_property("sync", True)
 
-        for element in [
-            filesrc,
-            demux,
-            h264parse,
-            decoder,
-            videoconvert,
-            videorate,
-            identity
-        ]:
+        for element in [filesrc, demux, h264parse, decoder, videoconvert, videorate, identity]:
             source_bin.add(element)
 
         if not filesrc.link(demux):

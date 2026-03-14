@@ -1,26 +1,28 @@
 # Required before importing pygame, otherwise screen might flicker during tests
 import os
+
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 import unittest
+
 import pygame
 
-from v3xctrl_ui.osd.widgets.WidgetFactory import (
-    create_steering_widgets,
-    create_battery_widgets,
-    create_signal_widgets,
-    create_debug_widgets,
-    create_rec_widget,
-)
 from v3xctrl_ui.osd.widgets import (
+    Alignment,
     BatteryIconWidget,
     FpsWidget,
     HorizontalIndicatorWidget,
-    StatusValueWidget,
     SignalQualityWidget,
+    StatusValueWidget,
     TextWidget,
     VerticalIndicatorWidget,
-    Alignment,
+)
+from v3xctrl_ui.osd.widgets.WidgetFactory import (
+    create_battery_widgets,
+    create_debug_widgets,
+    create_rec_widget,
+    create_signal_widgets,
+    create_steering_widgets,
 )
 
 
@@ -179,10 +181,10 @@ class TestWidgetFactory(unittest.TestCase):
         debug_widgets = create_debug_widgets(100, 50)
 
         all_widgets = (
-            list(steering_widgets.values()) +
-            list(battery_widgets.values()) +
-            list(signal_widgets.values()) +
-            list(debug_widgets.values())
+            list(steering_widgets.values())
+            + list(battery_widgets.values())
+            + list(signal_widgets.values())
+            + list(debug_widgets.values())
         )
 
         for widget in all_widgets:

@@ -1,5 +1,6 @@
 # Required before importing pygame, otherwise screen might flicker during tests
 import os
+
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 import unittest
@@ -43,11 +44,10 @@ class TestHorizontalIndicatorWidget(unittest.TestCase):
         self.assertLess(zero_x, one_x)
 
     def test_color_function_usage(self, mock_draw_rect):
-        color_fn = lambda v: (255, 0, 0) if v < 0 else (0, 255, 0)
-        widget = HorizontalIndicatorWidget(
-            self.widget_pos, self.widget_size,
-            range_mode="symmetric", color_fn=color_fn
-        )
+        def color_fn(v):
+            return (255, 0, 0) if v < 0 else (0, 255, 0)
+
+        widget = HorizontalIndicatorWidget(self.widget_pos, self.widget_size, range_mode="symmetric", color_fn=color_fn)
 
         screen = MagicMock()
         widget.draw(screen, value=-0.5)

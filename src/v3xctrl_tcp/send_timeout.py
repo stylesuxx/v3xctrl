@@ -20,5 +20,5 @@ def configure_send_timeout(sock: socket.socket, timeout_ms: int) -> None:
         timeout_ms: Send timeout in milliseconds.
     """
     sec, ms = divmod(timeout_ms, 1000)
-    val = struct.pack('ll', sec, ms * 1000)
+    val = struct.pack("ll", sec, ms * 1000)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDTIMEO, val)

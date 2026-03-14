@@ -1,6 +1,8 @@
 import unittest
+
 import msgpack
-from v3xctrl_control.message import Message, ConnectionTest
+
+from v3xctrl_control.message import ConnectionTest, Message
 
 
 class TestConnectionTest(unittest.TestCase):

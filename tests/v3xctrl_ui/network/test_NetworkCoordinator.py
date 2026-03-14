@@ -1,11 +1,11 @@
+import threading
 import unittest
 from unittest.mock import MagicMock, patch
-import threading
 
-from v3xctrl_ui.network.NetworkCoordinator import NetworkCoordinator
-from v3xctrl_ui.core.dataclasses import ApplicationModel
 from v3xctrl_control import State
 from v3xctrl_control.message import Command, Control, Latency, Telemetry
+from v3xctrl_ui.core.dataclasses import ApplicationModel
+from v3xctrl_ui.network.NetworkCoordinator import NetworkCoordinator
 
 
 class TestNetworkCoordinator(unittest.TestCase):
@@ -13,11 +13,7 @@ class TestNetworkCoordinator(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.model = ApplicationModel(
-            fullscreen=False,
-            throttle=0.0,
-            steering=0.0
-        )
+        self.model = ApplicationModel(fullscreen=False, throttle=0.0, steering=0.0)
         self.mock_osd = MagicMock()
         self.coordinator = NetworkCoordinator(self.model, self.mock_osd)
 

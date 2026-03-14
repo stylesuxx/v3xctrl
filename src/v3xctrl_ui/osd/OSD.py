@@ -1,28 +1,26 @@
-from collections import deque
 import logging
-import pygame
 import time
+from collections import deque
 
-from v3xctrl_control.message import Message, Latency, Telemetry
+import pygame
 
+from v3xctrl_control.message import Latency, Message, Telemetry
+from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext
-
 from v3xctrl_ui.core.TelemetryParser import parse_telemetry
+from v3xctrl_ui.osd.widgets import Widget
 from v3xctrl_ui.osd.widgets.WidgetFactory import (
-    create_steering_widgets,
     create_battery_widgets,
-    create_signal_widgets,
+    create_clock_widget,
     create_debug_widgets,
     create_rec_widget,
-    create_clock_widget,
+    create_signal_widgets,
+    create_steering_widgets,
 )
-from v3xctrl_ui.osd.widgets.WidgetGroupRenderer import render_widget_group
 from v3xctrl_ui.osd.widgets.WidgetGroup import WidgetGroup
-from v3xctrl_ui.osd.widgets import Widget
-
+from v3xctrl_ui.osd.widgets.WidgetGroupRenderer import render_widget_group
 from v3xctrl_ui.utils.colors import ORANGE, RED, WHITE
 from v3xctrl_ui.utils.helpers import get_fps
-from v3xctrl_ui.core.Settings import Settings
 
 
 class OSD:
@@ -67,37 +65,22 @@ class OSD:
                 name="steering",
                 widgets=self.widgets_steering,
                 get_value=self._get_steering_value,
-                use_composition=False
+                use_composition=False,
             ),
             WidgetGroup.create(
-                name="battery",
-                widgets=self.widgets_battery,
-                get_value=self._get_battery_value,
-                use_composition=True
+                name="battery", widgets=self.widgets_battery, get_value=self._get_battery_value, use_composition=True
             ),
             WidgetGroup.create(
-                name="signal",
-                widgets=self.widgets_signal,
-                get_value=self._get_signal_value,
-                use_composition=True
+                name="signal", widgets=self.widgets_signal, get_value=self._get_signal_value, use_composition=True
             ),
             WidgetGroup.create(
-                name="debug",
-                widgets=self.widgets_debug,
-                get_value=self._get_debug_value,
-                use_composition=True
+                name="debug", widgets=self.widgets_debug, get_value=self._get_debug_value, use_composition=True
             ),
             WidgetGroup.create(
-                name="rec",
-                widgets=self.widgets_rec,
-                get_value=self._get_rec_value,
-                use_composition=False
+                name="rec", widgets=self.widgets_rec, get_value=self._get_rec_value, use_composition=False
             ),
             WidgetGroup.create(
-                name="clock",
-                widgets=self.widgets_clock,
-                get_value=self._get_clock_value,
-                use_composition=False
+                name="clock", widgets=self.widgets_clock, get_value=self._get_clock_value, use_composition=False
             ),
         ]
 
@@ -149,12 +132,7 @@ class OSD:
     def update_debug_status(self, status: str) -> None:
         self.debug_data = status
 
-    def render(
-            self,
-            screen: pygame.Surface,
-            loop_history: deque[float],
-            video_history: deque[float] | None
-    ) -> None:
+    def render(self, screen: pygame.Surface, loop_history: deque[float], video_history: deque[float] | None) -> None:
         self.loop_history = loop_history
         self.video_history = video_history
 
@@ -169,10 +147,7 @@ class OSD:
         rec_enabled_in_settings = self.widget_settings.get("rec", {}).get("display", True)
         render_settings = {
             **self.widget_settings,
-            "rec": {
-                **self.widget_settings.get("rec", {}),
-                "display": rec_enabled_in_settings and gst.recording
-            }
+            "rec": {**self.widget_settings.get("rec", {}), "display": rec_enabled_in_settings and gst.recording},
         }
 
         for group in self.widget_groups:
@@ -240,10 +215,7 @@ class OSD:
         data = parse_telemetry(message)
         values = message.get_values()
 
-        self.telemetry_context.update_signal_quality(
-            values["sig"]["rsrq"],
-            values["sig"]["rsrp"]
-        )
+        self.telemetry_context.update_signal_quality(values["sig"]["rsrq"], values["sig"]["rsrp"])
         self.telemetry_context.update_signal_band(data.signal_band)
         self.telemetry_context.update_signal_cell(data.signal_cell)
 
@@ -253,7 +225,7 @@ class OSD:
             average_voltage=data.battery_average_voltage,
             percent=data.battery_percent,
             current=data.battery_current,
-            warning=data.battery_warning
+            warning=data.battery_warning,
         )
 
         self.telemetry_context.update_services(values.get("svc", 0))

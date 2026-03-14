@@ -1,5 +1,6 @@
 # Required before importing pygame, otherwise screen might flicker during tests
 import os
+
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 import unittest
@@ -20,13 +21,14 @@ class TestGamepadCalibrationWidget(unittest.TestCase):
         self.mock_on_calibration_done = MagicMock()
 
         # Mock UI components
-        with patch('v3xctrl_ui.menu.calibration.GamepadCalibrationWidget.Select') as mock_select, \
-             patch('v3xctrl_ui.menu.calibration.GamepadCalibrationWidget.Button') as mock_button, \
-             patch('v3xctrl_ui.menu.calibration.GamepadCalibrationWidget.Checkbox') as mock_checkbox, \
-             patch('v3xctrl_ui.menu.calibration.GamepadCalibrationWidget.NumberInput') as mock_number_input, \
-             patch('v3xctrl_ui.menu.calibration.GamepadCalibrationWidget.ButtonMappingWidget') as mock_button_mapping, \
-             patch('v3xctrl_ui.menu.calibration.GamepadCalibrationWidget.DialogBox') as mock_dialog:
-
+        with (
+            patch("v3xctrl_ui.menu.calibration.GamepadCalibrationWidget.Select") as mock_select,
+            patch("v3xctrl_ui.menu.calibration.GamepadCalibrationWidget.Button") as mock_button,
+            patch("v3xctrl_ui.menu.calibration.GamepadCalibrationWidget.Checkbox") as mock_checkbox,
+            patch("v3xctrl_ui.menu.calibration.GamepadCalibrationWidget.NumberInput") as mock_number_input,
+            patch("v3xctrl_ui.menu.calibration.GamepadCalibrationWidget.ButtonMappingWidget") as mock_button_mapping,
+            patch("v3xctrl_ui.menu.calibration.GamepadCalibrationWidget.DialogBox") as mock_dialog,
+        ):
             self.mock_select = MagicMock()
             self.mock_button = MagicMock()
             self.mock_checkbox = MagicMock()
@@ -49,7 +51,7 @@ class TestGamepadCalibrationWidget(unittest.TestCase):
                 font=self.mock_font,
                 manager=self.mock_manager,
                 on_calibration_start=self.mock_on_calibration_start,
-                on_calibration_done=self.mock_on_calibration_done
+                on_calibration_done=self.mock_on_calibration_done,
             )
 
     def test_initialization(self):
@@ -191,7 +193,7 @@ class TestGamepadCalibrationWidget(unittest.TestCase):
         self.assertIsNone(self.widget.calibrator)
         self.widget.controller_select.set_options.assert_called_with([], selected_index=0)
 
-    @patch('v3xctrl_ui.menu.calibration.GamepadCalibrationWidget.GamepadCalibrator')
+    @patch("v3xctrl_ui.menu.calibration.GamepadCalibrationWidget.GamepadCalibrator")
     def test_start_calibration_already_active(self, mock_calibrator_class):
         mock_calibrator = MagicMock()
         mock_calibrator.state = CalibratorState.ACTIVE
@@ -201,7 +203,7 @@ class TestGamepadCalibrationWidget(unittest.TestCase):
 
         mock_calibrator_class.assert_not_called()
 
-    @patch('v3xctrl_ui.menu.calibration.GamepadCalibrationWidget.GamepadCalibrator')
+    @patch("v3xctrl_ui.menu.calibration.GamepadCalibrationWidget.GamepadCalibrator")
     def test_start_calibration_success(self, mock_calibrator_class):
         mock_calibrator = MagicMock()
         mock_calibrator_class.return_value = mock_calibrator
@@ -217,7 +219,7 @@ class TestGamepadCalibrationWidget(unittest.TestCase):
         self.assertEqual(self.widget.calibrator, mock_calibrator)
 
     def test_start_calibration_on_done_callback(self):
-        with patch('v3xctrl_ui.menu.calibration.GamepadCalibrationWidget.GamepadCalibrator') as mock_calibrator_class:
+        with patch("v3xctrl_ui.menu.calibration.GamepadCalibrationWidget.GamepadCalibrator") as mock_calibrator_class:
             mock_calibrator = MagicMock()
             mock_calibrator_class.return_value = mock_calibrator
 
@@ -233,7 +235,7 @@ class TestGamepadCalibrationWidget(unittest.TestCase):
 
             # Get the on_done callback that was passed to the calibrator
             call_args = mock_calibrator_class.call_args
-            on_done = call_args[1]['on_done']
+            on_done = call_args[1]["on_done"]
 
             # Execute the callback
             on_done()
@@ -246,7 +248,7 @@ class TestGamepadCalibrationWidget(unittest.TestCase):
         mock_js = MagicMock()
         self.widget.gamepads = {"guid1": mock_js, "guid2": mock_js}
 
-        with patch.object(self.widget, '_apply_known_calibration') as mock_apply:
+        with patch.object(self.widget, "_apply_known_calibration") as mock_apply:
             self.widget.set_selected_gamepad(1)
 
             self.assertEqual(self.widget.selected_guid, "guid2")
@@ -260,7 +262,7 @@ class TestGamepadCalibrationWidget(unittest.TestCase):
 
         self.assertEqual(self.widget.selected_guid, original_guid)
 
-    @patch('v3xctrl_ui.menu.calibration.GamepadCalibrationWidget.GamepadCalibrator')
+    @patch("v3xctrl_ui.menu.calibration.GamepadCalibrationWidget.GamepadCalibrator")
     def test_apply_known_calibration_with_settings(self, mock_calibrator_class):
         mock_calibrator = MagicMock()
         mock_calibrator_class.return_value = mock_calibrator
@@ -268,10 +270,7 @@ class TestGamepadCalibrationWidget(unittest.TestCase):
         mock_js = MagicMock()
         mock_js.get_guid.return_value = "test_guid"
 
-        settings = {
-            "steering": {"invert": True},
-            "throttle": {"invert": False}
-        }
+        settings = {"steering": {"invert": True}, "throttle": {"invert": False}}
         self.widget.manager.get_calibration.return_value = settings
 
         self.widget._apply_known_calibration(mock_js)
@@ -329,7 +328,7 @@ class TestGamepadCalibrationWidget(unittest.TestCase):
         settings = {
             "steering": {"center": 0.0, "invert": False},
             "throttle": {"invert": False},
-            "brake": {"invert": False}
+            "brake": {"invert": False},
         }
 
         self.widget.manager.read_inputs.return_value = inputs
@@ -337,9 +336,7 @@ class TestGamepadCalibrationWidget(unittest.TestCase):
 
         self.mock_font.render.return_value = (pygame.Surface((80, 20)), pygame.Rect(0, 0, 80, 20))
 
-        with patch('pygame.draw.rect') as mock_draw_rect, \
-             patch('pygame.draw.line') as mock_draw_line:
-
+        with patch("pygame.draw.rect") as mock_draw_rect, patch("pygame.draw.line") as mock_draw_line:
             self.widget._draw(surface)
 
             # Verify bars were drawn
@@ -353,10 +350,7 @@ class TestGamepadCalibrationWidget(unittest.TestCase):
         self.widget.calibrator = MagicMock()
         self.widget.calibrator.state = CalibratorState.ACTIVE
         self.widget.calibrator.stage = "test_stage"
-        self.widget.calibrator.get_steps.return_value = [
-            ("Step 1", True),
-            ("Step 2", False)
-        ]
+        self.widget.calibrator.get_steps.return_value = [("Step 1", True), ("Step 2", False)]
         self.widget.set_position(10, 10)
 
         self.mock_font.render.return_value = (pygame.Surface((60, 20)), pygame.Rect(0, 0, 60, 20))
@@ -407,7 +401,7 @@ class TestGamepadCalibrationWidget(unittest.TestCase):
         self.widget.calibrator.state = CalibratorState.COMPLETE
         self.widget.manager.read_inputs.return_value = None
 
-        with patch.object(self.widget, '_draw_bar') as mock_draw_bar:
+        with patch.object(self.widget, "_draw_bar") as mock_draw_bar:
             self.widget._draw_calibration_bars(surface)
             mock_draw_bar.assert_not_called()
 
@@ -418,7 +412,7 @@ class TestGamepadCalibrationWidget(unittest.TestCase):
         self.widget.manager.read_inputs.return_value = {"steering": 0.5}
         self.widget.manager.get_calibration.return_value = None
 
-        with patch.object(self.widget, '_draw_bar') as mock_draw_bar:
+        with patch.object(self.widget, "_draw_bar") as mock_draw_bar:
             self.widget._draw_calibration_bars(surface)
             mock_draw_bar.assert_not_called()
 
@@ -427,9 +421,7 @@ class TestGamepadCalibrationWidget(unittest.TestCase):
 
         self.mock_font.render.return_value = (pygame.Surface((80, 20)), pygame.Rect(0, 0, 80, 20))
 
-        with patch('pygame.draw.rect') as mock_draw_rect, \
-             patch('pygame.draw.line') as mock_draw_line:
-
+        with patch("pygame.draw.rect") as mock_draw_rect, patch("pygame.draw.line") as mock_draw_line:
             self.widget._draw_bar(surface, "Test", 0.5, -1.0, 1.0, 0.0, 100, 100)
 
             # Should draw background rect, fill rect, and center line
@@ -441,9 +433,7 @@ class TestGamepadCalibrationWidget(unittest.TestCase):
 
         self.mock_font.render.return_value = (pygame.Surface((80, 20)), pygame.Rect(0, 0, 80, 20))
 
-        with patch('pygame.draw.rect') as mock_draw_rect, \
-             patch('pygame.draw.line') as mock_draw_line:
-
+        with patch("pygame.draw.rect") as mock_draw_rect, patch("pygame.draw.line") as mock_draw_line:
             self.widget._draw_bar(surface, "Test", 0.5, 0.0, 1.0, None, 100, 100)
 
             # Should draw background rect and fill rect, but no center line
@@ -451,5 +441,5 @@ class TestGamepadCalibrationWidget(unittest.TestCase):
             mock_draw_line.assert_not_called()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

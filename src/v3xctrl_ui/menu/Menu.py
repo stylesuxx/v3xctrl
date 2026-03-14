@@ -1,31 +1,22 @@
 import math
 import threading
 import time
+from collections.abc import Callable
+from typing import NamedTuple
 
 import pygame
 from pygame import Surface, event
-from typing import NamedTuple
-from collections.abc import Callable
 
 from v3xctrl_control.message import Command
 from v3xctrl_relay.helper import test_relay_connection
-
-from v3xctrl_ui.utils.colors import WHITE, DARK_GREY, CHARCOAL, GREY, TRANSPARENT_BLACK
-from v3xctrl_ui.utils.fonts import MAIN_FONT
-from v3xctrl_ui.utils.i18n import t
 from v3xctrl_ui.core.controllers.input.GamepadController import GamepadController
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 from v3xctrl_ui.menu.input import Button
-from v3xctrl_ui.menu.tabs import (
-  GeneralTab,
-  InputTab,
-  FrequenciesTab,
-  StreamerTab,
-  OsdTab,
-  NetworkTab,
-  Tab
-)
+from v3xctrl_ui.menu.tabs import FrequenciesTab, GeneralTab, InputTab, NetworkTab, OsdTab, StreamerTab, Tab
+from v3xctrl_ui.utils.colors import CHARCOAL, DARK_GREY, GREY, TRANSPARENT_BLACK, WHITE
+from v3xctrl_ui.utils.fonts import MAIN_FONT
+from v3xctrl_ui.utils.i18n import t
 
 
 class TabEntry(NamedTuple):
@@ -53,7 +44,7 @@ class Menu:
         invoke_command: Callable[[Command, Callable[[bool], None]], None],
         callback: Callable[[], None],
         callback_quit: Callable[[], None],
-        telemetry_context: TelemetryContext
+        telemetry_context: TelemetryContext,
     ) -> None:
         self.width = width
         self.height = height
@@ -148,13 +139,12 @@ class Menu:
         self.exit_button.handle_event(event)
 
         # Pass event to tabbar
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if not self.disable_tabs:
-                for entry in self.tabs:
-                    if entry.rect.collidepoint(event.pos) and entry.enabled:
-                        self.active_tab = entry.name
-                        self.tab_bar_dirty = True
-                        return
+        if not self.disable_tabs and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            for entry in self.tabs:
+                if entry.rect.collidepoint(event.pos) and entry.enabled:
+                    self.active_tab = entry.name
+                    self.tab_bar_dirty = True
+                    return
 
         # Pass event to active tab
         tab = self._get_active_tab()
@@ -270,14 +260,14 @@ class Menu:
                 width=self.width,
                 height=self.height,
                 padding=self.padding,
-                y_offset=self.tab_height
+                y_offset=self.tab_height,
             ),
             "OSD": OsdTab(
                 settings=self.settings,
                 width=self.width,
                 height=self.height,
                 padding=self.padding,
-                y_offset=self.tab_height
+                y_offset=self.tab_height,
             ),
             "Input": InputTab(
                 settings=self.settings,
@@ -286,14 +276,14 @@ class Menu:
                 padding=self.padding,
                 y_offset=self.tab_height,
                 gamepad_manager=self.gamepad_manager,
-                on_active_toggle=self._on_active_toggle
+                on_active_toggle=self._on_active_toggle,
             ),
             "Frequencies": FrequenciesTab(
                 settings=self.settings,
                 width=self.width,
                 height=self.height,
                 padding=self.padding,
-                y_offset=self.tab_height
+                y_offset=self.tab_height,
             ),
             "Streamer": StreamerTab(
                 settings=self.settings,
@@ -303,7 +293,7 @@ class Menu:
                 y_offset=self.tab_height,
                 on_active_toggle=self._on_active_toggle,
                 send_command=self._on_send_command,
-                telemetry_context=self.telemetry_context
+                telemetry_context=self.telemetry_context,
             ),
             "Network": NetworkTab(
                 settings=self.settings,
@@ -311,19 +301,15 @@ class Menu:
                 height=self.height,
                 padding=self.padding,
                 y_offset=self.tab_height,
-                on_test_relay=self._on_test_relay
+                on_test_relay=self._on_test_relay,
             ),
         }
 
     def _on_test_relay(
-        self,
-        server: str,
-        port: int,
-        session_id: str,
-        spectator: bool,
-        result_callback: Callable[[bool, str], None]
+        self, server: str, port: int, session_id: str, spectator: bool, result_callback: Callable[[bool, str], None]
     ) -> None:
         """Run relay connection test with loading overlay."""
+
         def run_test() -> None:
             success, message = test_relay_connection(server, port, session_id, spectator)
             self._pending_result = (success, lambda s: result_callback(s, message))
@@ -400,8 +386,8 @@ class Menu:
 
         if tab:
             for widget in self._collect_hover_widgets(tab.view.elements):
-                if widget.hovered and getattr(widget, 'HOVER_CURSOR', None) is not None:
-                    if getattr(widget, 'disabled', False):
+                if widget.hovered and getattr(widget, "HOVER_CURSOR", None) is not None:
+                    if getattr(widget, "disabled", False):
                         pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_NO)
                     else:
                         pygame.mouse.set_cursor(widget.HOVER_CURSOR)
@@ -414,7 +400,7 @@ class Menu:
         result = []
         for element in elements:
             result.append(element)
-            children = getattr(element, 'hover_children', [])
+            children = getattr(element, "hover_children", [])
             if children:
                 result.extend(self._collect_hover_widgets(children))
         return result
@@ -456,11 +442,7 @@ class Menu:
             # Draw left border
             if i > 0:
                 pygame.draw.line(
-                    self.tab_bar_surface,
-                    self.TAB_SEPARATOR_COLOR,
-                    entry.rect.topleft,
-                    entry.rect.bottomleft,
-                    2
+                    self.tab_bar_surface, self.TAB_SEPARATOR_COLOR, entry.rect.topleft, entry.rect.bottomleft, 2
                 )
 
             # Render text

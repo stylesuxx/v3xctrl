@@ -1,15 +1,16 @@
 """Core dataclasses for v3xctrl_ui."""
-from dataclasses import dataclass, field
+
 from collections import deque
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 # Re-export telemetry dataclasses for backwards compatibility
 # Import directly from dataclasses module to avoid hardware dependencies (smbus3)
-from v3xctrl_telemetry.dataclasses import (
-    ServiceFlags,
+from v3xctrl_telemetry.dataclasses import (  # noqa: F401
     GstFlags,
-    VideoCoreFlags,
+    ServiceFlags,
     ThrottleFlags,
+    VideoCoreFlags,
 )
 
 if TYPE_CHECKING:
@@ -19,6 +20,7 @@ if TYPE_CHECKING:
 @dataclass
 class ApplicationModel:
     """Application state model."""
+
     # Control
     throttle: float = 0.0
     steering: float = 0.0
@@ -40,12 +42,13 @@ class ApplicationModel:
 
     # Network
     user_connected: bool = False
-    pending_settings: 'Settings | None' = None
+    pending_settings: "Settings | None" = None
 
 
 @dataclass
 class BatteryData:
     """Battery telemetry data."""
+
     icon: int = 0
     voltage: str = "0.00V"
     average_voltage: str = "0.00V"
@@ -57,6 +60,7 @@ class BatteryData:
 @dataclass
 class SignalData:
     """Signal telemetry data."""
+
     quality: dict[str, int] = field(default_factory=lambda: {"rsrq": -1, "rsrp": -1})
     band: str = "BAND ?"
     cell: str = "CELL ?"

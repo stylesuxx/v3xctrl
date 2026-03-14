@@ -1,5 +1,7 @@
 """Tests for TimingController - manages timing intervals and frame rates."""
+
 import time
+
 import pytest
 
 from v3xctrl_ui.core.controllers.TimingController import TimingController
@@ -11,13 +13,7 @@ class TestTimingControllerInitialization:
 
     def test_initialization_with_default_settings(self):
         """Test that TimingController initializes with default timing values."""
-        settings = {
-            "timing": {
-                "control_update_hz": 30,
-                "latency_check_hz": 1,
-                "main_loop_fps": 60
-            }
-        }
+        settings = {"timing": {"control_update_hz": 30, "latency_check_hz": 1, "main_loop_fps": 60}}
         model = ApplicationModel()
 
         controller = TimingController(settings, model)
@@ -30,13 +26,7 @@ class TestTimingControllerInitialization:
 
     def test_initialization_with_custom_settings(self):
         """Test that TimingController initializes with custom timing values."""
-        settings = {
-            "timing": {
-                "control_update_hz": 60,
-                "latency_check_hz": 5,
-                "main_loop_fps": 120
-            }
-        }
+        settings = {"timing": {"control_update_hz": 60, "latency_check_hz": 5, "main_loop_fps": 120}}
         model = ApplicationModel()
 
         controller = TimingController(settings, model)
@@ -79,24 +69,12 @@ class TestUpdateFromSettings:
 
     def test_update_from_settings(self):
         """Test that update_from_settings recalculates intervals."""
-        settings = {
-            "timing": {
-                "control_update_hz": 30,
-                "latency_check_hz": 1,
-                "main_loop_fps": 60
-            }
-        }
+        settings = {"timing": {"control_update_hz": 30, "latency_check_hz": 1, "main_loop_fps": 60}}
         model = ApplicationModel()
         controller = TimingController(settings, model)
 
         # Change settings
-        controller.settings = {
-            "timing": {
-                "control_update_hz": 120,
-                "latency_check_hz": 10,
-                "main_loop_fps": 144
-            }
-        }
+        controller.settings = {"timing": {"control_update_hz": 120, "latency_check_hz": 10, "main_loop_fps": 144}}
         controller.update_from_settings()
 
         assert controller.main_loop_fps == 144
@@ -150,11 +128,7 @@ class TestShouldUpdateControl:
 
     def test_should_update_control_exact_boundary(self):
         """Test boundary condition when time exceeds interval slightly."""
-        settings = {
-            "timing": {
-                "control_update_hz": 30
-            }
-        }
+        settings = {"timing": {"control_update_hz": 30}}
         model = ApplicationModel()
         controller = TimingController(settings, model)
 
@@ -262,13 +236,7 @@ class TestTimingControllerIntegration:
 
     def test_typical_update_cycle(self):
         """Test a typical update cycle with control and latency checks."""
-        settings = {
-            "timing": {
-                "control_update_hz": 30,
-                "latency_check_hz": 1,
-                "main_loop_fps": 60
-            }
-        }
+        settings = {"timing": {"control_update_hz": 30, "latency_check_hz": 1, "main_loop_fps": 60}}
         model = ApplicationModel()
         controller = TimingController(settings, model)
 
@@ -290,24 +258,14 @@ class TestTimingControllerIntegration:
 
     def test_settings_hot_reload(self):
         """Test changing settings during runtime."""
-        settings = {
-            "timing": {
-                "control_update_hz": 30,
-                "main_loop_fps": 60
-            }
-        }
+        settings = {"timing": {"control_update_hz": 30, "main_loop_fps": 60}}
         model = ApplicationModel()
         controller = TimingController(settings, model)
 
         original_interval = model.control_interval
 
         # User changes settings in menu
-        controller.settings = {
-            "timing": {
-                "control_update_hz": 60,
-                "main_loop_fps": 120
-            }
-        }
+        controller.settings = {"timing": {"control_update_hz": 60, "main_loop_fps": 120}}
         controller.update_from_settings()
 
         # Intervals should be updated
@@ -342,11 +300,7 @@ class TestTimingControllerIntegration:
 
     def test_high_frequency_control_updates(self):
         """Test high frequency control updates (120Hz)."""
-        settings = {
-            "timing": {
-                "control_update_hz": 120
-            }
-        }
+        settings = {"timing": {"control_update_hz": 120}}
         model = ApplicationModel()
         controller = TimingController(settings, model)
 

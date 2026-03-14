@@ -1,10 +1,11 @@
 # Required before importing pygame, otherwise screen might flicker during tests
 import os
+
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
-from pathlib import Path
 import tempfile
 import unittest
+from pathlib import Path
 
 import pygame
 import tomli_w
@@ -14,9 +15,8 @@ from v3xctrl_ui.core.Settings import Settings
 
 class TestSettings(unittest.TestCase):
     def setUp(self):
-        self.tempfile = tempfile.NamedTemporaryFile(delete=False, suffix=".toml")
-        self.path = self.tempfile.name
-        self.tempfile.close()
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".toml") as tmp:
+            self.path = tmp.name
 
     def tearDown(self):
         Path(self.path).unlink(missing_ok=True)
@@ -51,14 +51,7 @@ class TestSettings(unittest.TestCase):
         self.assertEqual(loaded.get("video")["height"], 480)
 
     def test_merge_partial_override(self):
-        partial = {
-            "video": {"width": 800},
-            "controls": {
-                "keyboard": {
-                    "throttle_up": "K_UP"
-                }
-            }
-        }
+        partial = {"video": {"width": 800}, "controls": {"keyboard": {"throttle_up": "K_UP"}}}
         with open(self.path, "wb") as f:
             f.write(tomli_w.dumps(partial).encode("utf-8"))
 
