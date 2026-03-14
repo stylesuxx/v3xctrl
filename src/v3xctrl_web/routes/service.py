@@ -3,7 +3,7 @@ from flask import Response
 from flask_smorest import Blueprint
 import subprocess
 
-from routes.response import success, error
+from .response import success, error
 
 blueprint = Blueprint('service', 'service', url_prefix='/service', description='Systemd service control')
 

@@ -4,7 +4,7 @@ from flask.views import MethodView
 import socket
 import subprocess
 
-from routes.response import success
+from .response import success
 
 blueprint = Blueprint('system', 'system', url_prefix='/system', description='System control endpoints')
 

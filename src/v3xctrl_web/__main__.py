@@ -1,14 +1,21 @@
 import argparse
+from pathlib import Path
 from flask import Flask, render_template
 from flask_cors import CORS
 from flask_smorest import Api
 import json
 
-from routes import register_routes
+from .routes import register_routes
+
+PACKAGE_DIR = Path(__file__).resolve().parent
 
 
 def create_app(schema_path: str, config_path: str, modems_path: str) -> Flask:
-    app = Flask(__name__, template_folder='templates', static_folder='static')
+    app = Flask(
+        __name__,
+        template_folder=str(PACKAGE_DIR / 'templates'),
+        static_folder=str(PACKAGE_DIR / 'static'),
+    )
     CORS(app)
     app.config['SCHEMA_PATH'] = schema_path
     app.config['CONFIG_PATH'] = config_path
