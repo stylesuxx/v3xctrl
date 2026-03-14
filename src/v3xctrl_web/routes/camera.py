@@ -6,7 +6,7 @@ import subprocess
 
 from flask import Response
 
-from routes.response import success, error
+from .response import success, error
 
 blueprint = Blueprint('camera', 'camera', url_prefix='/camera', description='Camera control endpoints')
 

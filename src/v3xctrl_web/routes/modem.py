@@ -4,7 +4,7 @@ from flask.views import MethodView
 import json
 import subprocess
 
-from routes.response import success, error
+from .response import success, error
 
 blueprint = Blueprint('modem', 'modem', url_prefix='/modem', description='Modem control endpoints')
 

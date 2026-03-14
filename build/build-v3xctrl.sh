@@ -30,12 +30,12 @@ DEB_PATH="${TMP_DIR}/${NAME}.deb"
 DEST_DIR="${TMP_DIR}/$NAME"
 
 BASE_PATH="${DEST_DIR}/usr/share/$NAME"
-SERVER_BASE_PATH="${BASE_PATH}/config-server/"
-SERVER_LIB_PATH="${SERVER_BASE_PATH}/static/libs/"
-SERVER_IMAGE_PATH="${SERVER_BASE_PATH}/static/images/"
 
 PYTHON_REQUIREMENTS="${BUILD_DIR}/requirements/streamer.txt"
 PYTHON_LIB_PATH="${DEST_DIR}/opt/v3xctrl-venv/lib/python3.11/site-packages/"
+
+WEB_LIB_PATH="${PYTHON_LIB_PATH}/v3xctrl_web/static/libs/"
+WEB_IMAGE_PATH="${PYTHON_LIB_PATH}/v3xctrl_web/static/images/"
 
 # Clean up previous build (only relevant when re-building on dev setup)
 # In workflows we start with a clean environment anyway
@@ -47,15 +47,10 @@ rm -f "${DEB_PATH}"
 # Create dir structure
 mkdir -p "${TMP_DIR}"
 mkdir -p "${BASE_PATH}"
-mkdir -p "${SERVER_BASE_PATH}"
-mkdir -p "${SERVER_LIB_PATH}"
-mkdir -p "${SERVER_IMAGE_PATH}"
 mkdir -p "${PYTHON_LIB_PATH}"
 
 # Move files into place
 cp -r "${SRC_DIR}/" "$TMP_DIR"
-cp -r "${ROOT_DIR}/web-server/." "${SERVER_BASE_PATH}"
-cp -r "${ROOT_DIR}/branding/favicon.ico" "${SERVER_IMAGE_PATH}"
 
 # Move python dependencies into place
 cp -r "${ROOT_DIR}/src/v3xctrl_control" "${PYTHON_LIB_PATH}"
@@ -66,12 +61,18 @@ cp -r "${ROOT_DIR}/src/v3xctrl_tcp" "${PYTHON_LIB_PATH}"
 cp -r "${ROOT_DIR}/src/v3xctrl_udp_relay" "${PYTHON_LIB_PATH}"
 cp -r "${ROOT_DIR}/src/v3xctrl_telemetry" "${PYTHON_LIB_PATH}"
 cp -r "${ROOT_DIR}/src/v3xctrl_self_test" "${PYTHON_LIB_PATH}"
+cp -r "${ROOT_DIR}/src/v3xctrl_web" "${PYTHON_LIB_PATH}"
+
+# Copy web server static assets
+mkdir -p "${WEB_LIB_PATH}"
+mkdir -p "${WEB_IMAGE_PATH}"
+cp -r "${ROOT_DIR}/branding/favicon.ico" "${WEB_IMAGE_PATH}"
 
 if [ "$SKIP_DEPS" = false ]; then
   # Fetch static files for the web server
-  curl -o "${SERVER_LIB_PATH}/jsoneditor.min.js" "https://raw.githubusercontent.com/jdorn/json-editor/master/dist/jsoneditor.min.js"
-  curl -o "${SERVER_LIB_PATH}/jquery.min.js" "https://code.jquery.com/jquery-3.6.0.min.js"
-  curl -o "${SERVER_LIB_PATH}/bootstrap3.min.css" "https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css"
+  curl -o "${WEB_LIB_PATH}/jsoneditor.min.js" "https://raw.githubusercontent.com/jdorn/json-editor/master/dist/jsoneditor.min.js"
+  curl -o "${WEB_LIB_PATH}/jquery.min.js" "https://code.jquery.com/jquery-3.6.0.min.js"
+  curl -o "${WEB_LIB_PATH}/bootstrap3.min.css" "https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css"
 
   # Install python dependencies
   v3xctrl-pip install \
@@ -91,10 +92,5 @@ chmod 440 "${DEST_DIR}/etc/sudoers.d/010_v3xctrl"
 gzip -9 -n -f "${DEST_DIR}/usr/share/doc/${NAME}/changelog"
 chown -R root:root "${DEST_DIR}"
 
-# Ensure web server files have correct permissions
-find "${SERVER_BASE_PATH}" -type f -exec chmod 644 {} \;
-find "${SERVER_BASE_PATH}" -type d -exec chmod 755 {} \;
-
 dpkg-deb --build "${DEST_DIR}" "${DEB_PATH}"
 lintian "${DEB_PATH}" || true
-

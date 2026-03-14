@@ -3,7 +3,7 @@ from flask import Response, request
 from flask.views import MethodView
 from rpi_servo_pwm import HardwarePWM
 
-from routes.response import success, error
+from .response import success, error
 
 blueprint = Blueprint('gpio', 'gpio', url_prefix='/gpio', description='GPIO control endpoints')
 
