@@ -11,6 +11,8 @@ import pygame
 if TYPE_CHECKING:
     from v3xctrl_ui.core.dataclasses import ApplicationModel
 
+logger = logging.getLogger(__name__)
+
 
 class DisplayController:
     CURSOR_HIDE_DELAY = 5.0  # Seconds of inactivity before hiding cursor
@@ -50,7 +52,7 @@ class DisplayController:
             icon = pygame.image.load(str(icon_path))
             pygame.display.set_icon(icon)
         except Exception as e:
-            logging.info(f"Failed setting icon: {e}")
+            logger.info(f"Failed setting icon: {e}")
 
         if self.model.fullscreen:
             return self._create_fullscreen()

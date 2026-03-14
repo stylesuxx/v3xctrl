@@ -15,6 +15,8 @@ from v3xctrl_ui.utils.i18n import t
 from .Tab import Tab
 from .VerticalLayout import VerticalLayout
 
+logger = logging.getLogger(__name__)
+
 
 class StreamerTab(Tab):
     def __init__(
@@ -133,7 +135,7 @@ class StreamerTab(Tab):
 
     def _on_command_callback(self, status: bool) -> None:
         self.on_active_toggle(False)
-        logging.info(f"Received command ack: {status}")
+        logger.info(f"Received command ack: {status}")
 
     def _on_action(self, command: Command) -> None:
         self.on_active_toggle(True)

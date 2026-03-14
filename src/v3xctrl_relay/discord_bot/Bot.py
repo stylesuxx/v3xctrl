@@ -6,6 +6,8 @@ from discord import app_commands
 from v3xctrl_relay.discord_bot.testdrive import TestdriveHandler
 from v3xctrl_relay.SessionStore import SessionStore
 
+logger = logging.getLogger(__name__)
+
 
 class Bot(discord.Client):
     def __init__(
@@ -48,7 +50,7 @@ class Bot(discord.Client):
         super().run(self.token)
 
     async def on_ready(self) -> None:
-        logging.info(f"Bot connected as {self.user}")
+        logger.info(f"Bot connected as {self.user}")
         await self._announce_presence()
         await self._announce_testdrive()
 
@@ -68,9 +70,9 @@ class Bot(discord.Client):
         try:
             await message.delete()
         except discord.Forbidden:
-            logging.error(f"Cannot delete messages in channel {message.channel.id} - missing permissions")
+            logger.error(f"Cannot delete messages in channel {message.channel.id} - missing permissions")
         except Exception as e:
-            logging.error(f"Failed to delete message in channel {message.channel.id}: {e}")
+            logger.error(f"Failed to delete message in channel {message.channel.id}: {e}")
 
     async def on_interaction(self, interaction: discord.Interaction) -> None:
         """Route component interactions (buttons) to testdrive handler"""
@@ -97,11 +99,11 @@ class Bot(discord.Client):
             try:
                 await channel.send(announcement)
             except discord.Forbidden:
-                logging.error(f"Cannot send announcement to channel {self.channel_id} - missing permissions")
+                logger.error(f"Cannot send announcement to channel {self.channel_id} - missing permissions")
             except Exception as e:
-                logging.error(f"Failed to announce in channel {self.channel_id}: {e}")
+                logger.error(f"Failed to announce in channel {self.channel_id}: {e}")
         else:
-            logging.error(f"Announcement channel {self.channel_id} not found or not a text channel")
+            logger.error(f"Announcement channel {self.channel_id} not found or not a text channel")
 
     async def _announce_testdrive(self) -> None:
         if not self.testdrive_handler or not self.testdrive_channel_id:
@@ -111,7 +113,7 @@ class Bot(discord.Client):
         if channel and isinstance(channel, discord.TextChannel):
             await self.testdrive_handler.post_persistent_message(channel)
         else:
-            logging.error(f"Testdrive channel {self.testdrive_channel_id} not found or not a text channel")
+            logger.error(f"Testdrive channel {self.testdrive_channel_id} not found or not a text channel")
 
     def _is_correct_channel(self, interaction: discord.Interaction) -> bool:
         return interaction.channel_id == self.channel_id
@@ -129,13 +131,13 @@ class Bot(discord.Client):
         result = self.store.get(user_id)
         if result:
             session_id, spectator_id = result
-            logging.info(f"Returning existing session ID for {username}")
+            logger.info(f"Returning existing session ID for {username}")
         else:
             try:
                 session_id, spectator_id = self.store.create(user_id, username)
 
             except RuntimeError as e:
-                logging.error(f"ID generation failed for {username}: {e}")
+                logger.error(f"ID generation failed for {username}: {e}")
                 await interaction.followup.send(
                     "Failed to generate a unique session ID. Try again later.", ephemeral=True
                 )
@@ -171,10 +173,10 @@ class Bot(discord.Client):
         try:
             if existing_session:
                 session_id, spectator_id = self.store.update(user_id, username)
-                logging.info(f"Renewed session ID for {username}")
+                logger.info(f"Renewed session ID for {username}")
             else:
                 session_id, spectator_id = self.store.create(user_id, username)
-                logging.info(f"Created new session ID for {username}")
+                logger.info(f"Created new session ID for {username}")
 
             await interaction.user.send(
                 f"Your session ID is: `{session_id}`\n"
@@ -186,7 +188,7 @@ class Bot(discord.Client):
             await interaction.followup.send("Session ID sent via DM!", ephemeral=True)
 
         except RuntimeError as e:
-            logging.error(f"ID generation failed for {username}: {e}")
+            logger.error(f"ID generation failed for {username}: {e}")
             await interaction.followup.send("Failed to generate a unique session ID. Try again later.", ephemeral=True)
 
         except discord.Forbidden:

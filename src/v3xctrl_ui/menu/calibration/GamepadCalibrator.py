@@ -7,6 +7,8 @@ from v3xctrl_ui.menu.calibration.CalibrationSteps import CalibrationSteps
 from v3xctrl_ui.menu.calibration.defs import AxisCalibrationData, CalibrationStage, CalibratorState
 from v3xctrl_ui.menu.DialogBox import DialogBox
 
+logger = logging.getLogger(__name__)
+
 
 class GamepadCalibrator:
     AXIS_MOVEMENT_THRESHOLD = 0.3
@@ -138,7 +140,7 @@ class GamepadCalibrator:
                         axis_data.detection_start = now
                     elif now - axis_data.detection_start >= self.DETECTION_TIME:
                         axis_data.axis = axis
-                        logging.info(f"{name.capitalize()} axis identified: {axis}")
+                        logger.info(f"{name.capitalize()} axis identified: {axis}")
                 else:
                     axis_data.detection_start = None
         else:
@@ -165,7 +167,7 @@ class GamepadCalibrator:
                 and now - axis_data.min_stable_since >= self.STABLE_TIME
                 and now - axis_data.max_stable_since >= self.STABLE_TIME
             ):
-                logging.info(f"{name.capitalize()} axis min/max: {min_val:.2f}/{max_val:.2f}")
+                logger.info(f"{name.capitalize()} axis min/max: {min_val:.2f}/{max_val:.2f}")
 
                 if on_complete:
                     on_complete()
@@ -189,7 +191,7 @@ class GamepadCalibrator:
                     axis_data.idle_samples.append(value)
                     if len(axis_data.idle_samples) >= self.IDLE_SAMPLE_COUNT:
                         avg = sum(axis_data.idle_samples) / len(axis_data.idle_samples)
-                        logging.info(f"{name.capitalize()} axis idle: {avg:.2f}")
+                        logger.info(f"{name.capitalize()} axis idle: {avg:.2f}")
                         self._queue_next_stage_with_dialog(next_stage)
             else:
                 axis_data.idle_stable_since = None

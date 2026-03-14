@@ -4,6 +4,8 @@ import time
 
 from atlib import AIR780EU
 
+logger = logging.getLogger(__name__)
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Reset modem to auto connect and a single empty IPv4 APN")
@@ -26,10 +28,10 @@ def main() -> None:
     try:
         gsm.reboot()
     except OSError:
-        logging.warning("Lost connection during reboot...")
+        logger.warning("Lost connection during reboot...")
 
     # Give the modem some time to reboot
-    logging.info("Waiting for reboot...")
+    logger.info("Waiting for reboot...")
     time.sleep(10)
 
 

@@ -12,6 +12,8 @@ import vlc
 
 from v3xctrl_ui.network.video.Receiver import Receiver
 
+logger = logging.getLogger(__name__)
+
 
 class ReceiverVLC(Receiver):
     """VLC-based video receiver using SDP file for RTP stream."""
@@ -88,9 +90,9 @@ class ReceiverVLC(Receiver):
 
         try:
             self.instance = vlc.Instance(vlc_args)
-            logging.info(f"VLC instance created with {len(vlc_args)} options")
+            logger.info(f"VLC instance created with {len(vlc_args)} options")
         except Exception as e:
-            logging.error(f"Failed to create VLC instance: {e}")
+            logger.error(f"Failed to create VLC instance: {e}")
             raise
 
     def _main_loop(self) -> None:
@@ -116,7 +118,7 @@ class ReceiverVLC(Receiver):
             self.player.set_media(self.media)
 
             # Start playback
-            logging.info(f"Starting VLC playback from SDP: {self.sdp_path}")
+            logger.info(f"Starting VLC playback from SDP: {self.sdp_path}")
             result = self.player.play()
             if result != 0:
                 raise RuntimeError(f"Failed to start VLC player: {result}")
@@ -125,13 +127,13 @@ class ReceiverVLC(Receiver):
             if not self.vlc_ready.wait(timeout=10.0):
                 raise RuntimeError("Timeout waiting for VLC video format")
 
-            logging.info(f"Video format ready: {self.width}x{self.height}")
+            logger.info(f"Video format ready: {self.width}x{self.height}")
 
             # Main processing loop
             last_stats_time = time.monotonic()
             while self.running.is_set():
                 if self.last_vlc_error:
-                    logging.error(f"VLC error: {self.last_vlc_error}")
+                    logger.error(f"VLC error: {self.last_vlc_error}")
                     self.keep_alive()
                     break
 
@@ -145,7 +147,7 @@ class ReceiverVLC(Receiver):
                 time.sleep(0.001)
 
         except Exception as e:
-            logging.exception(f"Error in VLC main loop: {e}")
+            logger.exception(f"Error in VLC main loop: {e}")
             self.keep_alive()
 
     def _setup_video_callbacks(self) -> None:
@@ -185,7 +187,7 @@ class ReceiverVLC(Receiver):
         self.frame_buffer = (ctypes.c_ubyte * buffer_size)()
 
         self.vlc_ready.set()
-        logging.info(f"VLC format callback: {w}x{h}, buffer {buffer_size} bytes")
+        logger.info(f"VLC format callback: {w}x{h}, buffer {buffer_size} bytes")
         return 1
 
     def _lock_callback(self, opaque, planes):
@@ -207,7 +209,7 @@ class ReceiverVLC(Receiver):
                     if self.last_frame_time > 0:
                         frame_age = current_time - self.last_frame_time
                         if frame_age > self.max_frame_age:
-                            logging.debug(f"Dropping frame {frame_age:.2f}s old")
+                            logger.debug(f"Dropping frame {frame_age:.2f}s old")
                             return
 
                     with self.video_lock:
@@ -223,7 +225,7 @@ class ReceiverVLC(Receiver):
                         else:
                             self.empty_decode_count += 1
                 except Exception as e:
-                    logging.warning(f"Error processing VLC frame: {e}")
+                    logger.warning(f"Error processing VLC frame: {e}")
                     self.empty_decode_count += 1
 
     def _cleanup(self) -> None:
@@ -232,7 +234,7 @@ class ReceiverVLC(Receiver):
                 self.player.stop()
                 self.player.release()
         except Exception as e:
-            logging.warning(f"Error stopping VLC player: {e}")
+            logger.warning(f"Error stopping VLC player: {e}")
         finally:
             self.player = None
 
@@ -240,7 +242,7 @@ class ReceiverVLC(Receiver):
             if self.media:
                 self.media.release()
         except Exception as e:
-            logging.warning(f"Error releasing VLC media: {e}")
+            logger.warning(f"Error releasing VLC media: {e}")
         finally:
             self.media = None
 
@@ -248,7 +250,7 @@ class ReceiverVLC(Receiver):
             if self.instance:
                 self.instance.release()
         except Exception as e:
-            logging.warning(f"Error releasing VLC instance: {e}")
+            logger.warning(f"Error releasing VLC instance: {e}")
         finally:
             self.instance = None
 
@@ -256,7 +258,7 @@ class ReceiverVLC(Receiver):
             if self.sdp_path.exists():
                 self.sdp_path.unlink()
         except Exception as e:
-            logging.warning(f"SDP file cleanup failed: {e}")
+            logger.warning(f"SDP file cleanup failed: {e}")
 
     def _write_sdp(self) -> None:
         sdp_text = f"""\
@@ -274,14 +276,14 @@ a=recvonly
             f.flush()
             os.fsync(f.fileno())
 
-        logging.info(f"SDP file created: {self.sdp_path}")
+        logger.info(f"SDP file created: {self.sdp_path}")
 
     def _on_vlc_error(self, event):
         self.last_vlc_error = "VLC encountered an error"
-        logging.error("VLC error event received")
+        logger.error("VLC error event received")
 
     def _on_vlc_playing(self, event):
-        logging.info("VLC started playing")
+        logger.info("VLC started playing")
 
     def _on_vlc_end(self, event):
-        logging.info("VLC end of stream reached")
+        logger.info("VLC end of stream reached")

@@ -7,6 +7,8 @@ from gi.repository import Gst  # noqa: E402
 
 from v3xctrl_gst.Sources.SourceBuilder import SourceBuilder  # noqa: E402
 
+logger = logging.getLogger(__name__)
+
 
 class CameraSourceBuilder(SourceBuilder):
     """Builds libcamerasrc with optional sensor mode control"""
@@ -74,7 +76,7 @@ class CameraSourceBuilder(SourceBuilder):
             width: Sensor mode width
             height: Sensor mode height
         """
-        logging.info(f"Enabling sensor mode control: {width}x{height}")
+        logger.info(f"Enabling sensor mode control: {width}x{height}")
 
         # Get pads - main pad is STATIC, raw pad is REQUEST
         main_pad = source.get_static_pad("src")
@@ -133,4 +135,4 @@ class CameraSourceBuilder(SourceBuilder):
         if not raw_caps_filter.link(fakesink_raw):
             raise RuntimeError("Failed to link raw_caps_filter to fakesink_raw")
 
-        logging.info("Configured raw stream for sensor mode control")
+        logger.info("Configured raw stream for sensor mode control")

@@ -11,6 +11,8 @@ from gi.repository import GLib, Gst, GstApp  # noqa: E402
 
 from v3xctrl_ui.network.video.Receiver import Receiver  # noqa: E402
 
+logger = logging.getLogger(__name__)
+
 
 class ReceiverGst(Receiver):
     """
@@ -92,13 +94,13 @@ class ReceiverGst(Receiver):
         """Build and configure the GStreamer pipeline dynamically."""
         self.pipeline = Gst.Pipeline.new("receiver-pipeline")
         if not self.pipeline:
-            logging.error("Failed to create pipeline")
+            logger.error("Failed to create pipeline")
             return False
 
         # UDP source
         udpsrc = Gst.ElementFactory.make("udpsrc", "udpsrc")
         if not udpsrc:
-            logging.error("Failed to create udpsrc")
+            logger.error("Failed to create udpsrc")
             return False
 
         udpsrc.set_property("port", self.port)
@@ -108,7 +110,7 @@ class ReceiverGst(Receiver):
         # RTP jitter buffer
         jitterbuffer = Gst.ElementFactory.make("rtpjitterbuffer", "jitterbuffer")
         if not jitterbuffer:
-            logging.error("Failed to create rtpjitterbuffer")
+            logger.error("Failed to create rtpjitterbuffer")
             return False
 
         jitterbuffer.set_property("latency", 0)
@@ -117,19 +119,19 @@ class ReceiverGst(Receiver):
         # RTP H264 depayloader
         depay = Gst.ElementFactory.make("rtph264depay", "depay")
         if not depay:
-            logging.error("Failed to create rtph264depay")
+            logger.error("Failed to create rtph264depay")
             return False
 
         # H264 parser
         h264parse = Gst.ElementFactory.make("h264parse", "h264parse")
         if not h264parse:
-            logging.error("Failed to create h264parse")
+            logger.error("Failed to create h264parse")
             return False
 
         # H264 decoder
         decoder = Gst.ElementFactory.make("avdec_h264", "decoder")
         if not decoder:
-            logging.error("Failed to create avdec_h264")
+            logger.error("Failed to create avdec_h264")
             return False
 
         decoder.set_property("output-corrupt", False)
@@ -138,13 +140,13 @@ class ReceiverGst(Receiver):
         # Video converter
         videoconvert = Gst.ElementFactory.make("videoconvert", "videoconvert")
         if not videoconvert:
-            logging.error("Failed to create videoconvert")
+            logger.error("Failed to create videoconvert")
             return False
 
         # Caps filter for RGB output
         capsfilter = Gst.ElementFactory.make("capsfilter", "capsfilter")
         if not capsfilter:
-            logging.error("Failed to create capsfilter")
+            logger.error("Failed to create capsfilter")
             return False
 
         rgb_caps = Gst.Caps.from_string("video/x-raw,format=RGB")
@@ -153,7 +155,7 @@ class ReceiverGst(Receiver):
         # App sink
         self.appsink = Gst.ElementFactory.make("appsink", "sink")
         if not self.appsink:
-            logging.error("Failed to create appsink")
+            logger.error("Failed to create appsink")
             return False
 
         self.appsink.set_property("emit-signals", True)
@@ -170,31 +172,31 @@ class ReceiverGst(Receiver):
 
         # Link elements
         if not udpsrc.link(jitterbuffer):
-            logging.error("Failed to link udpsrc to jitterbuffer")
+            logger.error("Failed to link udpsrc to jitterbuffer")
             return False
 
         if not jitterbuffer.link(depay):
-            logging.error("Failed to link jitterbuffer to depay")
+            logger.error("Failed to link jitterbuffer to depay")
             return False
 
         if not depay.link(h264parse):
-            logging.error("Failed to link depay to h264parse")
+            logger.error("Failed to link depay to h264parse")
             return False
 
         if not h264parse.link(decoder):
-            logging.error("Failed to link h264parse to decoder")
+            logger.error("Failed to link h264parse to decoder")
             return False
 
         if not decoder.link(videoconvert):
-            logging.error("Failed to link decoder to videoconvert")
+            logger.error("Failed to link decoder to videoconvert")
             return False
 
         if not videoconvert.link(capsfilter):
-            logging.error("Failed to link videoconvert to capsfilter")
+            logger.error("Failed to link videoconvert to capsfilter")
             return False
 
         if not capsfilter.link(self.appsink):
-            logging.error("Failed to link capsfilter to appsink")
+            logger.error("Failed to link capsfilter to appsink")
             return False
 
         # Add pipeline timing probes when timing is enabled
@@ -241,7 +243,7 @@ class ReceiverGst(Receiver):
             self.consecutive_old_frames += 1
 
             if self.consecutive_old_frames > self.max_consecutive_old_frames:
-                logging.warning(f"Dropped {self.consecutive_old_frames} consecutive old frames")
+                logger.warning(f"Dropped {self.consecutive_old_frames} consecutive old frames")
                 self.consecutive_old_frames = 0
 
             return Gst.FlowReturn.OK
@@ -320,23 +322,23 @@ class ReceiverGst(Receiver):
                 if self.frame is not None or len(self.frame_buffer) > 0:
                     self.frame = None
                     self.frame_buffer.clear()
-                    logging.info(f"No frames received for {elapsed:.1f}s, clearing frame")
+                    logger.info(f"No frames received for {elapsed:.1f}s, clearing frame")
 
         return True
 
     def _on_error(self, bus: Gst.Bus, message: Gst.Message) -> None:
         """Handle pipeline error."""
         err, debug = message.parse_error()
-        logging.error(f"GStreamer error: {err.message}")
+        logger.error(f"GStreamer error: {err.message}")
         if debug:
-            logging.debug(f"Debug info: {debug}")
+            logger.debug(f"Debug info: {debug}")
 
         if self.loop and self.loop.is_running():
             self.loop.quit()
 
     def _on_eos(self, bus: Gst.Bus, message: Gst.Message) -> None:
         """Handle end of stream."""
-        logging.info("End of stream received")
+        logger.info("End of stream received")
         if self.loop and self.loop.is_running():
             self.loop.quit()
 
@@ -347,7 +349,7 @@ class ReceiverGst(Receiver):
 
         _old, new, _pending = message.parse_state_changed()
         if new == Gst.State.PLAYING:
-            logging.info("Pipeline is now PLAYING")
+            logger.info("Pipeline is now PLAYING")
 
     def _main_loop(self) -> None:
         """Main receive/decode loop."""
@@ -362,12 +364,12 @@ class ReceiverGst(Receiver):
 
             state = self.pipeline.set_state(Gst.State.PLAYING)
             if state == Gst.StateChangeReturn.FAILURE:
-                logging.error("Failed to set pipeline to PLAYING")
+                logger.error("Failed to set pipeline to PLAYING")
                 self._stop_pipeline()
                 time.sleep(0.5)
                 continue
 
-            logging.info(f"GStreamer receiver started on port {self.port}")
+            logger.info(f"GStreamer receiver started on port {self.port}")
 
             self.loop = GLib.MainLoop()
 
@@ -385,7 +387,7 @@ class ReceiverGst(Receiver):
                 self.loop.run()
 
             except Exception as e:
-                logging.exception(f"Error in GStreamer main loop: {e}")
+                logger.exception(f"Error in GStreamer main loop: {e}")
 
             finally:
                 with self.frame_lock:
@@ -443,7 +445,7 @@ class ReceiverGst(Receiver):
         buf_max_ms = buf_max * 1000
         total_avg_ms = rec_avg_ms + dec_avg_ms + buf_avg_ms
 
-        logging.debug(
+        logger.debug(
             f"[TIMING] "
             f"receive: {rec_avg_ms:.1f}ms | "
             f"decode: {dec_avg_ms:.1f}ms | "

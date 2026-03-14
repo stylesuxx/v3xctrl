@@ -157,10 +157,10 @@ class TestReceiverPyAVCleanup(unittest.TestCase):
         mock_container.close.side_effect = Exception("Close failed")
         self.receiver.container = mock_container
 
-        with patch("logging.warning") as mock_warning:
+        with patch("v3xctrl_ui.network.video.ReceiverPyAV.logger") as mock_logger:
             self.receiver._cleanup()
 
-            mock_warning.assert_called()
+            mock_logger.warning.assert_called()
             self.assertIsNone(self.receiver.container)
 
     def test_cleanup_removes_sdp_file(self):
@@ -173,9 +173,9 @@ class TestReceiverPyAVCleanup(unittest.TestCase):
         with patch.object(self.receiver, "sdp_path") as mock_path:
             mock_path.exists.return_value = True
             mock_path.unlink.side_effect = Exception("Unlink failed")
-            with patch("logging.warning") as mock_warning:
+            with patch("v3xctrl_ui.network.video.ReceiverPyAV.logger") as mock_logger:
                 self.receiver._cleanup()
-                mock_warning.assert_called()
+                mock_logger.warning.assert_called()
 
     def test_cleanup_no_container(self):
         self.receiver.container = None
@@ -289,7 +289,7 @@ class TestReceiverPyAVMainLoop(unittest.TestCase):
         with (
             patch("av.open", side_effect=av.AVError(-1, "Open failed", "")),
             patch("time.sleep") as mock_sleep,
-            patch("logging.warning") as mock_warning,
+            patch("v3xctrl_ui.network.video.ReceiverPyAV.logger") as mock_logger,
         ):
             # Stop after first retry
             def stop_after_retry(*args):
@@ -298,7 +298,7 @@ class TestReceiverPyAVMainLoop(unittest.TestCase):
             mock_sleep.side_effect = stop_after_retry
             self.receiver._main_loop()
 
-            mock_warning.assert_called()
+            mock_logger.warning.assert_called()
             mock_sleep.assert_called_with(0.5)
 
     def test_main_loop_refreshes_port_on_open_failure(self):
@@ -489,10 +489,13 @@ class TestReceiverPyAVMainLoop(unittest.TestCase):
 
         mock_container.demux.side_effect = error_demux
 
-        with patch("av.open", return_value=mock_container), patch("logging.exception") as mock_exception:
+        with (
+            patch("av.open", return_value=mock_container),
+            patch("v3xctrl_ui.network.video.ReceiverPyAV.logger") as mock_logger,
+        ):
             self.receiver._main_loop()
 
-            mock_exception.assert_called()
+            mock_logger.exception.assert_called()
             mock_container.close.assert_called()
 
     def test_main_loop_frame_cleared_on_exit(self):
@@ -563,7 +566,7 @@ class TestReceiverPyAVMainLoop(unittest.TestCase):
 
         mock_container.demux.side_effect = error_demux
 
-        with patch("av.open", return_value=mock_container), patch("logging.warning"):
+        with patch("av.open", return_value=mock_container), patch("v3xctrl_ui.network.video.ReceiverPyAV.logger"):
             self.receiver._main_loop()
 
             # Verify keep_alive was called after error

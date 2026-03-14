@@ -97,14 +97,14 @@ class TestNetworkController(unittest.TestCase):
         """Test setup_relay with invalid port in server string."""
         nm = NetworkController(self.settings, self.handlers)
 
-        with patch("v3xctrl_ui.network.NetworkController.logging.warning") as mock_warning:
+        with patch("v3xctrl_ui.network.NetworkController.logger") as mock_logger:
             nm.setup_relay("example.com:notaport", "testid")
 
             self.assertTrue(nm.relay_enable)
             self.assertEqual(nm.relay_server, "example.com")
             self.assertEqual(nm.relay_port, 8888)  # Default port
             self.assertEqual(nm.relay_id, "testid")
-            mock_warning.assert_called()
+            mock_logger.warning.assert_called()
 
     def test_setup_relay_no_port(self):
         """Test setup_relay with no port in server string."""

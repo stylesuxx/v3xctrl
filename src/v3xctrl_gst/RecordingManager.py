@@ -17,6 +17,8 @@ import gi
 gi.require_version("Gst", "1.0")
 from gi.repository import GLib, Gst  # noqa: E402
 
+logger = logging.getLogger(__name__)
+
 
 class RecordingManager:
     STOP_TIMEOUT = 5.0
@@ -52,11 +54,11 @@ class RecordingManager:
             True if recording started successfully, False otherwise
         """
         if self._is_recording:
-            logging.warning("Recording is already active")
+            logger.warning("Recording is already active")
             return False
 
         if not self._recording_dir:
-            logging.error("Recording directory not configured")
+            logger.error("Recording directory not configured")
             return False
 
         # Set flag early so telemetry reflects the change immediately
@@ -70,7 +72,7 @@ class RecordingManager:
 
         queue_rec = Gst.ElementFactory.make("queue", "queue_rec")
         if not queue_rec:
-            logging.error("Failed to create recording queue")
+            logger.error("Failed to create recording queue")
             self._is_recording = False
             return False
 
@@ -81,19 +83,19 @@ class RecordingManager:
 
         parser = Gst.ElementFactory.make("h264parse", "parser")
         if not parser:
-            logging.error("Failed to create h264parse")
+            logger.error("Failed to create h264parse")
             self._is_recording = False
             return False
 
         muxer = Gst.ElementFactory.make("mpegtsmux", "muxer")
         if not muxer:
-            logging.error("Failed to create mpegtsmux")
+            logger.error("Failed to create mpegtsmux")
             self._is_recording = False
             return False
 
         filesink = Gst.ElementFactory.make("filesink", "filesink")
         if not filesink:
-            logging.error("Failed to create filesink")
+            logger.error("Failed to create filesink")
             self._is_recording = False
             return False
 
@@ -118,19 +120,19 @@ class RecordingManager:
         # This ensures all elements are linked and in PLAYING state before
         # data starts flowing, preventing FPS dips on the main pipeline.
         if not queue_rec.link(parser):
-            logging.error("Failed to link queue_rec to parser")
+            logger.error("Failed to link queue_rec to parser")
             self._cleanup()
 
             return False
 
         if not parser.link(muxer):
-            logging.error("Failed to link parser to muxer")
+            logger.error("Failed to link parser to muxer")
             self._cleanup()
 
             return False
 
         if not muxer.link(filesink):
-            logging.error("Failed to link muxer to filesink")
+            logger.error("Failed to link muxer to filesink")
             self._cleanup()
 
             return False
@@ -143,7 +145,7 @@ class RecordingManager:
         # Connect to tee last, when the branch is fully ready to receive data.
         tee_src_pad = self._tee.request_pad_simple("src_%u")
         if not tee_src_pad:
-            logging.error("Failed to request pad from tee")
+            logger.error("Failed to request pad from tee")
             self._cleanup()
 
             return False
@@ -152,12 +154,12 @@ class RecordingManager:
 
         queue_sink_pad = queue_rec.get_static_pad("sink")
         if tee_src_pad.link(queue_sink_pad) != Gst.PadLinkReturn.OK:
-            logging.error("Failed to link tee to queue_rec")
+            logger.error("Failed to link tee to queue_rec")
             self._cleanup()
 
             return False
 
-        logging.info(f"Recording started: {filename}")
+        logger.info(f"Recording started: {filename}")
 
         return True
 
@@ -173,11 +175,11 @@ class RecordingManager:
             True if recording stopped successfully, False otherwise
         """
         if not self._is_recording:
-            logging.warning("Recording is not active")
+            logger.warning("Recording is not active")
             return False
 
         if not self._tee_pad:
-            logging.error("Tee pad not available for recording stop")
+            logger.error("Tee pad not available for recording stop")
             return False
 
         # Set flag early so telemetry reflects the change immediately
@@ -189,7 +191,7 @@ class RecordingManager:
         self._tee_pad.add_probe(Gst.PadProbeType.BLOCK_DOWNSTREAM, self._on_tee_pad_blocked)
 
         if not self._stop_complete.wait(timeout=self.STOP_TIMEOUT):
-            logging.error("Recording stop timed out, forcing teardown")
+            logger.error("Recording stop timed out, forcing teardown")
             self._force_teardown()
 
         return True
@@ -250,7 +252,7 @@ class RecordingManager:
                 self._pipeline.remove(element)
 
         filename = self._elements.get("filename", "unknown")
-        logging.info(f"Recording stopped: {filename}")
+        logger.info(f"Recording stopped: {filename}")
 
         self._elements = {}
 
@@ -279,7 +281,7 @@ class RecordingManager:
                     self._pipeline.remove(element)
 
         filename = self._elements.get("filename", "unknown")
-        logging.warning(f"Recording stopped (forced): {filename}")
+        logger.warning(f"Recording stopped (forced): {filename}")
 
         self._elements = {}
 

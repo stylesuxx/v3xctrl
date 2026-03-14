@@ -23,6 +23,8 @@ from v3xctrl_ui.network.VideoPortKeepAlive import VideoPortKeepAlive
 from v3xctrl_ui.utils.gstreamer import is_gstreamer_available
 
 # GStreamer receiver is loaded lazily if available
+logger = logging.getLogger(__name__)
+
 _ReceiverGst: type[Receiver] | None = None
 
 
@@ -163,7 +165,7 @@ class NetworkSetup:
             )
             result.tcp_control_tunnel.start()
 
-            logging.info("TCP relay tunnels started (video + control)")
+            logger.info("TCP relay tunnels started (video + control)")
 
         elif relay_config:
             spectator_mode = relay_config.get("spectator_mode", False)
@@ -192,7 +194,7 @@ class NetworkSetup:
             # Start TCP server for direct TCP mode
             result.tcp_server = TcpServer(self.video_port, self.control_port)
             result.tcp_server.start()
-            logging.info("TCP server started for direct mode")
+            logger.info("TCP server started for direct mode")
 
         # Step 2: Create keep-alive callback and setup video receiver
         keep_alive_callback = self.create_keep_alive_callback(video_address)
@@ -286,15 +288,15 @@ class NetworkSetup:
                         sock.sendto(Heartbeat().to_bytes(), video_address)
                         time.sleep(0.1)
                     except Exception as e:
-                        logging.warning(f"Poke {i + 1}/{retries} failed: {e}")
+                        logger.warning(f"Poke {i + 1}/{retries} failed: {e}")
 
             except Exception as e:
-                logging.error(f"Failed to poke peer: {e}", exc_info=True)
+                logger.error(f"Failed to poke peer: {e}", exc_info=True)
 
             finally:
                 if sock:
                     sock.close()
-                logging.info(f"Sent 'keep alive' to {video_address}")
+                logger.info(f"Sent 'keep alive' to {video_address}")
 
         return keep_alive
 
@@ -337,7 +339,7 @@ class NetworkSetup:
                         relay_address=video_address,
                     )
 
-            logging.info(f"Using {receiver_type} video receiver")
+            logger.info(f"Using {receiver_type} video receiver")
 
             # Enable timing when DEBUG level is set
             if logging.getLogger().isEnabledFor(logging.DEBUG):

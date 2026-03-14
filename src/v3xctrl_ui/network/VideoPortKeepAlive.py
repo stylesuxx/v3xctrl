@@ -6,6 +6,8 @@ import time
 from v3xctrl_control.message import Heartbeat
 
 # Keepalive interval during active streaming (NAT mapping refresh)
+logger = logging.getLogger(__name__)
+
 INTERVAL_STREAMING_S = 30.0
 
 
@@ -43,14 +45,14 @@ class VideoPortKeepAlive(threading.Thread):
             sock.bind(("0.0.0.0", self.video_port))
             sock.sendto(Heartbeat().to_bytes(), self.relay_address)
         except Exception as e:
-            logging.debug(f"Video port keep-alive heartbeat skipped on port {self.video_port}: {e}")
+            logger.debug(f"Video port keep-alive heartbeat skipped on port {self.video_port}: {e}")
         finally:
             if sock:
                 sock.close()
 
     def run(self) -> None:
         self._running.set()
-        logging.info(f"Video port keep-alive started on port {self.video_port}")
+        logger.info(f"Video port keep-alive started on port {self.video_port}")
 
         while self._running.is_set():
             self._send_heartbeat()
@@ -62,4 +64,4 @@ class VideoPortKeepAlive(threading.Thread):
                 time.sleep(min(1.0, interval - waited))
                 waited += 1.0
 
-        logging.info("Video port keep-alive stopped")
+        logger.info("Video port keep-alive stopped")

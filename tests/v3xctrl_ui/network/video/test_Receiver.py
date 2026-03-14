@@ -137,7 +137,7 @@ class TestReceiver(unittest.TestCase):
 
     def test_setup_failure_handling(self):
         """Test setup failure is handled gracefully."""
-        with patch("logging.exception") as mock_log:
+        with patch("v3xctrl_ui.network.video.Receiver.logger") as mock_logger:
             receiver = MockReceiver(5600, Mock(), setup_fail=True)
 
             receiver.start()
@@ -147,11 +147,11 @@ class TestReceiver(unittest.TestCase):
             self.assertTrue(receiver.setup_called)
             self.assertFalse(receiver.main_loop_called)
             self.assertTrue(receiver.cleanup_called)
-            mock_log.assert_called()
+            mock_logger.exception.assert_called()
 
     def test_main_loop_failure_handling(self):
         """Test main loop failure is handled gracefully."""
-        with patch("logging.exception") as mock_log:
+        with patch("v3xctrl_ui.network.video.Receiver.logger") as mock_logger:
             receiver = MockReceiver(5600, Mock(), main_loop_fail=True)
 
             receiver.start()
@@ -161,29 +161,29 @@ class TestReceiver(unittest.TestCase):
             self.assertTrue(receiver.setup_called)
             self.assertTrue(receiver.main_loop_called)
             self.assertTrue(receiver.cleanup_called)
-            mock_log.assert_called()
+            mock_logger.exception.assert_called()
 
     def test_cleanup_failure_in_run(self):
         """Test cleanup failure in run() finally block is handled."""
-        with patch("logging.exception") as mock_log:
+        with patch("v3xctrl_ui.network.video.Receiver.logger") as mock_logger:
             receiver = MockReceiver(5600, Mock(), cleanup_fail=True)
 
             receiver.start()
             time.sleep(0.1)
             receiver.stop()
 
-            mock_log.assert_called()
+            mock_logger.exception.assert_called()
 
     def test_cleanup_failure_in_stop(self):
         """Test cleanup failure in stop() is handled."""
-        with patch("logging.exception") as mock_log:
+        with patch("v3xctrl_ui.network.video.Receiver.logger") as mock_logger:
             receiver = MockReceiver(5600, Mock(), cleanup_fail=True)
 
             receiver.start()
             time.sleep(0.05)
             receiver.stop()
 
-            mock_log.assert_not_called()
+            mock_logger.exception.assert_not_called()
 
     def test_stop_without_start(self):
         """Test stop() can be called without start()."""
@@ -214,19 +214,19 @@ class TestReceiver(unittest.TestCase):
 
     def test_log_stats_no_packets(self):
         """Test logging when no packets have been processed."""
-        with patch("logging.info") as mock_log:
+        with patch("v3xctrl_ui.network.video.Receiver.logger") as mock_logger:
             receiver = MockReceiver(5600, Mock())
             receiver.packet_count = 0
             receiver.last_log_time = time.monotonic() - 11.0
 
             receiver._log_stats_if_needed()
 
-            mock_log.assert_not_called()
+            mock_logger.info.assert_not_called()
             self.assertGreater(receiver.last_log_time, 0)
 
     def test_log_stats_with_packets(self):
         """Test statistics logging with packet data."""
-        with patch("logging.info") as mock_log:
+        with patch("v3xctrl_ui.network.video.Receiver.logger") as mock_logger:
             receiver = MockReceiver(5600, Mock())
             receiver.log_interval = 0.01
             receiver.packet_count = 10
@@ -237,7 +237,7 @@ class TestReceiver(unittest.TestCase):
 
             receiver._log_stats_if_needed()
 
-            mock_log.assert_called_once()
+            mock_logger.info.assert_called_once()
 
             # NOTE: This test will fail due to syntax error in Receiver._log_stats_if_needed
             # The logging.info call has incorrect comma placement
@@ -249,18 +249,18 @@ class TestReceiver(unittest.TestCase):
 
     def test_log_stats_interval_not_reached(self):
         """Test no logging when interval hasn't passed."""
-        with patch("logging.info") as mock_log:
+        with patch("v3xctrl_ui.network.video.Receiver.logger") as mock_logger:
             receiver = MockReceiver(5600, Mock())
             receiver.packet_count = 10
             receiver.last_log_time = time.monotonic() - 5.0
 
             receiver._log_stats_if_needed()
 
-            mock_log.assert_not_called()
+            mock_logger.info.assert_not_called()
 
     def test_log_stats_calculates_correct_drop_rate(self):
         """Test drop rate calculation includes both empty decodes and dropped old frames."""
-        with patch("logging.info") as mock_log:
+        with patch("v3xctrl_ui.network.video.Receiver.logger") as mock_logger:
             receiver = MockReceiver(5600, Mock())
             receiver.log_interval = 0.01
             receiver.packet_count = 100
@@ -272,11 +272,11 @@ class TestReceiver(unittest.TestCase):
             receiver._log_stats_if_needed()
 
             # Expected drop rate: (20 + 10) / 100 * 100 = 30%
-            mock_log.assert_called_once()
+            mock_logger.info.assert_called_once()
 
     def test_log_stats_avg_fps_calculation(self):
         """Test average FPS calculation."""
-        with patch("logging.info") as mock_log:
+        with patch("v3xctrl_ui.network.video.Receiver.logger") as mock_logger:
             receiver = MockReceiver(5600, Mock())
             receiver.log_interval = 2.0
             receiver.packet_count = 60
@@ -286,11 +286,11 @@ class TestReceiver(unittest.TestCase):
             receiver._log_stats_if_needed()
 
             # Expected avg_fps: round(60 / 2.0) = 30
-            mock_log.assert_called_once()
+            mock_logger.info.assert_called_once()
 
     def test_log_stats_first_time_uses_interval(self):
         """Test first logging uses log_interval for time calculation."""
-        with patch("logging.info") as mock_log:
+        with patch("v3xctrl_ui.network.video.Receiver.logger") as mock_logger:
             receiver = MockReceiver(5600, Mock())
             receiver.log_interval = 5.0
             receiver.packet_count = 50
@@ -300,7 +300,7 @@ class TestReceiver(unittest.TestCase):
             receiver._log_stats_if_needed()
 
             # Should use log_interval (5.0) for avg_fps calculation
-            mock_log.assert_called_once()
+            mock_logger.info.assert_called_once()
 
     def test_thread_inheritance(self):
         """Test Receiver properly inherits from threading.Thread."""

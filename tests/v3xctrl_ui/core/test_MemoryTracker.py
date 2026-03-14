@@ -36,17 +36,17 @@ class TestMemoryTracker(unittest.TestCase):
 
     def test_run_with_logging(self):
         self.mt.enable_log = True
-        with patch("v3xctrl_ui.core.MemoryTracker.logging") as mock_logging:
+        with patch("v3xctrl_ui.core.MemoryTracker.logger") as mock_logger:
             self.mt.start()
             self.mt._thread.join()
-        mock_logging.debug.assert_any_call("Top 2 memory growth lines since last snapshot:")
+        mock_logger.debug.assert_any_call("Top 2 memory growth lines since last snapshot:")
 
     def test_run_without_logging(self):
         self.mt.enable_log = False
-        with patch("v3xctrl_ui.core.MemoryTracker.logging") as mock_logging:
+        with patch("v3xctrl_ui.core.MemoryTracker.logger") as mock_logger:
             self.mt.start()
             self.mt._thread.join()
-        mock_logging.debug.assert_not_called()
+        mock_logger.debug.assert_not_called()
 
 
 if __name__ == "__main__":

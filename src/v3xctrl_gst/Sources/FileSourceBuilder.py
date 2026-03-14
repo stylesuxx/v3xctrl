@@ -7,6 +7,8 @@ from gi.repository import Gst  # noqa: E402
 
 from .SourceBuilder import SourceBuilder  # noqa: E402
 
+logger = logging.getLogger(__name__)
+
 
 class FileSourceBuilder(SourceBuilder):
     """Builds file source with demux/decode chain"""
@@ -77,14 +79,14 @@ class FileSourceBuilder(SourceBuilder):
         def on_demux_pad_added(element, pad):
             """Callback for when demuxer creates a pad"""
             pad_name = pad.get_name()
-            logging.info(f"Demux pad added: {pad_name}")
+            logger.info(f"Demux pad added: {pad_name}")
 
             if pad_name.startswith("video_"):
                 sink_pad = h264parse.get_static_pad("sink")
                 if not sink_pad.is_linked():
                     ret = pad.link(sink_pad)
                     if ret != Gst.PadLinkReturn.OK:
-                        logging.error(f"Failed to link demux to h264parse: {ret}")
+                        logger.error(f"Failed to link demux to h264parse: {ret}")
 
         demux.connect("pad-added", on_demux_pad_added)
 
@@ -108,6 +110,6 @@ class FileSourceBuilder(SourceBuilder):
 
         self._output_element = source_bin
 
-        logging.info(f"Created file source from: {file_location}")
+        logger.info(f"Created file source from: {file_location}")
 
         return source_bin

@@ -22,6 +22,8 @@ from v3xctrl_telemetry.VideoCoreTelemetry import VideoCoreTelemetry
 
 T = TypeVar("T")
 
+logger = logging.getLogger(__name__)
+
 
 class Telemetry(threading.Thread):
     _SIM_RECHECK_INTERVAL = 30
@@ -94,7 +96,7 @@ class Telemetry(threading.Thread):
             return factory()
 
         except Exception as e:
-            logging.warning("Failed to initialize %s telemetry: %s", name, e)
+            logger.warning("Failed to initialize %s telemetry: %s", name, e)
             return None
 
     def _modem_available(self) -> bool:
@@ -114,23 +116,23 @@ class Telemetry(threading.Thread):
             self._modem = AIR780EU(self._modem_path)
             self._modem.enable_location_reporting()
             if not self._modem:
-                logging.warning("Modem unavailable")
+                logger.warning("Modem unavailable")
                 self._modem = None
                 return False
 
             sim_status = self._modem.get_sim_status()
             if sim_status != "OK":
-                logging.info("No SIM card present (status: %s)", sim_status)
+                logger.info("No SIM card present (status: %s)", sim_status)
                 self._modem = None
                 self._sim_absent = True
                 return False
 
             self._sim_absent = False
-            logging.info("Modem initialized")
+            logger.info("Modem initialized")
             return True
 
         except Exception as e:
-            logging.warning("Failed to initialize modem: %s", e)
+            logger.warning("Failed to initialize modem: %s", e)
             self._modem = None
             return False
 
@@ -152,7 +154,7 @@ class Telemetry(threading.Thread):
                 self.payload.sig.rsrp = signal_quality.rsrp
         except Exception as e:
             self._set_signal_unknown()
-            logging.debug("Failed to fetch signal information: %s", e)
+            logger.debug("Failed to fetch signal information: %s", e)
             self._modem = None
 
     def _update_cell(self) -> None:
@@ -164,7 +166,7 @@ class Telemetry(threading.Thread):
                 self.payload.cell.band = band
         except Exception as e:
             self._set_cell_unknown()
-            logging.debug("Failed to fetch cell information: %s", e)
+            logger.debug("Failed to fetch cell information: %s", e)
             self._modem = None
 
     def _update_battery(self) -> None:
@@ -185,7 +187,7 @@ class Telemetry(threading.Thread):
                 with self._lock:
                     self.payload.svc = self._services.get_byte()
             except Exception as e:
-                logging.debug("Failed to update service telemetry: %s", e)
+                logger.debug("Failed to update service telemetry: %s", e)
                 with self._lock:
                     self.payload.svc = 0
 
@@ -196,7 +198,7 @@ class Telemetry(threading.Thread):
                 with self._lock:
                     self.payload.vc = self._videocore.get_byte()
             except Exception as e:
-                logging.debug("Failed to update VideoCore telemetry: %s", e)
+                logger.debug("Failed to update VideoCore telemetry: %s", e)
                 with self._lock:
                     self.payload.vc = 0
 
@@ -207,6 +209,6 @@ class Telemetry(threading.Thread):
                 with self._lock:
                     self.payload.gst = self._gst.get_byte()
             except Exception as e:
-                logging.debug("Failed to update GST telemetry: %s", e)
+                logger.debug("Failed to update GST telemetry: %s", e)
                 with self._lock:
                     self.payload.gst = 0

@@ -10,6 +10,8 @@ from pygame.freetype import Font
 
 from v3xctrl_helper import clamp, color_to_hex
 
+logger = logging.getLogger(__name__)
+
 _icon_cache: dict[tuple[str, int, tuple[int, int, int], IconStyle, int], pygame.Surface] = {}
 _mask_cache: dict[tuple[int, int, int, int], pygame.Surface] = {}
 
@@ -45,7 +47,7 @@ def get_external_ip(timeout: int = 5) -> str:
         with urllib.request.urlopen("https://api.ipify.org", timeout=timeout) as response:
             return response.read().decode("utf-8")
     except Exception:
-        logging.warning("Could not get external IP address")
+        logger.warning("Could not get external IP address")
         return "0.0.0.0"
 
 

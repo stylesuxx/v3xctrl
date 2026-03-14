@@ -13,6 +13,8 @@ from .MessageHandler import MessageHandler
 from .State import State
 from .UDPTransmitter import UDPTransmitter
 
+logger = logging.getLogger(__name__)
+
 
 class Server(Base):
     MAX_WORKERS = 10
@@ -79,7 +81,7 @@ class Server(Base):
                         if callback:
                             callback(False)
             except Exception as e:
-                logging.error(f"Error in command retry task: {e}")
+                logger.error(f"Error in command retry task: {e}")
                 with self.pending_lock:
                     self.pending_commands.pop(command_id, None)
                 if callback:

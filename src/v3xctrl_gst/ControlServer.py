@@ -11,6 +11,8 @@ from v3xctrl_gst.Command import ActionType, Command, CommandValidationError, Rec
 if TYPE_CHECKING:
     from v3xctrl_gst.Streamer import Streamer
 
+logger = logging.getLogger(__name__)
+
 
 class ControlServer:
     """Unix socket-based control server for runtime pipeline control."""
@@ -46,7 +48,7 @@ class ControlServer:
         self.thread = threading.Thread(target=self._run_server, daemon=True)
         self.thread.start()
 
-        logging.info(f"Control server started on {self.socket_path}")
+        logger.info(f"Control server started on {self.socket_path}")
 
     def stop(self) -> None:
         """Stop the control server."""
@@ -67,7 +69,7 @@ class ControlServer:
             if os.path.exists(self.socket_path):
                 os.unlink(self.socket_path)
         except Exception as e:
-            logging.error(f"Failed to remove existing socket: {e}")
+            logger.error(f"Failed to remove existing socket: {e}")
             return
 
         self.server_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -93,7 +95,7 @@ class ControlServer:
 
                 except Exception as e:
                     if self.running:
-                        logging.error(f"Server error: {e}")
+                        logger.error(f"Server error: {e}")
 
         finally:
             if self.server_socket:
@@ -134,7 +136,7 @@ class ControlServer:
                 client_socket.sendall(json.dumps(response).encode("utf-8") + b"\n")
 
         except Exception as e:
-            logging.error(f"Client handler error: {e}")
+            logger.error(f"Client handler error: {e}")
         finally:
             client_socket.close()
 

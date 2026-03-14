@@ -10,6 +10,8 @@ if TYPE_CHECKING:
     from v3xctrl_ui.core.dataclasses import ApplicationModel
     from v3xctrl_ui.core.Settings import Settings
 
+logger = logging.getLogger(__name__)
+
 
 class SettingsController:
     """Manages settings updates, comparison, and component coordination."""
@@ -208,7 +210,7 @@ class SettingsController:
             True if restart completed within timeout
         """
         if self.network_restart_thread and self.network_restart_thread.is_alive():
-            logging.info("Waiting for network restart to complete...")
+            logger.info("Waiting for network restart to complete...")
             self.network_restart_thread.join(timeout=timeout)
             return not self.network_restart_thread.is_alive()
 

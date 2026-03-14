@@ -20,6 +20,8 @@ from .handler_types import Handler, T
 from .message import Heartbeat, Message
 from .State import State
 
+logger = logging.getLogger(__name__)
+
 
 class InitializationError(Exception):
     """Raised when a subclass is not properly initialized"""
@@ -100,7 +102,7 @@ class Base(threading.Thread, ABC):
         if self.state == State.CONNECTED:
             elapsed = time.monotonic() - self.last_message_timestamp
             if elapsed > self.no_message_timeout:
-                logging.error(f"No message received for {self.no_message_timeout}s")
+                logger.error(f"No message received for {self.no_message_timeout}s")
                 self.handle_state_change(State.DISCONNECTED)
 
     def subscribe(self, cls: type[T], handler: Handler[T]) -> None:
@@ -114,7 +116,7 @@ class Base(threading.Thread, ABC):
         self.state_handlers[state].append(handler)
 
     def handle_state_change(self, new_state: State) -> None:
-        logging.debug(f"State changed from '{self.state}' to '{new_state}'")
+        logger.debug(f"State changed from '{self.state}' to '{new_state}'")
         self.state = new_state
 
         for current_state, handlers in self.state_handlers.items():

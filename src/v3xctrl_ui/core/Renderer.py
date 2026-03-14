@@ -20,6 +20,8 @@ from v3xctrl_ui.utils.colors import BLACK, RED, WHITE
 from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT_24, BOLD_MONO_FONT_32, BOLD_MONO_FONT_48, TEXT_FONT
 from v3xctrl_ui.utils.helpers import get_external_ip
 
+logger = logging.getLogger(__name__)
+
 
 class Renderer:
     """
@@ -180,7 +182,7 @@ class Renderer:
             try:
                 self._splash_logo = pygame.image.load(str(logo_path)).convert_alpha()
             except Exception as e:
-                logging.warning(f"Failed to load splash logo: {e}")
+                logger.warning(f"Failed to load splash logo: {e}")
         return self._splash_logo
 
     def _render_connect_screen(self, screen: pygame.Surface) -> None:

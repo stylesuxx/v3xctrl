@@ -7,6 +7,8 @@ from v3xctrl_control.message import Message, PeerAnnouncement, PeerInfo, Syn, Sy
 
 from v3xctrl_helper import Address
 
+logger = logging.getLogger(__name__)
+
 
 class AckTimeoutError(Exception):
     pass
@@ -24,7 +26,7 @@ class PunchPeer:
     def bind_socket(self, name: str, port: int = 0) -> socket.socket:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.bind(("0.0.0.0", port))
-        logging.info(f"Bound {name} socket to {sock.getsockname()}")
+        logger.info(f"Bound {name} socket to {sock.getsockname()}")
 
         return sock
 
@@ -36,7 +38,7 @@ class PunchPeer:
         while time.time() - start_time < self.register_timeout:
             try:
                 sock.sendto(announcement_msg.to_bytes(), (self.server, self.port))
-                logging.info(
+                logger.info(
                     f"Sent {announcement_msg.type} from port {sock.getsockname()[1]} to {self.server}:{self.port}"
                 )
 
@@ -44,18 +46,18 @@ class PunchPeer:
                 peer_msg = Message.from_bytes(data)
 
                 if isinstance(peer_msg, PeerInfo):
-                    logging.info(f"Got peer info: {peer_msg}")
+                    logger.info(f"Got peer info: {peer_msg}")
                     return peer_msg
                 else:
-                    logging.debug(f"Unexpected message type: {peer_msg.type}")
+                    logger.debug(f"Unexpected message type: {peer_msg.type}")
 
             except socket.timeout:
                 time.sleep(self.ANNOUNCE_INTERVAL)
             except Exception as e:
-                logging.error(f"Registration error: {e}")
+                logger.error(f"Registration error: {e}")
                 return None
 
-        logging.error(f"Timeout registering: {announcement_msg}")
+        logger.error(f"Timeout registering: {announcement_msg}")
         return None
 
     def register_all(self, sockets: dict[str, socket.socket], role: str) -> dict[str, PeerInfo]:
@@ -74,7 +76,7 @@ class PunchPeer:
         return {peer_type: results[peer_type][0] for peer_type in results}
 
     def _handshake(self, sock: socket.socket, addr: Address, interval: int = 1, timeout: int = 15) -> None:
-        logging.info(f"Starting handshake with {addr}")
+        logger.info(f"Starting handshake with {addr}")
         sock.settimeout(interval)
 
         received_synack = False
@@ -85,24 +87,24 @@ class PunchPeer:
             try:
                 if not received_synack:
                     sock.sendto(Syn().to_bytes(), addr)
-                    logging.info(f"Sent Syn to {addr}")
+                    logger.info(f"Sent Syn to {addr}")
 
                 data, source = sock.recvfrom(1024)
                 msg = Message.from_bytes(data)
 
                 if isinstance(msg, Syn):
                     sock.sendto(SynAck().to_bytes(), source)
-                    logging.info(f"Replied with SynAck to Syn from {source}")
+                    logger.info(f"Replied with SynAck to Syn from {source}")
 
                 elif isinstance(msg, SynAck):
                     sock.sendto(Ack().to_bytes(), source)
-                    logging.info(f"Replied with Ack to SynAck from {source}")
+                    logger.info(f"Replied with Ack to SynAck from {source}")
 
                     received_synack = True
                     sent_ack = True
 
                 elif isinstance(msg, Ack):
-                    logging.info(f"Received final Ack from {source}")
+                    logger.info(f"Received final Ack from {source}")
                     return source
 
                 if received_synack and sent_ack:
@@ -111,7 +113,7 @@ class PunchPeer:
             except socket.timeout:
                 continue
             except Exception as e:
-                logging.error(f"[!] Handshake error: {e}")
+                logger.error(f"[!] Handshake error: {e}")
                 continue
 
             time.sleep(interval)

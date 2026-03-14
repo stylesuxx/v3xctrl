@@ -8,6 +8,7 @@ from v3xctrl_punch.PunchPeer import PunchPeer
 from v3xctrl_control.message import Heartbeat, PeerInfo
 
 logging.basicConfig(level="DEBUG", format="%(asctime)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
 
 LOCAL_BIND_PORTS = {"video": 26666, "control": 26668}
 
@@ -34,15 +35,15 @@ class TestClient(TestPeer):
             while True:
                 time.sleep(1)
         except KeyboardInterrupt:
-            logging.info("Exiting...")
+            logger.info("Exiting...")
 
     def video_sender(self) -> None:
         sock_name = self.video_sock.getsockname()
         sock_formatted = f"{sock_name[0]}:{sock_name[1]}"
-        logging.info(f"[V] Sending from {sock_formatted} to {self.remote_video_addr_formatted}")
+        logger.info(f"[V] Sending from {sock_formatted} to {self.remote_video_addr_formatted}")
         while True:
             self.video_sock.sendto(Heartbeat().to_bytes(), self.remote_video_addr)
-            logging.info(f"[V] to   {self.remote_video_addr_formatted}")
+            logger.info(f"[V] to   {self.remote_video_addr_formatted}")
             time.sleep(1)
 
 

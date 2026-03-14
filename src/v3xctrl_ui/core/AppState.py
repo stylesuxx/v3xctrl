@@ -19,6 +19,8 @@ from v3xctrl_ui.menu.Menu import Menu
 from v3xctrl_ui.network.NetworkCoordinator import NetworkCoordinator
 from v3xctrl_ui.osd.OSD import OSD
 
+logger = logging.getLogger(__name__)
+
 
 class AppState:
     def __init__(self, settings: Settings) -> None:
@@ -136,7 +138,7 @@ class AppState:
 
                 self.network_coordinator.send_control_message(throttle, steering)
             except Exception as e:
-                logging.warning(f"Input read error: {e}")
+                logger.warning(f"Input read error: {e}")
             self.timing_controller.mark_control_updated(now)
 
         # Handle latency checks
@@ -178,7 +180,7 @@ class AppState:
         )
 
     def shutdown(self) -> None:
-        logging.info("Shutting down...")
+        logger.info("Shutting down...")
 
         # Wait for any pending network restart
         self.settings_controller.wait_for_network_restart()
@@ -188,12 +190,12 @@ class AppState:
         start = time.monotonic()
         self.input_controller.shutdown()
         delta = round(time.monotonic() - start)
-        logging.debug(f"Input manager shut down after {delta}s")
+        logger.debug(f"Input manager shut down after {delta}s")
 
         self.network_coordinator.shutdown()
 
         delta = round(time.monotonic() - start)
-        logging.info(f"Shutdown took {delta}s")
+        logger.info(f"Shutdown took {delta}s")
 
     def _on_quit(self) -> None:
         self.model.running = False

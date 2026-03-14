@@ -18,6 +18,8 @@ from v3xctrl_helper.exceptions import (
     UnauthorizedError,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class Peer:
     SOCKET_TIMEOUT = 1
@@ -66,7 +68,7 @@ class Peer:
             try:
                 self._heartbeat_socket.close()
             except Exception as e:
-                logging.debug(f"Error closing heartbeat socket: {e}")
+                logger.debug(f"Error closing heartbeat socket: {e}")
             self._heartbeat_socket = None
 
         self._finalized_event.wait()
@@ -92,7 +94,7 @@ class Peer:
                         response = Message.from_bytes(data)
                         if isinstance(response, PeerInfo):
                             if drained > 1:
-                                logging.debug(f"Drained {drained - 1} backlog packets")
+                                logger.debug(f"Drained {drained - 1} backlog packets")
                             return response
                         if isinstance(response, Error):
                             self._abort_event.set()
@@ -103,14 +105,14 @@ class Peer:
                 break
 
         if drained > 0:
-            logging.debug(f"Drained {drained} backlog packets")
+            logger.debug(f"Drained {drained} backlog packets")
 
         return None
 
     def _bind_socket(self, name: str, port: int = 0) -> socket.socket:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.bind(("0.0.0.0", port))
-        logging.info(f"Bound {name} socket to {sock.getsockname()}")
+        logger.info(f"Bound {name} socket to {sock.getsockname()}")
         return sock
 
     # Msgpack prefix for all Message objects: fixmap(3) + fixstr(1) "t"
@@ -143,7 +145,7 @@ class Peer:
                     return peer_info
 
                 sock.sendto(announcement.to_bytes(), (self.server, self.port))
-                logging.debug(f"Sent {port_type} announcement to {self.server}:{self.port} from {sock.getsockname()}")
+                logger.debug(f"Sent {port_type} announcement to {self.server}:{self.port} from {sock.getsockname()}")
                 last_announce = now
 
             try:
@@ -158,21 +160,21 @@ class Peer:
 
                         if isinstance(response, PeerInfo):
                             if skipped_data_packets > 0:
-                                logging.debug(
+                                logger.debug(
                                     f"Skipped {skipped_data_packets} non-message packets during {port_type} registration"
                                 )
-                            logging.info(f"Received PeerInfo for {port_type}: {response}")
+                            logger.info(f"Received PeerInfo for {port_type}: {response}")
                             return response
 
                         if isinstance(response, Error):
                             error = response.get_error()
                             self._abort_event.set()
 
-                            logging.error(f"Response Error: {error}")
+                            logger.error(f"Response Error: {error}")
                             raise UnauthorizedError()
 
                     except ValueError as e:
-                        logging.debug(f"Data could not be parsed: {e}")
+                        logger.debug(f"Data could not be parsed: {e}")
 
             except TimeoutError:
                 # Implicit sleep through socket timeout
@@ -183,7 +185,7 @@ class Peer:
                 raise
 
             except Exception as e:
-                logging.debug(f"Error during {port_type} registration: {e}")
+                logger.debug(f"Error during {port_type} registration: {e}")
 
         raise InterruptedError(f"Registration aborted for {port_type}")
 

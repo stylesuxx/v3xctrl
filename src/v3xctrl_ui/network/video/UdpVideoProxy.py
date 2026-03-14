@@ -7,6 +7,8 @@ import time
 
 from v3xctrl_control.message import Heartbeat
 
+logger = logging.getLogger(__name__)
+
 HEARTBEAT_INTERVAL_S = 30.0
 RECV_BUFFER_SIZE = 65535
 
@@ -49,7 +51,7 @@ class UdpVideoProxy(threading.Thread):
             self._external_sock.bind(("0.0.0.0", self.video_port))
             self._external_sock.setblocking(False)
         except OSError as e:
-            logging.error(f"UdpVideoProxy: failed to bind port {self.video_port}: {e}")
+            logger.error(f"UdpVideoProxy: failed to bind port {self.video_port}: {e}")
             if self._external_sock:
                 self._external_sock.close()
                 self._external_sock = None
@@ -57,7 +59,7 @@ class UdpVideoProxy(threading.Thread):
 
         self.local_port = self._find_free_local_port()
         if self.local_port == 0:
-            logging.error("UdpVideoProxy: failed to find free local port")
+            logger.error("UdpVideoProxy: failed to find free local port")
             self._external_sock.close()
             self._external_sock = None
             return False
@@ -86,7 +88,7 @@ class UdpVideoProxy(threading.Thread):
         heartbeat_bytes = Heartbeat().to_bytes()
         last_heartbeat = 0.0
 
-        logging.info(
+        logger.info(
             f"UdpVideoProxy: forwarding :{self.video_port} -> "
             f"localhost:{self.local_port}, heartbeats to {self.relay_address}"
         )
@@ -96,7 +98,7 @@ class UdpVideoProxy(threading.Thread):
             self._external_sock.sendto(heartbeat_bytes, self.relay_address)
             last_heartbeat = time.monotonic()
         except OSError as e:
-            logging.warning(f"UdpVideoProxy: initial heartbeat failed: {e}")
+            logger.warning(f"UdpVideoProxy: initial heartbeat failed: {e}")
 
         while self._running.is_set():
             try:
@@ -115,23 +117,23 @@ class UdpVideoProxy(threading.Thread):
                     pass
                 except OSError as e:
                     if self._running.is_set():
-                        logging.warning(f"UdpVideoProxy: forward error: {e}")
+                        logger.warning(f"UdpVideoProxy: forward error: {e}")
 
             now = time.monotonic()
             if now - last_heartbeat >= HEARTBEAT_INTERVAL_S:
                 try:
                     self._external_sock.sendto(heartbeat_bytes, self.relay_address)
                     last_heartbeat = now
-                    logging.debug(f"UdpVideoProxy: heartbeat sent to {self.relay_address}")
+                    logger.debug(f"UdpVideoProxy: heartbeat sent to {self.relay_address}")
                 except OSError as e:
-                    logging.warning(f"UdpVideoProxy: heartbeat failed: {e}")
+                    logger.warning(f"UdpVideoProxy: heartbeat failed: {e}")
 
         for sock in (self._external_sock, self._forward_sock):
             if sock:
                 with contextlib.suppress(OSError):
                     sock.close()
 
-        logging.info("UdpVideoProxy: stopped")
+        logger.info("UdpVideoProxy: stopped")
 
     @staticmethod
     def _find_free_local_port() -> int:

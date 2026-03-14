@@ -8,6 +8,8 @@ from v3xctrl_relay.Peer import Peer
 
 logging.basicConfig(level="DEBUG", format="%(asctime)s - %(levelname)s - %(message)s")
 
+logger = logging.getLogger(__name__)
+
 LOCAL_BIND_PORTS = {"video": 16666, "control": 16668}
 
 DEFAULT_RENDEZVOUS_SERVER = "rendezvous.websium.at"
@@ -28,14 +30,14 @@ class TestServer(TestPeer):
             while True:
                 time.sleep(1)
         except KeyboardInterrupt:
-            logging.info("Exiting...")
+            logger.info("Exiting...")
 
     def video_listener(self) -> None:
-        logging.info(f"[V] Listening on {self.video_sock.getsockname()}")
+        logger.info(f"[V] Listening on {self.video_sock.getsockname()}")
         while True:
             _, addr = self.video_sock.recvfrom(2048)
             addr_formatted = f"{addr[0]}:{addr[1]}"
-            logging.info(f"[V] from {addr_formatted}")
+            logger.info(f"[V] from {addr_formatted}")
 
 
 def parse_args() -> argparse.Namespace:
