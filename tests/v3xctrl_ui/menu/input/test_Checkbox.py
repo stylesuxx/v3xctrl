@@ -50,7 +50,7 @@ class TestCheckbox(unittest.TestCase):
         expected_states = {'checked', 'unchecked'}
         self.assertEqual(set(checkbox.cached_surfaces.keys()), expected_states)
 
-        for state, surface in checkbox.cached_surfaces.items():
+        for _state, surface in checkbox.cached_surfaces.items():
             self.assertIsInstance(surface, pygame.Surface)
             # Verify surface size matches get_size()
             expected_width, expected_height = checkbox.get_size()

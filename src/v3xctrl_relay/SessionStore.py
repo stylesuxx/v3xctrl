@@ -62,9 +62,9 @@ class SessionStore:
 
         except sqlite3.IntegrityError as e:
             if "discord_user_id" in str(e):
-                raise RuntimeError(f"Session already exists for user {discord_user_id}")
+                raise RuntimeError(f"Session already exists for user {discord_user_id}") from e
 
-            raise RuntimeError("Database integrity error occurred")
+            raise RuntimeError("Database integrity error occurred") from e
 
     def update(self, discord_user_id: str, username: str) -> tuple[str, str]:
         session_id, spectator_id = self._generate_unique_id_pair()

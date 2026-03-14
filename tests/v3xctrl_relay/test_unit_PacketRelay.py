@@ -154,7 +154,7 @@ class TestPacketRelay(unittest.TestCase):
         with self.relay.mapping_lock:
             self.relay.mappings[addr] = Mapping(target_addr, current_time)
 
-        with patch('logging.info') as mock_log:
+        with patch('logging.info') as _mock_log:
             self.relay.cleanup_expired_mappings()
 
         with self.relay.mapping_lock:

@@ -130,8 +130,7 @@ def plot_lte_bands_center_based(
     ax.set_ylabel('SWR')
     ax.grid(True)
 
-    label_index = 0
-    for entry in band_data:
+    for label_index, entry in enumerate(band_data):
         band = entry['Band']
         center = entry['Center (MHz)']
         swr_val = entry['SWR @ Center']
@@ -140,7 +139,6 @@ def plot_lte_bands_center_based(
         ax.axvspan(start, end, color=color, alpha=0.3, zorder=0)
         y_pos = [2.9, 2.7, 2.5, 2.3][label_index % 4]
         ax.text(center, y_pos, band, ha='center', va='top', fontsize=9, zorder=2)
-        label_index += 1
 
 
 if __name__ == '__main__':

@@ -15,7 +15,7 @@ class VideoCoreTelemetry:
         try:
             value = int(out.split("=", 1)[1], 16)
         except (ValueError, IndexError):
-            raise RuntimeError(f"Unexpected vcgencmd output: {out}")
+            raise RuntimeError(f"Unexpected vcgencmd output: {out}") from None
 
         # Current flags (bits 0–3)
         self._state.current.undervolt = bool(value & (1 << 0))

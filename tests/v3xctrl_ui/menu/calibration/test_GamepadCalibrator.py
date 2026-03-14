@@ -76,7 +76,7 @@ class TestGamepadCalibrator(unittest.TestCase):
         steps = self.calibrator.get_steps()
         self.assertEqual(len(steps), 4)
 
-        for label, is_active in steps:
+        for _label, is_active in steps:
             self.assertFalse(is_active)
 
         self.calibrator.stage = CalibrationStage.STEERING
@@ -431,7 +431,7 @@ class TestGamepadCalibrator(unittest.TestCase):
 
         steps = self.calibrator.get_steps()
 
-        for label, is_active in steps:
+        for _label, is_active in steps:
             self.assertFalse(is_active)
 
     def test_get_settings_empty_max_values(self):

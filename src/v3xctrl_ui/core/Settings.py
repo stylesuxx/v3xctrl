@@ -140,7 +140,7 @@ class Settings:
         },
     }
 
-    def __init__(self, path: str = None) -> None:
+    def __init__(self, path: str | None = None) -> None:
         if path is not None:
             self.path = Path(path)
             self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -233,4 +233,4 @@ class Settings:
         try:
             return getattr(pygame, keyname)
         except AttributeError:
-            raise ValueError(f"Invalid key name in config: {keyname}")
+            raise ValueError(f"Invalid key name in config: {keyname}") from None

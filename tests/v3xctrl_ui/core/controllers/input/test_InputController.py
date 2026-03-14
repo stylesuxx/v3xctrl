@@ -37,7 +37,7 @@ class TestInputController(unittest.TestCase):
             mock_pygame, mock_keyaxis_cls, mock_gamepad_cls)
         mock_keyaxis_cls.side_effect = [mock_throttle_handler, mock_steering_handler]
 
-        input_manager = InputController(self.settings)
+        _input_manager = InputController(self.settings)
 
         mock_gamepad_cls.assert_called_once()
         mock_gamepad.set_calibration.assert_called_with("gamepad1", {"deadzone": 0.1})

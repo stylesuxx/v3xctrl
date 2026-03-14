@@ -54,7 +54,7 @@ class InputTab(Tab):
             on_remap_toggle=self._on_active_toggle
         )
 
-        self.elements = self.key_widgets + [self.calibration_widget]
+        self.elements = [*self.key_widgets, self.calibration_widget]
 
         # Column layout configuration
         self.column_spacing = 20

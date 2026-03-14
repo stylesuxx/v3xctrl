@@ -27,7 +27,7 @@ class TestDisplayController(unittest.TestCase):
         mock_screen.get_size.return_value = (800, 600)
         mock_set_mode.return_value = mock_screen
 
-        display_manager = DisplayController(self.model, self.base_size, self.title)
+        _display_manager = DisplayController(self.model, self.base_size, self.title)
 
         # Should set caption
         mock_caption.assert_called_once_with(self.title)
@@ -57,7 +57,7 @@ class TestDisplayController(unittest.TestCase):
         mock_set_mode.return_value = mock_screen
         mock_list_modes.return_value = [(1920, 1080), (1280, 720)]
 
-        display_manager = DisplayController(self.model, self.base_size, self.title)
+        _display_manager = DisplayController(self.model, self.base_size, self.title)
 
         # Should set caption
         mock_caption.assert_called_once_with(self.title)
@@ -88,19 +88,19 @@ class TestDisplayController(unittest.TestCase):
         mock_set_mode.return_value = mock_screen
         mock_list_modes.return_value = [(1920, 1080)]
 
-        display_manager = DisplayController(self.model, self.base_size, self.title)
+        _display_manager = DisplayController(self.model, self.base_size, self.title)
 
         # Start in windowed mode
         self.assertFalse(self.model.fullscreen)
         self.assertEqual(mock_set_mode.call_count, 1)
 
         # Toggle to fullscreen
-        display_manager.toggle_fullscreen()
+        _display_manager.toggle_fullscreen()
         self.assertTrue(self.model.fullscreen)
         self.assertEqual(mock_set_mode.call_count, 2)
 
         # Toggle back to windowed
-        display_manager.toggle_fullscreen()
+        _display_manager.toggle_fullscreen()
         self.assertFalse(self.model.fullscreen)
         self.assertEqual(mock_set_mode.call_count, 3)
 
@@ -114,19 +114,19 @@ class TestDisplayController(unittest.TestCase):
         mock_set_mode.return_value = mock_screen
         mock_list_modes.return_value = [(1920, 1080)]
 
-        display_manager = DisplayController(self.model, self.base_size, self.title)
+        _display_manager = DisplayController(self.model, self.base_size, self.title)
 
         # Set fullscreen explicitly
-        display_manager.set_fullscreen(True)
+        _display_manager.set_fullscreen(True)
         self.assertTrue(self.model.fullscreen)
 
         # Set windowed explicitly
-        display_manager.set_fullscreen(False)
+        _display_manager.set_fullscreen(False)
         self.assertFalse(self.model.fullscreen)
 
         # Setting to same value shouldn't trigger update
         initial_call_count = mock_set_mode.call_count
-        display_manager.set_fullscreen(False)
+        _display_manager.set_fullscreen(False)
         self.assertEqual(mock_set_mode.call_count, initial_call_count)
 
     @patch("v3xctrl_ui.core.controllers.DisplayController.pygame.display.list_modes")
@@ -138,13 +138,13 @@ class TestDisplayController(unittest.TestCase):
         mock_screen.get_size.return_value = (800, 600)
         mock_set_mode.return_value = mock_screen
 
-        display_manager = DisplayController(self.model, self.base_size, self.title)
+        _display_manager = DisplayController(self.model, self.base_size, self.title)
 
         # Test getters
-        self.assertEqual(display_manager.get_screen(), mock_screen)
-        self.assertEqual(display_manager.get_size(), (800, 600))
-        self.assertEqual(display_manager.get_base_size(), (800, 600))
-        self.assertEqual(display_manager.get_scale(), 1.0)
+        self.assertEqual(_display_manager.get_screen(), mock_screen)
+        self.assertEqual(_display_manager.get_size(), (800, 600))
+        self.assertEqual(_display_manager.get_base_size(), (800, 600))
+        self.assertEqual(_display_manager.get_scale(), 1.0)
 
     @patch("v3xctrl_ui.core.controllers.DisplayController.pygame.display.list_modes")
     @patch("v3xctrl_ui.core.controllers.DisplayController.pygame.display.set_mode")
@@ -159,7 +159,7 @@ class TestDisplayController(unittest.TestCase):
         mock_screen.get_size.return_value = (1600, 1200)
         mock_set_mode.return_value = mock_screen
 
-        display_manager = DisplayController(self.model, self.base_size, self.title)
+        _display_manager = DisplayController(self.model, self.base_size, self.title)
 
         # Scale should be min(1600/800, 1200/600) = min(2.0, 2.0) = 2.0
         self.assertEqual(self.model.scale, 2.0)

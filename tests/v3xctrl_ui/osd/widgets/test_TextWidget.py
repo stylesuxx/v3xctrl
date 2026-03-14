@@ -147,7 +147,7 @@ class TestTextWidget(unittest.TestCase):
 
     def test_set_background_color_recreates_background(self):
         # Get initial background surface
-        initial_bg = self.widget.bg_surface
+        _initial_bg = self.widget.bg_surface
 
         # Change background color
         self.widget.set_background_color((100, 100, 100), alpha=255)

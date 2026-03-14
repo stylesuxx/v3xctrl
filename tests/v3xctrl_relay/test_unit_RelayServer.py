@@ -175,7 +175,7 @@ class TestRelayServerUnitTests(unittest.TestCase):
 
         with patch('logging.error') as mock_error:
             # Call _handle_commands with a counter to limit iterations
-            original_is_set = server.running.is_set
+            _original_is_set = server.running.is_set
             call_count = 0
 
             def limited_is_set():

@@ -114,9 +114,11 @@ class GamepadCalibrator:
     def _detect_and_record_axis(self,
                                 name: str,
                                 axes: list[float],
-                                exclude: list[str] = [],
+                                exclude: list[str] | None = None,
                                 next_stage: CalibrationStage | None = None,
                                 on_complete: Callable[[], None] | None = None) -> None:
+        if exclude is None:
+            exclude = []
         axis_data = self.axes[name]
         excluded_indices = [self.axes[e].axis for e in exclude if self.axes[e].axis is not None]
         now = self._clock()
@@ -127,7 +129,7 @@ class GamepadCalibrator:
             else:
                 diffs = [
                     abs(a - b) if i not in excluded_indices else 0
-                    for i, (a, b) in enumerate(zip(axes, axis_data.baseline))
+                    for i, (a, b) in enumerate(zip(axes, axis_data.baseline, strict=False))
                 ]
                 axis = max(range(len(diffs)), key=lambda i: diffs[i])
                 if diffs[axis] > self.AXIS_MOVEMENT_THRESHOLD:

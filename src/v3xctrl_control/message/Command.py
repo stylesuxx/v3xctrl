@@ -12,10 +12,12 @@ class Command(Message):
     def __init__(
         self,
         c: str,
-        p: dict[str, Any] = {},
+        p: dict[str, Any] | None = None,
         i: str | None = None,
         timestamp: float | None = None
     ) -> None:
+        if p is None:
+            p = {}
         self.command_id = i or self._generate_command_id()
 
         super().__init__({

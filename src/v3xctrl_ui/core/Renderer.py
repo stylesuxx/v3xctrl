@@ -163,7 +163,7 @@ class Renderer:
                 max_label_width = key_rect.width
 
         val_x = x + max_label_width + 15
-        for i, (key, val) in enumerate(lines):
+        for i, (_key, val) in enumerate(lines):
             if val:
                 y = base_y + i * line_height
                 val_surf, val_rect = BOLD_MONO_FONT_24.render(val, WHITE)

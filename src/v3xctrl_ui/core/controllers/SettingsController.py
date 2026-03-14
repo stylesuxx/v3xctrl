@@ -169,7 +169,7 @@ class SettingsController:
             return True
 
         # Direct mode: spectator enabled (requires session ID for relay connection)
-        if not new_enabled and not old_spectator and new_spectator and has_session_id:
+        if not new_enabled and not old_spectator and new_spectator and has_session_id:  # noqa: SIM103
             return True
 
         return False

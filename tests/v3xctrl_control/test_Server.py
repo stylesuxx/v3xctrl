@@ -317,10 +317,10 @@ class TestServer(unittest.TestCase):
         self.server.running.set()
 
         # Make message_handler.stop() raise an exception
-        self.mock_handler.stop.side_effect = Exception("Handler stop failed")
+        self.mock_handler.stop.side_effect = RuntimeError("Handler stop failed")
 
         # The current code doesn't handle exceptions in stop(), so this will raise
-        with self.assertRaises(Exception):
+        with self.assertRaises(RuntimeError):
             self.server.stop()
 
         # This test shows the cleanup issue - when handler.stop() fails,

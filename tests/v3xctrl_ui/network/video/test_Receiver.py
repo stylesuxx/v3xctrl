@@ -114,7 +114,7 @@ class TestReceiver(unittest.TestCase):
         """Test history deque respects maxlen of 100."""
         receiver = MockReceiver(5600, Mock())
 
-        for i in range(150):
+        for _i in range(150):
             receiver._update_frame(np.zeros((10, 10, 3), dtype=np.uint8))
             receiver.get_frame()
 

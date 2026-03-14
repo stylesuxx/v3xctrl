@@ -37,7 +37,7 @@ class TestRelayServerIntegration(unittest.TestCase):
                 self.server.shutdown()
                 if hasattr(self.server, 'join'):
                     self.server.join(timeout=0.1)
-            except:
+            except Exception:
                 pass
 
         # Clean up temp directory and all files
@@ -453,7 +453,7 @@ class TestRelayServerIntegration(unittest.TestCase):
         # Create peers dict manually
         from v3xctrl_relay.custom_types import PeerEntry
 
-        peer_entry = PeerEntry(("192.168.1.100", 54321))
+        _peer_entry = PeerEntry(("192.168.1.100", 54321))
 
         # create a session manually
         session = Session("test_session_1")
@@ -492,7 +492,7 @@ class TestRelayServerIntegration(unittest.TestCase):
         )
 
         # Mock the cleanup method to verify it's called
-        with patch.object(server.relay, 'cleanup_expired_mappings') as mock_cleanup:
+        with patch.object(server.relay, 'cleanup_expired_mappings') as _mock_cleanup:
             # Start the server threads
             with patch('threading.Thread') as mock_thread:
                 mock_thread_instance = Mock()

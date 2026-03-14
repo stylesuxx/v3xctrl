@@ -616,7 +616,7 @@ class TestReceiverPyAVIntegration(unittest.TestCase):
 
         def container_operations():
             try:
-                for i in range(50):
+                for _i in range(50):
                     with receiver.container_lock:
                         receiver.container = Mock()
                         time.sleep(0.001)

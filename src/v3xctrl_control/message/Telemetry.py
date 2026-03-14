@@ -8,9 +8,11 @@ class Telemetry(Message):
 
     def __init__(
         self,
-        v: dict[str, Any] = {},
+        v: dict[str, Any] | None = None,
         timestamp: float | None = None
     ) -> None:
+        if v is None:
+            v = {}
         super().__init__({
             "v": v
         }, timestamp)

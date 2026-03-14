@@ -42,7 +42,7 @@ class TestButton(unittest.TestCase):
         expected_states = {'normal', 'hover', 'active', 'disabled'}
         self.assertEqual(set(self.button.cached_surfaces.keys()), expected_states)
 
-        for state, surface in self.button.cached_surfaces.items():
+        for _state, surface in self.button.cached_surfaces.items():
             self.assertIsInstance(surface, pygame.Surface)
             self.assertEqual(surface.get_size(), (100, 40))
 
