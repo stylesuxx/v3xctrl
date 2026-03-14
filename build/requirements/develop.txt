@@ -8,4 +8,5 @@ pytest==8.3.5
 pytest-cov==6.1.1
 tomli_w==1.2.0
 pyinstaller==6.18.0
+ruff==0.15.6
 watchdog==6.0.0

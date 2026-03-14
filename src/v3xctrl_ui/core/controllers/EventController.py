@@ -133,7 +133,7 @@ class EventController:
             if mapping is None:
                 continue
 
-            if (isinstance(mapping, int) and event.type == pygame.JOYBUTTONUP
+            if (isinstance(mapping, int) and event.type == pygame.JOYBUTTONUP  # noqa: SIM114
                     and event.button == mapping):
                 return name
 
