@@ -15,3 +15,4 @@ _version.py
 /.pytest_cache
 *.toml
 !android/gradle/libs.versions.toml
+.venv

@@ -32,7 +32,7 @@ class TestNetworkController(unittest.TestCase):
         self.mock_video_receiver = MagicMock()
         self.mock_video_receiver_cls.return_value = self.mock_video_receiver
 
-        self.peer_patcher = patch("v3xctrl_udp_relay.Peer.Peer")
+        self.peer_patcher = patch("v3xctrl_relay.Peer.Peer")
         self.mock_peer_cls = self.peer_patcher.start()
 
         self.network_setup_patcher = patch("v3xctrl_ui.network.NetworkController.NetworkSetup")

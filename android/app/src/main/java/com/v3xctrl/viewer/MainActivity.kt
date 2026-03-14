@@ -16,6 +16,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -156,10 +157,6 @@ class MainActivity : ComponentActivity() {
                     currentScreen = screen
                 }
 
-                fun navigateBack() {
-                    currentScreen = backStack.removeLastOrNull() ?: Screen.Main
-                }
-
                 // Auto-enter PiP on gesture navigation (API 31+)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     LaunchedEffect(currentScreen) {
@@ -183,6 +180,12 @@ class MainActivity : ComponentActivity() {
                 // TCP tunnels (only used when transport == "tcp")
                 var videoTunnel by remember { mutableStateOf<TcpTunnel?>(null) }
                 var controlTunnel by remember { mutableStateOf<TcpTunnel?>(null) }
+
+                // Track the network settings used for the active connection,
+                // so we can detect changes that require reconnection
+                var connectionNetworkSettings by remember { mutableStateOf<NetworkSettings?>(null) }
+                var isReconnecting by remember { mutableStateOf(false) }
+                var reconnectionGeneration by remember { mutableIntStateOf(0) }
 
                 fun stopTunnels() {
                     videoTunnel?.stop()
@@ -246,6 +249,7 @@ class MainActivity : ComponentActivity() {
                                 controlTunnel = cTunnel
                                 dynamicVideoPort = vPort
                                 dynamicControlPort = cPort
+                                connectionNetworkSettings = networkSettings
 
                                 // Show connecting state for at least 1.5 seconds
                                 val elapsed = System.currentTimeMillis() - startTime
@@ -281,6 +285,7 @@ class MainActivity : ComponentActivity() {
                                 is ConnectionResult.Success -> {
                                     dynamicVideoPort = result.videoPort
                                     dynamicControlPort = result.controlPort
+                                    connectionNetworkSettings = networkSettings
                                     connectionState = ConnectionState.Idle
                                     navigateTo(Screen.Viewer)
                                 }
@@ -308,6 +313,129 @@ class MainActivity : ComponentActivity() {
                     connectionJob = null
                 }
 
+                fun reconnect() {
+                    connectionJob?.cancel()
+                    relayConnection?.cancel()
+                    relayConnection = null
+                    isReconnecting = true
+
+                    val (host, port) = parseRelayUrl(networkSettings.relayUrl)
+                    val transport = networkSettings.transport
+
+                    fun onReconnectFailed(message: String) {
+                        isReconnecting = false
+                        connectionNetworkSettings = null
+                        connectionState = ConnectionState.Error(message)
+                        backStack.clear()
+                        currentScreen = Screen.Main
+                    }
+
+                    if (transport == Transport.TCP) {
+                        connectionJob = scope.launch {
+                            try {
+                                stopTunnels()
+
+                                val (vPort, cPort) = withContext(Dispatchers.IO) {
+                                    val vs = DatagramSocket(0)
+                                    val cs = DatagramSocket(0)
+                                    val vp = vs.localPort
+                                    val cp = cs.localPort
+                                    vs.close()
+                                    cs.close()
+                                    Pair(vp, cp)
+                                }
+
+                                val role = if (networkSettings.spectatorMode) Role.SPECTATOR else Role.VIEWER
+
+                                val vTunnel = TcpTunnel(
+                                    remoteHost = host,
+                                    remotePort = port,
+                                    localComponentPort = vPort,
+                                    bidirectional = true,
+                                    handshake = PeerAnnouncement(
+                                        role = role,
+                                        sessionId = networkSettings.sessionId,
+                                        portType = PortType.VIDEO
+                                    ).toBytes()
+                                )
+
+                                val cTunnel = TcpTunnel(
+                                    remoteHost = host,
+                                    remotePort = port,
+                                    localComponentPort = cPort,
+                                    bidirectional = true,
+                                    handshake = PeerAnnouncement(
+                                        role = role,
+                                        sessionId = networkSettings.sessionId,
+                                        portType = PortType.CONTROL
+                                    ).toBytes()
+                                )
+
+                                vTunnel.start()
+                                cTunnel.start()
+
+                                videoTunnel = vTunnel
+                                controlTunnel = cTunnel
+                                dynamicVideoPort = vPort
+                                dynamicControlPort = cPort
+                                connectionNetworkSettings = networkSettings
+                                reconnectionGeneration++
+                                isReconnecting = false
+                            } catch (e: Exception) {
+                                stopTunnels()
+                                onReconnectFailed(e.message ?: "Reconnection failed")
+                            }
+                        }
+                    } else {
+                        connectionJob = scope.launch {
+                            stopTunnels()
+
+                            val connection = RelayConnection(
+                                relayHost = host,
+                                relayPort = port,
+                                sessionId = networkSettings.sessionId,
+                                spectatorMode = networkSettings.spectatorMode
+                            )
+                            relayConnection = connection
+
+                            val result = connection.connect()
+                            relayConnection = null
+
+                            when (result) {
+                                is ConnectionResult.Success -> {
+                                    dynamicVideoPort = result.videoPort
+                                    dynamicControlPort = result.controlPort
+                                    connectionNetworkSettings = networkSettings
+                                    reconnectionGeneration++
+                                    isReconnecting = false
+                                }
+                                is ConnectionResult.Cancelled -> {
+                                    isReconnecting = false
+                                }
+                                is ConnectionResult.Unauthorized -> {
+                                    onReconnectFailed(result.message)
+                                }
+                                is ConnectionResult.Error -> {
+                                    onReconnectFailed(result.message)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                fun navigateBack() {
+                    currentScreen = backStack.removeLastOrNull() ?: Screen.Main
+
+                    // If returning to the viewer and connection-affecting settings
+                    // changed, reconnect in place
+                    if (currentScreen == Screen.Viewer
+                        && connectionNetworkSettings != null
+                        && networkSettings != connectionNetworkSettings
+                    ) {
+                        reconnect()
+                    }
+                }
+
                 BackHandler(enabled = currentScreen != Screen.Main) {
                     navigateBack()
                 }
@@ -332,6 +460,8 @@ class MainActivity : ComponentActivity() {
                             spectatorMode = networkSettings.spectatorMode,
                             controlSettings = controlSettings,
                             isInPipMode = isInPipMode,
+                            isReconnecting = isReconnecting,
+                            reconnectionGeneration = reconnectionGeneration,
                             onBack = {
                                 stopTunnels()
                                 navigateBack()

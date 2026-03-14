@@ -6,5 +6,5 @@ omit =
     ./src/v3xctrl_punch/*
     ./src/v3xctrl/plot/*
     ./src/v3xctrl_ui/main.py
-    ./src/v3xctrl_udp_relay/apps/*
-    ./src/v3xctrl_udp_relay/examples/*
+    ./src/v3xctrl_relay/apps/*
+    ./src/v3xctrl_relay/examples/*
