@@ -55,7 +55,8 @@ class ControlClient:
                 sock.sendall(json.dumps(command).encode("utf-8"))
                 response = sock.recv(4096).decode("utf-8")
 
-                return json.loads(response)
+                result: dict[str, Any] = json.loads(response)
+                return result
 
         except Exception as e:
             return {"status": "error", "message": str(e)}

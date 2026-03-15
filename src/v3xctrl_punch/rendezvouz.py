@@ -1,6 +1,7 @@
 import socket
 import threading
 import time
+from typing import Any
 
 from v3xctrl_helper import Address
 from v3xctrl_control.message import Message, PeerAnnouncement, PeerInfo
@@ -12,7 +13,7 @@ CLEANUP_INTERVAL = 5
 valid_types = ["video", "control"]
 roles = ["client", "server"]
 
-sessions = {}
+sessions: dict[str, dict[str, dict[str, Any]]] = {}
 lock = threading.Lock()
 
 

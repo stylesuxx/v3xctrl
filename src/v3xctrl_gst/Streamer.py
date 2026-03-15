@@ -45,12 +45,12 @@ class Streamer:
         self.last_camera_pts = None
         self.frame_count = 0
 
-        self.last_udp_overflow_time = 0
+        self.last_udp_overflow_time: float = 0
 
         # Pipeline timing measurement
         self.timing_enabled = False
         self.timing_data: dict[int, dict[str, float]] = {}
-        self.timing_stats = {
+        self.timing_stats: dict[str, list[float]] = {
             "capture": [],
             "capsfilter": [],
             "encode": [],
@@ -154,6 +154,7 @@ class Streamer:
             qp_max=self.settings["h264_maximum_qp_value"],
         )
 
+        assert self.pipeline is not None
         self.bus = self.pipeline.get_bus()
         self.bus.add_signal_watch()
         self.bus.connect("message", self._on_message)
@@ -650,6 +651,7 @@ class Streamer:
 
         self.timing_debug["source_probe"] += 1
 
+        assert self.pipeline is not None
         running_time = self.pipeline.get_clock().get_time() - self.pipeline.get_base_time()
         capture_delay = (running_time - pts) / Gst.MSECOND  # Convert to ms
 

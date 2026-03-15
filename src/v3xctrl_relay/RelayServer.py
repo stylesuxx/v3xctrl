@@ -176,7 +176,7 @@ class RelayServer(threading.Thread):
                     role_timeout: dict[Role, int] = {}
                     with self.relay.mapping_lock:
                         for role, port_dict in session.roles.items():
-                            max_remaining = 0
+                            max_remaining: float = 0
                             for peer_entry in port_dict.values():
                                 mapping = self.relay.mappings.get(peer_entry.addr)
                                 if mapping:

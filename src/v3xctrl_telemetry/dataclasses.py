@@ -1,6 +1,6 @@
 """Telemetry dataclasses with serialization support."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -87,14 +87,8 @@ class ThrottleFlags:
 class VideoCoreFlags:
     """VideoCore throttling flags for telemetry."""
 
-    current: ThrottleFlags | None = None
-    history: ThrottleFlags | None = None
-
-    def __post_init__(self):
-        if self.current is None:
-            self.current = ThrottleFlags()
-        if self.history is None:
-            self.history = ThrottleFlags()
+    current: ThrottleFlags = field(default_factory=ThrottleFlags)
+    history: ThrottleFlags = field(default_factory=ThrottleFlags)
 
     def to_byte(self) -> int:
         """Pack flags into a single byte (lower nibble=current, upper=history)."""

@@ -2,6 +2,7 @@ import logging
 import socket
 import time
 import threading
+from typing import cast
 
 from v3xctrl_control.message import Message, PeerAnnouncement, PeerInfo, Syn, SynAck, Ack
 
@@ -60,12 +61,12 @@ class PunchPeer:
         logger.error(f"Timeout registering: {announcement_msg}")
         return None
 
-    def register_all(self, sockets: dict[str, socket.socket], role: str) -> dict[str, PeerInfo]:
-        results = {peer_type: [None] for peer_type in sockets.keys()}
+    def register_all(self, sockets: dict[str, socket.socket], role: str) -> dict[str, PeerInfo | None]:
+        results: dict[str, list[PeerInfo | None]] = {peer_type: [None] for peer_type in sockets.keys()}
 
         def reg_worker(peer_type: str) -> None:
             ann = PeerAnnouncement(r=role, i=self.session_id, p=peer_type)
-            results[peer_type][0] = self.register_with_rendezvous(sockets[pt], ann)
+            results[peer_type][0] = self.register_with_rendezvous(sockets[peer_type], ann)
 
         threads = [threading.Thread(target=reg_worker, args=(pt,)) for pt in sockets]
         for t in threads:
@@ -75,7 +76,7 @@ class PunchPeer:
 
         return {peer_type: results[peer_type][0] for peer_type in results}
 
-    def _handshake(self, sock: socket.socket, addr: Address, interval: int = 1, timeout: int = 15) -> None:
+    def _handshake(self, sock: socket.socket, addr: Address, interval: int = 1, timeout: int = 15) -> Address:
         logger.info(f"Starting handshake with {addr}")
         sock.settimeout(interval)
 
@@ -89,7 +90,8 @@ class PunchPeer:
                     sock.sendto(Syn().to_bytes(), addr)
                     logger.info(f"Sent Syn to {addr}")
 
-                data, source = sock.recvfrom(1024)
+                data, raw_source = sock.recvfrom(1024)
+                source = cast(Address, raw_source)
                 msg = Message.from_bytes(data)
 
                 if isinstance(msg, Syn):
@@ -126,6 +128,7 @@ class PunchPeer:
             raise RuntimeError("Registration failed or incomplete")
 
         peer = peer_info["video"]
+        assert peer is not None
         ip = peer.get_ip()
         video_port = peer.get_video_port()
         control_port = peer.get_control_port()

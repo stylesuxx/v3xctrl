@@ -5,10 +5,8 @@ import sys
 import time
 import traceback
 import types
-from typing import cast
-
 from v3xctrl_control import Server, State
-from v3xctrl_control.message import Message, Telemetry, Control
+from v3xctrl_control.message import Telemetry, Control
 
 logger = logging.getLogger(__name__)
 
@@ -23,9 +21,7 @@ PORT = args.port
 running = True
 
 
-def telemetry_handler(message: Message) -> None:
-    """TODO: Implement control message handling."""
-    message = cast(Telemetry, message)
+def telemetry_handler(message: Telemetry, addr: tuple[str, int]) -> None:
     values = message.get_values()
     logger.debug(f"Received telemetry message: {values}")
 

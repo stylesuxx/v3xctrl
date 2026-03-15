@@ -57,8 +57,7 @@ class BatteryTelemetry:
         min_voltage = self.min_cell_voltage * self._state.cell_count
         max_voltage = self.max_cell_voltage * self._state.cell_count
         percentage = round((self._state.voltage - min_voltage) / (max_voltage - min_voltage) * 100)
-        percentage = clamp(percentage, 0, 100)
-        self._state.percentage = percentage
+        self._state.percentage = int(clamp(percentage, 0, 100))
 
         # Check warning states
         self._state.warning = (self._state.voltage / self._state.cell_count) <= self.warn_cell_voltage

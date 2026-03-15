@@ -100,6 +100,9 @@ class Server(Base):
                 callback(False)
 
     def run(self) -> None:
+        assert self.transmitter is not None
+        assert self.message_handler is not None
+
         self.started.set()
 
         self.transmitter.start()
@@ -133,6 +136,10 @@ class Server(Base):
             time.sleep(self.STATE_CHECK_INTERVAL_MS / 1000)
 
     def stop(self) -> None:
+        assert self.message_handler is not None
+        assert self.transmitter is not None
+        assert self.socket is not None
+
         if self.started.is_set():
             # Wait for the setup to be done before tearing everything down
             self.running.wait()
@@ -158,4 +165,5 @@ class Server(Base):
         self.socket.close()
 
     def update_ttl(self, ttl_ms: int) -> None:
+        assert self.transmitter is not None
         self.transmitter.update_ttl(ttl_ms)

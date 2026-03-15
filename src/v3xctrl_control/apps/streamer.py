@@ -265,17 +265,17 @@ def command_handler(command: Command, address: Address) -> None:
 
         case "recording":
             parameters = command.get_parameters()
-            action: str = parameters["action"]
-            executor.submit(video_control.recording, action)
+            recording_action: str = parameters["action"]
+            executor.submit(video_control.recording, recording_action)
 
         case "trim":
             global steering_trim, steering_center
             parameters = command.get_parameters()
-            action: str = parameters["action"]
+            trim_action: str = parameters["action"]
 
             step = 5
 
-            if action == "increase":
+            if trim_action == "increase":
                 steering_trim += step
             else:
                 steering_trim -= step

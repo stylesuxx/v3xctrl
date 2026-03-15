@@ -164,6 +164,7 @@ class ControlServer:
         return {"status": "success", "message": "Pipeline stopped"}
 
     def _handle_list(self, command: Command) -> dict[str, Any]:
+        assert command.element is not None
         properties = self.streamer.list_properties(command.element)
         return {
             "status": "success" if properties is not None else "error",
@@ -172,6 +173,8 @@ class ControlServer:
         }
 
     def _handle_get(self, command: Command) -> dict[str, Any]:
+        assert command.element is not None
+        assert command.property is not None
         value = self.streamer.get_property(command.element, command.property)
         return {
             "status": "success" if value is not None else "error",
@@ -181,6 +184,8 @@ class ControlServer:
         }
 
     def _handle_set(self, command: Command) -> dict[str, Any]:
+        assert command.element is not None
+        assert command.property is not None
         success = self.streamer.set_property(command.element, command.property, command.value)
         value = self.streamer.get_property(command.element, command.property)
 

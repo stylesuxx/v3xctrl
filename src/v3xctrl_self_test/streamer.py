@@ -76,7 +76,7 @@ class SelfTestClient:
                             # Late DONE from previous test, ignore and keep waiting
                             continue
                         else:
-                            print(f"\n! Unexpected response for timeout {timeout_value:.2f}: {data}")
+                            print(f"\n! Unexpected response for timeout {timeout_value:.2f}: {data!r}")
                             return
 
                     except TimeoutError:

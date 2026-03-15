@@ -149,11 +149,9 @@ class TestRegisterAll(unittest.TestCase):
         with patch.object(self.peer, "register_with_rendezvous", side_effect=capture_register):
             self.peer.register_all(sockets, role="car")
 
-        # NOTE: Due to a bug in register_all (uses undefined 'pt' instead of
-        # 'peer_type' inside reg_worker), the threads crash with NameError and
-        # register_with_rendezvous is never called. The results remain None.
-        # This test documents the current (buggy) behavior.
-        self.assertEqual(len(recorded_announcements), 0)
+        self.assertEqual(len(recorded_announcements), 1)
+        self.assertEqual(recorded_announcements[0].get_role(), "car")
+        self.assertEqual(recorded_announcements[0].get_port_type(), "video")
 
 
 class TestHandshake(unittest.TestCase):

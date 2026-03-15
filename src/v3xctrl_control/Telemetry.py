@@ -147,6 +147,8 @@ class Telemetry(threading.Thread):
             self.payload.cell.band = "?"
 
     def _update_signal(self) -> None:
+        if self._modem is None:
+            return
         try:
             signal_quality = self._modem.get_signal_quality()
             with self._lock:
@@ -158,6 +160,8 @@ class Telemetry(threading.Thread):
             self._modem = None
 
     def _update_cell(self) -> None:
+        if self._modem is None:
+            return
         try:
             band = self._modem.get_active_band()
             cell_id = self._modem.get_cell_location()[3]

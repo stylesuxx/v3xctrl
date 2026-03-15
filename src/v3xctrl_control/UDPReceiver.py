@@ -57,8 +57,8 @@ class UDPReceiver(threading.Thread):
         self.timeout = timeout_ms / 1000
         self.window = window_ms / 1000
 
-        self.last_valid_timestamp = 0
-        self.last_valid_now = None
+        self.last_valid_timestamp: float = 0
+        self.last_valid_now: float | None = None
 
         self._should_validate_timestamp = should_validate_timestamp
         self._should_validate_host = False

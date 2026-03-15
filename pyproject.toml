@@ -24,19 +24,23 @@ ignore_missing_imports = true
 files = [
     "src/v3xctrl_helper",
     "src/v3xctrl_tcp",
+    "src/v3xctrl_control",
+    "src/v3xctrl_gst",
+    "src/v3xctrl_punch",
+    "src/v3xctrl_relay",
+    "src/v3xctrl_telemetry",
+    "src/v3xctrl_self_test",
 ]
 
 [[tool.mypy.overrides]]
 module = [
-    "v3xctrl_control.*",
-    "v3xctrl_gst.*",
-    "v3xctrl_punch.*",
-    "v3xctrl_relay.*",
-    "v3xctrl_telemetry.*",
     "v3xctrl_ui.*",
     "v3xctrl_web.*",
     "v3xctrl_udp_relay.*",
-    "v3xctrl_self_test.*",
     "v3xctrl_plot.*",
 ]
 follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "v3xctrl_relay.discord_bot.*"
+ignore_errors = true
