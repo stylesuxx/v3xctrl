@@ -1,9 +1,21 @@
+flags:
+  android:
+    paths:
+      - android/
+    carryforward: true
+
 coverage:
   status:
     project:
       default:
         target: auto
         threshold: 1%
+      android:
+        target: auto
+        threshold: 1%
+        flags:
+          - android
     patch:
       default:
         target: 80%
+        threshold: 1%
