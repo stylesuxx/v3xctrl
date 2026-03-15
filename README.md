@@ -1,11 +1,14 @@
-# V3XCTRL - /vɛks kənˈtɹoʊl/ (Video eXchange and ConTRoL)
+# V3XCTRL
+### Video eXchange and ConTRoL - /vɛks kənˈtɹoʊl/
 
 <p align="center">
   <img src="branding/v3xctrl_logo.svg" alt="V3XCTRL Logo" width="400">
 </p>
 
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![Discord](https://img.shields.io/discord/1208003816498498642?logo=discord&label=Discord)](https://discord.gg/uF4hf8UBBW)
+[![Discord](https://img.shields.io/discord/1366162378970107914?logo=discord&label=Discord)](https://discord.gg/uF4hf8UBBW)
+[![YouTube](https://img.shields.io/badge/YouTube-v3xctrl-red?logo=youtube)](https://www.youtube.com/@v3xctrl)
+[![Instagram](https://img.shields.io/badge/Instagram-v3xctrl-E4405F?logo=instagram)](https://www.instagram.com/v3xctrl)
 
 > Control your vehicle and stream video over 4G from anywhere.
 
