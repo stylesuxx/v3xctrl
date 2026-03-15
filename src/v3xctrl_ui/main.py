@@ -29,6 +29,7 @@ parser.add_argument("--log-to-file", action="store_true", help="Save logs to txt
 parser.add_argument(
     "--config", default=None, help="Path to custom config file. If not specified, uses default location."
 )
+parser.add_argument("--check-gstreamer", action="store_true", help="Check GStreamer availability and exit.")
 
 args, unknown = parser.parse_known_args()
 
@@ -50,6 +51,11 @@ logging.basicConfig(level=level, format=log_format, handlers=handlers)
 
 # Check GStreamer availability and inform user
 from v3xctrl_ui.utils.gstreamer import is_gstreamer_available  # noqa: E402
+
+if args.check_gstreamer:
+    available = is_gstreamer_available()
+    print(f"GStreamer available: {available}")
+    sys.exit(0 if available else 1)
 
 if is_gstreamer_available():
     print('GStreamer receiver available. Set video.receiver = "gst" in settings to use it.')

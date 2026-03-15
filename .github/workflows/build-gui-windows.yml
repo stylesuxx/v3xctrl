@@ -46,6 +46,12 @@ jobs:
           install: >-
             mingw-w64-x86_64-cairo
             mingw-w64-x86_64-pkg-config
+            mingw-w64-x86_64-gstreamer
+            mingw-w64-x86_64-gst-plugins-base
+            mingw-w64-x86_64-gst-plugins-good
+            mingw-w64-x86_64-gst-plugins-bad
+            mingw-w64-x86_64-gst-libav
+            mingw-w64-x86_64-python-gobject
           cache: true
 
       - name: Add MSYS2 to PATH
@@ -58,6 +64,30 @@ jobs:
           "$PY" -m pip install --upgrade pip
           "$PY" -m pip install -r ./build/requirements/viewer.txt pyinstaller
 
+      - name: Copy PyGObject from MSYS2 to build Python
+        shell: bash
+        run: |
+          MSYS2_ROOT="${{ runner.temp }}/msys64"
+          MSYS2_SITE="${MSYS2_ROOT}/mingw64/lib/python3.11/site-packages"
+          BUILD_SITE=$("$PY" -c "import site; print(site.getsitepackages()[0])")
+
+          echo "Copying gi package from ${MSYS2_SITE} to ${BUILD_SITE}"
+          cp -r "${MSYS2_SITE}/gi" "${BUILD_SITE}/gi"
+
+          if [ -d "${MSYS2_SITE}/pygtkcompat" ]; then
+            cp -r "${MSYS2_SITE}/pygtkcompat" "${BUILD_SITE}/pygtkcompat"
+          fi
+
+          # Copy compiled C extension modules
+          for pyd in "${MSYS2_SITE}"/_gi*.pyd; do
+            if [ -f "$pyd" ]; then
+              cp "$pyd" "${BUILD_SITE}/"
+              echo "Copied $(basename "$pyd")"
+            fi
+          done
+
+          "$PY" -c "import gi; print('PyGObject imported successfully from:', gi.__file__)"
+
       - name: Generate version file
         shell: bash
         run: |
@@ -69,18 +99,32 @@ jobs:
           "$PY" -c "import cairocffi; print('cairocffi version:', cairocffi.version)"
           "$PY" -c "import PyInstaller; print('PyInstaller imported successfully')"
           "$PY" -c "import material_icons; print(material_icons.__path__)"
+          "$PY" -c "import gi; gi.require_version('Gst', '1.0'); from gi.repository import Gst; print('GStreamer bindings available')" || echo "WARNING: GStreamer bindings not available at build time"
 
       - name: Build executable with PyInstaller
         shell: bash
         run: |
           cd src
+          MSYS2_ROOT="${{ runner.temp }}/msys64"
 
           "$PY" -m PyInstaller --noconfirm --onedir --console \
             --icon=v3xctrl_ui/assets/images/logo.ico \
             --add-data "v3xctrl_ui/assets;assets" \
             --collect-data material_icons \
-            --add-binary "${{ runner.temp }}/msys64/mingw64/bin/*.dll;." \
+            --add-binary "${MSYS2_ROOT}/mingw64/bin/*.dll;." \
+            --add-binary "${MSYS2_ROOT}/mingw64/lib/gstreamer-1.0/*.dll;gstreamer-1.0" \
+            --add-data "${MSYS2_ROOT}/mingw64/lib/girepository-1.0;girepository-1.0" \
+            --runtime-hook ../build/pyinstaller/runtime_hook_gstreamer.py \
             -n V3XCTRL v3xctrl_ui/main.py
+
+      - name: Verify GStreamer bundle
+        shell: bash
+        run: |
+          echo "=== GStreamer plugin DLLs ==="
+          ls -la src/dist/V3XCTRL/gstreamer-1.0/ | head -20
+          echo ""
+          echo "=== GIR typelibs ==="
+          ls -la src/dist/V3XCTRL/girepository-1.0/ | head -20
 
       - name: Create release package
         shell: bash
