@@ -28,7 +28,17 @@ jobs:
             echo "VERSION=${{ inputs.version }}" >> $GITHUB_ENV
           fi
 
-      - name: Install MSYS2 with all dependencies
+      - name: Set up Python 3.11
+        id: setup-python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Export Python executable path
+        run: echo "PY=${{ steps.setup-python.outputs.python-path }}" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Install third party dependencies via MSYS2
         uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
@@ -36,48 +46,7 @@ jobs:
           install: >-
             mingw-w64-x86_64-cairo
             mingw-w64-x86_64-pkg-config
-            mingw-w64-x86_64-gstreamer
-            mingw-w64-x86_64-gst-plugins-base
-            mingw-w64-x86_64-gst-plugins-good
-            mingw-w64-x86_64-gst-plugins-bad
-            mingw-w64-x86_64-gst-libav
-            mingw-w64-x86_64-python-gobject
           cache: true
-
-      - name: Detect MSYS2 Python version
-        shell: bash
-        run: |
-          MSYS2_ROOT="${{ runner.temp }}/msys64"
-          MSYS2_PY="${MSYS2_ROOT}/mingw64/bin/python3.exe"
-          MSYS2_PY_VERSION=$("${MSYS2_PY}" -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-          echo "MSYS2 Python version: ${MSYS2_PY_VERSION}"
-          echo "MSYS2_PY_VERSION=${MSYS2_PY_VERSION}" >> $GITHUB_ENV
-
-          # Debug: show what _gi files exist
-          echo "=== _gi files in MSYS2 ==="
-          find "${MSYS2_ROOT}/mingw64/lib" -name "_gi*" -type f 2>/dev/null || echo "none found"
-
-          # Debug: show gi package location
-          echo "=== gi package ==="
-          "${MSYS2_PY}" -c "import gi; print(gi.__file__)"
-
-          # Debug: check what _gi.pyd links against
-          echo "=== _gi dependencies ==="
-          MSYS2_SITE=$(find "${MSYS2_ROOT}/mingw64/lib" -maxdepth 2 -type d -name "site-packages" -path "*/python*/site-packages" | head -1)
-          for f in "${MSYS2_SITE}/gi/"_gi*.pyd; do
-            echo "File: $f"
-            "${MSYS2_ROOT}/mingw64/bin/objdump.exe" -p "$f" 2>/dev/null | grep "DLL Name" || echo "objdump not available"
-          done
-
-      - name: Set up Python
-        id: setup-python
-        uses: actions/setup-python@v6
-        with:
-          python-version: ${{ env.MSYS2_PY_VERSION }}
-
-      - name: Export Python executable path
-        run: echo "PY=${{ steps.setup-python.outputs.python-path }}" >> $GITHUB_ENV
-        shell: bash
 
       - name: Add MSYS2 to PATH
         run: |
@@ -87,68 +56,12 @@ jobs:
         shell: bash
         run: |
           "$PY" -m pip install --upgrade pip
+          "$PY" -m pip install -r ./build/requirements/viewer.txt pyinstaller
 
-          # Install av separately - it may not have a wheel for this Python version.
-          # This is OK since GStreamer replaces PyAV as the video receiver.
-          "$PY" -m pip install av==13.1.0 --only-binary=av || echo "WARNING: PyAV wheel not available for this Python version, skipping (GStreamer will be used instead)"
-
-          # Install remaining dependencies
-          "$PY" -m pip install -r ./build/requirements/viewer.txt pyinstaller || {
-            # If av pin causes failure, install everything except av
-            grep -v '^av==' ./build/requirements/viewer.txt > /tmp/viewer-no-av.txt
-            "$PY" -m pip install -r /tmp/viewer-no-av.txt pyinstaller
-          }
-
-      - name: Copy PyGObject from MSYS2 to build Python
+      - name: Install GStreamer Python bundle
         shell: bash
         run: |
-          MSYS2_ROOT="${{ runner.temp }}/msys64"
-          MSYS2_SITE=$(find "${MSYS2_ROOT}/mingw64/lib" -maxdepth 2 -type d -name "site-packages" -path "*/python*/site-packages" | head -1)
-          BUILD_SITE=$("$PY" -c "import site; print(site.getsitepackages()[0])")
-
-          echo "MSYS2 site-packages: ${MSYS2_SITE}"
-          echo "Build site-packages: ${BUILD_SITE}"
-          echo "MSYS2 Python: ${MSYS2_PY_VERSION}"
-          echo "Build Python: $("$PY" --version)"
-
-          # Copy gi package
-          cp -r "${MSYS2_SITE}/gi" "${BUILD_SITE}/gi"
-          echo "Copied gi package"
-
-          # Copy pygtkcompat if present
-          if [ -d "${MSYS2_SITE}/pygtkcompat" ]; then
-            cp -r "${MSYS2_SITE}/pygtkcompat" "${BUILD_SITE}/pygtkcompat"
-            echo "Copied pygtkcompat"
-          fi
-
-          # Copy _gi C extension modules from the gi directory
-          echo "=== Files in gi/ directory ==="
-          ls -la "${BUILD_SITE}/gi/"_gi* 2>/dev/null || echo "No _gi files in gi/"
-
-          # Also check if _gi is at site-packages root level
-          for pyd in "${MSYS2_SITE}"/_gi*.pyd "${MSYS2_SITE}"/_gi*.dll; do
-            if [ -f "$pyd" ]; then
-              cp "$pyd" "${BUILD_SITE}/"
-              echo "Copied $(basename "$pyd") to site-packages root"
-            fi
-          done
-
-          # Debug: try importing
-          echo "=== Import test ==="
-          "$PY" -c "
-          import sys, os
-          print('Python:', sys.version)
-          print('Platform:', sys.platform)
-          print('Executable:', sys.executable)
-          try:
-              import gi
-              print('gi imported from:', gi.__file__)
-              print('gi dir:', [x for x in dir(gi) if not x.startswith('_')])
-          except Exception as e:
-              print(f'gi import failed: {e}')
-              import traceback
-              traceback.print_exc()
-          " || true
+          "$PY" -m pip install gstreamer-bundle
 
       - name: Generate version file
         shell: bash
@@ -161,36 +74,38 @@ jobs:
           "$PY" -c "import cairocffi; print('cairocffi version:', cairocffi.version)"
           "$PY" -c "import PyInstaller; print('PyInstaller imported successfully')"
           "$PY" -c "import material_icons; print(material_icons.__path__)"
-          "$PY" -c "import gi; gi.require_version('Gst', '1.0'); from gi.repository import Gst; Gst.init(None); print('GStreamer version:', Gst.version_string())" || echo "WARNING: GStreamer bindings not available at build time (will still be bundled for runtime)"
+          "$PY" -c "
+          import gi
+          gi.require_version('Gst', '1.0')
+          from gi.repository import Gst
+          Gst.init(None)
+          print('GStreamer version:', Gst.version_string())
+          "
 
       - name: Build executable with PyInstaller
         shell: bash
         run: |
           cd src
-          MSYS2_ROOT="${{ runner.temp }}/msys64"
 
           "$PY" -m PyInstaller --noconfirm --onedir --console \
             --icon=v3xctrl_ui/assets/images/logo.ico \
             --add-data "v3xctrl_ui/assets;assets" \
             --collect-data material_icons \
-            --add-binary "${MSYS2_ROOT}/mingw64/bin/*.dll;." \
-            --add-binary "${MSYS2_ROOT}/mingw64/lib/gstreamer-1.0/*.dll;gstreamer-1.0" \
-            --add-data "${MSYS2_ROOT}/mingw64/lib/girepository-1.0;girepository-1.0" \
+            --add-binary "${{ runner.temp }}/msys64/mingw64/bin/*.dll;." \
+            --collect-all gi \
+            --collect-all gstreamer \
             --runtime-hook ../build/pyinstaller/runtime_hook_gstreamer.py \
             -n V3XCTRL v3xctrl_ui/main.py
 
       - name: Verify GStreamer bundle
         shell: bash
         run: |
-          echo "=== GStreamer plugin DLLs ==="
-          ls -la src/dist/V3XCTRL/gstreamer-1.0/ | head -20
-          echo ""
-          echo "=== GIR typelibs ==="
-          ls -la src/dist/V3XCTRL/girepository-1.0/ | head -20
-          echo ""
           echo "=== gi module in bundle ==="
-          find src/dist/V3XCTRL -name "_gi*" -type f 2>/dev/null || echo "No _gi files found"
-          find src/dist/V3XCTRL -path "*/gi/__init__*" -type f 2>/dev/null || echo "No gi package found"
+          find src/dist/V3XCTRL -name "_gi*" -type f 2>/dev/null | head -10
+          find src/dist/V3XCTRL -path "*/gi/__init__*" -type f 2>/dev/null | head -5
+          echo ""
+          echo "=== GStreamer files ==="
+          find src/dist/V3XCTRL -name "libgst*" -type f 2>/dev/null | head -20
 
       - name: Create release package
         shell: bash
