@@ -17,3 +17,4 @@ _version.py
 !android/gradle/libs.versions.toml
 !ruff.toml
 .venv
+coverage.xml
