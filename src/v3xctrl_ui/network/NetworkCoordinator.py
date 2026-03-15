@@ -76,7 +76,7 @@ class NetworkCoordinator:
             return
 
         if self.network_controller and self.network_controller.server and not self.network_controller.server_error:
-            self.network_controller.server.send(
+            self.network_controller.server.send_control(
                 Control(
                     {
                         "steering": steering,
@@ -138,6 +138,11 @@ class NetworkCoordinator:
             return len(self.network_controller.video_receiver.frame_buffer)
 
         return 0
+
+    def has_recent_control_drops(self) -> bool:
+        if self.network_controller and self.network_controller.server and not self.network_controller.server_error:
+            return self.network_controller.server.transmitter.has_recent_control_drops()
+        return False
 
     def has_server_error(self) -> bool:
         return bool(self.network_controller and self.network_controller.server_error)

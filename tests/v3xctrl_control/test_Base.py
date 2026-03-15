@@ -18,6 +18,9 @@ class DummyBase(Base):
     def send(self, message: Message) -> None:
         self.sent_messages.append(message)
 
+    def send_control(self, message: Message) -> None:
+        self.sent_messages.append(message)
+
 
 class TestBase(unittest.TestCase):
     def setUp(self) -> None:

@@ -159,8 +159,10 @@ class AppState:
         if self.model.user_connected:
             # Update OSD with network data
             data_left = self.network_coordinator.get_data_queue_size()
-            if self.network_coordinator.has_server_error():
+            if self.network_coordinator.has_server_error() or self.network_coordinator.has_recent_control_drops():
                 self.osd.update_debug_status("fail")
+            else:
+                self.osd.update_debug_status("success")
 
             buffer_size = self.network_coordinator.get_video_buffer_size()
             self.osd.update_buffer_queue(buffer_size)

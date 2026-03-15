@@ -94,8 +94,8 @@ class TestNetworkCoordinator(unittest.TestCase):
 
         self.coordinator.send_control_message(0.5, -0.3)
 
-        mock_server.send.assert_called_once()
-        call_args = mock_server.send.call_args[0][0]
+        mock_server.send_control.assert_called_once()
+        call_args = mock_server.send_control.call_args[0][0]
         self.assertIsInstance(call_args, Control)
 
     def test_send_control_message_no_server(self):

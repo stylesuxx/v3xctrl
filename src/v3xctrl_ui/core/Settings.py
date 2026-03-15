@@ -35,6 +35,7 @@ class Settings:
             "receiver": "pyav",
         },
         "udp_packet_ttl": 100,
+        "control_buffer_capacity": 1,
         "debug": True,
         "show_connection_info": True,
         "timing": {

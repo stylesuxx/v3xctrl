@@ -83,9 +83,18 @@ class Base(threading.Thread, ABC):
     def send(self, message: Message) -> None:
         pass
 
+    @abstractmethod
+    def send_control(self, message: Message) -> None:
+        pass
+
     def _send(self, message: Message, addr: Address) -> None:
         if self.transmitter:
             self.transmitter.add_message(message, addr)
+            self.last_sent_timestamp = time.time()
+
+    def _send_control(self, message: Message, addr: Address) -> None:
+        if self.transmitter:
+            self.transmitter.set_control_message(message, addr)
             self.last_sent_timestamp = time.time()
 
     def heartbeat(self) -> None:

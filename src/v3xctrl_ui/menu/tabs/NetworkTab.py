@@ -114,7 +114,21 @@ class NetworkTab(Tab):
             self.relay_enabled_checkbox,
             self.relay_spectator_checkbox,
         ]
-        self.misc_widgets: list[BaseInput | BaseWidget] = [self.udp_packet_ttl_input]
+        self.control_buffer_capacity_input = NumberInput(
+            t("Control Buffer"),
+            label_width=180,
+            input_width=75,
+            min_val=1,
+            max_val=100,
+            font=LABEL_FONT,
+            mono_font=MONO_FONT,
+            on_change=lambda value: self._on_control_buffer_capacity_change(value),
+        )
+
+        self.misc_widgets: list[BaseInput | BaseWidget] = [
+            self.udp_packet_ttl_input,
+            self.control_buffer_capacity_input,
+        ]
 
         self.elements = self.general_widgets + self.relay_widgets + self.misc_widgets
 
@@ -147,6 +161,7 @@ class NetworkTab(Tab):
     def get_settings(self) -> dict[str, Any]:
         return {
             "udp_packet_ttl": self.udp_packet_ttl,
+            "control_buffer_capacity": self.control_buffer_capacity,
             "transport": self.transport,
             "ports": self.ports,
             "relay": self.relay,
@@ -158,6 +173,7 @@ class NetworkTab(Tab):
         self.ports = self.settings.get("ports", {})
         self.relay = self.settings.get("relay", {})
         self.udp_packet_ttl = self.settings.get("udp_packet_ttl", 100)
+        self.control_buffer_capacity = self.settings.get("control_buffer_capacity", 1)
 
         # Transport select - defer set_options until positioned (rect != None)
         transport_index = (
@@ -180,6 +196,7 @@ class NetworkTab(Tab):
 
         # Misc inputs
         self.udp_packet_ttl_input.value = str(self.udp_packet_ttl)
+        self.control_buffer_capacity_input.value = str(self.control_buffer_capacity)
 
     def _on_transport_change(self, index: int) -> None:
         self.transport = self._transport_options[index].lower()
@@ -191,6 +208,10 @@ class NetworkTab(Tab):
     def _on_udp_packet_ttl_change(self, value: str) -> None:
         if is_int(value):
             self.udp_packet_ttl = int(value)
+
+    def _on_control_buffer_capacity_change(self, value: str) -> None:
+        if is_int(value):
+            self.control_buffer_capacity = int(value)
 
     def _on_relay_enable_change(self, value: bool) -> None:
         self.relay["enabled"] = value
