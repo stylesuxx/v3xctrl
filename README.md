@@ -2,7 +2,9 @@
 ### Video eXchange and ConTRoL - /vɛks kənˈtɹoʊl/
 
 <p align="center">
+  <br>
   <img src="branding/v3xctrl_logo.svg" alt="V3XCTRL Logo" width="400">
+  <br><br>
 </p>
 
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
