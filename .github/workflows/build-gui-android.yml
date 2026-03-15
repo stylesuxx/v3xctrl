@@ -75,6 +75,23 @@ jobs:
         working-directory: android
         run: ./gradlew assembleDebug -Pversion="${VERSION}"
 
+      - name: Run unit tests
+        working-directory: android
+        run: ./gradlew testDebugUnitTest
+
+      - name: Generate coverage report
+        if: always()
+        working-directory: android
+        run: ./gradlew koverXmlReportDebug
+
+      - name: Upload coverage to Codecov
+        if: always()
+        uses: codecov/codecov-action@v5
+        with:
+          file: android/app/build/reports/kover/reportDebug.xml
+          flags: android
+          token: ${{ secrets.CODECOV_TOKEN }}
+
       - name: Rename APK
         run: mv android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/v3xctrl-viewer-android-${VERSION}.apk
 

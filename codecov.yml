@@ -1,9 +1,30 @@
+flags:
+  android:
+    paths:
+      - android/
+    carryforward: true
+  stats-server:
+    paths:
+      - stats-server/
+    carryforward: true
+
 coverage:
   status:
     project:
       default:
         target: auto
         threshold: 1%
+      android:
+        target: auto
+        threshold: 1%
+        flags:
+          - android
+      stats-server:
+        target: auto
+        threshold: 1%
+        flags:
+          - stats-server
     patch:
       default:
         target: 80%
+        threshold: 1%
