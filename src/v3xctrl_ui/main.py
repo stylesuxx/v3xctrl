@@ -32,7 +32,7 @@ def main() -> None:
         "--config", default=None, help="Path to custom config file. If not specified, uses default location."
     )
 
-    args, unknown = parser.parse_known_args()
+    args, _unknown = parser.parse_known_args()
 
     level_name = args.log.upper()
     level = getattr(logging, level_name, None)
