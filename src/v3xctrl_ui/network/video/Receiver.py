@@ -174,63 +174,14 @@ class Receiver(ABC, threading.Thread):
         with self.frame_lock:
             length = len(self.frame_buffer)
             if length > 0:
-                # Get latest frame (when available) and count rest as dropped
                 self.render_history.append(time.monotonic())
 
                 if self.render_ratio == 100:
-                    # Render oldest (maximum smoothness)
-                    self.frame = self.frame_buffer.popleft()
-
-                    if self.timing_enabled:
-                        if self.frame_timestamps:
-                            self.last_displayed_decode_time = self.frame_timestamps.popleft()
-                        if self.decode_durations:
-                            decode_duration = self.decode_durations.popleft()
-
+                    decode_duration = self._pick_oldest_frame()
                 elif self.render_ratio == 0:
-                    # Render newest (minimum latency)
-                    self.frame = self.frame_buffer.pop()
-
-                    if self.timing_enabled:
-                        if self.frame_timestamps:
-                            self.last_displayed_decode_time = self.frame_timestamps.pop()
-                            self.frame_timestamps.clear()
-
-                        if self.decode_durations:
-                            decode_duration = self.decode_durations.pop()
-                            self.decode_durations.clear()
-
-                    self.dropped_burst_frames += len(self.frame_buffer)
-                    self.frame_buffer.clear()
-
+                    decode_duration = self._pick_newest_frame()
                 else:
-                    # Adaptive: render frame at ratio position
-                    target_buffer_size = round(self.max_frame_buffer_size * self.render_ratio / 100)
-
-                    frames_to_drop = max(0, length - target_buffer_size - 1)
-
-                    delta = round((now - self.last_time) * 1000)
-                    log_data = (delta, length, target_buffer_size, frames_to_drop)
-
-                    self.dropped_burst_frames += frames_to_drop
-                    for _ in range(frames_to_drop):
-                        self.frame_buffer.popleft()
-
-                        if self.timing_enabled:
-                            if self.frame_timestamps:
-                                self.frame_timestamps.popleft()
-
-                            if self.decode_durations:
-                                self.decode_durations.popleft()
-
-                    self.frame = self.frame_buffer.popleft()
-
-                    if self.timing_enabled:
-                        if self.frame_timestamps:
-                            self.last_displayed_decode_time = self.frame_timestamps.popleft()
-
-                        if self.decode_durations:
-                            decode_duration = self.decode_durations.popleft()
+                    decode_duration, log_data = self._pick_adaptive_frame(now, length)
 
                 # Track timing
                 if self.timing_enabled and self.last_displayed_decode_time is not None:
@@ -253,6 +204,69 @@ class Receiver(ABC, threading.Thread):
             logger.debug(f"Delta: {delta}ms Buffer: {length}, Target: {target_buffer_size}, Dropping: {frames_to_drop}")
 
         return result
+
+    def _pick_oldest_frame(self) -> float | None:
+        """Render oldest frame (maximum smoothness, render_ratio=100). Caller must hold frame_lock."""
+        self.frame = self.frame_buffer.popleft()
+        decode_duration = None
+
+        if self.timing_enabled:
+            if self.frame_timestamps:
+                self.last_displayed_decode_time = self.frame_timestamps.popleft()
+            if self.decode_durations:
+                decode_duration = self.decode_durations.popleft()
+
+        return decode_duration
+
+    def _pick_newest_frame(self) -> float | None:
+        """Render newest frame (minimum latency, render_ratio=0). Caller must hold frame_lock."""
+        self.frame = self.frame_buffer.pop()
+        decode_duration = None
+
+        if self.timing_enabled:
+            if self.frame_timestamps:
+                self.last_displayed_decode_time = self.frame_timestamps.pop()
+                self.frame_timestamps.clear()
+
+            if self.decode_durations:
+                decode_duration = self.decode_durations.pop()
+                self.decode_durations.clear()
+
+        self.dropped_burst_frames += len(self.frame_buffer)
+        self.frame_buffer.clear()
+
+        return decode_duration
+
+    def _pick_adaptive_frame(self, now: float, length: int) -> tuple[float | None, tuple]:
+        """Render frame at ratio position (0 < render_ratio < 100). Caller must hold frame_lock."""
+        target_buffer_size = round(self.max_frame_buffer_size * self.render_ratio / 100)
+        frames_to_drop = max(0, length - target_buffer_size - 1)
+
+        delta = round((now - self.last_time) * 1000)
+        log_data = (delta, length, target_buffer_size, frames_to_drop)
+
+        self.dropped_burst_frames += frames_to_drop
+        for _ in range(frames_to_drop):
+            self.frame_buffer.popleft()
+
+            if self.timing_enabled:
+                if self.frame_timestamps:
+                    self.frame_timestamps.popleft()
+
+                if self.decode_durations:
+                    self.decode_durations.popleft()
+
+        self.frame = self.frame_buffer.popleft()
+        decode_duration = None
+
+        if self.timing_enabled:
+            if self.frame_timestamps:
+                self.last_displayed_decode_time = self.frame_timestamps.popleft()
+
+            if self.decode_durations:
+                decode_duration = self.decode_durations.popleft()
+
+        return decode_duration, log_data
 
     def _update_frame(self, new_frame: npt.NDArray[np.uint8], decode_duration: float = 0.0) -> None:
         """Append new frame to frame buffer"""
