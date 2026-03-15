@@ -87,7 +87,17 @@ jobs:
         shell: bash
         run: |
           "$PY" -m pip install --upgrade pip
-          "$PY" -m pip install -r ./build/requirements/viewer.txt pyinstaller
+
+          # Install av separately - it may not have a wheel for this Python version.
+          # This is OK since GStreamer replaces PyAV as the video receiver.
+          "$PY" -m pip install av==13.1.0 --only-binary=av || echo "WARNING: PyAV wheel not available for this Python version, skipping (GStreamer will be used instead)"
+
+          # Install remaining dependencies
+          "$PY" -m pip install -r ./build/requirements/viewer.txt pyinstaller || {
+            # If av pin causes failure, install everything except av
+            grep -v '^av==' ./build/requirements/viewer.txt > /tmp/viewer-no-av.txt
+            "$PY" -m pip install -r /tmp/viewer-no-av.txt pyinstaller
+          }
 
       - name: Copy PyGObject from MSYS2 to build Python
         shell: bash
