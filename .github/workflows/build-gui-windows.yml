@@ -68,7 +68,15 @@ jobs:
         shell: bash
         run: |
           MSYS2_ROOT="${{ runner.temp }}/msys64"
-          MSYS2_SITE="${MSYS2_ROOT}/mingw64/lib/python3.11/site-packages"
+
+          # Find the MSYS2 Python version dynamically (may differ from build Python)
+          MSYS2_SITE=$(find "${MSYS2_ROOT}/mingw64/lib" -maxdepth 2 -type d -name "site-packages" -path "*/python*/site-packages" | head -1)
+          if [ -z "$MSYS2_SITE" ]; then
+            echo "ERROR: Could not find MSYS2 Python site-packages"
+            exit 1
+          fi
+          echo "Found MSYS2 site-packages at: ${MSYS2_SITE}"
+
           BUILD_SITE=$("$PY" -c "import site; print(site.getsitepackages()[0])")
 
           echo "Copying gi package from ${MSYS2_SITE} to ${BUILD_SITE}"
