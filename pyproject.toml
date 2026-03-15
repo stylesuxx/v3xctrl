@@ -14,3 +14,29 @@ authors = [
 ]
 
 dependencies = []
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+check_untyped_defs = true
+ignore_missing_imports = true
+files = [
+    "src/v3xctrl_helper",
+    "src/v3xctrl_tcp",
+]
+
+[[tool.mypy.overrides]]
+module = [
+    "v3xctrl_control.*",
+    "v3xctrl_gst.*",
+    "v3xctrl_punch.*",
+    "v3xctrl_relay.*",
+    "v3xctrl_telemetry.*",
+    "v3xctrl_ui.*",
+    "v3xctrl_web.*",
+    "v3xctrl_udp_relay.*",
+    "v3xctrl_self_test.*",
+    "v3xctrl_plot.*",
+]
+follow_imports = "skip"

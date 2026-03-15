@@ -9,11 +9,13 @@ on:
       - 'src/**'
       - 'tests/**'
       - 'ruff.toml'
+      - 'pyproject.toml'
   pull_request:
     paths:
       - 'src/**'
       - 'tests/**'
       - 'ruff.toml'
+      - 'pyproject.toml'
 
 jobs:
   lint:
@@ -26,6 +28,16 @@ jobs:
       - run: pip install ruff==0.15.6
       - run: ruff check src/ tests/ stats-server/
       - run: ruff format --check src/ tests/ stats-server/
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - run: pip install mypy==1.19.1
+      - run: python -m mypy
 
   test:
     runs-on: ubuntu-latest
