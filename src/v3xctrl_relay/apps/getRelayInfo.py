@@ -43,8 +43,8 @@ if __name__ == "__main__":
         logger.error("Unauthorized access - check 'Relay session ID' setting")
         sys.exit(2)
 
-    video = peer_addresses["video"]
-    control = peer_addresses["control"]
+    video = peer_addresses.video
+    control = peer_addresses.control
 
     print(
         json.dumps(

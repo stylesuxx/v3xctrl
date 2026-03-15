@@ -5,7 +5,7 @@ import threading
 
 from v3xctrl_control.message import Message, PeerAnnouncement, PeerInfo, Syn, SynAck, Ack
 
-from v3xctrl_helper import Address
+from v3xctrl_helper import Address, PeerAddresses
 
 logger = logging.getLogger(__name__)
 
@@ -120,9 +120,7 @@ class PunchPeer:
 
         raise AckTimeoutError(f"No Ack received from {addr} after {timeout:.1f}s")
 
-    def rendezvous_and_punch(
-        self, role: str, sockets: dict[str, socket.socket]
-    ) -> tuple[dict[str, PeerInfo], dict[str, Address]]:
+    def rendezvous_and_punch(self, role: str, sockets: dict[str, socket.socket]) -> PeerAddresses:
         peer_info = self.register_all(sockets, role=role)
         if not all(isinstance(p, PeerInfo) for p in peer_info.values()):
             raise RuntimeError("Registration failed or incomplete")
@@ -132,16 +130,14 @@ class PunchPeer:
         video_port = peer.get_video_port()
         control_port = peer.get_control_port()
 
-        peer_addresses = {}
+        results: dict[str, Address] = {}
         threads = {
             "video": threading.Thread(
-                target=lambda: peer_addresses.update({"video": self._handshake(sockets["video"], (ip, video_port))}),
+                target=lambda: results.update({"video": self._handshake(sockets["video"], (ip, video_port))}),
                 name="HandshakeVideo",
             ),
             "control": threading.Thread(
-                target=lambda: peer_addresses.update(
-                    {"control": self._handshake(sockets["control"], (ip, control_port))}
-                ),
+                target=lambda: results.update({"control": self._handshake(sockets["control"], (ip, control_port))}),
                 name="HandshakeControl",
             ),
         }
@@ -152,16 +148,14 @@ class PunchPeer:
         for t in threads.values():
             t.join()
 
-        return peer_addresses
+        return PeerAddresses(video=results["video"], control=results["control"])
 
     def finalize_sockets(self, sockets: dict[str, socket.socket]) -> None:
         for sock in sockets.values():
             sock.settimeout(None)
             sock.close()
 
-    def setup(
-        self, role: str, ports: dict[str, int]
-    ) -> tuple[dict[str, socket.socket], dict[str, PeerInfo], dict[str, Address]]:
+    def setup(self, role: str, ports: dict[str, int]) -> PeerAddresses:
         sockets = {pt: self.bind_socket(pt.upper(), port) for pt, port in ports.items()}
         peer_addresses = self.rendezvous_and_punch(role, sockets)
         self.finalize_sockets(sockets)

@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from v3xctrl_control.message import Ack, Message, PeerAnnouncement, PeerInfo, Syn, SynAck
+from v3xctrl_helper import PeerAddresses
 from v3xctrl_punch.PunchPeer import AckTimeoutError, PunchPeer
 
 
@@ -255,8 +256,8 @@ class TestRendezvousAndPunch(unittest.TestCase):
             ):
                 result = self.peer.rendezvous_and_punch("car", sockets)
 
-        self.assertIn("video", result)
-        self.assertIn("control", result)
+        self.assertEqual(result.video, video_address)
+        self.assertEqual(result.control, control_address)
 
     def test_registration_failure_raises_runtime_error(self):
         sockets = {"video": MagicMock(), "control": MagicMock()}
@@ -289,7 +290,7 @@ class TestSetup(unittest.TestCase):
 
         video_socket = MagicMock()
         control_socket = MagicMock()
-        peer_addresses = {"video": ("10.0.0.1", 6000), "control": ("10.0.0.1", 6001)}
+        peer_addresses = PeerAddresses(video=("10.0.0.1", 6000), control=("10.0.0.1", 6001))
 
         def mock_bind_socket(name, port):
             if port == 5000:

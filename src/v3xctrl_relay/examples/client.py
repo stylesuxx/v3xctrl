@@ -3,7 +3,8 @@ import logging
 import threading
 import time
 
-from v3xctrl_control.message import Heartbeat, PeerInfo
+from v3xctrl_control.message import Heartbeat
+from v3xctrl_helper import PeerAddresses
 from v3xctrl_punch.examples.TestPeer import TestPeer
 from v3xctrl_relay.Peer import Peer
 
@@ -18,7 +19,7 @@ DEFAULT_RENDEZVOUS_PORT = 8888
 
 
 class TestClient(TestPeer):
-    def __init__(self, ports: dict[str, int], addresses: dict[str, PeerInfo]) -> None:
+    def __init__(self, ports: dict[str, int], addresses: PeerAddresses) -> None:
         super().__init__(ports, addresses)
 
         self.remote_video_addr_formatted = f"{self.remote_video_addr[0]}:{self.remote_video_addr[1]}"

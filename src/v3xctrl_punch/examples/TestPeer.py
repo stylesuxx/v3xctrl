@@ -3,20 +3,20 @@ import socket
 import threading
 import time
 
-from v3xctrl_control.message import Heartbeat, PeerInfo
-from v3xctrl_helper import Address
+from v3xctrl_control.message import Heartbeat
+from v3xctrl_helper import Address, PeerAddresses
 
 logger = logging.getLogger(__name__)
 
 
 class TestPeer:
-    def __init__(self, ports: dict[str, int], addresses: dict[str, PeerInfo]) -> None:
+    def __init__(self, ports: dict[str, int], addresses: PeerAddresses) -> None:
         # Re-bind the sockets
         self.video_sock = self._bind_udp(ports["video"])
         self.control_sock = self._bind_udp(ports["control"])
 
-        self.remote_video_addr = addresses["video"]
-        self.remote_control_addr = addresses["control"]
+        self.remote_video_addr = addresses.video
+        self.remote_control_addr = addresses.control
 
     def _bind_udp(self, port: int) -> socket.socket:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

@@ -230,7 +230,7 @@ class NetworkSetup:
         try:
             role = Role.SPECTATOR if spectator_mode else Role.VIEWER
             addresses = self._peer.setup(role.value, local_bind_ports)
-            video_address = addresses[PortType.VIDEO.value]
+            video_address = addresses.video
 
             return RelaySetupResult(
                 success=True,

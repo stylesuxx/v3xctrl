@@ -11,7 +11,7 @@ from v3xctrl_control.message import (
     PeerAnnouncement,
     PeerInfo,
 )
-from v3xctrl_helper import Address
+from v3xctrl_helper import PeerAddresses
 from v3xctrl_helper.exceptions import (
     PeerRegistrationAborted,
     PeerRegistrationError,
@@ -37,7 +37,7 @@ class Peer:
         self._heartbeat_thread = None
         self._heartbeat_socket: socket.socket | None = None
 
-    def setup(self, role: str, ports: dict[str, int]) -> dict[str, Address]:
+    def setup(self, role: str, ports: dict[str, int]) -> PeerAddresses:
         self._finalized_event.clear()
 
         sockets: dict[str, socket.socket] = {}
@@ -51,10 +51,10 @@ class Peer:
         finally:
             self._finalize_sockets(sockets)
 
-        return {
-            "video": (peer_info_map["video"].get_ip(), peer_info_map["video"].get_video_port()),
-            "control": (peer_info_map["control"].get_ip(), peer_info_map["control"].get_control_port()),
-        }
+        return PeerAddresses(
+            video=(peer_info_map["video"].get_ip(), peer_info_map["video"].get_video_port()),
+            control=(peer_info_map["control"].get_ip(), peer_info_map["control"].get_control_port()),
+        )
 
     def abort(self) -> None:
         self._abort_event.set()

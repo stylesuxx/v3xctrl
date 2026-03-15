@@ -353,8 +353,8 @@ class TestPeer(unittest.TestCase):
             patch.object(self.peer, "_finalize_sockets", return_value=None),
         ):
             res = self.peer.setup("client", {"video": 1000, "control": 1001})
-            self.assertEqual(res["video"], ("1.2.3.4", 5000))
-            self.assertEqual(res["control"], ("5.6.7.8", 6001))
+            self.assertEqual(res.video, ("1.2.3.4", 5000))
+            self.assertEqual(res.control, ("5.6.7.8", 6001))
 
     def test_abort_sets_event(self):
         self.assertFalse(self.peer._abort_event.is_set())
