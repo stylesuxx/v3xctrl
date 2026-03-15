@@ -348,5 +348,131 @@ class TestReceiver(unittest.TestCase):
         keep_alive.assert_not_called()
 
 
+class TestPickOldestFrame(unittest.TestCase):
+    def test_returns_oldest_frame(self):
+        receiver = MockReceiver(5600, Mock())
+        frames = [np.full((10, 10, 3), i, dtype=np.uint8) for i in range(3)]
+        for frame in frames:
+            receiver._update_frame(frame)
+
+        receiver.render_ratio = 100
+        result = receiver.get_frame()
+        np.testing.assert_array_equal(result, frames[0])
+        self.assertEqual(len(receiver.frame_buffer), 2)
+
+    def test_with_timing_enabled(self):
+        receiver = MockReceiver(5600, Mock())
+        receiver.enable_timing(True)
+
+        receiver._update_frame(np.zeros((10, 10, 3), dtype=np.uint8), decode_duration=0.005)
+        receiver._update_frame(np.ones((10, 10, 3), dtype=np.uint8), decode_duration=0.010)
+
+        receiver.render_ratio = 100
+        receiver.get_frame()
+
+        self.assertIsNotNone(receiver.last_displayed_decode_time)
+        self.assertEqual(len(receiver.frame_buffer), 1)
+
+
+class TestPickNewestFrame(unittest.TestCase):
+    def test_returns_newest_and_clears_buffer(self):
+        receiver = MockReceiver(5600, Mock())
+        frames = [np.full((10, 10, 3), i, dtype=np.uint8) for i in range(5)]
+        for frame in frames:
+            receiver._update_frame(frame)
+
+        receiver.render_ratio = 0
+        result = receiver.get_frame()
+        np.testing.assert_array_equal(result, frames[4])
+        self.assertEqual(len(receiver.frame_buffer), 0)
+        self.assertEqual(receiver.dropped_burst_frames, 4)
+
+    def test_with_timing_enabled(self):
+        receiver = MockReceiver(5600, Mock())
+        receiver.enable_timing(True)
+
+        for i in range(3):
+            receiver._update_frame(np.full((10, 10, 3), i, dtype=np.uint8), decode_duration=0.001 * i)
+
+        receiver.render_ratio = 0
+        receiver.get_frame()
+
+        self.assertIsNotNone(receiver.last_displayed_decode_time)
+        self.assertEqual(len(receiver.frame_timestamps), 0)
+        self.assertEqual(len(receiver.decode_durations), 0)
+
+
+class TestPickAdaptiveFrame(unittest.TestCase):
+    def test_drops_excess_frames(self):
+        receiver = MockReceiver(5600, Mock())
+        receiver.render_ratio = 50
+
+        for i in range(200):
+            receiver._update_frame(np.full((10, 10, 3), i, dtype=np.uint8))
+
+        result = receiver.get_frame()
+        self.assertIsNotNone(result)
+        self.assertGreater(receiver.dropped_burst_frames, 0)
+
+    def test_with_timing_enabled(self):
+        receiver = MockReceiver(5600, Mock())
+        receiver.enable_timing(True)
+        receiver.render_ratio = 50
+
+        for i in range(200):
+            receiver._update_frame(np.full((10, 10, 3), i, dtype=np.uint8), decode_duration=0.001)
+
+        receiver.get_frame()
+        self.assertIsNotNone(receiver.last_displayed_decode_time)
+
+    def test_logs_adaptive_debug(self):
+        receiver = MockReceiver(5600, Mock())
+        receiver.render_ratio = 50
+
+        for i in range(200):
+            receiver._update_frame(np.full((10, 10, 3), i, dtype=np.uint8))
+
+        with patch("v3xctrl_ui.network.video.Receiver.logger") as mock_logger:
+            receiver.get_frame()
+            mock_logger.debug.assert_called()
+
+
+class TestGetFrameTimingTracking(unittest.TestCase):
+    def test_timing_stats_accumulated(self):
+        receiver = MockReceiver(5600, Mock())
+        receiver.enable_timing(True)
+        receiver.timing_log_interval = 100
+
+        receiver._update_frame(np.zeros((10, 10, 3), dtype=np.uint8), decode_duration=0.005)
+
+        receiver.render_ratio = 0
+        receiver.get_frame()
+
+        self.assertEqual(len(receiver.timing_buffer_samples), 1)
+        self.assertEqual(len(receiver.timing_decode_samples), 1)
+
+    def test_timing_log_triggered(self):
+        receiver = MockReceiver(5600, Mock())
+        receiver.enable_timing(True)
+        receiver.timing_log_interval = 2
+
+        for _ in range(3):
+            receiver._update_frame(np.zeros((10, 10, 3), dtype=np.uint8), decode_duration=0.005)
+            receiver.render_ratio = 100
+            receiver.get_frame()
+
+        # After 3 samples with log_interval=2, _log_timing_stats should have been called
+        # and cleared the samples
+        self.assertLessEqual(len(receiver.timing_buffer_samples), 1)
+
+    def test_empty_buffer_returns_previous_frame(self):
+        receiver = MockReceiver(5600, Mock())
+        receiver.frame = np.zeros((10, 10, 3), dtype=np.uint8)
+
+        result = receiver.get_frame()
+        np.testing.assert_array_equal(result, np.zeros((10, 10, 3), dtype=np.uint8))
+        self.assertEqual(receiver.rendered_frame_count, 0)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
