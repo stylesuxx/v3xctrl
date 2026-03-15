@@ -59,6 +59,7 @@ fun FrequenciesScreen(
         }
     ) { innerPadding ->
         var controlHzText by remember { mutableStateOf(settings.controlHz.toString()) }
+        var controlBufferCapacityText by remember { mutableStateOf(settings.controlBufferCapacity.toString()) }
 
         Column(
             modifier = Modifier
@@ -90,6 +91,32 @@ fun FrequenciesScreen(
 
             Text(
                 text = stringResource(R.string.control_hz_description),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = controlBufferCapacityText,
+                onValueChange = { input ->
+                    val filtered = input.filter { c -> c.isDigit() }
+                    controlBufferCapacityText = filtered
+                    val value = filtered.toIntOrNull()
+                    if (value != null) {
+                        onSettingsChange(settings.copy(controlBufferCapacity = value.coerceIn(1, 100)))
+                    }
+                },
+                label = { Text(stringResource(R.string.control_buffer_capacity)) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = stringResource(R.string.control_buffer_capacity_description),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
