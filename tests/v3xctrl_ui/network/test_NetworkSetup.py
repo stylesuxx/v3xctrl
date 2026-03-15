@@ -426,6 +426,12 @@ class TestTcpRelayHandshakeRole(unittest.TestCase):
         self.server_patcher = patch("v3xctrl_ui.network.NetworkSetup.Server")
         self.mock_server_cls = self.server_patcher.start()
 
+        self.gst_receiver_patcher = patch(
+            "v3xctrl_ui.network.NetworkSetup._get_gstreamer_receiver",
+            return_value=None,
+        )
+        self.gst_receiver_patcher.start()
+
         self.video_receiver_patcher = patch(
             "v3xctrl_ui.network.NetworkSetup._get_pyav_receiver",
             return_value=MagicMock(return_value=MagicMock()),
@@ -446,6 +452,7 @@ class TestTcpRelayHandshakeRole(unittest.TestCase):
     def tearDown(self):
         self.peer_patcher.stop()
         self.server_patcher.stop()
+        self.gst_receiver_patcher.stop()
         self.video_receiver_patcher.stop()
         self.socket_patcher.stop()
         self.tunnel_patcher.stop()
