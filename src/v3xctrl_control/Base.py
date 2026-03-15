@@ -4,12 +4,13 @@ than you might think.
 """
 
 import logging
+import socket
 import threading
 import time
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from v3xctrl_helper import (
     Address,
@@ -19,6 +20,12 @@ from v3xctrl_helper import (
 from .handler_types import Handler, T
 from .message import Heartbeat, Message
 from .State import State
+
+if TYPE_CHECKING:
+    from .MessageHandler import MessageHandler
+    from .UDPTransmitter import UDPTransmitter
+
+logger = logging.getLogger(__name__)
 
 
 class InitializationError(Exception):
@@ -48,15 +55,15 @@ class Base(threading.Thread, ABC):
 
         # The server timeout should be longer than on the client. This way
         # it is possible to recover a lost connection
-        self.last_message_timestamp = 0
-        self.no_message_timeout = 5
+        self.last_message_timestamp: float = 0
+        self.no_message_timeout: float = 5
 
-        self.last_sent_timestamp = 0
-        self.last_sent_timeout = 1
+        self.last_sent_timestamp: float = 0
+        self.last_sent_timeout: float = 1
 
-        self.socket = None
-        self.transmitter = None
-        self.message_handler = None
+        self.socket: socket.socket | None = None
+        self.transmitter: UDPTransmitter | None = None
+        self.message_handler: MessageHandler | None = None
 
     def validate_initialization(self) -> None:
         """Validate that all required components are properly initialized."""
@@ -100,7 +107,7 @@ class Base(threading.Thread, ABC):
         if self.state == State.CONNECTED:
             elapsed = time.monotonic() - self.last_message_timestamp
             if elapsed > self.no_message_timeout:
-                logging.error(f"No message received for {self.no_message_timeout}s")
+                logger.error(f"No message received for {self.no_message_timeout}s")
                 self.handle_state_change(State.DISCONNECTED)
 
     def subscribe(self, cls: type[T], handler: Handler[T]) -> None:
@@ -114,7 +121,7 @@ class Base(threading.Thread, ABC):
         self.state_handlers[state].append(handler)
 
     def handle_state_change(self, new_state: State) -> None:
-        logging.debug(f"State changed from '{self.state}' to '{new_state}'")
+        logger.debug(f"State changed from '{self.state}' to '{new_state}'")
         self.state = new_state
 
         for current_state, handlers in self.state_handlers.items():

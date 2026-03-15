@@ -5,11 +5,10 @@ import sys
 import time
 import traceback
 import types
-from typing import cast
-
 from v3xctrl_control import Server, State
-from v3xctrl_control.message import Message, Telemetry, Control
+from v3xctrl_control.message import Telemetry, Control
 
+logger = logging.getLogger(__name__)
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -22,16 +21,14 @@ PORT = args.port
 running = True
 
 
-def telemetry_handler(message: Message) -> None:
-    """TODO: Implement control message handling."""
-    message = cast(Telemetry, message)
+def telemetry_handler(message: Telemetry, addr: tuple[str, int]) -> None:
     values = message.get_values()
-    logging.debug(f"Received telemetry message: {values}")
+    logger.debug(f"Received telemetry message: {values}")
 
 
 def disconnect_handler() -> None:
     """TODO: Implement disconnect handling."""
-    logging.debug("Disconnected from client...")
+    logger.debug("Disconnected from client...")
 
 
 def signal_handler(sig: int, frame: types.FrameType | None) -> None:
@@ -61,7 +58,7 @@ try:
         time.sleep(10)
 
 except Exception as e:
-    logging.error(f"An error occurred: {e}")
+    logger.error(f"An error occurred: {e}")
     traceback.print_exc()
 
 finally:

@@ -7,6 +7,8 @@ from gi.repository import Gst  # noqa: E402
 
 from .SourceBuilder import SourceBuilder  # noqa: E402
 
+logger = logging.getLogger(__name__)
+
 
 class TestSourceBuilder(SourceBuilder):
     """Builds videotestsrc with time overlay"""
@@ -48,6 +50,6 @@ class TestSourceBuilder(SourceBuilder):
 
         self._output_element = overlay
 
-        logging.info("Created test source with time overlay")
+        logger.info("Created test source with time overlay")
 
         return source

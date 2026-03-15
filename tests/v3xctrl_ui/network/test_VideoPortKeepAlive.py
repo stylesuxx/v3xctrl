@@ -3,7 +3,6 @@ import unittest
 
 from v3xctrl_control.message import Heartbeat, Message
 from v3xctrl_ui.network.VideoPortKeepAlive import (
-    INTERVAL_IDLE_S,
     INTERVAL_STREAMING_S,
     VideoPortKeepAlive,
 )
@@ -21,7 +20,6 @@ class TestVideoPortKeepAlive(unittest.TestCase):
         self.relay_socket.close()
 
     def test_interval_constants(self):
-        self.assertEqual(INTERVAL_IDLE_S, 1.0)
         self.assertEqual(INTERVAL_STREAMING_S, 30.0)
 
     def test_sends_heartbeat_to_relay(self):

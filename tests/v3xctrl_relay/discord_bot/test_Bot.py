@@ -31,8 +31,8 @@ class TestBot(unittest.TestCase):
         self.bot.run_bot()
         mock_super_run.assert_called_once_with("test_token")
 
-    @patch("logging.info")
-    def test_on_ready(self, mock_logging_info):
+    @patch("v3xctrl_relay.discord_bot.Bot.logger")
+    def test_on_ready(self, mock_logger):
         async def async_test():
             mock_user = MagicMock()
             mock_user.__str__ = MagicMock(return_value="TestBot#1234")
@@ -40,7 +40,7 @@ class TestBot(unittest.TestCase):
             with patch.object(type(self.bot), "user", mock_user, create=True):
                 await self.bot.on_ready()
 
-            mock_logging_info.assert_called_once_with("Bot connected as TestBot#1234")
+            mock_logger.info.assert_called_once_with("Bot connected as TestBot#1234")
 
         asyncio.run(async_test())
 
@@ -87,8 +87,8 @@ class TestBot(unittest.TestCase):
 
         asyncio.run(async_test())
 
-    @patch("logging.error")
-    def test_on_message_handles_forbidden_error(self, mock_logging_error):
+    @patch("v3xctrl_relay.discord_bot.Bot.logger")
+    def test_on_message_handles_forbidden_error(self, mock_logger):
         async def async_test():
             mock_message = AsyncMock(spec=discord.Message)
             mock_message.channel = MagicMock()
@@ -101,14 +101,14 @@ class TestBot(unittest.TestCase):
             with patch.object(type(self.bot), "user", MagicMock(), create=True):
                 await self.bot.on_message(mock_message)
 
-            mock_logging_error.assert_called_once_with(
+            mock_logger.error.assert_called_once_with(
                 f"Cannot delete messages in channel {self.test_channel_id} - missing permissions"
             )
 
         asyncio.run(async_test())
 
-    @patch("logging.error")
-    def test_on_message_handles_general_exception(self, mock_logging_error):
+    @patch("v3xctrl_relay.discord_bot.Bot.logger")
+    def test_on_message_handles_general_exception(self, mock_logger):
         async def async_test():
             mock_message = AsyncMock(spec=discord.Message)
             mock_message.channel = MagicMock()
@@ -119,7 +119,7 @@ class TestBot(unittest.TestCase):
             with patch.object(type(self.bot), "user", MagicMock(), create=True):
                 await self.bot.on_message(mock_message)
 
-            mock_logging_error.assert_called_once_with(
+            mock_logger.error.assert_called_once_with(
                 f"Failed to delete message in channel {self.test_channel_id}: Some error"
             )
 
@@ -152,8 +152,8 @@ class TestBot(unittest.TestCase):
 
         asyncio.run(async_test())
 
-    @patch("logging.info")
-    def test_handle_requestid_command_dm_context_new_session(self, mock_logging_info):
+    @patch("v3xctrl_relay.discord_bot.Bot.logger")
+    def test_handle_requestid_command_dm_context_new_session(self, mock_logger):
         async def async_test():
             mock_interaction = AsyncMock(spec=discord.Interaction)
             mock_interaction.channel_id = self.test_channel_id
@@ -182,8 +182,8 @@ class TestBot(unittest.TestCase):
 
         asyncio.run(async_test())
 
-    @patch("logging.error")
-    def test_handle_requestid_command_create_session_error(self, mock_logging_error):
+    @patch("v3xctrl_relay.discord_bot.Bot.logger")
+    def test_handle_requestid_command_create_session_error(self, mock_logger):
         async def async_test():
             mock_interaction = AsyncMock(spec=discord.Interaction)
             mock_interaction.channel_id = self.test_channel_id
@@ -199,7 +199,7 @@ class TestBot(unittest.TestCase):
 
             await self.bot.handle_requestid_command(mock_interaction)
 
-            mock_logging_error.assert_called_once_with("ID generation failed for TestUser#1234: Creation failed")
+            mock_logger.error.assert_called_once_with("ID generation failed for TestUser#1234: Creation failed")
             mock_interaction.followup.send.assert_called_once_with(
                 "Failed to generate a unique session ID. Try again later.", ephemeral=True
             )

@@ -4,6 +4,8 @@ import discord
 
 from v3xctrl_relay.SessionStore import SessionStore
 
+logger = logging.getLogger(__name__)
+
 CUSTOM_ID_REQUEST = "td_request"
 CUSTOM_ID_CANCEL_PREFIX = "td_cancel:"
 CUSTOM_ID_ACCEPT_PREFIX = "td_accept:"
@@ -36,9 +38,9 @@ class TestdriveHandler:
         try:
             await channel.send(announcement, view=self._make_request_view())
         except discord.Forbidden:
-            logging.error(f"Cannot send testdrive message to channel {self.testdrive_channel_id} - missing permissions")
+            logger.error(f"Cannot send testdrive message to channel {self.testdrive_channel_id} - missing permissions")
         except Exception as e:
-            logging.error(f"Failed to post testdrive message in channel {self.testdrive_channel_id}: {e}")
+            logger.error(f"Failed to post testdrive message in channel {self.testdrive_channel_id}: {e}")
 
     async def _delete_old_announcement(self, channel: discord.TextChannel) -> None:
         try:
@@ -49,7 +51,7 @@ class TestdriveHandler:
                 if self._is_announcement_message(message):
                     await message.delete()
         except Exception as e:
-            logging.error(f"Failed to clean up old announcements: {e}")
+            logger.error(f"Failed to clean up old announcements: {e}")
 
     @staticmethod
     def _is_announcement_message(message: discord.Message) -> bool:
@@ -149,7 +151,7 @@ class TestdriveHandler:
         try:
             session_id, spectator_id = self.store.create(composed_key, username)
         except RuntimeError as e:
-            logging.error(f"Failed to create testdrive session: {e}")
+            logger.error(f"Failed to create testdrive session: {e}")
             await interaction.followup.send("Failed to create session. Please try again.", ephemeral=True)
             return
 
@@ -161,7 +163,7 @@ class TestdriveHandler:
         try:
             guest_user = await interaction.client.fetch_user(int(requester_id))
         except Exception as e:
-            logging.error(f"Failed to fetch guest user {requester_id}: {e}")
+            logger.error(f"Failed to fetch guest user {requester_id}: {e}")
             dm_failed = True
 
         try:
@@ -173,7 +175,7 @@ class TestdriveHandler:
                 "Share the spectator ID with anyone who wants to watch."
             )
         except discord.Forbidden:
-            logging.error(f"Cannot DM host {interaction.user} - DMs disabled")
+            logger.error(f"Cannot DM host {interaction.user} - DMs disabled")
             dm_failed = True
 
         if guest_user:
@@ -188,7 +190,7 @@ class TestdriveHandler:
                     "You can calibrate your input device in the viewer beforehand."
                 )
             except discord.Forbidden:
-                logging.error(f"Cannot DM guest {guest_user} - DMs disabled")
+                logger.error(f"Cannot DM guest {guest_user} - DMs disabled")
                 dm_failed = True
 
         if dm_failed:

@@ -109,7 +109,7 @@ class TCPAcceptor:
         """Video connections: relay only sends TO viewer. Monitor for disconnect.
 
         Uses select() for timeout instead of settimeout() so the socket stays
-        in blocking mode — TcpTarget.send() (sendall) on the same socket must
+        in blocking mode - TcpTarget.send() (sendall) on the same socket must
         never be subject to a recv timeout.
         """
         while not self.stop_event.is_set():

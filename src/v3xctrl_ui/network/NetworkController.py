@@ -10,6 +10,8 @@ from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.network.NetworkSetup import NetworkSetup
 from v3xctrl_ui.network.TcpServer import TcpServer
 
+logger = logging.getLogger(__name__)
+
 
 class NetworkController:
     """Manages network connections, relay setup, and server communications."""
@@ -53,7 +55,7 @@ class NetworkController:
             try:
                 self.relay_port = int(port)
             except ValueError:
-                logging.warning(
+                logger.warning(
                     f"Invalid port in relay_server: '{relay_server}', falling back to default {self.relay_port}"
                 )
         else:
@@ -96,20 +98,20 @@ class NetworkController:
             start = time.monotonic()
             self._setup.abort()
             delta = round(time.monotonic() - start)
-            logging.debug(f"Network setup aborted after {delta}s")
+            logger.debug(f"Network setup aborted after {delta}s")
 
         if self._setup_thread and self._setup_thread.is_alive():
             start = time.monotonic()
             self._setup_thread.join()
             delta = round(time.monotonic() - start)
-            logging.debug(f"Network setup thread finished after {delta}s")
+            logger.debug(f"Network setup thread finished after {delta}s")
 
         if self.server:
             start = time.monotonic()
             self.server.stop()
             self.server.join()
             delta = round(time.monotonic() - start)
-            logging.debug(f"Server shut down after {delta}s")
+            logger.debug(f"Server shut down after {delta}s")
 
         if self.video_keep_alive:
             self.video_keep_alive.stop()
@@ -119,11 +121,11 @@ class NetworkController:
             self.video_receiver.stop()
             self.video_receiver.join()
             delta = round(time.monotonic() - start)
-            logging.debug(f"Video Receiver shut down after {delta}s")
+            logger.debug(f"Video Receiver shut down after {delta}s")
 
         if self.tcp_server:
             self.tcp_server.stop()
-            logging.debug("TCP server shut down")
+            logger.debug("TCP server shut down")
 
         if self.tcp_video_tunnel:
             self.tcp_video_tunnel.stop()

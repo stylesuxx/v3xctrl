@@ -4,6 +4,8 @@ import time
 
 from atlib import AIR780EU
 
+logger = logging.getLogger(__name__)
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Reset modem to auto connect and a single empty IPv4 APN")
@@ -18,18 +20,18 @@ def main() -> None:
     # Delete all available contexts
     contexts = gsm.get_contexts()
     for context in contexts:
-        id = context.id
-        gsm.delete_context(id)
+        context_id = context.id
+        gsm.delete_context(context_id)
 
     # Reboots the modem, serial connection will be lost, radio will be powered
     # back on during a reboot cycle.
     try:
         gsm.reboot()
     except OSError:
-        logging.warning("Lost connection during reboot...")
+        logger.warning("Lost connection during reboot...")
 
     # Give the modem some time to reboot
-    logging.info("Waiting for reboot...")
+    logger.info("Waiting for reboot...")
     time.sleep(10)
 
 

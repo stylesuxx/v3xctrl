@@ -6,10 +6,12 @@ import socket
 import threading
 from typing import TYPE_CHECKING, Any
 
-from v3xctrl_gst.Command import Command, CommandValidationError
+from v3xctrl_gst.Command import ActionType, Command, CommandValidationError, RecordingAction
 
 if TYPE_CHECKING:
     from v3xctrl_gst.Streamer import Streamer
+
+logger = logging.getLogger(__name__)
 
 
 class ControlServer:
@@ -28,12 +30,12 @@ class ControlServer:
 
         # Command registry - maps action names to handler methods
         self._command_handlers = {
-            "stop": self._handle_stop,
-            "list": self._handle_list,
-            "get": self._handle_get,
-            "set": self._handle_set,
-            "stats": self._handle_stats,
-            "recording": self._handle_recording,
+            ActionType.STOP: self._handle_stop,
+            ActionType.LIST: self._handle_list,
+            ActionType.GET: self._handle_get,
+            ActionType.SET: self._handle_set,
+            ActionType.STATS: self._handle_stats,
+            ActionType.RECORDING: self._handle_recording,
         }
 
         self.server_socket: socket.socket | None = None
@@ -46,20 +48,18 @@ class ControlServer:
         self.thread = threading.Thread(target=self._run_server, daemon=True)
         self.thread.start()
 
-        logging.info(f"Control server started on {self.socket_path}")
+        logger.info(f"Control server started on {self.socket_path}")
 
     def stop(self) -> None:
         """Stop the control server."""
         self.running = False
         if self.server_socket:
-            with contextlib.suppress(Exception):
+            with contextlib.suppress(OSError):
                 self.server_socket.close()
 
-        try:
+        with contextlib.suppress(OSError):
             if os.path.exists(self.socket_path):
                 os.unlink(self.socket_path)
-        except Exception:
-            pass
 
     def _run_server(self) -> None:
         """Main server loop."""
@@ -69,7 +69,7 @@ class ControlServer:
             if os.path.exists(self.socket_path):
                 os.unlink(self.socket_path)
         except Exception as e:
-            logging.error(f"Failed to remove existing socket: {e}")
+            logger.error(f"Failed to remove existing socket: {e}")
             return
 
         self.server_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -95,17 +95,15 @@ class ControlServer:
 
                 except Exception as e:
                     if self.running:
-                        logging.error(f"Server error: {e}")
+                        logger.error(f"Server error: {e}")
 
         finally:
             if self.server_socket:
                 self.server_socket.close()
 
-            try:
+            with contextlib.suppress(OSError):
                 if os.path.exists(self.socket_path):
                     os.unlink(self.socket_path)
-            except Exception:
-                pass
 
     def _handle_client(self, client_socket: socket.socket) -> None:
         """
@@ -138,7 +136,7 @@ class ControlServer:
                 client_socket.sendall(json.dumps(response).encode("utf-8") + b"\n")
 
         except Exception as e:
-            logging.error(f"Client handler error: {e}")
+            logger.error(f"Client handler error: {e}")
         finally:
             client_socket.close()
 
@@ -147,11 +145,11 @@ class ControlServer:
         if value is None:
             return {"status": "error", "message": "Missing value"}
 
-        if value == "start":
+        if value == RecordingAction.START:
             status = self.streamer.start_recording()
             return {"status": "success" if status else "error"}
 
-        elif value == "stop":
+        elif value == RecordingAction.STOP:
             status = self.streamer.stop_recording()
             return {"status": "success" if status else "error"}
 
@@ -166,6 +164,7 @@ class ControlServer:
         return {"status": "success", "message": "Pipeline stopped"}
 
     def _handle_list(self, command: Command) -> dict[str, Any]:
+        assert command.element is not None
         properties = self.streamer.list_properties(command.element)
         return {
             "status": "success" if properties is not None else "error",
@@ -174,6 +173,8 @@ class ControlServer:
         }
 
     def _handle_get(self, command: Command) -> dict[str, Any]:
+        assert command.element is not None
+        assert command.property is not None
         value = self.streamer.get_property(command.element, command.property)
         return {
             "status": "success" if value is not None else "error",
@@ -183,6 +184,8 @@ class ControlServer:
         }
 
     def _handle_set(self, command: Command) -> dict[str, Any]:
+        assert command.element is not None
+        assert command.property is not None
         success = self.streamer.set_property(command.element, command.property, command.value)
         value = self.streamer.get_property(command.element, command.property)
 

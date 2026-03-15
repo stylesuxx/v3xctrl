@@ -4,6 +4,8 @@ import sqlite3
 
 from v3xctrl_control.message import ConnectionTest, ConnectionTestAck, Message
 
+logger = logging.getLogger(__name__)
+
 
 def init_db(path: str) -> None:
     with sqlite3.connect(path) as conn:
@@ -18,7 +20,7 @@ def init_db(path: str) -> None:
             )
         """)
         conn.commit()
-    logging.info("Database initialized or already exists.")
+    logger.info("Database initialized or already exists.")
 
 
 def test_relay_connection(server: str, port: int, session_id: str, spectator_mode: bool = False) -> tuple[bool, str]:

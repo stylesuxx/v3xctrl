@@ -10,46 +10,28 @@ from pygame.freetype import Font
 
 from v3xctrl_helper import clamp, color_to_hex
 
+logger = logging.getLogger(__name__)
+
 _icon_cache: dict[tuple[str, int, tuple[int, int, int], IconStyle, int], pygame.Surface] = {}
 _mask_cache: dict[tuple[int, int, int, int], pygame.Surface] = {}
 
 
-def interpolate_steering_color(steering: float) -> tuple[int, int, int]:
-    value = clamp(abs(steering), 0.0, 1.0)
-
+def _interpolate_color(value: float) -> tuple[int, int, int]:
+    """Interpolate blue -> green -> red for a value in [0, 1]."""
     if value <= 0.5:
-        # Blue to Green
-        t = value / 0.5  # [0, 0.5] → [0, 1]
-        r = 0
-        g = int(t * 255)
-        b = int((1 - t) * 255)
+        t = value / 0.5
+        return (0, int(t * 255), int((1 - t) * 255))
     else:
-        # Green to Red
-        t = (value - 0.5) / 0.5  # [0.5, 1] → [0, 1]
-        r = int(t * 255)
-        g = int((1 - t) * 255)
-        b = 0
+        t = (value - 0.5) / 0.5
+        return (int(t * 255), int((1 - t) * 255), 0)
 
-    return (r, g, b)
+
+def interpolate_steering_color(steering: float) -> tuple[int, int, int]:
+    return _interpolate_color(clamp(abs(steering), 0.0, 1.0))
 
 
 def interpolate_throttle_color(throttle: float) -> tuple[int, int, int]:
-    value = clamp(throttle, 0.0, 1.0)
-
-    if value <= 0.5:
-        # Blue to Green
-        factor = value / 0.5
-        r = 0
-        g = int(factor * 255)
-        b = int((1 - factor) * 255)
-    else:
-        # Green to Red
-        factor = (value - 0.5) / 0.5
-        r = int(factor * 255)
-        g = int((1 - factor) * 255)
-        b = 0
-
-    return (r, g, b)
+    return _interpolate_color(clamp(throttle, 0.0, 1.0))
 
 
 def get_fps(history: deque[float], window_seconds: float = 1) -> int:
@@ -65,7 +47,7 @@ def get_external_ip(timeout: int = 5) -> str:
         with urllib.request.urlopen("https://api.ipify.org", timeout=timeout) as response:
             return response.read().decode("utf-8")
     except Exception:
-        logging.warning("Could not get external IP address")
+        logger.warning("Could not get external IP address")
         return "0.0.0.0"
 
 

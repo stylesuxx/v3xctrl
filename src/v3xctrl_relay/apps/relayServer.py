@@ -6,6 +6,8 @@ from types import FrameType
 
 from v3xctrl_relay.RelayServer import RelayServer
 
+logger = logging.getLogger(__name__)
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Start a UDP relay server.")
@@ -30,7 +32,7 @@ def main() -> None:
     server = RelayServer(args.ip, args.port, args.db_path)
 
     def shutdown(signum: int, frame: FrameType | None) -> None:
-        logging.info("Shutting down RelayServer...")
+        logger.info("Shutting down RelayServer...")
         server.shutdown()
         sys.exit(0)
 

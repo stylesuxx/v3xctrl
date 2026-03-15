@@ -152,8 +152,8 @@ class TestGamepadCalibrator(unittest.TestCase):
         self.assertEqual(axis_data.baseline, axes)
         self.assertIsNone(axis_data.axis)
 
-    @patch("logging.info")
-    def test_detect_and_record_axis_detection(self, mock_logging):
+    @patch("v3xctrl_ui.menu.calibration.GamepadCalibrator.logger")
+    def test_detect_and_record_axis_detection(self, mock_logger):
         axis_data = self.calibrator.axes["steering"]
         axis_data.baseline = [0.0, 0.0, 0.0]
 
@@ -165,7 +165,7 @@ class TestGamepadCalibrator(unittest.TestCase):
         self.calibrator._detect_and_record_axis("steering", axes)
 
         self.assertEqual(axis_data.axis, 0)
-        mock_logging.assert_called_with("Steering axis identified: 0")
+        mock_logger.info.assert_called_with("Steering axis identified: 0")
 
     def test_detect_and_record_axis_below_threshold(self):
         axis_data = self.calibrator.axes["steering"]
@@ -177,8 +177,8 @@ class TestGamepadCalibrator(unittest.TestCase):
         self.assertIsNone(axis_data.axis)
         self.assertIsNone(axis_data.detection_start)
 
-    @patch("logging.info")
-    def test_detect_and_record_axis_recording_values(self, mock_logging):
+    @patch("v3xctrl_ui.menu.calibration.GamepadCalibrator.logger")
+    def test_detect_and_record_axis_recording_values(self, mock_logger):
         axis_data = self.calibrator.axes["steering"]
         axis_data.axis = 0
         axis_data.max_last = 0.8
@@ -192,7 +192,7 @@ class TestGamepadCalibrator(unittest.TestCase):
         axes = [0.8, 0.0, 0.0]
         self.calibrator._detect_and_record_axis("steering", axes, next_stage=CalibrationStage.STEERING_CENTER)
 
-        mock_logging.assert_called_with("Steering axis min/max: -0.80/0.80")
+        mock_logger.info.assert_called_with("Steering axis min/max: -0.80/0.80")
 
     def test_detect_and_record_axis_with_exclusions(self):
         self.calibrator.axes["steering"].axis = 0
@@ -217,8 +217,8 @@ class TestGamepadCalibrator(unittest.TestCase):
 
         self.assertEqual(axis_data.idle_last, 0.2)
 
-    @patch("logging.info")
-    def test_record_center_idle_stable_detection(self, mock_logging):
+    @patch("v3xctrl_ui.menu.calibration.GamepadCalibrator.logger")
+    def test_record_center_idle_stable_detection(self, mock_logger):
         axis_data = self.calibrator.axes["steering"]
         axis_data.axis = 0
         axis_data.idle_last = 0.2
@@ -231,7 +231,7 @@ class TestGamepadCalibrator(unittest.TestCase):
         self.calibrator._record_center_idle("steering", axes, CalibrationStage.THROTTLE)
 
         self.assertGreaterEqual(len(axis_data.idle_samples), GamepadCalibrator.IDLE_SAMPLE_COUNT)
-        mock_logging.assert_called_with("Steering axis idle: 0.20")
+        mock_logger.info.assert_called_with("Steering axis idle: 0.20")
 
     def test_record_center_idle_unstable_reset(self):
         axis_data = self.calibrator.axes["steering"]

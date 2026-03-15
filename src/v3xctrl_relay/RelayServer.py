@@ -19,6 +19,8 @@ from v3xctrl_relay.Role import Role
 from v3xctrl_relay.SessionStore import SessionStore
 from v3xctrl_relay.TCPAcceptor import TCPAcceptor
 
+logger = logging.getLogger(__name__)
+
 
 class RelayServer(threading.Thread):
     TIMEOUT = 3600 // 8
@@ -73,7 +75,7 @@ class RelayServer(threading.Thread):
     _CONTROL_PREFIXES = (_PEER_ANNOUNCEMENT_PREFIX, _CONNECTION_TEST_PREFIX)
 
     def run(self) -> None:
-        logging.info(f"Relay server listening on {self.ip}:{self.port}")
+        logger.info(f"Relay server listening on {self.ip}:{self.port}")
 
         while self.running.is_set():
             try:
@@ -93,9 +95,9 @@ class RelayServer(threading.Thread):
             except OSError:
                 if not self.running.is_set():
                     break
-                logging.error("Socket error")
+                logger.error("Socket error")
             except Exception as e:
-                logging.error(f"Unhandled error: {e}", exc_info=True)
+                logger.error(f"Unhandled error: {e}", exc_info=True)
 
     def shutdown(self) -> None:
         self.running.clear()
@@ -107,7 +109,7 @@ class RelayServer(threading.Thread):
         try:
             self.sock.close()
         except Exception as e:
-            logging.warning(f"Error closing socket: {e}")
+            logger.warning(f"Error closing socket: {e}")
 
         try:
             if hasattr(self, "command_sock"):
@@ -115,7 +117,7 @@ class RelayServer(threading.Thread):
             if os.path.exists(self.command_socket_path):
                 os.unlink(self.command_socket_path)
         except Exception as e:
-            logging.warning(f"Error cleaning up command socket: {e}")
+            logger.warning(f"Error cleaning up command socket: {e}")
 
         if self.is_alive():
             self.join(timeout=5.0)
@@ -139,7 +141,7 @@ class RelayServer(threading.Thread):
                 if not self.running.is_set():
                     break
             except Exception as e:
-                logging.error(f"Command socket error: {e}")
+                logger.error(f"Command socket error: {e}")
 
     def _process_command(self, client_sock: socket.socket) -> None:
         """Process individual command connection"""
@@ -154,7 +156,7 @@ class RelayServer(threading.Thread):
                 client_sock.send(b"Unknown command")
 
         except Exception as e:
-            logging.error(f"Error processing command: {e}")
+            logger.error(f"Error processing command: {e}")
         finally:
             client_sock.close()
 
@@ -174,7 +176,7 @@ class RelayServer(threading.Thread):
                     role_timeout: dict[Role, int] = {}
                     with self.relay.mapping_lock:
                         for role, port_dict in session.roles.items():
-                            max_remaining = 0
+                            max_remaining: float = 0
                             for peer_entry in port_dict.values():
                                 mapping = self.relay.mappings.get(peer_entry.addr)
                                 if mapping:
@@ -244,7 +246,7 @@ class RelayServer(threading.Thread):
             ack = ConnectionTestAck(v=valid)
             self.sock.sendto(ack.to_bytes(), addr)
         except Exception as e:
-            logging.error(f"Error handling connection test from {addr}: {e}", exc_info=True)
+            logger.error(f"Error handling connection test from {addr}: {e}", exc_info=True)
 
     def _handle_slow_packet(self, data: bytes, addr: Address) -> None:
         """Handle non-data packets: peer announcements, connection tests, spectator heartbeats."""
@@ -256,7 +258,7 @@ class RelayServer(threading.Thread):
                         self._handle_peer_announcement(msg, addr)
                         return
                 except Exception as e:
-                    logging.warning(f"Failed to parse PeerAnnouncement from {addr}: {e}")
+                    logger.warning(f"Failed to parse PeerAnnouncement from {addr}: {e}")
                     return
 
             if data.startswith(self._CONNECTION_TEST_PREFIX):
@@ -266,4 +268,4 @@ class RelayServer(threading.Thread):
             self.relay.update_spectator_heartbeat(addr)
 
         except Exception as e:
-            logging.error(f"Error handling packet from {addr}: {e}", exc_info=True)
+            logger.error(f"Error handling packet from {addr}: {e}", exc_info=True)

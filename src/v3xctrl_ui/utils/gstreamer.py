@@ -1,5 +1,7 @@
 import logging
 
+logger = logging.getLogger(__name__)
+
 # Required GStreamer elements for H264 RTP reception
 _REQUIRED_GST_ELEMENTS = [
     "udpsrc",  # gst-plugins-good
@@ -42,17 +44,17 @@ def _do_gstreamer_check() -> bool:
 
         missing = _check_gstreamer_elements()
         if missing:
-            logging.info(f"GStreamer receiver not available: missing '{missing}' element")
+            logger.info(f"GStreamer receiver not available: missing '{missing}' element")
             return False
 
         return True
 
     except ImportError as e:
-        logging.info(f"GStreamer receiver not available: {e}")
+        logger.info(f"GStreamer receiver not available: {e}")
         return False
 
     except Exception as e:
-        logging.warning(f"GStreamer initialization failed: {e}")
+        logger.warning(f"GStreamer initialization failed: {e}")
         return False
 
 

@@ -138,7 +138,7 @@ class TcpTunnel:
                     logger.error(
                         f"Cannot establish TCP connection to "
                         f"{self.remote_host}:{self.remote_port} after "
-                        f"{elapsed:.0f}s — is the remote side configured "
+                        f"{elapsed:.0f}s - is the remote side configured "
                         f"for TCP?"
                     )
                     warned = True

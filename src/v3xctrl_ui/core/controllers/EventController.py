@@ -16,6 +16,8 @@ from v3xctrl_ui.network.Commands import Commands
 if TYPE_CHECKING:
     from v3xctrl_ui.core.dataclasses import ApplicationModel
 
+logger = logging.getLogger(__name__)
+
 
 class EventController:
     def __init__(
@@ -118,7 +120,7 @@ class EventController:
         self.menu.set_tab_enabled(tab_name, enabled)
 
     def _on_command_ack(self, success: bool) -> None:
-        logging.info(f"Received command ack: {success}")
+        logger.info(f"Received command ack: {success}")
 
     def _is_connected(self) -> bool:
         return self.model is not None and self.model.user_connected

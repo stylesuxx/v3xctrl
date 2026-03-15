@@ -122,10 +122,12 @@ class RestartService(MethodView):
 class ServiceLog(MethodView):
     @blueprint.response(200)
     def get(self, name: str) -> tuple[Response, int]:
-        output = (
-            subprocess.check_output(["journalctl", "-n", "50", "--no-page", "-u", name], stderr=subprocess.DEVNULL)
-            .decode()
-            .strip()
-        )
-
-        return success({"log": output})
+        try:
+            output = (
+                subprocess.check_output(["journalctl", "-n", "50", "--no-page", "-u", name], stderr=subprocess.DEVNULL)
+                .decode()
+                .strip()
+            )
+            return success({"log": output})
+        except subprocess.CalledProcessError:
+            return error(f"Failed to retrieve log for service: {name}")

@@ -13,6 +13,8 @@ from .MessageHandler import MessageHandler
 from .State import State
 from .UDPTransmitter import UDPTransmitter
 
+logger = logging.getLogger(__name__)
+
 
 class Server(Base):
     MAX_WORKERS = 10
@@ -79,7 +81,7 @@ class Server(Base):
                         if callback:
                             callback(False)
             except Exception as e:
-                logging.error(f"Error in command retry task: {e}")
+                logger.error(f"Error in command retry task: {e}")
                 with self.pending_lock:
                     self.pending_commands.pop(command_id, None)
                 if callback:
@@ -98,6 +100,9 @@ class Server(Base):
                 callback(False)
 
     def run(self) -> None:
+        assert self.transmitter is not None
+        assert self.message_handler is not None
+
         self.started.set()
 
         self.transmitter.start()
@@ -131,6 +136,10 @@ class Server(Base):
             time.sleep(self.STATE_CHECK_INTERVAL_MS / 1000)
 
     def stop(self) -> None:
+        assert self.message_handler is not None
+        assert self.transmitter is not None
+        assert self.socket is not None
+
         if self.started.is_set():
             # Wait for the setup to be done before tearing everything down
             self.running.wait()
@@ -156,4 +165,5 @@ class Server(Base):
         self.socket.close()
 
     def update_ttl(self, ttl_ms: int) -> None:
+        assert self.transmitter is not None
         self.transmitter.update_ttl(ttl_ms)

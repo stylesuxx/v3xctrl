@@ -33,6 +33,8 @@ from .message import (
     Syn,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class UDPReceiver(threading.Thread):
     # Max possible datagram size
@@ -55,8 +57,8 @@ class UDPReceiver(threading.Thread):
         self.timeout = timeout_ms / 1000
         self.window = window_ms / 1000
 
-        self.last_valid_timestamp = 0
-        self.last_valid_now = None
+        self.last_valid_timestamp: float = 0
+        self.last_valid_now: float | None = None
 
         self._should_validate_timestamp = should_validate_timestamp
         self._should_validate_host = False
@@ -69,11 +71,11 @@ class UDPReceiver(threading.Thread):
 
     def is_valid_message(self, message: Message, addr: tuple[str, int]) -> bool:
         if isinstance(message, PeerInfo):
-            logging.debug("Skipping PeerInfo - already set up")
+            logger.debug("Skipping PeerInfo - already set up")
             return False
 
         if self._should_validate_host and addr[0] != self._expected_host:
-            logging.warning(f"Skipping message from wrong host: {addr[0]}")
+            logger.warning(f"Skipping message from wrong host: {addr[0]}")
             return False
 
         # By default all Messages are order critical, we exempt this ones since
@@ -83,7 +85,7 @@ class UDPReceiver(threading.Thread):
 
         # Reset timestamps on Syn or Ack
         if isinstance(message, Syn | Ack):
-            logging.debug("Resetting timestamps...")
+            logger.debug("Resetting timestamps...")
             self.reset()
             return True
 
@@ -94,7 +96,7 @@ class UDPReceiver(threading.Thread):
         - Control
         """
         if message.timestamp < self.last_valid_timestamp:
-            logging.debug(f"Skipping out of order message: {message.type}")
+            logger.debug(f"Skipping out of order message: {message.type}")
             return False
 
         """
@@ -106,7 +108,7 @@ class UDPReceiver(threading.Thread):
             delta = time.time() - self.last_valid_now
             min_timestamp = self.last_valid_timestamp + delta - self.window
             if message.timestamp < min_timestamp:
-                logging.debug("Skipping message: Timestamp too old")
+                logger.debug("Skipping message: Timestamp too old")
                 return False
 
         return True
@@ -123,7 +125,7 @@ class UDPReceiver(threading.Thread):
                 try:
                     ready, _, _ = select.select([self.socket], [], [], self.timeout)
                 except (ValueError, OSError) as e:
-                    logging.error(f"Socket error during select: {e}")
+                    logger.error(f"Socket error during select: {e}")
                     break
 
                 # Timeout, no data ready
@@ -136,7 +138,7 @@ class UDPReceiver(threading.Thread):
                     # Windows-specific: ICMP port unreachable received, safe to ignore
                     continue
                 except OSError as e:
-                    logging.error(f"Socket error during recvfrom: {e}")
+                    logger.error(f"Socket error during recvfrom: {e}")
                     break
 
                 # No data received
@@ -146,7 +148,7 @@ class UDPReceiver(threading.Thread):
                 try:
                     message = Message.from_bytes(data)
                 except Exception as e:
-                    logging.warning(f"Error while decoding packet from {addr}: {e}")
+                    logger.warning(f"Error while decoding packet from {addr}: {e}")
                     continue
 
                 if self.is_valid_message(message, addr):
@@ -155,7 +157,7 @@ class UDPReceiver(threading.Thread):
                     try:
                         self._queue.put_nowait((message, addr))
                     except queue.Full:
-                        logging.warning("Handler queue full, dropping packet")
+                        logger.warning("Handler queue full, dropping packet")
 
         finally:
             self._running.clear()
@@ -168,7 +170,7 @@ class UDPReceiver(threading.Thread):
             except queue.Empty:
                 continue
             except Exception as e:
-                logging.error(f"Error in handler: {e}")
+                logger.error(f"Error in handler: {e}")
 
     def validate_host(self, host_ip: str) -> None:
         self._expected_host = host_ip

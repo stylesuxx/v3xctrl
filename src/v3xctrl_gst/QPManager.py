@@ -12,6 +12,8 @@ import gi
 gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
 
+logger = logging.getLogger(__name__)
+
 
 class QPManager:
     def __init__(
@@ -96,7 +98,7 @@ class QPManager:
 
             self._encoder.set_property("extra-controls", Gst.Structure.from_string(encoder_controls)[0])
 
-            logging.info("QP min set to %d", self._current_qp_min)
+            logger.info("QP min set to %d", self._current_qp_min)
 
         except Exception as e:
-            logging.error("Failed to adjust QP: %s", e)
+            logger.error("Failed to adjust QP: %s", e)

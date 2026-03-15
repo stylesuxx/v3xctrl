@@ -34,6 +34,8 @@ from v3xctrl_helper import Address, clamp
 from v3xctrl_tcp import Transport
 from v3xctrl_tcp.TcpTunnel import TcpTunnel
 
+logger = logging.getLogger(__name__)
+
 parser = argparse.ArgumentParser(description="Test connection performance.")
 parser.add_argument("host", help="The target IP address")
 parser.add_argument("port", type=int, help="The target port number")
@@ -231,7 +233,7 @@ def control_handler(message: Control, address: Address) -> None:
         )
         steering_value = clamp(steering_value, steering_min, steering_max)
 
-    logging.debug(f"Throttle: {throttle_value}; Steering: {steering_value}")
+    logger.debug(f"Throttle: {throttle_value}; Steering: {steering_value}")
 
     pwm_throttle.set_pulse_width(int(throttle_value))
     pwm_steering.set_pulse_width(int(steering_value))
@@ -251,7 +253,7 @@ def command_handler(command: Command, address: Address) -> None:
         return
 
     received_command_ids.add(command_id)
-    logging.info(f"Received command: {command}")
+    logger.info(f"Received command: {command}")
 
     cmd = command.get_command()
     match cmd:
@@ -263,17 +265,17 @@ def command_handler(command: Command, address: Address) -> None:
 
         case "recording":
             parameters = command.get_parameters()
-            action: str = parameters["action"]
-            executor.submit(video_control.recording, action)
+            recording_action: str = parameters["action"]
+            executor.submit(video_control.recording, recording_action)
 
         case "trim":
             global steering_trim, steering_center
             parameters = command.get_parameters()
-            action: str = parameters["action"]
+            trim_action: str = parameters["action"]
 
             step = 5
 
-            if action == "increase":
+            if trim_action == "increase":
                 steering_trim += step
             else:
                 steering_trim -= step
@@ -288,7 +290,7 @@ def command_handler(command: Command, address: Address) -> None:
             subprocess.Popen(["sudo", "reboot", "-f"])
 
         case _:
-            logging.error(f"Unknown command: {command}")
+            logger.error(f"Unknown command: {command}")
 
 
 def disconnect_handler() -> None:
@@ -299,11 +301,11 @@ def disconnect_handler() -> None:
     pwm_throttle.set_pulse_width(throttle_idle)
     pwm_steering.set_pulse_width(steering_center)
 
-    logging.info("Disconnected")
+    logger.info("Disconnected")
 
 
 def connect_handler() -> None:
-    logging.info("Connected")
+    logger.info("Connected")
 
 
 def signal_handler(sig: int, frame: types.FrameType | None) -> None:
@@ -352,11 +354,11 @@ if args.transport == Transport.TCP:
     tcp_tunnel.start()
     ephemeral_port = tcp_tunnel.wait_for_port()
     if ephemeral_port is None:
-        logging.error("Failed to allocate TCP tunnel port")
+        logger.error("Failed to allocate TCP tunnel port")
         sys.exit(1)
     HOST = "127.0.0.1"
     PORT = ephemeral_port
-    logging.info(f"TCP tunnel: control -> 127.0.0.1:{ephemeral_port} -> TCP -> {args.host}:{args.port}")
+    logger.info(f"TCP tunnel: control -> 127.0.0.1:{ephemeral_port} -> TCP -> {args.host}:{args.port}")
 
 # In default UDP mode, mind to external interface, in TCP mode, bind to local
 # interface to which TCP proxy will forward the packages
@@ -392,7 +394,7 @@ try:
         time.sleep(1)
 
 except Exception as e:
-    logging.error(f"An error occurred: {e}")
+    logger.error(f"An error occurred: {e}")
     traceback.print_exc()
 
 finally:
@@ -408,6 +410,6 @@ finally:
     telemetry.join()
 
     cleanup_pwm()
-    logging.info("cleaned up.")
+    logger.info("cleaned up.")
 
     sys.exit(0)

@@ -2,6 +2,7 @@ import errno
 import unittest
 from unittest.mock import MagicMock, patch
 
+from v3xctrl_helper import PeerAddresses
 from v3xctrl_helper.exceptions import PeerRegistrationError
 from v3xctrl_relay.Role import Role
 from v3xctrl_tcp import Transport
@@ -51,7 +52,7 @@ class TestNetworkSetup(unittest.TestCase):
 
         # Mock peer setup
         mock_peer = MagicMock()
-        mock_peer.setup.return_value = {"video": ("1.2.3.4", 1234)}
+        mock_peer.setup.return_value = PeerAddresses(video=("1.2.3.4", 1234), control=("1.2.3.4", 1235))
         self.mock_peer_cls.return_value = mock_peer
 
         result = setup.setup_relay("relay.example.com", 8080, "test123")
@@ -277,7 +278,7 @@ class TestNetworkSetup(unittest.TestCase):
 
         # Mock successful relay, receiver, and server setup
         mock_peer = MagicMock()
-        mock_peer.setup.return_value = {"video": ("1.2.3.4", 1234)}
+        mock_peer.setup.return_value = PeerAddresses(video=("1.2.3.4", 1234), control=("1.2.3.4", 1235))
         self.mock_peer_cls.return_value = mock_peer
 
         mock_server = MagicMock()

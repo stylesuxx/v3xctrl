@@ -7,6 +7,8 @@ from v3xctrl_gst.Streamer import Streamer
 from v3xctrl_tcp import Transport
 from v3xctrl_tcp.TcpTunnel import TcpTunnel
 
+logger = logging.getLogger(__name__)
+
 
 def main() -> None:
     """Main entry point for the streamer application."""
@@ -126,11 +128,11 @@ def main() -> None:
         tcp_tunnel.start()
         ephemeral_port = tcp_tunnel.wait_for_port()
         if ephemeral_port is None:
-            logging.error("Failed to allocate TCP tunnel port")
+            logger.error("Failed to allocate TCP tunnel port")
             return
         video_host = "127.0.0.1"
         video_port = ephemeral_port
-        logging.info(f"TCP tunnel: udpsink -> 127.0.0.1:{ephemeral_port} -> TCP -> {args.host}:{args.port}")
+        logger.info(f"TCP tunnel: udpsink -> 127.0.0.1:{ephemeral_port} -> TCP -> {args.host}:{args.port}")
 
     streamer: Streamer = Streamer(video_host, video_port, args.bind_port, settings)
 

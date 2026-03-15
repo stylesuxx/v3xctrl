@@ -17,7 +17,7 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Resolve version
         shell: bash
@@ -90,7 +90,7 @@ jobs:
           powershell Compress-Archive -Path v3xctrl-viewer-windows-$VERSION -DestinationPath v3xctrl-viewer-windows-$VERSION.zip
 
       - name: Upload executable
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: v3xctrl-viewer-windows-${{ env.VERSION }}
           path: src/dist/v3xctrl-viewer-windows-*.zip

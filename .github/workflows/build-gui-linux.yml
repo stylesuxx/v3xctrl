@@ -20,7 +20,7 @@ jobs:
       VERSION: ${{ inputs.version || format('{0}', github.sha) }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Resolve version
         run: |
@@ -48,7 +48,7 @@ jobs:
           VERSION="${VERSION}" ./build/build-viewer-linux.sh
 
       - name: Upload AppImage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: v3xctrl-viewer-linux-${{ env.VERSION }}
           path: build/tmp/v3xctrl-viewer-linux-*.AppImage

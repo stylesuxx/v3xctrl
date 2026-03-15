@@ -49,14 +49,14 @@ class ControlClient:
             Response dictionary
         """
         try:
-            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            sock.connect(self.socket_path)
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
+                sock.connect(self.socket_path)
 
-            sock.sendall(json.dumps(command).encode("utf-8"))
-            response = sock.recv(4096).decode("utf-8")
-            sock.close()
+                sock.sendall(json.dumps(command).encode("utf-8"))
+                response = sock.recv(4096).decode("utf-8")
 
-            return json.loads(response)
+                result: dict[str, Any] = json.loads(response)
+                return result
 
         except Exception as e:
             return {"status": "error", "message": str(e)}

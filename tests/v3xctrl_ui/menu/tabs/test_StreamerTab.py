@@ -256,15 +256,15 @@ class TestStreamerTab(unittest.TestCase):
         self.mock_on_active_toggle.assert_called_with(False)
 
     @patch("time.sleep")
-    @patch("logging.info")
-    def test_command_callback_logs_status(self, mock_log_info, mock_sleep):
+    @patch("v3xctrl_ui.menu.tabs.StreamerTab.logger")
+    def test_command_callback_logs_status(self, mock_logger, mock_sleep):
         """Test that command callback logs the status"""
         self.tab._on_command_callback(True)
-        mock_log_info.assert_called_once_with("Received command ack: True")
+        mock_logger.info.assert_called_once_with("Received command ack: True")
 
-        mock_log_info.reset_mock()
+        mock_logger.info.reset_mock()
         self.tab._on_command_callback(False)
-        mock_log_info.assert_called_once_with("Received command ack: False")
+        mock_logger.info.assert_called_once_with("Received command ack: False")
 
     def test_draw_method(self):
         """Test that draw method can be called without errors"""

@@ -15,6 +15,8 @@ from v3xctrl_gst.QPManager import QPManager  # noqa: E402
 from v3xctrl_gst.RecordingManager import RecordingManager  # noqa: E402
 from v3xctrl_gst.SourceRegistry import SourceRegistry  # noqa: E402
 
+logger = logging.getLogger(__name__)
+
 
 class Streamer:
     def __init__(
@@ -43,12 +45,12 @@ class Streamer:
         self.last_camera_pts = None
         self.frame_count = 0
 
-        self.last_udp_overflow_time = 0
+        self.last_udp_overflow_time: float = 0
 
         # Pipeline timing measurement
         self.timing_enabled = False
         self.timing_data: dict[int, dict[str, float]] = {}
-        self.timing_stats = {
+        self.timing_stats: dict[str, list[float]] = {
             "capture": [],
             "capsfilter": [],
             "encode": [],
@@ -120,7 +122,7 @@ class Streamer:
         if self.settings["timing_enabled"]:
             self.enable_timing(True)
 
-        logging.debug(self.settings)
+        logger.debug(self.settings)
 
         self.pipeline: Gst.Pipeline | None = None
         self.loop: GLib.MainLoop | None = None
@@ -131,10 +133,10 @@ class Streamer:
 
     def start(self) -> None:
         """Create and start the pipeline."""
-        logging.info("Building pipeline...")
+        logger.info("Building pipeline...")
 
         if not self._build_pipeline():
-            logging.error("Failed to build pipeline")
+            logger.error("Failed to build pipeline")
             sys.exit(1)
 
         self.recording_manager = RecordingManager(
@@ -152,22 +154,23 @@ class Streamer:
             qp_max=self.settings["h264_maximum_qp_value"],
         )
 
+        assert self.pipeline is not None
         self.bus = self.pipeline.get_bus()
         self.bus.add_signal_watch()
         self.bus.connect("message", self._on_message)
 
         state = self.pipeline.set_state(Gst.State.PLAYING)
         if state == Gst.StateChangeReturn.FAILURE:
-            print("Unable to set the pipeline to the playing state.")
+            logger.error("Unable to set the pipeline to the playing state.")
             sys.exit(1)
 
-        logging.info("Pipeline running. Press Ctrl+C to stop.")
+        logger.info("Pipeline running. Press Ctrl+C to stop.")
 
         if self.settings["recording"] and self.settings["recording_dir"]:
             if self.start_recording():
-                logging.info("Auto-started recording on pipeline start")
+                logger.info("Auto-started recording on pipeline start")
             else:
-                logging.warning("Failed to auto-start recording")
+                logger.warning("Failed to auto-start recording")
 
         self.control_server.start()
 
@@ -194,11 +197,11 @@ class Streamer:
             self.loop.run()
 
         except KeyboardInterrupt:
-            logging.info("\nInterrupted by user")
+            logger.info("\nInterrupted by user")
 
         finally:
             self.stop()
-            logging.info("Pipeline stopped.")
+            logger.info("Pipeline stopped.")
 
     def get_element(self, name: str) -> Gst.Element | None:
         """
@@ -240,7 +243,7 @@ class Streamer:
                         element.set_property(property_name, value)
                         result["success"] = True
                     except Exception as e:
-                        logging.error(f"Failed to set property '{property_name}': {e}")
+                        logger.error(f"Failed to set property '{property_name}': {e}")
                 event.set()
                 return False
 
@@ -273,20 +276,20 @@ class Streamer:
             if isinstance(verify_result["actual"], float):
                 if abs(verify_result["actual"] - value) < 0.001:
                     if attempt > 0:
-                        logging.debug(f"Property '{property_name}' stuck after {attempt + 1} attempts")
+                        logger.debug(f"Property '{property_name}' stuck after {attempt + 1} attempts")
                     return True
 
             elif verify_result["actual"] == value:
                 if attempt > 0:
-                    logging.debug(f"Property '{property_name}' stuck after {attempt + 1} attempts")
+                    logger.debug(f"Property '{property_name}' stuck after {attempt + 1} attempts")
                 return True
 
             if attempt < max_retries - 1:
-                logging.debug(
+                logger.debug(
                     f"Attempt {attempt + 1}: value is {verify_result['actual']}, expected {value}, retrying..."
                 )
 
-        logging.warning(
+        logger.warning(
             f"Property '{property_name}' failed to stick after {max_retries} attempts (value: {verify_result['actual']})"
         )
         return False
@@ -304,13 +307,13 @@ class Streamer:
         """
         element = self.get_element(element_name)
         if element is None:
-            logging.error(f"Element '{element_name}' not found")
+            logger.error(f"Element '{element_name}' not found")
             return None
 
         try:
             return element.get_property(property_name)
         except Exception as e:
-            logging.error(f"Failed to get property '{property_name}' from element '{element_name}': {e}")
+            logger.error(f"Failed to get property '{property_name}' from element '{element_name}': {e}")
             return None
 
     def list_properties(self, element_name: str) -> dict[str, Any] | None:
@@ -325,7 +328,7 @@ class Streamer:
         """
         element = self.get_element(element_name)
         if element is None:
-            logging.error(f"Element '{element_name}' not found")
+            logger.error(f"Element '{element_name}' not found")
             return None
 
         properties = {}
@@ -387,17 +390,17 @@ class Streamer:
         """
         type = message.type
         if type == Gst.MessageType.EOS:
-            logging.info("End-of-stream")
+            logger.info("End-of-stream")
             self.stop()
 
         elif type == Gst.MessageType.ERROR:
             err, debug = message.parse_error()
-            logging.error(f"Error: {err}, {debug}")
+            logger.error(f"Error: {err}, {debug}")
             self.stop()
 
         elif type == Gst.MessageType.WARNING:
             warn, debug = message.parse_warning()
-            logging.warning(f"Warning: {warn}, {debug}")
+            logger.warning(f"Warning: {warn}, {debug}")
 
     def _build_pipeline(self) -> bool:
         """
@@ -420,13 +423,13 @@ class Streamer:
             _ = source_builder.build(self.pipeline)
             source_output = source_builder.get_output_element()
         except (RuntimeError, ValueError) as e:
-            logging.error(f"Failed to create source: {e}")
+            logger.error(f"Failed to create source: {e}")
             return False
 
         # Create caps filter for video format
         input_caps_filter = Gst.ElementFactory.make("capsfilter", "input_caps")
         if not input_caps_filter:
-            logging.error("Failed to create capsfilter")
+            logger.error("Failed to create capsfilter")
             return False
 
         input_caps = Gst.Caps.from_string(
@@ -451,12 +454,12 @@ class Streamer:
 
         # Link source output to encoder pipeline
         if not source_output.link(input_caps_filter):
-            logging.error("Failed to link source to input_caps_filter")
+            logger.error("Failed to link source to input_caps_filter")
             return False
 
         queue_encoder = Gst.ElementFactory.make("queue", "queue_encoder")
         if not queue_encoder:
-            logging.error("Failed to create encoder queue")
+            logger.error("Failed to create encoder queue")
             return False
 
         queue_encoder.set_property("max-size-buffers", self.settings["sizebuffers"])
@@ -467,7 +470,7 @@ class Streamer:
 
         encoder = Gst.ElementFactory.make("v4l2h264enc", "encoder")
         if not encoder:
-            logging.error("Failed to create v4l2h264enc")
+            logger.error("Failed to create v4l2h264enc")
             return False
 
         encoder_controls = (
@@ -488,7 +491,7 @@ class Streamer:
 
         encoder_caps_filter = Gst.ElementFactory.make("capsfilter", "encoder_caps")
         if not encoder_caps_filter:
-            logging.error("Failed to create encoder capsfilter")
+            logger.error("Failed to create encoder capsfilter")
             return False
 
         # Add probe to measure encoder jitter
@@ -506,13 +509,13 @@ class Streamer:
 
         tee = Gst.ElementFactory.make("tee", "t")
         if not tee:
-            logging.error("Failed to create tee")
+            logger.error("Failed to create tee")
             return False
         self.pipeline.add(tee)
 
         queue_udp = Gst.ElementFactory.make("queue", "queue_udp")
         if not queue_udp:
-            logging.error("Failed to create UDP queue")
+            logger.error("Failed to create UDP queue")
             return False
 
         queue_udp.set_property("max-size-buffers", self.settings["sizebuffers_udp"])
@@ -523,7 +526,7 @@ class Streamer:
 
         payloader = Gst.ElementFactory.make("rtph264pay", "payloader")
         if not payloader:
-            logging.error("Failed to create rtph264pay")
+            logger.error("Failed to create rtph264pay")
             return False
 
         payloader.set_property("aggregate-mode", 1)  # zero-latency
@@ -541,7 +544,7 @@ class Streamer:
 
         udpsink = Gst.ElementFactory.make("udpsink", "udpsink")
         if not udpsink:
-            logging.error("Failed to create udpsink")
+            logger.error("Failed to create udpsink")
             return False
 
         udpsink.set_property("host", self.host)
@@ -555,38 +558,38 @@ class Streamer:
 
         # Link encoder pipeline
         if not input_caps_filter.link(queue_encoder):
-            logging.error("Failed to link input_caps_filter to queue_encoder")
+            logger.error("Failed to link input_caps_filter to queue_encoder")
             return False
 
         if not queue_encoder.link(encoder):
-            logging.error("Failed to link queue_encoder to encoder")
+            logger.error("Failed to link queue_encoder to encoder")
             return False
 
         if not encoder.link(encoder_caps_filter):
-            logging.error("Failed to link encoder to encoder_caps_filter")
+            logger.error("Failed to link encoder to encoder_caps_filter")
             return False
 
         if not encoder_caps_filter.link(tee):
-            logging.error("Failed to link encoder_caps_filter to tee")
+            logger.error("Failed to link encoder_caps_filter to tee")
             return False
 
         # Link UDP branch
         if not tee.link(queue_udp):
-            logging.error("Failed to link tee to queue_udp")
+            logger.error("Failed to link tee to queue_udp")
             return False
 
         if not queue_udp.link(payloader):
-            logging.error("Failed to link queue_udp to payloader")
+            logger.error("Failed to link queue_udp to payloader")
             return False
 
         if not payloader.link(udpsink):
-            logging.error("Failed to link payloader to udpsink")
+            logger.error("Failed to link payloader to udpsink")
             return False
 
         return True
 
     def _on_queue_overrun(self, element):
-        logging.warning(f"Queue '{element.get_name()}' overrun - dropping frames!")
+        logger.warning(f"Queue '{element.get_name()}' overrun - dropping frames!")
 
     def _on_udp_queue_overrun(self, _):
         """
@@ -596,7 +599,7 @@ class Streamer:
         Timestamp is set when this happens in order to show this via telemetry
         to the viewer.
         """
-        logging.error("UDP queue overrun - dropping frames!")
+        logger.error("UDP queue overrun - dropping frames!")
         self.last_udp_overflow_time = time.monotonic()
 
     def _on_encoder_buffer(self, pad, info):
@@ -607,7 +610,7 @@ class Streamer:
 
         if is_keyframe and self.settings["enable_i_frame_adjust"]:
             size = buffer.get_size()
-            logging.debug(f"i-frame: {size / 1024:.1f} KB at PTS {pts / Gst.SECOND:.3f}s")
+            logger.debug(f"i-frame: {size / 1024:.1f} KB at PTS {pts / Gst.SECOND:.3f}s")
             self.qp_manager.on_keyframe(size)
 
         if self.last_buffer_pts is not None:
@@ -616,7 +619,7 @@ class Streamer:
             jitter = abs(delta - expected) * 1000  # in ms
 
             if jitter > 5:
-                logging.warning(
+                logger.warning(
                     f"Frame timing jitter: {jitter:.2f}ms (expected {expected * 1000:.2f}ms, got {delta * 1000:.2f}ms)"
                 )
 
@@ -648,6 +651,7 @@ class Streamer:
 
         self.timing_debug["source_probe"] += 1
 
+        assert self.pipeline is not None
         running_time = self.pipeline.get_clock().get_time() - self.pipeline.get_base_time()
         capture_delay = (running_time - pts) / Gst.MSECOND  # Convert to ms
 
@@ -669,7 +673,7 @@ class Streamer:
             jitter = abs(delta - expected) * 1000
 
             if jitter > 5:
-                logging.warning(
+                logger.warning(
                     f"CAMERA jitter: {jitter:.2f}ms (expected {expected * 1000:.2f}ms, got {delta * 1000:.2f}ms)"
                 )
 
@@ -749,7 +753,7 @@ class Streamer:
         interval = time.monotonic() - self.timing_last_log
         fps = frame_count / interval if interval > 0 else 0
 
-        logging.debug(
+        logger.debug(
             f"[TIMING] capture: {cap_avg:.1f}ms | "
             f"encode: {enc_avg:.1f}ms | "
             f"total: {total_avg:.1f}ms | "

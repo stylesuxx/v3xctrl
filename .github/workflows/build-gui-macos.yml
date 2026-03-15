@@ -17,7 +17,7 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Resolve version
         run: |
@@ -28,7 +28,7 @@ jobs:
           fi
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -53,7 +53,7 @@ jobs:
           mv V3XCTRL v3xctrl-viewer-macos-$VERSION
 
       - name: Upload executable
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: v3xctrl-viewer-macos-${{ env.VERSION }}
           path: src/v3xctrl_ui/dist/v3xctrl-viewer-macos-*

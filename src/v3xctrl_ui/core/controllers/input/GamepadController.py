@@ -23,6 +23,8 @@ from pygame.joystick import JoystickType
 
 from v3xctrl_helper import clamp
 
+logger = logging.getLogger(__name__)
+
 
 class GamepadController(threading.Thread):
     REFRESH_INTERVAL_MS = 1000
@@ -60,7 +62,7 @@ class GamepadController(threading.Thread):
 
             guids = set(gamepads.keys())
             if guids != self._previous_guids:
-                logging.info("New gamepad detected")
+                logger.info("New gamepad detected")
 
                 with self._lock:
                     self._gamepads = gamepads
@@ -73,7 +75,7 @@ class GamepadController(threading.Thread):
                     if self._active_guid and gamepads.get(self._active_guid):
                         if not self._active_gamepad or not self._active_settings:
                             self._set_active_unlocked(self._active_guid)
-                            logging.info("Found default gamepad")
+                            logger.info("Found default gamepad")
                     else:
                         """
                         Check if another gamepad for which we have a
@@ -83,7 +85,7 @@ class GamepadController(threading.Thread):
                         for id in guids:
                             if id in self._settings and (not self._active_gamepad or not self._active_settings):
                                 self._set_active_unlocked(id)
-                                logging.info("Found gamepad with calibration")
+                                logger.info("Found gamepad with calibration")
                                 break
 
                     # No known gamepad found (gamepad disconnected)

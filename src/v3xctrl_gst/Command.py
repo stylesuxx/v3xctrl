@@ -1,8 +1,20 @@
 from dataclasses import dataclass
-from typing import Any, Literal, get_args
+from enum import StrEnum
+from typing import Any
 
-ActionType = Literal["stop", "list", "get", "set", "recording", "stats"]
-valid_actions = get_args(ActionType)
+
+class ActionType(StrEnum):
+    STOP = "stop"
+    LIST = "list"
+    GET = "get"
+    SET = "set"
+    RECORDING = "recording"
+    STATS = "stats"
+
+
+class RecordingAction(StrEnum):
+    START = "start"
+    STOP = "stop"
 
 
 class CommandValidationError(Exception):
@@ -28,13 +40,13 @@ class Command:
         Raises:
             CommandValidationError: If command is invalid
         """
-        if self.action not in valid_actions:
+        if self.action not in ActionType:
             raise CommandValidationError(f"Unknown action: {self.action}")
 
-        if self.action == "stop" or self.action == "stats":
+        if self.action == ActionType.STOP or self.action == ActionType.STATS:
             return
 
-        if self.action == "recording":
+        if self.action == ActionType.RECORDING:
             if not self.value:
                 raise CommandValidationError("Missing value parameter")
 
@@ -43,11 +55,11 @@ class Command:
         if not self.element:
             raise CommandValidationError("Missing element parameter")
 
-        if self.action == "list":
+        if self.action == ActionType.LIST:
             return
 
         if not self.property:
             raise CommandValidationError("Missing property parameter")
 
-        if self.action == "set" and self.value is None:
+        if self.action == ActionType.SET and self.value is None:
             raise CommandValidationError("Missing value")

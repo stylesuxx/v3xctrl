@@ -8,6 +8,8 @@ from collections.abc import Callable
 import numpy as np
 import numpy.typing as npt
 
+logger = logging.getLogger(__name__)
+
 
 class Receiver(ABC, threading.Thread):
     """
@@ -71,7 +73,7 @@ class Receiver(ABC, threading.Thread):
         log_interval: int = 10,
         history_size: int = 100,
         max_frame_age_ms: int = 500,
-        frame_ratio: int = 100,
+        render_ratio: int = 0,
         target_fps: int = 30,
         timeout_seconds: float = 5.0,
     ) -> None:
@@ -89,7 +91,7 @@ class Receiver(ABC, threading.Thread):
         # 50  Render 50% of the available frame by always removing 50% of the
         #     frame_buffer before rendering
         # 0   Render everything in frame buffer
-        self.frame_ratio = frame_ratio
+        self.render_ratio = render_ratio
 
         self.running = threading.Event()
         self.frame_lock = threading.Lock()
@@ -154,7 +156,7 @@ class Receiver(ABC, threading.Thread):
         except Exception as e:
             # Catch and log all exceptions to prevent them from becoming
             # unhandled thread exceptions
-            logging.exception(f"Error in {self.__class__.__name__}: {e}")
+            logger.exception(f"Error in {self.__class__.__name__}: {e}")
 
         finally:
             try:
@@ -162,7 +164,7 @@ class Receiver(ABC, threading.Thread):
 
             except Exception as e:
                 # Log cleanup errors but don't let them crash the receiver
-                logging.exception(f"Error during cleanup: {e}")
+                logger.exception(f"Error during cleanup: {e}")
 
     def get_frame(self) -> npt.NDArray[np.uint8] | None:
         now = time.monotonic()
@@ -175,7 +177,7 @@ class Receiver(ABC, threading.Thread):
                 # Get latest frame (when available) and count rest as dropped
                 self.render_history.append(time.monotonic())
 
-                if self.frame_ratio == 100:
+                if self.render_ratio == 100:
                     # Render oldest (maximum smoothness)
                     self.frame = self.frame_buffer.popleft()
 
@@ -185,7 +187,7 @@ class Receiver(ABC, threading.Thread):
                         if self.decode_durations:
                             decode_duration = self.decode_durations.popleft()
 
-                elif self.frame_ratio == 0:
+                elif self.render_ratio == 0:
                     # Render newest (minimum latency)
                     self.frame = self.frame_buffer.pop()
 
@@ -203,7 +205,7 @@ class Receiver(ABC, threading.Thread):
 
                 else:
                     # Adaptive: render frame at ratio position
-                    target_buffer_size = round(self.max_frame_buffer_size * self.frame_ratio / 100)
+                    target_buffer_size = round(self.max_frame_buffer_size * self.render_ratio / 100)
 
                     frames_to_drop = max(0, length - target_buffer_size - 1)
 
@@ -248,9 +250,7 @@ class Receiver(ABC, threading.Thread):
         if log_data is not None:
             delta, length, target_buffer_size, frames_to_drop = log_data
             self.last_time = now
-            logging.debug(
-                f"Delta: {delta}ms Buffer: {length}, Target: {target_buffer_size}, Dropping: {frames_to_drop}"
-            )
+            logger.debug(f"Delta: {delta}ms Buffer: {length}, Target: {target_buffer_size}, Dropping: {frames_to_drop}")
 
         return result
 
@@ -273,7 +273,7 @@ class Receiver(ABC, threading.Thread):
         if enabled:
             self.timing_decode_samples.clear()
             self.timing_buffer_samples.clear()
-            logging.debug("Viewer timing enabled")
+            logger.debug("Viewer timing enabled")
 
     def _log_timing_stats(self) -> None:
         if not self.timing_buffer_samples:
@@ -297,7 +297,7 @@ class Receiver(ABC, threading.Thread):
         buf_max_ms = buf_max * 1000
         total_avg_ms = dec_avg_ms + buf_avg_ms
 
-        logging.debug(
+        logger.debug(
             f"[TIMING] pipeline: {dec_avg_ms:.1f}ms | "
             f"buffer: {buf_avg_ms:.1f}ms ({buf_min_ms:.1f}-{buf_max_ms:.1f}) | "
             f"total: {total_avg_ms:.1f}ms"
@@ -349,7 +349,7 @@ class Receiver(ABC, threading.Thread):
 
                 max_jitter, avg_jitter = self._calculate_jitter_stats()
 
-                logging.info(
+                logger.info(
                     f"{self.__class__.__name__}: "
                     f"frames={self.decoded_frame_count}, "
                     f"dropped_empty={self.dropped_empty_frames}, "

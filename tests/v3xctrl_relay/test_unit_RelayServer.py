@@ -83,11 +83,11 @@ class TestRelayServerUnitTests(unittest.TestCase):
         )
 
         # Test shutdown with socket errors - should not raise exceptions
-        with patch("logging.warning") as mock_warning:
+        with patch("v3xctrl_relay.RelayServer.logger") as mock_logger:
             server.shutdown()
 
             # Verify warnings were logged for both socket errors
-            self.assertGreaterEqual(mock_warning.call_count, 1)
+            self.assertGreaterEqual(mock_logger.warning.call_count, 1)
 
     @patch("socket.socket")
     def test_shutdown_without_command_socket(self, mock_socket_class):
@@ -174,7 +174,7 @@ class TestRelayServerUnitTests(unittest.TestCase):
         # Set running to False after one iteration
         server.running.set()
 
-        with patch("logging.error") as mock_error:
+        with patch("v3xctrl_relay.RelayServer.logger") as mock_logger:
             # Call _handle_commands with a counter to limit iterations
             _original_is_set = server.running.is_set
             call_count = 0
@@ -188,7 +188,7 @@ class TestRelayServerUnitTests(unittest.TestCase):
             server._handle_commands()
 
             # Verify error was logged
-            mock_error.assert_called()
+            mock_logger.error.assert_called()
 
     @patch("socket.socket")
     def test_process_command_recv_error(self, mock_socket_class):
@@ -215,11 +215,11 @@ class TestRelayServerUnitTests(unittest.TestCase):
             self.db_path,
         )
 
-        with patch("logging.error") as mock_error:
+        with patch("v3xctrl_relay.RelayServer.logger") as mock_logger:
             server._process_command(mock_client_socket)
 
             # Verify error was logged
-            mock_error.assert_called()
+            mock_logger.error.assert_called()
             # Verify socket was still closed
             mock_client_socket.close.assert_called_once()
 
@@ -383,11 +383,11 @@ class TestRelayServerUnitTests(unittest.TestCase):
             regular_data = b"regular_packet_data"
             client_addr = ("192.168.1.100", 54321)
 
-            with patch("logging.error") as mock_error:
+            with patch("v3xctrl_relay.RelayServer.logger") as mock_logger:
                 server._handle_slow_packet(regular_data, client_addr)
 
                 # Verify error was logged
-                mock_error.assert_called()
+                mock_logger.error.assert_called()
 
     @patch("socket.socket")
     def test_handle_slow_packet_non_peer_announcement_isinstance_false(self, mock_socket_class):
@@ -637,6 +637,50 @@ class TestRelayServerUnitTests(unittest.TestCase):
         # Should show decayed timeout since TCP connections are dead
         for entry in spectators:
             self.assertLess(entry["timeout_in_sec"], server.relay.SPECTATOR_TIMEOUT)
+
+
+class TestRelayServerBytePrefixes(unittest.TestCase):
+    """Validate that hardcoded byte prefixes match actual msgpack serialization.
+
+    RelayServer uses byte prefix checks on the hot path to distinguish control
+    messages (PeerAnnouncement, ConnectionTest) from data packets without
+    deserializing. If the Message serialization format changes, these prefixes
+    must be updated - this test catches any drift.
+    """
+
+    def test_peer_announcement_prefix_matches_serialized_output(self):
+        msg = PeerAnnouncement(r="viewer", i="session123", p="video")
+        serialized = msg.to_bytes()
+        self.assertTrue(
+            serialized.startswith(RelayServer._PEER_ANNOUNCEMENT_PREFIX),
+            f"PeerAnnouncement serialized bytes {serialized[:20]!r} "
+            f"do not start with expected prefix {RelayServer._PEER_ANNOUNCEMENT_PREFIX!r}",
+        )
+
+    def test_connection_test_prefix_matches_serialized_output(self):
+        msg = ConnectionTest(i="session123")
+        serialized = msg.to_bytes()
+        self.assertTrue(
+            serialized.startswith(RelayServer._CONNECTION_TEST_PREFIX),
+            f"ConnectionTest serialized bytes {serialized[:20]!r} "
+            f"do not start with expected prefix {RelayServer._CONNECTION_TEST_PREFIX!r}",
+        )
+
+    def test_prefixes_are_distinct(self):
+        self.assertNotEqual(
+            RelayServer._PEER_ANNOUNCEMENT_PREFIX,
+            RelayServer._CONNECTION_TEST_PREFIX,
+        )
+
+    def test_non_control_message_does_not_match_prefixes(self):
+        from v3xctrl_control.message import Heartbeat
+
+        heartbeat = Heartbeat().to_bytes()
+        for prefix in RelayServer._CONTROL_PREFIXES:
+            self.assertFalse(
+                heartbeat.startswith(prefix),
+                f"Heartbeat should not match control prefix {prefix!r}",
+            )
 
 
 if __name__ == "__main__":

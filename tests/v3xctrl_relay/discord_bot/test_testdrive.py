@@ -78,8 +78,8 @@ class TestTestdriveHandler(unittest.TestCase):
 
         asyncio.run(async_test())
 
-    @patch("logging.error")
-    def test_post_persistent_message_forbidden(self, mock_logging_error):
+    @patch("v3xctrl_relay.discord_bot.testdrive.logger")
+    def test_post_persistent_message_forbidden(self, mock_logger):
         async def async_test():
             mock_channel = AsyncMock(spec=discord.TextChannel)
             mock_channel.send = AsyncMock(
@@ -89,7 +89,7 @@ class TestTestdriveHandler(unittest.TestCase):
             with patch.object(self.handler, "_delete_old_announcement"):
                 await self.handler.post_persistent_message(mock_channel)
 
-            mock_logging_error.assert_called_once()
+            mock_logger.error.assert_called_once()
 
         asyncio.run(async_test())
 

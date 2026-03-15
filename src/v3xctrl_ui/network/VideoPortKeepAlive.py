@@ -5,20 +5,16 @@ import time
 
 from v3xctrl_control.message import Heartbeat
 
-# Keepalive interval when video is not running (NAT hole punch)
-INTERVAL_IDLE_S = 1.0
-
 # Keepalive interval during active streaming (NAT mapping refresh)
+logger = logging.getLogger(__name__)
+
 INTERVAL_STREAMING_S = 30.0
 
 
 class VideoPortKeepAlive(threading.Thread):
     """
-    Send periodic Heartbeat packets from the video port to the relay.
-
-    Uses a faster interval when video is not yet running (to punch the NAT
-    hole) and a slower interval during active streaming (to prevent the
-    mapping from expiring).
+    Send periodic Heartbeat packets from the video port to the relay
+    to prevent the NAT mapping from expiring.
     """
 
     def __init__(
@@ -39,7 +35,7 @@ class VideoPortKeepAlive(threading.Thread):
         """Create a transient socket to send one heartbeat.
 
         The socket is opened and closed each time so it does not hold
-        the video port permanently — ffmpeg (PyAV) needs exclusive
+        the video port permanently - ffmpeg (PyAV) needs exclusive
         access to the port while its container is open.
         """
         sock = None
@@ -49,14 +45,14 @@ class VideoPortKeepAlive(threading.Thread):
             sock.bind(("0.0.0.0", self.video_port))
             sock.sendto(Heartbeat().to_bytes(), self.relay_address)
         except Exception as e:
-            logging.debug(f"Video port keep-alive heartbeat skipped on port {self.video_port}: {e}")
+            logger.debug(f"Video port keep-alive heartbeat skipped on port {self.video_port}: {e}")
         finally:
             if sock:
                 sock.close()
 
     def run(self) -> None:
         self._running.set()
-        logging.info(f"Video port keep-alive started on port {self.video_port}")
+        logger.info(f"Video port keep-alive started on port {self.video_port}")
 
         while self._running.is_set():
             self._send_heartbeat()
@@ -68,4 +64,4 @@ class VideoPortKeepAlive(threading.Thread):
                 time.sleep(min(1.0, interval - waited))
                 waited += 1.0
 
-        logging.info("Video port keep-alive stopped")
+        logger.info("Video port keep-alive stopped")

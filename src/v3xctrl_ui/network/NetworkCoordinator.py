@@ -14,6 +14,8 @@ from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.network.NetworkController import NetworkController
 from v3xctrl_ui.osd.OSD import OSD
 
+logger = logging.getLogger(__name__)
+
 
 class NetworkCoordinator:
     """
@@ -46,7 +48,7 @@ class NetworkCoordinator:
 
     def restart_network_controller(self, settings: Settings) -> threading.Thread:
         def _restart() -> None:
-            logging.info("[NetworkController] Restarting...")
+            logger.info("[NetworkController] Restarting...")
             try:
                 if self.network_controller:
                     self.network_controller.shutdown()
@@ -54,10 +56,10 @@ class NetworkCoordinator:
                 self.network_controller = self.create_network_controller(settings)
                 self.network_controller.setup_ports()
 
-                logging.info("[NetworkController] Restart complete...")
+                logger.info("[NetworkController] Restart complete...")
 
             except Exception as e:
-                logging.error(f"[NetworkController] Restart failed: {e}")
+                logger.error(f"[NetworkController] Restart failed: {e}")
 
             finally:
                 self.restart_complete.set()
@@ -86,7 +88,7 @@ class NetworkCoordinator:
     def send_command(self, command: Command, callback: Callable[[bool], None]) -> None:
         # Skip sending commands in spectator mode
         if self.network_controller and self.network_controller.relay_spectator_mode:
-            logging.debug(f"Blocked command in spectator mode: {command}")
+            logger.debug(f"Blocked command in spectator mode: {command}")
             self._callback_queue.put((callback, (False,)))
             return
 
@@ -97,7 +99,7 @@ class NetworkCoordinator:
 
             self.network_controller.server.send_command(command, deferred_callback)
         else:
-            logging.error(f"Server is not set, cannot send command: {command}")
+            logger.error(f"Server is not set, cannot send command: {command}")
             callback(False)
 
     def send_latency_check(self) -> None:
@@ -151,7 +153,7 @@ class NetworkCoordinator:
             start = time.monotonic()
             self.network_controller.shutdown()
             delta = round(time.monotonic() - start)
-            logging.debug(f"Network controller shut down after {delta}s")
+            logger.debug(f"Network controller shut down after {delta}s")
 
     def _create_handlers(self) -> dict[str, Any]:
         def update_connected(state: bool) -> None:

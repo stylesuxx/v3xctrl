@@ -432,9 +432,9 @@ class TestAppState(unittest.TestCase):
         app.update()
         self.assertEqual(len(app.model.loop_history), 1)
 
-    @patch("v3xctrl_ui.core.AppState.logging")
+    @patch("v3xctrl_ui.core.AppState.logger")
     def test_update_handles_input_error(
-        self, mock_logging, mock_coordinator_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_display_cls
+        self, mock_logger, mock_coordinator_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_display_cls
     ):
         """Test that update() handles input read errors gracefully"""
         app, mock_input, _, _, _ = self._create_app(
@@ -454,7 +454,7 @@ class TestAppState(unittest.TestCase):
         app.update()
 
         # Should log warning
-        mock_logging.warning.assert_called()
+        mock_logger.warning.assert_called()
 
 
 if __name__ == "__main__":

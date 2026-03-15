@@ -6,6 +6,8 @@ import sys
 from v3xctrl_helper.exceptions import UnauthorizedError
 from v3xctrl_relay.Peer import Peer
 
+logger = logging.getLogger(__name__)
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="UDP Punch Client")
@@ -38,11 +40,11 @@ if __name__ == "__main__":
     try:
         peer_addresses = peer.setup("streamer", ports)
     except UnauthorizedError:
-        logging.error("Unauthorized access - check 'Relay session ID' setting")
+        logger.error("Unauthorized access - check 'Relay session ID' setting")
         sys.exit(2)
 
-    video = peer_addresses["video"]
-    control = peer_addresses["control"]
+    video = peer_addresses.video
+    control = peer_addresses.control
 
     print(
         json.dumps(

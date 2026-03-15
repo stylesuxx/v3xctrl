@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.event.inputs.branch }}
 
@@ -36,7 +36,7 @@ jobs:
           fi
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -45,7 +45,7 @@ jobs:
         run: echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;25.2.9519653"
 
       - name: Cache GStreamer SDK
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         id: gst-cache
         with:
           path: ~/android-gst
@@ -79,7 +79,7 @@ jobs:
         run: mv android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/v3xctrl-viewer-android-${VERSION}.apk
 
       - name: Upload APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: v3xctrl-viewer-android-${{ env.VERSION }}
           path: android/app/build/outputs/apk/debug/v3xctrl-viewer-android-*.apk

@@ -38,7 +38,8 @@ class Message(abc.ABC):  # noqa: B024
             "p": self.payload,
             "d": self.timestamp,
         }
-        return msgpack.packb(msg)  # type: ignore[no-untyped-call]
+        result: bytes = msgpack.packb(msg)  # type: ignore[no-untyped-call]
+        return result
 
     @classmethod
     def from_bytes(cls, data: bytes) -> "Message":
@@ -52,7 +53,8 @@ class Message(abc.ABC):  # noqa: B024
             raise ValueError("Malformed message payload") from e
 
         if msg_type in cls._registry:
-            return cls._registry[msg_type](**payload, timestamp=timestamp)
+            instance: Message = cls._registry[msg_type](**payload, timestamp=timestamp)
+            return instance
         else:
             raise ValueError(f"Unknown message type: {msg_type}")
 
@@ -68,5 +70,5 @@ class Message(abc.ABC):  # noqa: B024
         try:
             obj = cast(MessageDict, msgpack.unpackb(data, strict_map_key=False))  # type: ignore[arg-type]
             return obj.get("t", "Unknown")
-        except Exception:
+        except (msgpack.exceptions.UnpackException, TypeError, AttributeError, ValueError):
             return "Unknown"

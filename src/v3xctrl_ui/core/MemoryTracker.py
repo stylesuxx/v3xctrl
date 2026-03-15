@@ -1,6 +1,9 @@
+import logging
 import threading
 import time
 import tracemalloc
+
+logger = logging.getLogger(__name__)
 
 
 class MemoryTracker:
@@ -51,8 +54,8 @@ class MemoryTracker:
             stats = current.compare_to(self._baseline, "lineno")
 
             if self.enable_log:
-                print(f"[MemoryTracker] Top {self.top} memory growth lines since last snapshot:")
+                logger.debug(f"Top {self.top} memory growth lines since last snapshot:")
                 for stat in stats[: self.top]:
-                    print(f"  {stat}")
+                    logger.debug(f"  {stat}")
 
             self._baseline = current

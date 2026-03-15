@@ -11,6 +11,8 @@ import av
 from v3xctrl_ui.network.video.Receiver import Receiver
 from v3xctrl_ui.network.video.UdpVideoProxy import UdpVideoProxy
 
+logger = logging.getLogger(__name__)
+
 
 class ReceiverPyAV(Receiver):
     """
@@ -65,9 +67,9 @@ class ReceiverPyAV(Receiver):
         if self.relay_address:
             self._proxy = UdpVideoProxy(self.port, self.relay_address)
             if self._proxy.start_proxy():
-                logging.info(f"UDP video proxy active: :{self.port} -> localhost:{self._proxy.local_port}")
+                logger.info(f"UDP video proxy active: :{self.port} -> localhost:{self._proxy.local_port}")
             else:
-                logging.warning("UDP video proxy failed to start, falling back to direct port")
+                logger.warning("UDP video proxy failed to start, falling back to direct port")
                 self._proxy = None
 
         self._write_sdp()
@@ -78,7 +80,7 @@ class ReceiverPyAV(Receiver):
                 try:
                     self.container.close()
                 except Exception as e:
-                    logging.warning(f"Container close failed: {e}")
+                    logger.warning(f"Container close failed: {e}")
                 finally:
                     self.container = None
 
@@ -95,12 +97,12 @@ class ReceiverPyAV(Receiver):
 
         new_port = UdpVideoProxy._find_free_local_port()
         if new_port == 0:
-            logging.warning("Failed to find a new local port for proxy")
+            logger.warning("Failed to find a new local port for proxy")
             return
 
         self._proxy.update_forward_port(new_port)
         self._write_sdp()
-        logging.debug(f"Refreshed local forward port to {new_port}")
+        logger.debug(f"Refreshed local forward port to {new_port}")
 
     def _main_loop(self) -> None:
         while self.running.is_set():
@@ -110,7 +112,7 @@ class ReceiverPyAV(Receiver):
                     start_time = time.monotonic()
                     container = av.open(str(self.sdp_path), format="sdp", options=self.container_options, timeout=5)
                     open_time = time.monotonic() - start_time
-                    logging.info(f"Container opened in {open_time:.3f}s")
+                    logger.info(f"Container opened in {open_time:.3f}s")
 
                     with self.container_lock:
                         self.container = container
@@ -121,14 +123,14 @@ class ReceiverPyAV(Receiver):
 
                 except av.AVError as e:
                     if self._proxy:
-                        logging.warning(
+                        logger.warning(
                             f"av.open() failed: {e} "
                             f"(proxy mode, local_port={self._proxy.local_port}, "
                             f"received={self._proxy.packets_received}, "
                             f"forwarded={self._proxy.packets_forwarded})"
                         )
                     else:
-                        logging.warning(f"av.open() failed: {e} (direct mode, port={self.port})")
+                        logger.warning(f"av.open() failed: {e} (direct mode, port={self.port})")
                     self._refresh_local_port()
                     time.sleep(0.5)
 
@@ -154,7 +156,7 @@ class ReceiverPyAV(Receiver):
 
                         # Force restart if too many consecutive old frames
                         if self.consecutive_old_frames > self.max_consecutive_old_frames:
-                            logging.warning(
+                            logger.warning(
                                 f"Dropped {self.consecutive_old_frames} consecutive old frames, "
                                 f"forcing container restart"
                             )
@@ -170,12 +172,12 @@ class ReceiverPyAV(Receiver):
                     except av.AVError as e:
                         consecutive_decode_errors += 1
                         if consecutive_decode_errors >= 30:
-                            logging.warning(
+                            logger.warning(
                                 f"Too many consecutive decode errors "
                                 f"({consecutive_decode_errors}), restarting container"
                             )
                             break
-                        logging.debug(f"Decode error (skipping packet): {e}")
+                        logger.debug(f"Decode error (skipping packet): {e}")
                         continue
 
                     consecutive_decode_errors = 0
@@ -191,10 +193,10 @@ class ReceiverPyAV(Receiver):
                     self._log_stats_if_needed()
 
             except av.AVError as e:
-                logging.warning(f"Stream demux error: {e}")
+                logger.warning(f"Stream demux error: {e}")
 
             except Exception as e:
-                logging.exception(f"Unexpected error in receiver thread: {e}")
+                logger.exception(f"Unexpected error in receiver thread: {e}")
 
             finally:
                 with self.frame_lock:
@@ -222,7 +224,7 @@ class ReceiverPyAV(Receiver):
             if self.sdp_path.exists():
                 self.sdp_path.unlink()
         except Exception as e:
-            logging.warning(f"SDP file cleanup failed: {e}")
+            logger.warning(f"SDP file cleanup failed: {e}")
 
     def _write_sdp(self) -> None:
         """Write SDP file for RTP stream."""
@@ -250,7 +252,7 @@ a=recvonly
             f.flush()
             os.fsync(f.fileno())
 
-        logging.debug(f"SDP written: {self.sdp_path} (listen={listen_addr}:{listen_port})")
+        logger.debug(f"SDP written: {self.sdp_path} (listen={listen_addr}:{listen_port})")
 
     def _should_drop_packet_by_age(self, packet: av.Packet, stream: av.VideoStream) -> bool:
         if packet.pts is None:

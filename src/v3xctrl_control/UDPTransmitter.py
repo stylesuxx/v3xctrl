@@ -28,6 +28,8 @@ from v3xctrl_helper import Address
 from .message import Message
 from .UDPPacket import UDPPacket
 
+logger = logging.getLogger(__name__)
+
 
 class UDPTransmitter(threading.Thread):
     def __init__(self, sock: socket.socket, ttl_ms: int = 1000) -> None:
@@ -71,7 +73,7 @@ class UDPTransmitter(threading.Thread):
                     if time.time() - packet.timestamp > self.ttl:
                         self.queue.task_done()
                         type = Message.peek_type(packet.data)
-                        logging.info(f"Not transmitting old packet of type: {type}")
+                        logger.info(f"Not transmitting old packet of type: {type}")
                         continue
 
                     self.socket.sendto(packet.data, (packet.host, packet.port))
@@ -81,13 +83,13 @@ class UDPTransmitter(threading.Thread):
                     await asyncio.sleep(0.01)
 
                 except OSError as e:
-                    logging.warning(f"Socket error while sending: {e}")
+                    logger.warning(f"Socket error while sending: {e}")
 
                 except Exception as e:
-                    logging.error(f"Unexpected transmit error: {e}", exc_info=True)
+                    logger.error(f"Unexpected transmit error: {e}", exc_info=True)
 
         except asyncio.CancelledError:
-            logging.info("Transmit task cancelled.")
+            logger.info("Transmit task cancelled.")
         finally:
             self.process_stopped.set()
 

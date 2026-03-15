@@ -22,6 +22,8 @@ from v3xctrl_ui.osd.widgets.WidgetGroupRenderer import render_widget_group
 from v3xctrl_ui.utils.colors import ORANGE, RED, WHITE
 from v3xctrl_ui.utils.helpers import get_fps
 
+logger = logging.getLogger(__name__)
+
 
 class OSD:
     def __init__(self, settings: Settings, telemetry_context: TelemetryContext) -> None:
@@ -237,7 +239,7 @@ class OSD:
             if widget_name in self.widgets_battery:
                 self.widgets_battery[widget_name].set_text_color(color)
 
-        logging.debug(f"Received telemetry message: {message.get_values()}")
+        logger.debug(f"Received telemetry message: {message.get_values()}")
 
     def _get_steering_value(self, name: str):
         return getattr(self, name)

@@ -25,7 +25,7 @@ from .UDPTransmitter import UDPTransmitter
 
 
 class Client(Base):
-    SYN_INTERNAL = 1
+    SYN_INTERVAL = 1
 
     def __init__(
         self, host: str, port: int, bind_port: int | None = None, failsafe_ms: int = 500, bind_address: str = "0.0.0.0"
@@ -38,13 +38,13 @@ class Client(Base):
         self.bind_address = bind_address
         self.server_address = (self.host, self.port)
         self.failsafe_ms = failsafe_ms
-        self.last_syn = 0
+        self.last_syn: float = 0
 
         """
         Consider client disconnected if it has not seen a packet from the
         server in a certain amount of time.
         """
-        self.no_message_timeout = self.failsafe_ms / 1000
+        self.no_message_timeout: float = self.failsafe_ms / 1000
 
         # Resolve host to IP - this is required for host checks in the UDP
         # receiver
@@ -94,6 +94,10 @@ class Client(Base):
 
     def re_initialize(self) -> None:
         """Cleanly tear down the current connection and build a new one."""
+        assert self.message_handler is not None
+        assert self.transmitter is not None
+        assert self.socket is not None
+
         self.message_handler.stop()
         self.transmitter.stop()
 
@@ -121,6 +125,10 @@ class Client(Base):
             time.sleep(0.005)
 
     def stop(self) -> None:
+        assert self.message_handler is not None
+        assert self.transmitter is not None
+        assert self.socket is not None
+
         self.message_handler.stop()
         self.transmitter.stop()
 
@@ -134,6 +142,6 @@ class Client(Base):
     def _send_syn(self) -> None:
         """Send SYN message at max every SYN_INTERVAL."""
         now = time.time()
-        if now - self.last_syn > self.SYN_INTERNAL:
+        if now - self.last_syn > self.SYN_INTERVAL:
             self.send(Syn())
             self.last_syn = now
