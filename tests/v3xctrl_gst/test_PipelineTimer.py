@@ -60,7 +60,9 @@ class TestNoOpWhenDisabled:
 
 
 class TestSourceBuffer:
-    def test_records_source_timing(self, timer):
+    @patch("v3xctrl_gst.PipelineTimer.Gst")
+    def test_records_source_timing(self, mock_gst, timer):
+        mock_gst.MSECOND = GST_MSECOND
         timer.enable()
 
         pipeline = MagicMock()
