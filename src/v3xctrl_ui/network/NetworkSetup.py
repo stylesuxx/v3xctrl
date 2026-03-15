@@ -45,6 +45,7 @@ def _get_pyav_receiver() -> type[Receiver] | None:
     if _ReceiverPyAV is None:
         try:
             from v3xctrl_ui.network.video.ReceiverPyAV import ReceiverPyAV
+
             _ReceiverPyAV = ReceiverPyAV
         except ImportError:
             pass
