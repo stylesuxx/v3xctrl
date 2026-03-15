@@ -525,5 +525,165 @@ class TestTcpRelayHandshakeRole(unittest.TestCase):
             self.assertEqual(c.kwargs.get("r", c.args[0] if c.args else None), Role.VIEWER.value)
 
 
+class TestVideoReceiverSelection(unittest.TestCase):
+    """Test video receiver auto-selection and lazy loading."""
+
+    def setUp(self):
+        self.settings = MagicMock()
+        self.settings.get.side_effect = lambda key, default=None: {
+            "ports": {"video": 5000, "control": 6000},
+            "udp_packet_ttl": 100,
+            "video": {"render_ratio": 0},
+        }.get(key, default)
+
+        self.server_patcher = patch("v3xctrl_ui.network.NetworkSetup.Server")
+        self.server_patcher.start()
+
+        self.socket_patcher = patch("v3xctrl_ui.network.NetworkSetup.socket")
+        self.socket_patcher.start()
+
+    def tearDown(self):
+        self.server_patcher.stop()
+        self.socket_patcher.stop()
+
+    def test_auto_prefers_gstreamer_when_available(self):
+        mock_gst_cls = MagicMock()
+        mock_gst_instance = MagicMock()
+        mock_gst_cls.return_value = mock_gst_instance
+
+        with (
+            patch("v3xctrl_ui.network.NetworkSetup._get_gstreamer_receiver", return_value=mock_gst_cls),
+            patch("v3xctrl_ui.network.NetworkSetup._get_pyav_receiver", return_value=MagicMock()),
+        ):
+            setup = NetworkSetup(self.settings)
+            result = setup.setup_video_receiver(MagicMock())
+
+        self.assertTrue(result.success)
+        mock_gst_cls.assert_called_once()
+        mock_gst_instance.start.assert_called_once()
+
+    def test_auto_falls_back_to_pyav_when_no_gstreamer(self):
+        mock_pyav_cls = MagicMock()
+        mock_pyav_instance = MagicMock()
+        mock_pyav_cls.return_value = mock_pyav_instance
+
+        with (
+            patch("v3xctrl_ui.network.NetworkSetup._get_gstreamer_receiver", return_value=None),
+            patch("v3xctrl_ui.network.NetworkSetup._get_pyav_receiver", return_value=mock_pyav_cls),
+        ):
+            setup = NetworkSetup(self.settings)
+            result = setup.setup_video_receiver(MagicMock())
+
+        self.assertTrue(result.success)
+        mock_pyav_cls.assert_called_once()
+        mock_pyav_instance.start.assert_called_once()
+
+    def test_auto_fails_when_no_receiver_available(self):
+        with (
+            patch("v3xctrl_ui.network.NetworkSetup._get_gstreamer_receiver", return_value=None),
+            patch("v3xctrl_ui.network.NetworkSetup._get_pyav_receiver", return_value=None),
+        ):
+            setup = NetworkSetup(self.settings)
+            result = setup.setup_video_receiver(MagicMock())
+
+        self.assertFalse(result.success)
+        self.assertIn("No video receiver available", str(result.error))
+
+    def test_explicit_gst_when_available(self):
+        self.settings.get.side_effect = lambda key, default=None: {
+            "ports": {"video": 5000, "control": 6000},
+            "udp_packet_ttl": 100,
+            "video": {"render_ratio": 0, "receiver": "gst"},
+        }.get(key, default)
+
+        mock_gst_cls = MagicMock()
+        with patch("v3xctrl_ui.network.NetworkSetup._get_gstreamer_receiver", return_value=mock_gst_cls):
+            setup = NetworkSetup(self.settings)
+            result = setup.setup_video_receiver(MagicMock())
+
+        self.assertTrue(result.success)
+        mock_gst_cls.assert_called_once()
+
+    def test_explicit_gst_when_not_available(self):
+        self.settings.get.side_effect = lambda key, default=None: {
+            "ports": {"video": 5000, "control": 6000},
+            "udp_packet_ttl": 100,
+            "video": {"render_ratio": 0, "receiver": "gst"},
+        }.get(key, default)
+
+        with patch("v3xctrl_ui.network.NetworkSetup._get_gstreamer_receiver", return_value=None):
+            setup = NetworkSetup(self.settings)
+            result = setup.setup_video_receiver(MagicMock())
+
+        self.assertFalse(result.success)
+        self.assertIn("not available", str(result.error))
+
+    def test_explicit_pyav_when_not_available(self):
+        self.settings.get.side_effect = lambda key, default=None: {
+            "ports": {"video": 5000, "control": 6000},
+            "udp_packet_ttl": 100,
+            "video": {"render_ratio": 0, "receiver": "pyav"},
+        }.get(key, default)
+
+        with patch("v3xctrl_ui.network.NetworkSetup._get_pyav_receiver", return_value=None):
+            setup = NetworkSetup(self.settings)
+            result = setup.setup_video_receiver(MagicMock())
+
+        self.assertFalse(result.success)
+        self.assertIn("not available", str(result.error))
+
+    def test_unknown_receiver_type(self):
+        self.settings.get.side_effect = lambda key, default=None: {
+            "ports": {"video": 5000, "control": 6000},
+            "udp_packet_ttl": 100,
+            "video": {"render_ratio": 0, "receiver": "vlc"},
+        }.get(key, default)
+
+        setup = NetworkSetup(self.settings)
+        result = setup.setup_video_receiver(MagicMock())
+
+        self.assertFalse(result.success)
+        self.assertIn("Unknown receiver type", str(result.error))
+
+
+class TestLazyReceiverLoading(unittest.TestCase):
+    """Test lazy loading of receiver classes."""
+
+    def test_get_pyav_receiver_loads_successfully(self):
+        import v3xctrl_ui.network.NetworkSetup as ns
+
+        original = ns._ReceiverPyAV
+        try:
+            ns._ReceiverPyAV = None
+            result = ns._get_pyav_receiver()
+            self.assertIsNotNone(result)
+        finally:
+            ns._ReceiverPyAV = original
+
+    def test_get_pyav_receiver_returns_none_on_import_error(self):
+        import v3xctrl_ui.network.NetworkSetup as ns
+
+        original = ns._ReceiverPyAV
+        try:
+            ns._ReceiverPyAV = None
+            with patch.dict("sys.modules", {"v3xctrl_ui.network.video.ReceiverPyAV": None}):
+                result = ns._get_pyav_receiver()
+            self.assertIsNone(result)
+        finally:
+            ns._ReceiverPyAV = original
+
+    def test_get_gstreamer_receiver_returns_none_when_unavailable(self):
+        import v3xctrl_ui.network.NetworkSetup as ns
+
+        original = ns._ReceiverGst
+        try:
+            ns._ReceiverGst = None
+            with patch("v3xctrl_ui.network.NetworkSetup.is_gstreamer_available", return_value=False):
+                result = ns._get_gstreamer_receiver()
+            self.assertIsNone(result)
+        finally:
+            ns._ReceiverGst = original
+
+
 if __name__ == "__main__":
     unittest.main()
