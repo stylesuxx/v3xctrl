@@ -4,6 +4,15 @@ import sys
 if getattr(sys, "frozen", False):
     bundle_dir = sys._MEIPASS
 
+    # Tell PyGObject where to find GStreamer DLLs.
+    # gstreamer-bundle places them in gstreamer/bin/, but PyInstaller
+    # may also flatten them into the bundle root.
+    dll_dirs = [bundle_dir]
+    gst_bin = os.path.join(bundle_dir, "gstreamer", "bin")
+    if os.path.isdir(gst_bin):
+        dll_dirs.append(gst_bin)
+    os.environ["PYGI_DLL_DIRS"] = os.pathsep.join(dll_dirs)
+
     # GStreamer plugin path - check both layouts:
     # 1. gstreamer-bundle pip wheel layout (plugins inside gstreamer package)
     # 2. Manual MSYS2 bundle layout (gstreamer-1.0/ directory)
