@@ -7,6 +7,8 @@
   <br><br>
 </p>
 
+[![Tests](https://github.com/stylesuxx/v3xctrl/actions/workflows/test.yml/badge.svg)](https://github.com/stylesuxx/v3xctrl/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/stylesuxx/v3xctrl/branch/master/graph/badge.svg)](https://codecov.io/gh/stylesuxx/v3xctrl)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Discord](https://img.shields.io/discord/1366162378970107914?logo=discord&label=Discord)](https://discord.gg/uF4hf8UBBW)
 [![YouTube](https://img.shields.io/badge/YouTube-v3xctrl-red?logo=youtube)](https://www.youtube.com/@v3xctrl)
