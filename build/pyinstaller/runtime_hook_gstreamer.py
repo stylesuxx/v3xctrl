@@ -25,6 +25,7 @@ if getattr(sys, "frozen", False):
         os.path.join(bundle_dir, "gstreamer_plugins_restricted", "bin"),
         os.path.join(bundle_dir, "gstreamer_plugins_gpl", "bin"),
         os.path.join(bundle_dir, "gstreamer_plugins_gpl_restricted", "bin"),
+        os.path.join(bundle_dir, "gstreamer_cli", "bin"),
     ]:
         if os.path.isdir(extra_bin):
             dll_dirs.append(extra_bin)

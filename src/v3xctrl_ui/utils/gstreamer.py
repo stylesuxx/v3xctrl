@@ -109,6 +109,7 @@ def _do_gstreamer_check() -> bool:
             os.path.join(bundle_dir, "gstreamer_plugins_restricted", "bin"),
             os.path.join(bundle_dir, "gstreamer_plugins_gpl", "bin"),
             os.path.join(bundle_dir, "gstreamer_plugins_gpl_restricted", "bin"),
+            os.path.join(bundle_dir, "gstreamer_cli", "bin"),
         ]
         _existing_dirs = set(os.environ.get("PATH", "").split(os.pathsep))
         _new_dirs = [d for d in _dll_dir_candidates if os.path.isdir(d) and d not in _existing_dirs]
