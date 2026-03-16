@@ -79,10 +79,6 @@ def _do_gstreamer_check() -> bool:
         _plugin_dir_candidates = [
             os.path.join(bundle_dir, "gstreamer_libs", "lib", "gstreamer-1.0"),
             os.path.join(bundle_dir, "gstreamer_plugins", "lib", "gstreamer-1.0"),
-            os.path.join(bundle_dir, "gstreamer_plugins_libs", "lib", "gstreamer-1.0"),
-            os.path.join(bundle_dir, "gstreamer_plugins_restricted", "lib", "gstreamer-1.0"),
-            os.path.join(bundle_dir, "gstreamer_plugins_gpl", "lib", "gstreamer-1.0"),
-            os.path.join(bundle_dir, "gstreamer_plugins_gpl_restricted", "lib", "gstreamer-1.0"),
             os.path.join(bundle_dir, "gst_plugins"),
             os.path.join(bundle_dir, "gstreamer", "lib", "gstreamer-1.0"),
             os.path.join(bundle_dir, "gstreamer-1.0"),
@@ -106,10 +102,6 @@ def _do_gstreamer_check() -> bool:
             os.path.join(bundle_dir, "gstreamer_libs", "bin"),
             os.path.join(bundle_dir, "gstreamer", "bin"),
             os.path.join(bundle_dir, "gstreamer_plugins_libs", "bin"),
-            os.path.join(bundle_dir, "gstreamer_plugins_restricted", "bin"),
-            os.path.join(bundle_dir, "gstreamer_plugins_gpl", "bin"),
-            os.path.join(bundle_dir, "gstreamer_plugins_gpl_restricted", "bin"),
-            os.path.join(bundle_dir, "gstreamer_cli", "bin"),
         ]
         _existing_dirs = set(os.environ.get("PATH", "").split(os.pathsep))
         _new_dirs = [d for d in _dll_dir_candidates if os.path.isdir(d) and d not in _existing_dirs]

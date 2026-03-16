@@ -19,13 +19,9 @@ if getattr(sys, "frozen", False):
             dll_dirs.append(gst_bin_candidate)
             break
 
-    # Also register any bin/ directories for other gstreamer-bundle sub-packages
+    # Also register gstreamer_plugins_libs/bin/ — contains FFmpeg DLLs needed by gstlibav
     for extra_bin in [
         os.path.join(bundle_dir, "gstreamer_plugins_libs", "bin"),
-        os.path.join(bundle_dir, "gstreamer_plugins_restricted", "bin"),
-        os.path.join(bundle_dir, "gstreamer_plugins_gpl", "bin"),
-        os.path.join(bundle_dir, "gstreamer_plugins_gpl_restricted", "bin"),
-        os.path.join(bundle_dir, "gstreamer_cli", "bin"),
     ]:
         if os.path.isdir(extra_bin):
             dll_dirs.append(extra_bin)
@@ -54,17 +50,12 @@ if getattr(sys, "frozen", False):
             if os.path.isdir(directory):
                 sys._pyi_gst_dll_handles.append(os.add_dll_directory(directory))
 
-    # GStreamer plugin path - collect all non-empty plugin directories and join
-    # them. gstreamer-bundle splits plugins across multiple Python packages
-    # (gstreamer_libs, gstreamer_plugins_libs, gstreamer_plugins_restricted_libs)
-    # each placing their plugin DLLs in their own lib/gstreamer-1.0/ subdir.
+    # GStreamer plugin path — only the two packages containing required plugins.
+    # gstreamer_plugins_libs/lib/gstreamer-1.0/ (gstges, gstnle) is intentionally
+    # excluded: those plugins are bundled for their bin/ FFmpeg DLLs only.
     _plugin_dir_candidates = [
         os.path.join(bundle_dir, "gstreamer_libs", "lib", "gstreamer-1.0"),
         os.path.join(bundle_dir, "gstreamer_plugins", "lib", "gstreamer-1.0"),
-        os.path.join(bundle_dir, "gstreamer_plugins_libs", "lib", "gstreamer-1.0"),
-        os.path.join(bundle_dir, "gstreamer_plugins_restricted", "lib", "gstreamer-1.0"),
-        os.path.join(bundle_dir, "gstreamer_plugins_gpl", "lib", "gstreamer-1.0"),
-        os.path.join(bundle_dir, "gstreamer_plugins_gpl_restricted", "lib", "gstreamer-1.0"),
         os.path.join(bundle_dir, "gst_plugins"),
         os.path.join(bundle_dir, "gstreamer", "lib", "gstreamer-1.0"),
         os.path.join(bundle_dir, "gstreamer-1.0"),

@@ -133,7 +133,7 @@ jobs:
           done
           echo ""
           echo "=== Plugin dirs (count DLLs) ==="
-          for dir in "gst_plugins" "gstreamer_libs/lib/gstreamer-1.0" "gstreamer_plugins/lib/gstreamer-1.0" "gstreamer_plugins_libs/lib/gstreamer-1.0" "gstreamer_plugins_restricted/lib/gstreamer-1.0" "gstreamer_plugins_gpl/lib/gstreamer-1.0" "gstreamer_plugins_gpl_restricted/lib/gstreamer-1.0"; do
+          for dir in "gst_plugins" "gstreamer_libs/lib/gstreamer-1.0" "gstreamer_plugins/lib/gstreamer-1.0" "gstreamer_plugins_libs/bin"; do
             path="src/dist/V3XCTRL/_internal/$dir"
             if [ -d "$path" ]; then
               echo "  EXISTS ($( ls "$path"/*.dll 2>/dev/null | wc -l) DLLs): $path"
