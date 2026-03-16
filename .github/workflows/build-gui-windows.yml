@@ -82,10 +82,13 @@ jobs:
           print('GStreamer version:', Gst.version_string())
           "
 
-      - name: Resolve GStreamer DLL path
+      - name: Locate gstreamer-bundle DLL directory
         shell: bash
         run: |
-          GST_BIN=$("$PY" -c "import subprocess,sys,os; r=subprocess.check_output([sys.executable,'-m','pip','show','gstreamer-bundle'],text=True); loc=next((l.split(':',1)[1].strip() for l in r.splitlines() if l.startswith('Location:')),''); print(next((p for s in ['gstreamer/bin','gstreamer\\\\bin','bin'] for p in [os.path.join(loc,s)] if os.path.isdir(p) and any(f.endswith('.dll') for f in os.listdir(p))),''))")
+          # Use where.exe to find gobject-2.0-0.dll (the no-lib-prefix DLL that
+          # _gi.pyd depends on). This is the most reliable way to locate the
+          # gstreamer-bundle bin directory regardless of its install layout.
+          GST_BIN=$("$PY" -c "import subprocess,os; r=subprocess.run(['where.exe','gobject-2.0-0.dll'],capture_output=True,text=True); print(os.path.dirname(r.stdout.strip().splitlines()[0]).replace(chr(92),'/') if r.returncode==0 and r.stdout.strip() else '')")
           echo "Resolved GST_BIN: $GST_BIN"
           echo "GST_BIN=$GST_BIN" >> "$GITHUB_ENV"
 
@@ -94,13 +97,14 @@ jobs:
         run: |
           cd src
 
-          # Add gstreamer-bundle bin to PATH so PyInstaller binary analysis
-          # can find libgobject/libglib DLL dependencies of _gi.pyd
+          # Add the gstreamer-bundle bin dir to PATH so PyInstaller's binary
+          # dependency analysis can resolve the full transitive DLL chain for
+          # _gi.pyd (gobject → glib → intl/ffi/pcre2, all without lib prefix).
           if [ -n "$GST_BIN" ] && [ -d "$GST_BIN" ]; then
             export PATH="$GST_BIN:$PATH"
             EXTRA_GST_BINS="--add-binary $GST_BIN/*.dll;."
           else
-            echo "WARNING: gstreamer-bundle bin dir not found, DLLs may be missing from bundle"
+            echo "WARNING: gstreamer-bundle bin dir not found, _gi.pyd will likely fail at runtime"
             EXTRA_GST_BINS=""
           fi
 
@@ -108,7 +112,6 @@ jobs:
             --icon=v3xctrl_ui/assets/images/logo.ico \
             --add-data "v3xctrl_ui/assets;assets" \
             --collect-data material_icons \
-            --add-binary "${{ runner.temp }}/msys64/mingw64/bin/*.dll;." \
             ${EXTRA_GST_BINS} \
             --collect-all gi \
             --collect-all gstreamer \
