@@ -67,37 +67,22 @@ jobs:
           print('GStreamer version:', Gst.version_string())
           "
 
-      - name: Locate gstreamer-bundle DLL directory
-        shell: bash
-        run: |
-          # Use where.exe to find gobject-2.0-0.dll (the no-lib-prefix DLL that
-          # _gi.pyd depends on). This is the most reliable way to locate the
-          # gstreamer-bundle bin directory regardless of its install layout.
-          GST_BIN=$("$PY" -c "import subprocess,os; r=subprocess.run(['where.exe','gobject-2.0-0.dll'],capture_output=True,text=True); print(os.path.dirname(r.stdout.strip().splitlines()[0]).replace(chr(92),'/') if r.returncode==0 and r.stdout.strip() else '')")
-          echo "Resolved GST_BIN: $GST_BIN"
-          echo "GST_BIN=$GST_BIN" >> "$GITHUB_ENV"
-
       - name: Build executable with PyInstaller
         shell: bash
         run: |
           cd src
 
-          # Add the gstreamer-bundle bin dir to PATH so PyInstaller's binary
-          # dependency analysis can resolve the full transitive DLL chain for
-          # _gi.pyd (gobject → glib → intl/ffi/pcre2, all without lib prefix).
-          if [ -n "$GST_BIN" ] && [ -d "$GST_BIN" ]; then
-            export PATH="$GST_BIN:$PATH"
-            EXTRA_GST_BINS="--add-binary $GST_BIN/*.dll;."
-          else
-            echo "WARNING: gstreamer-bundle bin dir not found, _gi.pyd will likely fail at runtime"
-            EXTRA_GST_BINS=""
-          fi
-
+          # --collect-all gstreamer bundles the gstreamer-bundle DLLs into
+          # _internal/gstreamer/bin/ via collect_dynamic_libs().
+          # --collect-all gi bundles _gi.pyd and the gi Python package.
+          # Do NOT add gstreamer DLLs to PATH or use --add-binary here:
+          # that would cause PyInstaller to also copy them to _internal/ root,
+          # creating two separate DLL instances (gstreamer/bin/ + root) which
+          # causes GLib to initialize twice and corrupts the type system.
           "$PY" -m PyInstaller --noconfirm --onedir --console \
             --icon=v3xctrl_ui/assets/images/logo.ico \
             --add-data "v3xctrl_ui/assets;assets" \
             --collect-data material_icons \
-            ${EXTRA_GST_BINS} \
             --collect-all gi \
             --collect-all gstreamer \
             --runtime-hook ../build/pyinstaller/runtime_hook_gstreamer.py \
@@ -110,18 +95,19 @@ jobs:
           find src/dist/V3XCTRL -name "_gi*" -type f 2>/dev/null | head -10
           find src/dist/V3XCTRL -path "*/gi/__init__*" -type f 2>/dev/null | head -5
           echo ""
-          echo "=== Core GLib/GObject DLLs (required by _gi.pyd) ==="
-          for dll in glib-2.0-0.dll gobject-2.0-0.dll gstreamer-1.0-0.dll; do
-            result=$(find src/dist/V3XCTRL -name "$dll" -type f 2>/dev/null)
-            if [ -n "$result" ]; then
-              echo "  FOUND: $result"
-            else
+          echo "=== Core GLib/GObject DLLs (must be in gstreamer/bin/ ONLY, not root) ==="
+          for dll in glib-2.0-0.dll gobject-2.0-0.dll gstreamer-1.0-0.dll gio-2.0.dll; do
+            hits=$(find src/dist/V3XCTRL -name "$dll" -type f 2>/dev/null)
+            count=$(echo "$hits" | grep -c . 2>/dev/null || echo 0)
+            if [ -z "$hits" ]; then
               echo "  MISSING: $dll"
+            elif [ "$count" -gt 1 ]; then
+              echo "  DUPLICATE ($count copies - BAD): $dll"
+              echo "$hits" | sed 's/^/    /'
+            else
+              echo "  OK (1 copy): $hits"
             fi
           done
-          echo ""
-          echo "=== Checking for MSYS2 lib-prefixed DLLs (should be absent) ==="
-          find src/dist/V3XCTRL -name "libglib*" -o -name "libgobject*" -o -name "libgstreamer*" 2>/dev/null | head -10
           echo ""
           echo "=== GStreamer plugin files ==="
           find src/dist/V3XCTRL -name "libgst*" -type f 2>/dev/null | head -20
