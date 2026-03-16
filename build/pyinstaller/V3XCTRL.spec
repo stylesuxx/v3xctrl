@@ -6,13 +6,32 @@ from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs
 # Resolve source root relative to spec file so this works regardless of CWD.
 SRC = os.path.normpath(os.path.join(SPECPATH, '..', '..', 'src'))
 
+
+def _safe_collect_data(pkg):
+    try:
+        return collect_data_files(pkg)
+    except Exception:
+        return []
+
+
+def _safe_collect_libs(pkg):
+    try:
+        return collect_dynamic_libs(pkg)
+    except Exception:
+        return []
+
+
 a = Analysis(
     [os.path.join(SRC, 'v3xctrl_ui', 'main.py')],
     pathex=[SRC],
-    binaries=collect_dynamic_libs('gstreamer_libs'),
+    binaries=_safe_collect_libs('gstreamer_libs')
+        + _safe_collect_libs('gstreamer_plugins_libs')
+        + _safe_collect_libs('gstreamer_plugins_restricted_libs'),
     datas=[(os.path.join(SRC, 'v3xctrl_ui', 'assets'), 'assets')]
         + collect_data_files('material_icons')
-        + collect_data_files('gstreamer_libs'),
+        + _safe_collect_data('gstreamer_libs')
+        + _safe_collect_data('gstreamer_plugins_libs')
+        + _safe_collect_data('gstreamer_plugins_restricted_libs'),
     hiddenimports=[],
     hookspath=[],
     hooksconfig={

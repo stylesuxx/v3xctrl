@@ -70,17 +70,18 @@ def _do_gstreamer_check() -> bool:
         # type system. Override it here, after all hooks have run, to point
         # only at the actual plugin directory.
         bundle_dir = sys._MEIPASS
-        for plugin_dir in [
-            os.path.join(bundle_dir, "gst_plugins"),
-            os.path.join(bundle_dir, "gst-plugins"),
+        _plugin_dir_candidates = [
             os.path.join(bundle_dir, "gstreamer_libs", "lib", "gstreamer-1.0"),
+            os.path.join(bundle_dir, "gstreamer_plugins_libs", "lib", "gstreamer-1.0"),
+            os.path.join(bundle_dir, "gstreamer_plugins_restricted_libs", "lib", "gstreamer-1.0"),
+            os.path.join(bundle_dir, "gst_plugins"),
             os.path.join(bundle_dir, "gstreamer", "lib", "gstreamer-1.0"),
             os.path.join(bundle_dir, "gstreamer-1.0"),
-        ]:
-            if os.path.isdir(plugin_dir):
-                os.environ["GST_PLUGIN_PATH"] = plugin_dir
-                os.environ["GST_PLUGIN_SYSTEM_PATH"] = ""
-                break
+        ]
+        _plugin_dirs = [d for d in _plugin_dir_candidates if os.path.isdir(d) and os.listdir(d)]
+        if _plugin_dirs:
+            os.environ["GST_PLUGIN_PATH"] = os.pathsep.join(_plugin_dirs)
+            os.environ["GST_PLUGIN_SYSTEM_PATH"] = ""
 
         logger.debug("GStreamer check: GST_PLUGIN_PATH=%s", os.environ.get("GST_PLUGIN_PATH", "(not set)"))
         logger.debug("GStreamer check: GI_TYPELIB_PATH=%s", os.environ.get("GI_TYPELIB_PATH", "(not set)"))

@@ -28,20 +28,21 @@ if getattr(sys, "frozen", False):
             if os.path.isdir(directory):
                 os.add_dll_directory(directory)
 
-    # GStreamer plugin path - check known layouts produced by PyInstaller:
-    #   gst_plugins/         (--collect-all gi flattens plugins here)
-    #   gstreamer_libs/lib/gstreamer-1.0/  (gstreamer-bundle internal layout)
-    #   gstreamer/lib/gstreamer-1.0/       (older layout)
-    #   gstreamer-1.0/                     (manual MSYS2 bundle layout)
-    for plugin_dir in [
-        os.path.join(bundle_dir, "gst_plugins"),
+    # GStreamer plugin path - collect all non-empty plugin directories and join
+    # them. gstreamer-bundle splits plugins across multiple Python packages
+    # (gstreamer_libs, gstreamer_plugins_libs, gstreamer_plugins_restricted_libs)
+    # each placing their plugin DLLs in their own lib/gstreamer-1.0/ subdir.
+    _plugin_dir_candidates = [
         os.path.join(bundle_dir, "gstreamer_libs", "lib", "gstreamer-1.0"),
+        os.path.join(bundle_dir, "gstreamer_plugins_libs", "lib", "gstreamer-1.0"),
+        os.path.join(bundle_dir, "gstreamer_plugins_restricted_libs", "lib", "gstreamer-1.0"),
+        os.path.join(bundle_dir, "gst_plugins"),
         os.path.join(bundle_dir, "gstreamer", "lib", "gstreamer-1.0"),
         os.path.join(bundle_dir, "gstreamer-1.0"),
-    ]:
-        if os.path.isdir(plugin_dir):
-            os.environ["GST_PLUGIN_PATH"] = plugin_dir
-            break
+    ]
+    _plugin_dirs = [d for d in _plugin_dir_candidates if os.path.isdir(d) and os.listdir(d)]
+    if _plugin_dirs:
+        os.environ["GST_PLUGIN_PATH"] = os.pathsep.join(_plugin_dirs)
 
     # GIR typelib path - check known layouts:
     #   gi_typelibs/         (--collect-all gi flattens typelibs here)
