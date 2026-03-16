@@ -179,5 +179,55 @@ class TestControlDropDetection(unittest.TestCase):
         self.sock2.close()
 
 
+class TestControlBufferSize(unittest.TestCase):
+    def setUp(self):
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.transmitter = UDPTransmitter(self.sock, control_buffer_capacity=5)
+
+    def tearDown(self):
+        self.sock.close()
+
+    def test_empty_buffer_returns_zero(self):
+        self.assertEqual(self.transmitter.get_control_buffer_size(), 0)
+
+    def test_buffer_size_after_adding_messages(self):
+        addr = ("localhost", 9999)
+        self.transmitter.set_control_message(FakeMessage("a"), addr)
+        self.assertEqual(self.transmitter.get_control_buffer_size(), 1)
+        self.transmitter.set_control_message(FakeMessage("b"), addr)
+        self.assertEqual(self.transmitter.get_control_buffer_size(), 2)
+
+    def test_buffer_size_capped_at_capacity(self):
+        addr = ("localhost", 9999)
+        for i in range(10):
+            self.transmitter.set_control_message(FakeMessage(f"msg-{i}"), addr)
+        self.assertEqual(self.transmitter.get_control_buffer_size(), 5)
+
+
+class TestSendFailureDetection(unittest.TestCase):
+    def setUp(self):
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.transmitter = UDPTransmitter(self.sock)
+
+    def tearDown(self):
+        self.sock.close()
+
+    def test_no_failures_initially(self):
+        self.assertFalse(self.transmitter.has_recent_send_failures())
+
+    def test_failure_detected_after_send_error(self):
+        self.sock.close()
+        packet = UDPPacket(b"test", "localhost", 9999)
+        self.transmitter._send_packet(packet)
+        self.assertTrue(self.transmitter.has_recent_send_failures())
+
+    def test_failure_expires_after_window(self):
+        self.sock.close()
+        packet = UDPPacket(b"test", "localhost", 9999)
+        self.transmitter._send_packet(packet)
+        self.assertTrue(self.transmitter.has_recent_send_failures(window=10.0))
+        self.assertFalse(self.transmitter.has_recent_send_failures(window=0.0))
+
+
 if __name__ == "__main__":
     unittest.main()

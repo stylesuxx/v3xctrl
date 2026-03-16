@@ -49,9 +49,9 @@ class TestOSD(unittest.TestCase):
         self.assertEqual(self.osd.throttle, 1.0)
         self.assertEqual(self.osd.steering, -0.5)
 
-    def test_update_data_queue(self):
+    def test_update_control_queue(self):
         self.osd.widgets_debug["debug_data"].set_value = MagicMock()
-        self.osd.update_data_queue(10)
+        self.osd.update_control_queue(10)
         self.osd.widgets_debug["debug_data"].set_value.assert_called_with(10)
 
     def test_update_debug_status(self):

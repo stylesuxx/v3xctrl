@@ -89,7 +89,7 @@ class TestRenderer(unittest.TestCase):
         state.model.control_connected = True
         state.menu = MagicMock(visible=False)
         state.osd.update_debug_status = MagicMock()
-        state.osd.update_data_queue = MagicMock()
+        state.osd.update_control_queue = MagicMock()
         state.osd.set_control = MagicMock()
         state.osd.update_buffer_queue = MagicMock()
         state.osd.render = MagicMock()
@@ -101,7 +101,7 @@ class TestRenderer(unittest.TestCase):
         mock_frame = np.zeros((720, 1280, 3), dtype=np.uint8)
         network_manager.video_receiver.get_frame.return_value = mock_frame
         network_manager.server_error = None
-        network_manager.get_data_queue_size.return_value = 0
+        network_manager.get_control_buffer_size.return_value = 0
         network_manager.get_video_buffer_size.return_value = 0
 
         renderer.render_all(state, network_manager)
@@ -127,7 +127,7 @@ class TestRenderer(unittest.TestCase):
         state.model.control_connected = False
         state.menu = MagicMock(visible=False)
         state.osd.update_debug_status = MagicMock()
-        state.osd.update_data_queue = MagicMock()
+        state.osd.update_control_queue = MagicMock()
         state.osd.set_control = MagicMock()
         state.osd.update_buffer_queue = MagicMock()
         state.osd.render = MagicMock()
@@ -140,7 +140,7 @@ class TestRenderer(unittest.TestCase):
         network_manager.relay_enable = False
         network_manager.relay_status_message = "Waiting for streamer..."
         network_manager.server_error = None
-        network_manager.get_data_queue_size.return_value = 0
+        network_manager.get_control_buffer_size.return_value = 0
         network_manager.get_video_buffer_size.return_value = 0
 
         renderer.render_all(state, network_manager)
@@ -166,7 +166,7 @@ class TestRenderer(unittest.TestCase):
         state.model.control_connected = True
         state.menu = MagicMock(visible=False)
         state.osd.update_debug_status = MagicMock()
-        state.osd.update_data_queue = MagicMock()
+        state.osd.update_control_queue = MagicMock()
         state.osd.set_control = MagicMock()
         state.osd.update_buffer_queue = MagicMock()
         state.osd.render = MagicMock()
@@ -179,7 +179,7 @@ class TestRenderer(unittest.TestCase):
         network_manager.relay_enable = False
         network_manager.relay_status_message = ""
         network_manager.server_error = "Control port already in use"
-        network_manager.get_data_queue_size.return_value = 0
+        network_manager.get_control_buffer_size.return_value = 0
         network_manager.get_video_buffer_size.return_value = 0
 
         renderer.render_all(state, network_manager)
@@ -205,7 +205,7 @@ class TestRenderer(unittest.TestCase):
         state.screen = pygame.Surface((1280, 720))
         state.model.control_connected = True
         state.osd.update_debug_status = MagicMock()
-        state.osd.update_data_queue = MagicMock()
+        state.osd.update_control_queue = MagicMock()
         state.osd.set_control = MagicMock()
         state.osd.update_buffer_queue = MagicMock()
         state.osd.render = MagicMock()
@@ -222,7 +222,7 @@ class TestRenderer(unittest.TestCase):
         network_manager.relay_enable = False
         network_manager.relay_status_message = ""
         network_manager.server_error = None
-        network_manager.get_data_queue_size.return_value = 0
+        network_manager.get_control_buffer_size.return_value = 0
         network_manager.get_video_buffer_size.return_value = 0
 
         renderer.render_all(state, network_manager)

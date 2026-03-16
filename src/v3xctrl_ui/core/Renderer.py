@@ -328,11 +328,11 @@ class Renderer:
 
     def _render_osd(self, state: "AppState", network_manager: NetworkController) -> None:
         """Render OSD and overlay information."""
-        data_left = network_manager.get_data_queue_size()
+        control_buffer_size = network_manager.get_control_buffer_size()
         if network_manager.server_error:
             state.osd.update_debug_status("fail")
 
-        state.osd.update_data_queue(data_left)
+        state.osd.update_control_queue(control_buffer_size)
         state.osd.set_control(state.model.throttle, state.model.steering)
 
         video_history = None

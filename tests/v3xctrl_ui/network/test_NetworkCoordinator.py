@@ -424,6 +424,46 @@ class TestNetworkCoordinator(unittest.TestCase):
         # Should not send when in spectator mode
         mock_nm.send_latency_check.assert_not_called()
 
+    def test_get_control_buffer_size(self):
+        """Test getting control buffer size."""
+        mock_nm = MagicMock()
+        mock_nm.get_control_buffer_size.return_value = 3
+        self.coordinator.network_controller = mock_nm
+
+        result = self.coordinator.get_control_buffer_size()
+
+        self.assertEqual(result, 3)
+
+    def test_get_control_buffer_size_no_manager(self):
+        """Test getting control buffer size when no network manager."""
+        self.coordinator.network_controller = None
+
+        result = self.coordinator.get_control_buffer_size()
+
+        self.assertEqual(result, 0)
+
+    def test_has_recent_send_failures(self):
+        """Test checking for recent send failures."""
+        mock_nm = MagicMock()
+        mock_nm.server = MagicMock()
+        mock_nm.server_error = None
+        mock_nm.server.transmitter.has_recent_send_failures.return_value = True
+        self.coordinator.network_controller = mock_nm
+
+        result = self.coordinator.has_recent_send_failures()
+
+        self.assertTrue(result)
+
+    def test_has_recent_send_failures_no_server(self):
+        """Test checking for send failures when no server."""
+        mock_nm = MagicMock()
+        mock_nm.server = None
+        self.coordinator.network_controller = mock_nm
+
+        result = self.coordinator.has_recent_send_failures()
+
+        self.assertFalse(result)
+
     def test_send_command_spectator_mode(self):
         """Test that commands are not sent in spectator mode."""
         mock_server = MagicMock()

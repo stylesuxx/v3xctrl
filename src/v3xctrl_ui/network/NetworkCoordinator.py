@@ -133,6 +133,12 @@ class NetworkCoordinator:
 
         return 0
 
+    def get_control_buffer_size(self) -> int:
+        if self.network_controller:
+            return self.network_controller.get_control_buffer_size()
+
+        return 0
+
     def get_video_buffer_size(self) -> int:
         if self.network_controller and self.network_controller.video_receiver:
             return len(self.network_controller.video_receiver.frame_buffer)
@@ -142,6 +148,12 @@ class NetworkCoordinator:
     def has_recent_control_drops(self) -> bool:
         if self.network_controller and self.network_controller.server and not self.network_controller.server_error:
             return self.network_controller.server.transmitter.has_recent_control_drops()
+        return False
+
+    def has_recent_send_failures(self) -> bool:
+        if self.network_controller and self.network_controller.server and not self.network_controller.server_error:
+            return self.network_controller.server.transmitter.has_recent_send_failures()
+
         return False
 
     def has_server_error(self) -> bool:

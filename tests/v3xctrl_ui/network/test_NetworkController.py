@@ -438,6 +438,40 @@ class TestNetworkController(unittest.TestCase):
         self.assertEqual(nm.relay_port, 8888)  # Default port
         self.assertEqual(nm.relay_id, "testid")
 
+    def test_get_control_buffer_size_with_server(self):
+        """Test get_control_buffer_size when server is available."""
+        nm = NetworkController(self.settings, self.handlers)
+
+        mock_server = MagicMock()
+        mock_server.transmitter.get_control_buffer_size.return_value = 3
+        nm.server = mock_server
+        nm.server_error = None
+
+        result = nm.get_control_buffer_size()
+
+        self.assertEqual(result, 3)
+
+    def test_get_control_buffer_size_no_server(self):
+        """Test get_control_buffer_size when no server is available."""
+        nm = NetworkController(self.settings, self.handlers)
+        nm.server = None
+
+        result = nm.get_control_buffer_size()
+
+        self.assertEqual(result, 0)
+
+    def test_get_control_buffer_size_with_server_error(self):
+        """Test get_control_buffer_size when server has an error."""
+        nm = NetworkController(self.settings, self.handlers)
+
+        mock_server = MagicMock()
+        nm.server = mock_server
+        nm.server_error = "Connection failed"
+
+        result = nm.get_control_buffer_size()
+
+        self.assertEqual(result, 0)
+
 
 if __name__ == "__main__":
     unittest.main()

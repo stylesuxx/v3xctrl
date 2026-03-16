@@ -43,6 +43,7 @@ class UDPTransmitter(threading.Thread):
         self._control_buffer: deque[UDPPacket] = deque(maxlen=control_buffer_capacity)
         self._control_lock = threading.Lock()
         self._last_control_drop_timestamp: float = 0
+        self._last_send_failure_timestamp: float = 0
 
         self.loop = asyncio.new_event_loop()
         self.task: concurrent.futures.Future[None] | None = None
@@ -69,11 +70,23 @@ class UDPTransmitter(threading.Thread):
                 logger.debug("Evicting oldest control message from buffer")
             self._control_buffer.append(packet)
 
+    def get_control_buffer_size(self) -> int:
+        with self._control_lock:
+            return len(self._control_buffer)
+
     def has_recent_control_drops(self, window: float = 1.0) -> bool:
         with self._control_lock:
             if self._last_control_drop_timestamp == 0:
                 return False
+
             return time.time() - self._last_control_drop_timestamp < window
+
+    def has_recent_send_failures(self, window: float = 1.0) -> bool:
+        with self._control_lock:
+            if self._last_send_failure_timestamp == 0:
+                return False
+
+            return time.time() - self._last_send_failure_timestamp < window
 
     def run(self) -> None:
         self._running.set()
@@ -87,6 +100,8 @@ class UDPTransmitter(threading.Thread):
         try:
             self.socket.sendto(packet.data, (packet.host, packet.port))
         except OSError as e:
+            with self._control_lock:
+                self._last_send_failure_timestamp = time.time()
             logger.warning(f"Socket error while sending: {e}")
 
     async def process(self) -> None:
