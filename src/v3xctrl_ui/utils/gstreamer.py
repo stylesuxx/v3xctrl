@@ -2,6 +2,12 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Holds os.add_dll_directory() handles for the process lifetime.
+# On Windows, these keep the GStreamer DLL dirs registered in the OS loader
+# search path so that plugin DLLs can find their dependencies (e.g. gstaudio).
+# Module-level storage guarantees they are never GC'd while the module is live.
+_dll_handles: list = []
+
 # Required GStreamer elements for H264 RTP reception
 _REQUIRED_GST_ELEMENTS = [
     "udpsrc",  # gst-plugins-good
@@ -85,6 +91,28 @@ def _do_gstreamer_check() -> bool:
 
         logger.debug("GStreamer check: GST_PLUGIN_PATH=%s", os.environ.get("GST_PLUGIN_PATH", "(not set)"))
         logger.debug("GStreamer check: GI_TYPELIB_PATH=%s", os.environ.get("GI_TYPELIB_PATH", "(not set)"))
+
+        # Register GStreamer DLL directories via os.add_dll_directory() so that
+        # the Windows loader can find dependent DLLs when plugin DLLs are loaded.
+        # We do this here (in a proper module) rather than relying solely on the
+        # runtime hook, because PyInstaller may exec() runtime hooks in a
+        # temporary namespace whose dict is GC'd before plugin loading occurs.
+        # Handles are stored in the module-level _dll_handles list so they are
+        # never GC'd while this module is imported.
+        if hasattr(os, "add_dll_directory"):
+            _dll_dir_candidates = [
+                bundle_dir,
+                os.path.join(bundle_dir, "gstreamer_libs", "bin"),
+                os.path.join(bundle_dir, "gstreamer", "bin"),
+                os.path.join(bundle_dir, "gstreamer_plugins_libs", "bin"),
+                os.path.join(bundle_dir, "gstreamer_plugins_restricted_libs", "bin"),
+                os.path.join(bundle_dir, "gstreamer_plugins_gpl_libs", "bin"),
+                os.path.join(bundle_dir, "gstreamer_plugins_gpl_restricted_libs", "bin"),
+            ]
+            for _d in _dll_dir_candidates:
+                if os.path.isdir(_d):
+                    _dll_handles.append(os.add_dll_directory(_d))
+            logger.debug("GStreamer check: registered %d DLL dirs", len(_dll_handles))
 
     try:
         import gi
