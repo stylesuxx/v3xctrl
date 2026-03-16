@@ -49,6 +49,35 @@ jobs:
         run: |
           "$PY" -m pip install gstreamer-bundle
 
+      - name: Inspect GStreamer package layout
+        shell: bash
+        run: |
+          cat > "$RUNNER_TEMP/inspect_gst.py" << 'PYEOF'
+          import importlib.util, importlib.metadata, os
+          seen = set()
+          for dists in importlib.metadata.packages_distributions().values():
+              for pkg in dists:
+                  if "gstreamer" not in pkg.lower() or pkg in seen:
+                      continue
+                  seen.add(pkg)
+                  spec = importlib.util.find_spec(pkg)
+                  if spec is None:
+                      print(pkg + ": spec not found")
+                      continue
+                  loc = (spec.submodule_search_locations[0]
+                         if spec.submodule_search_locations
+                         else os.path.dirname(spec.origin or ""))
+                  plugin_dir = os.path.join(loc, "lib", "gstreamer-1.0")
+                  bin_dir = os.path.join(loc, "bin")
+                  plugins = sorted(os.listdir(plugin_dir)) if os.path.isdir(plugin_dir) else []
+                  bins = sorted(f for f in os.listdir(bin_dir) if f.endswith(".dll")) if os.path.isdir(bin_dir) else []
+                  print("--- " + pkg + " ---")
+                  print("  root: " + loc)
+                  print("  plugins (%d): %s" % (len(plugins), plugins))
+                  print("  bin DLLs (%d): %s" % (len(bins), bins[:8]))
+          PYEOF
+          "$PY" "$RUNNER_TEMP/inspect_gst.py"
+
       - name: Generate version file
         shell: bash
         run: |
