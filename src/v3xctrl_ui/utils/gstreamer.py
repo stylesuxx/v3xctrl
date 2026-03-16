@@ -1,4 +1,7 @@
+import importlib.util
 import logging
+import os
+import sys
 
 logger = logging.getLogger(__name__)
 
@@ -39,10 +42,6 @@ def _check_gstreamer_elements() -> str | None:
 
 
 def _do_gstreamer_check() -> bool:
-    import importlib.util
-    import os
-    import sys
-
     logger.debug("GStreamer check: Python executable: %s", sys.executable)
     logger.debug("GStreamer check: frozen=%s", getattr(sys, "frozen", False))
     if getattr(sys, "frozen", False):
