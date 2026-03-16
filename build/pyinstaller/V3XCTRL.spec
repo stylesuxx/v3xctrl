@@ -1,11 +1,16 @@
 # -*- mode: python ; coding: utf-8 -*-
+import os
 from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs
 
+# SPECPATH is the directory containing this spec file (build/pyinstaller/).
+# Resolve source root relative to spec file so this works regardless of CWD.
+SRC = os.path.normpath(os.path.join(SPECPATH, '..', '..', 'src'))
+
 a = Analysis(
-    ['v3xctrl_ui/main.py'],
-    pathex=['.'],
+    [os.path.join(SRC, 'v3xctrl_ui', 'main.py')],
+    pathex=[SRC],
     binaries=collect_dynamic_libs('gstreamer_libs'),
-    datas=[('v3xctrl_ui/assets', 'assets')]
+    datas=[(os.path.join(SRC, 'v3xctrl_ui', 'assets'), 'assets')]
         + collect_data_files('material_icons')
         + collect_data_files('gstreamer_libs'),
     hiddenimports=[],
@@ -23,7 +28,7 @@ a = Analysis(
             ],
         },
     },
-    runtime_hooks=['../build/pyinstaller/runtime_hook_gstreamer.py'],
+    runtime_hooks=[os.path.join(SPECPATH, 'runtime_hook_gstreamer.py')],
     excludes=[],
     noarchive=False,
 )
@@ -36,7 +41,7 @@ exe = EXE(
     [],
     exclude_binaries=True,
     name='V3XCTRL',
-    icon='v3xctrl_ui/assets/images/logo.ico',
+    icon=os.path.join(SRC, 'v3xctrl_ui', 'assets', 'images', 'logo.ico'),
     console=True,
 )
 
