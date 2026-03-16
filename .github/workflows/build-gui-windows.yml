@@ -42,7 +42,7 @@ jobs:
         shell: bash
         run: |
           "$PY" -m pip install --upgrade pip
-          "$PY" -m pip install -r ./build/requirements/viewer.txt pyinstaller
+          "$PY" -m pip install -r ./build/requirements/viewer.txt pyinstaller pyinstaller-hooks-contrib
 
       - name: Install GStreamer Python bundle
         shell: bash
@@ -71,22 +71,7 @@ jobs:
         shell: bash
         run: |
           cd src
-
-          # --collect-all gstreamer bundles the gstreamer-bundle DLLs into
-          # _internal/gstreamer/bin/ via collect_dynamic_libs().
-          # --collect-all gi bundles _gi.pyd and the gi Python package.
-          # Do NOT add gstreamer DLLs to PATH or use --add-binary here:
-          # that would cause PyInstaller to also copy them to _internal/ root,
-          # creating two separate DLL instances (gstreamer/bin/ + root) which
-          # causes GLib to initialize twice and corrupts the type system.
-          "$PY" -m PyInstaller --noconfirm --onedir --console \
-            --icon=v3xctrl_ui/assets/images/logo.ico \
-            --add-data "v3xctrl_ui/assets;assets" \
-            --collect-data material_icons \
-            --collect-all gi \
-            --collect-all gstreamer \
-            --runtime-hook ../build/pyinstaller/runtime_hook_gstreamer.py \
-            -n V3XCTRL v3xctrl_ui/main.py
+          "$PY" -m PyInstaller --noconfirm ../build/pyinstaller/V3XCTRL.spec
 
       - name: Verify GStreamer bundle
         shell: bash
