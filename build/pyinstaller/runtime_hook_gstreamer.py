@@ -13,6 +13,13 @@ if getattr(sys, "frozen", False):
         dll_dirs.append(gst_bin)
     os.environ["PYGI_DLL_DIRS"] = os.pathsep.join(dll_dirs)
 
+    # Python 3.8+ on Windows requires os.add_dll_directory() for the OS
+    # loader to find dependent DLLs (PATH is no longer searched).
+    if hasattr(os, "add_dll_directory"):
+        for directory in dll_dirs:
+            if os.path.isdir(directory):
+                os.add_dll_directory(directory)
+
     # GStreamer plugin path - check both layouts:
     # 1. gstreamer-bundle pip wheel layout (plugins inside gstreamer package)
     # 2. Manual MSYS2 bundle layout (gstreamer-1.0/ directory)
