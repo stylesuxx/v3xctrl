@@ -31,14 +31,21 @@ if getattr(sys, "frozen", False):
 
     os.environ["PYGI_DLL_DIRS"] = os.pathsep.join(dll_dirs)
 
-    # Python 3.8+ on Windows requires os.add_dll_directory() for the OS
-    # loader to find dependent DLLs (PATH is no longer searched).
-    # IMPORTANT: handles MUST be kept alive for the process lifetime — if the
-    # return value is garbage-collected, Windows silently removes that directory
-    # from the DLL search path.  We store them on `sys` (always alive) rather
-    # than a module-level variable: PyInstaller may exec() runtime hooks in a
-    # temporary namespace whose dict is discarded after the hook runs, which
-    # would GC a plain module-level list and drop all our registered dirs.
+    # GLib uses LoadLibraryExW(..., LOAD_WITH_ALTERED_SEARCH_PATH) to load
+    # plugin DLLs.  That flag is mutually exclusive with
+    # LOAD_LIBRARY_SEARCH_USER_DIRS, so os.add_dll_directory() has no effect
+    # on GStreamer plugin loading.  The LOAD_WITH_ALTERED_SEARCH_PATH search
+    # order falls back to PATH, so prepending the DLL dirs to PATH is the
+    # correct fix for GLib/GStreamer.
+    #
+    # os.add_dll_directory() is kept as well because Python 3.8+ uses
+    # LOAD_LIBRARY_SEARCH_DEFAULT_DIRS for its own import machinery (which
+    # honours AddDllDirectory but ignores PATH), so it is still needed when
+    # gi._gi.pyd and other extension modules are imported.
+    existing_path = os.environ.get("PATH", "")
+    new_path_entries = [d for d in dll_dirs if os.path.isdir(d)]
+    os.environ["PATH"] = os.pathsep.join(new_path_entries) + (os.pathsep + existing_path if existing_path else "")
+
     if hasattr(os, "add_dll_directory"):
         if not hasattr(sys, "_pyi_gst_dll_handles"):
             sys._pyi_gst_dll_handles = []

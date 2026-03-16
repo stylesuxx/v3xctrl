@@ -92,27 +92,30 @@ def _do_gstreamer_check() -> bool:
         logger.debug("GStreamer check: GST_PLUGIN_PATH=%s", os.environ.get("GST_PLUGIN_PATH", "(not set)"))
         logger.debug("GStreamer check: GI_TYPELIB_PATH=%s", os.environ.get("GI_TYPELIB_PATH", "(not set)"))
 
-        # Register GStreamer DLL directories via os.add_dll_directory() so that
-        # the Windows loader can find dependent DLLs when plugin DLLs are loaded.
-        # We do this here (in a proper module) rather than relying solely on the
-        # runtime hook, because PyInstaller may exec() runtime hooks in a
-        # temporary namespace whose dict is GC'd before plugin loading occurs.
-        # Handles are stored in the module-level _dll_handles list so they are
-        # never GC'd while this module is imported.
+        # GLib uses LoadLibraryExW(..., LOAD_WITH_ALTERED_SEARCH_PATH) to load
+        # plugin DLLs, which searches PATH but NOT os.add_dll_directory() dirs.
+        # Prepend all DLL directories to PATH so plugin dependencies are found.
+        # os.add_dll_directory() is also called for Python's own import machinery
+        # (which uses LOAD_LIBRARY_SEARCH_DEFAULT_DIRS and ignores PATH).
+        # Handles go into the module-level _dll_handles list so they are never GC'd.
+        _dll_dir_candidates = [
+            bundle_dir,
+            os.path.join(bundle_dir, "gstreamer_libs", "bin"),
+            os.path.join(bundle_dir, "gstreamer", "bin"),
+            os.path.join(bundle_dir, "gstreamer_plugins_libs", "bin"),
+            os.path.join(bundle_dir, "gstreamer_plugins_restricted_libs", "bin"),
+            os.path.join(bundle_dir, "gstreamer_plugins_gpl_libs", "bin"),
+            os.path.join(bundle_dir, "gstreamer_plugins_gpl_restricted_libs", "bin"),
+        ]
+        _existing_dirs = set(os.environ.get("PATH", "").split(os.pathsep))
+        _new_dirs = [d for d in _dll_dir_candidates if os.path.isdir(d) and d not in _existing_dirs]
+        if _new_dirs:
+            os.environ["PATH"] = os.pathsep.join(_new_dirs) + os.pathsep + os.environ.get("PATH", "")
         if hasattr(os, "add_dll_directory"):
-            _dll_dir_candidates = [
-                bundle_dir,
-                os.path.join(bundle_dir, "gstreamer_libs", "bin"),
-                os.path.join(bundle_dir, "gstreamer", "bin"),
-                os.path.join(bundle_dir, "gstreamer_plugins_libs", "bin"),
-                os.path.join(bundle_dir, "gstreamer_plugins_restricted_libs", "bin"),
-                os.path.join(bundle_dir, "gstreamer_plugins_gpl_libs", "bin"),
-                os.path.join(bundle_dir, "gstreamer_plugins_gpl_restricted_libs", "bin"),
-            ]
             for _d in _dll_dir_candidates:
                 if os.path.isdir(_d):
                     _dll_handles.append(os.add_dll_directory(_d))
-            logger.debug("GStreamer check: registered %d DLL dirs", len(_dll_handles))
+        logger.debug("GStreamer check: registered %d DLL dirs, PATH prepend: %s", len(_dll_handles), _new_dirs)
 
     try:
         import gi
