@@ -48,13 +48,18 @@ def _do_gstreamer_check() -> bool:
     else:
         logger.debug("GStreamer check: gi module not found on sys.path")
 
-    gst_spec = importlib.util.find_spec("gstreamer")
-    if gst_spec is not None:
-        logger.debug("GStreamer check: gstreamer-bundle found at %s", gst_spec.origin)
-        gst_bin = os.path.join(os.path.dirname(gst_spec.origin), "bin")
-        logger.debug("GStreamer check: expected DLL dir: %s (exists=%s)", gst_bin, os.path.isdir(gst_bin))
+    for pkg in ("gstreamer_libs", "gstreamer"):
+        gst_spec = importlib.util.find_spec(pkg)
+        if gst_spec is not None:
+            logger.debug("GStreamer check: gstreamer-bundle package '%s' found at %s", pkg, gst_spec.origin)
+            gst_bin = os.path.join(os.path.dirname(gst_spec.origin), "bin")
+            logger.debug("GStreamer check: expected DLL dir: %s (exists=%s)", gst_bin, os.path.isdir(gst_bin))
+            break
     else:
-        logger.debug("GStreamer check: gstreamer-bundle not installed")
+        logger.debug("GStreamer check: gstreamer-bundle not found (tried gstreamer_libs, gstreamer)")
+    if getattr(sys, "frozen", False):
+        logger.debug("GStreamer check: GST_PLUGIN_PATH=%s", os.environ.get("GST_PLUGIN_PATH", "(not set)"))
+        logger.debug("GStreamer check: GI_TYPELIB_PATH=%s", os.environ.get("GI_TYPELIB_PATH", "(not set)"))
 
     try:
         import gi
