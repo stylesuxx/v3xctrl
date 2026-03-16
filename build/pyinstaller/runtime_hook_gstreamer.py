@@ -1,6 +1,10 @@
 import os
 import sys
 
+# Holds os.add_dll_directory() handles — must stay alive for the lifetime of
+# the process, or Windows removes those dirs from the DLL search path.
+_dll_dir_handles = []
+
 if getattr(sys, "frozen", False):
     bundle_dir = sys._MEIPASS
 
@@ -19,14 +23,28 @@ if getattr(sys, "frozen", False):
             dll_dirs.append(gst_bin_candidate)
             break
 
+    # Also register any *_libs/bin directories for other gstreamer-bundle sub-packages
+    for extra_bin in [
+        os.path.join(bundle_dir, "gstreamer_plugins_libs", "bin"),
+        os.path.join(bundle_dir, "gstreamer_plugins_restricted_libs", "bin"),
+        os.path.join(bundle_dir, "gstreamer_plugins_gpl_libs", "bin"),
+        os.path.join(bundle_dir, "gstreamer_plugins_gpl_restricted_libs", "bin"),
+    ]:
+        if os.path.isdir(extra_bin):
+            dll_dirs.append(extra_bin)
+
     os.environ["PYGI_DLL_DIRS"] = os.pathsep.join(dll_dirs)
 
     # Python 3.8+ on Windows requires os.add_dll_directory() for the OS
     # loader to find dependent DLLs (PATH is no longer searched).
+    # IMPORTANT: keep handles in a module-level list — if the return value is
+    # garbage-collected, Windows removes that directory from the search path.
+    global _dll_dir_handles
+    _dll_dir_handles = []
     if hasattr(os, "add_dll_directory"):
         for directory in dll_dirs:
             if os.path.isdir(directory):
-                os.add_dll_directory(directory)
+                _dll_dir_handles.append(os.add_dll_directory(directory))
 
     # GStreamer plugin path - collect all non-empty plugin directories and join
     # them. gstreamer-bundle splits plugins across multiple Python packages
