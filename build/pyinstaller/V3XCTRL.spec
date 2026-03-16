@@ -25,17 +25,19 @@ a = Analysis(
     [os.path.join(SRC, 'v3xctrl_ui', 'main.py')],
     pathex=[SRC],
     binaries=_safe_collect_libs('gstreamer_libs')
+        + _safe_collect_libs('gstreamer_plugins')
         + _safe_collect_libs('gstreamer_plugins_libs')
-        + _safe_collect_libs('gstreamer_plugins_restricted_libs')
-        + _safe_collect_libs('gstreamer_plugins_gpl_libs')
-        + _safe_collect_libs('gstreamer_plugins_gpl_restricted_libs'),
+        + _safe_collect_libs('gstreamer_plugins_restricted')
+        + _safe_collect_libs('gstreamer_plugins_gpl')
+        + _safe_collect_libs('gstreamer_plugins_gpl_restricted'),
     datas=[(os.path.join(SRC, 'v3xctrl_ui', 'assets'), 'assets')]
         + collect_data_files('material_icons')
         + _safe_collect_data('gstreamer_libs')
+        + _safe_collect_data('gstreamer_plugins')
         + _safe_collect_data('gstreamer_plugins_libs')
-        + _safe_collect_data('gstreamer_plugins_restricted_libs')
-        + _safe_collect_data('gstreamer_plugins_gpl_libs')
-        + _safe_collect_data('gstreamer_plugins_gpl_restricted_libs'),
+        + _safe_collect_data('gstreamer_plugins_restricted')
+        + _safe_collect_data('gstreamer_plugins_gpl')
+        + _safe_collect_data('gstreamer_plugins_gpl_restricted'),
     hiddenimports=[],
     hookspath=[],
     hooksconfig={

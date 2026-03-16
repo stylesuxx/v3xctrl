@@ -78,10 +78,11 @@ def _do_gstreamer_check() -> bool:
         bundle_dir = sys._MEIPASS
         _plugin_dir_candidates = [
             os.path.join(bundle_dir, "gstreamer_libs", "lib", "gstreamer-1.0"),
+            os.path.join(bundle_dir, "gstreamer_plugins", "lib", "gstreamer-1.0"),
             os.path.join(bundle_dir, "gstreamer_plugins_libs", "lib", "gstreamer-1.0"),
-            os.path.join(bundle_dir, "gstreamer_plugins_restricted_libs", "lib", "gstreamer-1.0"),
-            os.path.join(bundle_dir, "gstreamer_plugins_gpl_libs", "lib", "gstreamer-1.0"),
-            os.path.join(bundle_dir, "gstreamer_plugins_gpl_restricted_libs", "lib", "gstreamer-1.0"),
+            os.path.join(bundle_dir, "gstreamer_plugins_restricted", "lib", "gstreamer-1.0"),
+            os.path.join(bundle_dir, "gstreamer_plugins_gpl", "lib", "gstreamer-1.0"),
+            os.path.join(bundle_dir, "gstreamer_plugins_gpl_restricted", "lib", "gstreamer-1.0"),
             os.path.join(bundle_dir, "gst_plugins"),
             os.path.join(bundle_dir, "gstreamer", "lib", "gstreamer-1.0"),
             os.path.join(bundle_dir, "gstreamer-1.0"),
