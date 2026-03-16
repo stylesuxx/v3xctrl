@@ -19,12 +19,12 @@ if getattr(sys, "frozen", False):
             dll_dirs.append(gst_bin_candidate)
             break
 
-    # Also register any *_libs/bin directories for other gstreamer-bundle sub-packages
+    # Also register any bin/ directories for other gstreamer-bundle sub-packages
     for extra_bin in [
         os.path.join(bundle_dir, "gstreamer_plugins_libs", "bin"),
-        os.path.join(bundle_dir, "gstreamer_plugins_restricted_libs", "bin"),
-        os.path.join(bundle_dir, "gstreamer_plugins_gpl_libs", "bin"),
-        os.path.join(bundle_dir, "gstreamer_plugins_gpl_restricted_libs", "bin"),
+        os.path.join(bundle_dir, "gstreamer_plugins_restricted", "bin"),
+        os.path.join(bundle_dir, "gstreamer_plugins_gpl", "bin"),
+        os.path.join(bundle_dir, "gstreamer_plugins_gpl_restricted", "bin"),
     ]:
         if os.path.isdir(extra_bin):
             dll_dirs.append(extra_bin)
