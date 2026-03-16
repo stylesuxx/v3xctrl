@@ -39,8 +39,6 @@ if getattr(sys, "frozen", False):
     # loader to find dependent DLLs (PATH is no longer searched).
     # IMPORTANT: keep handles in a module-level list — if the return value is
     # garbage-collected, Windows removes that directory from the search path.
-    global _dll_dir_handles
-    _dll_dir_handles = []
     if hasattr(os, "add_dll_directory"):
         for directory in dll_dirs:
             if os.path.isdir(directory):
