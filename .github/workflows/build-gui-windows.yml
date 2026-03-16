@@ -82,23 +82,34 @@ jobs:
           print('GStreamer version:', Gst.version_string())
           "
 
+      - name: Resolve GStreamer DLL path
+        shell: bash
+        run: |
+          GST_BIN=$("$PY" -c "import subprocess,sys,os; r=subprocess.check_output([sys.executable,'-m','pip','show','gstreamer-bundle'],text=True); loc=next((l.split(':',1)[1].strip() for l in r.splitlines() if l.startswith('Location:')),''); print(next((p for s in ['gstreamer/bin','gstreamer\\\\bin','bin'] for p in [os.path.join(loc,s)] if os.path.isdir(p) and any(f.endswith('.dll') for f in os.listdir(p))),''))")
+          echo "Resolved GST_BIN: $GST_BIN"
+          echo "GST_BIN=$GST_BIN" >> "$GITHUB_ENV"
+
       - name: Build executable with PyInstaller
         shell: bash
         run: |
           cd src
 
-          # Get the gstreamer-bundle bin directory so PyInstaller's binary
-          # dependency analysis can find libgobject/libglib DLLs, and so we
-          # can explicitly add them to the bundle root.
-          GST_BIN=$("$PY" -c "import gstreamer, os; print(os.path.join(os.path.dirname(gstreamer.__file__), 'bin'))")
-          export PATH="$GST_BIN:$PATH"
+          # Add gstreamer-bundle bin to PATH so PyInstaller binary analysis
+          # can find libgobject/libglib DLL dependencies of _gi.pyd
+          if [ -n "$GST_BIN" ] && [ -d "$GST_BIN" ]; then
+            export PATH="$GST_BIN:$PATH"
+            EXTRA_GST_BINS="--add-binary $GST_BIN/*.dll;."
+          else
+            echo "WARNING: gstreamer-bundle bin dir not found, DLLs may be missing from bundle"
+            EXTRA_GST_BINS=""
+          fi
 
           "$PY" -m PyInstaller --noconfirm --onedir --console \
             --icon=v3xctrl_ui/assets/images/logo.ico \
             --add-data "v3xctrl_ui/assets;assets" \
             --collect-data material_icons \
             --add-binary "${{ runner.temp }}/msys64/mingw64/bin/*.dll;." \
-            --add-binary "$GST_BIN/*.dll;." \
+            ${EXTRA_GST_BINS} \
             --collect-all gi \
             --collect-all gstreamer \
             --runtime-hook ../build/pyinstaller/runtime_hook_gstreamer.py \
