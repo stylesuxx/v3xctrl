@@ -51,9 +51,15 @@ def _do_gstreamer_check() -> bool:
     for pkg in ("gstreamer_libs", "gstreamer"):
         gst_spec = importlib.util.find_spec(pkg)
         if gst_spec is not None:
-            logger.debug("GStreamer check: gstreamer-bundle package '%s' found at %s", pkg, gst_spec.origin)
-            gst_bin = os.path.join(os.path.dirname(gst_spec.origin), "bin")
-            logger.debug("GStreamer check: expected DLL dir: %s (exists=%s)", gst_bin, os.path.isdir(gst_bin))
+            pkg_root = (
+                os.path.dirname(gst_spec.origin)
+                if gst_spec.origin is not None
+                else (gst_spec.submodule_search_locations[0] if gst_spec.submodule_search_locations else None)
+            )
+            logger.debug("GStreamer check: gstreamer-bundle package '%s' found, root=%s", pkg, pkg_root)
+            if pkg_root is not None:
+                gst_bin = os.path.join(pkg_root, "bin")
+                logger.debug("GStreamer check: expected DLL dir: %s (exists=%s)", gst_bin, os.path.isdir(gst_bin))
             break
     else:
         logger.debug("GStreamer check: gstreamer-bundle not found (tried gstreamer_libs, gstreamer)")
