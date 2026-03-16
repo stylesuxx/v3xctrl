@@ -33,6 +33,29 @@ def _check_gstreamer_elements() -> str | None:
 
 
 def _do_gstreamer_check() -> bool:
+    import importlib.util
+    import os
+    import sys
+
+    logger.debug("GStreamer check: Python executable: %s", sys.executable)
+    logger.debug("GStreamer check: frozen=%s", getattr(sys, "frozen", False))
+    if getattr(sys, "frozen", False):
+        logger.debug("GStreamer check: _MEIPASS=%s", getattr(sys, "_MEIPASS", "n/a"))
+
+    gi_spec = importlib.util.find_spec("gi")
+    if gi_spec is not None:
+        logger.debug("GStreamer check: gi found at %s", gi_spec.origin)
+    else:
+        logger.debug("GStreamer check: gi module not found on sys.path")
+
+    gst_spec = importlib.util.find_spec("gstreamer")
+    if gst_spec is not None:
+        logger.debug("GStreamer check: gstreamer-bundle found at %s", gst_spec.origin)
+        gst_bin = os.path.join(os.path.dirname(gst_spec.origin), "bin")
+        logger.debug("GStreamer check: expected DLL dir: %s (exists=%s)", gst_bin, os.path.isdir(gst_bin))
+    else:
+        logger.debug("GStreamer check: gstreamer-bundle not installed")
+
     try:
         import gi
 
@@ -47,6 +70,7 @@ def _do_gstreamer_check() -> bool:
             logger.info(f"GStreamer receiver not available: missing '{missing}' element")
             return False
 
+        logger.debug("GStreamer check: all elements present, GStreamer is available")
         return True
 
     except ImportError as e:

@@ -87,11 +87,18 @@ jobs:
         run: |
           cd src
 
+          # Get the gstreamer-bundle bin directory so PyInstaller's binary
+          # dependency analysis can find libgobject/libglib DLLs, and so we
+          # can explicitly add them to the bundle root.
+          GST_BIN=$("$PY" -c "import gstreamer, os; print(os.path.join(os.path.dirname(gstreamer.__file__), 'bin'))")
+          export PATH="$GST_BIN:$PATH"
+
           "$PY" -m PyInstaller --noconfirm --onedir --console \
             --icon=v3xctrl_ui/assets/images/logo.ico \
             --add-data "v3xctrl_ui/assets;assets" \
             --collect-data material_icons \
             --add-binary "${{ runner.temp }}/msys64/mingw64/bin/*.dll;." \
+            --add-binary "$GST_BIN/*.dll;." \
             --collect-all gi \
             --collect-all gstreamer \
             --runtime-hook ../build/pyinstaller/runtime_hook_gstreamer.py \
@@ -104,7 +111,17 @@ jobs:
           find src/dist/V3XCTRL -name "_gi*" -type f 2>/dev/null | head -10
           find src/dist/V3XCTRL -path "*/gi/__init__*" -type f 2>/dev/null | head -5
           echo ""
-          echo "=== GStreamer files ==="
+          echo "=== Core GLib/GObject DLLs (required by _gi.pyd) ==="
+          for dll in libglib-2.0-0.dll libgobject-2.0-0.dll libgstreamer-1.0-0.dll; do
+            result=$(find src/dist/V3XCTRL -name "$dll" -type f 2>/dev/null)
+            if [ -n "$result" ]; then
+              echo "  FOUND: $result"
+            else
+              echo "  MISSING: $dll"
+            fi
+          done
+          echo ""
+          echo "=== GStreamer plugin files ==="
           find src/dist/V3XCTRL -name "libgst*" -type f 2>/dev/null | head -20
 
       - name: Create release package
