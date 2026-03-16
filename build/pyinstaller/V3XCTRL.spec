@@ -26,12 +26,16 @@ a = Analysis(
     pathex=[SRC],
     binaries=_safe_collect_libs('gstreamer_libs')
         + _safe_collect_libs('gstreamer_plugins_libs')
-        + _safe_collect_libs('gstreamer_plugins_restricted_libs'),
+        + _safe_collect_libs('gstreamer_plugins_restricted_libs')
+        + _safe_collect_libs('gstreamer_plugins_gpl_libs')
+        + _safe_collect_libs('gstreamer_plugins_gpl_restricted_libs'),
     datas=[(os.path.join(SRC, 'v3xctrl_ui', 'assets'), 'assets')]
         + collect_data_files('material_icons')
         + _safe_collect_data('gstreamer_libs')
         + _safe_collect_data('gstreamer_plugins_libs')
-        + _safe_collect_data('gstreamer_plugins_restricted_libs'),
+        + _safe_collect_data('gstreamer_plugins_restricted_libs')
+        + _safe_collect_data('gstreamer_plugins_gpl_libs')
+        + _safe_collect_data('gstreamer_plugins_gpl_restricted_libs'),
     hiddenimports=[],
     hookspath=[],
     hooksconfig={

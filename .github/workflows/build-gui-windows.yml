@@ -132,15 +132,28 @@ jobs:
             fi
           done
           echo ""
-          echo "=== Plugin and typelib dirs ==="
-          for dir in "gst_plugins" "gi_typelibs" "gstreamer_libs/lib/gstreamer-1.0" "gstreamer_libs/lib/girepository-1.0"; do
+          echo "=== Plugin dirs (count DLLs) ==="
+          for dir in "gst_plugins" "gstreamer_libs/lib/gstreamer-1.0" "gstreamer_plugins_libs/lib/gstreamer-1.0" "gstreamer_plugins_restricted_libs/lib/gstreamer-1.0" "gstreamer_plugins_gpl_libs/lib/gstreamer-1.0" "gstreamer_plugins_gpl_restricted_libs/lib/gstreamer-1.0"; do
             path="src/dist/V3XCTRL/_internal/$dir"
             if [ -d "$path" ]; then
-              echo "  EXISTS: $path"
+              echo "  EXISTS ($( ls "$path"/*.dll 2>/dev/null | wc -l) DLLs): $path"
             else
               echo "  ABSENT: $path"
             fi
           done
+          echo ""
+          echo "=== Required plugin presence ==="
+          for plugin in gstudp.dll gstrtpmanager.dll gstvideoparsers.dll gstlibav.dll gstvideoconvertscale.dll gstapp.dll; do
+            hit=$(find src/dist/V3XCTRL/_internal -name "$plugin" 2>/dev/null | head -1)
+            if [ -n "$hit" ]; then
+              echo "  FOUND: $hit"
+            else
+              echo "  MISSING: $plugin"
+            fi
+          done
+          echo ""
+          echo "=== Typelib dir ==="
+          find src/dist/V3XCTRL/_internal -name "gi_typelibs" -o -name "girepository-1.0" 2>/dev/null | head -5
 
       - name: Create release package
         shell: bash

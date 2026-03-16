@@ -80,6 +80,8 @@ def _do_gstreamer_check() -> bool:
             os.path.join(bundle_dir, "gstreamer_libs", "lib", "gstreamer-1.0"),
             os.path.join(bundle_dir, "gstreamer_plugins_libs", "lib", "gstreamer-1.0"),
             os.path.join(bundle_dir, "gstreamer_plugins_restricted_libs", "lib", "gstreamer-1.0"),
+            os.path.join(bundle_dir, "gstreamer_plugins_gpl_libs", "lib", "gstreamer-1.0"),
+            os.path.join(bundle_dir, "gstreamer_plugins_gpl_restricted_libs", "lib", "gstreamer-1.0"),
             os.path.join(bundle_dir, "gst_plugins"),
             os.path.join(bundle_dir, "gstreamer", "lib", "gstreamer-1.0"),
             os.path.join(bundle_dir, "gstreamer-1.0"),
