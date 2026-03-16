@@ -38,20 +38,6 @@ jobs:
         run: echo "PY=${{ steps.setup-python.outputs.python-path }}" >> $GITHUB_ENV
         shell: bash
 
-      - name: Install third party dependencies via MSYS2
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          update: true
-          install: >-
-            mingw-w64-x86_64-cairo
-            mingw-w64-x86_64-pkg-config
-          cache: true
-
-      - name: Add MSYS2 to PATH
-        run: |
-          echo "${{ runner.temp }}\msys64\mingw64\bin" >> $env:GITHUB_PATH
-
       - name: Install Python dependencies
         shell: bash
         run: |
@@ -71,7 +57,6 @@ jobs:
       - name: Verify installations
         shell: bash
         run: |
-          "$PY" -c "import cairocffi; print('cairocffi version:', cairocffi.version)"
           "$PY" -c "import PyInstaller; print('PyInstaller imported successfully')"
           "$PY" -c "import material_icons; print(material_icons.__path__)"
           "$PY" -c "
@@ -126,7 +111,7 @@ jobs:
           find src/dist/V3XCTRL -path "*/gi/__init__*" -type f 2>/dev/null | head -5
           echo ""
           echo "=== Core GLib/GObject DLLs (required by _gi.pyd) ==="
-          for dll in libglib-2.0-0.dll libgobject-2.0-0.dll libgstreamer-1.0-0.dll; do
+          for dll in glib-2.0-0.dll gobject-2.0-0.dll gstreamer-1.0-0.dll; do
             result=$(find src/dist/V3XCTRL -name "$dll" -type f 2>/dev/null)
             if [ -n "$result" ]; then
               echo "  FOUND: $result"
@@ -134,6 +119,9 @@ jobs:
               echo "  MISSING: $dll"
             fi
           done
+          echo ""
+          echo "=== Checking for MSYS2 lib-prefixed DLLs (should be absent) ==="
+          find src/dist/V3XCTRL -name "libglib*" -o -name "libgobject*" -o -name "libgstreamer*" 2>/dev/null | head -10
           echo ""
           echo "=== GStreamer plugin files ==="
           find src/dist/V3XCTRL -name "libgst*" -type f 2>/dev/null | head -20
