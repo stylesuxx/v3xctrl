@@ -1,7 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Read(//y/V3XCTRL-Project/Windows/v3xctrl-viewer-windows-544ed80/_internal/gstreamer_plugins/lib/gstreamer-1.0/**)"
-    ]
-  }
-}
