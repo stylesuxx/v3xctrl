@@ -20,7 +20,7 @@ from v3xctrl_ui.osd.widgets.WidgetFactory import (
 )
 from v3xctrl_ui.osd.widgets.WidgetGroup import WidgetGroup
 from v3xctrl_ui.osd.widgets.WidgetGroupRenderer import render_widget_group
-from v3xctrl_ui.utils.colors import GREEN, ORANGE, RED, WHITE
+from v3xctrl_ui.utils.colors import ORANGE, RED, WHITE
 from v3xctrl_ui.utils.helpers import get_fps
 
 logger = logging.getLogger(__name__)
@@ -253,8 +253,9 @@ class OSD:
             if widget_name in self.widgets_battery:
                 self.widgets_battery[widget_name].set_text_color(color)
 
-        fix_color = GREEN if data.gps_fix else RED
-        self.widgets_gps["gps_fix"].set_text_color(fix_color)
+        loc = values.get("loc", {})
+        self.widgets_gps["gps_speed"].set_value(int(loc.get("spd", 0)))
+        self.widgets_gps["gps_satellites"].set_value(loc.get("sat", 0))
 
         logger.debug(f"Received telemetry message: {message.get_values()}")
 
@@ -297,8 +298,8 @@ class OSD:
     def _get_gps_value(self, name: str):
         gps = self.telemetry_context.get_gps()
         mapping = {
-            "gps_fix": "GPS FIX" if gps.fix else "NO FIX",
-            "gps_speed": gps.speed,
-            "gps_satellites": gps.satellites,
+            "gps_fix": "success" if gps.fix else "fail",
+            "gps_speed": "default",
+            "gps_satellites": "default",
         }
         return mapping.get(name)
