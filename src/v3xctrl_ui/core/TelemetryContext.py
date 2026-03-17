@@ -4,6 +4,7 @@ from threading import Lock
 
 from v3xctrl_ui.core.dataclasses import (
     BatteryData,
+    GpsData,
     GstFlags,
     ServiceFlags,
     SignalData,
@@ -28,6 +29,7 @@ class TelemetryContext:
         self._videocore = VideoCoreFlags()
         self._battery = BatteryData()
         self._signal = SignalData()
+        self._gps = GpsData()
 
     def update_services(self, byte_value: int) -> None:
         """Update service flags from telemetry byte."""
@@ -58,6 +60,11 @@ class TelemetryContext:
         """Update signal cell."""
         with self._lock:
             self._signal.cell = cell
+
+    def update_gps(self, fix: bool, speed: str, satellites: str) -> None:
+        """Update GPS data."""
+        with self._lock:
+            self._gps = GpsData(fix=fix, speed=speed, satellites=satellites)
 
     def update_battery(
         self, icon: int, voltage: str, average_voltage: str, percent: str, current: str, warning: bool
@@ -108,6 +115,11 @@ class TelemetryContext:
         with self._lock:
             return SignalData(quality=self._signal.quality.copy(), band=self._signal.band, cell=self._signal.cell)
 
+    def get_gps(self) -> GpsData:
+        """Get current GPS data (thread-safe)."""
+        with self._lock:
+            return GpsData(fix=self._gps.fix, speed=self._gps.speed, satellites=self._gps.satellites)
+
     def get_battery(self) -> BatteryData:
         """Get current battery data (thread-safe)."""
         with self._lock:
@@ -128,3 +140,4 @@ class TelemetryContext:
             self._videocore = VideoCoreFlags()
             self._battery = BatteryData()
             self._signal = SignalData()
+            self._gps = GpsData()

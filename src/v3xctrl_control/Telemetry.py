@@ -190,6 +190,7 @@ class Telemetry(threading.Thread):
                 with self._lock:
                     self.payload.loc.lat = state.lat
                     self.payload.loc.lng = state.lng
+                    self.payload.loc.fix = state.fix
                     self.payload.loc.spd = state.speed
                     self.payload.loc.sat = state.sats
             except Exception as e:

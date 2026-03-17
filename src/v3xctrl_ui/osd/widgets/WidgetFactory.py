@@ -99,3 +99,17 @@ def create_clock_widget() -> dict[str, Widget]:
     clock_widget = ClockWidget(position)
 
     return {"clock": clock_widget}
+
+
+def create_gps_widgets() -> dict[str, Widget]:
+    position = (0, 0)
+
+    gps_fix_widget = TextWidget(position, 70)
+    gps_speed_widget = TextWidget(position, 70)
+    gps_satellites_widget = TextWidget(position, 70)
+
+    return {
+        "gps_fix": gps_fix_widget,
+        "gps_speed": gps_speed_widget,
+        "gps_satellites": gps_satellites_widget,
+    }

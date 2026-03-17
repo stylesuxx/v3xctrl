@@ -127,6 +127,7 @@ class LocationInfo:
 
     lat: float = 0.0
     lng: float = 0.0
+    fix: bool = False
     spd: float = 0.0  # km/h
     sat: int = 0
 

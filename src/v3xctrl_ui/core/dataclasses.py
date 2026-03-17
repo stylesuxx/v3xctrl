@@ -64,3 +64,12 @@ class SignalData:
     quality: dict[str, int] = field(default_factory=lambda: {"rsrq": -1, "rsrp": -1})
     band: str = "BAND ?"
     cell: str = "CELL ?"
+
+
+@dataclass
+class GpsData:
+    """GPS telemetry data."""
+
+    fix: bool = False
+    speed: str = "0.0 km/h"
+    satellites: str = "0 SAT"
