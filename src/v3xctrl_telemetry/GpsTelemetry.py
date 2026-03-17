@@ -2,14 +2,7 @@ from dataclasses import dataclass
 import logging
 import time
 import serial
-from pyubx2 import UBXMessage, UBXReader, SET
-
-
-# UBX-CFG-VALSET key IDs for M10 UART1 configuration
-_CFG_UART1_BAUDRATE = "CFG_UART1_BAUDRATE"
-_CFG_UART1OUTPROT_UBX = "CFG_UART1OUTPROT_UBX"
-_CFG_UART1OUTPROT_NMEA = "CFG_UART1OUTPROT_NMEA"
-_CFG_MSGOUT_UBX_NAV_PVT_UART1 = "CFG_MSGOUT_UBX_NAV_PVT_UART1"
+from pyubx2 import SET_LAYER_RAM, TXN_NONE, UBXMessage, UBXReader
 
 _INITIAL_BAUDRATE = 9600
 _CONFIG_DELAY = 0.1
@@ -52,18 +45,15 @@ class GpsTelemetry:
     def _configure_module(self) -> serial.Serial:
         port = serial.Serial(self._path, _INITIAL_BAUDRATE, timeout=1.0)
         try:
-            cfg = UBXMessage(
-                "CFG",
-                "CFG-VALSET",
-                SET,
-                transaction=0,
-                layers=1,
-                **{
-                    _CFG_UART1_BAUDRATE: self._baudrate,
-                    _CFG_UART1OUTPROT_UBX: 1,
-                    _CFG_UART1OUTPROT_NMEA: 0,
-                    _CFG_MSGOUT_UBX_NAV_PVT_UART1: 1,
-                }
+            cfg = UBXMessage.config_set(
+                SET_LAYER_RAM,
+                TXN_NONE,
+                [
+                    ("CFG_UART1_BAUDRATE", self._baudrate),
+                    ("CFG_UART1OUTPROT_UBX", 1),
+                    ("CFG_UART1OUTPROT_NMEA", 0),
+                    ("CFG_MSGOUT_UBX_NAV_PVT_UART1", 1),
+                ],
             )
             port.write(cfg.serialize())
             time.sleep(_CONFIG_DELAY)
