@@ -5,7 +5,7 @@ import serial
 from pyubx2 import SET_LAYER_RAM, TXN_NONE, UBXMessage, UBXReader
 
 _INITIAL_BAUDRATE = 9600
-_CONFIG_DELAY = 0.1
+_CONFIG_DELAY = 0.5
 
 
 @dataclass
@@ -57,9 +57,11 @@ class GpsTelemetry:
                     ("CFG_UART1OUTPROT_UBX", 1),
                     ("CFG_UART1OUTPROT_NMEA", 0),
                     ("CFG_MSGOUT_UBX_NAV_PVT_UART1", 1),
+                    ("CFG_RATE_MEAS", 1000),
                 ],
             )
             port.write(cfg.serialize())
+            port.flush()
             time.sleep(_CONFIG_DELAY)
         finally:
             port.close()
