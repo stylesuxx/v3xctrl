@@ -4,6 +4,6 @@ gps = GpsTelemetry()
 
 print("Waiting for NAV-PVT messages... (Ctrl-C to stop)")
 while True:
-    gps.update()
-    state = gps.get_state()
-    print(state)
+    if gps.update():
+        state = gps.get_state()
+        print(state)

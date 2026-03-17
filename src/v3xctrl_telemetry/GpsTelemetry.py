@@ -25,7 +25,8 @@ class GpsTelemetry:
         self._serial = self._configure_module()
         self._reader = UBXReader(self._serial)
 
-    def update(self) -> None:
+    def update(self) -> bool:
+        updated = False
         while self._serial.in_waiting:
             _, msg = self._reader.read()
             if msg is None:
@@ -39,6 +40,8 @@ class GpsTelemetry:
                     self._state.fix = True
                 else:
                     self._state.fix = False
+                updated = True
+        return updated
 
     def get_state(self) -> GpsState:
         return self._state
