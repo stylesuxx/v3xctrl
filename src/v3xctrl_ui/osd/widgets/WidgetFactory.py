@@ -104,9 +104,9 @@ def create_clock_widget() -> dict[str, Widget]:
 def create_gps_widgets() -> dict[str, Widget]:
     position = (0, 0)
 
-    gps_fix_widget = StatusValueWidget(position, 26, "FIX")
-    gps_speed_widget = StatusValueWidget(position, 26, "KM/H")
-    gps_satellites_widget = StatusValueWidget(position, 26, "SAT")
+    gps_fix_widget = TextWidget(position, 70)
+    gps_speed_widget = TextWidget(position, 90)
+    gps_satellites_widget = TextWidget(position, 70)
 
     return {
         "gps_fix": gps_fix_widget,
