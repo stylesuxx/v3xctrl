@@ -255,7 +255,6 @@ class OSD:
 
         fix_color = GREEN if data.gps_fix else RED
         self.widgets_gps["gps_fix"].set_text_color(fix_color)
-        self.widgets_gps["gps_fix"].set_value("GPS FIX" if data.gps_fix else "NO FIX")
 
         logger.debug(f"Received telemetry message: {message.get_values()}")
 
@@ -298,7 +297,7 @@ class OSD:
     def _get_gps_value(self, name: str):
         gps = self.telemetry_context.get_gps()
         mapping = {
-            "gps_fix": None,  # value set directly in _telemetry_update
+            "gps_fix": "GPS FIX" if gps.fix else "NO FIX",
             "gps_speed": gps.speed,
             "gps_satellites": gps.satellites,
         }
