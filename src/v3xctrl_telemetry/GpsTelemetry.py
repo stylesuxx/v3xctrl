@@ -2,7 +2,7 @@ from dataclasses import dataclass
 import logging
 import time
 import serial
-from pyubx2 import SET_LAYER_RAM, TXN_NONE, UBXMessage, UBXReader
+from pyubx2 import SET_LAYER_FLASH, SET_LAYER_RAM, TXN_NONE, UBXMessage, UBXReader
 
 _INITIAL_BAUDRATE = 9600
 _CONFIG_DELAY = 0.1
@@ -46,7 +46,7 @@ class GpsTelemetry:
         port = serial.Serial(self._path, _INITIAL_BAUDRATE, timeout=1.0)
         try:
             cfg = UBXMessage.config_set(
-                SET_LAYER_RAM,
+                SET_LAYER_RAM | SET_LAYER_FLASH,
                 TXN_NONE,
                 [
                     ("CFG_UART1_BAUDRATE", self._baudrate),
