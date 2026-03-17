@@ -71,5 +71,5 @@ class GpsData:
     """GPS telemetry data."""
 
     fix: bool = False
-    speed: str = "0.0 km/h"
+    speed: str = "0 km/h"
     satellites: str = "0 SAT"

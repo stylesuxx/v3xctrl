@@ -17,7 +17,7 @@ class TelemetryData:
     battery_current: str = "0mA"
     battery_warning: bool = False
     gps_fix: bool = False
-    gps_speed: str = "0.0 km/h"
+    gps_speed: str = "0 km/h"
     gps_satellites: str = "0 SAT"
     recording: bool = False
     service_video: bool = False
@@ -66,7 +66,7 @@ def parse_telemetry(message: Telemetry) -> TelemetryData:
     # GPS
     loc = values.get("loc", {})
     data.gps_fix = bool(loc.get("fix", False))
-    data.gps_speed = f"{loc.get('spd', 0.0):.1f} km/h"
+    data.gps_speed = f"{int(loc.get('spd', 0.0))} km/h"
     data.gps_satellites = f"{loc.get('sat', 0)} SAT"
 
     # GStreamer - bit 0 = recording
