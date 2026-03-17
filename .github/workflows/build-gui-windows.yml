@@ -38,25 +38,40 @@ jobs:
         run: echo "PY=${{ steps.setup-python.outputs.python-path }}" >> $GITHUB_ENV
         shell: bash
 
-      - name: Install third party dependencies via MSYS2
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          update: true
-          install: >-
-            mingw-w64-x86_64-cairo
-            mingw-w64-x86_64-pkg-config
-          cache: true
-
-      - name: Add MSYS2 to PATH
-        run: |
-          echo "${{ runner.temp }}\msys64\mingw64\bin" >> $env:GITHUB_PATH
-
       - name: Install Python dependencies
         shell: bash
         run: |
           "$PY" -m pip install --upgrade pip
-          "$PY" -m pip install -r ./build/requirements/viewer.txt pyinstaller
+          "$PY" -m pip install -r ./build/requirements/viewer.txt pyinstaller pyinstaller-hooks-contrib
+
+      - name: Inspect GStreamer package layout
+        shell: bash
+        run: |
+          cat > "$RUNNER_TEMP/inspect_gst.py" << 'PYEOF'
+          import importlib.util, importlib.metadata, os
+          seen = set()
+          for dists in importlib.metadata.packages_distributions().values():
+              for pkg in dists:
+                  if "gstreamer" not in pkg.lower() or pkg in seen:
+                      continue
+                  seen.add(pkg)
+                  spec = importlib.util.find_spec(pkg)
+                  if spec is None:
+                      print(pkg + ": spec not found")
+                      continue
+                  loc = (spec.submodule_search_locations[0]
+                         if spec.submodule_search_locations
+                         else os.path.dirname(spec.origin or ""))
+                  plugin_dir = os.path.join(loc, "lib", "gstreamer-1.0")
+                  bin_dir = os.path.join(loc, "bin")
+                  plugins = sorted(os.listdir(plugin_dir)) if os.path.isdir(plugin_dir) else []
+                  bins = sorted(f for f in os.listdir(bin_dir) if f.endswith(".dll")) if os.path.isdir(bin_dir) else []
+                  print("--- " + pkg + " ---")
+                  print("  root: " + loc)
+                  print("  plugins (%d): %s" % (len(plugins), plugins))
+                  print("  bin DLLs (%d): %s" % (len(bins), bins[:8]))
+          PYEOF
+          "$PY" "$RUNNER_TEMP/inspect_gst.py"
 
       - name: Generate version file
         shell: bash
@@ -66,21 +81,74 @@ jobs:
       - name: Verify installations
         shell: bash
         run: |
-          "$PY" -c "import cairocffi; print('cairocffi version:', cairocffi.version)"
           "$PY" -c "import PyInstaller; print('PyInstaller imported successfully')"
           "$PY" -c "import material_icons; print(material_icons.__path__)"
+          "$PY" -c "
+          import gi
+          gi.require_version('Gst', '1.0')
+          from gi.repository import Gst
+          Gst.init(None)
+          print('GStreamer version:', Gst.version_string())
+          "
 
       - name: Build executable with PyInstaller
         shell: bash
         run: |
           cd src
+          "$PY" -m PyInstaller --noconfirm ../build/pyinstaller/V3XCTRL.spec
 
-          "$PY" -m PyInstaller --noconfirm --onedir --console \
-            --icon=v3xctrl_ui/assets/images/logo.ico \
-            --add-data "v3xctrl_ui/assets;assets" \
-            --collect-data material_icons \
-            --add-binary "${{ runner.temp }}/msys64/mingw64/bin/*.dll;." \
-            -n V3XCTRL v3xctrl_ui/main.py
+      - name: Verify GStreamer bundle
+        shell: bash
+        run: |
+          echo "=== gi module in bundle ==="
+          find src/dist/V3XCTRL -name "_gi*" -type f 2>/dev/null | head -10
+          echo ""
+          echo "=== DLL directories ==="
+          for dir in "gstreamer_libs/bin" "gstreamer/bin"; do
+            path="src/dist/V3XCTRL/_internal/$dir"
+            if [ -d "$path" ]; then
+              echo "  EXISTS: $path ($(ls "$path"/*.dll 2>/dev/null | wc -l) DLLs)"
+            else
+              echo "  ABSENT: $path"
+            fi
+          done
+          echo ""
+          echo "=== Core DLL locations (check for duplicates) ==="
+          for dll in glib-2.0-0.dll gobject-2.0-0.dll cairo-2.dll gio-2.0-0.dll; do
+            hits=$(find src/dist/V3XCTRL -name "$dll" -type f 2>/dev/null)
+            count=$(echo "$hits" | grep -c . 2>/dev/null || echo 0)
+            if [ -z "$hits" ]; then
+              echo "  MISSING: $dll"
+            elif [ "$count" -gt 1 ]; then
+              echo "  DUPLICATE ($count copies): $dll"
+              echo "$hits" | sed 's/^/    /'
+            else
+              echo "  OK: $hits"
+            fi
+          done
+          echo ""
+          echo "=== Plugin dirs (count DLLs) ==="
+          for dir in "gst_plugins" "gstreamer_libs/lib/gstreamer-1.0" "gstreamer_plugins/lib/gstreamer-1.0" "gstreamer_plugins_libs/bin"; do
+            path="src/dist/V3XCTRL/_internal/$dir"
+            if [ -d "$path" ]; then
+              echo "  EXISTS ($( ls "$path"/*.dll 2>/dev/null | wc -l) DLLs): $path"
+            else
+              echo "  ABSENT: $path"
+            fi
+          done
+          echo ""
+          echo "=== Required plugin presence ==="
+          for plugin in gstudp.dll gstrtpmanager.dll gstvideoparsersbad.dll gstlibav.dll gstvideoconvertscale.dll gstapp.dll; do
+            hit=$(find src/dist/V3XCTRL/_internal -name "$plugin" 2>/dev/null | head -1)
+            if [ -n "$hit" ]; then
+              echo "  FOUND: $hit"
+            else
+              echo "  MISSING: $plugin"
+            fi
+          done
+          echo ""
+          echo "=== Typelib dir ==="
+          find src/dist/V3XCTRL/_internal -name "gi_typelibs" -o -name "girepository-1.0" 2>/dev/null | head -5
 
       - name: Create release package
         shell: bash

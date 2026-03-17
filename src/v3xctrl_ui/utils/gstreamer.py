@@ -1,6 +1,14 @@
 import logging
+import os
+import sys
 
 logger = logging.getLogger(__name__)
+
+# Holds os.add_dll_directory() handles for the process lifetime.
+# On Windows, these keep the GStreamer DLL dirs registered in the OS loader
+# search path so that plugin DLLs can find their dependencies (e.g. gstaudio).
+# Module-level storage guarantees they are never GC'd while the module is live.
+_dll_handles: list = []
 
 # Required GStreamer elements for H264 RTP reception
 _REQUIRED_GST_ELEMENTS = [
@@ -33,6 +41,45 @@ def _check_gstreamer_elements() -> str | None:
 
 
 def _do_gstreamer_check() -> bool:
+    if getattr(sys, "frozen", False):
+        # PyInstaller's built-in gi hook (or gi/__init__.py itself) may set
+        # GST_PLUGIN_PATH to include the bundle root (_MEIPASS), which causes
+        # GStreamer to scan all DLLs there as plugins and corrupts the GLib
+        # type system. Override it here, after all hooks have run, to point
+        # only at the actual plugin directory.
+        bundle_dir = sys._MEIPASS
+        _plugin_dir_candidates = [
+            os.path.join(bundle_dir, "gstreamer_libs", "lib", "gstreamer-1.0"),
+            os.path.join(bundle_dir, "gstreamer_plugins", "lib", "gstreamer-1.0"),
+            os.path.join(bundle_dir, "gst_plugins"),
+            os.path.join(bundle_dir, "gstreamer", "lib", "gstreamer-1.0"),
+            os.path.join(bundle_dir, "gstreamer-1.0"),
+        ]
+        _plugin_dirs = [d for d in _plugin_dir_candidates if os.path.isdir(d) and os.listdir(d)]
+        if _plugin_dirs:
+            os.environ["GST_PLUGIN_PATH"] = os.pathsep.join(_plugin_dirs)
+            os.environ["GST_PLUGIN_SYSTEM_PATH"] = ""
+
+        # GLib uses LoadLibraryExW(..., LOAD_WITH_ALTERED_SEARCH_PATH) to load
+        # plugin DLLs, which searches PATH but NOT os.add_dll_directory() dirs.
+        # Prepend all DLL directories to PATH so plugin dependencies are found.
+        # os.add_dll_directory() is also called for Python's own import machinery
+        # (which uses LOAD_LIBRARY_SEARCH_DEFAULT_DIRS and ignores PATH).
+        # Handles go into the module-level _dll_handles list so they are never GC'd.
+        _dll_dir_candidates = [
+            bundle_dir,
+            os.path.join(bundle_dir, "gstreamer_libs", "bin"),
+            os.path.join(bundle_dir, "gstreamer", "bin"),
+            os.path.join(bundle_dir, "gstreamer_plugins_libs", "bin"),
+        ]
+        _existing_dirs = set(os.environ.get("PATH", "").split(os.pathsep))
+        _new_dirs = [d for d in _dll_dir_candidates if os.path.isdir(d) and d not in _existing_dirs]
+        if _new_dirs:
+            os.environ["PATH"] = os.pathsep.join(_new_dirs) + os.pathsep + os.environ.get("PATH", "")
+        if hasattr(os, "add_dll_directory"):
+            for _d in _dll_dir_candidates:
+                if os.path.isdir(_d):
+                    _dll_handles.append(os.add_dll_directory(_d))
     try:
         import gi
 
