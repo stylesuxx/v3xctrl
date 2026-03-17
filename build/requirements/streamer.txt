@@ -8,3 +8,4 @@ atlib==0.5.2
 rpi-servo-pwm==1.0.1
 smbus3==0.5.5
 PyGObject==3.42.2
+pyubx2
