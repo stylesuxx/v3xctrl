@@ -20,6 +20,8 @@ class GpsState:
     lat: float = 0.0
     lng: float = 0.0
     fix: bool = False
+    speed: float = 0.0  # km/h
+    sats: int = 0
 
 
 class GpsTelemetry:
@@ -34,10 +36,15 @@ class GpsTelemetry:
         _, msg = self._reader.read()
         if msg is None:
             return
-        if msg.identity == "NAV-PVT" and msg.fixType >= 2:
-            self._state.lat = msg.lat
-            self._state.lng = msg.lon
-            self._state.fix = True
+        if msg.identity == "NAV-PVT":
+            self._state.sats = msg.numSV
+            if msg.fixType >= 2:
+                self._state.lat = msg.lat
+                self._state.lng = msg.lon
+                self._state.speed = msg.gSpeed * 3.6 / 1000.0
+                self._state.fix = True
+            else:
+                self._state.fix = False
 
     def get_state(self) -> GpsState:
         return self._state

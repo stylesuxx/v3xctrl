@@ -73,6 +73,7 @@ class Telemetry(threading.Thread):
             "GPS",
             lambda: GpsTelemetry(gps_path, gps_baudrate)
         )
+        logger.debug("GPS telemetry %s", "available on " + gps_path if self._gps else "not available")
         self._services = self._init_component("service", ServiceTelemetry)
         self._videocore = self._init_component("VideoCore", VideoCoreTelemetry)
         self._gst = self._init_component("GST", GstTelemetry)
@@ -189,8 +190,10 @@ class Telemetry(threading.Thread):
                 with self._lock:
                     self.payload.loc.lat = state.lat
                     self.payload.loc.lng = state.lng
+                    self.payload.loc.spd = state.speed
+                    self.payload.loc.sat = state.sats
             except Exception as e:
-                logging.debug("Failed to update GPS telemetry: %s", e)
+                logger.debug("Failed to update GPS telemetry: %s", e)
 
     def _update_battery(self) -> None:
         if self._battery:
