@@ -1,6 +1,9 @@
+import logging
 import time
 
 from v3xctrl_telemetry.GpsTelemetry import GpsTelemetry
+
+logging.basicConfig(level=logging.DEBUG, format="%(levelname)s %(message)s")
 
 gps = GpsTelemetry()
 

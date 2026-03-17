@@ -19,9 +19,8 @@ class GpsState:
 
 
 class GpsTelemetry:
-    def __init__(self, path: str = "/dev/serial0", baudrate: int = 115200) -> None:
+    def __init__(self, path: str = "/dev/serial0") -> None:
         self._path = path
-        self._baudrate = baudrate
         self._state = GpsState()
         self._serial = self._configure_module()
         self._reader = UBXReader(self._serial)
@@ -55,7 +54,6 @@ class GpsTelemetry:
                 SET_LAYER_RAM,
                 TXN_NONE,
                 [
-                    ("CFG_UART1_BAUDRATE", self._baudrate),
                     ("CFG_UART1OUTPROT_UBX", 1),
                     ("CFG_UART1OUTPROT_NMEA", 0),
                     ("CFG_MSGOUT_UBX_NAV_PVT_UART1", 1),
@@ -64,9 +62,20 @@ class GpsTelemetry:
             )
             port.write(cfg.serialize())
             port.flush()
-            time.sleep(_CONFIG_DELAY)
-        finally:
-            port.close()
 
-        logging.info("GPS configured at %d baud on %s", self._baudrate, self._path)
-        return serial.Serial(self._path, self._baudrate, timeout=1.0)
+            reader = UBXReader(port)
+            for _ in range(10):
+                _, msg = reader.read()
+                if msg is None:
+                    continue
+                if msg.identity == "ACK-ACK":
+                    logging.info("GPS configured successfully on %s", self._path)
+                    return port
+                if msg.identity == "ACK-NAK":
+                    logging.warning("GPS configuration rejected (ACK-NAK) on %s", self._path)
+                    return port
+        except Exception as e:
+            logging.warning("GPS configuration error: %s", e)
+
+        logging.warning("GPS configuration: no ACK received on %s", self._path)
+        return port
