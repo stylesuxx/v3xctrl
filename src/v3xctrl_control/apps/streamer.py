@@ -281,7 +281,7 @@ def command_handler(command: Command, address: Address) -> None:
                 steering_trim -= step
 
             steering_center = calculate_steering_center()
-            subprocess.Popen(["sudo", "v3xctrl-settings", "set", ".controls.steering.trim", str(steering_trim)])
+            subprocess.Popen(["sudo", "v3xctrl-settings", "set", ".control.steering.trim", str(steering_trim)])
 
         case "shutdown":
             subprocess.Popen(["sudo", "poweroff"])
