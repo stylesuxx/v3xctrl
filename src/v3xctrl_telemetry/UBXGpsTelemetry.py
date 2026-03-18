@@ -2,8 +2,16 @@ import logging
 import time
 
 import serial
-from pyubx2 import ERR_IGNORE, POLL_LAYER_RAM, SET_LAYER_BBR, SET_LAYER_FLASH, SET_LAYER_RAM, TXN_NONE
-from pyubx2 import UBXMessage, UBXReader
+from pyubx2 import (
+    ERR_IGNORE,
+    POLL_LAYER_RAM,
+    SET_LAYER_BBR,
+    SET_LAYER_FLASH,
+    SET_LAYER_RAM,
+    TXN_NONE,
+    UBXMessage,
+    UBXReader,
+)
 
 from v3xctrl_telemetry.GpsTelemetry import GpsTelemetry
 
@@ -34,6 +42,8 @@ class UBXGpsTelemetry(GpsTelemetry):
             _, msg = self._reader.read()
             if msg is None:
                 continue
+            if msg.identity.startswith("INF-"):
+                logging.warning("GPS: module message: %s", getattr(msg, "msgContent", msg.identity))
             if msg.identity == "NAV-PVT":
                 self._state.sats = msg.numSV
                 self._state.fix_type = msg.fixType
