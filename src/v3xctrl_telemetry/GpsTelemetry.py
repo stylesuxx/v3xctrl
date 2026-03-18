@@ -1,11 +1,13 @@
 from dataclasses import dataclass
 import logging
+import time
 import serial
 from pyubx2 import POLL_LAYER_RAM, SET_LAYER_FLASH, TXN_NONE, UBXMessage, UBXReader
 
 _POLL_BAUDRATES = (9600, 115200)
-_ACK_READ_ATTEMPTS = 10
-_SERIAL_TIMEOUT = 0.1
+_PROBE_TIMEOUT_S = 2.0  # seconds per baudrate to wait for CFG-VALGET response
+_ACK_READ_ATTEMPTS = 10  # attempts to read ACK after flash write
+_SERIAL_TIMEOUT = 0.1   # per-read timeout; small so the probe loop stays responsive
 
 _DESIRED_CONFIG: dict[str, int] = {
     "CFG_UART1OUTPROT_UBX": 1,
@@ -64,7 +66,8 @@ class GpsTelemetry:
             port.flush()
 
             reader = UBXReader(port)
-            for _ in range(_ACK_READ_ATTEMPTS):
+            deadline = time.monotonic() + _PROBE_TIMEOUT_S
+            while time.monotonic() < deadline:
                 _, msg = reader.read()
                 if msg is None:
                     continue
