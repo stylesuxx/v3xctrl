@@ -2,12 +2,13 @@ from dataclasses import dataclass
 import logging
 import time
 import serial
-from pyubx2 import POLL_LAYER_RAM, SET_LAYER_FLASH, TXN_NONE, UBXMessage, UBXReader
+from pyubx2 import ERR_IGNORE, POLL_LAYER_RAM, SET_LAYER_FLASH, TXN_NONE, UBXMessage, UBXReader
 
-_POLL_BAUDRATES = (9600, 115200)
-_PROBE_TIMEOUT_S = 2.0  # seconds per baudrate to wait for CFG-VALGET response
-_ACK_READ_ATTEMPTS = 10  # attempts to read ACK after flash write
-_SERIAL_TIMEOUT = 0.1   # per-read timeout; small so the probe loop stays responsive
+_POLL_BAUDRATES = (115200, 9600)
+_BAUD_DETECT_TIMEOUT_S = 0.5   # per baud: raw read to detect \xb5\x62 sync
+_CONFIG_POLL_TIMEOUT_S = 2.0   # wait for CFG-VALGET after poll
+_ACK_READ_ATTEMPTS = 10        # attempts to read ACK after flash write
+_SERIAL_TIMEOUT = 0.1          # per-read timeout for steady-state update()
 
 _DESIRED_CONFIG: dict[str, int] = {
     "CFG_UART1OUTPROT_UBX": 1,
@@ -56,28 +57,41 @@ class GpsTelemetry:
     def get_state(self) -> GpsState:
         return self._state
 
-    def _open_and_poll(self, baudrate: int) -> tuple[serial.Serial, object] | None:
-        logging.debug("GPS: probing config at %d baud on %s", baudrate, self._path)
-        port = serial.Serial(self._path, baudrate, timeout=_SERIAL_TIMEOUT)
+    def _open_at_baud(self, baudrate: int) -> serial.Serial | None:
+        """Open port and confirm UBX data is present at this baud rate via raw byte check."""
+        logging.debug("GPS: detecting baud at %d on %s", baudrate, self._path)
+        port = serial.Serial(self._path, baudrate, timeout=_BAUD_DETECT_TIMEOUT_S)
+        try:
+            port.reset_input_buffer()
+            raw = port.read(256)
+            if b"\xb5\x62" in raw:
+                logging.debug("GPS: UBX sync found at %d baud", baudrate)
+                return port
+            logging.debug("GPS: no UBX sync at %d baud", baudrate)
+        except Exception as e:
+            logging.debug("GPS: error detecting baud at %d: %s", baudrate, e)
+        port.close()
+        return None
+
+    def _poll_config(self, port: serial.Serial, baudrate: int) -> object | None:
+        """Send CFG-VALGET poll and return the response, or None if not received."""
         try:
             port.reset_input_buffer()
             poll = UBXMessage.config_poll(POLL_LAYER_RAM, 0, list(_DESIRED_CONFIG.keys()))
             port.write(poll.serialize())
             port.flush()
-
-            reader = UBXReader(port)
-            deadline = time.monotonic() + _PROBE_TIMEOUT_S
+            reader = UBXReader(port, quitonerror=ERR_IGNORE)
+            deadline = time.monotonic() + _CONFIG_POLL_TIMEOUT_S
             while time.monotonic() < deadline:
                 _, msg = reader.read()
                 if msg is None:
                     continue
                 if msg.identity == "CFG-VALGET":
                     logging.debug("GPS: received CFG-VALGET at %d baud", baudrate)
-                    return port, msg
+                    return msg
+                logging.debug("GPS: ignoring %s during config poll", msg.identity)
         except Exception as e:
-            logging.debug("GPS: no response at %d baud: %s", baudrate, e)
-
-        port.close()
+            logging.debug("GPS: config poll error at %d baud: %s", baudrate, e)
         return None
 
     def _needs_update(self, msg: object) -> dict[str, tuple]:
@@ -114,20 +128,23 @@ class GpsTelemetry:
 
     def _configure_module(self) -> serial.Serial:
         for baudrate in _POLL_BAUDRATES:
-            result = self._open_and_poll(baudrate)
-            if result is None:
+            port = self._open_at_baud(baudrate)
+            if port is None:
                 continue
 
-            port, valget_msg = result
-            mismatches = self._needs_update(valget_msg)
+            valget_msg = self._poll_config(port, baudrate)
+            if valget_msg is None:
+                logging.warning("GPS: baud detected at %d but no CFG-VALGET, using without config write", baudrate)
+                return port
 
+            mismatches = self._needs_update(valget_msg)
             if not mismatches:
-                logging.info("GPS: flash config verified, no write needed (baud=%d)", baudrate)
+                logging.info("GPS: config verified, no write needed (baud=%d)", baudrate)
                 return port
 
             logging.info("GPS: config mismatch %s, writing to flash", list(mismatches.keys()))
             self._write_flash_config(port)
             return port
 
-        logging.warning("GPS: config verification failed on %s, opening at 9600 without write", self._path)
-        return serial.Serial(self._path, _POLL_BAUDRATES[0], timeout=_SERIAL_TIMEOUT)
+        logging.warning("GPS: no UBX data on %s, opening at 9600 without config write", self._path)
+        return serial.Serial(self._path, _POLL_BAUDRATES[-1], timeout=_SERIAL_TIMEOUT)
