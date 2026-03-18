@@ -1,11 +1,11 @@
 import logging
 import time
 
-from v3xctrl_telemetry.GpsTelemetry import GpsTelemetry
+from v3xctrl_telemetry.UBXGpsTelemetry import UBXGpsTelemetry
 
 logging.basicConfig(level=logging.DEBUG, format="%(levelname)s %(message)s")
 
-gps = GpsTelemetry()
+gps = UBXGpsTelemetry()
 
 print("Waiting for NAV-PVT messages... (Ctrl-C to stop)")
 last_time = None

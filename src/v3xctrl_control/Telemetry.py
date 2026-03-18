@@ -19,6 +19,7 @@ from v3xctrl_telemetry.BatteryTelemetry import BatteryTelemetry
 from v3xctrl_telemetry.GpsTelemetry import GpsTelemetry
 from v3xctrl_telemetry.GstTelemetry import GstTelemetry
 from v3xctrl_telemetry.ServiceTelemetry import ServiceTelemetry
+from v3xctrl_telemetry.UBXGpsTelemetry import UBXGpsTelemetry
 from v3xctrl_telemetry.VideoCoreTelemetry import VideoCoreTelemetry
 
 T = TypeVar("T")
@@ -57,8 +58,8 @@ class Telemetry(threading.Thread):
         self._sim_recheck_counter = 0
         self._init_modem()
 
-        self._gps_path = gps_path
-        self._gps: GpsTelemetry | None = None
+        self._gps: GpsTelemetry | None = self._init_component("GPS", lambda: UBXGpsTelemetry(gps_path))
+        logger.debug("GPS telemetry %s", "available on " + gps_path if self._gps else "not available")
 
         self._battery = self._init_component(
             "Battery",
@@ -81,8 +82,6 @@ class Telemetry(threading.Thread):
 
     def run(self) -> None:
         self._running.set()
-        self._gps = self._init_component("GPS", lambda: GpsTelemetry(self._gps_path))
-        logger.debug("GPS telemetry %s", "available on " + self._gps_path if self._gps else "not available")
         while self._running.is_set():
             if self._modem_available():
                 self._update_signal()
