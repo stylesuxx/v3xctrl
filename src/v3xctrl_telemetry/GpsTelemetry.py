@@ -57,6 +57,7 @@ class GpsTelemetry:
         logging.debug("GPS: probing config at %d baud on %s", baudrate, self._path)
         port = serial.Serial(self._path, baudrate, timeout=1.0)
         try:
+            port.reset_input_buffer()
             poll = UBXMessage.config_poll(POLL_LAYER_RAM, 0, list(_DESIRED_CONFIG.keys()))
             port.write(poll.serialize())
             port.flush()
@@ -71,8 +72,8 @@ class GpsTelemetry:
                     return port, msg
         except Exception as e:
             logging.debug("GPS: no response at %d baud: %s", baudrate, e)
-            port.close()
 
+        port.close()
         return None
 
     def _needs_update(self, msg: object) -> dict[str, tuple]:
