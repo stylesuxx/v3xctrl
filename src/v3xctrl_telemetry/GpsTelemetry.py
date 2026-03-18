@@ -2,10 +2,11 @@ from dataclasses import dataclass
 import logging
 import time
 import serial
-from pyubx2 import ERR_IGNORE, POLL_LAYER_RAM, SET_LAYER_FLASH, TXN_NONE, UBXMessage, UBXReader
+from pyubx2 import ERR_IGNORE, POLL_LAYER_RAM, SET_LAYER_BBR, SET_LAYER_FLASH, SET_LAYER_RAM, TXN_NONE
+from pyubx2 import UBXMessage, UBXReader
 
 _POLL_BAUDRATES = (115200, 9600)
-_BAUD_DETECT_TIMEOUT_S = 0.5   # per baud: raw read to detect \xb5\x62 sync
+_BAUD_DETECT_TIMEOUT_S = 1.5   # per baud: raw read to detect \xb5\x62 sync; must exceed 1Hz message period
 _CONFIG_POLL_TIMEOUT_S = 2.0   # wait for CFG-VALGET after poll
 _ACK_READ_ATTEMPTS = 10        # attempts to read ACK after flash write
 _SERIAL_TIMEOUT = 0.1          # per-read timeout for steady-state update()
@@ -106,8 +107,9 @@ class GpsTelemetry:
                 mismatches[key] = (None, desired)
         return mismatches
 
-    def _write_flash_config(self, port: serial.Serial) -> bool:
-        cfg = UBXMessage.config_set(SET_LAYER_FLASH, TXN_NONE, list(_DESIRED_CONFIG.items()))
+    def _write_config(self, port: serial.Serial) -> bool:
+        layers = SET_LAYER_RAM | SET_LAYER_BBR | SET_LAYER_FLASH
+        cfg = UBXMessage.config_set(layers, TXN_NONE, list(_DESIRED_CONFIG.items()))
         port.write(cfg.serialize())
         port.flush()
 
@@ -117,13 +119,13 @@ class GpsTelemetry:
             if msg is None:
                 continue
             if msg.identity == "ACK-ACK":
-                logging.info("GPS: flash config written successfully on %s", self._path)
+                logging.info("GPS: config written successfully on %s", self._path)
                 return True
             if msg.identity == "ACK-NAK":
-                logging.warning("GPS: flash write rejected (ACK-NAK) on %s", self._path)
+                logging.warning("GPS: config write rejected (ACK-NAK) on %s", self._path)
                 return False
 
-        logging.warning("GPS: flash write no ACK received on %s", self._path)
+        logging.warning("GPS: config write no ACK received on %s", self._path)
         return False
 
     def _configure_module(self) -> serial.Serial:
@@ -143,7 +145,7 @@ class GpsTelemetry:
                 return port
 
             logging.info("GPS: config mismatch %s, writing to flash", list(mismatches.keys()))
-            self._write_flash_config(port)
+            self._write_config(port)
             return port
 
         logging.warning("GPS: no UBX data on %s, opening at 9600 without config write", self._path)
