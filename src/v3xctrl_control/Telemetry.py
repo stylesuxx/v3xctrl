@@ -81,9 +81,8 @@ class Telemetry(threading.Thread):
 
     def run(self) -> None:
         self._running.set()
-        if self._gps_path is not None:
-            self._gps = self._init_component("GPS", lambda: GpsTelemetry(self._gps_path))
-        logger.debug("GPS telemetry %s", "available on " + str(self._gps_path) if self._gps else "not available")
+        self._gps = self._init_component("GPS", lambda: GpsTelemetry(self._gps_path))
+        logger.debug("GPS telemetry %s", "available on " + self._gps_path if self._gps else "not available")
         while self._running.is_set():
             if self._modem_available():
                 self._update_signal()
