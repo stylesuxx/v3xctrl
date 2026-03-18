@@ -57,6 +57,9 @@ class Telemetry(threading.Thread):
         self._sim_recheck_counter = 0
         self._init_modem()
 
+        self._gps_path = gps_path
+        self._gps: GpsTelemetry | None = None
+
         self._battery = self._init_component(
             "Battery",
             lambda: BatteryTelemetry(
@@ -68,11 +71,6 @@ class Telemetry(threading.Thread):
                 max_expected_current_A=battery_max_current,
             ),
         )
-        self._gps = self._init_component(
-            "GPS",
-            lambda: GpsTelemetry(gps_path)
-        )
-        logger.debug("GPS telemetry %s", "available on " + gps_path if self._gps else "not available")
         self._services = self._init_component("service", ServiceTelemetry)
         self._videocore = self._init_component("VideoCore", VideoCoreTelemetry)
         self._gst = self._init_component("GST", GstTelemetry)
@@ -83,6 +81,9 @@ class Telemetry(threading.Thread):
 
     def run(self) -> None:
         self._running.set()
+        if self._gps_path is not None:
+            self._gps = self._init_component("GPS", lambda: GpsTelemetry(self._gps_path))
+        logger.debug("GPS telemetry %s", "available on " + str(self._gps_path) if self._gps else "not available")
         while self._running.is_set():
             if self._modem_available():
                 self._update_signal()
@@ -187,11 +188,13 @@ class Telemetry(threading.Thread):
                 self._gps.update()
                 state = self._gps.get_state()
                 with self._lock:
+                    self.payload.loc.available = True
                     self.payload.loc.lat = state.lat
                     self.payload.loc.lng = state.lng
                     self.payload.loc.fix = state.fix
-                    self.payload.loc.spd = state.speed
-                    self.payload.loc.sat = state.sats
+                    self.payload.loc.fix_type = state.fix_type
+                    self.payload.loc.speed = state.speed
+                    self.payload.loc.satellites = state.sats
             except Exception as e:
                 logger.debug("Failed to update GPS telemetry: %s", e)
 

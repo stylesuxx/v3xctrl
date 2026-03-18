@@ -4,7 +4,8 @@ import serial
 from pyubx2 import POLL_LAYER_RAM, SET_LAYER_FLASH, TXN_NONE, UBXMessage, UBXReader
 
 _POLL_BAUDRATES = (9600, 115200)
-_ACK_READ_ATTEMPTS = 10
+_ACK_READ_ATTEMPTS = 3
+_SERIAL_TIMEOUT = 0.5
 
 _DESIRED_CONFIG: dict[str, int] = {
     "CFG_UART1OUTPROT_UBX": 1,
@@ -55,7 +56,7 @@ class GpsTelemetry:
 
     def _open_and_poll(self, baudrate: int) -> tuple[serial.Serial, object] | None:
         logging.debug("GPS: probing config at %d baud on %s", baudrate, self._path)
-        port = serial.Serial(self._path, baudrate, timeout=1.0)
+        port = serial.Serial(self._path, baudrate, timeout=_SERIAL_TIMEOUT)
         try:
             port.reset_input_buffer()
             poll = UBXMessage.config_poll(POLL_LAYER_RAM, 0, list(_DESIRED_CONFIG.keys()))
@@ -126,4 +127,4 @@ class GpsTelemetry:
             return port
 
         logging.warning("GPS: config verification failed on %s, opening at 9600 without write", self._path)
-        return serial.Serial(self._path, _POLL_BAUDRATES[0], timeout=1.0)
+        return serial.Serial(self._path, _POLL_BAUDRATES[0], timeout=_SERIAL_TIMEOUT)

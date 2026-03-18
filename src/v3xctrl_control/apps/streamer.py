@@ -99,7 +99,7 @@ parser.add_argument(
     "--battery-max-current", type=float, default=0.8, help="Maximum expected current in Amperes (default: 0.8)"
 )
 parser.add_argument(
-    "--gps-path", type=str, default="/dev/serial0", help="Path to GPS UART device (default: /dev/serial0)"
+    "--gps-path", type=str, default=None, help="Path to GPS UART device (default: None, GPS disabled)"
 )
 
 
