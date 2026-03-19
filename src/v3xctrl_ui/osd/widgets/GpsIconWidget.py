@@ -13,7 +13,7 @@ class GpsIconWidget(Widget):
         self.position = position
         self.width = width
         self.height = self._ICON_SIZE
-        self._x_offset = width - self._ICON_SIZE  # right-align icon within panel width
+        self._x_offset = (width - self._ICON_SIZE) // 2
 
         self.icon_no_hardware = get_icon("satellite_alt", size=self._ICON_SIZE, color=GREY)
         self.icon_no_fix = get_icon("satellite_alt", size=self._ICON_SIZE, color=RED)
