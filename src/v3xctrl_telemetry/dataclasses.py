@@ -127,11 +127,9 @@ class LocationInfo:
 
     lat: float = 0.0
     lng: float = 0.0
-    fix: bool = False
-    fix_type: int = 0  # 0=no fix, 1=dead reckoning, 2=2D, 3=3D, 4=GNSS+DR
+    fix_type: int = -1  # -1=no hardware, 0=no fix, 1=dead reckoning, 2=2D, 3=3D, 4=GNSS+DR
     speed: float = 0.0  # km/h
     satellites: int = 0
-    available: bool = False  # False = hardware absent or not yet confirmed
 
 
 @dataclass

@@ -61,10 +61,10 @@ class TelemetryContext:
         with self._lock:
             self._signal.cell = cell
 
-    def update_gps(self, fix: bool, fix_type: int, available: bool, speed: str, satellites: str) -> None:
+    def update_gps(self, fix_type: int, speed: str, satellites: str) -> None:
         """Update GPS data."""
         with self._lock:
-            self._gps = GpsData(fix=fix, fix_type=fix_type, available=available, speed=speed, satellites=satellites)
+            self._gps = GpsData(fix_type=fix_type, speed=speed, satellites=satellites)
 
     def update_battery(
         self, icon: int, voltage: str, average_voltage: str, percent: str, current: str, warning: bool
@@ -119,9 +119,7 @@ class TelemetryContext:
         """Get current GPS data (thread-safe)."""
         with self._lock:
             return GpsData(
-                fix=self._gps.fix,
                 fix_type=self._gps.fix_type,
-                available=self._gps.available,
                 speed=self._gps.speed,
                 satellites=self._gps.satellites,
             )

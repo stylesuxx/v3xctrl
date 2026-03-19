@@ -6,7 +6,6 @@ from dataclasses import dataclass
 class GpsState:
     lat: float = 0.0
     lng: float = 0.0
-    fix: bool = False
     fix_type: int = 0  # 0=no fix, 1=dead reckoning, 2=2D, 3=3D, 4=GNSS+DR
     speed: float = 0.0  # km/h
     sats: int = 0

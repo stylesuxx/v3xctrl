@@ -16,9 +16,7 @@ class TelemetryData:
     battery_percent: str = "0%"
     battery_current: str = "0mA"
     battery_warning: bool = False
-    gps_fix: bool = False
-    gps_fix_type: int = 0
-    gps_available: bool = False
+    gps_fix_type: int = -1
     gps_speed: str = "0 km/h"
     gps_satellites: str = "0 SAT"
     recording: bool = False
@@ -67,9 +65,7 @@ def parse_telemetry(message: Telemetry) -> TelemetryData:
 
     # GPS
     loc = values.get("loc", {})
-    data.gps_fix = bool(loc.get("fix", False))
-    data.gps_fix_type = int(loc.get("fix_type", 0))
-    data.gps_available = bool(loc.get("available", False))
+    data.gps_fix_type = int(loc.get("fix_type", -1))
     data.gps_speed = f"{int(loc.get('speed', 0.0))} km/h"
     data.gps_satellites = f"{loc.get('satellites', 0)} SAT"
 

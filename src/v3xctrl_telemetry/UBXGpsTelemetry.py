@@ -49,9 +49,6 @@ class UBXGpsTelemetry(GpsTelemetry):
                     self._state.lat = msg.lat
                     self._state.lng = msg.lon
                     self._state.speed = msg.gSpeed * 3.6 / 1000.0
-                    self._state.fix = True
-                else:
-                    self._state.fix = False
                 updated = True
         return updated
 

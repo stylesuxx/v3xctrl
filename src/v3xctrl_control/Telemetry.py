@@ -187,10 +187,8 @@ class Telemetry(threading.Thread):
                 self._gps.update()
                 state = self._gps.get_state()
                 with self._lock:
-                    self.payload.loc.available = True
                     self.payload.loc.lat = state.lat
                     self.payload.loc.lng = state.lng
-                    self.payload.loc.fix = state.fix
                     self.payload.loc.fix_type = state.fix_type
                     self.payload.loc.speed = state.speed
                     self.payload.loc.satellites = state.sats

@@ -240,9 +240,7 @@ class OSD:
         )
 
         self.telemetry_context.update_gps(
-            fix=data.gps_fix,
             fix_type=data.gps_fix_type,
-            available=data.gps_available,
             speed=data.gps_speed,
             satellites=data.gps_satellites,
         )
@@ -255,7 +253,7 @@ class OSD:
             if widget_name in self.widgets_battery:
                 self.widgets_battery[widget_name].set_text_color(color)
 
-        if not data.gps_available:
+        if data.gps_fix_type < 0:
             fix_color = WHITE
         elif data.gps_fix_type >= 3:
             fix_color = GREEN
@@ -304,6 +302,7 @@ class OSD:
         return None
 
     _GPS_FIX_LABELS = {
+        -1: "GPS N/A",
         0: "NO FIX",
         1: "DEAD REC",
         2: "2D FIX",
@@ -314,8 +313,6 @@ class OSD:
     def _get_gps_value(self, name: str):
         gps = self.telemetry_context.get_gps()
         if name == "gps_fix":
-            if not gps.available:
-                return "GPS N/A"
             return self._GPS_FIX_LABELS.get(gps.fix_type, "NO FIX")
         mapping = {
             "gps_speed": gps.speed,

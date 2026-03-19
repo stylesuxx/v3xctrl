@@ -18,8 +18,8 @@ while True:
         interval = f"{(now - last_time) * 1000:.0f}ms" if last_time is not None else "---"
         last_time = now
 
-        fix_changed = last_fix is not None and state.fix != last_fix
-        last_fix = state.fix
+        fix_changed = last_fix is not None and state.fix_type != last_fix
+        last_fix = state.fix_type
 
         marker = " <<< FIX CHANGED" if fix_changed else ""
         print(f"[{time.strftime('%H:%M:%S')}.{int(now % 1 * 1000):03d}] (+{interval}) {state}{marker}")
