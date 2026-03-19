@@ -14,8 +14,8 @@ from pyubx2 import (
     UBXReader,
 )
 
-from v3xctrl_telemetry.GpsTelemetry import GpsTelemetry
 from v3xctrl_telemetry.dataclasses import GpsFixType
+from v3xctrl_telemetry.GpsTelemetry import GpsTelemetry
 
 logger = logging.getLogger(__name__)
 
