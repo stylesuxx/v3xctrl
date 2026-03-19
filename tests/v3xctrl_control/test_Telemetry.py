@@ -4,15 +4,21 @@ import time
 import unittest
 from unittest.mock import MagicMock, patch
 
-# Mock GStreamer before any imports
-sys.modules["gi"] = MagicMock()
-sys.modules["gi.repository"] = MagicMock()
-sys.modules["gi.repository.Gst"] = MagicMock()
-sys.modules["gi.repository.GLib"] = MagicMock()
+# Mock GStreamer before any imports, but save originals so we can restore them
+_gi_keys = ["gi", "gi.repository", "gi.repository.Gst", "gi.repository.GLib"]
+_saved = {key: sys.modules.pop(key, None) for key in _gi_keys}
+sys.modules.update({key: MagicMock() for key in _gi_keys})
 
 # Import the actual Telemetry class and dataclasses
 from src.v3xctrl_control.Telemetry import Telemetry  # noqa: E402
 from src.v3xctrl_telemetry import BatteryInfo, CellInfo, SignalInfo, TelemetryPayload  # noqa: E402
+
+# Restore original modules so other tests that need real gi are not affected
+for _key in _gi_keys:
+    if _saved[_key] is not None:
+        sys.modules[_key] = _saved[_key]
+    else:
+        sys.modules.pop(_key, None)
 
 
 class TestTelemetry(unittest.TestCase):

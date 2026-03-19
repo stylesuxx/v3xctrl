@@ -4,11 +4,10 @@ import sys
 import unittest
 from unittest.mock import MagicMock, patch
 
-# Mock GStreamer before any imports
-sys.modules["gi"] = MagicMock()
-sys.modules["gi.repository"] = MagicMock()
-sys.modules["gi.repository.Gst"] = MagicMock()
-sys.modules["gi.repository.GLib"] = MagicMock()
+# Mock GStreamer before any imports, but save originals so we can restore them
+_gi_keys = ["gi", "gi.repository", "gi.repository.Gst", "gi.repository.GLib"]
+_saved = {key: sys.modules.pop(key, None) for key in _gi_keys}
+sys.modules.update({key: MagicMock() for key in _gi_keys})
 
 from v3xctrl_telemetry import (  # noqa: E402
     GstFlags,
@@ -21,6 +20,13 @@ from v3xctrl_telemetry.GstTelemetry import GstTelemetry  # noqa: E402
 from v3xctrl_telemetry.ServiceTelemetry import ServiceTelemetry  # noqa: E402
 from v3xctrl_telemetry.TelemetrySource import TelemetrySource  # noqa: E402
 from v3xctrl_telemetry.VideoCoreTelemetry import VideoCoreTelemetry  # noqa: E402
+
+# Restore original modules so other tests that need real gi are not affected
+for _key in _gi_keys:
+    if _saved[_key] is not None:
+        sys.modules[_key] = _saved[_key]
+    else:
+        sys.modules.pop(_key, None)
 
 
 class TestTelemetrySourceProtocol(unittest.TestCase):

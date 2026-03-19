@@ -151,23 +151,7 @@ class PacketRelay:
             is_new_peer, replaced_addr = session.register(role, port_type, addr, new_transport)
 
             if role == Role.SPECTATOR:
-                if replaced_addr:
-                    self.spectator_by_address.pop(replaced_addr, None)
-                    with self.mapping_lock:
-                        self._remove_spectator_addr_from_mappings(replaced_addr, session)
-
-                spectator = session.find_spectator_by_address(addr)
-                if spectator:
-                    self.spectator_by_address[addr] = spectator
-
-                if session.is_ready():
-                    self._setup_spectator_mappings(session, addr)
-                    self._send_peer_info_to_spectator(session, addr)
-                    logger.info(f"{sid}: Spectator {addr} joined ready session")
-                else:
-                    logger.info(f"{sid}: Spectator {addr} waiting for session to be ready")
-
-                # Spectators will not make a session ready, return early
+                self._register_spectator(session, addr, replaced_addr)
                 return
 
             if is_new_peer:
@@ -185,6 +169,26 @@ class PacketRelay:
 
                 transports = self._get_transport_summary(session)
                 logger.info(f"{sid}: Session ready, peer info exchanged ({transports})")
+
+    def _register_spectator(self, session: Session, addr: Address, replaced_addr: Address | None) -> None:
+        """Handle spectator registration within a session. Caller must hold session_lock."""
+        sid = session.id
+
+        if replaced_addr:
+            self.spectator_by_address.pop(replaced_addr, None)
+            with self.mapping_lock:
+                self._remove_spectator_addr_from_mappings(replaced_addr, session)
+
+        spectator = session.find_spectator_by_address(addr)
+        if spectator:
+            self.spectator_by_address[addr] = spectator
+
+        if session.is_ready():
+            self._setup_spectator_mappings(session, addr)
+            self._send_peer_info_to_spectator(session, addr)
+            logger.info(f"{sid}: Spectator {addr} joined ready session")
+        else:
+            logger.info(f"{sid}: Spectator {addr} waiting for session to be ready")
 
     def get_session_peers(self, sid: str) -> dict[Role, dict[PortType, PeerEntry]]:
         """Get all peers for a session."""
