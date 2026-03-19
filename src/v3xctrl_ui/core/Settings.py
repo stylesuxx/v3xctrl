@@ -75,6 +75,7 @@ class Settings:
             "rec": {"display": True, "align": "bottom-right", "offset": [10, 10]},
             "clock": {"display": False, "align": "bottom-right", "offset": [0, 0]},
             "gps": {"display": True, "align": "bottom-left", "offset": [10, 10]},
+            "gps_icon": {"display": True},
             "gps_fix": {"display": True},
             "gps_speed": {"display": True},
             "gps_satellites": {"display": True},

@@ -315,6 +315,7 @@ class OSD:
         if name == "gps_fix":
             return self._GPS_FIX_LABELS.get(gps.fix_type, "NO FIX")
         mapping = {
+            "gps_icon": gps.fix_type,
             "gps_speed": gps.speed,
             "gps_satellites": gps.satellites,
         }
