@@ -33,13 +33,13 @@ The documentation is split into multiple files:
 
 ## Support
 
-Make sure to check the [Troubleshooting Guide](https://github.com/stylesuxx/v3xctrl/wiki/Troubleshooting) first, your problem might have already been solved.
+Make sure to check the [Troubleshooting Guide](https://wiki.v3xctrl.com/Troubleshooting/) first, your problem might have already been solved.
 
 If you need any help feel free to open an [issue here](https://github.com/stylesuxx/v3xctrl/issues), or even better, join us on [Discord](https://discord.gg/uF4hf8UBBW).
 
 ## Quickstart
 
-Follow the [Quickstart Guide in the wiki](https://github.com/stylesuxx/v3xctrl/wiki/Quickstart) to get you going.
+Follow the [Quickstart Guide in the wiki](https://wiki.v3xctrl.com/) to get you going.
 
 ## Development
 
