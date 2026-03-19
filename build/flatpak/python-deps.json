@@ -2,9 +2,14 @@
     "name": "python-deps",
     "buildsystem": "simple",
     "build-commands": [
-        "pip3 install --verbose --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"cairocffi-1.7.1-py3-none-any.whl\" \"cairosvg-2.8.2-py3-none-any.whl\" \"cffi-2.0.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl\" \"cssselect2-0.9.0-py3-none-any.whl\" \"defusedxml-0.7.1-py2.py3-none-any.whl\" \"msgpack-1.1.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl\" \"numpy-2.2.4-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl\" \"pillow-12.1.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl\" \"platformdirs-4.5.1-py3-none-any.whl\" \"pycparser-3.0-py3-none-any.whl\" \"pygame_ce-2.5.5-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl\" \"python_material_icons-0.3.2-py3-none-any.whl\" \"tinycss2-1.5.1-py3-none-any.whl\" \"tomli_w-1.2.0-py3-none-any.whl\" \"webencodings-0.5.1-py2.py3-none-any.whl\" --no-build-isolation"
+        "pip3 install --verbose --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"av-13.1.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl\" \"cairocffi-1.7.1-py3-none-any.whl\" \"cairosvg-2.9.0-py3-none-any.whl\" \"cffi-2.0.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl\" \"cssselect2-0.9.0-py3-none-any.whl\" \"defusedxml-0.7.1-py2.py3-none-any.whl\" \"msgpack-1.1.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl\" \"numpy-2.2.4-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl\" \"pillow-12.1.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl\" \"platformdirs-4.5.1-py3-none-any.whl\" \"pycparser-3.0-py3-none-any.whl\" \"pygame_ce-2.5.5-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl\" \"python_material_icons-0.3.2-py3-none-any.whl\" \"tinycss2-1.5.1-py3-none-any.whl\" \"tomli_w-1.2.0-py3-none-any.whl\" \"webencodings-0.5.1-py2.py3-none-any.whl\" --no-build-isolation"
     ],
     "sources": [
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/7f/22/0dd8d1d5cad415772bb707d16aea8b81cf75d340d11d3668eea43468c730/av-13.1.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+            "sha256": "d8aaec2c0bfd024359db3821d679009d4e637e1bee0321d20f61c54ed6b20f41"
+        },
         {
             "type": "file",
             "url": "https://files.pythonhosted.org/packages/93/d8/ba13451aa6b745c49536e87b6bf8f629b950e84bd0e8308f7dc6883b67e2/cairocffi-1.7.1-py3-none-any.whl",
@@ -12,8 +17,8 @@
         },
         {
             "type": "file",
-            "url": "https://files.pythonhosted.org/packages/67/48/816bd4aaae93dbf9e408c58598bc32f4a8c65f4b86ab560864cb3ee60adb/cairosvg-2.8.2-py3-none-any.whl",
-            "sha256": "eab46dad4674f33267a671dce39b64be245911c901c70d65d2b7b0821e852bf5"
+            "url": "https://files.pythonhosted.org/packages/bf/e0/5011747466414c12cac8a8df77aa235068669a6a5a5df301a96209db6054/cairosvg-2.9.0-py3-none-any.whl",
+            "sha256": "4b82d07d145377dffdfc19d9791bd5fb65539bb4da0adecf0bdbd9cd4ffd7c68"
         },
         {
             "type": "file",
