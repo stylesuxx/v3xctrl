@@ -6,6 +6,7 @@ from typing import ClassVar
 import pygame
 
 from v3xctrl_control.message import Latency, Message, Telemetry
+from v3xctrl_ui.core.dataclasses import GpsFixType
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 from v3xctrl_ui.core.TelemetryParser import parse_telemetry
@@ -259,11 +260,11 @@ class OSD:
             if widget_name in self.widgets_battery:
                 self.widgets_battery[widget_name].set_text_color(color)
 
-        if data.gps_fix_type < 0:
+        if data.gps_fix_type == GpsFixType.NO_HARDWARE:
             fix_color = WHITE
-        elif data.gps_fix_type >= 3:
+        elif data.gps_fix_type >= GpsFixType.FIX_3D:
             fix_color = GREEN
-        elif data.gps_fix_type >= 1:
+        elif data.gps_fix_type >= GpsFixType.DEAD_RECKONING:
             fix_color = ORANGE
         else:
             fix_color = RED
@@ -307,13 +308,13 @@ class OSD:
         # ClockWidget gets its own time internally
         return None
 
-    _GPS_FIX_LABELS: ClassVar[dict[int, str]] = {
-        -1: "GPS N/A",
-        0: "NO FIX",
-        1: "DEAD REC",
-        2: "2D FIX",
-        3: "3D FIX",
-        4: "GNSS+DR",
+    _GPS_FIX_LABELS: ClassVar[dict[GpsFixType, str]] = {
+        GpsFixType.NO_HARDWARE: "GPS N/A",
+        GpsFixType.NO_FIX: "NO FIX",
+        GpsFixType.DEAD_RECKONING: "DEAD REC",
+        GpsFixType.FIX_2D: "2D FIX",
+        GpsFixType.FIX_3D: "3D FIX",
+        GpsFixType.GNSS_DEAD_RECKONING: "GNSS+DR",
     }
 
     def _get_gps_value(self, name: str):

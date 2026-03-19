@@ -21,12 +21,22 @@ def render_widget_group(screen: pygame.Surface, group: WidgetGroup, widget_setti
 
     if group.use_composition:
         render_group(
-            screen, group.widgets.items(), settings, widget_settings,
-            group.get_value, group.corner_radius, group.settings_aliases, group.header_height,
+            screen,
+            group.widgets.items(),
+            settings,
+            widget_settings,
+            group.get_value,
+            group.corner_radius,
+            group.settings_aliases,
+            group.header_height,
         )
     else:
         _render_individual_widgets(
-            screen, group.widgets.items(), widget_settings, group.get_value, group.settings_aliases,
+            screen,
+            group.widgets.items(),
+            widget_settings,
+            group.get_value,
+            group.settings_aliases,
         )
 
 

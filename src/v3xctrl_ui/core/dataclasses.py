@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 # Re-export telemetry dataclasses for backwards compatibility
 # Import directly from dataclasses module to avoid hardware dependencies (smbus3)
 from v3xctrl_telemetry.dataclasses import (  # noqa: F401
+    GpsFixType,
     GstFlags,
     ServiceFlags,
     ThrottleFlags,
@@ -70,6 +71,6 @@ class SignalData:
 class GpsData:
     """GPS telemetry data."""
 
-    fix_type: int = -1
+    fix_type: GpsFixType = GpsFixType.NO_HARDWARE
     speed: str = "0 km/h"
     satellites: str = "0 SAT"

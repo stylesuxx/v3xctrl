@@ -3,6 +3,7 @@
 from dataclasses import dataclass, field
 
 from v3xctrl_control.message import Telemetry
+from v3xctrl_ui.core.dataclasses import GpsFixType
 
 
 @dataclass
@@ -16,7 +17,7 @@ class TelemetryData:
     battery_percent: str = "0%"
     battery_current: str = "0mA"
     battery_warning: bool = False
-    gps_fix_type: int = -1
+    gps_fix_type: GpsFixType = GpsFixType.NO_HARDWARE
     gps_speed: str = "0 km/h"
     gps_satellites: str = "0 SAT"
     recording: bool = False
@@ -65,7 +66,7 @@ def parse_telemetry(message: Telemetry) -> TelemetryData:
 
     # GPS
     loc = values.get("loc", {})
-    data.gps_fix_type = int(loc.get("fix_type", -1))
+    data.gps_fix_type = GpsFixType(int(loc.get("fix_type", GpsFixType.NO_HARDWARE)))
     data.gps_speed = f"{int(loc.get('speed', 0.0))} km/h"
     data.gps_satellites = f"{loc.get('satellites', 0)} SAT"
 

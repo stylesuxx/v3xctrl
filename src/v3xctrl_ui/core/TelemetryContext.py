@@ -5,6 +5,7 @@ from threading import Lock
 from v3xctrl_ui.core.dataclasses import (
     BatteryData,
     GpsData,
+    GpsFixType,
     GstFlags,
     ServiceFlags,
     SignalData,
@@ -61,7 +62,7 @@ class TelemetryContext:
         with self._lock:
             self._signal.cell = cell
 
-    def update_gps(self, fix_type: int, speed: str, satellites: str) -> None:
+    def update_gps(self, fix_type: GpsFixType, speed: str, satellites: str) -> None:
         """Update GPS data."""
         with self._lock:
             self._gps = GpsData(fix_type=fix_type, speed=speed, satellites=satellites)

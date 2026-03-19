@@ -1,12 +1,14 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
+from v3xctrl_telemetry.dataclasses import GpsFixType
+
 
 @dataclass
 class GpsState:
     lat: float = 0.0
     lng: float = 0.0
-    fix_type: int = 0  # 0=no fix, 1=dead reckoning, 2=2D, 3=3D, 4=GNSS+DR
+    fix_type: GpsFixType = GpsFixType.NO_FIX
     speed: float = 0.0  # km/h
     sats: int = 0
 

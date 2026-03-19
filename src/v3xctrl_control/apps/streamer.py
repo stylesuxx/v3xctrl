@@ -102,7 +102,10 @@ parser.add_argument(
     "--gps-path", type=str, default="/dev/serial0", help="Path to GPS UART device (default: /dev/serial0)"
 )
 parser.add_argument(
-    "--gps-rate-hz", type=int, default=5, help="GPS NAV-PVT output rate in Hz (default: 5)"
+    "--gps-rate-hz",
+    type=int,
+    default=5,
+    help="GPS NAV-PVT output rate in Hz (default: 5)",
 )
 
 
