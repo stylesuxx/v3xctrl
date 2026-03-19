@@ -56,7 +56,7 @@ class UBXGpsTelemetry(GpsTelemetry):
             if msg.identity.startswith(UBXMessageId.INF_PREFIX):
                 logger.warning("GPS: module message: %s", getattr(msg, "msgContent", msg.identity))
             if msg.identity == UBXMessageId.NAV_PVT:
-                self._state.sats = msg.numSV
+                self._state.satellites = msg.numSV
                 try:
                     self._state.fix_type = GpsFixType(msg.fixType)
                 except ValueError:
