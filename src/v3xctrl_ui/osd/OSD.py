@@ -88,7 +88,11 @@ class OSD:
                 name="clock", widgets=self.widgets_clock, get_value=self._get_clock_value, use_composition=False
             ),
             WidgetGroup.create(
-                name="gps", widgets=self.widgets_gps, get_value=self._get_gps_value, use_composition=True
+                name="gps",
+                widgets=self.widgets_gps,
+                get_value=self._get_gps_value,
+                use_composition=True,
+                settings_aliases={"gps_fix": "gps_details", "gps_satellites": "gps_details"},
             ),
         ]
 
@@ -261,7 +265,7 @@ class OSD:
             fix_color = ORANGE
         else:
             fix_color = RED
-        self.widgets_gps["gps_details"].set_text_color(fix_color)
+        self.widgets_gps["gps_fix"].set_text_color(fix_color)
 
         logger.debug(f"Received telemetry message: {message.get_values()}")
 
@@ -312,11 +316,11 @@ class OSD:
 
     def _get_gps_value(self, name: str):
         gps = self.telemetry_context.get_gps()
-        if name == "gps_details":
-            fix_label = self._GPS_FIX_LABELS.get(gps.fix_type, "NO FIX")
-            return f"{fix_label} {gps.satellites}"
+        if name == "gps_fix":
+            return self._GPS_FIX_LABELS.get(gps.fix_type, "NO FIX")
         mapping = {
             "gps_icon": gps.fix_type,
+            "gps_satellites": gps.satellites,
             "gps_speed": gps.speed,
         }
         return mapping.get(name)

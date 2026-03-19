@@ -20,9 +20,9 @@ def render_widget_group(screen: pygame.Surface, group: WidgetGroup, widget_setti
     settings = widget_settings.get(group.name, {})
 
     if group.use_composition:
-        render_group(screen, group.widgets.items(), settings, widget_settings, group.get_value, group.corner_radius)
+        render_group(screen, group.widgets.items(), settings, widget_settings, group.get_value, group.corner_radius, group.settings_aliases)
     else:
-        _render_individual_widgets(screen, group.widgets.items(), widget_settings, group.get_value)
+        _render_individual_widgets(screen, group.widgets.items(), widget_settings, group.get_value, group.settings_aliases)
 
 
 def render_group(
@@ -32,12 +32,13 @@ def render_group(
     widget_settings: dict[str, dict[str, Any]],
     get_widget_value: Callable[[str], Any],
     corner_radius: int = 4,
+    settings_aliases: dict[str, str] | None = None,
 ) -> None:
     """Render widgets as a composed group with rounded corners."""
     if not settings.get("display", False):
         return
 
-    visible_widgets = _filter_visible_widgets(widgets, widget_settings)
+    visible_widgets = _filter_visible_widgets(widgets, widget_settings, settings_aliases or {})
     if not visible_widgets:
         return
 
@@ -64,9 +65,12 @@ def _render_individual_widgets(
     widgets: ItemsView[str, Widget],
     widget_settings: dict[str, dict[str, Any]],
     get_widget_value: Callable[[str], Any],
+    settings_aliases: dict[str, str] | None = None,
 ) -> None:
+    aliases = settings_aliases or {}
     for name, widget in widgets:
-        settings = widget_settings.get(name, {"align": "top-left", "offset": (0, 0), "display": False})
+        settings_key = aliases.get(name, name)
+        settings = widget_settings.get(settings_key, {"align": "top-left", "offset": (0, 0), "display": False})
 
         if settings.get("display", False):
             align = settings.get("align", "top-left")
@@ -81,11 +85,15 @@ def _render_individual_widgets(
 
 
 def _filter_visible_widgets(
-    widgets: ItemsView[str, Widget], widget_settings: dict[str, dict[str, Any]]
+    widgets: ItemsView[str, Widget],
+    widget_settings: dict[str, dict[str, Any]],
+    settings_aliases: dict[str, str] | None = None,
 ) -> list[tuple[str, Widget]]:
+    aliases = settings_aliases or {}
     visible: list[tuple[str, Widget]] = []
     for name, widget in widgets:
-        settings = widget_settings.get(name, {})
+        settings_key = aliases.get(name, name)
+        settings = widget_settings.get(settings_key, {})
         if settings.get("display", True):
             visible.append((name, widget))
 

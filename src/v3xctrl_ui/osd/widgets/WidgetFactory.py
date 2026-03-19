@@ -106,11 +106,13 @@ def create_gps_widgets() -> dict[str, Widget]:
     position = (0, 0)
 
     gps_icon_widget = GpsIconWidget(position, 45)
-    gps_details_widget = TextWidget(position, 90)
+    gps_fix_widget = TextWidget(position, 90)
+    gps_satellites_widget = TextWidget(position, 90)
     gps_speed_widget = TextWidget(position, 90)
 
     return {
         "gps_icon": gps_icon_widget,
-        "gps_details": gps_details_widget,
+        "gps_fix": gps_fix_widget,
+        "gps_satellites": gps_satellites_widget,
         "gps_speed": gps_speed_widget,
     }
