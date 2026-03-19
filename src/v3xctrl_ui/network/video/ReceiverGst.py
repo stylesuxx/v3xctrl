@@ -9,8 +9,8 @@ gi.require_version("GstApp", "1.0")
 import numpy as np  # noqa: E402
 from gi.repository import GLib, Gst, GstApp  # noqa: E402
 
+from v3xctrl_helper import NTPClock, parse_sei_nal  # noqa: E402
 from v3xctrl_ui.network.video.Receiver import Receiver  # noqa: E402
-from v3xctrl_helper import NTPClock, parse_sei_nal
 
 logger = logging.getLogger(__name__)
 
@@ -60,9 +60,9 @@ class ReceiverGst(Receiver):
         self._timing_receive_samples: list[float] | None = None
 
         # SEI-based end-to-end latency (only used when timing_enabled)
-        self._ntp_clock: Optional[NTPClock] = None
-        self._sei_timestamps: Optional[dict[int, tuple[int, int]]] = None
-        self._timing_e2e_samples: Optional[list[float]] = None
+        self._ntp_clock: NTPClock | None = None
+        self._sei_timestamps: dict[int, tuple[int, int]] | None = None
+        self._timing_e2e_samples: list[float] | None = None
 
         # Cached frame dimensions and pre-allocated buffer
         self._cached_width: int = 0
@@ -99,9 +99,7 @@ class ReceiverGst(Receiver):
             self._decode_start_times[pts] = now
         return Gst.PadProbeReturn.OK
 
-    def _on_sei_extract_probe(
-        self, pad: Gst.Pad, info: Gst.PadProbeInfo
-    ) -> Gst.PadProbeReturn:
+    def _on_sei_extract_probe(self, pad: Gst.Pad, info: Gst.PadProbeInfo) -> Gst.PadProbeReturn:
         """Extract SEI timestamp from H.264 data after depayloading."""
         buffer = info.get_buffer()
         if buffer and buffer.pts != Gst.CLOCK_TIME_NONE:
@@ -251,9 +249,7 @@ class ReceiverGst(Receiver):
 
             depay_src = depay.get_static_pad("src")
             if depay_src:
-                depay_src.add_probe(
-                    Gst.PadProbeType.BUFFER, self._on_sei_extract_probe
-                )
+                depay_src.add_probe(Gst.PadProbeType.BUFFER, self._on_sei_extract_probe)
 
         # Setup bus message handling
         bus = self.pipeline.get_bus()
@@ -332,8 +328,7 @@ class ReceiverGst(Receiver):
                         capture_us, capture_offset_us = sei_data
                         viewer_us, viewer_offset_us = self._ntp_clock.get_time()
 
-                        if (abs(capture_offset_us) <= _MAX_NTP_OFFSET_US
-                                and abs(viewer_offset_us) <= _MAX_NTP_OFFSET_US):
+                        if abs(capture_offset_us) <= _MAX_NTP_OFFSET_US and abs(viewer_offset_us) <= _MAX_NTP_OFFSET_US:
                             corrected_capture = capture_us + capture_offset_us
                             corrected_viewer = viewer_us + viewer_offset_us
                             e2e_us = corrected_viewer - corrected_capture
@@ -509,20 +504,11 @@ class ReceiverGst(Receiver):
         def fmt(label: str, mn: float, avg: float, mx: float) -> str:
             return f"{label}: {avg * 1000:.1f}ms ({mn * 1000:.1f}-{mx * 1000:.1f})"
 
-<<<<<<< HEAD
-        logger.debug(
-            f"[TIMING] "
-            f"receive: {rec_avg_ms:.1f}ms | "
-            f"decode: {dec_avg_ms:.1f}ms | "
-            f"buffer: {buf_avg_ms:.1f}ms ({buf_min_ms:.1f}-{buf_max_ms:.1f}) | "
-            f"total: {total_avg_ms:.1f}ms"
-        )
-=======
         total_avg_ms = (rec_avg + dec_avg + buf_avg) * 1000
 
         parts = [
-            fmt("receive", rec_min, rec_avg, rec_max),
-            fmt("decode", dec_min, dec_avg, dec_max),
+            fmt("receive", _rec_min, rec_avg, _rec_max),
+            fmt("decode", _dec_min, dec_avg, _dec_max),
             fmt("buffer", buf_min, buf_avg, buf_max),
             f"total: {total_avg_ms:.1f}ms",
         ]
@@ -530,8 +516,7 @@ class ReceiverGst(Receiver):
         if e2e_samples:
             parts.append(fmt("e2e", e2e_min, e2e_avg, e2e_max))
 
-        logging.debug(f"[TIMING] {' | '.join(parts)}")
->>>>>>> c5be3202 (Solved mem leak)
+        logger.debug(f"[TIMING] {' | '.join(parts)}")
 
         self.timing_decode_samples.clear()
         self.timing_buffer_samples.clear()

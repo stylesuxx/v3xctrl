@@ -63,9 +63,6 @@ class TestSourceBuilder(SourceBuilder):
         now = time.time()
         ms = int(now * 1000) % 1000
         t = time.gmtime(int(now))
-        overlay.set_property(
-            "text",
-            f"{t.tm_hour:02d}:{t.tm_min:02d}:{t.tm_sec:02d}.{ms:03d}"
-        )
+        overlay.set_property("text", f"{t.tm_hour:02d}:{t.tm_min:02d}:{t.tm_sec:02d}.{ms:03d}")
 
         return Gst.PadProbeReturn.OK

@@ -8,10 +8,7 @@ import time
 def get_ntp_offset_chrony() -> int:
     """Returns offset in microseconds."""
     try:
-        result = subprocess.run(
-            ["chronyc", "-c", "tracking"],
-            capture_output=True, text=True, timeout=5
-        )
+        result = subprocess.run(["chronyc", "-c", "tracking"], capture_output=True, text=True, timeout=5)
 
         if result.returncode != 0:
             raise RuntimeError(f"chronyc failed: {result.stderr.strip()}")
@@ -31,6 +28,7 @@ def get_ntp_offset_ntplib() -> int:
     """Returns offset in microseconds."""
     try:
         import ntplib
+
         client = ntplib.NTPClient()
         response = client.request("pool.ntp.org", version=3, timeout=5)
         return int(response.offset * 1_000_000)

@@ -1,12 +1,12 @@
 import logging
 import time
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from src.v3xctrl_helper.ntp import (
+    NTPClock,
     get_ntp_offset_chrony,
     get_ntp_offset_ntplib,
-    NTPClock,
 )
 
 
@@ -17,24 +17,19 @@ class TestGetNtpOffsetChrony(unittest.TestCase):
         mock_run.return_value = MagicMock(
             returncode=0,
             stdout="A29FC87B,time.cloudflare.com,3,1234567890.123,+0.000123456,0.000050,0.001\n",
-            stderr=""
+            stderr="",
         )
 
         offset = get_ntp_offset_chrony()
 
         self.assertEqual(offset, 123)
         self.assertIsInstance(offset, int)
-        mock_run.assert_called_once_with(
-            ["chronyc", "-c", "tracking"],
-            capture_output=True, text=True, timeout=5
-        )
+        mock_run.assert_called_once_with(["chronyc", "-c", "tracking"], capture_output=True, text=True, timeout=5)
 
     @patch("src.v3xctrl_helper.ntp.subprocess.run")
     def test_negative_offset(self, mock_run):
         mock_run.return_value = MagicMock(
-            returncode=0,
-            stdout="A29FC87B,server,3,1234567890.123,-0.000500000,0.000050,0.001\n",
-            stderr=""
+            returncode=0, stdout="A29FC87B,server,3,1234567890.123,-0.000500000,0.000050,0.001\n", stderr=""
         )
 
         offset = get_ntp_offset_chrony()
@@ -44,22 +39,14 @@ class TestGetNtpOffsetChrony(unittest.TestCase):
 
     @patch("src.v3xctrl_helper.ntp.subprocess.run")
     def test_raises_on_nonzero_exit(self, mock_run):
-        mock_run.return_value = MagicMock(
-            returncode=1,
-            stdout="",
-            stderr="chronyc: command not found"
-        )
+        mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="chronyc: command not found")
 
         with self.assertRaises(RuntimeError):
             get_ntp_offset_chrony()
 
     @patch("src.v3xctrl_helper.ntp.subprocess.run")
     def test_raises_on_unexpected_output(self, mock_run):
-        mock_run.return_value = MagicMock(
-            returncode=0,
-            stdout="short,output",
-            stderr=""
-        )
+        mock_run.return_value = MagicMock(returncode=0, stdout="short,output", stderr="")
 
         with self.assertRaises(RuntimeError):
             get_ntp_offset_chrony()
@@ -67,6 +54,7 @@ class TestGetNtpOffsetChrony(unittest.TestCase):
     @patch("src.v3xctrl_helper.ntp.subprocess.run")
     def test_raises_on_timeout(self, mock_run):
         import subprocess
+
         mock_run.side_effect = subprocess.TimeoutExpired(cmd="chronyc", timeout=5)
 
         with self.assertRaises(RuntimeError):
@@ -84,9 +72,7 @@ class TestGetNtpOffsetNtplib(unittest.TestCase):
 
         self.assertEqual(offset, 250)
         self.assertIsInstance(offset, int)
-        mock_client_class.return_value.request.assert_called_once_with(
-            "pool.ntp.org", version=3, timeout=5
-        )
+        mock_client_class.return_value.request.assert_called_once_with("pool.ntp.org", version=3, timeout=5)
 
     @patch("ntplib.NTPClient")
     def test_negative_offset(self, mock_client_class):
@@ -114,13 +100,16 @@ class TestNTPClock(unittest.TestCase):
             offset_values = [100]
 
         values = list(offset_values)
+
         def mock_fn():
             if values:
                 return values.pop(0)
             return offset_values[-1] if offset_values else 0
 
-        with patch("src.v3xctrl_helper.ntp.shutil.which", return_value=None), \
-             patch("src.v3xctrl_helper.ntp.get_ntp_offset_ntplib", side_effect=mock_fn):
+        with (
+            patch("src.v3xctrl_helper.ntp.shutil.which", return_value=None),
+            patch("src.v3xctrl_helper.ntp.get_ntp_offset_ntplib", side_effect=mock_fn),
+        ):
             clock = NTPClock(poll_interval=0.05)
 
         self.addCleanup(clock.stop)
@@ -168,6 +157,7 @@ class TestNTPClock(unittest.TestCase):
 
     def test_keeps_last_offset_on_failure(self):
         call_count = 0
+
         def failing_after_first():
             nonlocal call_count
             call_count += 1
@@ -175,8 +165,10 @@ class TestNTPClock(unittest.TestCase):
                 return 500
             raise RuntimeError("network error")
 
-        with patch("src.v3xctrl_helper.ntp.shutil.which", return_value=None), \
-             patch("src.v3xctrl_helper.ntp.get_ntp_offset_ntplib", side_effect=failing_after_first):
+        with (
+            patch("src.v3xctrl_helper.ntp.shutil.which", return_value=None),
+            patch("src.v3xctrl_helper.ntp.get_ntp_offset_ntplib", side_effect=failing_after_first),
+        ):
             clock = NTPClock(poll_interval=0.05)
 
         self.addCleanup(clock.stop)

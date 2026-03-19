@@ -16,8 +16,8 @@ from v3xctrl_gst.ControlServer import ControlServer  # noqa: E402
 from v3xctrl_gst.PipelineTimer import PipelineTimer  # noqa: E402
 from v3xctrl_gst.QPManager import QPManager  # noqa: E402
 from v3xctrl_gst.RecordingManager import RecordingManager  # noqa: E402
-from v3xctrl_gst.SourceRegistry import SourceRegistry  # noqa: E402
 from v3xctrl_gst.SEIInjector import SEIInjector  # noqa: E402
+from v3xctrl_gst.SourceRegistry import SourceRegistry  # noqa: E402
 from v3xctrl_helper import NTPClock  # noqa: E402
 
 logger = logging.getLogger(__name__)
@@ -121,9 +121,9 @@ class Streamer:
 
         Gst.init(None)
 
-        self.ntp_clock: Optional[NTPClock] = None
-        self.sei_injector: Optional[SEIInjector] = None
-        if self.timing_enabled:
+        self.ntp_clock: NTPClock | None = None
+        self.sei_injector: SEIInjector | None = None
+        if self.timer.enabled:
             self.ntp_clock = NTPClock()
             self.sei_injector = SEIInjector(self.ntp_clock)
 
@@ -522,7 +522,7 @@ class Streamer:
         encoder.set_property("output-io-mode", self.settings["output_io_mode"])
         self.pipeline.add(encoder)
 
-        if self.timing_enabled:
+        if self.timer.enabled and self.sei_injector:
             encoder_sink_pad = encoder.get_static_pad("sink")
             encoder_sink_pad.add_probe(Gst.PadProbeType.BUFFER, self.sei_injector.on_pre_encode)
 
@@ -535,7 +535,7 @@ class Streamer:
         encoder_pad = encoder_caps_filter.get_static_pad("src")
         encoder_pad.add_probe(Gst.PadProbeType.BUFFER, self._on_encoder_buffer)
 
-        if self.timing_enabled:
+        if self.timer.enabled and self.sei_injector:
             encoder_pad.add_probe(Gst.PadProbeType.BUFFER, self.sei_injector.on_post_encode)
 
         encoder_caps = Gst.Caps.from_string(
@@ -587,7 +587,7 @@ class Streamer:
             logger.error("Failed to create udpsink")
             return False
 
-        if self.timing_enabled:
+        if self.timer.enabled:
             udpsink_pad = udpsink.get_static_pad("sink")
             udpsink_pad.add_probe(Gst.PadProbeType.BUFFER_LIST, self._on_udpsink_buffer_list)
 
@@ -717,120 +717,14 @@ class Streamer:
 
         return Gst.PadProbeReturn.OK
 
-    def _on_udp_buffer(self, pad, info):
-        buffer = info.get_buffer()
-        self.timer.on_udp_buffer(buffer.pts)
-
-        return Gst.PadProbeReturn.OK
-
     def _on_payloader_in(self, pad, info):
-        """Track payloader input timing."""
         buffer = info.get_buffer()
-        pts = buffer.pts
-
-        if pts not in self.timing_data:
-            self.timing_debug['udp_miss'] += 1
-            return Gst.PadProbeReturn.OK
-
-        timing = self.timing_data[pts]
-        self.timing_debug['udp_probe'] += 1
-
-        if 'source' not in timing or 'capsfilter' not in timing or 'encoder' not in timing:
-            self.timing_debug['incomplete'] += 1
-            return Gst.PadProbeReturn.OK
-
-        timing['payloader_in'] = time.monotonic()
-
+        self.timer.on_payloader_in(buffer.pts)
         return Gst.PadProbeReturn.OK
 
     def _on_udpsink_buffer_list(self, pad, info):
-        """Track udpsink input timing and calculate pipeline latency."""
         buffer_list = info.get_buffer_list()
         if buffer_list.length() == 0:
             return Gst.PadProbeReturn.OK
-
-        pts = buffer_list.get(0).pts
-
-        if pts not in self.timing_data:
-            return Gst.PadProbeReturn.OK
-
-        timing = self.timing_data[pts]
-
-        if 'payloader_in' not in timing:
-            return Gst.PadProbeReturn.OK
-
-        now = time.monotonic()
-        self.timing_data.pop(pts)
-
-        capture_time = timing.get('capture_delay', 0)
-        capsfilter_time = (timing['capsfilter'] - timing['source']) * 1000
-        encode_time = (timing['encoder'] - timing['capsfilter']) * 1000
-        package_time = (timing['payloader_in'] - timing['encoder']) * 1000
-        payloader_time = (now - timing['payloader_in']) * 1000
-
-        self.timing_stats['capture'].append(capture_time)
-        self.timing_stats['capsfilter'].append(capsfilter_time)
-        self.timing_stats['encode'].append(encode_time)
-        self.timing_stats['package'].append(package_time)
-        self.timing_stats['payloader'].append(payloader_time)
-
-        # Log periodically (time-based)
-        now = time.monotonic()
-        if now - self.timing_last_log >= self.timing_log_interval:
-            self._log_timing_stats()
-            self.timing_last_log = now
-
-        # Purge entries older than current PTS (dropped frames)
-        stale = [k for k in self.timing_data if k < pts]
-        for k in stale:
-            del self.timing_data[k]
-
+        self.timer.on_udpsink_buffer_list(buffer_list.get(0).pts)
         return Gst.PadProbeReturn.OK
-
-    def _log_timing_stats(self) -> None:
-        """Log timing statistics."""
-        if not self.timing_stats['capture']:
-            return
-
-        def stats(data):
-            if not data:
-                return 0, 0, 0
-            return min(data), sum(data) / len(data), max(data)
-
-        cap_min, cap_avg, cap_max = stats(self.timing_stats['capture'])
-        enc_min, enc_avg, enc_max = stats(self.timing_stats['encode'])
-        pkg_min, pkg_avg, pkg_max = stats(self.timing_stats['package'])
-        pay_min, pay_avg, pay_max = stats(self.timing_stats['payloader'])
-
-        total_avg = cap_avg + enc_avg + pkg_avg + pay_avg
-        frame_count = len(self.timing_stats['capture'])
-        interval = time.monotonic() - self.timing_last_log
-        fps = frame_count / interval if interval > 0 else 0
-
-        logging.debug(
-            f"[TIMING] capture: {cap_avg:.1f}ms | "
-            f"encode: {enc_avg:.1f}ms | "
-            f"package: {pkg_avg:.1f}ms | "
-            f"payloader: {pay_avg:.1f}ms | "
-            f"total: {total_avg:.1f}ms | "
-            f"fps: {fps:.1f} ({frame_count} frames)"
-        )
-
-        # Reset stats after logging
-        self.timing_debug = {
-            'source_probe': 0,
-            'capsfilter_probe': 0,
-            'capsfilter_miss': 0,
-            'encoder_probe': 0,
-            'encoder_miss': 0,
-            'udp_probe': 0,
-            'udp_miss': 0,
-            'incomplete': 0,
-        }
-        self.timing_stats = {
-            'capture': [],
-            'capsfilter': [],
-            'encode': [],
-            'package': [],
-            'payloader': [],
-        }

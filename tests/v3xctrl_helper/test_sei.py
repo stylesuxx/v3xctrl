@@ -2,9 +2,9 @@ import struct
 import unittest
 
 from src.v3xctrl_helper.sei import (
-    SEI_UUID,
     SEI_PAYLOAD_SIZE,
     SEI_TYPE_USER_DATA_UNREGISTERED,
+    SEI_UUID,
     START_CODE,
     build_sei_nal,
     parse_sei_nal,
@@ -96,12 +96,7 @@ class TestParseSeiNal(unittest.TestCase):
         # Build SEI with wrong UUID
         wrong_uuid = b"\x00" * 16
         payload = wrong_uuid + struct.pack(">qq", 1000, 50)
-        sei = (
-            START_CODE
-            + bytes([0x06, SEI_TYPE_USER_DATA_UNREGISTERED, SEI_PAYLOAD_SIZE])
-            + payload
-            + b"\x80"
-        )
+        sei = START_CODE + bytes([0x06, SEI_TYPE_USER_DATA_UNREGISTERED, SEI_PAYLOAD_SIZE]) + payload + b"\x80"
 
         result = parse_sei_nal(sei)
 

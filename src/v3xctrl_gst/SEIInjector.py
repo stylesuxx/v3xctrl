@@ -1,11 +1,11 @@
 import ctypes
-from typing import Dict, Tuple
 
 import gi
-gi.require_version('Gst', '1.0')
-from gi.repository import Gst
 
-from v3xctrl_helper import NTPClock, build_sei_nal
+gi.require_version("Gst", "1.0")
+from gi.repository import Gst  # noqa: E402
+
+from v3xctrl_helper import NTPClock, build_sei_nal  # noqa: E402
 
 # ctypes setup to work around Python GI binding ref leak in Gst.Pad.chain().
 # Instead of chain(), we replace the buffer pointer directly in GstPadProbeInfo.data
@@ -13,7 +13,7 @@ from v3xctrl_helper import NTPClock, build_sei_nal
 #
 # TODO: GStreamer >= 1.28 exposes PadProbeInfo.set_buffer() in Python bindings,
 # which makes all of the ctypes machinery below unnecessary.
-_libgst = ctypes.CDLL('libgstreamer-1.0.so.0')
+_libgst = ctypes.CDLL("libgstreamer-1.0.so.0")
 _gst_mini_object_ref = _libgst.gst_mini_object_ref
 _gst_mini_object_ref.restype = ctypes.c_void_p
 _gst_mini_object_ref.argtypes = [ctypes.c_void_p]
@@ -35,9 +35,9 @@ def _c_ptr(pygi_obj):
 # GstPadProbeInfo struct layout — we only need the offset of the `data` field.
 class _GstPadProbeInfo(ctypes.Structure):
     _fields_ = [
-        ('type', ctypes.c_uint),    # GstPadProbeType
-        ('id', ctypes.c_ulong),     # gulong
-        ('data', ctypes.c_void_p),  # gpointer (GstBuffer* for buffer probes)
+        ("type", ctypes.c_uint),  # GstPadProbeType
+        ("id", ctypes.c_ulong),  # gulong
+        ("data", ctypes.c_void_p),  # gpointer (GstBuffer* for buffer probes)
     ]
 
 
@@ -47,7 +47,7 @@ _DATA_OFFSET = _GstPadProbeInfo.data.offset
 class SEIInjector:
     def __init__(self, ntp_clock: NTPClock) -> None:
         self._clock = ntp_clock
-        self._pending: Dict[int, Tuple[int, int]] = {}
+        self._pending: dict[int, tuple[int, int]] = {}
 
     def on_pre_encode(self, pad, info):
         """Capture wall time + NTP offset when frame enters the encoder."""
