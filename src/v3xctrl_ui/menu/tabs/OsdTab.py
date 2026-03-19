@@ -25,9 +25,8 @@ CHECKBOX_CONFIG: list[tuple[str, str]] = [
     ("signal_cell", "Show Signal cell (CAUTION: This potentially exposes your location)"),
     ("rec", "Show Recording indicator"),
     ("clock", "Show Clock (for latency measurement)"),
-    ("gps_fix", "Show GPS fix status"),
+    ("gps_details", "Show GPS fix status and satellite count"),
     ("gps_speed", "Show GPS speed"),
-    ("gps_satellites", "Show GPS satellite count"),
 ]
 
 

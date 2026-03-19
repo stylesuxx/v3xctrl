@@ -11,10 +11,10 @@ class GpsIconWidget(Widget):
         self.width = width
         self.height = width
 
-        self.icon_no_hardware = get_icon("gps_off", size=width, color=GREY)
-        self.icon_no_fix = get_icon("gps_not_fixed", size=width, color=RED)
-        self.icon_partial_fix = get_icon("gps_not_fixed", size=width, color=ORANGE)
-        self.icon_full_fix = get_icon("gps_fixed", size=width, color=GREEN)
+        self.icon_no_hardware = get_icon("satellite_alt", size=width, color=GREY)
+        self.icon_no_fix = get_icon("satellite_alt", size=width, color=RED)
+        self.icon_partial_fix = get_icon("satellite_alt", size=width, color=ORANGE)
+        self.icon_full_fix = get_icon("satellite_alt", size=width, color=GREEN)
 
     def draw(self, screen: Surface, fix_type: int) -> None:
         if fix_type < 0:
