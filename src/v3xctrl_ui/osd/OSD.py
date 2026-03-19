@@ -1,6 +1,7 @@
 import logging
 import time
 from collections import deque
+from typing import ClassVar
 
 import pygame
 
@@ -306,7 +307,7 @@ class OSD:
         # ClockWidget gets its own time internally
         return None
 
-    _GPS_FIX_LABELS = {
+    _GPS_FIX_LABELS: ClassVar[dict[int, str]] = {
         -1: "GPS N/A",
         0: "NO FIX",
         1: "DEAD REC",

@@ -1,7 +1,7 @@
 from .BatteryIconWidget import BatteryIconWidget
 from .ClockWidget import ClockWidget
-from .GpsIconWidget import GpsIconWidget
 from .FpsWidget import FpsWidget
+from .GpsIconWidget import GpsIconWidget
 from .HorizontalIndicatorWidget import HorizontalIndicatorWidget
 from .RecWidget import RecWidget
 from .SignalQualityWidget import SignalQualityWidget
@@ -15,8 +15,8 @@ __all__ = [
     "Alignment",
     "BatteryIconWidget",
     "ClockWidget",
-    "GpsIconWidget",
     "FpsWidget",
+    "GpsIconWidget",
     "HorizontalIndicatorWidget",
     "RecWidget",
     "SignalQualityWidget",
