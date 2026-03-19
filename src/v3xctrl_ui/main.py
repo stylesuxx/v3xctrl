@@ -4,6 +4,11 @@ import logging
 import sys
 from datetime import datetime
 
+from v3xctrl_ui.core.AppState import AppState
+from v3xctrl_ui.core.MemoryTracker import MemoryTracker
+from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.utils.gstreamer import is_gstreamer_available
+
 # On Windows in windowed mode, stdout/stderr are None.
 # Attach to the parent console so output works when launched from a terminal.
 if sys.platform == "win32" and sys.stdout is None:
@@ -18,10 +23,6 @@ if sys.stderr is not None:
 
 
 def main() -> None:
-    from v3xctrl_ui.core.AppState import AppState
-    from v3xctrl_ui.core.MemoryTracker import MemoryTracker
-    from v3xctrl_ui.core.Settings import Settings
-
     parser = argparse.ArgumentParser(description="RC Streamer")
     parser.add_argument(
         "--log", default="ERROR", help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). Default is ERROR."
@@ -49,8 +50,6 @@ def main() -> None:
         handlers.append(logging.FileHandler(log_filename))
 
     logging.basicConfig(level=level, format=log_format, handlers=handlers)
-
-    from v3xctrl_ui.utils.gstreamer import is_gstreamer_available
 
     if is_gstreamer_available():
         logging.info("GStreamer receiver available, will be used by default")
