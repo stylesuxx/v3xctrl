@@ -105,7 +105,7 @@ def create_clock_widget() -> dict[str, Widget]:
 def create_gps_widgets() -> dict[str, Widget]:
     position = (0, 0)
 
-    gps_icon_widget = GpsIconWidget(position, 90)
+    gps_icon_widget = GpsIconWidget(position, 45)
     gps_fix_widget = TextWidget(position, 90)
     gps_speed_widget = TextWidget(position, 90)
     gps_satellites_widget = TextWidget(position, 90)
