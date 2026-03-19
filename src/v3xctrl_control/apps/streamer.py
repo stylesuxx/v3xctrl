@@ -101,6 +101,9 @@ parser.add_argument(
 parser.add_argument(
     "--gps-path", type=str, default="/dev/serial0", help="Path to GPS UART device (default: /dev/serial0)"
 )
+parser.add_argument(
+    "--gps-rate-hz", type=int, default=5, help="GPS NAV-PVT output rate in Hz (default: 5)"
+)
 
 
 args = parser.parse_args()
@@ -183,6 +186,7 @@ telemetry = TelemetryHandler(
     battery_shunt_mohms=args.battery_shunt_mohms,
     battery_max_current=args.battery_max_current,
     gps_path=args.gps_path,
+    gps_rate_hz=args.gps_rate_hz,
 )
 telemetry.start()
 

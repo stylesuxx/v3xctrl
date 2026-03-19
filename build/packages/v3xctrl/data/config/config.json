@@ -71,7 +71,8 @@
     },
     "gps": {
       "path": "/dev/serial0",
-      "baudrate": 115200
+      "baudrate": 115200,
+      "rateHz": 5
     }
   },
   "viewer": {

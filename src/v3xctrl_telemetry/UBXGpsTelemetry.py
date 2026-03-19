@@ -21,18 +21,16 @@ _CONFIG_POLL_TIMEOUT_S = 2.0   # wait for CFG-VALGET after poll
 _ACK_READ_ATTEMPTS = 10        # attempts to read ACK after config write
 _SERIAL_TIMEOUT = 0.1          # per-read timeout for steady-state update()
 
-_DESIRED_CONFIG: dict[str, int] = {
-    "CFG_UART1OUTPROT_UBX": 1,
-    "CFG_UART1OUTPROT_NMEA": 0,
-    "CFG_MSGOUT_UBX_NAV_PVT_UART1": 1,
-    "CFG_RATE_MEAS": 1000,
-}
-
-
 class UBXGpsTelemetry(GpsTelemetry):
-    def __init__(self, path: str = "/dev/serial0") -> None:
+    def __init__(self, path: str = "/dev/serial0", rate_hz: int = 5) -> None:
         super().__init__()
         self._path = path
+        self._desired_config: dict[str, int] = {
+            "CFG_UART1OUTPROT_UBX": 1,
+            "CFG_UART1OUTPROT_NMEA": 0,
+            "CFG_MSGOUT_UBX_NAV_PVT_UART1": 1,
+            "CFG_RATE_MEAS": 1000 // rate_hz,
+        }
         self._serial = self._configure_module()
         self._reader = UBXReader(self._serial)
 
@@ -77,7 +75,7 @@ class UBXGpsTelemetry(GpsTelemetry):
         """Send CFG-VALGET poll and return the response, or None if not received."""
         try:
             port.reset_input_buffer()
-            poll = UBXMessage.config_poll(POLL_LAYER_RAM, 0, list(_DESIRED_CONFIG.keys()))
+            poll = UBXMessage.config_poll(POLL_LAYER_RAM, 0, list(self._desired_config.keys()))
             port.write(poll.serialize())
             port.flush()
             reader = UBXReader(port, quitonerror=ERR_IGNORE)
@@ -96,7 +94,7 @@ class UBXGpsTelemetry(GpsTelemetry):
 
     def _needs_update(self, msg: object) -> dict[str, tuple]:
         mismatches = {}
-        for key, desired in _DESIRED_CONFIG.items():
+        for key, desired in self._desired_config.items():
             try:
                 current = getattr(msg, key)
                 if current != desired:
@@ -108,7 +106,7 @@ class UBXGpsTelemetry(GpsTelemetry):
 
     def _write_config(self, port: serial.Serial) -> bool:
         layers = SET_LAYER_RAM | SET_LAYER_BBR | SET_LAYER_FLASH
-        cfg = UBXMessage.config_set(layers, TXN_NONE, list(_DESIRED_CONFIG.items()))
+        cfg = UBXMessage.config_set(layers, TXN_NONE, list(self._desired_config.items()))
         port.write(cfg.serialize())
         port.flush()
 

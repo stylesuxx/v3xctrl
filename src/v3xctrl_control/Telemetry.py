@@ -40,6 +40,7 @@ class Telemetry(threading.Thread):
         battery_shunt_mohms: int = 100,
         battery_max_current: float = 0.8,
         gps_path: str = "/dev/serial0",
+        gps_rate_hz: int = 5,
         interval: float = 1.0,
     ) -> None:
         super().__init__(daemon=True)
@@ -58,7 +59,7 @@ class Telemetry(threading.Thread):
         self._sim_recheck_counter = 0
         self._init_modem()
 
-        self._gps: GpsTelemetry | None = self._init_component("GPS", lambda: UBXGpsTelemetry(gps_path))
+        self._gps: GpsTelemetry | None = self._init_component("GPS", lambda: UBXGpsTelemetry(gps_path, gps_rate_hz))
         logger.debug("GPS telemetry %s", "available on " + gps_path if self._gps else "not available")
 
         self._battery = self._init_component(
