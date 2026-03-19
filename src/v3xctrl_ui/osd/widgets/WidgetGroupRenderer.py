@@ -72,9 +72,7 @@ def render_group(
     _draw_widgets_to_surface(composed, visible_widgets, get_widget_value, padding)
 
     screen_width, screen_height = screen.get_size()
-    position = calculate_widget_position(
-        align, width, height, screen_width, screen_height, offset
-    )
+    position = calculate_widget_position(align, width, height, screen_width, screen_height, offset)
 
     if header_height > 0 and header_height < height:
         body_height = height - header_height
