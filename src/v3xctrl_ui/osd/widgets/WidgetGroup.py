@@ -15,6 +15,7 @@ class WidgetGroup:
     use_composition: bool = True
     corner_radius: int = 4
     settings_aliases: dict[str, str] = field(default_factory=dict)
+    header_height: int = 0
 
     @classmethod
     def create(
@@ -25,6 +26,7 @@ class WidgetGroup:
         use_composition: bool = True,
         corner_radius: int = 4,
         settings_aliases: dict[str, str] | None = None,
+        header_height: int = 0,
     ) -> "WidgetGroup":
         """Create a widget group.
 
@@ -39,4 +41,4 @@ class WidgetGroup:
                               e.g. {"gps_fix": "gps_details"} makes gps_fix
                               visible when the gps_details setting is enabled.
         """
-        return cls(name, widgets, get_value, use_composition, corner_radius, settings_aliases or {})
+        return cls(name, widgets, get_value, use_composition, corner_radius, settings_aliases or {}, header_height)

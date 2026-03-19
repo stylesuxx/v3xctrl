@@ -20,9 +20,14 @@ def render_widget_group(screen: pygame.Surface, group: WidgetGroup, widget_setti
     settings = widget_settings.get(group.name, {})
 
     if group.use_composition:
-        render_group(screen, group.widgets.items(), settings, widget_settings, group.get_value, group.corner_radius, group.settings_aliases)
+        render_group(
+            screen, group.widgets.items(), settings, widget_settings,
+            group.get_value, group.corner_radius, group.settings_aliases, group.header_height,
+        )
     else:
-        _render_individual_widgets(screen, group.widgets.items(), widget_settings, group.get_value, group.settings_aliases)
+        _render_individual_widgets(
+            screen, group.widgets.items(), widget_settings, group.get_value, group.settings_aliases,
+        )
 
 
 def render_group(
@@ -33,8 +38,14 @@ def render_group(
     get_widget_value: Callable[[str], Any],
     corner_radius: int = 4,
     settings_aliases: dict[str, str] | None = None,
+    header_height: int = 0,
 ) -> None:
-    """Render widgets as a composed group with rounded corners."""
+    """Render widgets as a composed group with rounded corners.
+
+    If header_height > 0, the top portion (header) is rendered transparently
+    without rounded corners, and round_corners is applied only to the body below.
+    This lets a floating icon sit above a cleanly rounded gray panel.
+    """
     if not settings.get("display", False):
         return
 
@@ -48,16 +59,21 @@ def render_group(
     width, height = _calculate_dimensions(visible_widgets, padding)
 
     composed = pygame.Surface((width, height), pygame.SRCALPHA)
-
     _draw_widgets_to_surface(composed, visible_widgets, get_widget_value, padding)
 
     screen_width, screen_height = screen.get_size()
     position = calculate_widget_position(
-        align, composed.get_width(), composed.get_height(), screen_width, screen_height, offset
+        align, width, height, screen_width, screen_height, offset
     )
 
-    rounded = round_corners(composed, corner_radius)
-    screen.blit(rounded, position)
+    if header_height > 0 and header_height < height:
+        body_height = height - header_height
+        body = pygame.Surface((width, body_height), pygame.SRCALPHA)
+        body.blit(composed, (0, 0), (0, header_height, width, body_height))
+        screen.blit(composed, position, (0, 0, width, header_height))
+        screen.blit(round_corners(body, corner_radius), (position[0], position[1] + header_height))
+    else:
+        screen.blit(round_corners(composed, corner_radius), position)
 
 
 def _render_individual_widgets(
