@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>V3XCTRL Config Editor</title>
+    <script src="{{ url_for('static', filename='libs/jquery.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='libs/jsoneditor.min.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='js/API.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/Editor.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/Tabs.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/Modal.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='js/functions.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/handlers.js') }}"></script>
+
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
+
+    <script>
+      $(function() {
+        const schema = {{ schema|tojson }};
+        const startval = {{ config|tojson }};
+        const modems = {{ modems|tojson }};
+
+        const editor = new Editor('#editor', schema, startval, modems);
+        const tabs = new Tabs('#custom-tabs', editor);
+
+        setCalibrationValues(editor);
+        registerClickHandlers();
+      });
+    </script>
+
+    <style>
+      .label-same {
+        width: 120px;
+      }
+
+      .mb-15 {
+        margin-bottom: 15px;
+      }
+
+      input.form-control.camera-setting {
+        width: 150px;
+      }
+    </style>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='libs/bootstrap3.min.css') }}">
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="row">
+        <div class="col-md-12">
+          <nav class="navbar navbar-default">
+            <div class="container-fluid">
+              <div class="navbar-header">
+                <a class="navbar-brand" href="#editor">v3xctrl</a>
+              </div>
+
+              <ul class="nav navbar-nav">
+                <li>
+                  <a class="reboot" href="">Restart</a>
+                </li>
+                <li>
+                  <a class="shutdown" href="">Shutdown</a>
+                </li>
+              </ul>
+
+              <ul class="nav navbar-nav navbar-right">
+                <li>
+                  <a href="https://discord.v3xctrl.com">Join us on Discord!</a>
+                </li>
+              </ul>
+            </div>
+          </nav>
+        </div>
+      </div>
+
+      <div id="custom-tabs">
+        <ul class="nav nav-tabs" role="tablist">
+          <li class="editor active"><a href="#editor" role="tab" data-toggle="tab">Config Editor</a></li>
+          <li><a class="services" href="#services" role="tab" data-toggle="tab">Services</a></li>
+          <li><a class="calibration" href="#calibration" role="tab" data-toggle="tab">Calibration</a></li>
+          <li><a class="camera" href="#camera" role="tab" data-toggle="tab">Camera</a></li>
+          <li><a class="dmesg" href="#dmesg" role="tab" data-toggle="tab">DMESG</a></li>
+          <li><a class="modem" href="#modem" role="tab" data-toggle="tab">Modem</a></li>
+          <li><a class="version" href="#version" role="tab" data-toggle="tab">Info</a></li>
+        </ul>
+
+        <div class="tab-content" style="margin-top: 20px;">
+          <div class="tab-pane active" id="editor"></div>
+
+          <div class="tab-pane" id="services">
+            <div class="container">
+              <p>Loading services...</p>
+            </div>
+
+            <div id="service-log-wrapper">
+              <textarea id="service-log" class="hidden form-control" rows="50" readonly></textarea>
+              <p></p>
+            </div>
+          </div>
+
+          <div class="tab-pane" id="camera">
+            <div class="row service-warning">
+              <div class="col-md-12">
+                <div class="alert alert-danger">
+                  Camera settings can not be run while video service is stoppped. Start the video service first!
+                </div>
+              </div>
+            </div>
+
+            <div class="content hidden">
+              <div class="row">
+                <div class="col-md-12">
+                  <div class="alert alert-info">
+                    <strong>NOTE:</strong> In live mode, some values need to be applied multiple times before they stick.
+                  </div>
+                </div>
+              </div>
+
+              <div class="row mb-15">
+                <form
+                  name="brightness"
+                  class="form-inline camera col-md-12"
+                >
+                  <div class="form-group">
+                    <label class="label-same control-label">Brightness</label>
+                    <input
+                      class="form-control camera-setting"
+                      type="number"
+                      value="0"
+                      min="-1.0"
+                      max="1.0"
+                      step="0.1"
+                    />
+
+                    <button class="set btn btn-secondary" type="submit">Set</button>
+                  </div>
+                </form>
+              </div>
+
+              <div class="row mb-15">
+                <form
+                  name="contrast"
+                  class="form-inline camera col-md-12"
+                >
+                  <div class="form-group">
+                    <label class="label-same control-label">Contrast</label>
+                    <input
+                      class="form-control camera-setting"
+                      type="number"
+                      value="1.0"
+                      min="0.0"
+                      max="2.0"
+                      step="0.1"
+                    />
+
+                    <button class="set btn btn-secondary" type="submit">Set</button>
+                  </div>
+                </form>
+              </div>
+
+              <div class="row mb-15">
+                <form
+                  name="saturation"
+                  class="form-inline camera col-md-12"
+                >
+                  <div class="form-group">
+                    <label class="label-same control-label">Saturation</label>
+                    <input
+                      class="form-control camera-setting"
+                      type="number"
+                      value="1.0"
+                      min="0.0"
+                      max="2.0"
+                      step="0.1"
+                    />
+
+                    <button class="set btn btn-secondary" type="submit">Set</button>
+                  </div>
+                </form>
+              </div>
+
+              <div class="row mb-15">
+                <form
+                  name="sharpness"
+                  class="form-inline camera col-md-12"
+                >
+                  <div class="form-group">
+                    <label class="label-same control-label">Sharpness</label>
+                    <input
+                      class="form-control camera-setting"
+                      type="number"
+                      value="0.0"
+                      min="0.0"
+                      max="10.0"
+                      step="0.1"
+                    />
+
+                    <button class="set btn btn-secondary" type="submit">Set</button>
+                  </div>
+                </form>
+              </div>
+
+              <div class="row mb-15">
+                <form
+                  name="lens-position"
+                  class="form-inline camera col-md-12"
+                >
+                  <div class="form-group">
+                    <label class="label-same control-label">Lens Position</label>
+                    <input
+                      class="form-control camera-setting"
+                      type="number"
+                      value="0"
+                      min="0"
+                      step="0.1"
+                    />
+
+                    <button class="set btn btn-secondary" type="submit">Set</button>
+                  </div>
+                  <div class="small">This setting will only update when autofocus is disabled in camera settings!</div>
+                </form>
+              </div>
+
+              <div class="row mb-15">
+                <form
+                  name="analogue-gain"
+                  class="form-inline camera col-md-12"
+                >
+                  <div class="form-group">
+                    <label class="label-same control-label">Analogue Gain</label>
+                    <input
+                      class="form-control camera-setting"
+                      type="number"
+                      value="1"
+                      min="1"
+                      max="16"
+                      step="1"
+                    />
+
+                    <button class="set btn btn-secondary" type="submit">Set</button>
+                  </div>
+                  <div class="small">This setting will only update when "Gain Control" is set to manual in camera settings!</div>
+                </form>
+              </div>
+
+              <div class="row mb-15">
+                <form
+                  name="exposure-time"
+                  class="form-inline camera col-md-12"
+                >
+                  <div class="form-group">
+                    <label class="label-same control-label">Exposure Time (μs)</label>
+                    <input
+                      class="form-control camera-setting"
+                      type="number"
+                      value="32000"
+                      min="0"
+                      step="100"
+                    />
+
+                    <button class="set btn btn-secondary" type="submit">Set</button>
+                  </div>
+                  <div class="small">This setting will only update when "Exposure Control" is set to manual in camera settings!</div>
+                </form>
+              </div>
+
+              <div class="row mb-15">
+                <div class="col-md-12">
+                  <button class="btn btn-primary save-camera-settings">Save camera settings</button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="tab-pane" id="calibration">
+            <div class="row service-warning">
+              <div class="col-md-12">
+                <div class="alert alert-danger">
+                  Calibration can not be run while control service is running. Stop the control service first!
+                </div>
+              </div>
+            </div>
+
+            <div class="calibration-content hidden">
+              <div class="steering-wrapper">
+                <div class="row">
+                  <div class="col-md-12">
+                    <div class="alert alert-info">
+                      <strong>NOTE:</strong> Set min value first: Decrease until the servo makes clicking noises (or your preferred maximum is reached) and then increase one ore two steps back. Do the same for the max value, just in the other direction. Once min and max are set, trim until steering is straight.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row mb-15">
+                  <form class="form-inline steering min col-md-12">
+                    <div class="form-group">
+                      <label class="label-same control-label">Steering Min</label>
+                      <input
+                        class="form-control steering-min"
+                        type="number"
+                        value="0"
+                        step=10
+                      />
+
+                      <button class="set btn btn-secondary" type="submit">Send</button>
+                      <button class="increase btn btn-secondary" type="submit">+10</button>
+                      <button class="decrease btn btn-secondary" type="submit">-10</button>
+                    </div>
+                  </form>
+                </div>
+
+                <div class="row mb-15">
+                  <form class="form-inline steering max col-md-12">
+                    <div class="form-group">
+                      <label class="label-same control-label">Steering Max</label>
+                      <input
+                        class="form-control steering-max"
+                        type="number"
+                        value="0"
+                        step=10
+                      />
+
+                      <button class="set btn btn-secondary" type="submit">Send</button>
+                      <button class="increase btn btn-secondary" type="submit">+10</button>
+                      <button class="decrease btn btn-secondary" type="submit">-10</button>
+                    </div>
+                  </form>
+                </div>
+
+                <div class="row mb-15">
+                  <form class="form-inline steering trim col-md-12">
+                    <div class="form-group">
+                      <label class="label-same control-label">Steering Trim</label>
+                      <input
+                        class="form-control steering-trim"
+                        type="number"
+                        value="0"
+                        step=10
+                      />
+
+                      <button class="set btn btn-secondary" type="submit">Send</button>
+                      <button class="increase btn btn-secondary" type="submit">+10</button>
+                      <button class="decrease btn btn-secondary" type="submit">-10</button>
+                    </div>
+                  </form>
+                </div>
+
+                <div class="row mb-15">
+                  <div class="col-md-12">
+                    <button class="btn btn-primary save-steering-calibration">Save calibration</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="throttle-wrapper">
+                <div class="row">
+                  <div class="col-md-12">
+                    <div class="alert alert-info">
+                      <strong>NOTE:</strong> Check the order of operation for calibrating your ESC. Usually it involves sending, throttle min (Reverse), max (Forward) and idle (neutral). You will most likely not need to adjust min and max, but rather send those 3 throttle values in a specific order (according to your ESCs manual). You might need to send min or max value even before plugging in the ESC.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row mb-15">
+                  <form class="form-inline throttle min col-md-12">
+                    <div class="form-group">
+                      <label class="label-same control-label">Throttle Min (Reverse)</label>
+                      <input
+                        class="form-control throttle-min"
+                        type="number"
+                        value="0"
+                        step=10
+                      />
+
+                      <button class="set btn btn-secondary" type="submit">Send</button>
+                      <button class="increase btn btn-secondary" type="submit">+10</button>
+                      <button class="decrease btn btn-secondary" type="submit">-10</button>
+                    </div>
+                  </form>
+                </div>
+
+                <div class="row mb-15">
+                  <form class="form-inline throttle max col-md-12">
+                    <div class="form-group">
+                      <label class="label-same control-label">Throttle Max (Forward)</label>
+                      <input
+                        class="form-control throttle-max"
+                        type="number"
+                        value="0"
+                        step=10
+                      />
+
+                      <button class="set btn btn-secondary" type="submit">Send</button>
+                      <button class="increase btn btn-secondary" type="submit">+10</button>
+                      <button class="decrease btn btn-secondary" type="submit">-10</button>
+                    </div>
+                  </form>
+                </div>
+
+                <div class="row mb-15">
+                  <form class="form-inline throttle idle col-md-12">
+                    <div class="form-group">
+                      <label class="label-same control-label">Throttle Neutral</label>
+                      <input
+                        class="form-control throttle-idle"
+                        type="number"
+                        value="0"
+                        step=10
+                      />
+
+                      <button class="set btn btn-secondary" type="submit">Send</button>
+                      <button class="increase btn btn-secondary" type="submit">+10</button>
+                      <button class="decrease btn btn-secondary" type="submit">-10</button>
+                    </div>
+                  </form>
+                </div>
+
+                <div class="row mb-15">
+                  <div class="col-md-12">
+                    <button class="btn btn-primary save-throttle-calibration">Save calibration</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-pane" id="dmesg">
+            <div class="form-group">
+              <button class="btn btn-primary refresh">
+                Refresh
+              </button>
+            </div>
+
+            <textarea class="form-control" rows="100" readonly></textarea>
+          </div>
+
+          <div class="tab-pane" id="modem">
+            <div class="row service-warning">
+              <div class="col-md-12">
+                <div class="alert alert-danger">
+                  Modem info can not be shown while control service is running. Stop the control service first!
+                </div>
+              </div>
+            </div>
+
+            <div class="modem-content hidden">
+              <div class="form-group">
+                <button class="btn btn-primary reset">
+                  Reset
+                </button>
+              </div>
+
+              <p>Fetching modem info...</p>
+            </div>
+          </div>
+
+          <div class="tab-pane" id="version">
+            <p>Fetching version info...</p>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div id="genericModal" class="modal fade hidden" tabindex="-1" role="dialog" aria-hidden="true">
+      <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content text-center" style="padding: 20px;">
+          <h2 id="modal-title"></h2>
+          <div id="modal-body"></div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

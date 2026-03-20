@@ -13,7 +13,7 @@
 [![mypy](https://img.shields.io/badge/type--checked-mypy-blue?logo=python)](https://mypy-lang.org/)
 [![License: CC BY-NC 4.0](https://img.shields.io/badge/License-CC_BY--NC_4.0-lightgrey)](License.md)
 
-[![Discord](https://img.shields.io/discord/1366162378970107914?logo=discord&label=Discord)](https://discord.gg/uF4hf8UBBW)
+[![Discord](https://img.shields.io/discord/1366162378970107914?logo=discord&label=Discord)](https://discord.v3xctrl.com)
 [![YouTube](https://img.shields.io/badge/YouTube-v3xctrl-red?logo=youtube)](https://www.youtube.com/@v3xctrl)
 [![Instagram](https://img.shields.io/badge/Instagram-v3xctrl-E4405F?logo=instagram)](https://www.instagram.com/v3xctrl)
 
@@ -35,7 +35,7 @@ The documentation is split into multiple files:
 
 Make sure to check the [Troubleshooting Guide](https://wiki.v3xctrl.com/Troubleshooting/) first, your problem might have already been solved.
 
-If you need any help feel free to open an [issue here](https://github.com/stylesuxx/v3xctrl/issues), or even better, join us on [Discord](https://discord.gg/uF4hf8UBBW).
+If you need any help feel free to open an [issue here](https://github.com/stylesuxx/v3xctrl/issues), or even better, join us on [Discord](https://discord.v3xctrl.com).
 
 ## Quickstart
 
