@@ -18,6 +18,17 @@ describe('InfoPage', () => {
     })
   })
 
+  it('stays in loading state without apiClient', () => {
+    useConnectionStore.setState({
+      apiClient: null,
+      deviceUrl: null,
+      connected: false,
+    })
+
+    render(<InfoPage />)
+    expect(screen.getByText(/fetching info/i)).toBeInTheDocument()
+  })
+
   it('shows loading state initially', () => {
     render(<InfoPage />)
     expect(screen.getByText(/fetching info/i)).toBeInTheDocument()
@@ -53,6 +64,7 @@ describe('InfoPage', () => {
     render(<InfoPage />)
     await waitFor(() => {
       expect(screen.getByText('Persistent Logs')).toBeInTheDocument()
+      expect(screen.getByText('archive_4.tar.gz')).toBeInTheDocument()
       expect(screen.getByText('archive_3.tar.gz')).toBeInTheDocument()
       expect(screen.getByText('archive_2.tar.gz')).toBeInTheDocument()
       expect(screen.getByText('archive_1.tar.gz')).toBeInTheDocument()
@@ -64,6 +76,7 @@ describe('InfoPage', () => {
     await waitFor(() => {
       expect(screen.getByText('2.5 MB')).toBeInTheDocument()
       expect(screen.getByText('1.0 MB')).toBeInTheDocument()
+      expect(screen.getByText('50.0 KB')).toBeInTheDocument()
       expect(screen.getByText('512 B')).toBeInTheDocument()
     })
   })
@@ -72,10 +85,10 @@ describe('InfoPage', () => {
     render(<InfoPage />)
     await waitFor(() => {
       const downloadLinks = screen.getAllByText('Download')
-      expect(downloadLinks).toHaveLength(3)
+      expect(downloadLinks).toHaveLength(4)
       expect(downloadLinks[0].closest('a')).toHaveAttribute(
         'href',
-        `${BASE}/system/logs/archive_3.tar.gz`,
+        `${BASE}/system/logs/archive_4.tar.gz`,
       )
     })
   })

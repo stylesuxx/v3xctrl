@@ -133,8 +133,9 @@ export const mockInfo = {
 
 export const mockLogArchives = {
   archives: [
-    { name: 'archive_3.tar.gz', size: 2621440 },
-    { name: 'archive_2.tar.gz', size: 1048576 },
+    { name: 'archive_4.tar.gz', size: 2621440 },
+    { name: 'archive_3.tar.gz', size: 1048576 },
+    { name: 'archive_2.tar.gz', size: 51200 },
     { name: 'archive_1.tar.gz', size: 512 },
   ],
 }
