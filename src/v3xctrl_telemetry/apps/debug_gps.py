@@ -148,7 +148,7 @@ def handle_nav_pvt(msg, prev_sats: int | None, logger: logging.Logger, warn_coun
         logger.warning(f"{ts()} [WARN] unexpected fixType={fix_type}")
         warn_count[0] += 1
 
-    return num_sv
+    return int(num_sv)
 
 
 def handle_nav_sat(msg, logger: logging.Logger, warn_count: list) -> None:
@@ -185,15 +185,15 @@ def handle_mon_rf(msg, logger: logging.Logger, warn_count: list) -> None:
     n_blocks = msg.nBlocks
     parts = []
     for i in range(1, n_blocks + 1):
-        ant_status = getattr(msg, f"antStatus_{i:02d}", None)
-        ant_power = getattr(msg, f"antPower_{i:02d}", None)
+        ant_status: int | None = getattr(msg, f"antStatus_{i:02d}", None)
+        ant_power: int | None = getattr(msg, f"antPower_{i:02d}", None)
         jam_ind = getattr(msg, f"jamInd_{i:02d}", None)
         agc_cnt = getattr(msg, f"agcCnt_{i:02d}", None)
         noise = getattr(msg, f"noisePerMS_{i:02d}", None)
         jam_state = getattr(msg, f"jammingState_{i:02d}", 0)
 
-        ant_str = ANT_STATUS.get(ant_status, f"?{ant_status}")
-        pwr_str = ANT_POWER.get(ant_power, f"?{ant_power}")
+        ant_str = ANT_STATUS.get(ant_status, f"?{ant_status}") if ant_status is not None else "?"
+        pwr_str = ANT_POWER.get(ant_power, f"?{ant_power}") if ant_power is not None else "?"
         jam_state_str = JAM_STATE.get(jam_state, f"?{jam_state}")
         parts.append(f"ant={ant_str} pwr={pwr_str} jam={jam_ind}/255 state={jam_state_str} agc={agc_cnt} noise={noise}")
 
