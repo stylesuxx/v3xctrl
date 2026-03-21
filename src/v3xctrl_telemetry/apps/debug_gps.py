@@ -159,13 +159,11 @@ def handle_nav_sat(msg, logger: logging.Logger, warn_count: list) -> None:
         sv_id = getattr(msg, f"svId_{i:02d}", None)
         cno = getattr(msg, f"cno_{i:02d}", None)
         elev = getattr(msg, f"elev_{i:02d}", None)
-        flags = getattr(msg, f"flags_{i:02d}", 0)
+        sv_used = bool(getattr(msg, f"svUsed_{i:02d}", 0))
+        health = getattr(msg, f"health_{i:02d}", 0)
 
         if gnss_id is None:
             continue
-
-        sv_used = bool(flags & 0x08)  # bit 3
-        health = (flags >> 4) & 0x03  # bits 4-5: 1=healthy, 2=unhealthy
 
         gnss_name = GNSS_NAMES.get(gnss_id, f"G{gnss_id}")
         used_marker = "*" if sv_used else " "
@@ -192,8 +190,7 @@ def handle_mon_rf(msg, logger: logging.Logger, warn_count: list) -> None:
         jam_ind = getattr(msg, f"jamInd_{i:02d}", None)
         agc_cnt = getattr(msg, f"agcCnt_{i:02d}", None)
         noise = getattr(msg, f"noisePerMS_{i:02d}", None)
-        flags = getattr(msg, f"flags_{i:02d}", 0)
-        jam_state = flags & 0x03  # bits 0-1
+        jam_state = getattr(msg, f"jammingState_{i:02d}", 0)
 
         ant_str = ANT_STATUS.get(ant_status, f"?{ant_status}")
         pwr_str = ANT_POWER.get(ant_power, f"?{ant_power}")
