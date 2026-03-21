@@ -1,6 +1,8 @@
 import subprocess
 from unittest.mock import patch
 
+import pytest
+
 
 class TestReboot:
     def test_reboot(self, client):
@@ -88,3 +90,87 @@ class TestInfo:
             data = response.get_json()["data"]
             assert data["packages"]["v3xctrl"] == "2.0.0"
             assert data["packages"]["v3xctrl-python"] is None
+
+
+class TestLogArchives:
+    @pytest.fixture()
+    def journal_directory(self, tmp_path):
+        with patch("v3xctrl_web.routes.system.JOURNAL_DIR", tmp_path):
+            yield tmp_path
+
+    def test_list_archives(self, client, journal_directory):
+        (journal_directory / "archive_1.tar.gz").write_bytes(b"x" * 100)
+        (journal_directory / "archive_2.tar.gz").write_bytes(b"x" * 200)
+
+        response = client.get("/system/logs")
+
+        assert response.status_code == 200
+        archives = response.get_json()["data"]["archives"]
+        assert len(archives) == 2
+        assert archives[0]["name"] == "archive_2.tar.gz"
+        assert archives[0]["size"] == 200
+        assert archives[1]["name"] == "archive_1.tar.gz"
+        assert archives[1]["size"] == 100
+
+    def test_list_archives_empty_directory(self, client, journal_directory):
+        response = client.get("/system/logs")
+
+        assert response.status_code == 200
+        archives = response.get_json()["data"]["archives"]
+        assert archives == []
+
+    def test_list_archives_ignores_non_archive_files(self, client, journal_directory):
+        (journal_directory / "archive_1.tar.gz").write_bytes(b"x" * 100)
+        (journal_directory / "current-dmesg").write_text("some log")
+        (journal_directory / "random.txt").write_text("noise")
+
+        response = client.get("/system/logs")
+
+        assert response.status_code == 200
+        archives = response.get_json()["data"]["archives"]
+        assert len(archives) == 1
+        assert archives[0]["name"] == "archive_1.tar.gz"
+
+    def test_list_archives_directory_missing(self, client):
+        with patch("v3xctrl_web.routes.system.JOURNAL_DIR") as mock_dir:
+            mock_dir.exists.return_value = False
+
+            response = client.get("/system/logs")
+
+            assert response.status_code == 200
+            assert response.get_json()["data"]["archives"] == []
+
+
+class TestLogArchiveDownload:
+    @pytest.fixture()
+    def journal_directory(self, tmp_path):
+        with patch("v3xctrl_web.routes.system.JOURNAL_DIR", tmp_path):
+            yield tmp_path
+
+    def test_download_archive(self, client, journal_directory):
+        content = b"\x1f\x8b" + b"\x00" * 50
+        (journal_directory / "archive_1.tar.gz").write_bytes(content)
+
+        response = client.get("/system/logs/archive_1.tar.gz")
+
+        assert response.status_code == 200
+        assert response.data == content
+
+    def test_download_invalid_filename_no_prefix(self, client, journal_directory):
+        (journal_directory / "evil.tar.gz").write_bytes(b"data")
+
+        response = client.get("/system/logs/evil.tar.gz")
+
+        assert response.status_code == 400
+
+    def test_download_invalid_filename_no_suffix(self, client, journal_directory):
+        (journal_directory / "archive_1.txt").write_bytes(b"data")
+
+        response = client.get("/system/logs/archive_1.txt")
+
+        assert response.status_code == 400
+
+    def test_download_nonexistent_archive(self, client, journal_directory):
+        response = client.get("/system/logs/archive_999.tar.gz")
+
+        assert response.status_code == 404
