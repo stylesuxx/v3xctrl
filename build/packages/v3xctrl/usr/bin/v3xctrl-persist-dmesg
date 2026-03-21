@@ -1,0 +1,4 @@
+#!/bin/bash
+set -e
+
+exec dmesg -w >> /data/journal/current-dmesg

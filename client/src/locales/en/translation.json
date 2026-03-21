@@ -131,8 +131,13 @@
     "hostname": "Hostname",
     "columns": {
       "package": "Package",
-      "version": "Version"
-    }
+      "version": "Version",
+      "filename": "File",
+      "size": "Size"
+    },
+    "persistentLogs": "Persistent Logs",
+    "noArchives": "No archives available",
+    "download": "Download"
   },
   "system": {
     "rebooting": "Rebooting",

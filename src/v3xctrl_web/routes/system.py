@@ -1,11 +1,12 @@
 import socket
 import subprocess
+from pathlib import Path
 
-from flask import Response
+from flask import Response, send_file
 from flask.views import MethodView
 from flask_smorest import Blueprint
 
-from .response import success
+from .response import error, success
 
 blueprint = Blueprint("system", "system", url_prefix="/system", description="System control endpoints")
 
@@ -67,3 +68,34 @@ class Info(MethodView):
                 "packages": versions,
             }
         )
+
+
+JOURNAL_DIR = Path("/data/journal")
+
+
+@blueprint.route("/logs")
+class LogArchives(MethodView):
+    @blueprint.response(200, description="List available log archives")
+    def get(self) -> tuple[Response, int]:
+        archives = []
+        if JOURNAL_DIR.exists():
+            for filepath in sorted(JOURNAL_DIR.glob("archive_*.tar.gz"), reverse=True):
+                archives.append(
+                    {
+                        "name": filepath.name,
+                        "size": filepath.stat().st_size,
+                    }
+                )
+        return success({"archives": archives})
+
+
+@blueprint.route("/logs/<filename>")
+class LogArchiveDownload(MethodView):
+    @blueprint.response(200, description="Download a log archive")
+    def get(self, filename: str) -> Response:
+        filepath = JOURNAL_DIR / filename
+        if not filepath.name.startswith("archive_") or not filepath.name.endswith(".tar.gz"):
+            return error("Invalid filename", status=400)
+        if not filepath.exists():
+            return error("Archive not found", status=404)
+        return send_file(filepath, as_attachment=True)

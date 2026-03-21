@@ -17,6 +17,8 @@ SERVICES = [
     "v3xctrl-control",
     "v3xctrl-debug-log",
     "v3xctrl-reverse-shell",
+    "v3xctrl-persist-dmesg",
+    "v3xctrl-persist-services",
 ]
 
 
