@@ -38,6 +38,18 @@ const fullSchema = {
         },
       },
     },
+    camera: {
+      propertyOrder: 25,
+      type: 'object',
+      title: 'Camera',
+      properties: {
+        enableHdr: {
+          propertyOrder: 10,
+          type: 'boolean',
+          title: 'Enable HDR',
+        },
+      },
+    },
     control: {
       propertyOrder: 30,
       type: 'object',
@@ -252,6 +264,42 @@ describe('ConfigEditorPage', () => {
     })
 
     const checkbox = screen.getByRole('checkbox', { name: 'Test Source' })
+    fireEvent.click(checkbox)
+
+    const restartButton = screen.getByText('Save and restart v3xctrl-video')
+    fireEvent.click(restartButton)
+
+    await waitFor(() => {
+      expect(saveConfig).toHaveBeenCalled()
+    })
+
+    await waitFor(() => {
+      expect(restartService).toHaveBeenCalledWith('v3xctrl-video')
+    })
+  })
+
+  it('calls saveConfig and restartService for camera section', async () => {
+    const saveConfig = vi.fn(() => Promise.resolve())
+    const restartService = vi.fn(() => Promise.resolve())
+
+    setupStores({
+      config: { ...mockConfig, camera: { ...mockConfig.camera } },
+      schema: fullSchema,
+      previousModel: 'generic',
+      saveConfig,
+    })
+    useServicesStore.setState({ restartService })
+
+    render(<ConfigEditorPage />)
+
+    const cameraTab = screen.getByRole('button', { name: 'Camera' })
+    fireEvent.click(cameraTab)
+
+    await waitFor(() => {
+      expect(screen.getByText('Enable HDR')).toBeInTheDocument()
+    })
+
+    const checkbox = screen.getByRole('checkbox', { name: 'Enable HDR' })
     fireEvent.click(checkbox)
 
     const restartButton = screen.getByText('Save and restart v3xctrl-video')

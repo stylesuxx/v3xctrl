@@ -16,6 +16,7 @@ import { RefreshCw } from 'lucide-react'
 const SECTION_RESTART = {
   network: null,
   video: 'v3xctrl-video',
+  camera: 'v3xctrl-video',
   control: 'v3xctrl-control',
   development: null,
 }

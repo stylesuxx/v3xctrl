@@ -279,7 +279,7 @@
       "propertyOrder": 20,
       "type": "object",
       "title": "Video",
-      "description": "Video, camera and Encoder settings.<br/><i>Changes in this section require the 'v3xctrl-video' service to be restarted!</i>",
+      "description": "Video and encoder settings.<br/><i>Changes in this section require the 'v3xctrl-video' service to be restarted!</i>",
       "options": {
         "collapsed": true
       },
@@ -503,177 +503,178 @@
               "description": "Lowest quality allowed. Higher = more compression, smaller frames."
             }
           }
+        }
+      }
+    },
+    "camera": {
+      "propertyOrder": 25,
+      "type": "object",
+      "title": "Camera",
+      "description": "Camera hardware settings.<br/><i>Changes in this section require the 'v3xctrl-video' service to be restarted!</i>",
+      "options": {
+        "collapsed": true
+      },
+      "properties": {
+        "enableHdr": {
+          "propertyOrder": 10,
+          "title": "Enable HDR",
+          "description": "Only takes effect on cameras with HDR support (PiCam V3, ArduCam IMX708,...) - highly recommended when outside (improves handling of dark/bright transitions)",
+          "type": "boolean",
+          "format": "checkbox",
+          "default": false
         },
-        "camera": {
-          "propertyOrder": 100,
-          "type": "object",
-          "title": "Camera Settings",
+        "afMode": {
+          "propertyOrder": 20,
+          "title": "Auto focus",
+          "type": "integer",
+          "required": true,
+          "enum": [
+            0,
+            2
+          ],
           "options": {
-            "collapsed": true
+            "enum_titles": [
+              "Disabled",
+              "Continuous"
+            ]
           },
-          "properties": {
-            "enableHdr": {
-              "propertyOrder": 10,
-              "title": "Enable HDR",
-              "description": "Only takes effect on cameras with HDR support (PiCam V3, ArduCam IMX708,...) - highly recommended when outside (improves handling of dark/bright transitions)",
-              "type": "boolean",
-              "format": "checkbox",
-              "default": false
-            },
-            "afMode": {
-              "propertyOrder": 20,
-              "title": "Auto focus",
-              "type": "integer",
-              "required": true,
-              "enum": [
-                0,
-                2
-              ],
-              "options": {
-                "enum_titles": [
-                  "Disabled",
-                  "Continuous"
-                ]
-              },
-              "default": 0,
-              "description": "Only takes effect on cameras with focus module (like PiCam V3, some ArduCam models) - if auto focus is disabled, lens position will be applied"
-            },
-            "lensPosition": {
-              "propertyOrder": 30,
-              "title": "Lens position",
-              "type": "number",
-              "default": 0,
-              "description": "Only applied when autofocus is disabled. 0: Infinity; Focus(m) = 1/value; Eg.: value = 0.5, Focus = 2m"
-            },
-            "analogueGainMode": {
-              "propertyOrder": 40,
-              "title": "Gain Control",
-              "type": "integer",
-              "required": true,
-              "enum": [
-                0,
-                1
-              ],
-              "options": {
-                "enum_titles": [
-                  "Automatic",
-                  "Manual"
-                ]
-              },
-              "default": 0,
-              "description": "Control how the sensor gain is adjusted. Automatic mode adjusts gain based on lighting conditions; manual mode uses the fixed value below."
-            },
-            "analogueGain": {
-              "propertyOrder": 50,
-              "title": "Gain Level",
-              "type": "integer",
-              "required": true,
-              "enum": [
-                1,
-                2,
-                3,
-                4,
-                5,
-                6,
-                7,
-                8,
-                9,
-                10,
-                11,
-                12,
-                13,
-                14,
-                15,
-                16
-              ],
-              "default": 1,
-              "description": "Sensor gain multiplier (1-16). Higher values brighten the image in low light but increase noise. Use the lowest value that provides adequate brightness."
-            },
-            "exposureTimeMode": {
-              "propertyOrder": 60,
-              "title": "Exposure Control",
-              "type": "integer",
-              "required": true,
-              "enum": [
-                0,
-                1
-              ],
-              "options": {
-                "enum_titles": [
-                  "Automatic",
-                  "Manual"
-                ]
-              },
-              "default": 0,
-              "description": "Control how exposure time is determined. Automatic mode adjusts exposure based on lighting conditions; manual mode uses the fixed value below."
-            },
-            "exposureTime": {
-              "propertyOrder": 70,
-              "title": "Exposure Time (μs)",
-              "type": "integer",
-              "required": true,
-              "default": 32000,
-              "description": "Exposure duration in microseconds. Higher values brighten the image but increase motion blur. For video streaming, use the shortest time that provides adequate brightness."
-            },
-            "sensorMode": {
-              "propertyOrder": 80,
-              "title": "Force wide FOV",
-              "type": "string",
-              "required": true,
-              "enum": [
-                "0x0",
-                "2304x1296"
-              ],
-              "options": {
-                "enum_titles": [
-                  "Disabled",
-                  "RPi Cam v3, Arducam IMX708"
-                ]
-              },
-              "default": "0x0",
-              "description": "Some image sensors have wider FOV when requesting higher resolutions. With this setting you can force those higher resolutions to benefit from wider FOV."
-            },
-            "brightness": {
-              "propertyOrder": 90,
-              "title": "Brightness",
-              "type": "number",
-              "required": true,
-              "default": 0.0,
-              "minimum": -1.0,
-              "maximum": 1.0,
-              "description": "Change brightness in camera (not supported by all cameras)"
-            },
-            "contrast": {
-              "propertyOrder": 100,
-              "title": "Contrast",
-              "type": "number",
-              "required": true,
-              "default": 1.0,
-              "minimum": 0.0,
-              "maximum": 2.0,
-              "description": "Change contrast in camera (not supported by all cameras)"
-            },
-            "saturation": {
-              "propertyOrder": 110,
-              "title": "Saturation",
-              "type": "number",
-              "required": true,
-              "default": 1.0,
-              "minimum": 0.0,
-              "maximum": 2.0,
-              "description": "Change saturation in camera (not supported by all cameras)"
-            },
-            "sharpness": {
-              "propertyOrder": 120,
-              "title": "Sharpness",
-              "type": "number",
-              "required": true,
-              "default": 0.0,
-              "minimum": 0.0,
-              "maximum": 10.0,
-              "description": "Change sharpness in camera (not supported by all cameras)"
-            }
-          }
+          "default": 0,
+          "description": "Only takes effect on cameras with focus module (like PiCam V3, some ArduCam models) - if auto focus is disabled, lens position will be applied"
+        },
+        "lensPosition": {
+          "propertyOrder": 30,
+          "title": "Lens position",
+          "type": "number",
+          "default": 0,
+          "description": "Only applied when autofocus is disabled. 0: Infinity; Focus(m) = 1/value; Eg.: value = 0.5, Focus = 2m"
+        },
+        "analogueGainMode": {
+          "propertyOrder": 40,
+          "title": "Gain Control",
+          "type": "integer",
+          "required": true,
+          "enum": [
+            0,
+            1
+          ],
+          "options": {
+            "enum_titles": [
+              "Automatic",
+              "Manual"
+            ]
+          },
+          "default": 0,
+          "description": "Control how the sensor gain is adjusted. Automatic mode adjusts gain based on lighting conditions; manual mode uses the fixed value below."
+        },
+        "analogueGain": {
+          "propertyOrder": 50,
+          "title": "Gain Level",
+          "type": "integer",
+          "required": true,
+          "enum": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "default": 1,
+          "description": "Sensor gain multiplier (1-16). Higher values brighten the image in low light but increase noise. Use the lowest value that provides adequate brightness."
+        },
+        "exposureTimeMode": {
+          "propertyOrder": 60,
+          "title": "Exposure Control",
+          "type": "integer",
+          "required": true,
+          "enum": [
+            0,
+            1
+          ],
+          "options": {
+            "enum_titles": [
+              "Automatic",
+              "Manual"
+            ]
+          },
+          "default": 0,
+          "description": "Control how exposure time is determined. Automatic mode adjusts exposure based on lighting conditions; manual mode uses the fixed value below."
+        },
+        "exposureTime": {
+          "propertyOrder": 70,
+          "title": "Exposure Time (μs)",
+          "type": "integer",
+          "required": true,
+          "default": 32000,
+          "description": "Exposure duration in microseconds. Higher values brighten the image but increase motion blur. For video streaming, use the shortest time that provides adequate brightness."
+        },
+        "sensorMode": {
+          "propertyOrder": 80,
+          "title": "Force wide FOV",
+          "type": "string",
+          "required": true,
+          "enum": [
+            "0x0",
+            "2304x1296"
+          ],
+          "options": {
+            "enum_titles": [
+              "Disabled",
+              "RPi Cam v3, Arducam IMX708"
+            ]
+          },
+          "default": "0x0",
+          "description": "Some image sensors have wider FOV when requesting higher resolutions. With this setting you can force those higher resolutions to benefit from wider FOV."
+        },
+        "brightness": {
+          "propertyOrder": 90,
+          "title": "Brightness",
+          "type": "number",
+          "required": true,
+          "default": 0.0,
+          "minimum": -1.0,
+          "maximum": 1.0,
+          "description": "Change brightness in camera (not supported by all cameras)"
+        },
+        "contrast": {
+          "propertyOrder": 100,
+          "title": "Contrast",
+          "type": "number",
+          "required": true,
+          "default": 1.0,
+          "minimum": 0.0,
+          "maximum": 2.0,
+          "description": "Change contrast in camera (not supported by all cameras)"
+        },
+        "saturation": {
+          "propertyOrder": 110,
+          "title": "Saturation",
+          "type": "number",
+          "required": true,
+          "default": 1.0,
+          "minimum": 0.0,
+          "maximum": 2.0,
+          "description": "Change saturation in camera (not supported by all cameras)"
+        },
+        "sharpness": {
+          "propertyOrder": 120,
+          "title": "Sharpness",
+          "type": "number",
+          "required": true,
+          "default": 0.0,
+          "minimum": 0.0,
+          "maximum": 10.0,
+          "description": "Change sharpness in camera (not supported by all cameras)"
         }
       }
     },
