@@ -221,6 +221,13 @@ if grep -q 'snd_bcm2835.enable_hdmi=1' "$MOUNT_DIR/boot/firmware/cmdline.txt"; t
   sed -i 's/ snd_bcm2835.enable_hdmi=1//g' "$MOUNT_DIR/boot/firmware/cmdline.txt"
 fi
 
+echo "[HOST] Configuring rpi-swap for zram-only mode (overlay root prevents file-backed swap)"
+mkdir -p "$MOUNT_DIR/etc/rpi/swap.conf.d/"
+tee "$MOUNT_DIR/etc/rpi/swap.conf.d/zram-only.conf" > /dev/null << 'EOF'
+[Main]
+Mechanism=zram
+EOF
+
 echo "[HOST] Cleaning up and unmounting"
 sync
 
