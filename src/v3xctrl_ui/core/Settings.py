@@ -32,7 +32,7 @@ class Settings:
             "height": 720,
             "fullscreen": False,
             "render_ratio": 0,
-            "receiver": "pyav",
+            "receiver": "auto",
         },
         "udp_packet_ttl": 100,
         "debug": True,

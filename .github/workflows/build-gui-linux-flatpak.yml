@@ -1,0 +1,61 @@
+name: Build V3XCTRL GUI Flatpak (Linux)
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Git branch to build'
+        required: true
+        default: 'master'
+      version:
+        description: 'Version string (leave empty for git hash)'
+        required: false
+        default: ''
+
+jobs:
+  build-flatpak:
+    runs-on: ubuntu-22.04
+
+    env:
+      VERSION: ${{ inputs.version || format('{0}', github.sha) }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version
+        run: |
+          if [ -z "${{ inputs.version }}" ]; then
+            echo "VERSION=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_ENV
+          fi
+
+      - name: Install Flatpak and flatpak-builder
+        run: |
+          sudo apt update
+          sudo apt install -y flatpak flatpak-builder
+
+      - name: Add Flathub remote and install SDK
+        run: |
+          sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          sudo flatpak install -y flathub org.freedesktop.Platform//24.08
+          sudo flatpak install -y flathub org.freedesktop.Sdk//24.08
+
+      - name: Build Flatpak bundle
+        run: |
+          VERSION="${VERSION}" ./build/build-viewer-flatpak.sh
+
+      - name: Upload Flatpak bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: v3xctrl-viewer-linux-flatpak-${{ env.VERSION }}
+          path: build/tmp/v3xctrl-viewer-linux-*.flatpak
+
+  call-cleanup:
+    name: Cleanup old workflow runs
+    needs: build-flatpak
+    uses: ./.github/workflows/cleanup-old-runs.yml
+    with:
+      branch: ${{ github.event.inputs.branch }}
+      keep_run_id: ${{ github.run_id }}
+      workflow_name: ${{ github.workflow }}
+    secrets:
+      GH_PAT: ${{ secrets.GH_PAT }}

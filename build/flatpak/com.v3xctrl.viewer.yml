@@ -1,0 +1,28 @@
+app-id: com.v3xctrl.viewer
+runtime: org.freedesktop.Platform
+runtime-version: '24.08'
+sdk: org.freedesktop.Sdk
+command: v3xctrl
+appstream-compose: false
+
+finish-args:
+  - --share=network
+  - --share=ipc
+  - --socket=x11
+  - --socket=wayland
+  - --socket=pulseaudio
+  - --device=all
+
+modules:
+  - python-deps.json
+
+  - name: v3xctrl-viewer
+    buildsystem: simple
+    build-commands:
+      - pip3 install --no-index --no-deps --no-build-isolation --prefix=/app .
+      - install -Dm644 build/flatpak/com.v3xctrl.viewer.desktop /app/share/applications/com.v3xctrl.viewer.desktop
+      - install -Dm644 build/flatpak/com.v3xctrl.viewer.metainfo.xml /app/share/metainfo/com.v3xctrl.viewer.metainfo.xml
+      - install -Dm644 src/v3xctrl_ui/assets/images/logo.png /app/share/icons/hicolor/256x256/apps/com.v3xctrl.viewer.png
+    sources:
+      - type: dir
+        path: ../../

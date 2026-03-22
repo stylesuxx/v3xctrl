@@ -1,5 +1,9 @@
 target-version = "py311"
 line-length = 120
+exclude = [
+  ".flatpak-builder",
+  "client",
+]
 
 [lint]
 select = [

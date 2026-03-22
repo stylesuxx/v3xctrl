@@ -1,0 +1,89 @@
+{
+    "name": "python-deps",
+    "buildsystem": "simple",
+    "build-commands": [
+        "pip3 install --verbose --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"av-13.1.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl\" \"cairocffi-1.7.1-py3-none-any.whl\" \"cairosvg-2.9.0-py3-none-any.whl\" \"cffi-2.0.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl\" \"cssselect2-0.9.0-py3-none-any.whl\" \"defusedxml-0.7.1-py2.py3-none-any.whl\" \"msgpack-1.1.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl\" \"numpy-2.2.4-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl\" \"pillow-12.1.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl\" \"platformdirs-4.5.1-py3-none-any.whl\" \"pycparser-3.0-py3-none-any.whl\" \"pygame_ce-2.5.5-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl\" \"python_material_icons-0.3.2-py3-none-any.whl\" \"tinycss2-1.5.1-py3-none-any.whl\" \"tomli_w-1.2.0-py3-none-any.whl\" \"webencodings-0.5.1-py2.py3-none-any.whl\" --no-build-isolation"
+    ],
+    "sources": [
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/7f/22/0dd8d1d5cad415772bb707d16aea8b81cf75d340d11d3668eea43468c730/av-13.1.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+            "sha256": "d8aaec2c0bfd024359db3821d679009d4e637e1bee0321d20f61c54ed6b20f41"
+        },
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/93/d8/ba13451aa6b745c49536e87b6bf8f629b950e84bd0e8308f7dc6883b67e2/cairocffi-1.7.1-py3-none-any.whl",
+            "sha256": "9803a0e11f6c962f3b0ae2ec8ba6ae45e957a146a004697a1ac1bbf16b073b3f"
+        },
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/bf/e0/5011747466414c12cac8a8df77aa235068669a6a5a5df301a96209db6054/cairosvg-2.9.0-py3-none-any.whl",
+            "sha256": "4b82d07d145377dffdfc19d9791bd5fb65539bb4da0adecf0bdbd9cd4ffd7c68"
+        },
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/78/2d/7fa73dfa841b5ac06c7b8855cfc18622132e365f5b81d02230333ff26e9e/cffi-2.0.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+            "sha256": "3e17ed538242334bf70832644a32a7aae3d83b57567f9fd60a26257e992b79ba"
+        },
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/21/0e/8459ca4413e1a21a06c97d134bfaf18adfd27cea068813dc0faae06cbf00/cssselect2-0.9.0-py3-none-any.whl",
+            "sha256": "6a99e5f91f9a016a304dd929b0966ca464bcfda15177b6fb4a118fc0fb5d9563"
+        },
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/07/6c/aa3f2f849e01cb6a001cd8554a88d4c77c5c1a31c95bdf1cf9301e6d9ef4/defusedxml-0.7.1-py2.py3-none-any.whl",
+            "sha256": "a352e7e428770286cc899e2542b6cdaedb2b4953ff269a210103ec58f6198a61"
+        },
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/f1/54/65af8de681fa8255402c80eda2a501ba467921d5a7a028c9c22a2c2eedb5/msgpack-1.1.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+            "sha256": "17fb65dd0bec285907f68b15734a993ad3fc94332b5bb21b0435846228de1f39"
+        },
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/02/e2/e2cbb8d634151aab9528ef7b8bab52ee4ab10e076509285602c2a3a686e0/numpy-2.2.4-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+            "sha256": "4f92084defa704deadd4e0a5ab1dc52d8ac9e8a8ef617f3fbb853e79b0ea3592"
+        },
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/07/26/246ab11455b2549b9233dbd44d358d033a2f780fa9007b61a913c5b2d24e/pillow-12.1.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+            "sha256": "aee2810642b2898bb187ced9b349e95d2a7272930796e022efaf12e99dccd293"
+        },
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/cb/28/3bfe2fa5a7b9c46fe7e13c97bda14c895fb10fa2ebf1d0abb90e0cea7ee1/platformdirs-4.5.1-py3-none-any.whl",
+            "sha256": "d03afa3963c806a9bed9d5125c8f4cb2fdaf74a55ab60e5d59b3fde758104d31"
+        },
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/0c/c3/44f3fbbfa403ea2a7c779186dc20772604442dde72947e7d01069cbe98e3/pycparser-3.0-py3-none-any.whl",
+            "sha256": "b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992"
+        },
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/d5/72/3ae43a335e80f55f3243d674cf47becf17e2a4c565d745b961c50aeec7a1/pygame_ce-2.5.5-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+            "sha256": "13dec639f227dd1092b161e696769f8b6dfbeb92e4e4fabc729dc689a4c63997"
+        },
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/94/53/dd22653f9ba3251601b03834f71de5cd330b24e771be5ef0009a26d3b330/python_material_icons-0.3.2-py3-none-any.whl",
+            "sha256": "dc0b6a776c3b1e36e33458ba0d6e7a726de7c2e947b7792781e8186094f7fae0"
+        },
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/60/45/c7b5c3168458db837e8ceab06dc77824e18202679d0463f0e8f002143a97/tinycss2-1.5.1-py3-none-any.whl",
+            "sha256": "3415ba0f5839c062696996998176c4a3751d18b7edaaeeb658c9ce21ec150661"
+        },
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/c7/18/c86eb8e0202e32dd3df50d43d7ff9854f8e0603945ff398974c1d91ac1ef/tomli_w-1.2.0-py3-none-any.whl",
+            "sha256": "188306098d013b691fcadc011abd66727d3c414c571bb01b1a174ba8c983cf90"
+        },
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/f4/24/2a3e3df732393fed8b3ebf2ec078f05546de641fe1b667ee316ec1dcf3b7/webencodings-0.5.1-py2.py3-none-any.whl",
+            "sha256": "a0af1213f3c2226497a97e2b3aa01a7e4bee4f403f95be16fc9acd2947514a78"
+        }
+    ]
+}
