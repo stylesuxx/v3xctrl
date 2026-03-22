@@ -26,6 +26,18 @@ const fullSchema = {
   ...mockSchema,
   properties: {
     ...mockSchema.properties,
+    viewer: {
+      propertyOrder: 15,
+      type: 'object',
+      title: 'Viewer',
+      properties: {
+        testField: {
+          propertyOrder: 10,
+          type: 'boolean',
+          title: 'Test Viewer Field',
+        },
+      },
+    },
     video: {
       propertyOrder: 20,
       type: 'object',
@@ -311,6 +323,42 @@ describe('ConfigEditorPage', () => {
 
     await waitFor(() => {
       expect(restartService).toHaveBeenCalledWith('v3xctrl-video')
+    })
+  })
+
+  it('calls saveConfig and restartService for viewer section', async () => {
+    const saveConfig = vi.fn(() => Promise.resolve())
+    const restartService = vi.fn(() => Promise.resolve())
+
+    setupStores({
+      config: { ...mockConfig, viewer: { ...mockConfig.viewer } },
+      schema: fullSchema,
+      previousModel: 'generic',
+      saveConfig,
+    })
+    useServicesStore.setState({ restartService })
+
+    render(<ConfigEditorPage />)
+
+    const viewerTab = screen.getByRole('button', { name: 'Viewer' })
+    fireEvent.click(viewerTab)
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Viewer Field')).toBeInTheDocument()
+    })
+
+    const checkbox = screen.getByRole('checkbox', { name: 'Test Viewer Field' })
+    fireEvent.click(checkbox)
+
+    const restartButton = screen.getByText('Save and restart v3xctrl-service-manager')
+    fireEvent.click(restartButton)
+
+    await waitFor(() => {
+      expect(saveConfig).toHaveBeenCalled()
+    })
+
+    await waitFor(() => {
+      expect(restartService).toHaveBeenCalledWith('v3xctrl-service-manager')
     })
   })
 

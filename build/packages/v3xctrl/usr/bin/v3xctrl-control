@@ -9,11 +9,11 @@ if [ "$control_steering_invert" = "true" ]; then
   ARGS+="--steering-invert "
 fi
 
-if [ "$network_server_mode" = "relay" ] && [ "$network_server_transport" = "tcp" ]; then
-  ARGS+="--relay-session-id ${network_server_relay_sessionId} "
+if [ "$viewer_mode" = "relay" ] && [ "$viewer_transport" = "tcp" ]; then
+  ARGS+="--relay-session-id ${viewer_relay_sessionId} "
 fi
 
-v3xctrl-python -m v3xctrl_control.apps.streamer "${network_server_direct_host}" "${network_server_ports_control}" "${network_server_ports_control_bind}" \
+v3xctrl-python -m v3xctrl_control.apps.streamer "${viewer_direct_host}" "${viewer_ports_control}" "${viewer_ports_control_bind}" \
   --throttle-min "${control_throttle_min}" \
   --throttle-max "${control_throttle_max}" \
   --throttle-idle "${control_throttle_idle}" \
@@ -32,7 +32,7 @@ v3xctrl-python -m v3xctrl_control.apps.streamer "${network_server_direct_host}" 
   --pwm-channel-steering "${control_pwm_steering}" \
   --modem-path "${network_modem_path}" \
   --log "${development_logLevel}" \
-  --transport "${network_server_transport}" \
+  --transport "${viewer_transport}" \
   --battery-min-voltage "${control_telemetry_battery_minVoltage}" \
   --battery-max-voltage "${control_telemetry_battery_maxVoltage}" \
   --battery-warn-voltage "${control_telemetry_battery_warnVoltage}" \

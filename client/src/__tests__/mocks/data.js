@@ -1,12 +1,12 @@
 export const mockConfig = {
+  viewer: {
+    mode: 'direct',
+    direct: { host: '192.168.1.100' },
+    relay: { sessionId: 'test123', host: 'relay.v3xctrl.com:8888' },
+    ports: { video: 16384, control: 16386 },
+  },
   network: {
     routing: 'wlan',
-    server: {
-      mode: 'direct',
-      direct: { host: '192.168.1.100' },
-      relay: { sessionId: 'test123', host: 'relay.v3xctrl.com:8888' },
-      ports: { video: 16384, control: 16386 },
-    },
     wifi: { mode: 'client' },
     modem: {
       model: 'generic',

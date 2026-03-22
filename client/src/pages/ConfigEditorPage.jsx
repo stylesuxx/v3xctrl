@@ -15,6 +15,7 @@ import { RefreshCw } from 'lucide-react'
 // null = full system reboot, string = specific service name, undefined = save only.
 const SECTION_RESTART = {
   network: null,
+  viewer: 'v3xctrl-service-manager',
   video: 'v3xctrl-video',
   camera: 'v3xctrl-video',
   control: 'v3xctrl-control',

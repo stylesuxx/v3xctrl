@@ -6,19 +6,19 @@ source "${ENV_PATH}"
 
 json=$(
   v3xctrl-python -m v3xctrl_punch.apps.getServerInfo \
-    "${network_server_rendezvousServer}" "${network_server_rendezvousId}" \
+    "${viewer_rendezvousServer}" "${viewer_rendezvousId}" \
     --port 8888 \
-    --port-video "${network_server_ports_video_bind}" \
-    --port-control "${network_server_ports_control_bind}" \
+    --port-video "${viewer_ports_video_bind}" \
+    --port-control "${viewer_ports_control_bind}" \
     --log "${development_logLevel}"
 )
 
-network_server_direct_host=$(echo "$json" | jq -r '.network.server.direct.host')
-network_server_ports_video=$(echo "$json" | jq -r '.network.server.ports.video')
-network_server_ports_control=$(echo "$json" | jq -r '.network.server.ports.control')
+viewer_direct_host=$(echo "$json" | jq -r '.viewer.direct.host')
+viewer_ports_video=$(echo "$json" | jq -r '.viewer.ports.video')
+viewer_ports_control=$(echo "$json" | jq -r '.viewer.ports.control')
 
 sed -i \
-  -e "s/^network_server_direct_host=.*/network_server_direct_host=${network_server_direct_host}/" \
-  -e "s/^network_server_ports_video=.*/network_server_ports_video=${network_server_ports_video}/" \
-  -e "s/^network_server_ports_control=.*/network_server_ports_control=${network_server_ports_control}/" \
+  -e "s/^viewer_direct_host=.*/viewer_direct_host=${viewer_direct_host}/" \
+  -e "s/^viewer_ports_video=.*/viewer_ports_video=${viewer_ports_video}/" \
+  -e "s/^viewer_ports_control=.*/viewer_ports_control=${viewer_ports_control}/" \
   "$ENV_PATH"

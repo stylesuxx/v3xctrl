@@ -40,9 +40,9 @@ fi
 IFS='x@' read -r video_width video_height video_framerate <<< "$video_resolution"
 
 ARGS=(
-  "$network_server_direct_host"
-  "$network_server_ports_video"
-  "$network_server_ports_video_bind"
+  "$viewer_direct_host"
+  "$viewer_ports_video"
+  "$viewer_ports_video_bind"
   --width "$video_width"
   --height "$video_height"
   --framerate "$video_framerate"
@@ -65,7 +65,7 @@ ARGS=(
   --saturation "$camera_saturation"
   --sharpness "$camera_sharpness"
   --log "${development_logLevel}"
-  --transport "$network_server_transport"
+  --transport "$viewer_transport"
 )
 
 if [ -n "$video_record_path" ] && [ "$video_record_path" != "null" ]; then
@@ -84,8 +84,8 @@ if [ "$video_testSource" = "true" ]; then
   ARGS+=(--test-pattern)
 fi
 
-if [ "$network_server_mode" = "relay" ] && [ "$network_server_transport" = "tcp" ]; then
-  ARGS+=(--relay-session-id "$network_server_relay_sessionId")
+if [ "$viewer_mode" = "relay" ] && [ "$viewer_transport" = "tcp" ]; then
+  ARGS+=(--relay-session-id "$viewer_relay_sessionId")
 fi
 
 if [ -n "$FILE_SRC" ]; then

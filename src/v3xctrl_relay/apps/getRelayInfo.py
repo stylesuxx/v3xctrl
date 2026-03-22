@@ -49,8 +49,9 @@ if __name__ == "__main__":
     print(
         json.dumps(
             {
-                "network": {
-                    "server": {"direct": {"host": video[0]}, "ports": {"video": video[1], "control": control[1]}}
+                "viewer": {
+                    "direct": {"host": video[0]},
+                    "ports": {"video": video[1], "control": control[1]},
                 }
             },
             indent=2,
