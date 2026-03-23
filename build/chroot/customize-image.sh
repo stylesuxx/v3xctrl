@@ -3,6 +3,7 @@
 # in the host system - this is more performant.
 set -e
 export DEBIAN_FRONTEND=noninteractive
+export LC_ALL=C
 
 # Parse flags
 USE_LOCAL_DEBS=false
@@ -17,10 +18,6 @@ USER="v3xctrl"
 NAME="v3xctrl"
 LOCALE="en_US.UTF-8"
 
-echo '[CHROOT] Fetching signed regulatory domain files'
-curl -L https://kernel.googlesource.com/pub/scm/linux/kernel/git/sforshee/wireless-regdb/+/refs/heads/master/regulatory.db\?format=TEXT | base64 -d | tee /lib/firmware/regulatory.db > /dev/null
-curl -L https://kernel.googlesource.com/pub/scm/linux/kernel/git/sforshee/wireless-regdb/+/refs/heads/master/regulatory.db.p7s\?format=TEXT | base64 -d | tee /lib/firmware/regulatory.db.p7s > /dev/null
-
 if [ "$USE_LOCAL_DEBS" = false ]; then
   echo '[CHROOT] Adding V3XCTRL repository...'
   curl -fsSL https://repo.v3xctrl.com/public.key | gpg --dearmor -o /usr/share/keyrings/v3xctrl.gpg
@@ -29,10 +26,10 @@ fi
 
 echo '[CHROOT] Updating system...'
 apt-get update
-apt-get upgrade -y
+apt-get dist-upgrade -y
 
 echo '[CHROOT] Installing prerequisites...'
-apt-get install -y f2fs-tools
+apt-get install -y f2fs-tools wireless-regdb
 
 echo '[CHROOT] Installing nice to haves...'
 apt-get install -y \

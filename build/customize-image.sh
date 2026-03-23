@@ -100,7 +100,8 @@ done
 
 mkdir -p "$MOUNT_DIR"
 mount "${LOOP_DEV}p2" "$MOUNT_DIR"
-mount "${LOOP_DEV}p1" "$MOUNT_DIR/boot"
+mkdir -p "$MOUNT_DIR/boot/firmware"
+mount "${LOOP_DEV}p1" "$MOUNT_DIR/boot/firmware"
 
 mkdir -p "$MOUNT_DIR/data"
 mount "${LOOP_DEV}p3" "$MOUNT_DIR/data"
@@ -150,8 +151,8 @@ cp "${CONF_DIR}/10_v3xctrl-motd-firstboot.sh" "$MOUNT_DIR/etc/profile.d/"
 cp "${CONF_DIR}/97-overlayroot" "$MOUNT_DIR/etc/update-motd.d/97-overlayroot"
 
 echo "[HOST] Copying files to boot partition..."
-cp "./build/firstboot.sh" "$MOUNT_DIR/boot/firstboot.sh"
-chmod +x "$MOUNT_DIR/boot/firstboot.sh"
+cp "./build/firstboot.sh" "$MOUNT_DIR/boot/firmware/firstboot.sh"
+chmod +x "$MOUNT_DIR/boot/firmware/firstboot.sh"
 
 echo "[HOST] Adding noatime,nodiratime to all fstab entries..."
 sed -i '/^[^#]/ s/\bdefaults\b/defaults,noatime,nodiratime/' "$MOUNT_DIR/etc/fstab"
@@ -161,57 +162,68 @@ echo $NAME > "$MOUNT_DIR/etc/hostname"
 sed -i 's/127.0.1.1.*/127.0.1.1\tv3xctrl/' "$MOUNT_DIR/etc/hosts"
 
 echo "[HOST] Setting boot variables..."
-if grep -q '^#*enable_uart=' "$MOUNT_DIR/boot/config.txt"; then
-  sed -i 's/^#*enable_uart=.*/enable_uart=1/' "$MOUNT_DIR/boot/config.txt"
+if grep -q '^#*enable_uart=' "$MOUNT_DIR/boot/firmware/config.txt"; then
+  sed -i 's/^#*enable_uart=.*/enable_uart=1/' "$MOUNT_DIR/boot/firmware/config.txt"
 else
-  echo "enable_uart=1" | tee -a "$MOUNT_DIR/boot/config.txt" > /dev/null
+  echo "enable_uart=1" | tee -a "$MOUNT_DIR/boot/firmware/config.txt" > /dev/null
 fi
 
-if grep -q '^#*hdmi_blanking=' "$MOUNT_DIR/boot/config.txt"; then
-  sed -i 's/^#*hdmi_blanking=.*/hdmi_blanking=2/' "$MOUNT_DIR/boot/config.txt"
+if grep -q '^#*hdmi_blanking=' "$MOUNT_DIR/boot/firmware/config.txt"; then
+  sed -i 's/^#*hdmi_blanking=.*/hdmi_blanking=2/' "$MOUNT_DIR/boot/firmware/config.txt"
 else
-  echo "hdmi_blanking=2" | tee -a "$MOUNT_DIR/boot/config.txt" > /dev/null
+  echo "hdmi_blanking=2" | tee -a "$MOUNT_DIR/boot/firmware/config.txt" > /dev/null
 fi
 
-if grep -q '^#*disable_splash=' "$MOUNT_DIR/boot/config.txt"; then
-  sed -i 's/^#*disable_splash=.*/disable_splash=1/' "$MOUNT_DIR/boot/config.txt"
+if grep -q '^#*disable_splash=' "$MOUNT_DIR/boot/firmware/config.txt"; then
+  sed -i 's/^#*disable_splash=.*/disable_splash=1/' "$MOUNT_DIR/boot/firmware/config.txt"
 else
-  echo "disable_splash=1" | tee -a "$MOUNT_DIR/boot/config.txt" > /dev/null
+  echo "disable_splash=1" | tee -a "$MOUNT_DIR/boot/firmware/config.txt" > /dev/null
 fi
 
 echo "[HOST] Enable i2c..."
-if grep -q '^#*dtparam=i2c_arm=' "$MOUNT_DIR/boot/config.txt"; then
-  sed -i 's/^#*dtparam=i2c_arm=.*/dtparam=i2c_arm=on/' "$MOUNT_DIR/boot/config.txt"
+if grep -q '^#*dtparam=i2c_arm=' "$MOUNT_DIR/boot/firmware/config.txt"; then
+  sed -i 's/^#*dtparam=i2c_arm=.*/dtparam=i2c_arm=on/' "$MOUNT_DIR/boot/firmware/config.txt"
 else
-  echo "dtparam=i2c_arm=on" | tee -a "$MOUNT_DIR/boot/config.txt" > /dev/null
+  echo "dtparam=i2c_arm=on" | tee -a "$MOUNT_DIR/boot/firmware/config.txt" > /dev/null
 fi
 echo "i2c-dev" >> "$MOUNT_DIR/etc/modules"
 
 echo "[Host] Enable hardware PWM..."
-if grep -q '^#*dtoverlay=pwm-2chan' "$MOUNT_DIR/boot/config.txt"; then  sed -i 's/^#*dtparam=i2c_arm=.*/dtparam=i2c_arm=on/' "$MOUNT_DIR/boot/config.txt"
-  sed -i 's/^#*dtoverlay=pwm-2chan.*/dtoverlay=pwm-2chan,pin=18,func=2,pin2=13,func2=4/' "$MOUNT_DIR/boot/config.txt"
+if grep -q '^#*dtoverlay=pwm-2chan' "$MOUNT_DIR/boot/firmware/config.txt"; then
+  sed -i 's/^#*dtoverlay=pwm-2chan.*/dtoverlay=pwm-2chan,pin=18,func=2,pin2=13,func2=4/' "$MOUNT_DIR/boot/firmware/config.txt"
 else
-  echo "dtoverlay=pwm-2chan,pin=18,func=2,pin2=13,func2=4" | tee -a "$MOUNT_DIR/boot/config.txt" > /dev/null
+  echo "dtoverlay=pwm-2chan,pin=18,func=2,pin2=13,func2=4" | tee -a "$MOUNT_DIR/boot/firmware/config.txt" > /dev/null
 fi
 
 echo "[Host] Enable dwc2 USB driver..."
-echo "dtoverlay=dwc2,dr_mode=host" | tee -a "$MOUNT_DIR/boot/config.txt" > /dev/null
+echo "dtoverlay=dwc2,dr_mode=host" | tee -a "$MOUNT_DIR/boot/firmware/config.txt" > /dev/null
 
-if ! grep -q 'fsck.repair=yes' "$MOUNT_DIR/boot/cmdline.txt"; then
-  sed -i 's/$/ fsck.repair=yes/' "$MOUNT_DIR/boot/cmdline.txt"
+echo "[HOST] Reduce CMA reservation to 128 MiB..."
+if grep -q '^dtoverlay=vc4-kms-v3d' "$MOUNT_DIR/boot/firmware/config.txt"; then
+  sed -i 's/^dtoverlay=vc4-kms-v3d.*/dtoverlay=vc4-kms-v3d,cma-128/' "$MOUNT_DIR/boot/firmware/config.txt"
+else
+  echo "dtoverlay=vc4-kms-v3d,cma-128" | tee -a "$MOUNT_DIR/boot/firmware/config.txt" > /dev/null
 fi
 
-if ! grep -q 'usbcore.autosuspend=-1' "$MOUNT_DIR/boot/cmdline.txt"; then
-  sed -i 's/$/ usbcore.autosuspend=-1/' "$MOUNT_DIR/boot/cmdline.txt"
+if ! grep -q 'fsck.repair=yes' "$MOUNT_DIR/boot/firmware/cmdline.txt"; then
+  sed -i 's/$/ fsck.repair=yes/' "$MOUNT_DIR/boot/firmware/cmdline.txt"
 fi
 
-if grep -qw 'quiet' "$MOUNT_DIR/boot/cmdline.txt"; then
-  sed -i 's/\bquiet\b//g' "$MOUNT_DIR/boot/cmdline.txt"
+if ! grep -q 'usbcore.autosuspend=-1' "$MOUNT_DIR/boot/firmware/cmdline.txt"; then
+  sed -i 's/$/ usbcore.autosuspend=-1/' "$MOUNT_DIR/boot/firmware/cmdline.txt"
 fi
 
-echo "[HOST] Disabling swap file..."
-sudo mkdir -p $MOUNT_DIR/etc/rpi/swap.conf.d/
-sudo tee $MOUNT_DIR/etc/rpi/swap.conf.d/zram-only.conf > /dev/null << 'EOF'
+if grep -qw 'quiet' "$MOUNT_DIR/boot/firmware/cmdline.txt"; then
+  sed -i 's/\bquiet\b//g' "$MOUNT_DIR/boot/firmware/cmdline.txt"
+fi
+
+if grep -q 'snd_bcm2835.enable_hdmi=1' "$MOUNT_DIR/boot/firmware/cmdline.txt"; then
+  sed -i 's/ snd_bcm2835.enable_hdmi=1//g' "$MOUNT_DIR/boot/firmware/cmdline.txt"
+fi
+
+echo "[HOST] Configuring rpi-swap for zram-only mode (overlay root prevents file-backed swap)"
+mkdir -p "$MOUNT_DIR/etc/rpi/swap.conf.d/"
+tee "$MOUNT_DIR/etc/rpi/swap.conf.d/zram-only.conf" > /dev/null << 'EOF'
 [Main]
 Mechanism=zram
 EOF
@@ -219,7 +231,7 @@ EOF
 echo "[HOST] Cleaning up and unmounting"
 sync
 
-umount "$MOUNT_DIR/boot"
+umount "$MOUNT_DIR/boot/firmware"
 umount "$MOUNT_DIR/data"
 umount "$MOUNT_DIR/dev/pts"
 for d in $MOUNT_BIND_DIRS; do
