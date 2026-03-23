@@ -5,6 +5,7 @@ import { useConfigStore } from '@/stores/config'
 import { useCameraStore } from '@/stores/camera'
 import { ServiceWarning } from '@/components/shared/ServiceWarning'
 import { Info } from 'lucide-react'
+import { toast } from 'sonner'
 
 const CAMERA_SETTINGS = [
   { name: 'brightness', labelKey: 'camera.brightness', min: -1.0, max: 1.0, step: 0.1 },
@@ -23,6 +24,14 @@ export function CameraPage() {
   const { settings, initFromConfig, updateSetting, applySetting, applySettingWithValue, saveAllSettings } = useCameraStore()
 
   const videoActive = isServiceActive('v3xctrl-video')
+
+  const handleSave = () => {
+    toast.promise(saveAllSettings(), {
+      loading: t('config.saving'),
+      success: t('config.saved'),
+      error: t('config.error'),
+    })
+  }
 
   useEffect(() => {
     fetchServices()
@@ -97,7 +106,7 @@ export function CameraPage() {
 
           <div className="flex justify-end">
             <button
-              onClick={saveAllSettings}
+              onClick={handleSave}
               className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
               {t('camera.saveSettings')}
