@@ -411,7 +411,8 @@ class NetworkSetup:
         """
         try:
             udp_ttl_ms = self.settings.get("udp_packet_ttl", 100)
-            server = Server(self.control_port, udp_ttl_ms)
+            control_buffer_capacity = self.settings.get("control_buffer_capacity", 1)
+            server = Server(self.control_port, udp_ttl_ms, control_buffer_capacity)
 
             for message_type, callback in message_handlers:
                 server.subscribe(message_type, callback)

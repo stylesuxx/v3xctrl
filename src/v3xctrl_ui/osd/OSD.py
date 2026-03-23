@@ -125,8 +125,8 @@ class OSD:
         self.widgets_steering["steering"].inverted = steering
         self.widgets_steering["throttle"].inverted = throttle
 
-    def update_data_queue(self, data_left: int) -> None:
-        self.widgets_debug["debug_data"].set_value(data_left)
+    def update_control_queue(self, size: int) -> None:
+        self.widgets_debug["debug_data"].set_value(size)
 
     def update_buffer_queue(self, size: int) -> None:
         self.widgets_debug["debug_buffer"].set_value(size)

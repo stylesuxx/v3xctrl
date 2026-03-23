@@ -187,7 +187,7 @@ class TestNetworkSetup(unittest.TestCase):
         self.assertIsNone(result.error_message)
 
         # Verify server was created correctly
-        self.mock_server_cls.assert_called_once_with(6000, 100)
+        self.mock_server_cls.assert_called_once_with(6000, 100, 1)
         mock_server.subscribe.assert_called_once()
         mock_server.on.assert_called_once()
         mock_server.start.assert_called_once()

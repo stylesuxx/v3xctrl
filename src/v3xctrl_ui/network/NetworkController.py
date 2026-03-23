@@ -76,6 +76,12 @@ class NetworkController:
 
         return 0
 
+    def get_control_buffer_size(self) -> int:
+        if self.server and not self.server_error:
+            return self.server.transmitter.get_control_buffer_size()
+
+        return 0
+
     def update_ttl(self, ttl_ms: int) -> None:
         if self.server:
             self.server.update_ttl(ttl_ms)

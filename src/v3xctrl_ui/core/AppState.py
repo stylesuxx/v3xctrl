@@ -158,14 +158,21 @@ class AppState:
     def render(self) -> None:
         if self.model.user_connected:
             # Update OSD with network data
-            data_left = self.network_coordinator.get_data_queue_size()
-            if self.network_coordinator.has_server_error():
-                self.osd.update_debug_status("fail")
+            control_buffer_size = self.network_coordinator.get_control_buffer_size()
+            if self.network_coordinator.is_control_connected():
+                if (
+                    self.network_coordinator.has_server_error()
+                    or self.network_coordinator.has_recent_control_drops()
+                    or self.network_coordinator.has_recent_send_failures()
+                ):
+                    self.osd.update_debug_status("fail")
+                else:
+                    self.osd.update_debug_status("success")
 
             buffer_size = self.network_coordinator.get_video_buffer_size()
             self.osd.update_buffer_queue(buffer_size)
 
-            self.osd.update_data_queue(data_left)
+            self.osd.update_control_queue(control_buffer_size)
             self.osd.set_control(self.model.throttle, self.model.steering)
             self.osd.set_spectator_mode(self.network_coordinator.is_spectator())
 

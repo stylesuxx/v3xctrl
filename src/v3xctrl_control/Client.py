@@ -69,6 +69,9 @@ class Client(Base):
         """Messages are always sent to the server."""
         super()._send(message, self.server_address)
 
+    def send_control(self, message: Message) -> None:
+        super()._send_control(message, self.server_address)
+
     def initialize(self) -> None:
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.socket.settimeout(1)

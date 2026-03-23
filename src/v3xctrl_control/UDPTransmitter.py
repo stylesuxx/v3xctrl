@@ -21,6 +21,7 @@ import logging
 import socket
 import threading
 import time
+from collections import deque
 from queue import Empty, Queue
 
 from v3xctrl_helper import Address
@@ -32,12 +33,17 @@ logger = logging.getLogger(__name__)
 
 
 class UDPTransmitter(threading.Thread):
-    def __init__(self, sock: socket.socket, ttl_ms: int = 1000) -> None:
+    def __init__(self, sock: socket.socket, ttl_ms: int = 1000, control_buffer_capacity: int = 1) -> None:
         super().__init__(daemon=True)
 
         self.socket = sock
 
         self.queue: Queue[UDPPacket] = Queue()
+
+        self._control_buffer: deque[UDPPacket] = deque(maxlen=control_buffer_capacity)
+        self._control_lock = threading.Lock()
+        self._last_control_drop_timestamp: float = 0
+        self._last_send_failure_timestamp: float = 0
 
         self.loop = asyncio.new_event_loop()
         self.task: concurrent.futures.Future[None] | None = None
@@ -48,12 +54,39 @@ class UDPTransmitter(threading.Thread):
         self.ttl = ttl_ms / 1000
 
     def add_message(self, message: Message, addr: Address) -> None:
-        """Convenience function to add a message to the queue."""
+        """Convenience function to add a message to the regular queue."""
         packet = UDPPacket(message.to_bytes(), addr[0], addr[1])
         self.add(packet)
 
     def add(self, udp_packet: UDPPacket) -> None:
         self.queue.put(udp_packet)
+
+    def set_control_message(self, message: Message, addr: Address) -> None:
+        """Set a control message in the bounded buffer, evicting the oldest if full."""
+        packet = UDPPacket(message.to_bytes(), addr[0], addr[1])
+        with self._control_lock:
+            if len(self._control_buffer) == self._control_buffer.maxlen:
+                self._last_control_drop_timestamp = time.time()
+                logger.debug("Evicting oldest control message from buffer")
+            self._control_buffer.append(packet)
+
+    def get_control_buffer_size(self) -> int:
+        with self._control_lock:
+            return len(self._control_buffer)
+
+    def has_recent_control_drops(self, window: float = 1.0) -> bool:
+        with self._control_lock:
+            if self._last_control_drop_timestamp == 0:
+                return False
+
+            return time.time() - self._last_control_drop_timestamp < window
+
+    def has_recent_send_failures(self, window: float = 1.0) -> bool:
+        with self._control_lock:
+            if self._last_send_failure_timestamp == 0:
+                return False
+
+            return time.time() - self._last_send_failure_timestamp < window
 
     def run(self) -> None:
         self._running.set()
@@ -63,30 +96,50 @@ class UDPTransmitter(threading.Thread):
     def update_ttl(self, ttl_ms: int) -> None:
         self.ttl = ttl_ms / 1000
 
+    def _send_packet(self, packet: UDPPacket) -> None:
+        try:
+            self.socket.sendto(packet.data, (packet.host, packet.port))
+        except OSError as e:
+            with self._control_lock:
+                self._last_send_failure_timestamp = time.time()
+            logger.warning(f"Socket error while sending: {e}")
+
     async def process(self) -> None:
         try:
             while self._running.is_set():
+                sent_anything = False
+
+                # Send the oldest control message from the buffer
+                control_packet = None
+                with self._control_lock:
+                    if self._control_buffer:
+                        control_packet = self._control_buffer.popleft()
+
+                if control_packet:
+                    self._send_packet(control_packet)
+                    sent_anything = True
+
+                # Also process one regular queue item (non-blocking)
                 try:
-                    packet = self.queue.get(timeout=0.1)
+                    packet = self.queue.get_nowait()
 
-                    # Drop packet if TTL expired
                     if time.time() - packet.timestamp > self.ttl:
-                        self.queue.task_done()
-                        type = Message.peek_type(packet.data)
-                        logger.info(f"Not transmitting old packet of type: {type}")
-                        continue
+                        message_type = Message.peek_type(packet.data)
+                        logger.info(f"Not transmitting old packet of type: {message_type}")
+                    else:
+                        self._send_packet(packet)
 
-                    self.socket.sendto(packet.data, (packet.host, packet.port))
                     self.queue.task_done()
+                    sent_anything = True
 
                 except Empty:
-                    await asyncio.sleep(0.01)
-
-                except OSError as e:
-                    logger.warning(f"Socket error while sending: {e}")
+                    pass
 
                 except Exception as e:
                     logger.error(f"Unexpected transmit error: {e}", exc_info=True)
+
+                if not sent_anything:
+                    await asyncio.sleep(0.01)
 
         except asyncio.CancelledError:
             logger.info("Transmit task cancelled.")

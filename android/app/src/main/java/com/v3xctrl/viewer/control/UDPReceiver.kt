@@ -57,7 +57,8 @@ class UDPReceiver(
     private val forwardScale: Float = 1f,
     private val backwardScale: Float = 1f,
     private val steeringScale: Float = 1f,
-    private val transport: Transport = Transport.UDP
+    private val transport: Transport = Transport.UDP,
+    private val controlBufferCapacity: Int = 1
 ) {
     private val controlIntervalMs = (1000L / controlHz.coerceIn(1, 100))
     private val supervisorJob = SupervisorJob(scope.coroutineContext[Job])
@@ -91,7 +92,11 @@ class UDPReceiver(
                 }
 
                 // Create and start transmitter
-                transmitter = UDPTransmitter(socket!!, receiverScope).also { it.start() }
+                transmitter = UDPTransmitter(
+                    socket!!,
+                    receiverScope,
+                    controlBufferCapacity = controlBufferCapacity
+                ).also { it.start() }
 
                 Log.i(TAG, "Started UDPReceiver on port $port, relay: $relayHost:$relayPort, relayAddress: ${relayAddress?.hostAddress}")
 
@@ -140,12 +145,12 @@ class UDPReceiver(
                 lastPeerAddress?.let { addr ->
                     val paused = controlState?.paused ?: false
                     if (paused) {
-                        send(Control(throttle = 0.0, steering = 0.0), addr, lastPeerPort)
+                        sendControl(Control(throttle = 0.0, steering = 0.0), addr, lastPeerPort)
                     } else {
                         val rawThrottle = controlState?.throttle?.toDouble() ?: 0.0
                         val throttle = if (rawThrottle >= 0) rawThrottle * forwardScale else rawThrottle * backwardScale
                         val steering = (controlState?.steering?.toDouble() ?: 0.0) * steeringScale
-                        send(Control(throttle = throttle, steering = steering), addr, lastPeerPort)
+                        sendControl(Control(throttle = throttle, steering = steering), addr, lastPeerPort)
                     }
                 }
             }
@@ -330,6 +335,10 @@ class UDPReceiver(
 
     private fun send(message: Message, address: InetAddress, port: Int) {
         transmitter?.addMessage(message, address, port)
+    }
+
+    private fun sendControl(message: Message, address: InetAddress, port: Int) {
+        transmitter?.setControlMessage(message, address, port)
     }
 
     /**

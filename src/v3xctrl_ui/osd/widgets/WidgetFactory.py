@@ -74,7 +74,7 @@ def create_debug_widgets(fps_width: int, fps_height: int) -> dict[str, Widget]:
 
     debug_fps_loop_widget = FpsWidget(position, (fps_width, fps_height), "LOOP")
     debug_fps_video_widget = FpsWidget(position, (fps_width, fps_height), "VIDEO")
-    debug_data_widget = StatusValueWidget(position, 26, "DATA", average=True)
+    debug_data_widget = StatusValueWidget(position, 26, "CTRL", average=True)
     debug_latency_widget = StatusValueWidget(position, 26, "LATENCY")
     debug_buffer_widget = StatusValueWidget(position, 26, "BUFFER", average=True, average_window=2)
 

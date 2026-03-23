@@ -71,6 +71,7 @@ data class ConnectionInfo(
 fun ViewerScreen(
     connection: ConnectionInfo,
     controlHz: Int = 30,
+    controlBufferCapacity: Int = 1,
     osdSettings: OsdSettings = OsdSettings(),
     generalSettings: GeneralSettings = GeneralSettings(),
     spectatorMode: Boolean = false,
@@ -375,7 +376,7 @@ fun ViewerScreen(
     }
 
     // Start control channel receiver
-    DisposableEffect(connection.controlPort, connection.relayHost, connection.relayPort, connection.sessionId, controlHz, spectatorMode, controlSettings.forwardScale, controlSettings.backwardScale, controlSettings.steeringScale, connection.transport) {
+    DisposableEffect(connection.controlPort, connection.relayHost, connection.relayPort, connection.sessionId, controlHz, controlBufferCapacity, spectatorMode, controlSettings.forwardScale, controlSettings.backwardScale, controlSettings.steeringScale, connection.transport) {
         val receiver = UDPReceiver(
             port = connection.controlPort,
             relayHost = connection.relayHost,
@@ -389,7 +390,8 @@ fun ViewerScreen(
             forwardScale = controlSettings.forwardScale / 100f,
             backwardScale = controlSettings.backwardScale / 100f,
             steeringScale = controlSettings.steeringScale / 100f,
-            transport = connection.transport
+            transport = connection.transport,
+            controlBufferCapacity = controlBufferCapacity
         )
         receiver.start()
         udpReceiver = receiver

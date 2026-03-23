@@ -20,7 +20,7 @@ class Server(Base):
     MAX_WORKERS = 10
     COMMAND_DELAY = 0.2
 
-    def __init__(self, port: int, ttl_ms: int = 100) -> None:
+    def __init__(self, port: int, ttl_ms: int = 100, control_buffer_capacity: int = 1) -> None:
         super().__init__()
 
         self.port = port
@@ -30,7 +30,7 @@ class Server(Base):
         self.socket.bind(("0.0.0.0", self.port))
         self.socket.settimeout(1)
 
-        self.transmitter = UDPTransmitter(self.socket, ttl_ms)
+        self.transmitter = UDPTransmitter(self.socket, ttl_ms, control_buffer_capacity)
         self.message_handler = MessageHandler(self.socket)
 
         self.pending_commands: dict[str, Callable[[bool], None] | None] = {}
@@ -47,6 +47,11 @@ class Server(Base):
         addr = self.get_last_address()
         if addr:
             super()._send(message, addr)
+
+    def send_control(self, message: Message) -> None:
+        addr = self.get_last_address()
+        if addr:
+            super()._send_control(message, addr)
 
     def command_ack_handler(self, message: CommandAck, addr: Address) -> None:
         command_id = message.get_command_id()

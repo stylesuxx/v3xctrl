@@ -455,6 +455,7 @@ class MainActivity : ComponentActivity() {
                                 transport = networkSettings.transport
                             ),
                             controlHz = frequencySettings.controlHz,
+                            controlBufferCapacity = frequencySettings.controlBufferCapacity,
                             osdSettings = osdSettings,
                             generalSettings = generalSettings,
                             spectatorMode = networkSettings.spectatorMode,

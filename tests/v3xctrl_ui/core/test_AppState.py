@@ -192,12 +192,12 @@ class TestAppState(unittest.TestCase):
         )
 
         app.model.user_connected = True
-        mock_coordinator.get_data_queue_size.return_value = 5
+        mock_coordinator.get_control_buffer_size.return_value = 5
         mock_coordinator.has_server_error.return_value = False
 
         app.render()
 
-        mock_osd.update_data_queue.assert_called_with(5)
+        mock_osd.update_control_queue.assert_called_with(5)
         mock_osd.set_control.assert_called_with(app.model.throttle, app.model.steering)
         mock_renderer.render_all.assert_called_with(app, mock_coordinator.network_controller, False, 1.0)
 
@@ -209,6 +209,7 @@ class TestAppState(unittest.TestCase):
         )
 
         app.model.user_connected = True
+        mock_coordinator.is_control_connected.return_value = True
         mock_coordinator.has_server_error.return_value = True
         app.render()
 
