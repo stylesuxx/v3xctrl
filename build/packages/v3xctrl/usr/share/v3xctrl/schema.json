@@ -276,7 +276,7 @@
       }
     },
     "video": {
-      "propertyOrder": 20,
+      "propertyOrder": 25,
       "type": "object",
       "title": "Video",
       "description": "Video and encoder settings.<br/><i>Changes in this section require the 'v3xctrl-video' service to be restarted!</i>",
@@ -507,7 +507,7 @@
       }
     },
     "camera": {
-      "propertyOrder": 25,
+      "propertyOrder": 30,
       "type": "object",
       "title": "Camera",
       "description": "Camera hardware settings.<br/><i>Changes in this section require the 'v3xctrl-video' service to be restarted!</i>",
@@ -546,6 +546,7 @@
           "title": "Lens position",
           "type": "number",
           "default": 0,
+          "multipleOf": 0.1,
           "description": "Only applied when autofocus is disabled. 0: Infinity; Focus(m) = 1/value; Eg.: value = 0.5, Focus = 2m"
         },
         "analogueGainMode": {
@@ -644,6 +645,7 @@
           "default": 0.0,
           "minimum": -1.0,
           "maximum": 1.0,
+          "multipleOf": 0.1,
           "description": "Change brightness in camera (not supported by all cameras)"
         },
         "contrast": {
@@ -654,6 +656,7 @@
           "default": 1.0,
           "minimum": 0.0,
           "maximum": 2.0,
+          "multipleOf": 0.1,
           "description": "Change contrast in camera (not supported by all cameras)"
         },
         "saturation": {
@@ -664,6 +667,7 @@
           "default": 1.0,
           "minimum": 0.0,
           "maximum": 2.0,
+          "multipleOf": 0.1,
           "description": "Change saturation in camera (not supported by all cameras)"
         },
         "sharpness": {
@@ -674,12 +678,13 @@
           "default": 0.0,
           "minimum": 0.0,
           "maximum": 10.0,
+          "multipleOf": 0.1,
           "description": "Change sharpness in camera (not supported by all cameras)"
         }
       }
     },
     "control": {
-      "propertyOrder": 30,
+      "propertyOrder": 20,
       "type": "object",
       "title": "Control",
       "description": "Steering, throttle and PWM settings.<br/><i>Changes in this section require the 'v3xctrl-control' service to be restarted!</i>",
@@ -942,6 +947,7 @@
                   "type": "number",
                   "required": true,
                   "default": 10,
+                  "multipleOf": 0.1,
                   "description": "Maximum expected current in Amperes (affects measurement resolution)"
                 }
               }
