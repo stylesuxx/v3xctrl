@@ -71,7 +71,7 @@ describe('Navbar', () => {
     const links = screen.getAllByText(/discord/i)
     expect(links.length).toBeGreaterThan(0)
     const link = links.find((element) => element.closest('a'))
-    expect(link.closest('a')).toHaveAttribute('href', 'https://discord.gg/uF4hf8UBBW')
+    expect(link.closest('a')).toHaveAttribute('href', 'https://discord.v3xctrl.com')
     expect(link.closest('a')).toHaveAttribute('target', '_blank')
   })
 

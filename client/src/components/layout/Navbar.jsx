@@ -95,7 +95,7 @@ export function Navbar({ tabs, activeTab, onTabChange }) {
               {t('nav.shutdown')}
             </button>
             <a
-              href="https://discord.gg/uF4hf8UBBW"
+              href="https://discord.v3xctrl.com"
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-muted-foreground hover:text-foreground"
@@ -164,7 +164,7 @@ export function Navbar({ tabs, activeTab, onTabChange }) {
                 {t('nav.shutdown')}
               </button>
               <a
-                href="https://discord.gg/uF4hf8UBBW"
+                href="https://discord.v3xctrl.com"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="py-2 text-sm text-muted-foreground hover:text-foreground"

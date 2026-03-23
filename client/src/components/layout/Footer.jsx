@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next'
 
 const LINKS = [
   { labelKey: 'footer.youtube', href: 'https://www.youtube.com/@v3xctrl' },
-  { labelKey: 'footer.discord', href: 'https://discord.gg/uF4hf8UBBW' },
+  { labelKey: 'footer.discord', href: 'https://discord.v3xctrl.com' },
   { labelKey: 'footer.instagram', href: 'https://instagram.com/v3xctrl' },
   { labelKey: 'footer.github', href: 'https://github.com/stylesuxx/v3xctrl/issues' },
 ]
