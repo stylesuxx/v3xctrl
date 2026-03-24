@@ -96,7 +96,9 @@ def open_port(path: str, logger: logging.Logger) -> serial.Serial:
     return serial.Serial(path, POLL_BAUDRATES[-1], timeout=SERIAL_TIMEOUT)
 
 
-def handle_nav_pvt(msg: UBXMessage, prev_sats: int | None, logger: logging.Logger, warn_count: list) -> int:
+def handle_nav_position_velocity_time(
+    msg: UBXMessage, prev_sats: int | None, logger: logging.Logger, warn_count: list
+) -> int:
     fix_type = msg.fixType
     num_sv = msg.numSV
     fix_name = FIX_NAMES.get(fix_type, f"UNK({fix_type})")
@@ -119,10 +121,10 @@ def handle_nav_pvt(msg: UBXMessage, prev_sats: int | None, logger: logging.Logge
     return int(num_sv)
 
 
-def handle_nav_sat(msg: UBXMessage, logger: logging.Logger, warn_count: list) -> None:
-    num_svs = msg.numSvs
+def handle_nav_satellites(msg: UBXMessage, logger: logging.Logger, warn_count: list) -> None:
+    satellite_count = msg.numSvs
     parts = []
-    for i in range(1, num_svs + 1):
+    for i in range(1, satellite_count + 1):
         gnss_id = getattr(msg, f"gnssId_{i:02d}", None)
         sv_id = getattr(msg, f"svId_{i:02d}", None)
         cno = getattr(msg, f"cno_{i:02d}", None)
@@ -148,10 +150,10 @@ def handle_nav_sat(msg: UBXMessage, logger: logging.Logger, warn_count: list) ->
             logger.warning(f"{format_timestamp()} [WARN] {gnss_name}{sv_id} satellite is unhealthy")
             warn_count[0] += 1
 
-    logger.info(f"{format_timestamp()} NAV-SAT  {num_svs} svs  | {' | '.join(parts)}")
+    logger.info(f"{format_timestamp()} NAV-SAT  {satellite_count} svs  | {' | '.join(parts)}")
 
 
-def handle_mon_rf(msg: UBXMessage, logger: logging.Logger, warn_count: list) -> None:
+def handle_monitor_rf(msg: UBXMessage, logger: logging.Logger, warn_count: list) -> None:
     n_blocks = msg.nBlocks
     parts = []
     for i in range(1, n_blocks + 1):
@@ -209,11 +211,11 @@ def main() -> None:
             if msg is None:
                 continue
             if msg.identity == "NAV-PVT":
-                prev_sats = handle_nav_pvt(msg, prev_sats, logger, warn_count)
+                prev_sats = handle_nav_position_velocity_time(msg, prev_sats, logger, warn_count)
             elif msg.identity == "NAV-SAT":
-                handle_nav_sat(msg, logger, warn_count)
+                handle_nav_satellites(msg, logger, warn_count)
             elif msg.identity == "MON-RF":
-                handle_mon_rf(msg, logger, warn_count)
+                handle_monitor_rf(msg, logger, warn_count)
             elif msg.identity.startswith("INF-"):
                 logger.info(f"{format_timestamp()} {msg.identity}: {getattr(msg, 'msgContent', msg.identity)}")
     except KeyboardInterrupt:
