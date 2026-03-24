@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { server } from '../mocks/server'
 import '@/lib/i18n'
@@ -64,10 +65,10 @@ describe('InfoPage', () => {
     render(<InfoPage />)
     await waitFor(() => {
       expect(screen.getByText('Persistent Logs')).toBeInTheDocument()
-      expect(screen.getByText('archive_4.tar.gz')).toBeInTheDocument()
-      expect(screen.getByText('archive_3.tar.gz')).toBeInTheDocument()
-      expect(screen.getByText('archive_2.tar.gz')).toBeInTheDocument()
-      expect(screen.getByText('archive_1.tar.gz')).toBeInTheDocument()
+      expect(screen.getByText('archive_4_2026-03-23_18-30.tar.gz')).toBeInTheDocument()
+      expect(screen.getByText('archive_3_2026-03-22_12-00.tar.gz')).toBeInTheDocument()
+      expect(screen.getByText('archive_2_2026-03-21_09-15.tar.gz')).toBeInTheDocument()
+      expect(screen.getByText('archive_1_2026-03-20_22-45.tar.gz')).toBeInTheDocument()
     })
   })
 
@@ -88,7 +89,7 @@ describe('InfoPage', () => {
       expect(downloadLinks).toHaveLength(4)
       expect(downloadLinks[0].closest('a')).toHaveAttribute(
         'href',
-        `${BASE}/system/logs/archive_4.tar.gz`,
+        `${BASE}/system/logs/archive_4_2026-03-23_18-30.tar.gz`,
       )
     })
   })
@@ -119,5 +120,67 @@ describe('InfoPage', () => {
       expect(screen.getByText('test-streamer')).toBeInTheDocument()
     })
     expect(screen.getByText(/no archives available/i)).toBeInTheDocument()
+  })
+
+  it('renders delete buttons for each archive', async () => {
+    render(<InfoPage />)
+    await waitFor(() => {
+      const deleteButtons = screen.getAllByText('Delete')
+      expect(deleteButtons).toHaveLength(4)
+    })
+  })
+
+  it('calls delete API and refreshes list when confirmed', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+    let deleteRequested = false
+    server.use(
+      http.delete(`${BASE}/system/logs/archive_4_2026-03-23_18-30.tar.gz`, () => {
+        deleteRequested = true
+        return HttpResponse.json({ data: { message: 'Deleted' }, error: null })
+      }),
+    )
+
+    render(<InfoPage />)
+    await waitFor(() => {
+      expect(screen.getByText('archive_4_2026-03-23_18-30.tar.gz')).toBeInTheDocument()
+    })
+
+    const deleteButtons = screen.getAllByText('Delete')
+    await user.click(deleteButtons[0])
+
+    expect(window.confirm).toHaveBeenCalled()
+    await waitFor(() => {
+      expect(deleteRequested).toBe(true)
+    })
+
+    window.confirm.mockRestore()
+  })
+
+  it('does not call delete API when confirmation is cancelled', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+
+    let deleteRequested = false
+    server.use(
+      http.delete(`${BASE}/system/logs/:filename`, () => {
+        deleteRequested = true
+        return HttpResponse.json({ data: { message: 'Deleted' }, error: null })
+      }),
+    )
+
+    render(<InfoPage />)
+    await waitFor(() => {
+      expect(screen.getByText('archive_4_2026-03-23_18-30.tar.gz')).toBeInTheDocument()
+    })
+
+    const deleteButtons = screen.getAllByText('Delete')
+    await user.click(deleteButtons[0])
+
+    expect(window.confirm).toHaveBeenCalled()
+    expect(deleteRequested).toBe(false)
+
+    window.confirm.mockRestore()
   })
 })
