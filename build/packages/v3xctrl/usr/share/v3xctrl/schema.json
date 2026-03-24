@@ -878,79 +878,79 @@
               }
             }
           }
-        },
-        "telemetry": {
-          "propertyOrder": 60,
+        }
+      }
+    },
+    "telemetry": {
+      "propertyOrder": 35,
+      "type": "object",
+      "title": "Telemetry",
+      "description": "Settings for telemetry that is transmitted back to the viewer like battery monitoring.<br/><i>Changes in this section require the 'v3xctrl-control' service to be restarted!</i>",
+      "options": {
+        "collapsed": true,
+        "disable_edit_json": true,
+        "disable_properties": true
+      },
+      "properties": {
+        "battery": {
+          "title": "Battery",
+          "description": "Battery monitor settings, alarm thresholds min and max values.",
+          "propertyOrder": 10,
           "type": "object",
-          "title": "Telemetry",
-          "description": "Settings for telemetry that is transmitted back to the viewer like battery monitoring.",
           "options": {
             "collapsed": true,
             "disable_edit_json": true,
             "disable_properties": true
           },
           "properties": {
-            "battery": {
-              "title": "Battery",
-              "description": "Battery monitor settings, alarm thresholds min and max values.",
+            "i2cAddress": {
+              "title": "I2C Address",
               "propertyOrder": 10,
-              "type": "object",
-              "options": {
-                "collapsed": true,
-                "disable_edit_json": true,
-                "disable_properties": true
-              },
-              "properties": {
-                "i2cAddress": {
-                  "title": "I2C Address",
-                  "propertyOrder": 10,
-                  "type": "string",
-                  "required": true,
-                  "default": "0x40",
-                  "description": "I2C address of the INA sensor. (Only change if you know that your address differs from defaults)"
-                },
-                "minVoltage": {
-                  "title": "Minimum Voltage (mV)",
-                  "propertyOrder": 20,
-                  "type": "integer",
-                  "required": true,
-                  "default": 3500,
-                  "description": "Minimum voltage per cell in millivolts (used to calculate battery percentage)"
-                },
-                "warnVoltage": {
-                  "title": "Warning Voltage (mV)",
-                  "propertyOrder": 30,
-                  "type": "integer",
-                  "required": true,
-                  "default": 3700,
-                  "description": "Level in millivolts at which low voltage warnings should be triggered"
-                },
-                "maxVoltage": {
-                  "title": "Maximum Voltage (mV)",
-                  "propertyOrder": 40,
-                  "type": "integer",
-                  "required": true,
-                  "default": 4200,
-                  "description": "Maximum voltage per cell in millivolts (used to calculate battery percentage)"
-                },
-                "shuntResistance": {
-                  "title": "Shunt Resistance (mΩ)",
-                  "propertyOrder": 50,
-                  "type": "integer",
-                  "required": true,
-                  "default": 50,
-                  "description": "Shunt resistor value in milliohms for current measurement"
-                },
-                "maxExpectedCurrent": {
-                  "title": "Max Expected Current (A)",
-                  "propertyOrder": 60,
-                  "type": "number",
-                  "required": true,
-                  "default": 10,
-                  "multipleOf": 0.1,
-                  "description": "Maximum expected current in Amperes (affects measurement resolution)"
-                }
-              }
+              "type": "string",
+              "required": true,
+              "default": "0x40",
+              "description": "I2C address of the INA sensor. (Only change if you know that your address differs from defaults)"
+            },
+            "minVoltage": {
+              "title": "Minimum Voltage (mV)",
+              "propertyOrder": 20,
+              "type": "integer",
+              "required": true,
+              "default": 3500,
+              "description": "Minimum voltage per cell in millivolts (used to calculate battery percentage)"
+            },
+            "warnVoltage": {
+              "title": "Warning Voltage (mV)",
+              "propertyOrder": 30,
+              "type": "integer",
+              "required": true,
+              "default": 3700,
+              "description": "Level in millivolts at which low voltage warnings should be triggered"
+            },
+            "maxVoltage": {
+              "title": "Maximum Voltage (mV)",
+              "propertyOrder": 40,
+              "type": "integer",
+              "required": true,
+              "default": 4200,
+              "description": "Maximum voltage per cell in millivolts (used to calculate battery percentage)"
+            },
+            "shuntResistance": {
+              "title": "Shunt Resistance (mΩ)",
+              "propertyOrder": 50,
+              "type": "integer",
+              "required": true,
+              "default": 50,
+              "description": "Shunt resistor value in milliohms for current measurement"
+            },
+            "maxExpectedCurrent": {
+              "title": "Max Expected Current (A)",
+              "propertyOrder": 60,
+              "type": "number",
+              "required": true,
+              "default": 10,
+              "multipleOf": 0.1,
+              "description": "Maximum expected current in Amperes (affects measurement resolution)"
             }
           }
         }

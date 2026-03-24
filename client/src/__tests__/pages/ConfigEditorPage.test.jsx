@@ -74,6 +74,18 @@ const fullSchema = {
         },
       },
     },
+    telemetry: {
+      propertyOrder: 35,
+      type: 'object',
+      title: 'Telemetry',
+      properties: {
+        testField: {
+          propertyOrder: 10,
+          type: 'boolean',
+          title: 'Test Telemetry Field',
+        },
+      },
+    },
   },
 }
 
@@ -359,6 +371,42 @@ describe('ConfigEditorPage', () => {
 
     await waitFor(() => {
       expect(restartService).toHaveBeenCalledWith('v3xctrl-service-manager')
+    })
+  })
+
+  it('calls saveConfig and restartService for telemetry section', async () => {
+    const saveConfig = vi.fn(() => Promise.resolve())
+    const restartService = vi.fn(() => Promise.resolve())
+
+    setupStores({
+      config: { ...mockConfig, telemetry: { ...mockConfig.telemetry } },
+      schema: fullSchema,
+      previousModel: 'generic',
+      saveConfig,
+    })
+    useServicesStore.setState({ restartService })
+
+    render(<ConfigEditorPage />)
+
+    const telemetryTab = screen.getByRole('button', { name: 'Telemetry' })
+    fireEvent.click(telemetryTab)
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Telemetry Field')).toBeInTheDocument()
+    })
+
+    const checkbox = screen.getByRole('checkbox', { name: 'Test Telemetry Field' })
+    fireEvent.click(checkbox)
+
+    const restartButton = screen.getByText('Save and restart v3xctrl-control')
+    fireEvent.click(restartButton)
+
+    await waitFor(() => {
+      expect(saveConfig).toHaveBeenCalled()
+    })
+
+    await waitFor(() => {
+      expect(restartService).toHaveBeenCalledWith('v3xctrl-control')
     })
   })
 

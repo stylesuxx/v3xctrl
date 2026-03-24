@@ -19,6 +19,7 @@ const SECTION_RESTART = {
   video: 'v3xctrl-video',
   camera: 'v3xctrl-video',
   control: 'v3xctrl-control',
+  telemetry: 'v3xctrl-control',
   development: null,
 }
 
