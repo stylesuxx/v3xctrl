@@ -110,6 +110,7 @@ class UBXGpsTelemetry(GpsTelemetry):
                 logger.debug("GPS: ignoring %s during config poll", msg.identity)
         except Exception as e:
             logger.debug("GPS: config poll error at %d baud: %s", baudrate, e)
+
         return None
 
     def _needs_update(self, current_config: dict[str, int]) -> set[str]:

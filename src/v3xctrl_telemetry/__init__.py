@@ -2,6 +2,7 @@
 from .dataclasses import (
     BatteryInfo,
     CellInfo,
+    GpsFixType,
     GstFlags,
     LocationInfo,
     ServiceFlags,
@@ -14,6 +15,7 @@ from .dataclasses import (
 __all__ = [
     "BatteryInfo",
     "CellInfo",
+    "GpsFixType",
     "GstFlags",
     "LocationInfo",
     "ServiceFlags",
