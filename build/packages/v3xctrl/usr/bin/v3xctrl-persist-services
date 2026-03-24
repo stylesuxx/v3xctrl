@@ -14,4 +14,4 @@ for service in "${SERVICES[@]}"; do
   UNIT_ARGS="$UNIT_ARGS -u ${service}.service"
 done
 
-exec journalctl -b -f --output=short-iso $UNIT_ARGS >> /data/journal/current-services
+exec stdbuf -oL journalctl -b -f --output=short-iso $UNIT_ARGS >> /data/journal/current-services
