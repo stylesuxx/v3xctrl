@@ -46,7 +46,7 @@ JAM_STATE = {0: "unknown", 1: "ok", 2: "WARNING", 3: "CRITICAL"}
 FIX_NAMES = {0: "NO_FIX", 1: "DR", 2: "2D", 3: "3D", 4: "GNSS+DR", 5: "TIME_ONLY"}
 
 
-def ts() -> str:
+def format_timestamp() -> str:
     now = time.time()
     return f"[{time.strftime('%H:%M:%S')}.{int(now % 1 * 1000):03d}]"
 
@@ -58,7 +58,7 @@ def open_at_baud(path: str, baudrate: int) -> serial.Serial | None:
         raw = port.read(256)
         if b"\xb5\x62" in raw:
             return port
-    except Exception:
+    except OSError:
         pass
     port.close()
     return None
@@ -69,6 +69,7 @@ def apply_debug_config(port: serial.Serial, logger: logging.Logger) -> None:
     cfg = UBXMessage.config_set(SET_LAYER_RAM, TXN_NONE, list(DEBUG_CONFIG.items()))
     port.write(cfg.serialize())
     port.flush()
+
     reader = UBXReader(port, quitonerror=ERR_IGNORE)
     deadline = time.monotonic() + 2.0
     while time.monotonic() < deadline:
@@ -76,26 +77,26 @@ def apply_debug_config(port: serial.Serial, logger: logging.Logger) -> None:
         if msg is None:
             continue
         if msg.identity == "ACK-ACK":
-            logger.info(f"{ts()} Config applied (RAM only - flash unchanged, reverts on power cycle)")
+            logger.info(f"{format_timestamp()} Config applied (RAM only - flash unchanged, reverts on power cycle)")
             return
         if msg.identity == "ACK-NAK":
-            logger.warning(f"{ts()} [WARN] Module rejected debug config")
+            logger.warning(f"{format_timestamp()} [WARN] Module rejected debug config")
             return
-    logger.warning(f"{ts()} [WARN] No ACK received for debug config write")
+    logger.warning(f"{format_timestamp()} [WARN] No ACK received for debug config write")
 
 
 def open_port(path: str, logger: logging.Logger) -> serial.Serial:
     for baudrate in POLL_BAUDRATES:
         port = open_at_baud(path, baudrate)
         if port is not None:
-            logger.info(f"{ts()} UBX sync found at {baudrate} baud on {path}")
+            logger.info(f"{format_timestamp()} UBX sync found at {baudrate} baud on {path}")
             apply_debug_config(port, logger)
             return port
-    logger.warning(f"{ts()} [WARN] No UBX sync found, opening at 9600 without config")
+    logger.warning(f"{format_timestamp()} [WARN] No UBX sync found, opening at 9600 without config")
     return serial.Serial(path, POLL_BAUDRATES[-1], timeout=SERIAL_TIMEOUT)
 
 
-def handle_nav_pvt(msg, prev_sats: int | None, logger: logging.Logger, warn_count: list) -> int:
+def handle_nav_pvt(msg: UBXMessage, prev_sats: int | None, logger: logging.Logger, warn_count: list) -> int:
     fix_type = msg.fixType
     num_sv = msg.numSV
     fix_name = FIX_NAMES.get(fix_type, f"UNK({fix_type})")
@@ -105,20 +106,20 @@ def handle_nav_pvt(msg, prev_sats: int | None, logger: logging.Logger, warn_coun
     else:
         pos = "lat=--  lon=--  speed=--"
 
-    logger.info(f"{ts()} NAV-PVT  fix={fix_name}  sats={num_sv}  {pos}")
+    logger.info(f"{format_timestamp()} NAV-PVT  fix={fix_name}  sats={num_sv}  {pos}")
 
     if prev_sats is not None and (prev_sats - num_sv) >= WARN_SAT_DROP:
-        logger.warning(f"{ts()} [WARN] sats dropped {prev_sats} -> {num_sv}")
+        logger.warning(f"{format_timestamp()} [WARN] sats dropped {prev_sats} -> {num_sv}")
         warn_count[0] += 1
 
     if fix_type not in FIX_NAMES:
-        logger.warning(f"{ts()} [WARN] unexpected fixType={fix_type}")
+        logger.warning(f"{format_timestamp()} [WARN] unexpected fixType={fix_type}")
         warn_count[0] += 1
 
     return int(num_sv)
 
 
-def handle_nav_sat(msg, logger: logging.Logger, warn_count: list) -> None:
+def handle_nav_sat(msg: UBXMessage, logger: logging.Logger, warn_count: list) -> None:
     num_svs = msg.numSvs
     parts = []
     for i in range(1, num_svs + 1):
@@ -138,17 +139,19 @@ def handle_nav_sat(msg, logger: logging.Logger, warn_count: list) -> None:
         parts.append(f"{used_marker}{gnss_name}{sv_id} CN0={cno} el={elev}{health_str}")
 
         if sv_used and cno is not None and cno < WARN_CN0_MIN:
-            logger.warning(f"{ts()} [WARN] {gnss_name}{sv_id} CN0={cno} dBHz below threshold ({WARN_CN0_MIN})")
+            logger.warning(
+                f"{format_timestamp()} [WARN] {gnss_name}{sv_id} CN0={cno} dBHz below threshold ({WARN_CN0_MIN})"
+            )
             warn_count[0] += 1
 
         if health == 2:
-            logger.warning(f"{ts()} [WARN] {gnss_name}{sv_id} satellite is unhealthy")
+            logger.warning(f"{format_timestamp()} [WARN] {gnss_name}{sv_id} satellite is unhealthy")
             warn_count[0] += 1
 
-    logger.info(f"{ts()} NAV-SAT  {num_svs} svs  | {' | '.join(parts)}")
+    logger.info(f"{format_timestamp()} NAV-SAT  {num_svs} svs  | {' | '.join(parts)}")
 
 
-def handle_mon_rf(msg, logger: logging.Logger, warn_count: list) -> None:
+def handle_mon_rf(msg: UBXMessage, logger: logging.Logger, warn_count: list) -> None:
     n_blocks = msg.nBlocks
     parts = []
     for i in range(1, n_blocks + 1):
@@ -165,18 +168,18 @@ def handle_mon_rf(msg, logger: logging.Logger, warn_count: list) -> None:
         parts.append(f"ant={ant_str} pwr={pwr_str} jam={jam_ind}/255 state={jam_state_str} agc={agc_cnt} noise={noise}")
 
         if ant_status in (3, 4):  # SHORT or OPEN
-            logger.warning(f"{ts()} [WARN] Antenna status: {ant_str}")
+            logger.warning(f"{format_timestamp()} [WARN] Antenna status: {ant_str}")
             warn_count[0] += 1
 
         if jam_ind is not None and jam_ind > WARN_JAM_MAX:
-            logger.warning(f"{ts()} [WARN] Jamming indicator high: {jam_ind}/255")
+            logger.warning(f"{format_timestamp()} [WARN] Jamming indicator high: {jam_ind}/255")
             warn_count[0] += 1
 
         if jam_state in (2, 3):  # warning or critical
-            logger.warning(f"{ts()} [WARN] Jamming state: {jam_state_str}")
+            logger.warning(f"{format_timestamp()} [WARN] Jamming state: {jam_state_str}")
             warn_count[0] += 1
 
-    logger.info(f"{ts()} MON-RF   {' | '.join(parts)}")
+    logger.info(f"{format_timestamp()} MON-RF   {' | '.join(parts)}")
 
 
 def main() -> None:
@@ -212,7 +215,7 @@ def main() -> None:
             elif msg.identity == "MON-RF":
                 handle_mon_rf(msg, logger, warn_count)
             elif msg.identity.startswith("INF-"):
-                logger.info(f"{ts()} {msg.identity}: {getattr(msg, 'msgContent', msg.identity)}")
+                logger.info(f"{format_timestamp()} {msg.identity}: {getattr(msg, 'msgContent', msg.identity)}")
     except KeyboardInterrupt:
         logger.info("-" * 80)
         if warn_count[0] == 0:
