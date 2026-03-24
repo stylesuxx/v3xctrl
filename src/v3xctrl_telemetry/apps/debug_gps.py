@@ -17,6 +17,8 @@ import time
 import serial
 from pyubx2 import ERR_IGNORE, SET_LAYER_RAM, TXN_NONE, UBXMessage, UBXReader
 
+from v3xctrl_telemetry.UBXGpsTelemetry import UBXMessageId
+
 logging.basicConfig(level=logging.DEBUG, format="%(message)s")
 
 GPS_PATH = "/dev/serial0"
@@ -76,10 +78,10 @@ def apply_debug_config(port: serial.Serial, logger: logging.Logger) -> None:
         _, msg = reader.read()
         if msg is None:
             continue
-        if msg.identity == "ACK-ACK":
+        if msg.identity == UBXMessageId.ACK_ACK:
             logger.info(f"{format_timestamp()} Config applied (RAM only - flash unchanged, reverts on power cycle)")
             return
-        if msg.identity == "ACK-NAK":
+        if msg.identity == UBXMessageId.ACK_NAK:
             logger.warning(f"{format_timestamp()} [WARN] Module rejected debug config")
             return
     logger.warning(f"{format_timestamp()} [WARN] No ACK received for debug config write")
@@ -210,14 +212,15 @@ def main() -> None:
             _, msg = reader.read()
             if msg is None:
                 continue
-            if msg.identity == "NAV-PVT":
-                prev_sats = handle_nav_position_velocity_time(msg, prev_sats, logger, warn_count)
-            elif msg.identity == "NAV-SAT":
-                handle_nav_satellites(msg, logger, warn_count)
-            elif msg.identity == "MON-RF":
-                handle_monitor_rf(msg, logger, warn_count)
-            elif msg.identity.startswith("INF-"):
-                logger.info(f"{format_timestamp()} {msg.identity}: {getattr(msg, 'msgContent', msg.identity)}")
+            match msg.identity:
+                case UBXMessageId.NAV_PVT:
+                    prev_sats = handle_nav_position_velocity_time(msg, prev_sats, logger, warn_count)
+                case UBXMessageId.NAV_SAT:
+                    handle_nav_satellites(msg, logger, warn_count)
+                case UBXMessageId.MON_RF:
+                    handle_monitor_rf(msg, logger, warn_count)
+                case identity if identity.startswith(UBXMessageId.INF_PREFIX):
+                    logger.info(f"{format_timestamp()} {identity}: {getattr(msg, 'msgContent', identity)}")
     except KeyboardInterrupt:
         logger.info("-" * 80)
         if warn_count[0] == 0:

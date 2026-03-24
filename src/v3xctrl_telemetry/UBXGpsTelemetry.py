@@ -28,6 +28,8 @@ _SERIAL_TIMEOUT = 0.1  # per-read timeout for steady-state update()
 
 class UBXMessageId(StrEnum):
     NAV_PVT = "NAV-PVT"
+    NAV_SAT = "NAV-SAT"
+    MON_RF = "MON-RF"
     CFG_VALGET = "CFG-VALGET"
     ACK_ACK = "ACK-ACK"
     ACK_NAK = "ACK-NAK"
