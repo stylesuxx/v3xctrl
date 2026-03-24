@@ -127,6 +127,14 @@ class TestUpdate(unittest.TestCase):
 
         assert gps.get_state().fix_type == GpsFixType.NO_FIX
 
+    def test_inf_message_logs_warning_and_returns_false(self):
+        gps, mock_port, mock_reader = _make_gps()
+        msg = _make_message("INF-NOTICE", msgContent="hello from module")
+        mock_port.in_waiting = 1
+        mock_reader.read.side_effect = _read_once(mock_port, msg)
+
+        assert gps.update() is False
+
     def test_non_nav_pvt_message_returns_false(self):
         gps, mock_port, mock_reader = _make_gps()
         mock_port.in_waiting = 1
@@ -198,6 +206,54 @@ class TestPollConfig(unittest.TestCase):
         assert result is not None
         assert result["CFG_UART1OUTPROT_UBX"] == 1
         assert result["CFG_RATE_MEAS"] == 200
+
+    def test_none_message_skipped_then_cfg_valget_returns_config(self):
+        mock_port = MagicMock()
+        cfg_msg = _make_message(
+            UBXMessageId.CFG_VALGET,
+            CFG_UART1OUTPROT_UBX=1,
+            CFG_UART1OUTPROT_NMEA=0,
+            CFG_MSGOUT_UBX_NAV_PVT_UART1=1,
+            CFG_RATE_MEAS=200,
+        )
+        mock_reader = MagicMock()
+        mock_reader.read.side_effect = [(None, None), (None, cfg_msg)]
+
+        with patch(f"{_MODULE}.UBXReader", return_value=mock_reader), patch(f"{_MODULE}.UBXMessage"):
+            result = self.gps._poll_config(mock_port, 115200)
+
+        assert result is not None
+        assert result["CFG_UART1OUTPROT_UBX"] == 1
+
+    def test_missing_key_in_cfg_valget_excluded_from_result(self):
+        mock_port = MagicMock()
+        cfg_msg = _make_message(UBXMessageId.CFG_VALGET)
+        cfg_msg.CFG_UART1OUTPROT_UBX = 1
+        cfg_msg.CFG_UART1OUTPROT_NMEA = 0
+        cfg_msg.CFG_MSGOUT_UBX_NAV_PVT_UART1 = None
+        cfg_msg.CFG_RATE_MEAS = 200
+        mock_reader = MagicMock()
+        mock_reader.read.return_value = (None, cfg_msg)
+
+        with patch(f"{_MODULE}.UBXReader", return_value=mock_reader), patch(f"{_MODULE}.UBXMessage"):
+            result = self.gps._poll_config(mock_port, 115200)
+
+        assert result is not None
+        assert "CFG_MSGOUT_UBX_NAV_PVT_UART1" not in result
+
+    def test_non_cfg_valget_message_ignored(self):
+        mock_port = MagicMock()
+        cfg_msg = _make_message(UBXMessageId.CFG_VALGET, **{k: 1 for k in _MATCHING_CONFIG})
+        mock_reader = MagicMock()
+        mock_reader.read.side_effect = [
+            (None, _make_message(UBXMessageId.NAV_PVT)),
+            (None, cfg_msg),
+        ]
+
+        with patch(f"{_MODULE}.UBXReader", return_value=mock_reader), patch(f"{_MODULE}.UBXMessage"):
+            result = self.gps._poll_config(mock_port, 115200)
+
+        assert result is not None
 
     def test_deadline_expired_returns_none(self):
         mock_port = MagicMock()
