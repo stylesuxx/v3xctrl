@@ -8,6 +8,7 @@ source "${ENV_PATH}"
 # Ensure journal directory exists
 JOURNAL_DIR="/data/journal"
 mkdir -p "$JOURNAL_DIR"
+chown v3xctrl:v3xctrl "$JOURNAL_DIR"
 
 # Archive previous boot's persistent logs
 if ls "$JOURNAL_DIR"/current-* 1>/dev/null 2>&1; then
