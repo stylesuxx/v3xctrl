@@ -32,6 +32,7 @@ export const handlers = [
   http.get(`${BASE}/system/dmesg`, () => ok({ log: '[0.000] Linux version...' })),
   http.get(`${BASE}/system/info`, () => ok(mockInfo)),
   http.get(`${BASE}/system/logs`, () => ok(mockLogArchives)),
+  http.delete(`${BASE}/system/logs/:filename`, () => ok({ message: 'Deleted' })),
 
   // Modem
   http.get(`${BASE}/modem`, () => ok(mockModemInfo)),

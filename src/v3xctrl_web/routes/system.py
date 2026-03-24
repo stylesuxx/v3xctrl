@@ -99,3 +99,13 @@ class LogArchiveDownload(MethodView):
         if not filepath.exists():
             return error("Archive not found", status=404)
         return send_file(filepath, as_attachment=True)
+
+    @blueprint.response(200, description="Delete a log archive")
+    def delete(self, filename: str) -> tuple[Response, int]:
+        filepath = JOURNAL_DIR / filename
+        if not filepath.name.startswith("archive_") or not filepath.name.endswith(".tar.gz"):
+            return error("Invalid filename", status=400)
+        if not filepath.exists():
+            return error("Archive not found", status=404)
+        filepath.unlink()
+        return success({"message": f"Deleted {filename}"})

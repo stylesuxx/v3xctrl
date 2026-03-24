@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useConnectionStore } from '@/stores/connection'
 import { systemApi } from '@/api/system'
-import { RefreshCw, Download } from 'lucide-react'
+import { RefreshCw, Download, Trash2 } from 'lucide-react'
 
 function formatFileSize(bytes) {
   if (bytes < 1024) {
@@ -47,6 +47,21 @@ export function InfoPage() {
       setArchives([])
     }
   }, [apiClient])
+
+  const deleteArchive = useCallback(async (filename) => {
+    if (!apiClient) {
+      return
+    }
+    if (!window.confirm(t('info.confirmDelete', { name: filename }))) {
+      return
+    }
+    try {
+      await systemApi.deleteLogArchive(apiClient, filename)
+      await fetchArchives()
+    } catch {
+      // fetch will update the list regardless
+    }
+  }, [apiClient, t, fetchArchives])
 
   useEffect(() => {
     fetchInfo()
@@ -118,14 +133,23 @@ export function InfoPage() {
                   <td className="px-4 py-2">{archive.name}</td>
                   <td className="px-4 py-2">{formatFileSize(archive.size)}</td>
                   <td className="px-4 py-2 text-right">
-                    <a
-                      href={`${deviceUrl}/system/logs/${archive.name}`}
-                      download
-                      className="inline-flex h-7 items-center gap-1 rounded-md bg-secondary px-2 text-xs font-medium text-secondary-foreground hover:bg-secondary/80"
-                    >
-                      <Download className="h-3 w-3" />
-                      {t('info.download')}
-                    </a>
+                    <div className="inline-flex gap-1">
+                      <a
+                        href={`${deviceUrl}/system/logs/${archive.name}`}
+                        download
+                        className="inline-flex h-7 items-center gap-1 rounded-md bg-secondary px-2 text-xs font-medium text-secondary-foreground hover:bg-secondary/80"
+                      >
+                        <Download className="h-3 w-3" />
+                        {t('info.download')}
+                      </a>
+                      <button
+                        onClick={() => deleteArchive(archive.name)}
+                        className="inline-flex h-7 items-center gap-1 rounded-md bg-destructive px-2 text-xs font-medium text-destructive-foreground hover:bg-destructive/80"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        {t('info.delete')}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

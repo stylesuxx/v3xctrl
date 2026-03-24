@@ -137,7 +137,9 @@
     },
     "persistentLogs": "Persistent Logs",
     "noArchives": "No archives available",
-    "download": "Download"
+    "download": "Download",
+    "delete": "Delete",
+    "confirmDelete": "Delete {{name}}?"
   },
   "system": {
     "rebooting": "Rebooting",

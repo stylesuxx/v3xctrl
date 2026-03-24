@@ -174,3 +174,39 @@ class TestLogArchiveDownload:
         response = client.get("/system/logs/archive_999.tar.gz")
 
         assert response.status_code == 404
+
+
+class TestLogArchiveDelete:
+    @pytest.fixture()
+    def journal_directory(self, tmp_path):
+        with patch("v3xctrl_web.routes.system.JOURNAL_DIR", tmp_path):
+            yield tmp_path
+
+    def test_delete_archive(self, client, journal_directory):
+        archive = journal_directory / "archive_1.tar.gz"
+        archive.write_bytes(b"x" * 100)
+
+        response = client.delete("/system/logs/archive_1.tar.gz")
+
+        assert response.status_code == 200
+        assert not archive.exists()
+
+    def test_delete_invalid_filename_no_prefix(self, client, journal_directory):
+        (journal_directory / "evil.tar.gz").write_bytes(b"data")
+
+        response = client.delete("/system/logs/evil.tar.gz")
+
+        assert response.status_code == 400
+        assert (journal_directory / "evil.tar.gz").exists()
+
+    def test_delete_invalid_filename_no_suffix(self, client, journal_directory):
+        (journal_directory / "archive_1.txt").write_bytes(b"data")
+
+        response = client.delete("/system/logs/archive_1.txt")
+
+        assert response.status_code == 400
+
+    def test_delete_nonexistent_archive(self, client, journal_directory):
+        response = client.delete("/system/logs/archive_999.tar.gz")
+
+        assert response.status_code == 404
