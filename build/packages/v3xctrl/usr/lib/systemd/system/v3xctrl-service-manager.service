@@ -1,6 +1,7 @@
 [Unit]
 Description=Service Manager (autostarts video and control services)
-After=network.target v3xctrl-wifi-mode.service v3xctrl-setup-env.service
+After=network.target time-sync.target v3xctrl-wifi-mode.service v3xctrl-setup-env.service
+Wants=time-sync.target
 Requires=v3xctrl-wifi-mode.service v3xctrl-setup-env.service
 
 [Service]
