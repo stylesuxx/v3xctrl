@@ -98,6 +98,7 @@ class UBXGpsTelemetry(GpsTelemetry):
             deadline = time.monotonic() + _CONFIG_POLL_TIMEOUT_S
             while time.monotonic() < deadline:
                 _, msg = reader.read()
+
                 if msg is None:
                     continue
                 if msg.identity == UBXMessageId.CFG_VALGET:
@@ -130,12 +131,13 @@ class UBXGpsTelemetry(GpsTelemetry):
             _, msg = reader.read()
             if msg is None:
                 continue
-            if msg.identity == UBXMessageId.ACK_ACK:
-                logger.info("GPS: config written successfully on %s", self._path)
-                return True
-            if msg.identity == UBXMessageId.ACK_NAK:
-                logger.warning("GPS: config write rejected (ACK-NAK) on %s", self._path)
-                return False
+            match msg.identity:
+                case UBXMessageId.ACK_ACK:
+                    logger.info("GPS: config written successfully on %s", self._path)
+                    return True
+                case UBXMessageId.ACK_NAK:
+                    logger.warning("GPS: config write rejected (ACK-NAK) on %s", self._path)
+                    return False
 
         logger.warning("GPS: config write no ACK received on %s", self._path)
         return False
