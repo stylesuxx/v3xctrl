@@ -133,9 +133,9 @@ export const mockInfo = {
 
 export const mockLogArchives = {
   archives: [
-    { name: 'archive_4_2026-03-23_18-30.tar.gz', size: 2621440 },
-    { name: 'archive_3_2026-03-22_12-00.tar.gz', size: 1048576 },
-    { name: 'archive_2_2026-03-21_09-15.tar.gz', size: 51200 },
-    { name: 'archive_1_2026-03-20_22-45.tar.gz', size: 512 },
+    { name: 'archive_0004_2026-03-23_18-30.tar.gz', size: 2621440 },
+    { name: 'archive_0003_2026-03-22_12-00.tar.gz', size: 1048576 },
+    { name: 'archive_0002_2026-03-21_09-15.tar.gz', size: 51200 },
+    { name: 'archive_0001_2026-03-20_22-45.tar.gz', size: 512 },
   ],
 }

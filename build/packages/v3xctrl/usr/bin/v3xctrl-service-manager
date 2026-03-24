@@ -13,10 +13,11 @@ chown v3xctrl:v3xctrl "$JOURNAL_DIR"
 # Archive previous boot's persistent logs
 if ls "$JOURNAL_DIR"/current-* 1>/dev/null 2>&1; then
   LAST_NUM=$(ls "$JOURNAL_DIR"/archive_*.tar.gz 2>/dev/null | sed 's/.*archive_\([0-9]*\)_.*/\1/' | sort -n | tail -1)
-  NEXT_NUM=$(( ${LAST_NUM:-0} + 1 ))
+  NEXT_NUM=$(( 10#${LAST_NUM:-0} + 1 ))
+  PADDED_NUM=$(printf "%04d" "$NEXT_NUM")
   OLDEST_FILE=$(ls -t "$JOURNAL_DIR"/current-* | tail -1)
   CREATED=$(date -r "$OLDEST_FILE" +%Y-%m-%d_%H-%M)
-  tar czf "$JOURNAL_DIR/archive_${NEXT_NUM}_${CREATED}.tar.gz" -C "$JOURNAL_DIR" $(ls "$JOURNAL_DIR"/current-* | xargs -n1 basename)
+  tar czf "$JOURNAL_DIR/archive_${PADDED_NUM}_${CREATED}.tar.gz" -C "$JOURNAL_DIR" $(ls "$JOURNAL_DIR"/current-* | xargs -n1 basename)
   rm -f "$JOURNAL_DIR"/current-*
 fi
 

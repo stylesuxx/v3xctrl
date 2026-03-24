@@ -65,10 +65,10 @@ describe('InfoPage', () => {
     render(<InfoPage />)
     await waitFor(() => {
       expect(screen.getByText('Persistent Logs')).toBeInTheDocument()
-      expect(screen.getByText('archive_4_2026-03-23_18-30.tar.gz')).toBeInTheDocument()
-      expect(screen.getByText('archive_3_2026-03-22_12-00.tar.gz')).toBeInTheDocument()
-      expect(screen.getByText('archive_2_2026-03-21_09-15.tar.gz')).toBeInTheDocument()
-      expect(screen.getByText('archive_1_2026-03-20_22-45.tar.gz')).toBeInTheDocument()
+      expect(screen.getByText('archive_0004_2026-03-23_18-30.tar.gz')).toBeInTheDocument()
+      expect(screen.getByText('archive_0003_2026-03-22_12-00.tar.gz')).toBeInTheDocument()
+      expect(screen.getByText('archive_0002_2026-03-21_09-15.tar.gz')).toBeInTheDocument()
+      expect(screen.getByText('archive_0001_2026-03-20_22-45.tar.gz')).toBeInTheDocument()
     })
   })
 
@@ -89,7 +89,7 @@ describe('InfoPage', () => {
       expect(downloadLinks).toHaveLength(4)
       expect(downloadLinks[0].closest('a')).toHaveAttribute(
         'href',
-        `${BASE}/system/logs/archive_4_2026-03-23_18-30.tar.gz`,
+        `${BASE}/system/logs/archive_0004_2026-03-23_18-30.tar.gz`,
       )
     })
   })
@@ -136,7 +136,7 @@ describe('InfoPage', () => {
 
     let deleteRequested = false
     server.use(
-      http.delete(`${BASE}/system/logs/archive_4_2026-03-23_18-30.tar.gz`, () => {
+      http.delete(`${BASE}/system/logs/archive_0004_2026-03-23_18-30.tar.gz`, () => {
         deleteRequested = true
         return HttpResponse.json({ data: { message: 'Deleted' }, error: null })
       }),
@@ -144,7 +144,7 @@ describe('InfoPage', () => {
 
     render(<InfoPage />)
     await waitFor(() => {
-      expect(screen.getByText('archive_4_2026-03-23_18-30.tar.gz')).toBeInTheDocument()
+      expect(screen.getByText('archive_0004_2026-03-23_18-30.tar.gz')).toBeInTheDocument()
     })
 
     const deleteButtons = screen.getAllByText('Delete')
@@ -172,7 +172,7 @@ describe('InfoPage', () => {
 
     render(<InfoPage />)
     await waitFor(() => {
-      expect(screen.getByText('archive_4_2026-03-23_18-30.tar.gz')).toBeInTheDocument()
+      expect(screen.getByText('archive_0004_2026-03-23_18-30.tar.gz')).toBeInTheDocument()
     })
 
     const deleteButtons = screen.getAllByText('Delete')
