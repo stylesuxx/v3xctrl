@@ -260,14 +260,14 @@ class OSD:
             if widget_name in self.widgets_battery:
                 self.widgets_battery[widget_name].set_text_color(color)
 
+        fix_color = RED
         if data.gps_fix_type == GpsFixType.NO_HARDWARE:
             fix_color = WHITE
         elif data.gps_fix_type >= GpsFixType.FIX_3D:
             fix_color = GREEN
         elif data.gps_fix_type >= GpsFixType.DEAD_RECKONING:
             fix_color = ORANGE
-        else:
-            fix_color = RED
+
         self.widgets_gps["gps_fix"].set_text_color(fix_color)
 
         logger.debug(f"Received telemetry message: {message.get_values()}")
@@ -319,9 +319,8 @@ class OSD:
 
     def _get_gps_value(self, name: str):
         gps = self.telemetry_context.get_gps()
-        if name == "gps_fix":
-            return self._GPS_FIX_LABELS.get(gps.fix_type, "NO FIX")
         mapping = {
+            "gps_fix": self._GPS_FIX_LABELS.get(gps.fix_type, "NO FIX"),
             "gps_icon": gps.fix_type,
             "gps_satellites": gps.satellites,
             "gps_speed": gps.speed,
