@@ -2,7 +2,6 @@
 GPS debug script - reads NAV-PVT, NAV-SAT, and MON-RF from a u-blox M10 module.
 
 Enables additional diagnostic messages in RAM only (flash config is not modified).
-Logs all output to /data/gps_debug_<timestamp>.log and prints to stdout.
 
 Usage:
     python -m v3xctrl_telemetry.apps.debug_gps [--path /dev/serial0]
@@ -14,13 +13,11 @@ import argparse
 import logging
 import sys
 import time
-from datetime import datetime
-from pathlib import Path
 
 import serial
 from pyubx2 import ERR_IGNORE, SET_LAYER_RAM, TXN_NONE, UBXMessage, UBXReader
 
-# --- Constants ---
+logging.basicConfig(level=logging.DEBUG, format="%(message)s")
 
 GPS_PATH = "/dev/serial0"
 POLL_BAUDRATES = (115200, 9600)
@@ -38,8 +35,6 @@ DEBUG_CONFIG = {
     "CFG_RATE_MEAS": 1000,  # 1 Hz
 }
 
-LOG_DIR = Path("/data")
-
 WARN_CN0_MIN = 25  # dBHz - below this for a used satellite is poor signal
 WARN_JAM_MAX = 50  # 0-255 - above this is a jamming concern
 WARN_SAT_DROP = 2  # warn if numSV drops by this many or more in one cycle
@@ -51,34 +46,9 @@ JAM_STATE = {0: "unknown", 1: "ok", 2: "WARNING", 3: "CRITICAL"}
 FIX_NAMES = {0: "NO_FIX", 1: "DR", 2: "2D", 3: "3D", 4: "GNSS+DR", 5: "TIME_ONLY"}
 
 
-# --- Logging setup ---
-
-
-def setup_logging() -> tuple[logging.Logger, Path]:
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    if LOG_DIR.exists():
-        log_file = LOG_DIR / f"gps_debug_{timestamp}.log"
-    else:
-        log_file = Path(f"gps_debug_{timestamp}.log")
-        print(f"[WARN] /data not found, logging to {log_file.absolute()}")
-
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format="%(message)s",
-        handlers=[
-            logging.StreamHandler(sys.stdout),
-            logging.FileHandler(log_file),
-        ],
-    )
-    return logging.getLogger("gps_debug"), log_file
-
-
 def ts() -> str:
     now = time.time()
     return f"[{time.strftime('%H:%M:%S')}.{int(now % 1 * 1000):03d}]"
-
-
-# --- Serial / config ---
 
 
 def open_at_baud(path: str, baudrate: int) -> serial.Serial | None:
@@ -123,9 +93,6 @@ def open_port(path: str, logger: logging.Logger) -> serial.Serial:
             return port
     logger.warning(f"{ts()} [WARN] No UBX sync found, opening at 9600 without config")
     return serial.Serial(path, POLL_BAUDRATES[-1], timeout=SERIAL_TIMEOUT)
-
-
-# --- Message formatters ---
 
 
 def handle_nav_pvt(msg, prev_sats: int | None, logger: logging.Logger, warn_count: list) -> int:
@@ -212,16 +179,12 @@ def handle_mon_rf(msg, logger: logging.Logger, warn_count: list) -> None:
     logger.info(f"{ts()} MON-RF   {' | '.join(parts)}")
 
 
-# --- Entry point ---
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description="GPS debug script - NAV-PVT + NAV-SAT + MON-RF")
     parser.add_argument("--path", default=GPS_PATH, help="Serial port path (default: /dev/serial0)")
     args = parser.parse_args()
 
-    logger, log_file = setup_logging()
-    logger.info(f"Log: {log_file.absolute()}")
+    logger = logging.getLogger("gps_debug")
     logger.info(f"Opening {args.path}...")
 
     warn_count = [0]

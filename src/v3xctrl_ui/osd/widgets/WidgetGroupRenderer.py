@@ -79,9 +79,13 @@ def render_group(
         body = pygame.Surface((width, body_height), pygame.SRCALPHA)
         body.blit(composed, (0, 0), (0, header_height, width, body_height))
         screen.blit(composed, position, (0, 0, width, header_height))
-        screen.blit(round_corners(body, corner_radius), (position[0], position[1] + header_height))
+        blit_surface = round_corners(body, corner_radius)
+        blit_position = (position[0], position[1] + header_height)
     else:
-        screen.blit(round_corners(composed, corner_radius), position)
+        blit_surface = round_corners(composed, corner_radius)
+        blit_position = position
+
+    screen.blit(blit_surface, blit_position)
 
 
 def _render_individual_widgets(
