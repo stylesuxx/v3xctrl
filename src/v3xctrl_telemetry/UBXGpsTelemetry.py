@@ -90,6 +90,7 @@ class UBXGpsTelemetry(GpsTelemetry):
     def _poll_config(self, port: serial.Serial, baudrate: int) -> dict[str, int] | None:
         """Send CFG-VALGET poll and return current config values as a dict, or None if not received."""
         try:
+            port.timeout = _SERIAL_TIMEOUT
             port.reset_input_buffer()
             poll = UBXMessage.config_poll(POLL_LAYER_RAM, 0, list(self._desired_config.keys()))
             port.write(poll.serialize())
@@ -121,6 +122,7 @@ class UBXGpsTelemetry(GpsTelemetry):
         return {key for key, desired in self._desired_config.items() if current_config.get(key) != desired}
 
     def _write_config(self, port: serial.Serial) -> bool:
+        port.timeout = _SERIAL_TIMEOUT
         layers = SET_LAYER_RAM | SET_LAYER_BBR | SET_LAYER_FLASH
         cfg = UBXMessage.config_set(layers, TXN_NONE, list(self._desired_config.items()))
         port.write(cfg.serialize())
