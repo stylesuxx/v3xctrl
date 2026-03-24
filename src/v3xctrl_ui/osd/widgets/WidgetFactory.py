@@ -4,6 +4,7 @@ from v3xctrl_ui.osd.widgets import (
     ClockWidget,
     FpsWidget,
     GpsIconWidget,
+    GpsSpeedWidget,
     HorizontalIndicatorWidget,
     RecWidget,
     SignalQualityWidget,
@@ -105,14 +106,13 @@ def create_clock_widget() -> dict[str, Widget]:
 def create_gps_widgets() -> dict[str, Widget]:
     position = (0, 0)
 
-    gps_icon_widget = GpsIconWidget(position, 90)
-    gps_fix_widget = TextWidget(position, 90)
-    gps_satellites_widget = TextWidget(position, 90)
-    gps_speed_widget = TextWidget(position, 90)
+    gps_icon_widget = GpsIconWidget(position, 70)
+    gps_fix_widget = TextWidget(position, 70)
+    gps_satellites_widget = TextWidget(position, 70)
+    gps_speed_widget = GpsSpeedWidget(position, 70)
 
     gps_fix_widget.set_alignment(Alignment.RIGHT)
     gps_satellites_widget.set_alignment(Alignment.RIGHT)
-    gps_speed_widget.set_alignment(Alignment.RIGHT)
 
     return {
         "gps_icon": gps_icon_widget,

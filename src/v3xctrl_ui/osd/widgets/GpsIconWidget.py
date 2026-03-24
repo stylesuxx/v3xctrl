@@ -21,13 +21,14 @@ class GpsIconWidget(Widget):
         self.icon_full_fix = get_icon("satellite_alt", size=self._ICON_SIZE, color=GREEN)
 
     def draw(self, screen: Surface, fix_type: GpsFixType) -> None:
-        if fix_type == GpsFixType.NO_HARDWARE:
-            icon = self.icon_no_hardware
-        elif fix_type == GpsFixType.NO_FIX:
-            icon = self.icon_no_fix
-        elif fix_type <= GpsFixType.FIX_2D:
-            icon = self.icon_partial_fix
-        else:
-            icon = self.icon_full_fix
+        match fix_type:
+            case GpsFixType.NO_HARDWARE:
+                icon = self.icon_no_hardware
+            case GpsFixType.NO_FIX:
+                icon = self.icon_no_fix
+            case GpsFixType.DEAD_RECKONING | GpsFixType.FIX_2D:
+                icon = self.icon_partial_fix
+            case _:
+                icon = self.icon_full_fix
 
         screen.blit(icon, (self.position[0] + self._x_offset, self.position[1]))
