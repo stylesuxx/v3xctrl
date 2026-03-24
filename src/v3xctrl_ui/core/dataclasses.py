@@ -72,5 +72,5 @@ class GpsData:
     """GPS telemetry data."""
 
     fix_type: GpsFixType = GpsFixType.NO_HARDWARE
-    speed: str = "0 km/h"
+    speed: float = 0.0
     satellites: str = "0 SAT"
