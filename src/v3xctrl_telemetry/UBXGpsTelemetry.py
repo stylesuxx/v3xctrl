@@ -19,7 +19,7 @@ from v3xctrl_telemetry.GpsTelemetry import GpsTelemetry
 
 logger = logging.getLogger(__name__)
 
-_POLL_BAUDRATES = (115200, 9600)
+_BAUD_DETECTION_ORDER = (115200, 9600)
 _BAUD_DETECT_TIMEOUT_S = 1.5  # per baud: raw read to detect \xb5\x62 sync; must exceed 1Hz message period
 _CONFIG_POLL_TIMEOUT_S = 2.0  # wait for CFG-VALGET after poll
 _ACK_READ_ATTEMPTS = 10  # attempts to read ACK after config write
@@ -61,11 +61,14 @@ class UBXGpsTelemetry(GpsTelemetry):
                     self._state.fix_type = GpsFixType(msg.fixType)
                 except ValueError:
                     self._state.fix_type = GpsFixType.NO_FIX
+
                 if self._state.fix_type >= GpsFixType.FIX_2D:
                     self._state.lat = msg.lat
                     self._state.lng = msg.lon
                     self._state.speed = msg.gSpeed * 3.6 / 1000.0
+
                 updated = True
+
         return updated
 
     def _open_at_baud(self, baudrate: int) -> serial.Serial | None:
@@ -138,7 +141,7 @@ class UBXGpsTelemetry(GpsTelemetry):
         return False
 
     def _configure_module(self) -> serial.Serial:
-        for baudrate in _POLL_BAUDRATES:
+        for baudrate in _BAUD_DETECTION_ORDER:
             port = self._open_at_baud(baudrate)
             if port is None:
                 continue
@@ -158,4 +161,4 @@ class UBXGpsTelemetry(GpsTelemetry):
             return port
 
         logger.warning("GPS: no UBX data on %s, opening at 9600 without config write", self._path)
-        return serial.Serial(self._path, _POLL_BAUDRATES[-1], timeout=_SERIAL_TIMEOUT)
+        return serial.Serial(self._path, _BAUD_DETECTION_ORDER[-1], timeout=_SERIAL_TIMEOUT)
