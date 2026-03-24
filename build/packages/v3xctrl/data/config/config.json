@@ -14,25 +14,25 @@
       "autoAdjust": true,
       "maxBytes": 25600
     },
-    "camera": {
-      "enableHdr": false,
-      "afMode": 0,
-      "lensPosition": 0,
-      "analogueGainMode": 0,
-      "analogueGain": 1,
-      "exposureTimeMode": 0,
-      "exposureTime": 32000,
-      "sensorMode": "0x0",
-      "brightness": 0.0,
-      "contrast": 1.0,
-      "saturation": 1.0,
-      "sharpness": 0.0
-    },
     "qp": {
       "min": 20,
       "max": 51
     },
     "h264Profile": "high"
+  },
+  "camera": {
+    "enableHdr": false,
+    "afMode": 0,
+    "lensPosition": 0,
+    "analogueGainMode": 0,
+    "analogueGain": 1,
+    "exposureTimeMode": 0,
+    "exposureTime": 32000,
+    "sensorMode": "0x0",
+    "brightness": 0.0,
+    "contrast": 1.0,
+    "saturation": 1.0,
+    "sharpness": 0.0
   },
   "control": {
     "autostart": true,
@@ -58,35 +58,35 @@
     "pwm": {
       "throttle": 0,
       "steering": 1
+    }
+  },
+  "telemetry": {
+    "battery": {
+      "i2cAddress": "0x40",
+      "minVoltage": 3500,
+      "warnVoltage": 3700,
+      "maxVoltage": 4200,
+      "shuntResistance": 50,
+      "maxExpectedCurrent": 10
+    }
+  },
+  "viewer": {
+    "mode": "direct",
+    "transport": "udp",
+    "direct": {
+      "host": "192.168.1.100"
     },
-    "telemetry": {
-      "battery": {
-        "i2cAddress": "0x40",
-        "minVoltage": 3500,
-        "warnVoltage": 3700,
-        "maxVoltage": 4200,
-        "shuntResistance": 50,
-        "maxExpectedCurrent": 10
-      }
+    "relay": {
+      "host": "relay.v3xctrl.com:8888",
+      "sessionId": "test123"
+    },
+    "ports": {
+      "control": 16386,
+      "video": 16384
     }
   },
   "network": {
     "routing": "wlan",
-    "server": {
-      "mode": "direct",
-      "transport": "udp",
-      "direct": {
-        "host": "192.168.1.100"
-      },
-      "relay": {
-        "host": "relay.v3xctrl.com:8888",
-        "sessionId": "test123"
-      },
-      "ports": {
-        "control": 16386,
-        "video": 16384
-      }
-    },
     "wifi": {
       "mode": "client"
     },

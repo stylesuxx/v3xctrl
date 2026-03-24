@@ -25,7 +25,7 @@ if [ -e "$SUBDEV_0" ]; then
   CONTROL="wide_dynamic_range"
   if v4l2-ctl -d "$SUBDEV_0" --list-ctrls | grep -q "$CONTROL"; then
     WIDE_DYNAMIC_RANGE=0
-    if [ "$video_camera_enableHdr" = "true" ]; then
+    if [ "$camera_enableHdr" = "true" ]; then
       echo "Enable HDR mode..."
       WIDE_DYNAMIC_RANGE=1
     else
@@ -40,9 +40,9 @@ fi
 IFS='x@' read -r video_width video_height video_framerate <<< "$video_resolution"
 
 ARGS=(
-  "$network_server_direct_host"
-  "$network_server_ports_video"
-  "$network_server_ports_video_bind"
+  "$viewer_direct_host"
+  "$viewer_ports_video"
+  "$viewer_ports_video_bind"
   --width "$video_width"
   --height "$video_height"
   --framerate "$video_framerate"
@@ -53,19 +53,19 @@ ARGS=(
   --qp-minimum "$video_qp_min"
   --qp-maximum "$video_qp_max"
   --max-i-frame-bytes "$video_iFrame_maxBytes"
-  --af-mode "$video_camera_afMode"
-  --lens-position "$video_camera_lensPosition"
-  --analogue-gain-mode "$video_camera_analogueGainMode"
-  --analogue-gain "$video_camera_analogueGain"
-  --exposure-time-mode "$video_camera_exposureTimeMode"
-  --exposure-time "$video_camera_exposureTime"
-  --sensor-mode "$video_camera_sensorMode"
-  --brightness "$video_camera_brightness"
-  --contrast "$video_camera_contrast"
-  --saturation "$video_camera_saturation"
-  --sharpness "$video_camera_sharpness"
+  --af-mode "$camera_afMode"
+  --lens-position "$camera_lensPosition"
+  --analogue-gain-mode "$camera_analogueGainMode"
+  --analogue-gain "$camera_analogueGain"
+  --exposure-time-mode "$camera_exposureTimeMode"
+  --exposure-time "$camera_exposureTime"
+  --sensor-mode "$camera_sensorMode"
+  --brightness "$camera_brightness"
+  --contrast "$camera_contrast"
+  --saturation "$camera_saturation"
+  --sharpness "$camera_sharpness"
   --log "${development_logLevel}"
-  --transport "$network_server_transport"
+  --transport "$viewer_transport"
 )
 
 if [ -n "$video_record_path" ] && [ "$video_record_path" != "null" ]; then
@@ -84,8 +84,8 @@ if [ "$video_testSource" = "true" ]; then
   ARGS+=(--test-pattern)
 fi
 
-if [ "$network_server_mode" = "relay" ] && [ "$network_server_transport" = "tcp" ]; then
-  ARGS+=(--relay-session-id "$network_server_relay_sessionId")
+if [ "$viewer_mode" = "relay" ] && [ "$viewer_transport" = "tcp" ]; then
+  ARGS+=(--relay-session-id "$viewer_relay_sessionId")
 fi
 
 if [ -n "$FILE_SRC" ]; then

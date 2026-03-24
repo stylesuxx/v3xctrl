@@ -15,10 +15,10 @@ export const useCameraStore = create((set, get) => ({
   },
 
   initFromConfig: (config) => {
-    if (!config?.video?.camera) {
+    if (!config?.camera) {
       return
     }
-    const cam = config.video.camera
+    const cam = config.camera
     set({
       settings: {
         brightness: cam.brightness ?? 0,
@@ -56,13 +56,13 @@ export const useCameraStore = create((set, get) => ({
     const { settings } = get()
     const configStore = useConfigStore.getState()
     const config = structuredClone(configStore.config)
-    config.video.camera.brightness = settings.brightness
-    config.video.camera.contrast = settings.contrast
-    config.video.camera.saturation = settings.saturation
-    config.video.camera.sharpness = settings.sharpness
-    config.video.camera.lensPosition = settings['lens-position']
-    config.video.camera.analogueGain = settings['analogue-gain']
-    config.video.camera.exposureTime = settings['exposure-time']
+    config.camera.brightness = settings.brightness
+    config.camera.contrast = settings.contrast
+    config.camera.saturation = settings.saturation
+    config.camera.sharpness = settings.sharpness
+    config.camera.lensPosition = settings['lens-position']
+    config.camera.analogueGain = settings['analogue-gain']
+    config.camera.exposureTime = settings['exposure-time']
     await configStore.saveConfig(config)
   },
 }))

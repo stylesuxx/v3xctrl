@@ -5,48 +5,48 @@ ENV_PATH="/run/v3xctrl.env"
 source "${ENV_PATH}"
 
 # TCP relay mode: no UDP registration needed, TcpTunnel handles handshake
-if [ "$network_server_transport" = "tcp" ]; then
-  relay_host="${network_server_relay_host}"
+if [ "$viewer_transport" = "tcp" ]; then
+  relay_host="${viewer_relay_host}"
   relay_port="8888"
 
-  if [[ "$network_server_relay_host" == *:* ]]; then
-    relay_host="${network_server_relay_host%%:*}"
-    relay_port="${network_server_relay_host##*:}"
+  if [[ "$viewer_relay_host" == *:* ]]; then
+    relay_host="${viewer_relay_host%%:*}"
+    relay_port="${viewer_relay_host##*:}"
   fi
 
   sed -i \
-    -e "s/^network_server_direct_host=.*/network_server_direct_host=${relay_host}/" \
-    -e "s/^network_server_ports_video=.*/network_server_ports_video=${relay_port}/" \
-    -e "s/^network_server_ports_control=.*/network_server_ports_control=${relay_port}/" \
+    -e "s/^viewer_direct_host=.*/viewer_direct_host=${relay_host}/" \
+    -e "s/^viewer_ports_video=.*/viewer_ports_video=${relay_port}/" \
+    -e "s/^viewer_ports_control=.*/viewer_ports_control=${relay_port}/" \
     "$ENV_PATH"
   exit 0
 fi
 
-relay_host="${network_server_relay_host}"
+relay_host="${viewer_relay_host}"
 extra_args=()
 
 # Split host:port if provided
-if [[ "$network_server_relay_host" == *:* ]]; then
-  relay_host="${network_server_relay_host%%:*}"
-  relay_port="${network_server_relay_host##*:}"
+if [[ "$viewer_relay_host" == *:* ]]; then
+  relay_host="${viewer_relay_host%%:*}"
+  relay_port="${viewer_relay_host##*:}"
   extra_args+=(--port "$relay_port")
 fi
 
 json=$(
   v3xctrl-python -m v3xctrl_relay.apps.getRelayInfo \
-    "$relay_host" "$network_server_relay_sessionId" \
-    --port-video "$network_server_ports_video_bind" \
-    --port-control "$network_server_ports_control_bind" \
+    "$relay_host" "$viewer_relay_sessionId" \
+    --port-video "$viewer_ports_video_bind" \
+    --port-control "$viewer_ports_control_bind" \
     --log "$development_logLevel" \
     "${extra_args[@]}"
 )
 
-network_server_direct_host=$(echo "$json" | jq -r '.network.server.direct.host')
-network_server_ports_video=$(echo "$json" | jq -r '.network.server.ports.video')
-network_server_ports_control=$(echo "$json" | jq -r '.network.server.ports.control')
+viewer_direct_host=$(echo "$json" | jq -r '.viewer.direct.host')
+viewer_ports_video=$(echo "$json" | jq -r '.viewer.ports.video')
+viewer_ports_control=$(echo "$json" | jq -r '.viewer.ports.control')
 
 sed -i \
-  -e "s/^network_server_direct_host=.*/network_server_direct_host=${network_server_direct_host}/" \
-  -e "s/^network_server_ports_video=.*/network_server_ports_video=${network_server_ports_video}/" \
-  -e "s/^network_server_ports_control=.*/network_server_ports_control=${network_server_ports_control}/" \
+  -e "s/^viewer_direct_host=.*/viewer_direct_host=${viewer_direct_host}/" \
+  -e "s/^viewer_ports_video=.*/viewer_ports_video=${viewer_ports_video}/" \
+  -e "s/^viewer_ports_control=.*/viewer_ports_control=${viewer_ports_control}/" \
   "$ENV_PATH"

@@ -1,12 +1,12 @@
 export const mockConfig = {
+  viewer: {
+    mode: 'direct',
+    direct: { host: '192.168.1.100' },
+    relay: { sessionId: 'test123', host: 'relay.v3xctrl.com:8888' },
+    ports: { video: 16384, control: 16386 },
+  },
   network: {
     routing: 'wlan',
-    server: {
-      mode: 'direct',
-      direct: { host: '192.168.1.100' },
-      relay: { sessionId: 'test123', host: 'relay.v3xctrl.com:8888' },
-      ports: { video: 16384, control: 16386 },
-    },
     wifi: { mode: 'client' },
     modem: {
       model: 'generic',
@@ -25,20 +25,20 @@ export const mockConfig = {
     record: { autostart: false, path: '/data/recordings' },
     iFrame: { period: 15, autoAdjust: true, maxBytes: 25600 },
     qp: { min: 20, max: 51 },
-    camera: {
-      enableHdr: false,
-      afMode: 0,
-      lensPosition: 0,
-      analogueGainMode: 0,
-      analogueGain: 1,
-      exposureTimeMode: 0,
-      exposureTime: 32000,
-      sensorMode: '0x0',
-      brightness: 0.0,
-      contrast: 1.0,
-      saturation: 1.0,
-      sharpness: 0.0,
-    },
+  },
+  camera: {
+    enableHdr: false,
+    afMode: 0,
+    lensPosition: 0,
+    analogueGainMode: 0,
+    analogueGain: 1,
+    exposureTimeMode: 0,
+    exposureTime: 32000,
+    sensorMode: '0x0',
+    brightness: 0.0,
+    contrast: 1.0,
+    saturation: 1.0,
+    sharpness: 0.0,
   },
   control: {
     autostart: true,
@@ -46,15 +46,15 @@ export const mockConfig = {
     throttle: { min: 1000, max: 2000, failsafe: 1500, idle: 1500, scaleForward: 100, scaleReverse: 100, minForward: 0, minReverse: 0 },
     steering: { min: 1000, max: 2000, failsafe: 1500, trim: 0, scale: 100, invert: false },
     pwm: { throttle: 0, steering: 1 },
-    telemetry: {
-      battery: {
-        i2cAddress: '0x40',
-        minVoltage: 3500,
-        warnVoltage: 3700,
-        maxVoltage: 4200,
-        shuntResistance: 100,
-        maxExpectedCurrent: 0.8,
-      },
+  },
+  telemetry: {
+    battery: {
+      i2cAddress: '0x40',
+      minVoltage: 3500,
+      warnVoltage: 3700,
+      maxVoltage: 4200,
+      shuntResistance: 100,
+      maxExpectedCurrent: 0.8,
     },
   },
   development: { logLevel: 'ERROR' },

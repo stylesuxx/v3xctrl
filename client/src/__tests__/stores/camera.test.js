@@ -33,7 +33,7 @@ describe('useCameraStore', () => {
       expect(settings['exposure-time']).toBe(32000)
     })
 
-    it('does nothing if config has no video section', () => {
+    it('does nothing if config has no camera section', () => {
       const originalSettings = { ...useCameraStore.getState().settings }
       useCameraStore.getState().initFromConfig({})
       expect(useCameraStore.getState().settings).toEqual(originalSettings)
@@ -91,13 +91,13 @@ describe('useCameraStore', () => {
 
       expect(mockSaveConfig).toHaveBeenCalledTimes(1)
       const savedConfig = mockSaveConfig.mock.calls[0][0]
-      expect(savedConfig.video.camera.brightness).toBe(0.5)
-      expect(savedConfig.video.camera.contrast).toBe(1.5)
-      expect(savedConfig.video.camera.saturation).toBe(0.8)
-      expect(savedConfig.video.camera.sharpness).toBe(2.0)
-      expect(savedConfig.video.camera.lensPosition).toBe(5)
-      expect(savedConfig.video.camera.analogueGain).toBe(4)
-      expect(savedConfig.video.camera.exposureTime).toBe(50000)
+      expect(savedConfig.camera.brightness).toBe(0.5)
+      expect(savedConfig.camera.contrast).toBe(1.5)
+      expect(savedConfig.camera.saturation).toBe(0.8)
+      expect(savedConfig.camera.sharpness).toBe(2.0)
+      expect(savedConfig.camera.lensPosition).toBe(5)
+      expect(savedConfig.camera.analogueGain).toBe(4)
+      expect(savedConfig.camera.exposureTime).toBe(50000)
     })
 
     it('does not mutate the original config', async () => {
@@ -108,7 +108,7 @@ describe('useCameraStore', () => {
       useCameraStore.getState().updateSetting('brightness', 0.9)
       await useCameraStore.getState().saveAllSettings()
 
-      expect(originalConfig.video.camera.brightness).toBe(0.0)
+      expect(originalConfig.camera.brightness).toBe(0.0)
     })
   })
 })

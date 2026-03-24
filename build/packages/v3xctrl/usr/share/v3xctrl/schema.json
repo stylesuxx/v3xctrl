@@ -9,7 +9,7 @@
       "propertyOrder": 10,
       "type": "object",
       "title": "Network",
-      "description": "Viewer, WiFi and Modem settings.<br/><i>Changes in this section require the streamer to be restarted!</i>",
+      "description": "WiFi and Modem settings.<br/><i>Changes in this section require a reboot!</i>",
       "options": {
         "collapsed": true
       },
@@ -31,123 +31,8 @@
             ]
           }
         },
-        "server": {
-          "propertyOrder": 20,
-          "title": "Viewer",
-          "description": "Connection settings for viewer and relay.<br/><i>Changes in this section require the 'v3xctrl-service-manager' service to be restarted!</i>",
-          "type": "object",
-          "options": {
-            "collapsed": true
-          },
-          "properties": {
-            "mode": {
-              "propertyOrder": 10,
-              "title": "Connection Mode",
-              "type": "string",
-              "enum": [
-                "direct",
-                "relay"
-              ],
-              "options": {
-                "enum_titles": [
-                  "Direct",
-                  "Relay server"
-                ]
-              },
-              "required": true,
-              "default": "direct",
-              "description": "Choose how the client connects to the server."
-            },
-            "transport": {
-              "propertyOrder": 15,
-              "title": "Transport",
-              "type": "string",
-              "enum": [
-                "udp",
-                "tcp"
-              ],
-              "options": {
-                "enum_titles": [
-                  "UDP (default)",
-                  "TCP"
-                ]
-              },
-              "required": true,
-              "default": "udp",
-              "description": "Transport protocol. Try TCP if video doesn't work over mobile (some carriers drop high-bandwidth UDP)."
-            },
-            "direct": {
-              "propertyOrder": 20,
-              "title": "Direct Connection",
-              "description": "Connection settings for direct P2P connection.",
-              "type": "object",
-              "options": {
-                "collapsed": true
-              },
-              "properties": {
-                "host": {
-                  "propertyOrder": 20,
-                  "type": "string",
-                  "title": "Host",
-                  "default": "192.168.1.100",
-                  "description": "Target host running the viewer. IP address is preferred but domain name is fine. (Used in direct mode only)"
-                }
-              }
-            },
-            "relay": {
-              "propertyOrder": 30,
-              "title": "Relay Server",
-              "description": "Connection settings for relay connection.",
-              "type": "object",
-              "options": {
-                "collapsed": true
-              },
-              "properties": {
-                "sessionId": {
-                  "propertyOrder": 30,
-                  "type": "string",
-                  "title": "Session ID",
-                  "default": "test123",
-                  "description": "Needs to be the same on streamer and viewer."
-                },
-                "host": {
-                  "propertyOrder": 40,
-                  "type": "string",
-                  "title": "Relay Server",
-                  "default": "relay.v3xctrl.com:8888",
-                  "description": "Change if you are using your own relay server."
-                }
-              }
-            },
-            "ports": {
-              "propertyOrder": 40,
-              "type": "object",
-              "title": "Ports",
-              "description": "Outgoing ports. In direct mode those MUST match the viewers ports",
-              "options": {
-                "collapsed": true
-              },
-              "properties": {
-                "video": {
-                  "propertyOrder": 10,
-                  "type": "integer",
-                  "default": 16384,
-                  "title" : "Video port",
-                  "description": "Port for outgoing video stream."
-                },
-                "control": {
-                  "propertyOrder": 20,
-                  "type": "integer",
-                  "default": 16386,
-                  "title" : "Control port",
-                  "description": "Port for the bi-directional control channel."
-                }
-              }
-            }
-          }
-        },
         "wifi": {
-          "propertyOrder": 30,
+          "propertyOrder": 20,
           "type": "object",
           "title": "WiFi",
           "description": "Settings related to the WiFi device.",
@@ -174,7 +59,7 @@
           }
         },
         "modem": {
-          "propertyOrder": 40,
+          "propertyOrder": 30,
           "type": "object",
           "title": "Modem",
           "description": "Settings related to the LTE/4G modem.",
@@ -248,7 +133,7 @@
           }
         },
         "extras": {
-          "propertyOrder": 50,
+          "propertyOrder": 40,
           "type": "object",
           "title": "Extras",
           "description": "Miscelanious networking related settings.",
@@ -275,11 +160,126 @@
         }
       }
     },
+    "viewer": {
+      "propertyOrder": 15,
+      "title": "Viewer",
+      "description": "Connection settings for viewer and relay.<br/><i>Changes in this section require the 'v3xctrl-service-manager' service to be restarted!</i>",
+      "type": "object",
+      "options": {
+        "collapsed": true
+      },
+      "properties": {
+        "mode": {
+          "propertyOrder": 10,
+          "title": "Connection Mode",
+          "type": "string",
+          "enum": [
+            "direct",
+            "relay"
+          ],
+          "options": {
+            "enum_titles": [
+              "Direct",
+              "Relay server"
+            ]
+          },
+          "required": true,
+          "default": "direct",
+          "description": "Choose how the client connects to the server."
+        },
+        "transport": {
+          "propertyOrder": 15,
+          "title": "Transport",
+          "type": "string",
+          "enum": [
+            "udp",
+            "tcp"
+          ],
+          "options": {
+            "enum_titles": [
+              "UDP (default)",
+              "TCP"
+            ]
+          },
+          "required": true,
+          "default": "udp",
+          "description": "Transport protocol. Try TCP if video doesn't work over mobile (some carriers drop high-bandwidth UDP)."
+        },
+        "direct": {
+          "propertyOrder": 20,
+          "title": "Direct Connection",
+          "description": "Connection settings for direct P2P connection.",
+          "type": "object",
+          "options": {
+            "collapsed": true
+          },
+          "properties": {
+            "host": {
+              "propertyOrder": 20,
+              "type": "string",
+              "title": "Host",
+              "default": "192.168.1.100",
+              "description": "Target host running the viewer. IP address is preferred but domain name is fine. (Used in direct mode only)"
+            }
+          }
+        },
+        "relay": {
+          "propertyOrder": 30,
+          "title": "Relay Server",
+          "description": "Connection settings for relay connection.",
+          "type": "object",
+          "options": {
+            "collapsed": true
+          },
+          "properties": {
+            "sessionId": {
+              "propertyOrder": 30,
+              "type": "string",
+              "title": "Session ID",
+              "default": "test123",
+              "description": "Needs to be the same on streamer and viewer."
+            },
+            "host": {
+              "propertyOrder": 40,
+              "type": "string",
+              "title": "Relay Server",
+              "default": "relay.v3xctrl.com:8888",
+              "description": "Change if you are using your own relay server."
+            }
+          }
+        },
+        "ports": {
+          "propertyOrder": 40,
+          "type": "object",
+          "title": "Ports",
+          "description": "Outgoing ports. In direct mode those MUST match the viewers ports",
+          "options": {
+            "collapsed": true
+          },
+          "properties": {
+            "video": {
+              "propertyOrder": 10,
+              "type": "integer",
+              "default": 16384,
+              "title" : "Video port",
+              "description": "Port for outgoing video stream."
+            },
+            "control": {
+              "propertyOrder": 20,
+              "type": "integer",
+              "default": 16386,
+              "title" : "Control port",
+              "description": "Port for the bi-directional control channel."
+            }
+          }
+        }
+      }
+    },
     "video": {
-      "propertyOrder": 20,
+      "propertyOrder": 25,
       "type": "object",
       "title": "Video",
-      "description": "Video, camera and Encoder settings.<br/><i>Changes in this section require the 'v3xctrl-video' service to be restarted!</i>",
+      "description": "Video and encoder settings.<br/><i>Changes in this section require the 'v3xctrl-video' service to be restarted!</i>",
       "options": {
         "collapsed": true
       },
@@ -503,182 +503,188 @@
               "description": "Lowest quality allowed. Higher = more compression, smaller frames."
             }
           }
+        }
+      }
+    },
+    "camera": {
+      "propertyOrder": 30,
+      "type": "object",
+      "title": "Camera",
+      "description": "Camera hardware settings.<br/><i>Changes in this section require the 'v3xctrl-video' service to be restarted!</i>",
+      "options": {
+        "collapsed": true
+      },
+      "properties": {
+        "enableHdr": {
+          "propertyOrder": 10,
+          "title": "Enable HDR",
+          "description": "Only takes effect on cameras with HDR support (PiCam V3, ArduCam IMX708,...) - highly recommended when outside (improves handling of dark/bright transitions)",
+          "type": "boolean",
+          "format": "checkbox",
+          "default": false
         },
-        "camera": {
-          "propertyOrder": 100,
-          "type": "object",
-          "title": "Camera Settings",
+        "afMode": {
+          "propertyOrder": 20,
+          "title": "Auto focus",
+          "type": "integer",
+          "required": true,
+          "enum": [
+            0,
+            2
+          ],
           "options": {
-            "collapsed": true
+            "enum_titles": [
+              "Disabled",
+              "Continuous"
+            ]
           },
-          "properties": {
-            "enableHdr": {
-              "propertyOrder": 10,
-              "title": "Enable HDR",
-              "description": "Only takes effect on cameras with HDR support (PiCam V3, ArduCam IMX708,...) - highly recommended when outside (improves handling of dark/bright transitions)",
-              "type": "boolean",
-              "format": "checkbox",
-              "default": false
-            },
-            "afMode": {
-              "propertyOrder": 20,
-              "title": "Auto focus",
-              "type": "integer",
-              "required": true,
-              "enum": [
-                0,
-                2
-              ],
-              "options": {
-                "enum_titles": [
-                  "Disabled",
-                  "Continuous"
-                ]
-              },
-              "default": 0,
-              "description": "Only takes effect on cameras with focus module (like PiCam V3, some ArduCam models) - if auto focus is disabled, lens position will be applied"
-            },
-            "lensPosition": {
-              "propertyOrder": 30,
-              "title": "Lens position",
-              "type": "number",
-              "default": 0,
-              "description": "Only applied when autofocus is disabled. 0: Infinity; Focus(m) = 1/value; Eg.: value = 0.5, Focus = 2m"
-            },
-            "analogueGainMode": {
-              "propertyOrder": 40,
-              "title": "Gain Control",
-              "type": "integer",
-              "required": true,
-              "enum": [
-                0,
-                1
-              ],
-              "options": {
-                "enum_titles": [
-                  "Automatic",
-                  "Manual"
-                ]
-              },
-              "default": 0,
-              "description": "Control how the sensor gain is adjusted. Automatic mode adjusts gain based on lighting conditions; manual mode uses the fixed value below."
-            },
-            "analogueGain": {
-              "propertyOrder": 50,
-              "title": "Gain Level",
-              "type": "integer",
-              "required": true,
-              "enum": [
-                1,
-                2,
-                3,
-                4,
-                5,
-                6,
-                7,
-                8,
-                9,
-                10,
-                11,
-                12,
-                13,
-                14,
-                15,
-                16
-              ],
-              "default": 1,
-              "description": "Sensor gain multiplier (1-16). Higher values brighten the image in low light but increase noise. Use the lowest value that provides adequate brightness."
-            },
-            "exposureTimeMode": {
-              "propertyOrder": 60,
-              "title": "Exposure Control",
-              "type": "integer",
-              "required": true,
-              "enum": [
-                0,
-                1
-              ],
-              "options": {
-                "enum_titles": [
-                  "Automatic",
-                  "Manual"
-                ]
-              },
-              "default": 0,
-              "description": "Control how exposure time is determined. Automatic mode adjusts exposure based on lighting conditions; manual mode uses the fixed value below."
-            },
-            "exposureTime": {
-              "propertyOrder": 70,
-              "title": "Exposure Time (μs)",
-              "type": "integer",
-              "required": true,
-              "default": 32000,
-              "description": "Exposure duration in microseconds. Higher values brighten the image but increase motion blur. For video streaming, use the shortest time that provides adequate brightness."
-            },
-            "sensorMode": {
-              "propertyOrder": 80,
-              "title": "Force wide FOV",
-              "type": "string",
-              "required": true,
-              "enum": [
-                "0x0",
-                "2304x1296"
-              ],
-              "options": {
-                "enum_titles": [
-                  "Disabled",
-                  "RPi Cam v3, Arducam IMX708"
-                ]
-              },
-              "default": "0x0",
-              "description": "Some image sensors have wider FOV when requesting higher resolutions. With this setting you can force those higher resolutions to benefit from wider FOV."
-            },
-            "brightness": {
-              "propertyOrder": 90,
-              "title": "Brightness",
-              "type": "number",
-              "required": true,
-              "default": 0.0,
-              "minimum": -1.0,
-              "maximum": 1.0,
-              "description": "Change brightness in camera (not supported by all cameras)"
-            },
-            "contrast": {
-              "propertyOrder": 100,
-              "title": "Contrast",
-              "type": "number",
-              "required": true,
-              "default": 1.0,
-              "minimum": 0.0,
-              "maximum": 2.0,
-              "description": "Change contrast in camera (not supported by all cameras)"
-            },
-            "saturation": {
-              "propertyOrder": 110,
-              "title": "Saturation",
-              "type": "number",
-              "required": true,
-              "default": 1.0,
-              "minimum": 0.0,
-              "maximum": 2.0,
-              "description": "Change saturation in camera (not supported by all cameras)"
-            },
-            "sharpness": {
-              "propertyOrder": 120,
-              "title": "Sharpness",
-              "type": "number",
-              "required": true,
-              "default": 0.0,
-              "minimum": 0.0,
-              "maximum": 10.0,
-              "description": "Change sharpness in camera (not supported by all cameras)"
-            }
-          }
+          "default": 0,
+          "description": "Only takes effect on cameras with focus module (like PiCam V3, some ArduCam models) - if auto focus is disabled, lens position will be applied"
+        },
+        "lensPosition": {
+          "propertyOrder": 30,
+          "title": "Lens position",
+          "type": "number",
+          "default": 0,
+          "multipleOf": 0.1,
+          "description": "Only applied when autofocus is disabled. 0: Infinity; Focus(m) = 1/value; Eg.: value = 0.5, Focus = 2m"
+        },
+        "analogueGainMode": {
+          "propertyOrder": 40,
+          "title": "Gain Control",
+          "type": "integer",
+          "required": true,
+          "enum": [
+            0,
+            1
+          ],
+          "options": {
+            "enum_titles": [
+              "Automatic",
+              "Manual"
+            ]
+          },
+          "default": 0,
+          "description": "Control how the sensor gain is adjusted. Automatic mode adjusts gain based on lighting conditions; manual mode uses the fixed value below."
+        },
+        "analogueGain": {
+          "propertyOrder": 50,
+          "title": "Gain Level",
+          "type": "integer",
+          "required": true,
+          "enum": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "default": 1,
+          "description": "Sensor gain multiplier (1-16). Higher values brighten the image in low light but increase noise. Use the lowest value that provides adequate brightness."
+        },
+        "exposureTimeMode": {
+          "propertyOrder": 60,
+          "title": "Exposure Control",
+          "type": "integer",
+          "required": true,
+          "enum": [
+            0,
+            1
+          ],
+          "options": {
+            "enum_titles": [
+              "Automatic",
+              "Manual"
+            ]
+          },
+          "default": 0,
+          "description": "Control how exposure time is determined. Automatic mode adjusts exposure based on lighting conditions; manual mode uses the fixed value below."
+        },
+        "exposureTime": {
+          "propertyOrder": 70,
+          "title": "Exposure Time (μs)",
+          "type": "integer",
+          "required": true,
+          "default": 32000,
+          "description": "Exposure duration in microseconds. Higher values brighten the image but increase motion blur. For video streaming, use the shortest time that provides adequate brightness."
+        },
+        "sensorMode": {
+          "propertyOrder": 80,
+          "title": "Force wide FOV",
+          "type": "string",
+          "required": true,
+          "enum": [
+            "0x0",
+            "2304x1296"
+          ],
+          "options": {
+            "enum_titles": [
+              "Disabled",
+              "RPi Cam v3, Arducam IMX708"
+            ]
+          },
+          "default": "0x0",
+          "description": "Some image sensors have wider FOV when requesting higher resolutions. With this setting you can force those higher resolutions to benefit from wider FOV."
+        },
+        "brightness": {
+          "propertyOrder": 90,
+          "title": "Brightness",
+          "type": "number",
+          "required": true,
+          "default": 0.0,
+          "minimum": -1.0,
+          "maximum": 1.0,
+          "multipleOf": 0.1,
+          "description": "Change brightness in camera (not supported by all cameras)"
+        },
+        "contrast": {
+          "propertyOrder": 100,
+          "title": "Contrast",
+          "type": "number",
+          "required": true,
+          "default": 1.0,
+          "minimum": 0.0,
+          "maximum": 2.0,
+          "multipleOf": 0.1,
+          "description": "Change contrast in camera (not supported by all cameras)"
+        },
+        "saturation": {
+          "propertyOrder": 110,
+          "title": "Saturation",
+          "type": "number",
+          "required": true,
+          "default": 1.0,
+          "minimum": 0.0,
+          "maximum": 2.0,
+          "multipleOf": 0.1,
+          "description": "Change saturation in camera (not supported by all cameras)"
+        },
+        "sharpness": {
+          "propertyOrder": 120,
+          "title": "Sharpness",
+          "type": "number",
+          "required": true,
+          "default": 0.0,
+          "minimum": 0.0,
+          "maximum": 10.0,
+          "multipleOf": 0.1,
+          "description": "Change sharpness in camera (not supported by all cameras)"
         }
       }
     },
     "control": {
-      "propertyOrder": 30,
+      "propertyOrder": 20,
       "type": "object",
       "title": "Control",
       "description": "Steering, throttle and PWM settings.<br/><i>Changes in this section require the 'v3xctrl-control' service to be restarted!</i>",
@@ -872,78 +878,79 @@
               }
             }
           }
-        },
-        "telemetry": {
-          "propertyOrder": 60,
+        }
+      }
+    },
+    "telemetry": {
+      "propertyOrder": 35,
+      "type": "object",
+      "title": "Telemetry",
+      "description": "Settings for telemetry that is transmitted back to the viewer like battery monitoring.<br/><i>Changes in this section require the 'v3xctrl-control' service to be restarted!</i>",
+      "options": {
+        "collapsed": true,
+        "disable_edit_json": true,
+        "disable_properties": true
+      },
+      "properties": {
+        "battery": {
+          "title": "Battery",
+          "description": "Battery monitor settings, alarm thresholds min and max values.",
+          "propertyOrder": 10,
           "type": "object",
-          "title": "Telemetry",
-          "description": "Settings for telemetry that is transmitted back to the viewer like battery monitoring.",
           "options": {
             "collapsed": true,
             "disable_edit_json": true,
             "disable_properties": true
           },
           "properties": {
-            "battery": {
-              "title": "Battery",
-              "description": "Battery monitor settings, alarm thresholds min and max values.",
+            "i2cAddress": {
+              "title": "I2C Address",
               "propertyOrder": 10,
-              "type": "object",
-              "options": {
-                "collapsed": true,
-                "disable_edit_json": true,
-                "disable_properties": true
-              },
-              "properties": {
-                "i2cAddress": {
-                  "title": "I2C Address",
-                  "propertyOrder": 10,
-                  "type": "string",
-                  "required": true,
-                  "default": "0x40",
-                  "description": "I2C address of the INA sensor. (Only change if you know that your address differs from defaults)"
-                },
-                "minVoltage": {
-                  "title": "Minimum Voltage (mV)",
-                  "propertyOrder": 20,
-                  "type": "integer",
-                  "required": true,
-                  "default": 3500,
-                  "description": "Minimum voltage per cell in millivolts (used to calculate battery percentage)"
-                },
-                "warnVoltage": {
-                  "title": "Warning Voltage (mV)",
-                  "propertyOrder": 30,
-                  "type": "integer",
-                  "required": true,
-                  "default": 3700,
-                  "description": "Level in millivolts at which low voltage warnings should be triggered"
-                },
-                "maxVoltage": {
-                  "title": "Maximum Voltage (mV)",
-                  "propertyOrder": 40,
-                  "type": "integer",
-                  "required": true,
-                  "default": 4200,
-                  "description": "Maximum voltage per cell in millivolts (used to calculate battery percentage)"
-                },
-                "shuntResistance": {
-                  "title": "Shunt Resistance (mΩ)",
-                  "propertyOrder": 50,
-                  "type": "integer",
-                  "required": true,
-                  "default": 50,
-                  "description": "Shunt resistor value in milliohms for current measurement"
-                },
-                "maxExpectedCurrent": {
-                  "title": "Max Expected Current (A)",
-                  "propertyOrder": 60,
-                  "type": "number",
-                  "required": true,
-                  "default": 10,
-                  "description": "Maximum expected current in Amperes (affects measurement resolution)"
-                }
-              }
+              "type": "string",
+              "required": true,
+              "default": "0x40",
+              "description": "I2C address of the INA sensor. (Only change if you know that your address differs from defaults)"
+            },
+            "minVoltage": {
+              "title": "Minimum Voltage (mV)",
+              "propertyOrder": 20,
+              "type": "integer",
+              "required": true,
+              "default": 3500,
+              "description": "Minimum voltage per cell in millivolts (used to calculate battery percentage)"
+            },
+            "warnVoltage": {
+              "title": "Warning Voltage (mV)",
+              "propertyOrder": 30,
+              "type": "integer",
+              "required": true,
+              "default": 3700,
+              "description": "Level in millivolts at which low voltage warnings should be triggered"
+            },
+            "maxVoltage": {
+              "title": "Maximum Voltage (mV)",
+              "propertyOrder": 40,
+              "type": "integer",
+              "required": true,
+              "default": 4200,
+              "description": "Maximum voltage per cell in millivolts (used to calculate battery percentage)"
+            },
+            "shuntResistance": {
+              "title": "Shunt Resistance (mΩ)",
+              "propertyOrder": 50,
+              "type": "integer",
+              "required": true,
+              "default": 50,
+              "description": "Shunt resistor value in milliohms for current measurement"
+            },
+            "maxExpectedCurrent": {
+              "title": "Max Expected Current (A)",
+              "propertyOrder": 60,
+              "type": "number",
+              "required": true,
+              "default": 10,
+              "multipleOf": 0.1,
+              "description": "Maximum expected current in Amperes (affects measurement resolution)"
             }
           }
         }
