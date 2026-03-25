@@ -308,7 +308,7 @@ class OSD:
         return None
 
     _GPS_FIX_LABELS: ClassVar[dict[GpsFixType, str]] = {
-        GpsFixType.NO_HARDWARE: "GPS N/A",
+        GpsFixType.NO_HARDWARE: "NO GPS",
         GpsFixType.NO_FIX: "NO FIX",
         GpsFixType.DEAD_RECKONING: "DEAD REC",
         GpsFixType.FIX_2D: "2D FIX",
