@@ -48,6 +48,9 @@ class Streamer:
 
         self.last_udp_overflow_time: float = 0
 
+        self._udpsink_network_down: bool = False
+        self._udpsink_recovery_timeout_id: int | None = None
+
         self.timer = PipelineTimer()
 
         default_settings: dict[str, Any] = {
@@ -364,7 +367,39 @@ class Streamer:
 
         elif type == Gst.MessageType.WARNING:
             warn, debug = message.parse_warning()
-            logger.warning(f"Warning: {warn}, {debug}")
+            if self._is_udpsink_write_warning(message, warn):
+                self._handle_network_unreachable()
+            else:
+                logger.warning(f"Warning: {warn}, {debug}")
+
+    @staticmethod
+    def _is_udpsink_write_warning(message: Gst.Message, error: GLib.Error) -> bool:
+        return (
+            message.src is not None
+            and message.src.get_name() == "udpsink"
+            and error.domain == Gst.resource_error_quark()
+            and error.code == Gst.ResourceError.WRITE
+        )
+
+    def _handle_network_unreachable(self) -> None:
+        if not self._udpsink_network_down:
+            logger.warning("Network is unreachable")
+            self._udpsink_network_down = True
+
+        self._reschedule_recovery_timeout()
+
+    def _reschedule_recovery_timeout(self) -> None:
+        if self._udpsink_recovery_timeout_id is not None:
+            GLib.source_remove(self._udpsink_recovery_timeout_id)
+
+        self._udpsink_recovery_timeout_id = GLib.timeout_add(1000, self._on_recovery_timeout)
+
+    def _on_recovery_timeout(self) -> bool:
+        self._udpsink_network_down = False
+        self._udpsink_recovery_timeout_id = None
+        logger.info("Network recovered")
+
+        return False
 
     def _build_pipeline(self) -> bool:
         """
