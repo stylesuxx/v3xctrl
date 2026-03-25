@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw'
-import { mockConfig, mockSchema, mockServices, mockModemModels, mockModemInfo, mockInfo } from './data'
+import { mockConfig, mockSchema, mockServices, mockModemModels, mockModemInfo, mockInfo, mockLogArchives } from './data'
 
 const BASE = 'http://test-device'
 
@@ -31,6 +31,8 @@ export const handlers = [
   http.post(`${BASE}/system/shutdown`, () => ok({ message: 'Shutting down...' })),
   http.get(`${BASE}/system/dmesg`, () => ok({ log: '[0.000] Linux version...' })),
   http.get(`${BASE}/system/info`, () => ok(mockInfo)),
+  http.get(`${BASE}/system/logs`, () => ok(mockLogArchives)),
+  http.delete(`${BASE}/system/logs/:filename`, () => ok({ message: 'Deleted' })),
 
   // Modem
   http.get(`${BASE}/modem`, () => ok(mockModemInfo)),

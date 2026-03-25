@@ -1,0 +1,17 @@
+#!/bin/bash
+set -e
+
+ENV_PATH="/run/v3xctrl.env"
+source "${ENV_PATH}"
+
+if [ -z "$development_persistServices" ]; then
+  exit 0
+fi
+
+UNIT_ARGS=""
+IFS=',' read -ra SERVICES <<< "$development_persistServices"
+for service in "${SERVICES[@]}"; do
+  UNIT_ARGS="$UNIT_ARGS -u ${service}.service"
+done
+
+exec stdbuf -oL journalctl -b -f --output=short-iso $UNIT_ARGS >> /data/journal/current-services

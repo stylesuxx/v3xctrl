@@ -5,6 +5,33 @@ set -e
 ENV_PATH="/run/v3xctrl.env"
 source "${ENV_PATH}"
 
+# Ensure journal directory exists
+JOURNAL_DIR="/data/journal"
+mkdir -p "$JOURNAL_DIR"
+chown v3xctrl:v3xctrl "$JOURNAL_DIR"
+
+# Archive previous boot's persistent logs
+if ls "$JOURNAL_DIR"/current-* 1>/dev/null 2>&1; then
+  LAST_NUM=$(ls "$JOURNAL_DIR"/archive_*.tar.gz 2>/dev/null | sed 's/.*archive_\([0-9]*\)_.*/\1/' | sort -n | tail -1)
+  NEXT_NUM=$(( 10#${LAST_NUM:-0} + 1 ))
+  PADDED_NUM=$(printf "%04d" "$NEXT_NUM")
+  OLDEST_FILE=$(ls -t "$JOURNAL_DIR"/current-* | tail -1)
+  CREATED=$(date -r "$OLDEST_FILE" +%Y-%m-%d_%H-%M)
+  tar czf "$JOURNAL_DIR/archive_${PADDED_NUM}_${CREATED}.tar.gz" -C "$JOURNAL_DIR" $(ls "$JOURNAL_DIR"/current-* | xargs -n1 basename)
+  rm -f "$JOURNAL_DIR"/current-*
+fi
+
+# Start persistent logging as early as possible
+if [ "$development_persistSystemLog" = "true" ]; then
+  echo "Starting persistent dmesg logging..."
+  systemctl start v3xctrl-persist-dmesg
+fi
+
+if [ -n "$development_persistServices" ]; then
+  echo "Starting persistent service logging..."
+  systemctl start v3xctrl-persist-services
+fi
+
 if [ "$network_modem_limitBands" = "true" ]; then
   echo "Limiting bands..."
   v3xctrl-set-bands $network_modem_allowedBands

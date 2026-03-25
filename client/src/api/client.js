@@ -49,5 +49,6 @@ export function createApiClient(baseUrl) {
     get: (path, opts) => request('GET', path, opts),
     post: (path, body, opts) => request('POST', path, { body, ...opts }),
     put: (path, body, opts) => request('PUT', path, { body, ...opts }),
+    delete: (path, opts) => request('DELETE', path, opts),
   }
 }

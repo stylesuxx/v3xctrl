@@ -7,10 +7,13 @@ ENV_PATH="/run/v3xctrl.env"
 # This ensures the config persists across RO/RW modes
 CONFIG_PATH="/etc/v3xctrl/config.json"
 
-# Export everything except modem.allowedBands
+# Export everything except array fields (allowedBands, persistServices)
 jq -r '
   paths(scalars) as $p |
-  select($p != ["network", "modem", "allowedBands"] and ($p[0:3] != ["network", "modem", "allowedBands"])) |
+  select(
+    $p != ["network", "modem", "allowedBands"] and ($p[0:3] != ["network", "modem", "allowedBands"]) and
+    $p != ["development", "persistServices"] and ($p[0:2] != ["development", "persistServices"])
+  ) |
   [($p | map(tostring) | join("_")), (getpath($p))] |
   "\(.[0])=\(.[1])"
 ' "$CONFIG_PATH" > "$ENV_PATH"
@@ -20,6 +23,13 @@ jq -r '
   .network.modem.allowedBands?
   | select(type == "array")
   | "network_modem_allowedBands=" + (join(","))
+' "$CONFIG_PATH" >> "$ENV_PATH"
+
+# Append development.persistServices as comma-separated string
+jq -r '
+  .development.persistServices?
+  | select(type == "array")
+  | "development_persistServices=" + (join(","))
 ' "$CONFIG_PATH" >> "$ENV_PATH"
 
 source "${ENV_PATH}"

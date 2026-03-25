@@ -10,7 +10,7 @@ class TestListServices:
             response = client.get("/service/")
 
             data = response.get_json()["data"]
-            assert len(data["services"]) == 8
+            assert len(data["services"]) == 10
             for service in data["services"]:
                 assert service["type"] == "simple"
                 assert service["state"] == "active"
@@ -23,7 +23,7 @@ class TestListServices:
             response = client.get("/service/")
 
             data = response.get_json()["data"]
-            assert len(data["services"]) == 8
+            assert len(data["services"]) == 10
             for service in data["services"]:
                 assert service["type"] == "unknown"
                 assert service["state"] == "unknown"

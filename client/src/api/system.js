@@ -3,4 +3,6 @@ export const systemApi = {
   shutdown: (client) => client.post('/system/shutdown'),
   getDmesg: (client) => client.get('/system/dmesg').then(d => d.log),
   getInfo: (client) => client.get('/system/info'),
+  getLogArchives: (client) => client.get('/system/logs').then(d => d.archives),
+  deleteLogArchive: (client, filename) => client.delete(`/system/logs/${filename}`),
 }
