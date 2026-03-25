@@ -7,7 +7,7 @@ from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT, SMALL_MONO_FONT
 _TOP_PADDING = 5
 _BOTTOM_PADDING = 3
 _RIGHT_PADDING = 4
-_UNIT_GAP = 2
+_UNIT_GAP = 4
 
 
 class GpsSpeedWidget(Widget):
