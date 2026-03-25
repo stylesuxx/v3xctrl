@@ -8,11 +8,12 @@ from v3xctrl_ui.utils.helpers import get_icon
 
 class GpsIconWidget(Widget):
     _ICON_SIZE = 46  # matches BatteryIconWidget height (int(70 / 3 * 2))
+    _BOTTOM_PADDING = 4
 
     def __init__(self, position: tuple[int, int], width: int) -> None:
         self.position = position
         self.width = width
-        self.height = self._ICON_SIZE
+        self.height = self._ICON_SIZE + self._BOTTOM_PADDING
         self._x_offset = (width - self._ICON_SIZE) // 2
 
         self.icon_no_hardware = get_icon("satellite_alt", size=self._ICON_SIZE, color=GREY)
