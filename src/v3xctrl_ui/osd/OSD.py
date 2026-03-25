@@ -95,7 +95,6 @@ class OSD:
                 get_value=self._get_gps_value,
                 use_composition=True,
                 settings_aliases={"gps_fix": "gps_details", "gps_satellites": "gps_details"},
-                header_height=self.widgets_gps["gps_icon"].height,
             ),
         ]
 
