@@ -225,6 +225,7 @@ def main() -> None:
         _, msg = reader.read()
         if msg is None:
             continue
+
         match msg.identity:
             case UBXMessageId.NAV_PVT:
                 prev_sats = handle_nav_position_velocity_time(msg, prev_sats, logger, warn_count)
@@ -236,9 +237,7 @@ def main() -> None:
                 logger.info(f"{format_timestamp()} {identity}: {getattr(msg, 'msgContent', identity)}")
 
     logger.info("-" * 80)
-    if warn_count[0] == 0:
-        logger.info("Stopped. No warnings.")
-    else:
+    if warn_count[0] > 0:
         logger.warning(f"Stopped. Total warnings: {warn_count[0]}")
 
 
