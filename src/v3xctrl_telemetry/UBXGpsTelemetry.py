@@ -55,22 +55,25 @@ class UBXGpsTelemetry(GpsTelemetry):
             _, msg = self._reader.read()
             if msg is None:
                 continue
-            if msg.identity.startswith(UBXMessageId.INF_PREFIX):
-                logger.warning("GPS: module message: %s", getattr(msg, "msgContent", msg.identity))
-            if msg.identity == UBXMessageId.NAV_PVT:
-                self._state.satellites = msg.numSV
-                try:
-                    self._state.fix_type = GpsFixType(msg.fixType)
 
-                except ValueError:
-                    self._state.fix_type = GpsFixType.NO_FIX
+            match msg.identity:
+                case UBXMessageId.NAV_PVT:
+                    self._state.satellites = msg.numSV
+                    try:
+                        self._state.fix_type = GpsFixType(msg.fixType)
 
-                if self._state.fix_type >= GpsFixType.FIX_2D:
-                    self._state.lat = msg.lat
-                    self._state.lng = msg.lon
-                    self._state.speed = msg.gSpeed * 3.6 / 1000.0
+                    except ValueError:
+                        self._state.fix_type = GpsFixType.NO_FIX
 
-                updated = True
+                    if self._state.fix_type >= GpsFixType.FIX_2D:
+                        self._state.lat = msg.lat
+                        self._state.lng = msg.lon
+                        self._state.speed = msg.gSpeed * 3.6 / 1000.0
+
+                    updated = True
+
+                case _ if msg.identity.startswith(UBXMessageId.INF_PREFIX):
+                    logger.warning("GPS: module message: %s", getattr(msg, "msgContent", msg.identity))
 
         return updated
 
