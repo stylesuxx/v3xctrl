@@ -51,6 +51,9 @@ class Streamer:
         self._udpsink_network_down: bool = False
         self._udpsink_recovery_timeout_id: int | None = None
 
+        self._udp_queue_overrun_active: bool = False
+        self._udp_queue_overrun_recovery_timeout_id: int | None = None
+
         self.timer = PipelineTimer()
 
         default_settings: dict[str, Any] = {
@@ -367,19 +370,14 @@ class Streamer:
 
         elif type == Gst.MessageType.WARNING:
             warn, debug = message.parse_warning()
-            if self._is_udpsink_write_warning(message, warn):
+            if self._is_udpsink_warning(message):
                 self._handle_network_unreachable()
             else:
                 logger.warning(f"Warning: {warn}, {debug}")
 
     @staticmethod
-    def _is_udpsink_write_warning(message: Gst.Message, error: GLib.Error) -> bool:
-        return (
-            message.src is not None
-            and message.src.get_name() == "udpsink"
-            and error.domain == Gst.resource_error_quark()
-            and error.code == Gst.ResourceError.WRITE
-        )
+    def _is_udpsink_warning(message: Gst.Message) -> bool:
+        return message.src is not None and message.src.get_name() == "udpsink"
 
     def _handle_network_unreachable(self) -> None:
         if not self._udpsink_network_down:
@@ -592,14 +590,31 @@ class Streamer:
 
     def _on_udp_queue_overrun(self, _):
         """
-        UDP queue overrun means that the frames can not be pushed out fast
-        enough - this is a limitation of the network!
-
-        Timestamp is set when this happens in order to show this via telemetry
-        to the viewer.
+        UDP queue overrun means frames can not be pushed out fast enough -
+        this is a limitation of the network.
         """
-        logger.error("UDP queue overrun - dropping frames!")
         self.last_udp_overflow_time = time.monotonic()
+
+        if not self._udp_queue_overrun_active:
+            logger.error("UDP queue overrun - dropping frames!")
+            self._udp_queue_overrun_active = True
+
+        self._reschedule_udp_queue_overrun_recovery_timeout()
+
+    def _reschedule_udp_queue_overrun_recovery_timeout(self) -> None:
+        if self._udp_queue_overrun_recovery_timeout_id is not None:
+            GLib.source_remove(self._udp_queue_overrun_recovery_timeout_id)
+
+        self._udp_queue_overrun_recovery_timeout_id = GLib.timeout_add(
+            1000, self._on_udp_queue_overrun_recovery_timeout
+        )
+
+    def _on_udp_queue_overrun_recovery_timeout(self) -> bool:
+        self._udp_queue_overrun_active = False
+        self._udp_queue_overrun_recovery_timeout_id = None
+        logger.info("UDP queue recovered")
+
+        return False
 
     def _on_encoder_buffer(self, pad, info):
         buffer = info.get_buffer()
