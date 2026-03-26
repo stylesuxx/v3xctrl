@@ -11,8 +11,10 @@ Press Ctrl-C to stop. A warning summary is printed on exit.
 
 import argparse
 import logging
+import signal
 import sys
 import time
+import types
 
 import serial
 from pyubx2 import ERR_IGNORE, SET_LAYER_RAM, TXN_NONE, UBXMessage, UBXReader
@@ -25,6 +27,7 @@ GPS_PATH = "/dev/serial0"
 POLL_BAUDRATES = (115200, 9600)
 BAUD_DETECT_TIMEOUT_S = 1.5
 SERIAL_TIMEOUT = 0.1
+ACK_TIMEOUT_S = 2.0
 
 # Enables NAV-SAT and MON-RF in addition to NAV-PVT, at 1 Hz.
 # Written to RAM only - flash is untouched and restored on power cycle.
@@ -75,7 +78,7 @@ def apply_debug_config(port: serial.Serial, logger: logging.Logger) -> None:
     port.flush()
 
     reader = UBXReader(port, quitonerror=ERR_IGNORE)
-    deadline = time.monotonic() + 2.0
+    deadline = time.monotonic() + ACK_TIMEOUT_S
     while time.monotonic() < deadline:
         _, msg = reader.read()
         if msg is None:
@@ -205,30 +208,38 @@ def main() -> None:
         logger.error(f"Failed to open port: {e}")
         sys.exit(1)
 
+    running = True
+
+    def stop(_sig: int, _frame: types.FrameType | None) -> None:
+        nonlocal running
+        running = False
+
+    signal.signal(signal.SIGINT, stop)
+    signal.signal(signal.SIGTERM, stop)
+
     reader = UBXReader(port, quitonerror=ERR_IGNORE)
     logger.info("Waiting for messages... (Ctrl-C to stop)")
     logger.info("-" * 80)
 
-    try:
-        while True:
-            _, msg = reader.read()
-            if msg is None:
-                continue
-            match msg.identity:
-                case UBXMessageId.NAV_PVT:
-                    prev_sats = handle_nav_position_velocity_time(msg, prev_sats, logger, warn_count)
-                case UBXMessageId.NAV_SAT:
-                    handle_nav_satellites(msg, logger, warn_count)
-                case UBXMessageId.MON_RF:
-                    handle_monitor_rf(msg, logger, warn_count)
-                case identity if identity.startswith(UBXMessageId.INF_PREFIX):
-                    logger.info(f"{format_timestamp()} {identity}: {getattr(msg, 'msgContent', identity)}")
-    except KeyboardInterrupt:
-        logger.info("-" * 80)
-        if warn_count[0] == 0:
-            logger.info("Stopped. No warnings.")
-        else:
-            logger.warning(f"Stopped. Total warnings: {warn_count[0]}")
+    while running:
+        _, msg = reader.read()
+        if msg is None:
+            continue
+        match msg.identity:
+            case UBXMessageId.NAV_PVT:
+                prev_sats = handle_nav_position_velocity_time(msg, prev_sats, logger, warn_count)
+            case UBXMessageId.NAV_SAT:
+                handle_nav_satellites(msg, logger, warn_count)
+            case UBXMessageId.MON_RF:
+                handle_monitor_rf(msg, logger, warn_count)
+            case identity if identity.startswith(UBXMessageId.INF_PREFIX):
+                logger.info(f"{format_timestamp()} {identity}: {getattr(msg, 'msgContent', identity)}")
+
+    logger.info("-" * 80)
+    if warn_count[0] == 0:
+        logger.info("Stopped. No warnings.")
+    else:
+        logger.warning(f"Stopped. Total warnings: {warn_count[0]}")
 
 
 if __name__ == "__main__":
