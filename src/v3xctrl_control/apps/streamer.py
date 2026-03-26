@@ -33,6 +33,7 @@ from v3xctrl_gst import ControlClient
 from v3xctrl_helper import Address, clamp
 from v3xctrl_tcp import Transport
 from v3xctrl_tcp.TcpTunnel import TcpTunnel
+from v3xctrl_telemetry import GpsProtocol
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +107,13 @@ parser.add_argument(
     type=int,
     default=5,
     help="GPS NAV-PVT output rate in Hz (default: 5)",
+)
+parser.add_argument(
+    "--gps-protocol",
+    type=str,
+    default="ublox",
+    choices=["ublox", "nmea", "modem"],
+    help="GPS module protocol (default: ublox)",
 )
 
 
@@ -190,6 +198,7 @@ telemetry = TelemetryHandler(
     battery_max_current=args.battery_max_current,
     gps_path=args.gps_path,
     gps_rate_hz=args.gps_rate_hz,
+    gps_protocol=GpsProtocol(args.gps_protocol),
 )
 telemetry.start()
 

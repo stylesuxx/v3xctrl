@@ -1,7 +1,13 @@
 """Telemetry dataclasses with serialization support."""
 
 from dataclasses import dataclass, field
-from enum import IntEnum
+from enum import IntEnum, StrEnum
+
+
+class GpsProtocol(StrEnum):
+    UBLOX = "ublox"
+    NMEA = "nmea"
+    MODEM = "modem"
 
 
 class GpsFixType(IntEnum):

@@ -14,7 +14,7 @@ from typing import Any, TypeVar
 
 from atlib import AIR780EU
 
-from v3xctrl_telemetry import BatteryInfo, CellInfo, LocationInfo, SignalInfo, TelemetryPayload
+from v3xctrl_telemetry import BatteryInfo, CellInfo, GpsProtocol, LocationInfo, SignalInfo, TelemetryPayload
 from v3xctrl_telemetry.BatteryTelemetry import BatteryTelemetry
 from v3xctrl_telemetry.GpsTelemetry import GpsTelemetry
 from v3xctrl_telemetry.GstTelemetry import GstTelemetry
@@ -41,6 +41,7 @@ class Telemetry(threading.Thread):
         battery_max_current: float = 0.8,
         gps_path: str = "/dev/serial0",
         gps_rate_hz: int = 5,
+        gps_protocol: GpsProtocol = GpsProtocol.UBLOX,
         interval: float = 1.0,
     ) -> None:
         super().__init__(daemon=True)
