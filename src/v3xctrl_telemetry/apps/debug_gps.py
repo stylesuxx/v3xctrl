@@ -60,8 +60,10 @@ def open_at_baud(path: str, baudrate: int) -> serial.Serial | None:
         raw = port.read(256)
         if b"\xb5\x62" in raw:
             return port
+
     except OSError:
         pass
+
     port.close()
     return None
 

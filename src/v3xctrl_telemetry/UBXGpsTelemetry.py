@@ -61,6 +61,7 @@ class UBXGpsTelemetry(GpsTelemetry):
                 self._state.satellites = msg.numSV
                 try:
                     self._state.fix_type = GpsFixType(msg.fixType)
+
                 except ValueError:
                     self._state.fix_type = GpsFixType.NO_FIX
 
@@ -86,6 +87,7 @@ class UBXGpsTelemetry(GpsTelemetry):
             logger.debug("GPS: no UBX sync at %d baud", baudrate)
         except Exception as e:
             logger.debug("GPS: error detecting baud at %d: %s", baudrate, e)
+
         port.close()
         return None
 
@@ -104,6 +106,7 @@ class UBXGpsTelemetry(GpsTelemetry):
 
                 if msg is None:
                     continue
+
                 if msg.identity == UBXMessageId.CFG_VALGET:
                     logger.debug("GPS: received CFG-VALGET at %d baud", baudrate)
                     config: dict[str, int] = {}
