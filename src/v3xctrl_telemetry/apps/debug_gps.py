@@ -83,12 +83,14 @@ def apply_debug_config(port: serial.Serial, logger: logging.Logger) -> None:
         _, msg = reader.read()
         if msg is None:
             continue
+
         if msg.identity == UBXMessageId.ACK_ACK:
             logger.info(f"{format_timestamp()} Config applied (RAM only - flash unchanged, reverts on power cycle)")
             return
         if msg.identity == UBXMessageId.ACK_NAK:
             logger.warning(f"{format_timestamp()} [WARN] Module rejected debug config")
             return
+
     logger.warning(f"{format_timestamp()} [WARN] No ACK received for debug config write")
 
 

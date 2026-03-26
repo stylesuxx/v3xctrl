@@ -141,6 +141,7 @@ class UBXGpsTelemetry(GpsTelemetry):
             _, msg = reader.read()
             if msg is None:
                 continue
+
             match msg.identity:
                 case UBXMessageId.ACK_ACK:
                     logger.info("GPS: config written successfully on %s", self._path)
@@ -150,6 +151,7 @@ class UBXGpsTelemetry(GpsTelemetry):
                     return False
 
         logger.warning("GPS: config write no ACK received on %s", self._path)
+
         return False
 
     def _configure_module(self) -> serial.Serial:
@@ -170,6 +172,7 @@ class UBXGpsTelemetry(GpsTelemetry):
 
             logger.info("GPS: config mismatch %s, writing to flash", list(mismatches))
             self._write_config(port)
+
             return port
 
         logger.warning("GPS: no UBX data on %s, opening at 9600 without config write", self._path)
