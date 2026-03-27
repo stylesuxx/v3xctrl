@@ -7,6 +7,9 @@ Usage:
     python -m v3xctrl_telemetry.apps.debug_gps [--path /dev/serial0]
 
 Press Ctrl-C to stop. A warning summary is printed on exit.
+
+Tip: if satellite acquisition is slow, stop video streaming while running this script.
+LTE transmission can interfere with GPS reception at the L1 frequency (1575 MHz).
 """
 
 import argparse
