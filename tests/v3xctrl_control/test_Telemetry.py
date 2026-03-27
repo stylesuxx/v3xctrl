@@ -292,6 +292,7 @@ class TestTelemetry(unittest.TestCase):
     def test_init_modem_clears_sim_absent_on_success(self):
         tel = Telemetry.__new__(Telemetry)
         tel._modem_path = "/dev/ttyACM0"
+        tel._modem_init_failed = False
         tel._sim_absent = True
         mock_modem = MagicMock()
         mock_modem.get_sim_status.return_value = "OK"
