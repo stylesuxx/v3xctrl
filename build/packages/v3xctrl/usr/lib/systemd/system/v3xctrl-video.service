@@ -11,6 +11,7 @@ Environment="GST_PLUGIN_PATH=/usr/lib/aarch64-linux-gnu/gstreamer-1.0"
 Environment="GST_REGISTRY=/data/.cache/gstreamer-1.0/registry.aarch64.bin"
 ExecStart=/usr/bin/v3xctrl-video
 Restart=on-failure
+TimeoutStopSec=10
 Type=simple
 User=v3xctrl
 Group=v3xctrl

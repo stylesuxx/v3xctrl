@@ -1,5 +1,7 @@
 import contextlib
 import logging
+import os
+import signal
 import sys
 import time
 from threading import Event
@@ -161,6 +163,11 @@ class Streamer:
 
         self.control_server.start()
 
+    # Timeout for pipeline NULL transition before forcing exit.
+    # If the v4l2 encoder hangs during shutdown, we bail before the encoder
+    # thread enters uninterruptible kernel sleep (D-state).
+    SHUTDOWN_TIMEOUT_NS: int = 3 * 1_000_000_000  # 3 seconds in nanoseconds
+
     def stop(self) -> None:
         """Stop the pipeline and quit the main loop."""
         if self.recording_manager.is_recording:
@@ -170,7 +177,14 @@ class Streamer:
             self.control_server.stop()
 
         if self.pipeline:
+            self.pipeline.send_event(Gst.Event.new_eos())
             self.pipeline.set_state(Gst.State.NULL)
+
+            result = self.pipeline.get_state(self.SHUTDOWN_TIMEOUT_NS)
+
+            if result[0] == Gst.StateChangeReturn.FAILURE or result[1] != Gst.State.NULL:
+                logger.error("Pipeline failed to reach NULL state within timeout - forcing exit")
+                os._exit(1)
 
         if self.loop:
             self.loop.quit()
@@ -180,6 +194,14 @@ class Streamer:
         self.start()
 
         self.loop = GLib.MainLoop()
+
+        # Handle SIGTERM (sent by systemd on service stop) so we can
+        # shut down the pipeline gracefully instead of being killed.
+        # Use Python's signal module directly - GLib.unix_signal_add requires
+        # the main loop to dispatch, but Python's default SIGTERM handler
+        # terminates the process before GLib can process the pipe event.
+        signal.signal(signal.SIGTERM, self._on_sigterm)
+
         try:
             self.loop.run()
 
@@ -189,6 +211,10 @@ class Streamer:
         finally:
             self.stop()
             logger.info("Pipeline stopped.")
+
+    def _on_sigterm(self, _signum: int, _frame: Any) -> None:
+        if self.loop:
+            self.loop.quit()
 
     def get_element(self, name: str) -> Gst.Element | None:
         """
@@ -647,6 +673,7 @@ class Streamer:
     def _on_source_buffer(self, pad, info):
         buffer = info.get_buffer()
         self.timer.on_source_buffer(buffer.pts, self.pipeline)
+
         return Gst.PadProbeReturn.OK
 
     def _on_camera_buffer(self, pad, info):
@@ -672,4 +699,5 @@ class Streamer:
     def _on_udp_buffer(self, pad, info):
         buffer = info.get_buffer()
         self.timer.on_udp_buffer(buffer.pts)
+
         return Gst.PadProbeReturn.OK

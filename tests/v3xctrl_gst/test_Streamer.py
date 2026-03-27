@@ -190,5 +190,77 @@ class TestUdpQueueOverrunSuppression(unittest.TestCase):
         self.assertEqual(mock_logger.error.call_count, 2)
 
 
+@patch("v3xctrl_gst.Streamer.ControlServer")
+@patch("v3xctrl_gst.Streamer.Gst")
+class TestGracefulShutdown(unittest.TestCase):
+    def _create_streamer(self, mock_gst: MagicMock, mock_cs: MagicMock) -> Streamer:
+        streamer = Streamer(host="127.0.0.1", port=5000, bind_port=5001)
+        streamer.recording_manager = MagicMock()
+        streamer.recording_manager.is_recording = False
+        return streamer
+
+    def test_normal_shutdown_sends_eos_and_transitions_to_null(self, mock_gst: MagicMock, mock_cs: MagicMock):
+        streamer = self._create_streamer(mock_gst, mock_cs)
+        pipeline = MagicMock()
+        pipeline.get_state.return_value = (
+            mock_gst.StateChangeReturn.SUCCESS,
+            mock_gst.State.NULL,
+            mock_gst.State.VOID_PENDING,
+        )
+        streamer.pipeline = pipeline
+
+        streamer.stop()
+
+        pipeline.send_event.assert_called_once()
+        pipeline.set_state.assert_called_once_with(mock_gst.State.NULL)
+        pipeline.get_state.assert_called_once_with(streamer.SHUTDOWN_TIMEOUT_NS)
+
+    def test_normal_shutdown_does_not_force_exit(self, mock_gst: MagicMock, mock_cs: MagicMock):
+        streamer = self._create_streamer(mock_gst, mock_cs)
+        pipeline = MagicMock()
+        pipeline.get_state.return_value = (
+            mock_gst.StateChangeReturn.SUCCESS,
+            mock_gst.State.NULL,
+            mock_gst.State.VOID_PENDING,
+        )
+        streamer.pipeline = pipeline
+
+        with patch("v3xctrl_gst.Streamer.os._exit") as mock_exit:
+            streamer.stop()
+
+        mock_exit.assert_not_called()
+
+    def test_force_exit_on_state_change_failure(self, mock_gst: MagicMock, mock_cs: MagicMock):
+        streamer = self._create_streamer(mock_gst, mock_cs)
+        pipeline = MagicMock()
+        pipeline.get_state.return_value = (
+            mock_gst.StateChangeReturn.FAILURE,
+            mock_gst.State.PLAYING,
+            mock_gst.State.NULL,
+        )
+        streamer.pipeline = pipeline
+
+        with patch("v3xctrl_gst.Streamer.os._exit") as mock_exit:
+            streamer.stop()
+
+        mock_exit.assert_called_once_with(1)
+
+    def test_force_exit_when_not_reaching_null(self, mock_gst: MagicMock, mock_cs: MagicMock):
+        streamer = self._create_streamer(mock_gst, mock_cs)
+        pipeline = MagicMock()
+        # Timeout: ASYNC return with state still PLAYING
+        pipeline.get_state.return_value = (
+            mock_gst.StateChangeReturn.ASYNC,
+            mock_gst.State.PLAYING,
+            mock_gst.State.NULL,
+        )
+        streamer.pipeline = pipeline
+
+        with patch("v3xctrl_gst.Streamer.os._exit") as mock_exit:
+            streamer.stop()
+
+        mock_exit.assert_called_once_with(1)
+
+
 if __name__ == "__main__":
     unittest.main()
