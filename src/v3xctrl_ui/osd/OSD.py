@@ -174,6 +174,7 @@ class OSD:
 
         self.widgets_debug["debug_latency"].set_value(None)
         self.telemetry_context.reset()
+        self.widgets_gps["gps_fix"].set_text_color(WHITE)
 
         self.throttle = 0.0
         self.steering = 0.0

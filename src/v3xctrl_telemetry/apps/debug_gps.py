@@ -224,7 +224,12 @@ def main() -> None:
     logger.info("-" * 80)
 
     while running:
-        _, msg = reader.read()
+        try:
+            _, msg = reader.read()
+        except serial.SerialException as e:
+            logger.error(f"Serial port error: {e}")
+            break
+
         if msg is None:
             continue
 
