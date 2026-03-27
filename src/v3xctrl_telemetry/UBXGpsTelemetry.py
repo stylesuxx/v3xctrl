@@ -61,7 +61,6 @@ class UBXGpsTelemetry(GpsTelemetry):
                     self._state.satellites = msg.numSV
                     try:
                         self._state.fix_type = GpsFixType(msg.fixType)
-
                     except ValueError:
                         self._state.fix_type = GpsFixType.NO_FIX
 
@@ -88,7 +87,7 @@ class UBXGpsTelemetry(GpsTelemetry):
                 logger.debug("GPS: UBX sync found at %d baud", baudrate)
                 return port
             logger.debug("GPS: no UBX sync at %d baud", baudrate)
-        except Exception as e:
+        except serial.SerialException as e:
             logger.debug("GPS: error detecting baud at %d: %s", baudrate, e)
 
         port.close()
@@ -121,7 +120,7 @@ class UBXGpsTelemetry(GpsTelemetry):
                             config[key] = value
                     return config
                 logger.debug("GPS: ignoring %s during config poll", msg.identity)
-        except Exception as e:
+        except serial.SerialException as e:
             logger.debug("GPS: config poll error at %d baud: %s", baudrate, e)
 
         return None

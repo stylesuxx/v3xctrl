@@ -207,7 +207,7 @@ def main() -> None:
 
     try:
         port = open_port(args.path, logger)
-    except Exception as e:
+    except serial.SerialException as e:
         logger.error(f"Failed to open port: {e}")
         sys.exit(1)
 
