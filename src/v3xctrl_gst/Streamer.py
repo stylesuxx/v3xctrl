@@ -153,8 +153,6 @@ class Streamer:
             logger.error("Unable to set the pipeline to the playing state.")
             sys.exit(1)
 
-        logger.info("Pipeline running. Press Ctrl+C to stop.")
-
         if self.settings["recording"] and self.settings["recording_dir"]:
             if self.start_recording():
                 logger.info("Auto-started recording on pipeline start")
