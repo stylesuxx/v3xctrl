@@ -3,6 +3,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
+import serial
 from pytest import approx
 
 from v3xctrl_telemetry.dataclasses import GpsFixType
@@ -175,7 +176,7 @@ class TestOpenAtBaud(unittest.TestCase):
 
     def test_exception_closes_and_returns_none(self):
         mock_port = MagicMock()
-        mock_port.read.side_effect = OSError("no device")
+        mock_port.read.side_effect = serial.SerialException("no device")
 
         with patch(f"{_MODULE}.serial.Serial", return_value=mock_port):
             result = self.gps._open_at_baud(115200)
@@ -271,7 +272,7 @@ class TestPollConfig(unittest.TestCase):
 
     def test_exception_returns_none(self):
         mock_port = MagicMock()
-        mock_port.write.side_effect = OSError("write error")
+        mock_port.write.side_effect = serial.SerialException("write error")
 
         with patch(f"{_MODULE}.UBXReader"), patch(f"{_MODULE}.UBXMessage"):
             result = self.gps._poll_config(mock_port, 115200)
