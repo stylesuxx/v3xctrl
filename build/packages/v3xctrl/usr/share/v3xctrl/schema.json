@@ -626,12 +626,16 @@
           "required": true,
           "enum": [
             "0x0",
-            "2304x1296"
+            "2304x1296",
+            "1640x1232",
+            "1296x972"
           ],
           "options": {
             "enum_titles": [
               "Disabled",
-              "RPi Cam v3, Arducam IMX708"
+              "IMX708: RPi Cam v3, Arducam IMX708,...",
+              "IMX219: RPi Cam v2, Generic cams",
+              "OV5647: RPi Cam v1, Generic cams"
             ]
           },
           "default": "0x0",
