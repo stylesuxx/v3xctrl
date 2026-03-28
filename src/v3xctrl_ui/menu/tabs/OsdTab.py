@@ -25,8 +25,10 @@ CHECKBOX_CONFIG: list[tuple[str, str]] = [
     ("signal_cell", "Show Signal cell (CAUTION: This potentially exposes your location)"),
     ("rec", "Show Recording indicator"),
     ("clock", "Show Clock (for latency measurement)"),
-    ("gps_details", "Show GPS fix status and satellite count"),
-    ("gps_speed", "Show GPS speed"),
+    ("gps_icon", "Show GPS Icon"),
+    ("gps_fix", "Show GPS Fix Status"),
+    ("gps_satellites", "Show GPS Satellite Count"),
+    ("gps_speed", "Show GPS Speed"),
 ]
 
 
@@ -34,23 +36,25 @@ class OsdTab(Tab):
     def __init__(self, settings: Settings, width: int, height: int, padding: int, y_offset: int) -> None:
         super().__init__(settings, width, height, padding, y_offset)
 
-        # Create checkboxes from config
         self.checkboxes: dict[str, Checkbox] = {}
+        self._add_headline("osd", t("OSD"))
+
+        self.column_left = VerticalLayout()
+        self.column_right = VerticalLayout(padding_x=self.width // 2)
+
         for key, label in CHECKBOX_CONFIG:
-            self.checkboxes[key] = Checkbox(
+            checkbox = Checkbox(
                 label=t(label),
                 font=LABEL_FONT,
                 checked=False,
                 on_change=lambda value, k=key: self._on_widget_toggle(k, value),
             )
+            self.checkboxes[key] = checkbox
 
-        self.elements = list(self.checkboxes.values())
-
-        self._add_headline("osd", t("OSD"))
-
-        self.osd_layout = VerticalLayout()
-        for element in self.elements:
-            self.osd_layout.add(element)
+            if key.startswith("gps_"):
+                self.column_right.add(checkbox)
+            else:
+                self.column_left.add(checkbox)
 
         self.apply_settings()
 
@@ -73,4 +77,8 @@ class OsdTab(Tab):
         y += self.y_offset + self.padding
         y += self._draw_headline(surface, "osd", y)
 
-        return self.osd_layout.draw(surface, y)
+        y_start = y
+        left_end = self.column_left.draw(surface, y_start)
+        right_end = self.column_right.draw(surface, y_start)
+
+        return max(left_end, right_end)
