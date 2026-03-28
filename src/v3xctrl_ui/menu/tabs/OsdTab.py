@@ -56,6 +56,7 @@ class OsdTab(Tab):
             else:
                 self.column_left.add(checkbox)
 
+        self.elements = list(self.checkboxes.values())
         self.apply_settings()
 
     def draw(self, surface: Surface) -> None:
