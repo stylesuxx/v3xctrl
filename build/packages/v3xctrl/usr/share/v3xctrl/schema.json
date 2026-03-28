@@ -953,6 +953,41 @@
               "description": "Maximum expected current in Amperes (affects measurement resolution)"
             }
           }
+        },
+        "gps": {
+          "title": "GPS",
+          "description": "GPS module settings.",
+          "propertyOrder": 20,
+          "type": "object",
+          "options": {
+            "collapsed": true,
+            "disable_edit_json": true,
+            "disable_properties": true
+          },
+          "properties": {
+            "protocol": {
+              "title": "Protocol",
+              "propertyOrder": 10,
+              "type": "string",
+              "required": true,
+              "default": "ublox",
+              "enum": ["ublox", "nmea", "modem"],
+              "options": {
+                "enum_titles": ["u-blox (UBX)", "NMEA", "Modem (AT commands)"]
+              },
+              "description": "Communication protocol of the GPS module"
+            },
+            "rateHz": {
+              "title": "Update Rate (Hz)",
+              "propertyOrder": 20,
+              "type": "integer",
+              "required": true,
+              "default": 5,
+              "minimum": 1,
+              "maximum": 10,
+              "description": "GPS position update rate in Hz (u-blox M10 supports up to 10 Hz)"
+            }
+          }
         }
       }
     },
