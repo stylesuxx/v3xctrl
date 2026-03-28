@@ -18,6 +18,7 @@ import signal
 import sys
 import time
 import types
+from enum import IntEnum
 
 import serial
 from pyubx2 import ERR_IGNORE, SET_LAYER_RAM, TXN_NONE, UBXMessage, UBXReader
@@ -46,6 +47,13 @@ DEBUG_CONFIG = {
 WARN_CN0_MIN = 25  # dBHz - below this for a used satellite is poor signal
 WARN_JAM_MAX = 50  # 0-255 - above this is a jamming concern
 WARN_SAT_DROP = 2  # warn if numSV drops by this many or more in one cycle
+
+
+class SatHealth(IntEnum):
+    UNKNOWN = 0
+    HEALTHY = 1
+    UNHEALTHY = 2
+
 
 GNSS_NAMES = {0: "GPS", 1: "SBAS", 2: "GAL", 3: "BDS", 4: "IMES", 5: "QZSS", 6: "GLO"}
 ANT_STATUS = {0: "INIT", 1: "UNKN", 2: "OK", 3: "SHORT", 4: "OPEN"}
@@ -105,7 +113,7 @@ def open_port(path: str, logger: logging.Logger) -> serial.Serial:
             logger.info(f"{format_timestamp()} UBX sync found at {baudrate} baud on {path}")
             apply_debug_config(port, logger)
             return port
-    logger.warning(f"{format_timestamp()} [WARN] No UBX sync found, opening at 9600 without config")
+    logger.warning(f"{format_timestamp()} [WARN] No UBX sync at 115200 baud, opening at 9600 without debug config")
     return serial.Serial(path, POLL_BAUDRATES[-1], timeout=SERIAL_TIMEOUT)
 
 
@@ -116,10 +124,9 @@ def handle_nav_position_velocity_time(
     num_sv = msg.numSV
     fix_name = FIX_NAMES.get(fix_type, f"UNK({fix_type})")
 
+    pos = "lat=--  lon=--  speed=--"
     if fix_type >= 2:
         pos = f"lat={msg.lat:.6f}  lon={msg.lon:.6f}  speed={msg.gSpeed * 3.6 / 1000:.1f} km/h"
-    else:
-        pos = "lat=--  lon=--  speed=--"
 
     logger.info(f"{format_timestamp()} NAV-PVT  fix={fix_name}  sats={num_sv}  {pos}")
 
@@ -150,7 +157,7 @@ def handle_nav_satellites(msg: UBXMessage, logger: logging.Logger, warn_count: l
 
         gnss_name = GNSS_NAMES.get(gnss_id, f"G{gnss_id}")
         used_marker = "*" if sv_used else " "
-        health_str = "" if health == 1 else f"[hlth={health}]"
+        health_str = "" if health == SatHealth.HEALTHY else f"[hlth={health}]"
         parts.append(f"{used_marker}{gnss_name}{sv_id} CN0={cno} el={elev}{health_str}")
 
         if sv_used and cno is not None and cno < WARN_CN0_MIN:
@@ -159,7 +166,7 @@ def handle_nav_satellites(msg: UBXMessage, logger: logging.Logger, warn_count: l
             )
             warn_count[0] += 1
 
-        if health == 2:
+        if health == SatHealth.UNHEALTHY:
             logger.warning(f"{format_timestamp()} [WARN] {gnss_name}{sv_id} satellite is unhealthy")
             warn_count[0] += 1
 

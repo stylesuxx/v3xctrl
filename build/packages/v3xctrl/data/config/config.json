@@ -71,6 +71,7 @@
     },
     "gps": {
       "path": "/dev/serial0",
+      "protocol": "ublox",
       "rateHz": 5
     }
   },
