@@ -327,6 +327,17 @@ class TestWriteConfig(unittest.TestCase):
         with patch(f"{_MODULE}.UBXReader", return_value=mock_reader), patch(f"{_MODULE}.UBXMessage"):
             assert self.gps._write_config(mock_port) is False
 
+    def test_non_ack_message_ignored_then_ack_ack_returns_true(self):
+        mock_port = MagicMock()
+        mock_reader = MagicMock()
+        mock_reader.read.side_effect = [
+            (None, _make_message("NAV-PVT")),
+            (None, _make_message(UBXMessageId.ACK_ACK)),
+        ]
+
+        with patch(f"{_MODULE}.UBXReader", return_value=mock_reader), patch(f"{_MODULE}.UBXMessage"):
+            assert self.gps._write_config(mock_port) is True
+
 
 class TestConfigureModule(unittest.TestCase):
     def test_config_already_correct_no_write(self):
