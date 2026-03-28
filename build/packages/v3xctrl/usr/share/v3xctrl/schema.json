@@ -965,9 +965,17 @@
             "disable_properties": true
           },
           "properties": {
+            "path": {
+              "title": "Serial Port",
+              "propertyOrder": 10,
+              "type": "string",
+              "required": true,
+              "default": "/dev/serial0",
+              "description": "Serial port path of the GPS module"
+            },
             "protocol": {
               "title": "Protocol",
-              "propertyOrder": 10,
+              "propertyOrder": 20,
               "type": "string",
               "required": true,
               "default": "ublox",
@@ -979,7 +987,7 @@
             },
             "rateHz": {
               "title": "Update Rate (Hz)",
-              "propertyOrder": 20,
+              "propertyOrder": 30,
               "type": "integer",
               "required": true,
               "default": 5,
