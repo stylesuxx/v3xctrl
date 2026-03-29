@@ -979,9 +979,9 @@
               "type": "string",
               "required": true,
               "default": "ublox",
-              "enum": ["ublox", "nmea", "modem"],
+              "enum": ["ublox"],
               "options": {
-                "enum_titles": ["u-blox (UBX)", "NMEA", "Modem (AT commands)"]
+                "enum_titles": ["u-blox (UBX)"]
               },
               "description": "Communication protocol of the GPS module"
             },
