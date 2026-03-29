@@ -14,10 +14,8 @@ LTE transmission can interfere with GPS reception at the L1 frequency (1575 MHz)
 
 import argparse
 import logging
-import signal
 import sys
 import time
-import types
 from enum import IntEnum
 
 import serial
@@ -221,38 +219,35 @@ def main() -> None:
         logger.error(f"Failed to open port: {e}")
         sys.exit(1)
 
-    running = True
-
-    def stop(_sig: int, _frame: types.FrameType | None) -> None:
-        nonlocal running
-        running = False
-
-    signal.signal(signal.SIGINT, stop)
-    signal.signal(signal.SIGTERM, stop)
-
     reader = UBXReader(port, quitonerror=ERR_IGNORE)
     logger.info("Waiting for messages... (Ctrl-C to stop)")
     logger.info("-" * 80)
 
-    while running:
-        try:
-            _, msg = reader.read()
-        except serial.SerialException as e:
-            logger.error(f"Serial port error: {e}")
-            break
+    try:
+        while True:
+            try:
+                _, msg = reader.read()
+            except serial.SerialException as e:
+                logger.error(f"Serial port error: {e}")
+                break
 
-        if msg is None:
-            continue
+            if msg is None:
+                continue
 
-        match msg.identity:
-            case UBXMessageId.NAV_PVT:
-                prev_sats = handle_nav_position_velocity_time(msg, prev_sats, logger, warn_count)
-            case UBXMessageId.NAV_SAT:
-                handle_nav_satellites(msg, logger, warn_count)
-            case UBXMessageId.MON_RF:
-                handle_monitor_rf(msg, logger, warn_count)
-            case identity if identity.startswith(UBXMessageId.INF_PREFIX):
-                logger.info(f"{format_timestamp()} {identity}: {getattr(msg, 'msgContent', identity)}")
+            match msg.identity:
+                case UBXMessageId.NAV_PVT:
+                    prev_sats = handle_nav_position_velocity_time(msg, prev_sats, logger, warn_count)
+                case UBXMessageId.NAV_SAT:
+                    handle_nav_satellites(msg, logger, warn_count)
+                case UBXMessageId.MON_RF:
+                    handle_monitor_rf(msg, logger, warn_count)
+                case identity if identity.startswith(UBXMessageId.INF_PREFIX):
+                    logger.info(f"{format_timestamp()} {identity}: {getattr(msg, 'msgContent', identity)}")
+
+    except KeyboardInterrupt:
+        pass
+    finally:
+        port.close()
 
     logger.info("-" * 80)
     if warn_count[0] > 0:
