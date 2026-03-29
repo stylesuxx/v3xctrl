@@ -39,4 +39,7 @@ v3xctrl-python -m v3xctrl_control.apps.streamer "${viewer_direct_host}" "${viewe
   --battery-i2c-address "${telemetry_battery_i2cAddress}" \
   --battery-shunt-mohms "${telemetry_battery_shuntResistance}" \
   --battery-max-current "${telemetry_battery_maxExpectedCurrent}" \
+  --gps-path "${telemetry_gps_path}" \
+  --gps-protocol "${telemetry_gps_protocol}" \
+  --gps-rate-hz "${telemetry_gps_rateHz}" \
   ${ARGS}

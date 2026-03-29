@@ -68,6 +68,11 @@
       "maxVoltage": 4200,
       "shuntResistance": 50,
       "maxExpectedCurrent": 10
+    },
+    "gps": {
+      "path": "/dev/serial0",
+      "protocol": "ublox",
+      "rateHz": 5
     }
   },
   "viewer": {

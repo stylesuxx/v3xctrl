@@ -224,6 +224,7 @@ class TestTelemetry(unittest.TestCase):
         tel._modem = MagicMock()
         tel._sim_absent = False
         tel._sim_recheck_counter = 0
+        tel._gps = None
         tel._update_signal = MagicMock()
         tel._update_cell = MagicMock()
         tel._update_battery = MagicMock()
@@ -310,6 +311,7 @@ class TestTelemetry(unittest.TestCase):
         tel._sim_absent = True
         tel._sim_recheck_counter = 0
         tel._init_modem = MagicMock(return_value=False)
+        tel._gps = None
         tel._update_signal = MagicMock()
         tel._update_cell = MagicMock()
         tel._update_battery = MagicMock()

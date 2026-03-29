@@ -1,6 +1,24 @@
 """Telemetry dataclasses with serialization support."""
 
 from dataclasses import dataclass, field
+from enum import IntEnum, StrEnum
+
+
+class GpsProtocol(StrEnum):
+    UBLOX = "ublox"
+    NMEA = "nmea"
+    MODEM = "modem"
+
+
+class GpsFixType(IntEnum):
+    """UBX-NAV-PVT fix type values, extended with NO_HARDWARE for when GPS is absent."""
+
+    NO_HARDWARE = -1
+    NO_FIX = 0
+    DEAD_RECKONING = 1
+    FIX_2D = 2
+    FIX_3D = 3
+    GNSS_DEAD_RECKONING = 4
 
 
 @dataclass
@@ -127,6 +145,9 @@ class LocationInfo:
 
     lat: float = 0.0
     lng: float = 0.0
+    fix_type: GpsFixType = GpsFixType.NO_HARDWARE
+    speed: float = 0.0  # km/h
+    satellites: int = 0
 
 
 @dataclass

@@ -14,10 +14,12 @@ from typing import Any, TypeVar
 
 from atlib import AIR780EU
 
-from v3xctrl_telemetry import BatteryInfo, CellInfo, LocationInfo, SignalInfo, TelemetryPayload
+from v3xctrl_telemetry import BatteryInfo, CellInfo, GpsProtocol, LocationInfo, SignalInfo, TelemetryPayload
 from v3xctrl_telemetry.BatteryTelemetry import BatteryTelemetry
+from v3xctrl_telemetry.GpsTelemetry import GpsTelemetry
 from v3xctrl_telemetry.GstTelemetry import GstTelemetry
 from v3xctrl_telemetry.ServiceTelemetry import ServiceTelemetry
+from v3xctrl_telemetry.UBXGpsTelemetry import UBXGpsTelemetry
 from v3xctrl_telemetry.VideoCoreTelemetry import VideoCoreTelemetry
 
 T = TypeVar("T")
@@ -37,6 +39,9 @@ class Telemetry(threading.Thread):
         battery_i2c_address: int = 0x40,
         battery_shunt_mohms: int = 100,
         battery_max_current: float = 0.8,
+        gps_path: str = "/dev/serial0",
+        gps_rate_hz: int = 5,
+        gps_protocol: GpsProtocol = GpsProtocol.UBLOX,
         interval: float = 1.0,
     ) -> None:
         super().__init__(daemon=True)
@@ -54,6 +59,9 @@ class Telemetry(threading.Thread):
         self._sim_absent = False
         self._sim_recheck_counter = 0
         self._init_modem()
+
+        self._gps: GpsTelemetry | None = self._init_component("GPS", lambda: UBXGpsTelemetry(gps_path, gps_rate_hz))
+        logger.debug("GPS telemetry %s", "available on " + gps_path if self._gps else "not available")
 
         self._battery = self._init_component(
             "Battery",
@@ -81,6 +89,7 @@ class Telemetry(threading.Thread):
                 self._update_signal()
                 self._update_cell()
 
+            self._update_gps()
             self._update_battery()
             self._update_services()
             self._update_videocore()
@@ -172,6 +181,15 @@ class Telemetry(threading.Thread):
             self._set_cell_unknown()
             logger.debug("Failed to fetch cell information: %s", e)
             self._modem = None
+
+    def _update_gps(self) -> None:
+        if self._gps:
+            try:
+                self._gps.update()
+                with self._lock:
+                    self.payload.loc = self._gps.get_state()
+            except Exception as e:
+                logger.debug("Failed to update GPS telemetry: %s", e)
 
     def _update_battery(self) -> None:
         if self._battery:

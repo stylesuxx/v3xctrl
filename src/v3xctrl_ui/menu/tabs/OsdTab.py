@@ -10,8 +10,7 @@ from v3xctrl_ui.utils.i18n import t
 from .Tab import Tab
 from .VerticalLayout import VerticalLayout
 
-# (settings_key, label)
-CHECKBOX_CONFIG: list[tuple[str, str]] = [
+COLUMN_LEFT: list[tuple[str, str]] = [
     ("debug", "Enable Debug Overlay"),
     ("steering", "Show Steering indicator"),
     ("throttle", "Show Throttle indicator"),
@@ -27,29 +26,36 @@ CHECKBOX_CONFIG: list[tuple[str, str]] = [
     ("clock", "Show Clock (for latency measurement)"),
 ]
 
+COLUMN_RIGHT: list[tuple[str, str]] = [
+    ("gps_icon", "Show GPS Icon"),
+    ("gps_fix", "Show GPS Fix Status"),
+    ("gps_satellites", "Show GPS Satellite Count"),
+    ("gps_speed", "Show GPS Speed"),
+]
+
 
 class OsdTab(Tab):
     def __init__(self, settings: Settings, width: int, height: int, padding: int, y_offset: int) -> None:
         super().__init__(settings, width, height, padding, y_offset)
 
-        # Create checkboxes from config
         self.checkboxes: dict[str, Checkbox] = {}
-        for key, label in CHECKBOX_CONFIG:
-            self.checkboxes[key] = Checkbox(
-                label=t(label),
-                font=LABEL_FONT,
-                checked=False,
-                on_change=lambda value, k=key: self._on_widget_toggle(k, value),
-            )
-
-        self.elements = list(self.checkboxes.values())
-
         self._add_headline("osd", t("OSD"))
 
-        self.osd_layout = VerticalLayout()
-        for element in self.elements:
-            self.osd_layout.add(element)
+        self.column_left = VerticalLayout()
+        self.column_right = VerticalLayout(padding_x=self.width // 2)
 
+        for column, config in [(self.column_left, COLUMN_LEFT), (self.column_right, COLUMN_RIGHT)]:
+            for key, label in config:
+                checkbox = Checkbox(
+                    label=t(label),
+                    font=LABEL_FONT,
+                    checked=False,
+                    on_change=lambda value, k=key: self._on_widget_toggle(k, value),
+                )
+                self.checkboxes[key] = checkbox
+                column.add(checkbox)
+
+        self.elements = list(self.checkboxes.values())
         self.apply_settings()
 
     def draw(self, surface: Surface) -> None:
@@ -71,4 +77,8 @@ class OsdTab(Tab):
         y += self.y_offset + self.padding
         y += self._draw_headline(surface, "osd", y)
 
-        return self.osd_layout.draw(surface, y)
+        y_start = y
+        left_end = self.column_left.draw(surface, y_start)
+        right_end = self.column_right.draw(surface, y_start)
+
+        return max(left_end, right_end)

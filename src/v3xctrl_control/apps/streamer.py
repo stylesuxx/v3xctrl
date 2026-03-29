@@ -33,6 +33,7 @@ from v3xctrl_gst import ControlClient
 from v3xctrl_helper import Address, clamp
 from v3xctrl_tcp import Transport
 from v3xctrl_tcp.TcpTunnel import TcpTunnel
+from v3xctrl_telemetry import GpsProtocol
 
 logger = logging.getLogger(__name__)
 
@@ -97,6 +98,22 @@ parser.add_argument(
 )
 parser.add_argument(
     "--battery-max-current", type=float, default=0.8, help="Maximum expected current in Amperes (default: 0.8)"
+)
+parser.add_argument(
+    "--gps-path", type=str, default="/dev/serial0", help="Path to GPS UART device (default: /dev/serial0)"
+)
+parser.add_argument(
+    "--gps-rate-hz",
+    type=int,
+    default=5,
+    help="GPS NAV-PVT output rate in Hz (default: 5)",
+)
+parser.add_argument(
+    "--gps-protocol",
+    type=str,
+    default="ublox",
+    choices=["ublox", "nmea", "modem"],
+    help="GPS module protocol (default: ublox)",
 )
 
 
@@ -179,6 +196,9 @@ telemetry = TelemetryHandler(
     battery_i2c_address=args.battery_i2c_address,
     battery_shunt_mohms=args.battery_shunt_mohms,
     battery_max_current=args.battery_max_current,
+    gps_path=args.gps_path,
+    gps_rate_hz=args.gps_rate_hz,
+    gps_protocol=GpsProtocol(args.gps_protocol),
 )
 telemetry.start()
 

@@ -20,9 +20,21 @@ def render_widget_group(screen: pygame.Surface, group: WidgetGroup, widget_setti
     settings = widget_settings.get(group.name, {})
 
     if group.use_composition:
-        render_group(screen, group.widgets.items(), settings, widget_settings, group.get_value, group.corner_radius)
+        render_group(
+            screen,
+            group.widgets.items(),
+            settings,
+            widget_settings,
+            group.get_value,
+            group.corner_radius,
+        )
     else:
-        _render_individual_widgets(screen, group.widgets.items(), widget_settings, group.get_value)
+        _render_individual_widgets(
+            screen,
+            group.widgets.items(),
+            widget_settings,
+            group.get_value,
+        )
 
 
 def render_group(
@@ -47,16 +59,13 @@ def render_group(
     width, height = _calculate_dimensions(visible_widgets, padding)
 
     composed = pygame.Surface((width, height), pygame.SRCALPHA)
-
     _draw_widgets_to_surface(composed, visible_widgets, get_widget_value, padding)
 
     screen_width, screen_height = screen.get_size()
-    position = calculate_widget_position(
-        align, composed.get_width(), composed.get_height(), screen_width, screen_height, offset
-    )
+    position = calculate_widget_position(align, width, height, screen_width, screen_height, offset)
+    blit_surface = round_corners(composed, corner_radius)
 
-    rounded = round_corners(composed, corner_radius)
-    screen.blit(rounded, position)
+    screen.blit(blit_surface, position)
 
 
 def _render_individual_widgets(
@@ -81,7 +90,8 @@ def _render_individual_widgets(
 
 
 def _filter_visible_widgets(
-    widgets: ItemsView[str, Widget], widget_settings: dict[str, dict[str, Any]]
+    widgets: ItemsView[str, Widget],
+    widget_settings: dict[str, dict[str, Any]],
 ) -> list[tuple[str, Widget]]:
     visible: list[tuple[str, Widget]] = []
     for name, widget in widgets:

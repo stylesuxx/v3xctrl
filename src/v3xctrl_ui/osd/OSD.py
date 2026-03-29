@@ -1,10 +1,12 @@
 import logging
 import time
 from collections import deque
+from typing import ClassVar
 
 import pygame
 
 from v3xctrl_control.message import Latency, Message, Telemetry
+from v3xctrl_ui.core.dataclasses import GpsFixType
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 from v3xctrl_ui.core.TelemetryParser import parse_telemetry
@@ -13,13 +15,14 @@ from v3xctrl_ui.osd.widgets.WidgetFactory import (
     create_battery_widgets,
     create_clock_widget,
     create_debug_widgets,
+    create_gps_widgets,
     create_rec_widget,
     create_signal_widgets,
     create_steering_widgets,
 )
 from v3xctrl_ui.osd.widgets.WidgetGroup import WidgetGroup
 from v3xctrl_ui.osd.widgets.WidgetGroupRenderer import render_widget_group
-from v3xctrl_ui.utils.colors import ORANGE, RED, WHITE
+from v3xctrl_ui.utils.colors import GREEN, ORANGE, RED, WHITE
 from v3xctrl_ui.utils.helpers import get_fps
 
 logger = logging.getLogger(__name__)
@@ -51,6 +54,7 @@ class OSD:
         self.widgets_rec: dict[str, Widget] = {}
         self.widgets_steering: dict[str, Widget] = {}
         self.widgets_clock: dict[str, Widget] = {}
+        self.widgets_gps: dict[str, Widget] = {}
 
         self._init_widgets_debug()
         self._init_widgets_signal()
@@ -58,6 +62,7 @@ class OSD:
         self._init_widgets_rec()
         self._init_widgets_steering()
         self._init_widgets_clock()
+        self._init_widgets_gps()
 
         self.reset()
 
@@ -83,6 +88,12 @@ class OSD:
             ),
             WidgetGroup.create(
                 name="clock", widgets=self.widgets_clock, get_value=self._get_clock_value, use_composition=False
+            ),
+            WidgetGroup.create(
+                name="gps",
+                widgets=self.widgets_gps,
+                get_value=self._get_gps_value,
+                use_composition=True,
             ),
         ]
 
@@ -162,6 +173,7 @@ class OSD:
 
         self.widgets_debug["debug_latency"].set_value(None)
         self.telemetry_context.reset()
+        self.widgets_gps["gps_fix"].set_text_color(WHITE)
 
         self.throttle = 0.0
         self.steering = 0.0
@@ -185,6 +197,9 @@ class OSD:
 
     def _init_widgets_clock(self) -> None:
         self.widgets_clock = create_clock_widget()
+
+    def _init_widgets_gps(self) -> None:
+        self.widgets_gps = create_gps_widgets()
 
     def _latency_update(self, message: Latency) -> None:
         """
@@ -230,6 +245,11 @@ class OSD:
             warning=data.battery_warning,
         )
 
+        self.telemetry_context.update_gps(
+            fix_type=data.gps_fix_type,
+            speed=data.gps_speed,
+            satellites=data.gps_satellites,
+        )
         self.telemetry_context.update_services(values.get("svc", 0))
         self.telemetry_context.update_gst(values.get("gst", 0))
         self.telemetry_context.update_videocore(values.get("vc", 0))
@@ -238,6 +258,16 @@ class OSD:
         for widget_name in ["battery_voltage", "battery_average_voltage", "battery_percent", "battery_current"]:
             if widget_name in self.widgets_battery:
                 self.widgets_battery[widget_name].set_text_color(color)
+
+        fix_color = RED
+        if data.gps_fix_type == GpsFixType.NO_HARDWARE:
+            fix_color = WHITE
+        elif data.gps_fix_type >= GpsFixType.FIX_3D:
+            fix_color = GREEN
+        elif data.gps_fix_type >= GpsFixType.DEAD_RECKONING:
+            fix_color = ORANGE
+
+        self.widgets_gps["gps_fix"].set_text_color(fix_color)
 
         logger.debug(f"Received telemetry message: {message.get_values()}")
 
@@ -276,3 +306,22 @@ class OSD:
     def _get_clock_value(self, name: str):
         # ClockWidget gets its own time internally
         return None
+
+    _GPS_FIX_LABELS: ClassVar[dict[GpsFixType, str]] = {
+        GpsFixType.NO_HARDWARE: "NO GPS",
+        GpsFixType.NO_FIX: "NO FIX",
+        GpsFixType.DEAD_RECKONING: "DEAD REC",
+        GpsFixType.FIX_2D: "2D FIX",
+        GpsFixType.FIX_3D: "3D FIX",
+        GpsFixType.GNSS_DEAD_RECKONING: "GNSS+DR",
+    }
+
+    def _get_gps_value(self, name: str):
+        gps = self.telemetry_context.get_gps()
+        mapping = {
+            "gps_fix": self._GPS_FIX_LABELS.get(gps.fix_type, "NO FIX"),
+            "gps_icon": gps.fix_type,
+            "gps_satellites": gps.satellites,
+            "gps_speed": gps.speed,
+        }
+        return mapping.get(name)
