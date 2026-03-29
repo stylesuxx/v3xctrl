@@ -14,8 +14,11 @@ LTE transmission can interfere with GPS reception at the L1 frequency (1575 MHz)
 
 import argparse
 import logging
+import signal
 import sys
 import time
+import types
+from collections.abc import Callable
 from enum import IntEnum
 
 import serial
@@ -80,7 +83,7 @@ def open_at_baud(path: str, baudrate: int) -> serial.Serial | None:
     return None
 
 
-def apply_debug_config(port: serial.Serial, logger: logging.Logger) -> None:
+def apply_debug_config(port: serial.Serial, logger: logging.Logger, is_stopping: Callable[[], bool]) -> None:
     port.timeout = SERIAL_TIMEOUT
     cfg = UBXMessage.config_set(SET_LAYER_RAM, TXN_NONE, list(DEBUG_CONFIG.items()))
     port.write(cfg.serialize())
@@ -88,7 +91,7 @@ def apply_debug_config(port: serial.Serial, logger: logging.Logger) -> None:
 
     reader = UBXReader(port, quitonerror=ERR_IGNORE)
     deadline = time.monotonic() + ACK_TIMEOUT_S
-    while time.monotonic() < deadline:
+    while time.monotonic() < deadline and not is_stopping():
         _, msg = reader.read()
         if msg is None:
             continue
@@ -104,12 +107,12 @@ def apply_debug_config(port: serial.Serial, logger: logging.Logger) -> None:
     logger.warning(f"{format_timestamp()} [WARN] No ACK received for debug config write")
 
 
-def open_port(path: str, logger: logging.Logger) -> serial.Serial:
+def open_port(path: str, logger: logging.Logger, is_stopping: Callable[[], bool]) -> serial.Serial:
     for baudrate in POLL_BAUDRATES:
         port = open_at_baud(path, baudrate)
         if port is not None:
             logger.info(f"{format_timestamp()} UBX sync found at {baudrate} baud on {path}")
-            apply_debug_config(port, logger)
+            apply_debug_config(port, logger, is_stopping)
             return port
     logger.warning(f"{format_timestamp()} [WARN] No UBX sync at 115200 baud, opening at 9600 without debug config")
     return serial.Serial(path, POLL_BAUDRATES[-1], timeout=SERIAL_TIMEOUT)
@@ -212,9 +215,17 @@ def main() -> None:
 
     warn_count = [0]
     prev_sats = None
+    running = True
+
+    def stop(_sig: int, _frame: types.FrameType | None) -> None:
+        nonlocal running
+        running = False
+
+    signal.signal(signal.SIGINT, stop)
+    signal.signal(signal.SIGTERM, stop)
 
     try:
-        port = open_port(args.path, logger)
+        port = open_port(args.path, logger, lambda: not running)
     except serial.SerialException as e:
         logger.error(f"Failed to open port: {e}")
         sys.exit(1)
@@ -224,7 +235,7 @@ def main() -> None:
     logger.info("-" * 80)
 
     try:
-        while True:
+        while running:
             try:
                 _, msg = reader.read()
             except serial.SerialException as e:
@@ -244,8 +255,6 @@ def main() -> None:
                 case identity if identity.startswith(UBXMessageId.INF_PREFIX):
                     logger.info(f"{format_timestamp()} {identity}: {getattr(msg, 'msgContent', identity)}")
 
-    except KeyboardInterrupt:
-        pass
     finally:
         port.close()
 
