@@ -10,8 +10,7 @@ from v3xctrl_ui.utils.i18n import t
 from .Tab import Tab
 from .VerticalLayout import VerticalLayout
 
-# (settings_key, label)
-CHECKBOX_CONFIG: list[tuple[str, str]] = [
+COLUMN_LEFT: list[tuple[str, str]] = [
     ("debug", "Enable Debug Overlay"),
     ("steering", "Show Steering indicator"),
     ("throttle", "Show Throttle indicator"),
@@ -25,6 +24,9 @@ CHECKBOX_CONFIG: list[tuple[str, str]] = [
     ("signal_cell", "Show Signal cell (CAUTION: This potentially exposes your location)"),
     ("rec", "Show Recording indicator"),
     ("clock", "Show Clock (for latency measurement)"),
+]
+
+COLUMN_RIGHT: list[tuple[str, str]] = [
     ("gps_icon", "Show GPS Icon"),
     ("gps_fix", "Show GPS Fix Status"),
     ("gps_satellites", "Show GPS Satellite Count"),
@@ -42,19 +44,16 @@ class OsdTab(Tab):
         self.column_left = VerticalLayout()
         self.column_right = VerticalLayout(padding_x=self.width // 2)
 
-        for key, label in CHECKBOX_CONFIG:
-            checkbox = Checkbox(
-                label=t(label),
-                font=LABEL_FONT,
-                checked=False,
-                on_change=lambda value, k=key: self._on_widget_toggle(k, value),
-            )
-            self.checkboxes[key] = checkbox
-
-            if key.startswith("gps_"):
-                self.column_right.add(checkbox)
-            else:
-                self.column_left.add(checkbox)
+        for column, config in [(self.column_left, COLUMN_LEFT), (self.column_right, COLUMN_RIGHT)]:
+            for key, label in config:
+                checkbox = Checkbox(
+                    label=t(label),
+                    font=LABEL_FONT,
+                    checked=False,
+                    on_change=lambda value, k=key: self._on_widget_toggle(k, value),
+                )
+                self.checkboxes[key] = checkbox
+                column.add(checkbox)
 
         self.elements = list(self.checkboxes.values())
         self.apply_settings()
