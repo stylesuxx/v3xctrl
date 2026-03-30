@@ -32,12 +32,16 @@ if [ -n "$development_persistServices" ]; then
   systemctl start v3xctrl-persist-services
 fi
 
-if [ "$network_modem_limitBands" = "true" ]; then
-  echo "Limiting bands..."
-  v3xctrl-set-bands $network_modem_allowedBands
+if [ -e "$network_modem_path" ]; then
+  if [ "$network_modem_limitBands" = "true" ]; then
+    echo "Limiting bands..."
+    v3xctrl-set-bands $network_modem_allowedBands
+  else
+    echo "Setting default bands..."
+    v3xctrl-modem-reset-bands
+  fi
 else
-  echo "Setting default bands..."
-  v3xctrl-modem-reset-bands
+  echo "Modem not found at $network_modem_path - skipping band configuration"
 fi
 
 if [ "$network_extras_samba" = "true" ]; then
