@@ -56,6 +56,7 @@ class Telemetry(threading.Thread):
         self._lock = threading.Lock()
 
         self._modem: AIR780EU | None = None
+        self._modem_init_failed = False
         self._sim_absent = False
         self._sim_recheck_counter = 0
         self._init_modem()
@@ -125,7 +126,9 @@ class Telemetry(threading.Thread):
             self._modem = AIR780EU(self._modem_path)
             self._modem.enable_location_reporting()
             if not self._modem:
-                logger.warning("Modem unavailable")
+                if not self._modem_init_failed:
+                    logger.warning("Modem unavailable")
+                    self._modem_init_failed = True
                 self._modem = None
                 return False
 
@@ -137,11 +140,16 @@ class Telemetry(threading.Thread):
                 return False
 
             self._sim_absent = False
+            if self._modem_init_failed:
+                logger.info("Modem recovered")
+            self._modem_init_failed = False
             logger.info("Modem initialized")
             return True
 
         except Exception as e:
-            logger.warning("Failed to initialize modem: %s", e)
+            if not self._modem_init_failed:
+                logger.warning("Failed to initialize modem: %s", e)
+                self._modem_init_failed = True
             self._modem = None
             return False
 

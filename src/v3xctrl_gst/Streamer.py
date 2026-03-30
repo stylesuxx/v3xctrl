@@ -1,5 +1,7 @@
 import contextlib
 import logging
+import os
+import signal
 import sys
 import time
 from threading import Event
@@ -47,6 +49,12 @@ class Streamer:
         self.frame_count = 0
 
         self.last_udp_overflow_time: float = 0
+
+        self._udpsink_network_down: bool = False
+        self._udpsink_recovery_timeout_id: int | None = None
+
+        self._udp_queue_overrun_active: bool = False
+        self._udp_queue_overrun_recovery_timeout_id: int | None = None
 
         self.timer = PipelineTimer()
 
@@ -145,8 +153,6 @@ class Streamer:
             logger.error("Unable to set the pipeline to the playing state.")
             sys.exit(1)
 
-        logger.info("Pipeline running. Press Ctrl+C to stop.")
-
         if self.settings["recording"] and self.settings["recording_dir"]:
             if self.start_recording():
                 logger.info("Auto-started recording on pipeline start")
@@ -154,6 +160,11 @@ class Streamer:
                 logger.warning("Failed to auto-start recording")
 
         self.control_server.start()
+
+    # Timeout for pipeline NULL transition before forcing exit.
+    # If the v4l2 encoder hangs during shutdown, we bail before the encoder
+    # thread enters uninterruptible kernel sleep (D-state).
+    SHUTDOWN_TIMEOUT_NS: int = 3 * 1_000_000_000  # 3 seconds in nanoseconds
 
     def stop(self) -> None:
         """Stop the pipeline and quit the main loop."""
@@ -164,7 +175,14 @@ class Streamer:
             self.control_server.stop()
 
         if self.pipeline:
+            self.pipeline.send_event(Gst.Event.new_eos())
             self.pipeline.set_state(Gst.State.NULL)
+
+            result = self.pipeline.get_state(self.SHUTDOWN_TIMEOUT_NS)
+
+            if result[0] == Gst.StateChangeReturn.FAILURE or result[1] != Gst.State.NULL:
+                logger.error("Pipeline failed to reach NULL state within timeout - forcing exit")
+                os._exit(1)
 
         if self.loop:
             self.loop.quit()
@@ -174,6 +192,14 @@ class Streamer:
         self.start()
 
         self.loop = GLib.MainLoop()
+
+        # Handle SIGTERM (sent by systemd on service stop) so we can
+        # shut down the pipeline gracefully instead of being killed.
+        # Use Python's signal module directly - GLib.unix_signal_add requires
+        # the main loop to dispatch, but Python's default SIGTERM handler
+        # terminates the process before GLib can process the pipe event.
+        signal.signal(signal.SIGTERM, self._on_sigterm)
+
         try:
             self.loop.run()
 
@@ -183,6 +209,10 @@ class Streamer:
         finally:
             self.stop()
             logger.info("Pipeline stopped.")
+
+    def _on_sigterm(self, _signum: int, _frame: Any) -> None:
+        if self.loop:
+            self.loop.quit()
 
     def get_element(self, name: str) -> Gst.Element | None:
         """
@@ -364,7 +394,34 @@ class Streamer:
 
         elif type == Gst.MessageType.WARNING:
             warn, debug = message.parse_warning()
-            logger.warning(f"Warning: {warn}, {debug}")
+            if self._is_udpsink_warning(message):
+                self._handle_network_unreachable()
+            else:
+                logger.warning(f"Warning: {warn}, {debug}")
+
+    @staticmethod
+    def _is_udpsink_warning(message: Gst.Message) -> bool:
+        return message.src is not None and message.src.get_name() == "udpsink"
+
+    def _handle_network_unreachable(self) -> None:
+        if not self._udpsink_network_down:
+            logger.warning("Network is unreachable")
+            self._udpsink_network_down = True
+
+        self._reschedule_recovery_timeout()
+
+    def _reschedule_recovery_timeout(self) -> None:
+        if self._udpsink_recovery_timeout_id is not None:
+            GLib.source_remove(self._udpsink_recovery_timeout_id)
+
+        self._udpsink_recovery_timeout_id = GLib.timeout_add(1000, self._on_recovery_timeout)
+
+    def _on_recovery_timeout(self) -> bool:
+        self._udpsink_network_down = False
+        self._udpsink_recovery_timeout_id = None
+        logger.info("Network recovered")
+
+        return False
 
     def _build_pipeline(self) -> bool:
         """
@@ -557,14 +614,31 @@ class Streamer:
 
     def _on_udp_queue_overrun(self, _):
         """
-        UDP queue overrun means that the frames can not be pushed out fast
-        enough - this is a limitation of the network!
-
-        Timestamp is set when this happens in order to show this via telemetry
-        to the viewer.
+        UDP queue overrun means frames can not be pushed out fast enough -
+        this is a limitation of the network.
         """
-        logger.error("UDP queue overrun - dropping frames!")
         self.last_udp_overflow_time = time.monotonic()
+
+        if not self._udp_queue_overrun_active:
+            logger.error("UDP queue overrun - dropping frames!")
+            self._udp_queue_overrun_active = True
+
+        self._reschedule_udp_queue_overrun_recovery_timeout()
+
+    def _reschedule_udp_queue_overrun_recovery_timeout(self) -> None:
+        if self._udp_queue_overrun_recovery_timeout_id is not None:
+            GLib.source_remove(self._udp_queue_overrun_recovery_timeout_id)
+
+        self._udp_queue_overrun_recovery_timeout_id = GLib.timeout_add(
+            1000, self._on_udp_queue_overrun_recovery_timeout
+        )
+
+    def _on_udp_queue_overrun_recovery_timeout(self) -> bool:
+        self._udp_queue_overrun_active = False
+        self._udp_queue_overrun_recovery_timeout_id = None
+        logger.info("UDP queue recovered")
+
+        return False
 
     def _on_encoder_buffer(self, pad, info):
         buffer = info.get_buffer()
@@ -597,6 +671,7 @@ class Streamer:
     def _on_source_buffer(self, pad, info):
         buffer = info.get_buffer()
         self.timer.on_source_buffer(buffer.pts, self.pipeline)
+
         return Gst.PadProbeReturn.OK
 
     def _on_camera_buffer(self, pad, info):
@@ -622,4 +697,5 @@ class Streamer:
     def _on_udp_buffer(self, pad, info):
         buffer = info.get_buffer()
         self.timer.on_udp_buffer(buffer.pts)
+
         return Gst.PadProbeReturn.OK
