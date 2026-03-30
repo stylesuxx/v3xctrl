@@ -30,7 +30,7 @@ from v3xctrl_control.message import (
 )
 from v3xctrl_control.Telemetry import Telemetry as TelemetryHandler
 from v3xctrl_gst import ControlClient
-from v3xctrl_helper import Address, clamp
+from v3xctrl_helper import Address, apply_expo, clamp
 from v3xctrl_tcp import Transport
 from v3xctrl_tcp.TcpTunnel import TcpTunnel
 from v3xctrl_telemetry import GpsProtocol
@@ -61,6 +61,12 @@ parser.add_argument(
 )
 parser.add_argument(
     "--reverse-boost", type=int, default=0, help="Minimum pulse width offset for going reverse (default: 0)"
+)
+parser.add_argument(
+    "--throttle-expo", type=int, default=0, help="Expo curve for throttle, 0 = linear, 100 = max (default: 0)"
+)
+parser.add_argument(
+    "--steering-expo", type=int, default=0, help="Expo curve for steering, 0 = linear, 100 = max (default: 0)"
 )
 parser.add_argument("--pwm-channel-throttle", type=int, default=0, help="PWM channel for throttle signal (default: 0)")
 parser.add_argument("--pwm-channel-steering", type=int, default=1, help="PWM channel for steering signal (default: 1)")
@@ -134,6 +140,9 @@ reverse_boost = args.reverse_boost
 
 forward_min = throttle_idle + forward_boost
 reverse_min = throttle_idle - reverse_boost
+
+throttle_expo = args.throttle_expo
+steering_expo = args.steering_expo
 
 steering_min = args.steering_min
 steering_max = args.steering_max
@@ -234,8 +243,8 @@ def control_handler(message: Control, address: Address) -> None:
 
     if client.state == State.CONNECTED:
         values = message.get_values()
-        raw_throttle = values["throttle"]
-        raw_steering = values["steering"]
+        raw_throttle = apply_expo(values["throttle"], throttle_expo)
+        raw_steering = apply_expo(values["steering"], steering_expo)
 
         # Determine throttle pulse forward or reverse
         scaled_throttle = raw_throttle * forward_multiplier

@@ -25,6 +25,8 @@ v3xctrl-python -m v3xctrl_control.apps.streamer "${viewer_direct_host}" "${viewe
   --steering-max "${control_steering_max}" \
   --steering-trim "${control_steering_trim}" \
   --steering-scale "${control_steering_scale}" \
+  --throttle-expo "${control_throttle_expo}" \
+  --steering-expo "${control_steering_expo}" \
   --failsafe-ms "${control_failsafeTimeout}" \
   --failsafe-throttle "${control_throttle_failsafe}" \
   --failsafe-steering "${control_steering_failsafe}" \
