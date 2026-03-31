@@ -42,12 +42,10 @@ class TcpTunnel(
     private var _ephemeralPort: Int = 0
     val ephemeralPort: Int get() = _ephemeralPort
 
-    private var scope: CoroutineScope? = null
-    private var mainJob: Job? = null
-    private var udpSocket: DatagramSocket? = null
-
-    @Volatile
-    private var stopped = false
+    @Volatile private var scope: CoroutineScope? = null
+    @Volatile private var mainJob: Job? = null
+    @Volatile private var udpSocket: DatagramSocket? = null
+    @Volatile private var stopped = false
 
     fun start() {
         stopped = false
