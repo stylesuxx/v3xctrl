@@ -778,6 +778,15 @@
               "default": 0,
               "title": "Dead-zone reverse",
               "description": "Compensate for 'dead-zone' of ESC. Set this to a value just slightly before the motor starts spinning reverse."
+            },
+            "expo": {
+              "propertyOrder": 90,
+              "type": "integer",
+              "default": 0,
+              "minimum": 0,
+              "maximum": 100,
+              "title": "Expo",
+              "description": "Exponential curve for throttle. 0 = linear, higher values = softer response around center for finer control."
             }
           }
         },
@@ -833,6 +842,15 @@
               "format": "checkbox",
               "default": false,
               "description": "Check if the servo does move in opposite directions when pressing [a] and [d] in the viewer."
+            },
+            "expo": {
+              "propertyOrder": 70,
+              "type": "integer",
+              "default": 0,
+              "minimum": 0,
+              "maximum": 100,
+              "title": "Expo",
+              "description": "Exponential curve for steering. 0 = linear, higher values = softer response around center for finer control."
             }
           }
         },
