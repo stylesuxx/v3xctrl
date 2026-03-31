@@ -2,6 +2,7 @@ package com.v3xctrl.viewer.messages
 
 import org.msgpack.core.MessageBufferPacker
 import org.msgpack.core.MessagePack
+import org.msgpack.core.MessagePackException
 import org.msgpack.core.MessageUnpacker
 import org.msgpack.value.ValueType
 
@@ -110,7 +111,9 @@ abstract class Message(
                 val type = messageType ?: return null
                 val factory = registry[type] ?: return null
                 factory(payload ?: emptyMap(), timestamp)
-            } catch (_: Exception) {
+            } catch (_: MessagePackException) {
+                null
+            } catch (_: java.io.IOException) {
                 null
             }
         }
@@ -133,7 +136,9 @@ abstract class Message(
                 }
                 unpacker.close()
                 "Unknown"
-            } catch (_: Exception) {
+            } catch (_: MessagePackException) {
+                "Unknown"
+            } catch (_: java.io.IOException) {
                 "Unknown"
             }
         }
