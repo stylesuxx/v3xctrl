@@ -34,6 +34,7 @@ for mod_name, mock_obj in _modules_to_mock.items():
         _patchers[mod_name] = mock_obj
         sys.modules[mod_name] = mock_obj
 
+from v3xctrl_ui.network.video.ClockOffset import ClockOffset  # noqa: E402
 from v3xctrl_ui.network.video.ReceiverGst import ReceiverGst  # noqa: E402
 
 
@@ -57,7 +58,7 @@ def _make_receiver(**overrides) -> ReceiverGst:
         "_timing_receive_samples": None,
         "_sei_timestamps": None,
         "_timing_e2e_samples": None,
-        "_ntp_clock": None,
+        "_clock_offset": None,
         "timing_decode_samples": deque(maxlen=100),
         "timing_buffer_samples": deque(maxlen=100),
     }
@@ -172,7 +173,7 @@ class TestStopPipeline(unittest.TestCase):
             _decode_start_times={1: 0.7},
             _receive_durations={1: 0.1},
             _timing_receive_samples=[0.1, 0.2],
-            _sei_timestamps={1: (100, 50)},
+            _sei_timestamps={1: 100},
             _timing_e2e_samples=[0.05],
         )
 
@@ -196,7 +197,10 @@ class TestLogTimingStats(unittest.TestCase):
         mock_logger.debug.assert_not_called()
 
     def test_logs_timing_without_e2e(self):
-        receiver = _make_receiver(_timing_receive_samples=[0.002, 0.003], _timing_e2e_samples=[])
+        receiver = _make_receiver(
+            _timing_receive_samples=[0.002, 0.003],
+            _timing_e2e_samples=[],
+        )
         receiver.timing_decode_samples.extend([0.005, 0.010])
         receiver.timing_buffer_samples.extend([0.020, 0.030])
 
@@ -213,7 +217,10 @@ class TestLogTimingStats(unittest.TestCase):
         self.assertNotIn("e2e", log_msg)
 
     def test_logs_timing_with_e2e(self):
-        receiver = _make_receiver(_timing_receive_samples=[0.002], _timing_e2e_samples=[0.050, 0.060])
+        receiver = _make_receiver(
+            _timing_receive_samples=[0.002],
+            _timing_e2e_samples=[0.050, 0.060],
+        )
         receiver.timing_decode_samples.extend([0.005])
         receiver.timing_buffer_samples.extend([0.020])
 
@@ -223,8 +230,42 @@ class TestLogTimingStats(unittest.TestCase):
         log_msg = mock_logger.debug.call_args[0][0]
         self.assertIn("e2e", log_msg)
 
+    def test_logs_clock_offset_when_valid(self):
+        clock_offset = ClockOffset()
+        clock_offset.update(1.0, 1.005, 1.010)
+        receiver = _make_receiver(
+            _timing_receive_samples=[0.002],
+            _timing_e2e_samples=[0.050],
+            _clock_offset=clock_offset,
+        )
+        receiver.timing_decode_samples.extend([0.005])
+        receiver.timing_buffer_samples.extend([0.020])
+
+        with patch("v3xctrl_ui.network.video.ReceiverGst.logger") as mock_logger:
+            receiver._log_timing_stats()
+
+        log_msg = mock_logger.debug.call_args[0][0]
+        self.assertIn("clock-offset", log_msg)
+
+    def test_no_clock_offset_when_not_set(self):
+        receiver = _make_receiver(
+            _timing_receive_samples=[0.002],
+            _timing_e2e_samples=[],
+        )
+        receiver.timing_decode_samples.extend([0.005])
+        receiver.timing_buffer_samples.extend([0.020])
+
+        with patch("v3xctrl_ui.network.video.ReceiverGst.logger") as mock_logger:
+            receiver._log_timing_stats()
+
+        log_msg = mock_logger.debug.call_args[0][0]
+        self.assertNotIn("clock-offset", log_msg)
+
     def test_clears_samples_after_logging(self):
-        receiver = _make_receiver(_timing_receive_samples=[0.002], _timing_e2e_samples=[0.050])
+        receiver = _make_receiver(
+            _timing_receive_samples=[0.002],
+            _timing_e2e_samples=[0.050],
+        )
         receiver.timing_decode_samples.extend([0.005])
         receiver.timing_buffer_samples.extend([0.020])
 
@@ -333,7 +374,7 @@ class TestOnSeiExtractProbe(unittest.TestCase):
 
         from v3xctrl_helper.sei import build_sei_nal
 
-        sei_data = build_sei_nal(123456, -42)
+        sei_data = build_sei_nal(123456)
 
         buffer = MagicMock()
         buffer.pts = 5000
@@ -348,7 +389,7 @@ class TestOnSeiExtractProbe(unittest.TestCase):
 
         self.assertEqual(result, _gst_mock.PadProbeReturn.OK)
         self.assertIn(5000, receiver._sei_timestamps)
-        self.assertEqual(receiver._sei_timestamps[5000], (123456, -42))
+        self.assertEqual(receiver._sei_timestamps[5000], 123456)
         buffer.unmap.assert_called_once_with(map_info)
 
     def test_ignores_non_sei_data(self):
@@ -368,12 +409,12 @@ class TestOnSeiExtractProbe(unittest.TestCase):
         self.assertNotIn(5000, receiver._sei_timestamps)
 
     def test_clears_dict_when_exceeding_limit(self):
-        sei_timestamps = {i: (i, 0) for i in range(301)}
+        sei_timestamps = {i: i for i in range(301)}
         receiver = _make_receiver(_sei_timestamps=sei_timestamps)
 
         from v3xctrl_helper.sei import build_sei_nal
 
-        sei_data = build_sei_nal(999, 111)
+        sei_data = build_sei_nal(999)
 
         buffer = MagicMock()
         buffer.pts = 9999
@@ -388,7 +429,7 @@ class TestOnSeiExtractProbe(unittest.TestCase):
 
         # Dict was cleared and only the new entry remains
         self.assertEqual(len(receiver._sei_timestamps), 1)
-        self.assertEqual(receiver._sei_timestamps[9999], (999, 111))
+        self.assertEqual(receiver._sei_timestamps[9999], 999)
 
     def test_handles_map_failure(self):
         receiver = _make_receiver(_sei_timestamps={})
@@ -406,22 +447,23 @@ class TestOnSeiExtractProbe(unittest.TestCase):
         self.assertNotIn(5000, receiver._sei_timestamps)
 
 
+class TestSetClockOffset(unittest.TestCase):
+    def test_sets_clock_offset(self):
+        receiver = _make_receiver()
+        clock_offset = ClockOffset()
+
+        receiver.set_clock_offset(clock_offset)
+
+        self.assertIs(receiver._clock_offset, clock_offset)
+
+
 class TestCleanup(unittest.TestCase):
-    def test_cleanup_stops_ntp_clock(self):
-        mock_clock = MagicMock()
-        receiver = _make_receiver(_ntp_clock=mock_clock)
-
-        receiver._cleanup()
-
-        mock_clock.stop.assert_called_once()
-        self.assertIsNone(receiver._ntp_clock)
-
-    def test_cleanup_without_ntp_clock(self):
+    def test_cleanup_calls_stop_pipeline(self):
         receiver = _make_receiver()
 
         receiver._cleanup()
 
-        self.assertIsNone(receiver._ntp_clock)
+        self.assertIsNone(receiver.pipeline)
 
 
 if __name__ == "__main__":

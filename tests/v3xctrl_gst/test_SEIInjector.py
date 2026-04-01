@@ -13,55 +13,56 @@ class TestSEIInjectorPreEncode(unittest.TestCase):
 
         from v3xctrl_gst.SEIInjector import SEIInjector
 
-        mock_clock = MagicMock()
-        mock_clock.get_time.return_value = (1_000_000, -50)
-        injector = SEIInjector(mock_clock)
-        return injector, mock_clock, mock_gst
+        injector = SEIInjector()
+        return injector, mock_gst
 
     def test_captures_timing_by_pts(self, mock_gst, mock_libgst):
-        injector, mock_clock, mock_gst = self._create_injector(mock_gst, mock_libgst)
+        injector, mock_gst = self._create_injector(mock_gst, mock_libgst)
 
         buffer = MagicMock()
         buffer.pts = 12345
         info = MagicMock()
         info.get_buffer.return_value = buffer
 
-        result = injector.on_pre_encode(MagicMock(), info)
+        with patch("v3xctrl_gst.SEIInjector.time") as mock_time:
+            mock_time.time.return_value = 1.0
+            result = injector.on_pre_encode(MagicMock(), info)
 
         self.assertEqual(result, mock_gst.PadProbeReturn.OK)
         self.assertIn(12345, injector._pending)
-        self.assertEqual(injector._pending[12345], (1_000_000, -50))
-        mock_clock.get_time.assert_called_once()
+        self.assertEqual(injector._pending[12345], 1_000_000)
 
     def test_overwrites_same_pts(self, mock_gst, mock_libgst):
-        injector, mock_clock, mock_gst = self._create_injector(mock_gst, mock_libgst)
+        injector, mock_gst = self._create_injector(mock_gst, mock_libgst)
 
         buffer = MagicMock()
         buffer.pts = 100
         info = MagicMock()
         info.get_buffer.return_value = buffer
 
-        mock_clock.get_time.return_value = (1000, 10)
-        injector.on_pre_encode(MagicMock(), info)
-
-        mock_clock.get_time.return_value = (2000, 20)
-        injector.on_pre_encode(MagicMock(), info)
-
-        self.assertEqual(injector._pending[100], (2000, 20))
-
-    def test_multiple_pts_tracked(self, mock_gst, mock_libgst):
-        injector, mock_clock, mock_gst = self._create_injector(mock_gst, mock_libgst)
-
-        for pts_val in [100, 200, 300]:
-            buffer = MagicMock()
-            buffer.pts = pts_val
-            info = MagicMock()
-            info.get_buffer.return_value = buffer
-            mock_clock.get_time.return_value = (pts_val * 10, pts_val)
+        with patch("v3xctrl_gst.SEIInjector.time") as mock_time:
+            mock_time.time.return_value = 0.001
             injector.on_pre_encode(MagicMock(), info)
 
+            mock_time.time.return_value = 0.002
+            injector.on_pre_encode(MagicMock(), info)
+
+        self.assertEqual(injector._pending[100], 2000)
+
+    def test_multiple_pts_tracked(self, mock_gst, mock_libgst):
+        injector, mock_gst = self._create_injector(mock_gst, mock_libgst)
+
+        with patch("v3xctrl_gst.SEIInjector.time") as mock_time:
+            for pts_val in [100, 200, 300]:
+                buffer = MagicMock()
+                buffer.pts = pts_val
+                info = MagicMock()
+                info.get_buffer.return_value = buffer
+                mock_time.time.return_value = pts_val / 1_000_000
+                injector.on_pre_encode(MagicMock(), info)
+
         self.assertEqual(len(injector._pending), 3)
-        self.assertEqual(injector._pending[200], (2000, 200))
+        self.assertEqual(injector._pending[200], 200)
 
 
 @patch("v3xctrl_gst.SEIInjector._gst_mini_object_unref")
@@ -77,8 +78,7 @@ class TestSEIInjectorPostEncode(unittest.TestCase):
 
         from v3xctrl_gst.SEIInjector import SEIInjector
 
-        mock_clock = MagicMock()
-        injector = SEIInjector(mock_clock)
+        injector = SEIInjector()
         return injector, mock_gst, mock_libgst
 
     def _make_buffer_with_data(self, pts, data, mock_gst):
@@ -110,7 +110,7 @@ class TestSEIInjectorPostEncode(unittest.TestCase):
     ):
         injector, mock_gst, mock_libgst = self._create_injector(mock_gst, mock_libgst)
 
-        injector._pending[5000] = (123456789, -42)
+        injector._pending[5000] = 123456789
 
         original_data = b"\x00\x00\x00\x01\x65" + b"\xab" * 20
         buffer = self._make_buffer_with_data(5000, original_data, mock_gst)
@@ -127,13 +127,13 @@ class TestSEIInjectorPostEncode(unittest.TestCase):
 
         sei_result = parse_sei_nal(combined)
         self.assertIsNotNone(sei_result)
-        self.assertEqual(sei_result, (123456789, -42))
+        self.assertEqual(sei_result, 123456789)
 
         self.assertTrue(combined.endswith(original_data))
 
     def test_consumes_pending_entry(self, mock_gst, mock_libgst, mock_ctypes, mock_c_ptr, mock_ref, mock_unref):
         injector, mock_gst, mock_libgst = self._create_injector(mock_gst, mock_libgst)
-        injector._pending[5000] = (100, 0)
+        injector._pending[5000] = 100
 
         buffer = self._make_buffer_with_data(5000, b"\x00" * 10, mock_gst)
         info = MagicMock()
@@ -146,7 +146,7 @@ class TestSEIInjectorPostEncode(unittest.TestCase):
 
     def test_copies_buffer_metadata(self, mock_gst, mock_libgst, mock_ctypes, mock_c_ptr, mock_ref, mock_unref):
         injector, mock_gst, mock_libgst = self._create_injector(mock_gst, mock_libgst)
-        injector._pending[5000] = (100, 0)
+        injector._pending[5000] = 100
 
         buffer = self._make_buffer_with_data(5000, b"\x00" * 10, mock_gst)
         info = MagicMock()
@@ -164,7 +164,7 @@ class TestSEIInjectorPostEncode(unittest.TestCase):
 
     def test_handles_map_failure(self, mock_gst, mock_libgst, mock_ctypes, mock_c_ptr, mock_ref, mock_unref):
         injector, mock_gst, mock_libgst = self._create_injector(mock_gst, mock_libgst)
-        injector._pending[5000] = (100, 0)
+        injector._pending[5000] = 100
 
         buffer = MagicMock()
         buffer.pts = 5000
@@ -178,7 +178,7 @@ class TestSEIInjectorPostEncode(unittest.TestCase):
 
     def test_unmaps_buffer_after_read(self, mock_gst, mock_libgst, mock_ctypes, mock_c_ptr, mock_ref, mock_unref):
         injector, mock_gst, mock_libgst = self._create_injector(mock_gst, mock_libgst)
-        injector._pending[5000] = (100, 0)
+        injector._pending[5000] = 100
 
         buffer = self._make_buffer_with_data(5000, b"\x00" * 10, mock_gst)
         map_info = buffer.map.return_value[1]
@@ -192,7 +192,7 @@ class TestSEIInjectorPostEncode(unittest.TestCase):
 
     def test_refs_new_buffer_and_unrefs_old(self, mock_gst, mock_libgst, mock_ctypes, mock_c_ptr, mock_ref, mock_unref):
         injector, mock_gst, mock_libgst = self._create_injector(mock_gst, mock_libgst)
-        injector._pending[5000] = (100, 0)
+        injector._pending[5000] = 100
 
         buffer = self._make_buffer_with_data(5000, b"\x00" * 10, mock_gst)
         info = MagicMock()

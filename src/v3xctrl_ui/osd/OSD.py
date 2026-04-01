@@ -202,11 +202,6 @@ class OSD:
         self.widgets_gps = create_gps_widgets()
 
     def _latency_update(self, message: Latency) -> None:
-        """
-        NOTE: We rely on the streamer and viewer to have the same timezone set
-              and do not account for any form of drift.
-        """
-
         # In spectator mode, latency is not meaningful
         if self.is_spectator:
             self.debug_latency = "default"

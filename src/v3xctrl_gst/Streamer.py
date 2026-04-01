@@ -18,7 +18,6 @@ from v3xctrl_gst.QPManager import QPManager  # noqa: E402
 from v3xctrl_gst.RecordingManager import RecordingManager  # noqa: E402
 from v3xctrl_gst.SEIInjector import SEIInjector  # noqa: E402
 from v3xctrl_gst.SourceRegistry import SourceRegistry  # noqa: E402
-from v3xctrl_helper import NTPClock  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -121,11 +120,9 @@ class Streamer:
 
         Gst.init(None)
 
-        self.ntp_clock: NTPClock | None = None
         self.sei_injector: SEIInjector | None = None
         if self.timer.enabled:
-            self.ntp_clock = NTPClock()
-            self.sei_injector = SEIInjector(self.ntp_clock)
+            self.sei_injector = SEIInjector()
 
         self.control_server = ControlServer(self, control_socket)
 

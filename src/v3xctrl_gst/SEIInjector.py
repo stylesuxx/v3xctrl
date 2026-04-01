@@ -1,11 +1,12 @@
 import ctypes
+import time
 
 import gi
 
 gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
 
-from v3xctrl_helper import NTPClock, build_sei_nal  # noqa: E402
+from v3xctrl_helper import build_sei_nal  # noqa: E402
 
 # ctypes setup to work around Python GI binding ref leak in Gst.Pad.chain().
 # Instead of chain(), we replace the buffer pointer directly in GstPadProbeInfo.data
@@ -32,7 +33,7 @@ def _c_ptr(pygi_obj):
     return ctypes.c_void_p.from_address(id(pygi_obj) + _PYGI_PTR_OFFSET).value
 
 
-# GstPadProbeInfo struct layout — we only need the offset of the `data` field.
+# GstPadProbeInfo struct layout - we only need the offset of the `data` field.
 class _GstPadProbeInfo(ctypes.Structure):
     _fields_ = [
         ("type", ctypes.c_uint),  # GstPadProbeType
@@ -45,26 +46,24 @@ _DATA_OFFSET = _GstPadProbeInfo.data.offset
 
 
 class SEIInjector:
-    def __init__(self, ntp_clock: NTPClock) -> None:
-        self._clock = ntp_clock
-        self._pending: dict[int, tuple[int, int]] = {}
+    def __init__(self) -> None:
+        self._pending: dict[int, int] = {}
 
     def on_pre_encode(self, pad, info):
-        """Capture wall time + NTP offset when frame enters the encoder."""
+        """Capture wall time when frame enters the encoder."""
         buf = info.get_buffer()
-        self._pending[buf.pts] = self._clock.get_time()
+        self._pending[buf.pts] = int(time.time() * 1_000_000)
 
         return Gst.PadProbeReturn.OK
 
     def on_post_encode(self, pad, info):
         """Inject SEI NAL with captured timestamp into encoded frame."""
         buffer = info.get_buffer()
-        timing = self._pending.pop(buffer.pts, None)
-        if timing is None:
+        timestamp_us = self._pending.pop(buffer.pts, None)
+        if timestamp_us is None:
             return Gst.PadProbeReturn.OK
 
-        timestamp_us, offset_us = timing
-        sei_bytes = build_sei_nal(timestamp_us, offset_us)
+        sei_bytes = build_sei_nal(timestamp_us)
 
         ok, map_info = buffer.map(Gst.MapFlags.READ)
         if not ok:

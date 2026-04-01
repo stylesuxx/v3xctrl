@@ -9,13 +9,11 @@ gi.require_version("GstApp", "1.0")
 import numpy as np  # noqa: E402
 from gi.repository import GLib, Gst, GstApp  # noqa: E402
 
-from v3xctrl_helper import NTPClock, parse_sei_nal  # noqa: E402
+from v3xctrl_helper import parse_sei_nal  # noqa: E402
+from v3xctrl_ui.network.video.ClockOffset import ClockOffset  # noqa: E402
 from v3xctrl_ui.network.video.Receiver import Receiver  # noqa: E402
 
 logger = logging.getLogger(__name__)
-
-# Dismiss e2e measurement if either NTP offset exceeds this (1ms)
-_MAX_NTP_OFFSET_US = 1000
 
 
 class ReceiverGst(Receiver):
@@ -60,14 +58,17 @@ class ReceiverGst(Receiver):
         self._timing_receive_samples: list[float] | None = None
 
         # SEI-based end-to-end latency (only used when timing_enabled)
-        self._ntp_clock: NTPClock | None = None
-        self._sei_timestamps: dict[int, tuple[int, int]] | None = None
+        self._clock_offset: ClockOffset | None = None
+        self._sei_timestamps: dict[int, int] | None = None
         self._timing_e2e_samples: list[float] | None = None
 
         # Cached frame dimensions and pre-allocated buffer
         self._cached_width: int = 0
         self._cached_height: int = 0
         self._frame_array: np.ndarray | None = None
+
+    def set_clock_offset(self, clock_offset: ClockOffset) -> None:
+        self._clock_offset = clock_offset
 
     def _setup(self) -> None:
         """Setup GStreamer pipeline."""
@@ -90,7 +91,7 @@ class ReceiverGst(Receiver):
             pts = buffer.pts
             now = time.monotonic()
 
-            # Calculate receive duration (first packet → decoder entry)
+            # Calculate receive duration (first packet -> decoder entry)
             receive_start = self._receive_start_times.pop(pts, None)
             if receive_start is not None:
                 self._receive_durations[pts] = now - receive_start
@@ -242,8 +243,6 @@ class ReceiverGst(Receiver):
                 decoder_sink.add_probe(Gst.PadProbeType.BUFFER, self._on_decoder_entry_probe)
 
             # SEI extraction for e2e latency (probe depay output = Annex B)
-            if self._ntp_clock is None:
-                self._ntp_clock = NTPClock(poll_interval=30.0)
             self._sei_timestamps = {}
             self._timing_e2e_samples = []
 
@@ -311,7 +310,7 @@ class ReceiverGst(Receiver):
             # Calculate timing if enabled
             decode_duration = 0.0
             if self.timing_enabled and self._decode_start_times is not None:
-                # Get decode duration (decoder entry → appsink)
+                # Get decode duration (decoder entry -> appsink)
                 decode_start = self._decode_start_times.pop(pts, None)
                 if decode_start is not None:
                     decode_duration = time.monotonic() - decode_start
@@ -321,25 +320,14 @@ class ReceiverGst(Receiver):
                 if receive_duration is not None:
                     self._timing_receive_samples.append(receive_duration)
 
-                # Calculate e2e latency from SEI timestamp + NTP correction
-                if self._sei_timestamps is not None and self._ntp_clock is not None:
-                    sei_data = self._sei_timestamps.pop(pts, None)
-                    if sei_data is not None:
-                        capture_us, capture_offset_us = sei_data
-                        viewer_us, viewer_offset_us = self._ntp_clock.get_time()
-
-                        if abs(capture_offset_us) <= _MAX_NTP_OFFSET_US and abs(viewer_offset_us) <= _MAX_NTP_OFFSET_US:
-                            corrected_capture = capture_us + capture_offset_us
-                            corrected_viewer = viewer_us + viewer_offset_us
-                            e2e_us = corrected_viewer - corrected_capture
-                            if e2e_us >= 0:
-                                self._timing_e2e_samples.append(e2e_us / 1_000_000)
-                        else:
-                            logging.debug(
-                                f"[SEI] NTP offset too high, skipping e2e: "
-                                f"capture={capture_offset_us}us "
-                                f"viewer={viewer_offset_us}us"
-                            )
+                # Calculate e2e latency from SEI timestamp + clock offset
+                if self._sei_timestamps is not None and self._clock_offset is not None and self._clock_offset.valid:
+                    capture_us = self._sei_timestamps.pop(pts, None)
+                    if capture_us is not None:
+                        viewer_us = int(time.time() * 1_000_000)
+                        e2e_us = viewer_us - capture_us + self._clock_offset.offset_us
+                        if e2e_us >= 0:
+                            self._timing_e2e_samples.append(e2e_us / 1_000_000)
 
             self._update_frame(frame, decode_duration)
 
@@ -516,6 +504,10 @@ class ReceiverGst(Receiver):
         if e2e_samples:
             parts.append(fmt("e2e", e2e_min, e2e_avg, e2e_max))
 
+        if self._clock_offset is not None and self._clock_offset.valid:
+            offset_ms = self._clock_offset.offset_us / 1000
+            parts.append(f"clock-offset: {offset_ms:.1f}ms")
+
         logger.debug(f"[TIMING] {' | '.join(parts)}")
 
         self.timing_decode_samples.clear()
@@ -528,6 +520,3 @@ class ReceiverGst(Receiver):
     def _cleanup(self) -> None:
         """Cleanup resources."""
         self._stop_pipeline()
-        if self._ntp_clock is not None:
-            self._ntp_clock.stop()
-            self._ntp_clock = None

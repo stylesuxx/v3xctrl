@@ -4,9 +4,13 @@ import time
 from abc import ABC, abstractmethod
 from collections import deque
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 import numpy as np
 import numpy.typing as npt
+
+if TYPE_CHECKING:
+    from v3xctrl_ui.network.video.ClockOffset import ClockOffset
 
 logger = logging.getLogger(__name__)
 
@@ -281,6 +285,12 @@ class Receiver(ABC, threading.Thread):
                 self.decode_durations.append(decode_duration)
 
         self.decoded_frame_count += 1
+
+    def set_clock_offset(self, clock_offset: "ClockOffset") -> None:
+        """Set the clock offset tracker for e2e latency measurement.
+
+        Only meaningful for receivers that support SEI-based e2e timing (ReceiverGst).
+        """
 
     def enable_timing(self, enabled: bool = True) -> None:
         self.timing_enabled = enabled

@@ -6,4 +6,3 @@ pygame-ce==2.5.5
 tomli_w==1.2.0
 python-material-icons==0.3.2
 gstreamer-bundle==1.28.1; sys_platform == "win32"
-ntplib==0.4.0

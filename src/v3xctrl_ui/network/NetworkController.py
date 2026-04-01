@@ -9,6 +9,7 @@ from v3xctrl_tcp.TcpTunnel import TcpTunnel
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.network.NetworkSetup import NetworkSetup
 from v3xctrl_ui.network.TcpServer import TcpServer
+from v3xctrl_ui.network.video.ClockOffset import ClockOffset
 
 logger = logging.getLogger(__name__)
 
@@ -16,9 +17,10 @@ logger = logging.getLogger(__name__)
 class NetworkController:
     """Manages network connections, relay setup, and server communications."""
 
-    def __init__(self, settings: Settings, handlers: dict[str, Any]) -> None:
+    def __init__(self, settings: Settings, handlers: dict[str, Any], clock_offset: ClockOffset) -> None:
         self.settings = settings
         self.server_handlers = handlers
+        self.clock_offset = clock_offset
 
         ports = self.settings.get("ports", {})
         self.video_port = ports.get("video")
@@ -190,6 +192,7 @@ class NetworkController:
 
         if result.video_receiver_result and result.video_receiver_result.success:
             self.video_receiver = result.video_receiver_result.video_receiver
+            self.video_receiver.set_clock_offset(self.clock_offset)
 
         if result.server_result:
             if result.server_result.success:

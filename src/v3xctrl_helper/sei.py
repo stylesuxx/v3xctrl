@@ -12,13 +12,13 @@ NAL_HEADER_SEI = 0x06
 # SEI payload type 5: user_data_unregistered
 SEI_TYPE_USER_DATA_UNREGISTERED = 0x05
 
-# UUID (16) + timestamp (8) + offset (8)
-SEI_PAYLOAD_SIZE = 32
+# UUID (16) + timestamp (8)
+SEI_PAYLOAD_SIZE = 24
 
 
-def build_sei_nal(timestamp_us: int, offset_us: int) -> bytes:
-    """Build a complete SEI NAL unit with timestamp and NTP offset."""
-    payload = SEI_UUID + struct.pack(">qq", timestamp_us, offset_us)
+def build_sei_nal(timestamp_us: int) -> bytes:
+    """Build a complete SEI NAL unit with a capture timestamp."""
+    payload = SEI_UUID + struct.pack(">q", timestamp_us)
 
     return (
         START_CODE
@@ -28,7 +28,7 @@ def build_sei_nal(timestamp_us: int, offset_us: int) -> bytes:
     )
 
 
-def _try_parse_sei(data: bytes, nal_start: int) -> tuple[int, int] | None:
+def _try_parse_sei(data: bytes, nal_start: int) -> int | None:
     """Try parsing a SEI NAL at nal_start (pointing to NAL header byte)."""
     if nal_start >= len(data):
         return None
@@ -50,18 +50,18 @@ def _try_parse_sei(data: bytes, nal_start: int) -> tuple[int, int] | None:
     uuid_start = sei_start + 2
     uuid_end = uuid_start + 16
 
-    if uuid_end + 16 > len(data):
+    if uuid_end + 8 > len(data):
         return None
 
     if data[uuid_start:uuid_end] != SEI_UUID:
         return None
 
-    timestamp_us, offset_us = struct.unpack(">qq", data[uuid_end : uuid_end + 16])
-    return timestamp_us, offset_us
+    (timestamp_us,) = struct.unpack(">q", data[uuid_end : uuid_end + 8])
+    return int(timestamp_us)
 
 
-def parse_sei_nal(data: bytes) -> tuple[int, int] | None:
-    """Parse a v3xctrl SEI NAL unit. Returns (timestamp_us, offset_us) or None.
+def parse_sei_nal(data: bytes) -> int | None:
+    """Parse a v3xctrl SEI NAL unit. Returns timestamp_us or None.
 
     Supports both Annex B (start code) and AVC (length-prefixed) formats.
     """
