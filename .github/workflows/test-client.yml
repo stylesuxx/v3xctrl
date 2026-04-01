@@ -42,6 +42,6 @@ jobs:
         if: always()
         uses: codecov/codecov-action@v6
         with:
-          file: client/coverage/coverage-final.json
+          files: client/coverage/coverage-final.json
           flags: client
           token: ${{ secrets.CODECOV_TOKEN }}
