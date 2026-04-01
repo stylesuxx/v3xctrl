@@ -18,7 +18,6 @@ import signal
 import sys
 import time
 import types
-from collections.abc import Callable
 from enum import IntEnum
 
 import serial
@@ -27,6 +26,7 @@ from pyubx2 import ERR_IGNORE, SET_LAYER_RAM, TXN_NONE, UBXMessage, UBXReader
 from v3xctrl_telemetry.UBXGpsTelemetry import UBXMessageId
 
 logging.basicConfig(level=logging.DEBUG, format="%(message)s")
+logger = logging.getLogger("gps_debug")
 
 GPS_PATH = "/dev/serial0"
 POLL_BAUDRATES = (115200, 9600)
@@ -68,141 +68,192 @@ def format_timestamp() -> str:
     return f"[{time.strftime('%H:%M:%S')}.{int(now % 1 * 1000):03d}]"
 
 
-def open_at_baud(path: str, baudrate: int) -> serial.Serial | None:
-    port = serial.Serial(path, baudrate, timeout=BAUD_DETECT_TIMEOUT_S)
-    try:
-        port.reset_input_buffer()
-        raw = port.read(256)
-        if b"\xb5\x62" in raw:
-            return port
+class GpsDebug:
+    def __init__(self, path: str) -> None:
+        self.path = path
+        self.running = True
+        self.warn_count = 0
+        self.prev_sats: int | None = None
 
-    except OSError:
-        pass
+    def stop(self, _sig: int, _frame: types.FrameType | None) -> None:
+        self.running = False
 
-    port.close()
-    return None
+    def is_stopping(self) -> bool:
+        return not self.running
 
+    def get_port_at_baud(self, baudrate: int) -> serial.Serial | None:
+        port = serial.Serial(self.path, baudrate, timeout=BAUD_DETECT_TIMEOUT_S)
+        try:
+            port.reset_input_buffer()
+            # 256 bytes is enough to capture the UBX sync header (\xb5\x62) in the module's output burst
+            raw = port.read(256)
+            if b"\xb5\x62" in raw:
+                return port
 
-def apply_debug_config(port: serial.Serial, logger: logging.Logger, is_stopping: Callable[[], bool]) -> None:
-    port.timeout = SERIAL_TIMEOUT
-    cfg = UBXMessage.config_set(SET_LAYER_RAM, TXN_NONE, list(DEBUG_CONFIG.items()))
-    port.write(cfg.serialize())
-    port.flush()
+        except OSError:
+            pass
 
-    reader = UBXReader(port, quitonerror=ERR_IGNORE)
-    deadline = time.monotonic() + ACK_TIMEOUT_S
-    while time.monotonic() < deadline and not is_stopping():
-        _, msg = reader.read()
-        if msg is None:
-            continue
+        port.close()
+        return None
 
-        match msg.identity:
-            case UBXMessageId.ACK_ACK:
-                logger.info(f"{format_timestamp()} Config applied (RAM only - flash unchanged, reverts on power cycle)")
-                return
-            case UBXMessageId.ACK_NAK:
-                logger.warning(f"{format_timestamp()} [WARN] Module rejected debug config")
-                return
+    def apply_debug_config(self, port: serial.Serial) -> None:
+        port.timeout = SERIAL_TIMEOUT
+        cfg = UBXMessage.config_set(SET_LAYER_RAM, TXN_NONE, list(DEBUG_CONFIG.items()))
+        port.write(cfg.serialize())
+        port.flush()
 
-    logger.warning(f"{format_timestamp()} [WARN] No ACK received for debug config write")
+        reader = UBXReader(port, quitonerror=ERR_IGNORE)
+        deadline = time.monotonic() + ACK_TIMEOUT_S
+        while time.monotonic() < deadline and not self.is_stopping():
+            _, msg = reader.read()
+            if msg is None:
+                continue
 
+            match msg.identity:
+                case UBXMessageId.ACK_ACK:
+                    logger.info(
+                        f"{format_timestamp()} Config applied (RAM only - flash unchanged, reverts on power cycle)"
+                    )
+                    return
+                case UBXMessageId.ACK_NAK:
+                    logger.warning(f"{format_timestamp()} [WARN] Module rejected debug config")
+                    return
 
-def open_port(path: str, logger: logging.Logger, is_stopping: Callable[[], bool]) -> serial.Serial:
-    for baudrate in POLL_BAUDRATES:
-        port = open_at_baud(path, baudrate)
-        if port is not None:
-            logger.info(f"{format_timestamp()} UBX sync found at {baudrate} baud on {path}")
-            apply_debug_config(port, logger, is_stopping)
-            return port
-    logger.warning(f"{format_timestamp()} [WARN] No UBX sync at 115200 baud, opening at 9600 without debug config")
-    return serial.Serial(path, POLL_BAUDRATES[-1], timeout=SERIAL_TIMEOUT)
+        logger.warning(f"{format_timestamp()} [WARN] No ACK received for debug config write")
 
+    def open_port(self) -> serial.Serial:
+        for baudrate in POLL_BAUDRATES:
+            port = self.get_port_at_baud(baudrate)
+            if port is not None:
+                logger.info(f"{format_timestamp()} UBX sync found at {baudrate} baud on {self.path}")
+                self.apply_debug_config(port)
+                return port
 
-def handle_nav_position_velocity_time(
-    msg: UBXMessage, prev_sats: int | None, logger: logging.Logger, warn_count: list
-) -> int:
-    fix_type = msg.fixType
-    num_sv = msg.numSV
-    fix_name = FIX_NAMES.get(fix_type, f"UNK({fix_type})")
+        logger.warning(f"{format_timestamp()} [WARN] No UBX sync at 115200 baud, opening at 9600 without debug config")
+        return serial.Serial(self.path, POLL_BAUDRATES[-1], timeout=SERIAL_TIMEOUT)
 
-    pos = "lat=--  lon=--  speed=--"
-    if fix_type >= 2:
-        pos = f"lat={msg.lat:.6f}  lon={msg.lon:.6f}  speed={msg.gSpeed * 3.6 / 1000:.1f} km/h"
+    def handle_nav_position_velocity_time(self, msg: UBXMessage) -> None:
+        fix_type = msg.fixType
+        num_sv = msg.numSV
+        fix_name = FIX_NAMES.get(fix_type, f"UNK({fix_type})")
 
-    logger.info(f"{format_timestamp()} NAV-PVT  fix={fix_name}  sats={num_sv}  {pos}")
+        pos = "lat=--  lon=--  speed=--"
+        if fix_type >= 2:
+            pos = f"lat={msg.lat:.6f}  lon={msg.lon:.6f}  speed={msg.gSpeed * 3.6 / 1000:.1f} km/h"
 
-    if prev_sats is not None and (prev_sats - num_sv) >= WARN_SAT_DROP:
-        logger.warning(f"{format_timestamp()} [WARN] sats dropped {prev_sats} -> {num_sv}")
-        warn_count[0] += 1
+        logger.info(f"{format_timestamp()} NAV-PVT  fix={fix_name}  sats={num_sv}  {pos}")
 
-    if fix_type not in FIX_NAMES:
-        logger.warning(f"{format_timestamp()} [WARN] unexpected fixType={fix_type}")
-        warn_count[0] += 1
+        if self.prev_sats is not None and (self.prev_sats - num_sv) >= WARN_SAT_DROP:
+            logger.warning(f"{format_timestamp()} [WARN] sats dropped {self.prev_sats} -> {num_sv}")
+            self.warn_count += 1
 
-    return int(num_sv)
+        if fix_type not in FIX_NAMES:
+            logger.warning(f"{format_timestamp()} [WARN] unexpected fixType={fix_type}")
+            self.warn_count += 1
 
+        self.prev_sats = int(num_sv)
 
-def handle_nav_satellites(msg: UBXMessage, logger: logging.Logger, warn_count: list) -> None:
-    satellite_count = msg.numSvs
-    parts = []
-    for i in range(1, satellite_count + 1):
-        gnss_id = getattr(msg, f"gnssId_{i:02d}", None)
-        sv_id = getattr(msg, f"svId_{i:02d}", None)
-        cno = getattr(msg, f"cno_{i:02d}", None)
-        elev = getattr(msg, f"elev_{i:02d}", None)
-        sv_used = bool(getattr(msg, f"svUsed_{i:02d}", 0))
-        health = getattr(msg, f"health_{i:02d}", 0)
+    def handle_nav_satellites(self, msg: UBXMessage) -> None:
+        satellite_count = msg.numSvs
+        parts = []
+        for i in range(1, satellite_count + 1):
+            gnss_id = getattr(msg, f"gnssId_{i:02d}", None)
+            sv_id = getattr(msg, f"svId_{i:02d}", None)
+            cno = getattr(msg, f"cno_{i:02d}", None)
+            elev = getattr(msg, f"elev_{i:02d}", None)
+            sv_used = bool(getattr(msg, f"svUsed_{i:02d}", 0))
+            health = getattr(msg, f"health_{i:02d}", 0)
 
-        if gnss_id is None:
-            continue
+            if gnss_id is None:
+                continue
 
-        gnss_name = GNSS_NAMES.get(gnss_id, f"G{gnss_id}")
-        used_marker = "*" if sv_used else " "
-        health_str = "" if health == SatHealth.HEALTHY else f"[hlth={health}]"
-        parts.append(f"{used_marker}{gnss_name}{sv_id} CN0={cno} el={elev}{health_str}")
+            gnss_name = GNSS_NAMES.get(gnss_id, f"G{gnss_id}")
+            used_marker = "*" if sv_used else " "
+            health_str = "" if health == SatHealth.HEALTHY else f"[hlth={health}]"
+            parts.append(f"{used_marker}{gnss_name}{sv_id} CN0={cno} el={elev}{health_str}")
 
-        if sv_used and cno is not None and cno < WARN_CN0_MIN:
-            logger.warning(
-                f"{format_timestamp()} [WARN] {gnss_name}{sv_id} CN0={cno} dBHz below threshold ({WARN_CN0_MIN})"
+            if sv_used and cno is not None and cno < WARN_CN0_MIN:
+                logger.warning(
+                    f"{format_timestamp()} [WARN] {gnss_name}{sv_id} CN0={cno} dBHz below threshold ({WARN_CN0_MIN})"
+                )
+                self.warn_count += 1
+
+            if health == SatHealth.UNHEALTHY:
+                logger.warning(f"{format_timestamp()} [WARN] {gnss_name}{sv_id} satellite is unhealthy")
+                self.warn_count += 1
+
+        logger.info(f"{format_timestamp()} NAV-SAT  {satellite_count} svs  | {' | '.join(parts)}")
+
+    def handle_monitor_rf(self, msg: UBXMessage) -> None:
+        n_blocks = msg.nBlocks
+        parts = []
+        for i in range(1, n_blocks + 1):
+            ant_status: int | None = getattr(msg, f"antStatus_{i:02d}", None)
+            ant_power: int | None = getattr(msg, f"antPower_{i:02d}", None)
+            jam_ind: int | None = getattr(msg, f"jamInd_{i:02d}", None)
+            agc_cnt: int | None = getattr(msg, f"agcCnt_{i:02d}", None)
+            noise: int | None = getattr(msg, f"noisePerMS_{i:02d}", None)
+            jam_state: int = getattr(msg, f"jammingState_{i:02d}", 0)
+
+            ant_str = ANT_STATUS.get(ant_status, f"?{ant_status}") if ant_status is not None else "?"
+            pwr_str = ANT_POWER.get(ant_power, f"?{ant_power}") if ant_power is not None else "?"
+            jam_state_str = JAM_STATE.get(jam_state, f"?{jam_state}")
+            parts.append(
+                f"ant={ant_str} pwr={pwr_str} jam={jam_ind}/255 state={jam_state_str} agc={agc_cnt} noise={noise}"
             )
-            warn_count[0] += 1
 
-        if health == SatHealth.UNHEALTHY:
-            logger.warning(f"{format_timestamp()} [WARN] {gnss_name}{sv_id} satellite is unhealthy")
-            warn_count[0] += 1
+            if ant_status in (3, 4):  # SHORT or OPEN
+                logger.warning(f"{format_timestamp()} [WARN] Antenna status: {ant_str}")
+                self.warn_count += 1
 
-    logger.info(f"{format_timestamp()} NAV-SAT  {satellite_count} svs  | {' | '.join(parts)}")
+            if jam_ind is not None and jam_ind > WARN_JAM_MAX:
+                logger.warning(f"{format_timestamp()} [WARN] Jamming indicator high: {jam_ind}/255")
+                self.warn_count += 1
 
+            if jam_state in (2, 3):  # warning or critical
+                logger.warning(f"{format_timestamp()} [WARN] Jamming state: {jam_state_str}")
+                self.warn_count += 1
 
-def handle_monitor_rf(msg: UBXMessage, logger: logging.Logger, warn_count: list) -> None:
-    n_blocks = msg.nBlocks
-    parts = []
-    for i in range(1, n_blocks + 1):
-        ant_status: int | None = getattr(msg, f"antStatus_{i:02d}", None)
-        ant_power: int | None = getattr(msg, f"antPower_{i:02d}", None)
-        jam_ind = getattr(msg, f"jamInd_{i:02d}", None)
-        agc_cnt = getattr(msg, f"agcCnt_{i:02d}", None)
-        noise = getattr(msg, f"noisePerMS_{i:02d}", None)
-        jam_state = getattr(msg, f"jammingState_{i:02d}", 0)
+        logger.info(f"{format_timestamp()} MON-RF   {' | '.join(parts)}")
 
-        ant_str = ANT_STATUS.get(ant_status, f"?{ant_status}") if ant_status is not None else "?"
-        pwr_str = ANT_POWER.get(ant_power, f"?{ant_power}") if ant_power is not None else "?"
-        jam_state_str = JAM_STATE.get(jam_state, f"?{jam_state}")
-        parts.append(f"ant={ant_str} pwr={pwr_str} jam={jam_ind}/255 state={jam_state_str} agc={agc_cnt} noise={noise}")
+    def run(self) -> None:
+        signal.signal(signal.SIGINT, self.stop)
+        signal.signal(signal.SIGTERM, self.stop)
 
-        if ant_status in (3, 4):  # SHORT or OPEN
-            logger.warning(f"{format_timestamp()} [WARN] Antenna status: {ant_str}")
-            warn_count[0] += 1
+        try:
+            port = self.open_port()
+        except serial.SerialException as e:
+            logger.error(f"Failed to open port: {e}")
+            sys.exit(1)
 
-        if jam_ind is not None and jam_ind > WARN_JAM_MAX:
-            logger.warning(f"{format_timestamp()} [WARN] Jamming indicator high: {jam_ind}/255")
-            warn_count[0] += 1
+        reader = UBXReader(port, quitonerror=ERR_IGNORE)
+        logger.info("Waiting for messages... (Ctrl-C to stop)")
+        logger.info("-" * 80)
 
-        if jam_state in (2, 3):  # warning or critical
-            logger.warning(f"{format_timestamp()} [WARN] Jamming state: {jam_state_str}")
-            warn_count[0] += 1
+        with port:
+            while self.running:
+                try:
+                    _, msg = reader.read()
+                except serial.SerialException as e:
+                    logger.error(f"Serial port error: {e}")
+                    break
 
-    logger.info(f"{format_timestamp()} MON-RF   {' | '.join(parts)}")
+                if msg is None:
+                    continue
+
+                match msg.identity:
+                    case UBXMessageId.NAV_PVT:
+                        self.handle_nav_position_velocity_time(msg)
+                    case UBXMessageId.NAV_SAT:
+                        self.handle_nav_satellites(msg)
+                    case UBXMessageId.MON_RF:
+                        self.handle_monitor_rf(msg)
+                    case identity if identity.startswith(UBXMessageId.INF_PREFIX):
+                        logger.info(f"{format_timestamp()} {identity}: {getattr(msg, 'msgContent', identity)}")
+
+        logger.info("-" * 80)
+        if self.warn_count > 0:
+            logger.warning(f"Stopped. Total warnings: {self.warn_count}")
 
 
 def main() -> None:
@@ -210,57 +261,8 @@ def main() -> None:
     parser.add_argument("--path", default=GPS_PATH, help="Serial port path (default: /dev/serial0)")
     args = parser.parse_args()
 
-    logger = logging.getLogger("gps_debug")
     logger.info(f"Opening {args.path}...")
-
-    warn_count = [0]
-    prev_sats = None
-    running = True
-
-    def stop(_sig: int, _frame: types.FrameType | None) -> None:
-        nonlocal running
-        running = False
-
-    signal.signal(signal.SIGINT, stop)
-    signal.signal(signal.SIGTERM, stop)
-
-    try:
-        port = open_port(args.path, logger, lambda: not running)
-    except serial.SerialException as e:
-        logger.error(f"Failed to open port: {e}")
-        sys.exit(1)
-
-    reader = UBXReader(port, quitonerror=ERR_IGNORE)
-    logger.info("Waiting for messages... (Ctrl-C to stop)")
-    logger.info("-" * 80)
-
-    try:
-        while running:
-            try:
-                _, msg = reader.read()
-            except serial.SerialException as e:
-                logger.error(f"Serial port error: {e}")
-                break
-
-            if msg is None:
-                continue
-
-            match msg.identity:
-                case UBXMessageId.NAV_PVT:
-                    prev_sats = handle_nav_position_velocity_time(msg, prev_sats, logger, warn_count)
-                case UBXMessageId.NAV_SAT:
-                    handle_nav_satellites(msg, logger, warn_count)
-                case UBXMessageId.MON_RF:
-                    handle_monitor_rf(msg, logger, warn_count)
-                case identity if identity.startswith(UBXMessageId.INF_PREFIX):
-                    logger.info(f"{format_timestamp()} {identity}: {getattr(msg, 'msgContent', identity)}")
-
-    finally:
-        port.close()
-
-    logger.info("-" * 80)
-    if warn_count[0] > 0:
-        logger.warning(f"Stopped. Total warnings: {warn_count[0]}")
+    GpsDebug(args.path).run()
 
 
 if __name__ == "__main__":
