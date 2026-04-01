@@ -23,11 +23,74 @@ import android.os.Debug
 import android.os.Process
 import android.os.SystemClock
 import com.v3xctrl.viewer.GstViewer
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import java.io.File
 
 private val LabelColor = Color.Gray
 private val ValueColor = Color.White
 private val HeaderColor = Color.Yellow
+
+private data class ThreadCpuSnapshot(
+    val tid: Int,
+    val name: String,
+    val cpuTicks: Long
+)
+
+private data class ThreadCpuUsage(
+    val name: String,
+    val percent: Int
+)
+
+private fun readThreadCpuSnapshots(): List<ThreadCpuSnapshot> {
+    val taskDir = File("/proc/self/task")
+    if (!taskDir.isDirectory) {
+        return emptyList()
+    }
+    return taskDir.listFiles()?.mapNotNull { tidDir ->
+        val tid = tidDir.name.toIntOrNull() ?: return@mapNotNull null
+        val statFile = File(tidDir, "stat")
+        val commFile = File(tidDir, "comm")
+        try {
+            val name = commFile.readText().trim()
+            val statFields = statFile.readText().split(" ")
+            // Fields 13 and 14 (0-indexed) are utime and stime in clock ticks
+            if (statFields.size > 14) {
+                val utime = statFields[13].toLongOrNull() ?: 0L
+                val stime = statFields[14].toLongOrNull() ?: 0L
+                ThreadCpuSnapshot(tid, name, utime + stime)
+            } else {
+                null
+            }
+        } catch (_: Exception) {
+            null
+        }
+    } ?: emptyList()
+}
+
+private fun computeThreadCpuUsage(
+    previous: List<ThreadCpuSnapshot>,
+    current: List<ThreadCpuSnapshot>,
+    wallDeltaMs: Long
+): List<ThreadCpuUsage> {
+    if (wallDeltaMs <= 0) {
+        return emptyList()
+    }
+    val prevMap = previous.associateBy { it.tid }
+    val ticksPerSec = 100L // standard Linux HZ
+    return current.mapNotNull { curr ->
+        val prev = prevMap[curr.tid] ?: return@mapNotNull null
+        val tickDelta = curr.cpuTicks - prev.cpuTicks
+        val cpuMs = tickDelta * 1000 / ticksPerSec
+        val percent = (cpuMs * 100 / wallDeltaMs).toInt()
+        if (percent > 0) {
+            ThreadCpuUsage(curr.name, percent)
+        } else {
+            null
+        }
+    }.sortedByDescending { it.percent }
+}
 
 @Composable
 fun DebugStatsOverlay(
@@ -37,23 +100,31 @@ fun DebugStatsOverlay(
 ) {
     var stats by remember { mutableStateOf(GstViewer.PipelineStats(0, 0, 0, 0, 0, 0)) }
     var decoderName by remember { mutableStateOf("") }
+    var decoderOutputFormat by remember { mutableStateOf("") }
     var decodeQueueLevel by remember { mutableStateOf(0) }
     var renderQueueLevel by remember { mutableStateOf(0) }
+    var frameInterval by remember { mutableStateOf(GstViewer.FrameIntervalStats(0, 0, 0)) }
+    var jitterBufferStats by remember { mutableStateOf(GstViewer.JitterBufferStats(0, 0, 0, 0)) }
     var cpuUsage by remember { mutableStateOf<Int?>(null) }
+    var topThreads by remember { mutableStateOf<List<ThreadCpuUsage>>(emptyList()) }
     var nativeHeapMb by remember { mutableStateOf(0f) }
     var javaHeapMb by remember { mutableStateOf(0f) }
 
     LaunchedEffect(showPipelineStats, showSystemStats) {
         var previousCpuTime = Process.getElapsedCpuTime()
         var previousWallTime = SystemClock.elapsedRealtime()
+        var previousThreadSnapshots = emptyList<ThreadCpuSnapshot>()
         while (true) {
             if (showPipelineStats) {
                 stats = GstViewer.getPipelineStats()
                 decodeQueueLevel = GstViewer.decodeQueueLevel
                 renderQueueLevel = GstViewer.renderQueueLevel
+                frameInterval = GstViewer.getFrameIntervalStats()
+                jitterBufferStats = GstViewer.getJitterBufferStats()
             }
 
             decoderName = GstViewer.decoderName
+            decoderOutputFormat = GstViewer.decoderOutputFormat
 
             if (showSystemStats) {
                 val currentCpuTime = Process.getElapsedCpuTime()
@@ -63,6 +134,17 @@ fun DebugStatsOverlay(
                     val cpuDelta = currentCpuTime - previousCpuTime
                     cpuUsage = (cpuDelta * 100 / wallDelta).toInt()
                 }
+
+                val currentThreadSnapshots = withContext(Dispatchers.IO) {
+                    readThreadCpuSnapshots()
+                }
+                if (previousThreadSnapshots.isNotEmpty()) {
+                    topThreads = computeThreadCpuUsage(
+                        previousThreadSnapshots, currentThreadSnapshots, wallDelta
+                    ).take(5)
+                }
+                previousThreadSnapshots = currentThreadSnapshots
+
                 previousCpuTime = currentCpuTime
                 previousWallTime = currentWallTime
 
@@ -100,6 +182,35 @@ fun DebugStatsOverlay(
                     if (decodeQueueLevel >= 2) Color.Red else ValueColor)
                 StatsRow("render queue", "$renderQueueLevel/1",
                     if (renderQueueLevel >= 1) Color.Red else ValueColor)
+
+                HorizontalDivider(
+                    color = Color.Gray.copy(alpha = 0.4f),
+                    modifier = Modifier.padding(vertical = 6.dp)
+                )
+
+                // Frame interval timing
+                val avgMs = frameInterval.averageUs / 1000f
+                val minMs = frameInterval.minUs / 1000f
+                val maxMs = frameInterval.maxUs / 1000f
+                val intervalColor = when {
+                    avgMs <= 0f -> ValueColor
+                    avgMs < 17f -> Color.Green
+                    avgMs < 25f -> Color.Yellow
+                    else -> Color.Red
+                }
+                StatsRow("frame interval",
+                    "%.1f ms (%.1f-%.1f)".format(avgMs, minMs, maxMs),
+                    intervalColor)
+
+                // Jitter buffer stats
+                val jbufLossColor = if (jitterBufferStats.lost > 0 || jitterBufferStats.late > 0) {
+                    Color.Red
+                } else {
+                    ValueColor
+                }
+                StatsRow("jbuf lost/late",
+                    "${jitterBufferStats.lost}/${jitterBufferStats.late}",
+                    jbufLossColor)
             }
 
             if (showPipelineStats && showSystemStats) {
@@ -113,8 +224,15 @@ fun DebugStatsOverlay(
                 if (decoderName.isNotEmpty()) {
                     StatsRow("decoder", decoderName, ValueColor)
                 }
+                if (decoderOutputFormat.isNotEmpty()) {
+                    StatsRow("output format", decoderOutputFormat, ValueColor)
+                }
                 cpuUsage?.let { cpu ->
-                    StatsRow("cpu", "$cpu%", if (cpu > 80) Color.Red else ValueColor)
+                    StatsRow("cpu (process)", "$cpu%", if (cpu > 80) Color.Red else ValueColor)
+                }
+                for (thread in topThreads) {
+                    StatsRow("  ${thread.name}", "${thread.percent}%",
+                        if (thread.percent > 50) Color.Red else ValueColor)
                 }
                 StatsRow("mem native", "%.1f MB".format(nativeHeapMb))
                 StatsRow("mem java", "%.1f MB".format(javaHeapMb))

@@ -63,6 +63,25 @@ static guint stats_timer_id = 0;
 // Decoder name discovered by decodebin (e.g. "amcviddec-omxgaborchardovideodecoderavc")
 static gchar decoder_name[128] = "";
 
+// Decoder output format discovered during caps negotiation (e.g. "NV12 (memory:AndroidHardwareBuffer)")
+static gchar decoder_output_format[256] = "";
+
+// Sink frame interval tracking (microseconds)
+#define FRAME_INTERVAL_WINDOW 60
+static volatile gint64 sink_frame_interval_avg_us = 0;
+static volatile gint64 sink_frame_interval_min_us = 0;
+static volatile gint64 sink_frame_interval_max_us = 0;
+static gint64 sink_last_frame_time_us = 0;
+static gint64 frame_intervals[FRAME_INTERVAL_WINDOW];
+static gint frame_interval_index = 0;
+static gint frame_interval_count = 0;
+
+// Jitter buffer stats
+static volatile gint64 jbuf_num_pushed = 0;
+static volatile gint64 jbuf_num_lost = 0;
+static volatile gint64 jbuf_num_late = 0;
+static volatile gint64 jbuf_num_duplicates = 0;
+
 static GstPadProbeReturn count_udpsrc_cb(GstPad *pad, GstPadProbeInfo *info, gpointer user_data) {
     count_udpsrc++;
     return GST_PAD_PROBE_OK;
@@ -85,12 +104,64 @@ static GstPadProbeReturn count_decoder_cb(GstPad *pad, GstPadProbeInfo *info, gp
 
 static GstPadProbeReturn count_sink_cb(GstPad *pad, GstPadProbeInfo *info, gpointer user_data) {
     count_sink++;  // Always count sink frames (used by FPS counter)
+
+    // Track frame interval timing
+    gint64 now = g_get_monotonic_time();
+    if (sink_last_frame_time_us > 0) {
+        gint64 interval = now - sink_last_frame_time_us;
+        frame_intervals[frame_interval_index] = interval;
+        frame_interval_index = (frame_interval_index + 1) % FRAME_INTERVAL_WINDOW;
+        if (frame_interval_count < FRAME_INTERVAL_WINDOW) {
+            frame_interval_count++;
+        }
+
+        // Compute min/max/avg over the window
+        gint64 sum = 0;
+        gint64 min_val = G_MAXINT64;
+        gint64 max_val = 0;
+        for (gint i = 0; i < frame_interval_count; i++) {
+            gint64 v = frame_intervals[i];
+            sum += v;
+            if (v < min_val) {
+                min_val = v;
+            }
+            if (v > max_val) {
+                max_val = v;
+            }
+        }
+        sink_frame_interval_avg_us = sum / frame_interval_count;
+        sink_frame_interval_min_us = min_val;
+        sink_frame_interval_max_us = max_val;
+    }
+    sink_last_frame_time_us = now;
+
     return GST_PAD_PROBE_OK;
 }
 
 static GstPadProbeReturn count_queue_in_cb(GstPad *pad, GstPadProbeInfo *info, gpointer user_data) {
     count_queue_in++;
     return GST_PAD_PROBE_OK;
+}
+
+static void query_jitterbuffer_stats(void) {
+    if (!gst_data.jitterbuffer) {
+        return;
+    }
+
+    GstStructure *stats = NULL;
+    g_object_get(gst_data.jitterbuffer, "stats", &stats, NULL);
+    if (stats) {
+        guint64 pushed = 0, lost = 0, late = 0, duplicates = 0;
+        gst_structure_get_uint64(stats, "num-pushed", &pushed);
+        gst_structure_get_uint64(stats, "num-lost", &lost);
+        gst_structure_get_uint64(stats, "num-late", &late);
+        gst_structure_get_uint64(stats, "num-duplicates", &duplicates);
+        jbuf_num_pushed = (gint64)pushed;
+        jbuf_num_lost = (gint64)lost;
+        jbuf_num_late = (gint64)late;
+        jbuf_num_duplicates = (gint64)duplicates;
+        gst_structure_free(stats);
+    }
 }
 
 // Periodic stats logging - shows buffer counts per element to identify where data stops
@@ -101,6 +172,15 @@ static gboolean log_stats_cb(gpointer user_data) {
 
     LOGI("Pipeline stats: udpsrc=%d jbuf=%d depay=%d dec=%d sink=%d",
          count_udpsrc, count_jitterbuffer, count_depay, count_decoder, count_sink);
+
+    LOGI("Sink frame interval: avg=%" G_GINT64_FORMAT "us min=%" G_GINT64_FORMAT
+         "us max=%" G_GINT64_FORMAT "us",
+         sink_frame_interval_avg_us, sink_frame_interval_min_us, sink_frame_interval_max_us);
+
+    query_jitterbuffer_stats();
+    LOGI("Jitter buffer: pushed=%" G_GINT64_FORMAT " lost=%" G_GINT64_FORMAT
+         " late=%" G_GINT64_FORMAT " duplicates=%" G_GINT64_FORMAT,
+         jbuf_num_pushed, jbuf_num_lost, jbuf_num_late, jbuf_num_duplicates);
 
     return G_SOURCE_CONTINUE;
 }
@@ -227,6 +307,39 @@ static void log_decodebin_decoder(GstElement *decodebin) {
     gst_iterator_free(it);
 }
 
+static void capture_decoder_output_format(GstCaps *caps) {
+    GstStructure *structure = gst_caps_get_structure(caps, 0);
+    const gchar *format = gst_structure_get_string(structure, "format");
+    GstCapsFeatures *features = gst_caps_get_features(caps, 0);
+    if (format) {
+        if (features && !gst_caps_features_is_any(features)) {
+            gchar *features_str = gst_caps_features_to_string(features);
+            g_snprintf(decoder_output_format, sizeof(decoder_output_format),
+                       "%s (%s)", format, features_str);
+            g_free(features_str);
+        } else {
+            g_strlcpy(decoder_output_format, format, sizeof(decoder_output_format));
+        }
+        LOGI("Decoder output format: %s", decoder_output_format);
+    }
+}
+
+static void log_sink_input_caps(void) {
+    GstPad *render_queue_src = gst_element_get_static_pad(gst_data.render_queue, "src");
+    if (render_queue_src) {
+        GstCaps *sink_caps = gst_pad_get_current_caps(render_queue_src);
+        if (sink_caps) {
+            gchar *sink_caps_str = gst_caps_to_string(sink_caps);
+            LOGI("render_queue -> glimagesink caps: %s", sink_caps_str);
+            g_free(sink_caps_str);
+            gst_caps_unref(sink_caps);
+        } else {
+            LOGI("render_queue -> glimagesink caps: not yet negotiated");
+        }
+        gst_object_unref(render_queue_src);
+    }
+}
+
 static void on_decodebin_pad_added(GstElement *decodebin, GstPad *new_pad, gpointer user_data) {
     GstPad *render_queue_sink = gst_element_get_static_pad(gst_data.render_queue, "sink");
 
@@ -248,27 +361,16 @@ static void on_decodebin_pad_added(GstElement *decodebin, GstPad *new_pad, gpoin
         LOGI("decodebin output caps: %s", caps_str);
         g_free(caps_str);
 
+        capture_decoder_output_format(caps);
+
         GstPadLinkReturn ret = gst_pad_link(new_pad, render_queue_sink);
         if (ret != GST_PAD_LINK_OK) {
             LOGE("Failed to link decodebin to render queue: %d", ret);
         } else {
-            LOGI("Linked decodebin to render queue to video sink");
-
-            // Log negotiated caps on render_queue src -> glimagesink
-            GstPad *render_queue_src = gst_element_get_static_pad(gst_data.render_queue, "src");
-            if (render_queue_src) {
-                GstCaps *sink_caps = gst_pad_get_current_caps(render_queue_src);
-                if (sink_caps) {
-                    gchar *sink_caps_str = gst_caps_to_string(sink_caps);
-                    LOGI("render_queue -> glimagesink caps: %s", sink_caps_str);
-                    g_free(sink_caps_str);
-                    gst_caps_unref(sink_caps);
-                } else {
-                    LOGI("render_queue -> glimagesink caps: not yet negotiated");
-                }
-                gst_object_unref(render_queue_src);
-            }
+            LOGI("Linked decodebin -> render_queue -> glimagesink");
         }
+
+        log_sink_input_caps();
 
         // Attach decoder probe on decodebin's output pad
         if (stats_enabled) {
@@ -491,7 +593,8 @@ static gboolean create_rtp_pipeline(gint port) {
     g_signal_connect(gst_data.decodebin, "pad-added",
         G_CALLBACK(on_decodebin_pad_added), NULL);
 
-    LOGI("Pipeline: udpsrc port=%d ! rtpjitterbuffer ! rtph264depay ! decode_queue ! decodebin ! render_queue ! glimagesink", port);
+    LOGI("Pipeline: udpsrc port=%d ! rtpjitterbuffer ! rtph264depay ! decode_queue ! "
+         "decodebin ! render_queue ! glimagesink", port);
     return TRUE;
 }
 
@@ -689,6 +792,24 @@ Java_com_v3xctrl_viewer_GstViewer_nativeStopPipeline(JNIEnv *env, jclass clazz) 
 
     gst_data.video_port = 0;
     restart_count = 0;
+
+    // Reset frame interval tracking
+    sink_last_frame_time_us = 0;
+    sink_frame_interval_avg_us = 0;
+    sink_frame_interval_min_us = 0;
+    sink_frame_interval_max_us = 0;
+    frame_interval_index = 0;
+    frame_interval_count = 0;
+
+    // Reset jitter buffer stats
+    jbuf_num_pushed = 0;
+    jbuf_num_lost = 0;
+    jbuf_num_late = 0;
+    jbuf_num_duplicates = 0;
+
+    // Reset decoder output format
+    decoder_output_format[0] = '\0';
+
     LOGI("Pipeline stopped");
 }
 
@@ -830,4 +951,26 @@ Java_com_v3xctrl_viewer_GstViewer_nativeGetRenderQueueLevel(JNIEnv *env, jclass 
     guint level = 0;
     g_object_get(gst_data.render_queue, "current-level-buffers", &level, NULL);
     return (jint)level;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_v3xctrl_viewer_GstViewer_nativeGetFrameIntervalStats(JNIEnv *env, jclass clazz) {
+    gchar buf[128];
+    g_snprintf(buf, sizeof(buf), "%" G_GINT64_FORMAT "|%" G_GINT64_FORMAT "|%" G_GINT64_FORMAT,
+               sink_frame_interval_avg_us, sink_frame_interval_min_us, sink_frame_interval_max_us);
+    return (*env)->NewStringUTF(env, buf);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_v3xctrl_viewer_GstViewer_nativeGetJitterBufferStats(JNIEnv *env, jclass clazz) {
+    query_jitterbuffer_stats();
+    gchar buf[128];
+    g_snprintf(buf, sizeof(buf), "%" G_GINT64_FORMAT "|%" G_GINT64_FORMAT "|%" G_GINT64_FORMAT "|%" G_GINT64_FORMAT,
+               jbuf_num_pushed, jbuf_num_lost, jbuf_num_late, jbuf_num_duplicates);
+    return (*env)->NewStringUTF(env, buf);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_v3xctrl_viewer_GstViewer_nativeGetDecoderOutputFormat(JNIEnv *env, jclass clazz) {
+    return (*env)->NewStringUTF(env, decoder_output_format);
 }

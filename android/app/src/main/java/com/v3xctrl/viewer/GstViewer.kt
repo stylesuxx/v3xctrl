@@ -21,6 +21,9 @@ object GstViewer {
     private external fun nativeGetDecodeQueueLevel(): Int
     private external fun nativeGetRenderQueueLevel(): Int
     private external fun nativeGetDecoderName(): String
+    private external fun nativeGetFrameIntervalStats(): String
+    private external fun nativeGetJitterBufferStats(): String
+    private external fun nativeGetDecoderOutputFormat(): String
 
     fun init() {
         nativeInit()
@@ -77,6 +80,39 @@ object GstViewer {
     val decodeQueueLevel: Int get() = nativeGetDecodeQueueLevel()
     val renderQueueLevel: Int get() = nativeGetRenderQueueLevel()
     val decoderName: String get() = nativeGetDecoderName()
+    val decoderOutputFormat: String get() = nativeGetDecoderOutputFormat()
+
+    data class FrameIntervalStats(
+        val averageUs: Long,
+        val minUs: Long,
+        val maxUs: Long
+    )
+
+    fun getFrameIntervalStats(): FrameIntervalStats {
+        val parts = nativeGetFrameIntervalStats().split("|", limit = 3)
+        return FrameIntervalStats(
+            averageUs = parts.getOrNull(0)?.toLongOrNull() ?: 0,
+            minUs = parts.getOrNull(1)?.toLongOrNull() ?: 0,
+            maxUs = parts.getOrNull(2)?.toLongOrNull() ?: 0
+        )
+    }
+
+    data class JitterBufferStats(
+        val pushed: Long,
+        val lost: Long,
+        val late: Long,
+        val duplicates: Long
+    )
+
+    fun getJitterBufferStats(): JitterBufferStats {
+        val parts = nativeGetJitterBufferStats().split("|", limit = 4)
+        return JitterBufferStats(
+            pushed = parts.getOrNull(0)?.toLongOrNull() ?: 0,
+            lost = parts.getOrNull(1)?.toLongOrNull() ?: 0,
+            late = parts.getOrNull(2)?.toLongOrNull() ?: 0,
+            duplicates = parts.getOrNull(3)?.toLongOrNull() ?: 0
+        )
+    }
 
     fun finalize() {
         nativeFinalize()
