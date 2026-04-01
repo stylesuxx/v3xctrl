@@ -188,18 +188,28 @@ fun DebugStatsOverlay(
                     modifier = Modifier.padding(vertical = 6.dp)
                 )
 
-                // Frame interval timing
+                // Frame interval timing with target FPS detection
                 val avgMs = frameInterval.averageUs / 1000f
                 val minMs = frameInterval.minUs / 1000f
                 val maxMs = frameInterval.maxUs / 1000f
+                val targetFps: Int
+                val targetMs: Float
+                val toleranceMs = 3f
+                if (avgMs in (16.6f - toleranceMs)..(16.6f + toleranceMs)) {
+                    targetFps = 60
+                    targetMs = 16.6f
+                } else {
+                    targetFps = 30
+                    targetMs = 33.3f
+                }
                 val intervalColor = when {
                     avgMs <= 0f -> ValueColor
-                    avgMs < 17f -> Color.Green
-                    avgMs < 25f -> Color.Yellow
+                    avgMs <= targetMs + toleranceMs -> Color.Green
+                    avgMs <= targetMs * 1.5f -> Color.Yellow
                     else -> Color.Red
                 }
                 StatsRow("frame interval",
-                    "%.1f ms (%.1f-%.1f)".format(avgMs, minMs, maxMs),
+                    "%.1f ms (%.1f-%.1f) [${targetFps}fps]".format(avgMs, minMs, maxMs),
                     intervalColor)
 
                 // Jitter buffer stats
