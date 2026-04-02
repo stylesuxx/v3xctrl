@@ -73,13 +73,10 @@ class GpsDebug:
         self.path = path
         self.running = True
         self.warn_count = 0
-        self.prev_sats: int | None = None
+        self.prev_sats: int = 0
 
     def stop(self, _sig: int, _frame: types.FrameType | None) -> None:
         self.running = False
-
-    def is_stopping(self) -> bool:
-        return not self.running
 
     def get_port_at_baud(self, baudrate: int) -> serial.Serial | None:
         port = serial.Serial(self.path, baudrate, timeout=BAUD_DETECT_TIMEOUT_S)
@@ -104,7 +101,7 @@ class GpsDebug:
 
         reader = UBXReader(port, quitonerror=ERR_IGNORE)
         deadline = time.monotonic() + ACK_TIMEOUT_S
-        while time.monotonic() < deadline and not self.is_stopping():
+        while time.monotonic() < deadline and self.running:
             _, msg = reader.read()
             if msg is None:
                 continue
@@ -143,7 +140,7 @@ class GpsDebug:
 
         logger.info(f"{format_timestamp()} NAV-PVT  fix={fix_name}  sats={num_sv}  {pos}")
 
-        if self.prev_sats is not None and (self.prev_sats - num_sv) >= WARN_SAT_DROP:
+        if (self.prev_sats - num_sv) >= WARN_SAT_DROP:
             logger.warning(f"{format_timestamp()} [WARN] sats dropped {self.prev_sats} -> {num_sv}")
             self.warn_count += 1
 
@@ -158,14 +155,14 @@ class GpsDebug:
         parts = []
         for i in range(1, satellite_count + 1):
             gnss_id = getattr(msg, f"gnssId_{i:02d}", None)
+            if gnss_id is None:
+                continue
+
             sv_id = getattr(msg, f"svId_{i:02d}", None)
             cno = getattr(msg, f"cno_{i:02d}", None)
             elev = getattr(msg, f"elev_{i:02d}", None)
             sv_used = bool(getattr(msg, f"svUsed_{i:02d}", 0))
             health = getattr(msg, f"health_{i:02d}", 0)
-
-            if gnss_id is None:
-                continue
 
             gnss_name = GNSS_NAMES.get(gnss_id, f"G{gnss_id}")
             used_marker = "*" if sv_used else " "
