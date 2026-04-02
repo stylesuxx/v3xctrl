@@ -206,7 +206,8 @@ class GpsDebug:
 
         if weak_sat_count > 0:
             logger.warning(
-                f"{format_timestamp()} [WARN] {weak_sat_count} used satellite(s) below signal threshold ({WARN_CN0_MIN}dBHz)"
+                f"{format_timestamp()} [WARN] {weak_sat_count} used satellite(s)"
+                f" below signal threshold ({WARN_CN0_MIN}dBHz)"
             )
             self.warn_count += 1
 
@@ -224,6 +225,8 @@ class GpsDebug:
     def handle_monitor_rf(self, msg: UBXMessage) -> None:
         n_blocks = msg.nBlocks
         parts: list[str] = []
+        warnings: list[str] = []
+
         for i in range(1, n_blocks + 1):
             ant_status: int | None = getattr(msg, f"antStatus_{i:02d}", None)
             ant_power: int | None = getattr(msg, f"antPower_{i:02d}", None)
@@ -241,18 +244,19 @@ class GpsDebug:
             )
 
             if ant_str in ("Short", "Open"):
-                logger.warning(f"{format_timestamp()} [WARN] Antenna status: {ant_str}")
-                self.warn_count += 1
+                warnings.append(f"{format_timestamp()} [WARN] Antenna status: {ant_str}")
 
             if jam_ind is not None and jam_ind > WARN_JAM_MAX:
-                logger.warning(f"{format_timestamp()} [WARN] Jamming indicator high: {jam_ind}/255")
-                self.warn_count += 1
+                warnings.append(f"{format_timestamp()} [WARN] Jamming indicator high: {jam_ind}/255")
 
             if jam_state_str in ("Warning", "Critical"):
-                logger.warning(f"{format_timestamp()} [WARN] Jamming state: {jam_state_str}")
-                self.warn_count += 1
+                warnings.append(f"{format_timestamp()} [WARN] Jamming state: {jam_state_str}")
 
         logger.info(f"{format_timestamp()} RF-STATUS [MON-RF]  {' | '.join(parts)}")
+
+        for warning in warnings:
+            logger.warning(warning)
+            self.warn_count += 1
 
     def run(self) -> None:
         signal.signal(signal.SIGINT, self.stop)
