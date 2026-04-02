@@ -4,7 +4,7 @@ GPS debug script - reads position, satellite, and RF status from a u-blox M10 mo
 Enables additional diagnostic messages in RAM only (flash config is not modified).
 
 Usage:
-    python -m v3xctrl_telemetry.apps.debug_gps [--path /dev/serial0]
+    python -m v3xctrl_telemetry.apps.debug_gps_ublox [--path /dev/serial0]
 
 Press Ctrl-C to stop. A warning summary is printed on exit.
 
