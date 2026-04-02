@@ -81,6 +81,8 @@ class GpsDebug:
         self.running = True
         self.warn_count = 0
         self.prev_sats: int = 0
+        self.ever_had_fix = False
+        self.weak_acquisition_warned = False
 
     def stop(self, _sig: int, _frame: types.FrameType | None) -> None:
         self.running = False
@@ -145,6 +147,7 @@ class GpsDebug:
 
         pos = "lat=--  lon=--  speed=--"
         if fix_type >= 2:
+            self.ever_had_fix = True
             pos = f"lat={msg.lat:.6f}  lon={msg.lon:.6f}  speed={msg.gSpeed * 3.6 / 1000:.1f} km/h"
 
         logger.info(f"{format_timestamp()} POSITION [NAV-PVT]  fix={fix_name}  satellites={num_sv}  {pos}")
@@ -162,7 +165,8 @@ class GpsDebug:
     def handle_nav_satellites(self, msg: UBXMessage) -> None:
         satellite_count = msg.numSvs
         used_parts: list[str] = []
-        seen_parts: list[str] = []
+        seen_count: int = 0
+        seen_max_cno: int = 0
         unhealthy_parts: list[str] = []
         weak_sats: list[str] = []
 
@@ -178,25 +182,25 @@ class GpsDebug:
             health = getattr(msg, f"health_{i:02d}", 0)
 
             gnss_name = GNSS_NAMES.get(gnss_id, f"G{gnss_id}")
-            entry = f"{gnss_name}{sv_id}({cno}dBHz {elev}°)"
 
             if health == SatHealth.UNHEALTHY:
-                unhealthy_parts.append(entry)
+                unhealthy_parts.append(f"{gnss_name}{sv_id}({cno}dBHz {elev}°)")
                 self.warn_count += 1
             elif sv_used:
-                used_parts.append(entry)
+                used_parts.append(f"{gnss_name}{sv_id}({cno}dBHz {elev}°)")
+                if cno is not None and cno < WARN_CN0_MIN:
+                    weak_sats.append(f"{gnss_name}{sv_id}({cno}dBHz)")
             else:
-                seen_parts.append(entry)
-
-            if sv_used and cno is not None and cno < WARN_CN0_MIN:
-                weak_sats.append(f"{gnss_name}{sv_id}({cno}dBHz)")
+                seen_count += 1
+                if cno is not None:
+                    seen_max_cno = max(seen_max_cno, cno)
 
         indent = " " * 15
         used_count = len(used_parts)
         logger.info(f"{format_timestamp()} SATELLITES [NAV-SAT]  {used_count} used / {satellite_count} visible")
         logger.info(f"{indent}{'used:':<12}{' '.join(used_parts) or '(none)'}")
-        if seen_parts:
-            logger.info(f"{indent}{'seen:':<12}{' '.join(seen_parts)}")
+        if seen_count > 0:
+            logger.info(f"{indent}{'seen:':<12}{seen_count} satellites")
         if unhealthy_parts:
             logger.info(f"{indent}{'unhealthy:':<12}{' '.join(unhealthy_parts)}")
 
@@ -206,6 +210,17 @@ class GpsDebug:
                 f"{format_timestamp()} [WARN] Weak signal on used satellites (threshold {WARN_CN0_MIN}dBHz): {sats_str}"
             )
             self.warn_count += 1
+
+        if not self.ever_had_fix and seen_count > 0 and seen_max_cno < WARN_CN0_MIN:
+            logger.warning(
+                f"{format_timestamp()} [WARN] No fix - strongest visible satellite only {seen_max_cno}dBHz,"
+                f" below acquisition threshold ({WARN_CN0_MIN}dBHz) for ephemeris/almanac data"
+            )
+            if not self.weak_acquisition_warned:
+                self.warn_count += 1
+                self.weak_acquisition_warned = True
+
+        logger.info("")
 
     def handle_monitor_rf(self, msg: UBXMessage) -> None:
         n_blocks = msg.nBlocks
