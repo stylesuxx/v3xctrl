@@ -57,9 +57,9 @@ class SatHealth(IntEnum):
 
 
 GNSS_NAMES = {0: "GPS", 1: "SBAS", 2: "GAL", 3: "BDS", 4: "IMES", 5: "QZSS", 6: "GLO"}
-ANT_STATUS = {0: "INITIALIZING", 1: "UNKNOWN", 2: "OK", 3: "SHORT", 4: "OPEN"}
-ANT_POWER = {0: "OFF", 1: "ON", 2: "UNKNOWN"}
-JAM_STATE = {0: "UNKNOWN", 1: "OK", 2: "WARNING", 3: "CRITICAL"}
+ANT_STATUS = {0: "Initializing", 1: "Unknown", 2: "OK", 3: "Short", 4: "Open"}
+ANT_POWER = {0: "Off", 1: "On", 2: "Unknown"}
+JAM_STATE = {0: "Unknown", 1: "OK", 2: "Warning", 3: "Critical"}
 FIX_NAMES = {
     0: "No Fix",
     1: "Dead Reckoning",
@@ -238,7 +238,7 @@ class GpsDebug:
             jam_state_str = JAM_STATE.get(jam_state, f"?{jam_state}")
             parts.append(
                 f"antenna={ant_str} power={pwr_str}"
-                f" jamming={jam_ind}/255 state={jam_state_str} agc={agc_cnt} noise={noise}"
+                f" jamming={jam_ind}/255 state={jam_state_str} gain={agc_cnt} noise={noise}"
             )
 
             if ant_status in (3, 4):  # SHORT or OPEN
