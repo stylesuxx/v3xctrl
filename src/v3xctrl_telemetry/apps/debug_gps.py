@@ -168,7 +168,7 @@ class GpsDebug:
         seen_count: int = 0
         seen_max_cno: int = 0
         unhealthy_parts: list[str] = []
-        weak_sats: list[str] = []
+        weak_sat_count = 0
 
         for i in range(1, satellite_count + 1):
             gnss_id = getattr(msg, f"gnssId_{i:02d}", None)
@@ -189,7 +189,7 @@ class GpsDebug:
             elif sv_used:
                 used_parts.append(f"{gnss_name}{sv_id}({cno}dBHz {elev}°)")
                 if cno is not None and cno < WARN_CN0_MIN:
-                    weak_sats.append(f"{gnss_name}{sv_id}({cno}dBHz)")
+                    weak_sat_count += 1
             else:
                 seen_count += 1
                 if cno is not None:
@@ -204,10 +204,9 @@ class GpsDebug:
         if unhealthy_parts:
             logger.info(f"{indent}{'unhealthy:':<12}{' '.join(unhealthy_parts)}")
 
-        if weak_sats:
-            sats_str = ", ".join(weak_sats)
+        if weak_sat_count > 0:
             logger.warning(
-                f"{format_timestamp()} [WARN] Weak signal on used satellites (threshold {WARN_CN0_MIN}dBHz): {sats_str}"
+                f"{format_timestamp()} [WARN] {weak_sat_count} used satellite(s) below signal threshold ({WARN_CN0_MIN}dBHz)"
             )
             self.warn_count += 1
 
