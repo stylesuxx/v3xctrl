@@ -80,7 +80,7 @@ class GpsDebug:
         self.path = path
         self.running = True
         self.warn_count = 0
-        self.prev_sats: int = 0
+        self.prev_sats = 0
         self.ever_had_fix = False
         self.weak_acquisition_warned = False
 
@@ -229,7 +229,7 @@ class GpsDebug:
             ant_status: int | None = getattr(msg, f"antStatus_{i:02d}", None)
             ant_power: int | None = getattr(msg, f"antPower_{i:02d}", None)
             jam_ind: int | None = getattr(msg, f"jamInd_{i:02d}", None)
-            agc_cnt: int | None = getattr(msg, f"agcCnt_{i:02d}", None)
+            gain: int | None = getattr(msg, f"agcCnt_{i:02d}", None)
             noise: int | None = getattr(msg, f"noisePerMS_{i:02d}", None)
             jam_state: int = getattr(msg, f"jammingState_{i:02d}", 0)
 
@@ -238,10 +238,10 @@ class GpsDebug:
             jam_state_str = JAM_STATE.get(jam_state, f"?{jam_state}")
             parts.append(
                 f"antenna={ant_str} power={pwr_str}"
-                f" jamming={jam_ind}/255 state={jam_state_str} gain={agc_cnt} noise={noise}"
+                f" jamming={jam_ind}/255 state={jam_state_str} gain={gain} noise={noise}"
             )
 
-            if ant_status in (3, 4):  # SHORT or OPEN
+            if ant_str in ("Short", "Open"):
                 logger.warning(f"{format_timestamp()} [WARN] Antenna status: {ant_str}")
                 self.warn_count += 1
 
@@ -249,7 +249,7 @@ class GpsDebug:
                 logger.warning(f"{format_timestamp()} [WARN] Jamming indicator high: {jam_ind}/255")
                 self.warn_count += 1
 
-            if jam_state in (2, 3):  # warning or critical
+            if jam_state_str in ("Warning", "Critical"):
                 logger.warning(f"{format_timestamp()} [WARN] Jamming state: {jam_state_str}")
                 self.warn_count += 1
 
