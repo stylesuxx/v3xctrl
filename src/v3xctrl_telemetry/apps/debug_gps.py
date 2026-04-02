@@ -1,5 +1,5 @@
 """
-GPS debug script - reads NAV-PVT, NAV-SAT, and MON-RF from a u-blox M10 module.
+GPS debug script - reads position, satellite, and RF status from a u-blox M10 module.
 
 Enables additional diagnostic messages in RAM only (flash config is not modified).
 
@@ -57,10 +57,17 @@ class SatHealth(IntEnum):
 
 
 GNSS_NAMES = {0: "GPS", 1: "SBAS", 2: "GAL", 3: "BDS", 4: "IMES", 5: "QZSS", 6: "GLO"}
-ANT_STATUS = {0: "INIT", 1: "UNKN", 2: "OK", 3: "SHORT", 4: "OPEN"}
-ANT_POWER = {0: "OFF", 1: "ON", 2: "UNKN"}
-JAM_STATE = {0: "unknown", 1: "ok", 2: "WARNING", 3: "CRITICAL"}
-FIX_NAMES = {0: "NO_FIX", 1: "DR", 2: "2D", 3: "3D", 4: "GNSS+DR", 5: "TIME_ONLY"}
+ANT_STATUS = {0: "INITIALIZING", 1: "UNKNOWN", 2: "OK", 3: "SHORT", 4: "OPEN"}
+ANT_POWER = {0: "OFF", 1: "ON", 2: "UNKNOWN"}
+JAM_STATE = {0: "UNKNOWN", 1: "OK", 2: "WARNING", 3: "CRITICAL"}
+FIX_NAMES = {
+    0: "No Fix",
+    1: "Dead Reckoning",
+    2: "2D Fix",
+    3: "3D Fix",
+    4: "GNSS+Dead Reckoning",
+    5: "Time Only",
+}
 
 
 def format_timestamp() -> str:
@@ -91,6 +98,7 @@ class GpsDebug:
             pass
 
         port.close()
+
         return None
 
     def apply_debug_config(self, port: serial.Serial) -> None:
@@ -124,6 +132,7 @@ class GpsDebug:
             if port is not None:
                 logger.info(f"{format_timestamp()} UBX sync found at {baudrate} baud on {self.path}")
                 self.apply_debug_config(port)
+
                 return port
 
         logger.warning(f"{format_timestamp()} [WARN] No UBX sync at 115200 baud, opening at 9600 without debug config")
@@ -138,10 +147,10 @@ class GpsDebug:
         if fix_type >= 2:
             pos = f"lat={msg.lat:.6f}  lon={msg.lon:.6f}  speed={msg.gSpeed * 3.6 / 1000:.1f} km/h"
 
-        logger.info(f"{format_timestamp()} NAV-PVT  fix={fix_name}  sats={num_sv}  {pos}")
+        logger.info(f"{format_timestamp()} POSITION [NAV-PVT]  fix={fix_name}  satellites={num_sv}  {pos}")
 
         if (self.prev_sats - num_sv) >= WARN_SAT_DROP:
-            logger.warning(f"{format_timestamp()} [WARN] sats dropped {self.prev_sats} -> {num_sv}")
+            logger.warning(f"{format_timestamp()} [WARN] satellites dropped {self.prev_sats} -> {num_sv}")
             self.warn_count += 1
 
         if fix_type not in FIX_NAMES:
@@ -152,7 +161,11 @@ class GpsDebug:
 
     def handle_nav_satellites(self, msg: UBXMessage) -> None:
         satellite_count = msg.numSvs
-        parts = []
+        used_parts: list[str] = []
+        seen_parts: list[str] = []
+        unhealthy_parts: list[str] = []
+        weak_sats: list[str] = []
+
         for i in range(1, satellite_count + 1):
             gnss_id = getattr(msg, f"gnssId_{i:02d}", None)
             if gnss_id is None:
@@ -165,25 +178,38 @@ class GpsDebug:
             health = getattr(msg, f"health_{i:02d}", 0)
 
             gnss_name = GNSS_NAMES.get(gnss_id, f"G{gnss_id}")
-            used_marker = "*" if sv_used else " "
-            health_str = "" if health == SatHealth.HEALTHY else f"[hlth={health}]"
-            parts.append(f"{used_marker}{gnss_name}{sv_id} CN0={cno} el={elev}{health_str}")
-
-            if sv_used and cno is not None and cno < WARN_CN0_MIN:
-                logger.warning(
-                    f"{format_timestamp()} [WARN] {gnss_name}{sv_id} CN0={cno} dBHz below threshold ({WARN_CN0_MIN})"
-                )
-                self.warn_count += 1
+            entry = f"{gnss_name}{sv_id}({cno}dBHz {elev}°)"
 
             if health == SatHealth.UNHEALTHY:
-                logger.warning(f"{format_timestamp()} [WARN] {gnss_name}{sv_id} satellite is unhealthy")
+                unhealthy_parts.append(entry)
                 self.warn_count += 1
+            elif sv_used:
+                used_parts.append(entry)
+            else:
+                seen_parts.append(entry)
 
-        logger.info(f"{format_timestamp()} NAV-SAT  {satellite_count} svs  | {' | '.join(parts)}")
+            if sv_used and cno is not None and cno < WARN_CN0_MIN:
+                weak_sats.append(f"{gnss_name}{sv_id}({cno}dBHz)")
+
+        indent = " " * 15
+        used_count = len(used_parts)
+        logger.info(f"{format_timestamp()} SATELLITES [NAV-SAT]  {used_count} used / {satellite_count} visible")
+        logger.info(f"{indent}{'used:':<12}{' '.join(used_parts) or '(none)'}")
+        if seen_parts:
+            logger.info(f"{indent}{'seen:':<12}{' '.join(seen_parts)}")
+        if unhealthy_parts:
+            logger.info(f"{indent}{'unhealthy:':<12}{' '.join(unhealthy_parts)}")
+
+        if weak_sats:
+            sats_str = ", ".join(weak_sats)
+            logger.warning(
+                f"{format_timestamp()} [WARN] Weak signal on used satellites (threshold {WARN_CN0_MIN}dBHz): {sats_str}"
+            )
+            self.warn_count += 1
 
     def handle_monitor_rf(self, msg: UBXMessage) -> None:
         n_blocks = msg.nBlocks
-        parts = []
+        parts: list[str] = []
         for i in range(1, n_blocks + 1):
             ant_status: int | None = getattr(msg, f"antStatus_{i:02d}", None)
             ant_power: int | None = getattr(msg, f"antPower_{i:02d}", None)
@@ -196,7 +222,8 @@ class GpsDebug:
             pwr_str = ANT_POWER.get(ant_power, f"?{ant_power}") if ant_power is not None else "?"
             jam_state_str = JAM_STATE.get(jam_state, f"?{jam_state}")
             parts.append(
-                f"ant={ant_str} pwr={pwr_str} jam={jam_ind}/255 state={jam_state_str} agc={agc_cnt} noise={noise}"
+                f"antenna={ant_str} power={pwr_str}"
+                f" jamming={jam_ind}/255 state={jam_state_str} agc={agc_cnt} noise={noise}"
             )
 
             if ant_status in (3, 4):  # SHORT or OPEN
@@ -211,7 +238,7 @@ class GpsDebug:
                 logger.warning(f"{format_timestamp()} [WARN] Jamming state: {jam_state_str}")
                 self.warn_count += 1
 
-        logger.info(f"{format_timestamp()} MON-RF   {' | '.join(parts)}")
+        logger.info(f"{format_timestamp()} RF-STATUS [MON-RF]  {' | '.join(parts)}")
 
     def run(self) -> None:
         signal.signal(signal.SIGINT, self.stop)
@@ -254,7 +281,7 @@ class GpsDebug:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="GPS debug script - NAV-PVT + NAV-SAT + MON-RF")
+    parser = argparse.ArgumentParser(description="GPS debug script - position, satellites, and RF status")
     parser.add_argument("--path", default=GPS_PATH, help="Serial port path (default: /dev/serial0)")
     args = parser.parse_args()
 
