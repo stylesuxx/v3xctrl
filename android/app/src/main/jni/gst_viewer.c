@@ -370,8 +370,6 @@ static void on_decodebin_pad_added(GstElement *decodebin, GstPad *new_pad, gpoin
         LOGI("decodebin output caps: %s", caps_str);
         g_free(caps_str);
 
-        capture_decoder_output_format(caps);
-
         GstPadLinkReturn ret = gst_pad_link(new_pad, render_queue_sink);
         if (ret != GST_PAD_LINK_OK) {
             LOGE("Failed to link decodebin to render queue: %d", ret);
@@ -635,9 +633,9 @@ static void configure_common_elements(gint port) {
  *   udpsrc -> jitterbuffer -> depay -> decode_queue -> h264parse -> [HW decoder]
  *     -> glupload -> render_queue -> glimagesink
  *
- * Without decodebin, glcolorconvert is not inserted, so glupload passes
- * the decoder's NV12 output directly to glimagesink which handles
- * YUV->RGB conversion in its own render shader.
+ * Bypasses decodebin's auto-negotiation overhead. The glupload element still
+ * converts NV12->RGBA during texture upload, but this avoids the extra elements
+ * and thread scheduling that decodebin introduces.
  */
 static gboolean create_direct_rtp_pipeline(gint port) {
     GstElement *hw_decoder = find_h264_hw_decoder();

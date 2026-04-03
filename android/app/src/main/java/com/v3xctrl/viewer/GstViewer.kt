@@ -1,6 +1,7 @@
 package com.v3xctrl.viewer
 
 import android.content.Context
+import android.util.Log
 import android.view.Surface
 import org.freedesktop.gstreamer.GStreamer
 
@@ -35,7 +36,7 @@ object GstViewer {
                 GStreamer.init(context)
                 contextInitialized = true
             } catch (e: Exception) {
-                android.util.Log.e("GstViewer", "GStreamer.init(context) failed: ${e.message}")
+                Log.e("GstViewer", "GStreamer.init(context) failed: ${e.message}")
             }
         }
         nativeInit()
