@@ -101,6 +101,7 @@ fun DebugStatsOverlay(
     var stats by remember { mutableStateOf(GstViewer.PipelineStats(0, 0, 0, 0, 0, 0)) }
     var decoderName by remember { mutableStateOf("") }
     var decoderOutputFormat by remember { mutableStateOf("") }
+    var glApi by remember { mutableStateOf("") }
     var decodeQueueLevel by remember { mutableStateOf(0) }
     var renderQueueLevel by remember { mutableStateOf(0) }
     var frameInterval by remember { mutableStateOf(GstViewer.FrameIntervalStats(0, 0, 0)) }
@@ -125,6 +126,7 @@ fun DebugStatsOverlay(
 
             decoderName = GstViewer.decoderName
             decoderOutputFormat = GstViewer.decoderOutputFormat
+            glApi = GstViewer.glApi
 
             if (showSystemStats) {
                 val currentCpuTime = Process.getElapsedCpuTime()
@@ -240,6 +242,9 @@ fun DebugStatsOverlay(
                 }
                 if (decoderOutputFormat.isNotEmpty()) {
                     StatsRow("output format", decoderOutputFormat, ValueColor)
+                }
+                if (glApi.isNotEmpty()) {
+                    StatsRow("gl api", glApi, ValueColor)
                 }
                 cpuUsage?.let { cpu ->
                     StatsRow("cpu (process)", "$cpu%", if (cpu > 80) Color.Red else ValueColor)

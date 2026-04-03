@@ -8,6 +8,7 @@
 #include <android/native_window_jni.h>
 #include <gst/gst.h>
 #include <gst/video/videooverlay.h>
+#include <gst/gl/gl.h>
 
 #define LOG_TAG "GstViewer"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
@@ -69,6 +70,9 @@ static gchar decoder_name[128] = "";
 
 // Decoder output format discovered during caps negotiation (e.g. "NV12 (memory:AndroidHardwareBuffer)")
 static gchar decoder_output_format[256] = "";
+
+// GL API version (e.g. "gles2", "gles3", "opengl3")
+static gchar gl_api[64] = "";
 
 // Sink frame interval tracking (microseconds)
 #define FRAME_INTERVAL_WINDOW 60
@@ -505,7 +509,7 @@ static void *gst_main_loop_thread(void *arg) {
     return NULL;
 }
 
-// One-shot probe to capture decoder output format from the sink pad on first buffer
+// One-shot probe to capture decoder output format and GL API from the sink pad on first buffer
 static GstPadProbeReturn capture_format_cb(GstPad *pad, GstPadProbeInfo *info, gpointer user_data) {
     GstCaps *caps = gst_pad_get_current_caps(pad);
     if (caps) {
@@ -515,7 +519,24 @@ static GstPadProbeReturn capture_format_cb(GstPad *pad, GstPadProbeInfo *info, g
         capture_decoder_output_format(caps);
         gst_caps_unref(caps);
     }
-    return GST_PAD_PROBE_REMOVE;  // Fire once then detach
+
+    // Query GL API from the sink's GL context
+    if (gst_data.video_sink) {
+        GstGLContext *context = NULL;
+        g_object_get(gst_data.video_sink, "context", &context, NULL);
+        if (context) {
+            GstGLAPI api = gst_gl_context_get_gl_api(context);
+            gchar *api_str = gst_gl_api_to_string(api);
+            gint major = 0, minor = 0;
+            gst_gl_context_get_gl_version(context, &major, &minor);
+            LOGI("GL API: %s %d.%d", api_str, major, minor);
+            g_snprintf(gl_api, sizeof(gl_api), "%s %d.%d", api_str, major, minor);
+            g_free(api_str);
+            gst_object_unref(context);
+        }
+    }
+
+    return GST_PAD_PROBE_REMOVE;
 }
 
 /**
@@ -772,9 +793,6 @@ Java_com_v3xctrl_viewer_GstViewer_nativeInit(JNIEnv *env, jclass clazz) {
 
     LOGI("Initializing GStreamer");
 
-    // Force GLES 2.0 for better emulator compatibility
-    setenv("GST_GL_API", "gles2", 1);
-
     gst_init(NULL, NULL);
     gst_data.initialized = TRUE;
     LOGI("GStreamer initialized successfully");
@@ -992,8 +1010,9 @@ Java_com_v3xctrl_viewer_GstViewer_nativeStopPipeline(JNIEnv *env, jclass clazz) 
     jbuf_num_late = 0;
     jbuf_num_duplicates = 0;
 
-    // Reset decoder output format
+    // Reset decoder output format and GL API
     decoder_output_format[0] = '\0';
+    gl_api[0] = '\0';
 
     LOGI("Pipeline stopped");
 }
@@ -1158,4 +1177,9 @@ Java_com_v3xctrl_viewer_GstViewer_nativeGetJitterBufferStats(JNIEnv *env, jclass
 JNIEXPORT jstring JNICALL
 Java_com_v3xctrl_viewer_GstViewer_nativeGetDecoderOutputFormat(JNIEnv *env, jclass clazz) {
     return (*env)->NewStringUTF(env, decoder_output_format);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_v3xctrl_viewer_GstViewer_nativeGetGlApi(JNIEnv *env, jclass clazz) {
+    return (*env)->NewStringUTF(env, gl_api);
 }
