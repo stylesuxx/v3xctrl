@@ -1,5 +1,4 @@
 import logging
-import time
 
 import gi
 
@@ -12,17 +11,16 @@ logger = logging.getLogger(__name__)
 
 
 class TestSourceBuilder(SourceBuilder):
-    """Builds videotestsrc with epoch timestamp overlay for latency measurement"""
+    """Builds videotestsrc with time overlay"""
 
     NEEDS_SYNC = False  # Live test source, no sync needed
 
     def build(self, pipeline: Gst.Pipeline) -> Gst.Element:
         """
-        Build test source with epoch timestamp overlay.
+        Build test source with time overlay.
 
-        Creates videotestsrc with SMPTE pattern and overlays the current
-        UTC wall-clock time with millisecond precision. Each frame is
-        timestamped via a pad probe.
+        Creates videotestsrc with SMPTE pattern and adds a time overlay
+        in the center of the frame.
 
         Args:
             pipeline: GStreamer pipeline to add elements to
@@ -37,9 +35,9 @@ class TestSourceBuilder(SourceBuilder):
         source.set_property("is-live", True)
         source.set_property("pattern", "smpte")
 
-        overlay = Gst.ElementFactory.make("textoverlay", "overlay")
+        overlay = Gst.ElementFactory.make("timeoverlay", "overlay")
         if not overlay:
-            raise RuntimeError("Failed to create textoverlay")
+            raise RuntimeError("Failed to create timeoverlay")
 
         overlay.set_property("halignment", "center")
         overlay.set_property("valignment", "center")
@@ -48,21 +46,10 @@ class TestSourceBuilder(SourceBuilder):
         pipeline.add(overlay)
 
         if not source.link(overlay):
-            raise RuntimeError("Failed to link videotestsrc to textoverlay")
-
-        # Stamp each frame with wall-clock time
-        sink_pad = overlay.get_static_pad("video_sink")
-        sink_pad.add_probe(Gst.PadProbeType.BUFFER, self._on_buffer, overlay)
+            raise RuntimeError("Failed to link videotestsrc to timeoverlay")
 
         self._output_element = overlay
 
+        logger.info("Created test source with time overlay")
+
         return source
-
-    @staticmethod
-    def _on_buffer(pad, info, overlay):
-        now = time.time()
-        ms = int(now * 1000) % 1000
-        t = time.gmtime(int(now))
-        overlay.set_property("text", f"{t.tm_hour:02d}:{t.tm_min:02d}:{t.tm_sec:02d}.{ms:03d}")
-
-        return Gst.PadProbeReturn.OK
