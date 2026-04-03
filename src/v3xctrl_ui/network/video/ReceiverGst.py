@@ -3,15 +3,15 @@ import time
 from collections.abc import Callable
 
 import gi
+import numpy as np
+
+from v3xctrl_helper import parse_sei_nal
+from v3xctrl_ui.network.video.ClockOffset import ClockOffset
+from v3xctrl_ui.network.video.Receiver import Receiver
 
 gi.require_version("Gst", "1.0")
 gi.require_version("GstApp", "1.0")
-import numpy as np  # noqa: E402
 from gi.repository import GLib, Gst, GstApp  # noqa: E402
-
-from v3xctrl_helper import parse_sei_nal  # noqa: E402
-from v3xctrl_ui.network.video.ClockOffset import ClockOffset  # noqa: E402
-from v3xctrl_ui.network.video.Receiver import Receiver  # noqa: E402
 
 logger = logging.getLogger(__name__)
 

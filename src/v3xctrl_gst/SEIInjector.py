@@ -3,10 +3,10 @@ import time
 
 import gi
 
+from v3xctrl_helper import build_sei_nal
+
 gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
-
-from v3xctrl_helper import build_sei_nal  # noqa: E402
 
 # ctypes setup to work around Python GI binding ref leak in Gst.Pad.chain().
 # Instead of chain(), we replace the buffer pointer directly in GstPadProbeInfo.data

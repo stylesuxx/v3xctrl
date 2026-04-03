@@ -9,15 +9,15 @@ from typing import Any
 
 import gi
 
+from v3xctrl_gst.ControlServer import ControlServer
+from v3xctrl_gst.PipelineTimer import PipelineTimer
+from v3xctrl_gst.QPManager import QPManager
+from v3xctrl_gst.RecordingManager import RecordingManager
+from v3xctrl_gst.SEIInjector import SEIInjector
+from v3xctrl_gst.SourceRegistry import SourceRegistry
+
 gi.require_version("Gst", "1.0")
 from gi.repository import GLib, Gst  # noqa: E402
-
-from v3xctrl_gst.ControlServer import ControlServer  # noqa: E402
-from v3xctrl_gst.PipelineTimer import PipelineTimer  # noqa: E402
-from v3xctrl_gst.QPManager import QPManager  # noqa: E402
-from v3xctrl_gst.RecordingManager import RecordingManager  # noqa: E402
-from v3xctrl_gst.SEIInjector import SEIInjector  # noqa: E402
-from v3xctrl_gst.SourceRegistry import SourceRegistry  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
