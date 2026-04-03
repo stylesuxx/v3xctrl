@@ -330,7 +330,7 @@ fun ViewerScreen(
     }
 
     DisposableEffect(reconnectionGeneration) {
-        GstViewer.init()
+        GstViewer.init(context)
         onDispose {
             GstViewer.stop()
             isPipelineStarted = false

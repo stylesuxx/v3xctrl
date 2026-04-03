@@ -1,11 +1,15 @@
 package com.v3xctrl.viewer
 
+import android.content.Context
 import android.view.Surface
+import org.freedesktop.gstreamer.GStreamer
 
 object GstViewer {
     init {
         System.loadLibrary("v3xctrl_gst")
     }
+
+    private var contextInitialized = false
 
     private external fun nativeInit()
     private external fun nativeStartPipeline(surface: Surface, port: Int)
@@ -25,7 +29,15 @@ object GstViewer {
     private external fun nativeGetJitterBufferStats(): String
     private external fun nativeGetDecoderOutputFormat(): String
 
-    fun init() {
+    fun init(context: Context? = null) {
+        if (!contextInitialized && context != null) {
+            try {
+                GStreamer.init(context)
+                contextInitialized = true
+            } catch (e: Exception) {
+                android.util.Log.e("GstViewer", "GStreamer.init(context) failed: ${e.message}")
+            }
+        }
         nativeInit()
     }
 

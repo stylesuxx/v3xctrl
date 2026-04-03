@@ -25,7 +25,10 @@ typedef struct {
     GstElement *jitterbuffer;
     GstElement *depay;
     GstElement *decode_queue;
-    GstElement *decodebin;
+    GstElement *decodebin;     // NULL when using direct pipeline
+    GstElement *h264parse;     // NULL when using decodebin pipeline
+    GstElement *decoder;       // NULL when using decodebin pipeline
+    GstElement *glupload;      // NULL when using decodebin pipeline
     GstElement *render_queue;
     GstElement *video_sink;
     GMainLoop *main_loop;
@@ -34,6 +37,7 @@ typedef struct {
     gint video_port;
     pthread_t thread;
     gboolean thread_active;
+    gboolean using_direct_pipeline;
 } GstViewerData;
 
 static GstViewerData gst_data = {0};
@@ -224,8 +228,10 @@ static void attach_stats_probes(void) {
     probe_id_jitterbuffer = add_element_src_probe(gst_data.jitterbuffer, count_jitterbuffer_cb);
     probe_id_depay = add_element_src_probe(gst_data.depay, count_depay_cb);
 
-    // Attach decoder probe to decodebin's existing src pad (if already linked)
-    if (gst_data.decodebin && !probe_id_decoder) {
+    // Attach decoder probe: direct pipeline uses decoder element, decodebin uses dynamic pad
+    if (gst_data.using_direct_pipeline && gst_data.decoder && !probe_id_decoder) {
+        probe_id_decoder = add_element_src_probe(gst_data.decoder, count_decoder_cb);
+    } else if (gst_data.decodebin && !probe_id_decoder) {
         GstPad *src_pad = gst_element_get_static_pad(gst_data.decodebin, "src_0");
         if (src_pad) {
             probe_id_decoder = gst_pad_add_probe(src_pad,
@@ -248,12 +254,15 @@ static void detach_stats_probes(void) {
         if (probe_id_depay) {
             remove_element_src_probe(gst_data.depay, probe_id_depay);
         }
-        // Decoder probe is on decodebin's dynamic src pad - remove via decodebin
-        if (probe_id_decoder && gst_data.decodebin) {
-            GstPad *src_pad = gst_element_get_static_pad(gst_data.decodebin, "src_0");
-            if (src_pad) {
-                gst_pad_remove_probe(src_pad, probe_id_decoder);
-                gst_object_unref(src_pad);
+        if (probe_id_decoder) {
+            if (gst_data.using_direct_pipeline && gst_data.decoder) {
+                remove_element_src_probe(gst_data.decoder, probe_id_decoder);
+            } else if (gst_data.decodebin) {
+                GstPad *src_pad = gst_element_get_static_pad(gst_data.decodebin, "src_0");
+                if (src_pad) {
+                    gst_pad_remove_probe(src_pad, probe_id_decoder);
+                    gst_object_unref(src_pad);
+                }
             }
         }
     }
@@ -286,7 +295,7 @@ static void log_decodebin_decoder(GstElement *decodebin) {
                 LOGI("decodebin element: %s (factory=%s, klass=%s)",
                      GST_OBJECT_NAME(element), factory_name, klass ? klass : "");
                 if (klass && g_strrstr(klass, "Decoder")) {
-                    g_strlcpy(decoder_name, factory_name, sizeof(decoder_name));
+                    g_snprintf(decoder_name, sizeof(decoder_name), "%s (decodebin)", factory_name);
                 }
             }
             g_value_reset(&item);
@@ -498,6 +507,82 @@ static void *gst_main_loop_thread(void *arg) {
     return NULL;
 }
 
+// One-shot probe to capture decoder output format from the sink pad on first buffer
+static GstPadProbeReturn capture_format_cb(GstPad *pad, GstPadProbeInfo *info, gpointer user_data) {
+    GstCaps *caps = gst_pad_get_current_caps(pad);
+    if (caps) {
+        gchar *caps_str = gst_caps_to_string(caps);
+        LOGI("Sink input caps: %s", caps_str);
+        g_free(caps_str);
+        capture_decoder_output_format(caps);
+        gst_caps_unref(caps);
+    }
+    return GST_PAD_PROBE_REMOVE;  // Fire once then detach
+}
+
+/**
+ * Find an H.264 hardware video decoder in the GStreamer element registry.
+ * Returns a newly created element or NULL if none found.
+ */
+static GstElement *find_h264_hw_decoder(void) {
+    GList *factories = gst_element_factory_list_get_elements(
+        GST_ELEMENT_FACTORY_TYPE_DECODER | GST_ELEMENT_FACTORY_TYPE_MEDIA_VIDEO,
+        GST_RANK_MARGINAL);
+
+    GstElement *decoder = NULL;
+
+    for (GList *l = factories; l != NULL; l = l->next) {
+        GstElementFactory *factory = (GstElementFactory *)l->data;
+        const gchar *klass = gst_element_factory_get_metadata(factory,
+            GST_ELEMENT_METADATA_KLASS);
+        const gchar *factory_name = gst_plugin_feature_get_name(
+            GST_PLUGIN_FEATURE(factory));
+
+        // Only consider hardware decoders from the androidmedia plugin
+        if (!klass || !g_strrstr(klass, "Hardware")) {
+            continue;
+        }
+
+        // Check if this factory can handle H.264
+        const GList *templates = gst_element_factory_get_static_pad_templates(factory);
+        gboolean handles_h264 = FALSE;
+        for (const GList *t = templates; t != NULL; t = t->next) {
+            GstStaticPadTemplate *tmpl = (GstStaticPadTemplate *)t->data;
+            if (tmpl->direction != GST_PAD_SINK) {
+                continue;
+            }
+            GstCaps *tmpl_caps = gst_static_caps_get(&tmpl->static_caps);
+            if (tmpl_caps) {
+                for (guint i = 0; i < gst_caps_get_size(tmpl_caps); i++) {
+                    GstStructure *s = gst_caps_get_structure(tmpl_caps, i);
+                    if (g_str_equal(gst_structure_get_name(s), "video/x-h264")) {
+                        handles_h264 = TRUE;
+                        break;
+                    }
+                }
+                gst_caps_unref(tmpl_caps);
+            }
+            if (handles_h264) {
+                break;
+            }
+        }
+
+        if (!handles_h264) {
+            continue;
+        }
+
+        LOGI("Found H.264 HW decoder: %s (klass=%s)", factory_name, klass);
+        decoder = gst_element_factory_create(factory, "hwdec");
+        if (decoder) {
+            g_snprintf(decoder_name, sizeof(decoder_name), "%s (direct)", factory_name);
+            break;
+        }
+    }
+
+    gst_plugin_feature_list_free(factories);
+    return decoder;
+}
+
 static gboolean create_test_pipeline(void) {
     GError *error = NULL;
     gchar *pipeline_str = g_strdup(
@@ -523,27 +608,7 @@ static gboolean create_test_pipeline(void) {
     return TRUE;
 }
 
-static gboolean create_rtp_pipeline(gint port) {
-    gst_data.pipeline = gst_pipeline_new("viewer-pipeline");
-    gst_data.udpsrc = gst_element_factory_make("udpsrc", "src");
-    gst_data.jitterbuffer = gst_element_factory_make("rtpjitterbuffer", "jbuf");
-    gst_data.depay = gst_element_factory_make("rtph264depay", "depay");
-    gst_data.decode_queue = gst_element_factory_make("queue", "decode_queue");
-    gst_data.decodebin = gst_element_factory_make("decodebin", "dec");
-    gst_data.render_queue = gst_element_factory_make("queue", "render_queue");
-    gst_data.video_sink = gst_element_factory_make("glimagesink", "videosink");
-
-    if (!gst_data.pipeline || !gst_data.udpsrc || !gst_data.jitterbuffer ||
-        !gst_data.depay || !gst_data.decode_queue ||
-        !gst_data.decodebin || !gst_data.render_queue || !gst_data.video_sink) {
-        LOGE("Failed to create one or more pipeline elements");
-        if (gst_data.pipeline) {
-            gst_object_unref(gst_data.pipeline);
-            gst_data.pipeline = NULL;
-        }
-        return FALSE;
-    }
-
+static void configure_common_elements(gint port) {
     // Configure udpsrc
     GstCaps *caps = gst_caps_from_string(
         "application/x-rtp,media=video,encoding-name=H264,payload=96,clock-rate=90000");
@@ -563,25 +628,116 @@ static gboolean create_rtp_pipeline(gint port) {
     // Configure render queue to prevent buffer buildup after decoder (leaky)
     g_object_set(gst_data.render_queue, "max-size-buffers", 1,
                  "leaky", 2 /* downstream */, NULL);
+}
 
-    // Add all elements to the pipeline
+/**
+ * Direct pipeline bypassing decodebin:
+ *   udpsrc -> jitterbuffer -> depay -> decode_queue -> h264parse -> [HW decoder]
+ *     -> glupload -> render_queue -> glimagesink
+ *
+ * Without decodebin, glcolorconvert is not inserted, so glupload passes
+ * the decoder's NV12 output directly to glimagesink which handles
+ * YUV->RGB conversion in its own render shader.
+ */
+static gboolean create_direct_rtp_pipeline(gint port) {
+    GstElement *hw_decoder = find_h264_hw_decoder();
+    if (!hw_decoder) {
+        LOGI("No H.264 HW decoder found, cannot create direct pipeline");
+        return FALSE;
+    }
+
+    gst_data.pipeline = gst_pipeline_new("viewer-pipeline");
+    gst_data.udpsrc = gst_element_factory_make("udpsrc", "src");
+    gst_data.jitterbuffer = gst_element_factory_make("rtpjitterbuffer", "jbuf");
+    gst_data.depay = gst_element_factory_make("rtph264depay", "depay");
+    gst_data.decode_queue = gst_element_factory_make("queue", "decode_queue");
+    gst_data.h264parse = gst_element_factory_make("h264parse", "parser");
+    gst_data.decoder = hw_decoder;
+    gst_data.glupload = gst_element_factory_make("glupload", "upload");
+    gst_data.render_queue = gst_element_factory_make("queue", "render_queue");
+    gst_data.video_sink = gst_element_factory_make("glimagesink", "videosink");
+
+    if (!gst_data.pipeline || !gst_data.udpsrc || !gst_data.jitterbuffer ||
+        !gst_data.depay || !gst_data.decode_queue || !gst_data.h264parse ||
+        !gst_data.decoder || !gst_data.glupload ||
+        !gst_data.render_queue || !gst_data.video_sink) {
+        LOGE("Failed to create one or more direct pipeline elements");
+        if (gst_data.pipeline) {
+            gst_object_unref(gst_data.pipeline);
+            gst_data.pipeline = NULL;
+        }
+        return FALSE;
+    }
+
+    configure_common_elements(port);
+
     gst_bin_add_many(GST_BIN(gst_data.pipeline),
         gst_data.udpsrc, gst_data.jitterbuffer, gst_data.depay,
-        gst_data.decode_queue, gst_data.decodebin,
-        gst_data.render_queue, gst_data.video_sink, NULL);
+        gst_data.decode_queue, gst_data.h264parse, gst_data.decoder,
+        gst_data.glupload, gst_data.render_queue, gst_data.video_sink, NULL);
 
-    // Link static chain: udpsrc -> jitterbuffer -> depay -> decode_queue -> decodebin
-    // (h264parse is not needed - decodebin adds its own internally)
     if (!gst_element_link_many(gst_data.udpsrc, gst_data.jitterbuffer,
                                 gst_data.depay, gst_data.decode_queue,
-                                gst_data.decodebin, NULL)) {
-        LOGE("Failed to link pipeline elements");
+                                gst_data.h264parse, gst_data.decoder,
+                                gst_data.glupload, gst_data.render_queue,
+                                gst_data.video_sink, NULL)) {
+        LOGE("Failed to link direct pipeline elements");
         gst_object_unref(gst_data.pipeline);
         gst_data.pipeline = NULL;
         return FALSE;
     }
 
-    // Pre-link render_queue -> video_sink (static pads)
+    gst_data.using_direct_pipeline = TRUE;
+    gst_data.decodebin = NULL;
+
+    LOGI("Pipeline (direct): udpsrc port=%d ! rtpjitterbuffer ! rtph264depay ! "
+         "decode_queue ! h264parse ! %s ! glupload ! render_queue ! glimagesink",
+         port, decoder_name);
+    return TRUE;
+}
+
+/**
+ * Decodebin pipeline (fallback):
+ *   udpsrc -> jitterbuffer -> depay -> decode_queue -> decodebin
+ *     -> render_queue -> glimagesink
+ */
+static gboolean create_decodebin_rtp_pipeline(gint port) {
+    gst_data.pipeline = gst_pipeline_new("viewer-pipeline");
+    gst_data.udpsrc = gst_element_factory_make("udpsrc", "src");
+    gst_data.jitterbuffer = gst_element_factory_make("rtpjitterbuffer", "jbuf");
+    gst_data.depay = gst_element_factory_make("rtph264depay", "depay");
+    gst_data.decode_queue = gst_element_factory_make("queue", "decode_queue");
+    gst_data.decodebin = gst_element_factory_make("decodebin", "dec");
+    gst_data.render_queue = gst_element_factory_make("queue", "render_queue");
+    gst_data.video_sink = gst_element_factory_make("glimagesink", "videosink");
+
+    if (!gst_data.pipeline || !gst_data.udpsrc || !gst_data.jitterbuffer ||
+        !gst_data.depay || !gst_data.decode_queue ||
+        !gst_data.decodebin || !gst_data.render_queue || !gst_data.video_sink) {
+        LOGE("Failed to create one or more decodebin pipeline elements");
+        if (gst_data.pipeline) {
+            gst_object_unref(gst_data.pipeline);
+            gst_data.pipeline = NULL;
+        }
+        return FALSE;
+    }
+
+    configure_common_elements(port);
+
+    gst_bin_add_many(GST_BIN(gst_data.pipeline),
+        gst_data.udpsrc, gst_data.jitterbuffer, gst_data.depay,
+        gst_data.decode_queue, gst_data.decodebin,
+        gst_data.render_queue, gst_data.video_sink, NULL);
+
+    if (!gst_element_link_many(gst_data.udpsrc, gst_data.jitterbuffer,
+                                gst_data.depay, gst_data.decode_queue,
+                                gst_data.decodebin, NULL)) {
+        LOGE("Failed to link decodebin pipeline elements");
+        gst_object_unref(gst_data.pipeline);
+        gst_data.pipeline = NULL;
+        return FALSE;
+    }
+
     if (!gst_element_link(gst_data.render_queue, gst_data.video_sink)) {
         LOGE("Failed to link render queue to video sink");
         gst_object_unref(gst_data.pipeline);
@@ -589,13 +745,24 @@ static gboolean create_rtp_pipeline(gint port) {
         return FALSE;
     }
 
-    // decodebin -> render_queue is linked dynamically when decodebin selects a decoder
     g_signal_connect(gst_data.decodebin, "pad-added",
         G_CALLBACK(on_decodebin_pad_added), NULL);
 
-    LOGI("Pipeline: udpsrc port=%d ! rtpjitterbuffer ! rtph264depay ! decode_queue ! "
-         "decodebin ! render_queue ! glimagesink", port);
+    gst_data.using_direct_pipeline = FALSE;
+
+    LOGI("Pipeline (decodebin): udpsrc port=%d ! rtpjitterbuffer ! rtph264depay ! "
+         "decode_queue ! decodebin ! render_queue ! glimagesink", port);
     return TRUE;
+}
+
+static gboolean create_rtp_pipeline(gint port) {
+    // Try direct pipeline first (bypasses decodebin's NV12->RGBA conversion)
+    if (create_direct_rtp_pipeline(port)) {
+        return TRUE;
+    }
+
+    LOGI("Falling back to decodebin pipeline");
+    return create_decodebin_rtp_pipeline(port);
 }
 
 JNIEXPORT void JNICALL
@@ -677,6 +844,18 @@ Java_com_v3xctrl_viewer_GstViewer_nativeStartPipeline(JNIEnv *env, jclass clazz,
         }
     }
 
+    // Capture decoder output format on first buffer reaching the sink.
+    // For decodebin pipelines this is also done in on_decodebin_pad_added,
+    // but this probe captures the final format after all conversions.
+    if (gst_data.video_sink) {
+        GstPad *sink_input = gst_element_get_static_pad(gst_data.video_sink, "sink");
+        if (sink_input) {
+            gst_pad_add_probe(sink_input, GST_PAD_PROBE_TYPE_BUFFER,
+                capture_format_cb, NULL, NULL);
+            gst_object_unref(sink_input);
+        }
+    }
+
     // Diagnostic probes only when stats are enabled
     if (stats_enabled) {
         attach_stats_probes();
@@ -726,9 +905,13 @@ Java_com_v3xctrl_viewer_GstViewer_nativeStartPipeline(JNIEnv *env, jclass clazz,
         gst_data.jitterbuffer = NULL;
         gst_data.depay = NULL;
         gst_data.decode_queue = NULL;
-        gst_data.render_queue = NULL;
         gst_data.decodebin = NULL;
+        gst_data.h264parse = NULL;
+        gst_data.decoder = NULL;
+        gst_data.glupload = NULL;
+        gst_data.render_queue = NULL;
         gst_data.video_sink = NULL;
+        gst_data.using_direct_pipeline = FALSE;
         ANativeWindow_release(gst_data.native_window);
         gst_data.native_window = NULL;
         return;
@@ -767,8 +950,12 @@ Java_com_v3xctrl_viewer_GstViewer_nativeStopPipeline(JNIEnv *env, jclass clazz) 
     gst_data.depay = NULL;
     gst_data.decode_queue = NULL;
     gst_data.decodebin = NULL;
+    gst_data.h264parse = NULL;
+    gst_data.decoder = NULL;
+    gst_data.glupload = NULL;
     gst_data.render_queue = NULL;
     gst_data.video_sink = NULL;
+    gst_data.using_direct_pipeline = FALSE;
 
     if (gst_data.main_loop) {
         g_main_loop_unref(gst_data.main_loop);
