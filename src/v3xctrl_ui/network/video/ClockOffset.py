@@ -24,7 +24,6 @@ class ClockOffset:
 
     def __init__(self, window_seconds: float = 3.0) -> None:
         self._samples = SlidingWindowAverage(window_seconds)
-        self._rtt: float = 0.0
 
     @property
     def valid(self) -> bool:
@@ -33,10 +32,6 @@ class ClockOffset:
     @property
     def offset_us(self) -> int:
         return int(self._samples.average)
-
-    @property
-    def rtt(self) -> float:
-        return self._rtt
 
     def update(self, viewer_send: float, streamer_timestamp: float, viewer_receive: float) -> None:
         """
@@ -49,4 +44,3 @@ class ClockOffset:
         """
         offset_us = (streamer_timestamp - (viewer_send + viewer_receive) / 2) * 1_000_000
         self._samples.append(offset_us)
-        self._rtt = viewer_receive - viewer_send

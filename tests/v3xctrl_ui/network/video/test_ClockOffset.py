@@ -10,7 +10,6 @@ class TestClockOffset(unittest.TestCase):
 
         self.assertFalse(offset.valid)
         self.assertEqual(offset.offset_us, 0)
-        self.assertEqual(offset.rtt, 0.0)
 
     def test_becomes_valid_after_update(self):
         offset = ClockOffset()
@@ -45,13 +44,6 @@ class TestClockOffset(unittest.TestCase):
         offset.update(viewer_send=1.0, streamer_timestamp=1.003, viewer_receive=1.010)
 
         self.assertEqual(offset.offset_us, -2000)
-
-    def test_rtt_calculated(self):
-        offset = ClockOffset()
-
-        offset.update(viewer_send=1.0, streamer_timestamp=1.005, viewer_receive=1.010)
-
-        self.assertAlmostEqual(offset.rtt, 0.010)
 
     def test_averages_multiple_samples(self):
         offset = ClockOffset(window_seconds=10.0)
