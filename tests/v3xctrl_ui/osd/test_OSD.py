@@ -12,6 +12,7 @@ from unittest.mock import MagicMock, patch
 import pygame
 
 from v3xctrl_control.message import Latency, Telemetry
+from v3xctrl_helper import SlidingWindowAverage
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 from v3xctrl_ui.osd.OSD import OSD
@@ -177,12 +178,12 @@ class TestOSD(unittest.TestCase):
         self.assertLess(call_args, 35)
 
     def test_latency_evicts_old_samples(self):
-        self.osd._latency_window_seconds = 0.5
+        self.osd._latency_samples = SlidingWindowAverage(window_seconds=0.5)
         self.osd.widgets_debug["debug_latency"].set_value = MagicMock()
 
-        # Insert an old sample manually
+        # Insert an old sample manually via internal deque
         old_monotonic = time.monotonic() - 1.0
-        self.osd._latency_samples.append((old_monotonic, 200.0))
+        self.osd._latency_samples._samples.append((old_monotonic, 200.0))
 
         # Now add a fresh sample (~25ms one-way)
         msg = Latency()

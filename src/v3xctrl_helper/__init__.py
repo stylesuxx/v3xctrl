@@ -13,11 +13,13 @@ from v3xctrl_helper.sei import (
     build_sei_nal,
     parse_sei_nal,
 )
+from v3xctrl_helper.SlidingWindowAverage import SlidingWindowAverage
 
 __all__ = [
     "Address",
     "MessageFromAddress",
     "PeerAddresses",
+    "SlidingWindowAverage",
     "apply_expo",
     "build_sei_nal",
     "clamp",

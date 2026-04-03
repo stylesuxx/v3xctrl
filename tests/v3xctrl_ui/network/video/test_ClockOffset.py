@@ -57,7 +57,7 @@ class TestClockOffset(unittest.TestCase):
         offset = ClockOffset(window_seconds=10.0)
         monotonic = 100.0
 
-        with patch("v3xctrl_ui.network.video.ClockOffset.time") as mock_time:
+        with patch("v3xctrl_helper.SlidingWindowAverage.time") as mock_time:
             # Three measurements: 1000, 2000, 3000 us offset
             mock_time.monotonic.return_value = monotonic
             offset.update(viewer_send=1.0, streamer_timestamp=1.006, viewer_receive=1.010)  # 1000us
@@ -74,7 +74,7 @@ class TestClockOffset(unittest.TestCase):
         offset = ClockOffset(window_seconds=3.0)
         monotonic = 100.0
 
-        with patch("v3xctrl_ui.network.video.ClockOffset.time") as mock_time:
+        with patch("v3xctrl_helper.SlidingWindowAverage.time") as mock_time:
             mock_time.monotonic.return_value = monotonic
             offset.update(viewer_send=1.0, streamer_timestamp=1.010, viewer_receive=1.010)  # 5000us
 
@@ -95,7 +95,7 @@ class TestClockOffset(unittest.TestCase):
     def test_default_window_is_three_seconds(self):
         offset = ClockOffset()
 
-        self.assertEqual(offset._window_seconds, 3.0)
+        self.assertEqual(offset._samples._window_seconds, 3.0)
 
 
 if __name__ == "__main__":

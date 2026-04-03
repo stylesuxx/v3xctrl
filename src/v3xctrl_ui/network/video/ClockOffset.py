@@ -1,5 +1,4 @@
-import time
-from collections import deque
+from v3xctrl_helper import SlidingWindowAverage
 
 
 class ClockOffset:
@@ -24,20 +23,16 @@ class ClockOffset:
     """
 
     def __init__(self, window_seconds: float = 3.0) -> None:
-        self._window_seconds = window_seconds
-        self._samples: deque[tuple[float, int]] = deque()
+        self._samples = SlidingWindowAverage(window_seconds)
         self._rtt: float = 0.0
 
     @property
     def valid(self) -> bool:
-        return len(self._samples) > 0
+        return bool(self._samples)
 
     @property
     def offset_us(self) -> int:
-        if not self._samples:
-            return 0
-
-        return sum(s[1] for s in self._samples) // len(self._samples)
+        return int(self._samples.average)
 
     @property
     def rtt(self) -> float:
@@ -52,13 +47,6 @@ class ClockOffset:
             streamer_timestamp: T2 - streamer receive/send time (seconds)
             viewer_receive: T4 - viewer receive time (seconds)
         """
-        now = time.monotonic()
-        offset_us = int((streamer_timestamp - (viewer_send + viewer_receive) / 2) * 1_000_000)
-        self._samples.append((now, offset_us))
+        offset_us = (streamer_timestamp - (viewer_send + viewer_receive) / 2) * 1_000_000
+        self._samples.append(offset_us)
         self._rtt = viewer_receive - viewer_send
-        self._evict(now)
-
-    def _evict(self, now: float) -> None:
-        cutoff = now - self._window_seconds
-        while self._samples and self._samples[0][0] < cutoff:
-            self._samples.popleft()

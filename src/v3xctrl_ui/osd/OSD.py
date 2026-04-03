@@ -6,6 +6,7 @@ from typing import ClassVar
 import pygame
 
 from v3xctrl_control.message import Latency, Message, Telemetry
+from v3xctrl_helper import SlidingWindowAverage
 from v3xctrl_ui.core.dataclasses import GpsFixType
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext
@@ -48,8 +49,7 @@ class OSD:
         self.throttle: float = 0.0
         self.steering: float = 0.0
 
-        self._latency_samples: deque[tuple[float, float]] = deque()
-        self._latency_window_seconds: float = 1.0
+        self._latency_samples = SlidingWindowAverage(window_seconds=1.0)
 
         self.widgets_debug: dict[str, Widget] = {}
         self.widgets_signal: dict[str, Widget] = {}
@@ -212,14 +212,11 @@ class OSD:
 
             return
 
-        now = time.time()
         # RTT/2 for one-way network latency estimate
-        diff_ms = (now - message.timestamp) * 1000 / 2
+        diff_ms = (time.time() - message.timestamp) * 1000 / 2
+        self._latency_samples.append(diff_ms)
 
-        self._latency_samples.append((time.monotonic(), diff_ms))
-        self._evict_latency_samples()
-
-        avg_ms = round(sum(s[1] for s in self._latency_samples) / len(self._latency_samples))
+        avg_ms = round(self._latency_samples.average)
 
         if avg_ms <= 40:
             self.debug_latency = "green"
@@ -229,11 +226,6 @@ class OSD:
             self.debug_latency = "red"
 
         self.widgets_debug["debug_latency"].set_value(avg_ms)
-
-    def _evict_latency_samples(self) -> None:
-        cutoff = time.monotonic() - self._latency_window_seconds
-        while self._latency_samples and self._latency_samples[0][0] < cutoff:
-            self._latency_samples.popleft()
 
     def _telemetry_update(self, message: Telemetry) -> None:
         data = parse_telemetry(message)
