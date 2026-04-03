@@ -178,10 +178,14 @@ fun DebugStatsOverlay(
                     modifier = Modifier.padding(vertical = 6.dp)
                 )
 
-                StatsRow("decode queue", "$decodeQueueLevel/3",
-                    if (decodeQueueLevel >= 2) Color.Red else ValueColor)
-                StatsRow("render queue", "$renderQueueLevel/1",
-                    if (renderQueueLevel >= 1) Color.Red else ValueColor)
+                Row {
+                    StatsRow("decode queue", "$decodeQueueLevel/3",
+                        if (decodeQueueLevel >= 2) Color.Red else ValueColor,
+                        Modifier.weight(1f))
+                    StatsRow("render queue", "$renderQueueLevel/1",
+                        if (renderQueueLevel >= 1) Color.Red else ValueColor,
+                        Modifier.weight(1f))
+                }
 
                 HorizontalDivider(
                     color = Color.Gray.copy(alpha = 0.4f),
@@ -277,8 +281,8 @@ private fun StatsColumn(
 }
 
 @Composable
-private fun StatsRow(label: String, value: String, valueColor: Color = ValueColor) {
-    Row {
+private fun StatsRow(label: String, value: String, valueColor: Color = ValueColor, modifier: Modifier = Modifier) {
+    Row(modifier = modifier) {
         Text(
             text = "$label: ",
             color = LabelColor,
