@@ -6,7 +6,7 @@ Enables additional diagnostic messages in RAM only (flash config is not modified
 Usage:
     python -m v3xctrl_telemetry.apps.debug_gps_ublox [--path /dev/serial0]
 
-Press Ctrl-C to stop. A warning summary is printed on exit.
+Press Ctrl-C to stop.
 
 Tip: if satellite acquisition is slow, stop video streaming while running this script.
 LTE transmission can interfere with GPS reception at the L1 frequency (1575 MHz).
@@ -79,10 +79,8 @@ class GpsDebug:
     def __init__(self, path: str) -> None:
         self.path = path
         self.running = True
-        self.warn_count = 0
         self.prev_sats = 0
         self.ever_had_fix = False
-        self.weak_acquisition_warned = False
 
     def stop(self, _sig: int, _frame: types.FrameType | None) -> None:
         self.running = False
@@ -154,11 +152,9 @@ class GpsDebug:
 
         if (self.prev_sats - num_sv) >= WARN_SAT_DROP:
             logger.warning(f"{format_timestamp()} [WARN] satellites dropped {self.prev_sats} -> {num_sv}")
-            self.warn_count += 1
 
         if fix_type not in FIX_NAMES:
             logger.warning(f"{format_timestamp()} [WARN] unexpected fixType={fix_type}")
-            self.warn_count += 1
 
         self.prev_sats = int(num_sv)
 
@@ -185,7 +181,6 @@ class GpsDebug:
 
             if health == SatHealth.UNHEALTHY:
                 unhealthy_parts.append(f"{gnss_name}{sv_id}({cno}dBHz {elev}°)")
-                self.warn_count += 1
             elif sv_used:
                 used_parts.append(f"{gnss_name}{sv_id}({cno}dBHz {elev}°)")
                 if cno is not None and cno < WARN_CN0_MIN:
@@ -209,16 +204,12 @@ class GpsDebug:
                 f"{format_timestamp()} [WARN] {weak_sat_count} used satellite(s)"
                 f" below signal threshold ({WARN_CN0_MIN}dBHz)"
             )
-            self.warn_count += 1
 
         if not self.ever_had_fix and seen_count > 0 and seen_max_cno < WARN_CN0_MIN:
             logger.warning(
                 f"{format_timestamp()} [WARN] No fix - strongest visible satellite only {seen_max_cno}dBHz,"
                 f" below acquisition threshold ({WARN_CN0_MIN}dBHz) for ephemeris/almanac data"
             )
-            if not self.weak_acquisition_warned:
-                self.warn_count += 1
-                self.weak_acquisition_warned = True
 
         logger.info("")
 
@@ -256,7 +247,6 @@ class GpsDebug:
 
         for warning in warnings:
             logger.warning(warning)
-            self.warn_count += 1
 
     def run(self) -> None:
         signal.signal(signal.SIGINT, self.stop)
@@ -294,8 +284,6 @@ class GpsDebug:
                         logger.info(f"{format_timestamp()} {identity}: {getattr(msg, 'msgContent', identity)}")
 
         logger.info("-" * 80)
-        if self.warn_count > 0:
-            logger.warning(f"Stopped. Total warnings: {self.warn_count}")
 
 
 def main() -> None:
