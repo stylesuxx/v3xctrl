@@ -61,20 +61,19 @@ def _try_parse_sei(data: bytes, nal_start: int) -> int | None:
 
 
 def parse_sei_nal(data: bytes) -> int | None:
-    """Parse a v3xctrl SEI NAL unit. Returns timestamp_us or None.
+    """
+    Parse a v3xctrl SEI NAL unit. Returns timestamp_us or None.
 
     Supports both Annex B (start code) and AVC (length-prefixed) formats.
     """
     # Try Annex B format (start code delimited)
-    pos = 0
-    while pos < len(data) - 4:
-        if data[pos : pos + 4] == START_CODE:
-            result = _try_parse_sei(data, pos + 4)
-            if result is not None:
-                return result
-            pos += 4
-        else:
-            pos += 1
+    pos = data.find(START_CODE)
+    while pos != -1:
+        result = _try_parse_sei(data, pos + 4)
+        if result is not None:
+            return result
+
+        pos = data.find(START_CODE, pos + 4)
 
     # Try AVC format (4-byte length prefix)
     pos = 0
