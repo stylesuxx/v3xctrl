@@ -269,7 +269,7 @@ def control_handler(message: Control, address: Address) -> None:
 
 
 def latency_handler(message: Latency, address: Address) -> None:
-    client.send(Latency(streamer_timestamp=time.time(), timestamp=message.timestamp))
+    client.send(Latency(st=time.time(), timestamp=message.timestamp))
 
 
 def command_handler(command: Command, address: Address) -> None:

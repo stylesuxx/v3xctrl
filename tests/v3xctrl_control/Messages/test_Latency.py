@@ -23,14 +23,14 @@ class TestLatency(unittest.TestCase):
         self.assertEqual(latency.payload, {})
 
     def test_with_streamer_timestamp(self) -> None:
-        latency = Latency(streamer_timestamp=100.5, timestamp=99.0)
+        latency = Latency(st=100.5, timestamp=99.0)
 
         self.assertEqual(latency.streamer_timestamp, 100.5)
         self.assertEqual(latency.timestamp, 99.0)
-        self.assertEqual(latency.payload, {"streamer_timestamp": 100.5})
+        self.assertEqual(latency.payload, {"st": 100.5})
 
     def test_roundtrip_with_streamer_timestamp(self) -> None:
-        latency = Latency(streamer_timestamp=100.5, timestamp=99.0)
+        latency = Latency(st=100.5, timestamp=99.0)
 
         data = latency.to_bytes()
         restored = Message.from_bytes(data)
