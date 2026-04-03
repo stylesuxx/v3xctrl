@@ -49,18 +49,18 @@ class ReceiverGst(Receiver):
 
         # Pipeline timing via pad probes (only used when timing_enabled)
         # Track first packet arrival per PTS (for receive timing)
-        self._receive_start_times: dict[int, float] | None = None
+        self._receive_start_times: dict[int, float] = {}
         # Track decoder entry time per PTS (for decode timing)
-        self._decode_start_times: dict[int, float] | None = None
+        self._decode_start_times: dict[int, float] = {}
         # Store calculated receive durations to pass through pipeline
-        self._receive_durations: dict[int, float] | None = None
+        self._receive_durations: dict[int, float] = {}
         # Collect receive timing samples for logging
-        self._timing_receive_samples: list[float] | None = None
+        self._timing_receive_samples: list[float] = []
 
         # SEI-based end-to-end latency (only used when timing_enabled)
         self._clock_offset: ClockOffset | None = None
-        self._sei_timestamps: dict[int, int] | None = None
-        self._timing_e2e_samples: list[float] | None = None
+        self._sei_timestamps: dict[int, int] = {}
+        self._timing_e2e_samples: list[float] = []
 
         # Cached frame dimensions and pre-allocated buffer
         self._cached_width: int = 0
@@ -89,6 +89,7 @@ class ReceiverGst(Receiver):
             # Only record first packet for each PTS (frame)
             if pts not in self._receive_start_times:
                 self._receive_start_times[pts] = time.monotonic()
+
         return Gst.PadProbeReturn.OK
 
     def _on_decoder_entry_probe(self, pad: Gst.Pad, info: Gst.PadProbeInfo) -> Gst.PadProbeReturn:
@@ -105,6 +106,7 @@ class ReceiverGst(Receiver):
 
             # Record decoder entry time for decode duration
             self._decode_start_times[pts] = now
+
         return Gst.PadProbeReturn.OK
 
     def _on_sei_extract_probe(self, pad: Gst.Pad, info: Gst.PadProbeInfo) -> Gst.PadProbeReturn:
@@ -121,6 +123,7 @@ class ReceiverGst(Receiver):
                     if len(self._sei_timestamps) > 300:
                         self._sei_timestamps.clear()
                     self._sei_timestamps[buffer.pts] = result
+
         return Gst.PadProbeReturn.OK
 
     def _build_pipeline(self) -> bool:
@@ -283,8 +286,7 @@ class ReceiverGst(Receiver):
             self.dropped_old_frames += 1
             self.consecutive_old_frames += 1
 
-            if self._sei_timestamps is not None:
-                self._sei_timestamps.pop(pts, None)
+            self._sei_timestamps.pop(pts, None)
 
             if self.consecutive_old_frames > self.max_consecutive_old_frames:
                 logger.warning(f"Dropped {self.consecutive_old_frames} consecutive old frames")
@@ -317,7 +319,7 @@ class ReceiverGst(Receiver):
             # Calculate timing if enabled
             decode_duration = 0.0
             capture_timestamp_us = 0
-            if self.timing_enabled and self._decode_start_times is not None:
+            if self.timing_enabled:
                 # Get decode duration (decoder entry -> appsink)
                 decode_start = self._decode_start_times.pop(pts, None)
                 if decode_start is not None:
@@ -329,8 +331,7 @@ class ReceiverGst(Receiver):
                     self._timing_receive_samples.append(receive_duration)
 
                 # Pass SEI capture timestamp through to display time
-                if self._sei_timestamps is not None:
-                    capture_timestamp_us = self._sei_timestamps.pop(pts, None) or 0
+                capture_timestamp_us = self._sei_timestamps.pop(pts, None) or 0
 
             self._update_frame(frame, decode_duration, capture_timestamp_us)
 
@@ -459,18 +460,12 @@ class ReceiverGst(Receiver):
         self.loop = None
 
         # Clear timing data
-        if self._receive_start_times is not None:
-            self._receive_start_times.clear()
-        if self._decode_start_times is not None:
-            self._decode_start_times.clear()
-        if self._receive_durations is not None:
-            self._receive_durations.clear()
-        if self._timing_receive_samples is not None:
-            self._timing_receive_samples.clear()
-        if self._sei_timestamps is not None:
-            self._sei_timestamps.clear()
-        if self._timing_e2e_samples is not None:
-            self._timing_e2e_samples.clear()
+        self._receive_start_times.clear()
+        self._decode_start_times.clear()
+        self._receive_durations.clear()
+        self._timing_receive_samples.clear()
+        self._sei_timestamps.clear()
+        self._timing_e2e_samples.clear()
 
     def _log_timing_stats(self) -> None:
         """Override to include receive timing and e2e latency in GST receiver."""
@@ -484,8 +479,8 @@ class ReceiverGst(Receiver):
 
         decode_samples = list(self.timing_decode_samples)
         buffer_samples = list(self.timing_buffer_samples)
-        receive_samples = list(self._timing_receive_samples) if self._timing_receive_samples else []
-        e2e_samples = list(self._timing_e2e_samples) if self._timing_e2e_samples else []
+        receive_samples = list(self._timing_receive_samples)
+        e2e_samples = list(self._timing_e2e_samples)
 
         _rec_min, rec_avg, _rec_max = stats(receive_samples)
         _dec_min, dec_avg, _dec_max = stats(decode_samples)
@@ -515,10 +510,8 @@ class ReceiverGst(Receiver):
 
         self.timing_decode_samples.clear()
         self.timing_buffer_samples.clear()
-        if self._timing_receive_samples:
-            self._timing_receive_samples.clear()
-        if self._timing_e2e_samples:
-            self._timing_e2e_samples.clear()
+        self._timing_receive_samples.clear()
+        self._timing_e2e_samples.clear()
 
     def _cleanup(self) -> None:
         """Cleanup resources."""
