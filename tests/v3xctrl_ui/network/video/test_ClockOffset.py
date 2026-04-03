@@ -92,10 +92,10 @@ class TestClockOffset(unittest.TestCase):
 
         self.assertEqual(offset.offset_us, 1000)
 
-    def test_default_window_is_five_seconds(self):
+    def test_default_window_is_three_seconds(self):
         offset = ClockOffset()
 
-        self.assertEqual(offset._window_seconds, 5.0)
+        self.assertEqual(offset._window_seconds, 3.0)
 
 
 if __name__ == "__main__":

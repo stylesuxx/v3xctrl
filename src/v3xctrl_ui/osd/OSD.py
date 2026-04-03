@@ -48,7 +48,7 @@ class OSD:
         self.throttle: float = 0.0
         self.steering: float = 0.0
 
-        self._latency_samples: list[tuple[float, float]] = []
+        self._latency_samples: deque[tuple[float, float]] = deque()
         self._latency_window_seconds: float = 1.0
 
         self.widgets_debug: dict[str, Widget] = {}
@@ -233,7 +233,7 @@ class OSD:
     def _evict_latency_samples(self) -> None:
         cutoff = time.monotonic() - self._latency_window_seconds
         while self._latency_samples and self._latency_samples[0][0] < cutoff:
-            self._latency_samples.pop(0)
+            self._latency_samples.popleft()
 
     def _telemetry_update(self, message: Telemetry) -> None:
         data = parse_telemetry(message)

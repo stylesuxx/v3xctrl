@@ -1,12 +1,31 @@
 import time
+from collections import deque
 
 
 class ClockOffset:
-    """Tracks clock offset between viewer and streamer using round-trip measurements."""
+    """
+    Estimates the wall-clock difference between viewer and streamer.
 
-    def __init__(self, window_seconds: float = 5.0) -> None:
+    Uses round-trip Latency messages to compute the offset without relying
+    on NTP. Each measurement produces:
+
+        offset = T2 - (T1 + T4) / 2
+
+    where T1 is the viewer send time, T2 the streamer receive time, and
+    T4 the viewer receive time (all wall-clock seconds). The result tells
+    us how far the streamer clock is ahead of the viewer clock.
+
+    To convert a streamer timestamp to viewer time:
+        viewer_time = streamer_time - offset
+
+    Samples are kept in a sliding window and averaged to
+    smooth out jitter from variable network latency. Older samples are
+    evicted automatically on each update.
+    """
+
+    def __init__(self, window_seconds: float = 3.0) -> None:
         self._window_seconds = window_seconds
-        self._samples: list[tuple[float, int]] = []
+        self._samples: deque[tuple[float, int]] = deque()
         self._rtt: float = 0.0
 
     @property
@@ -17,6 +36,7 @@ class ClockOffset:
     def offset_us(self) -> int:
         if not self._samples:
             return 0
+
         return sum(s[1] for s in self._samples) // len(self._samples)
 
     @property
@@ -24,7 +44,8 @@ class ClockOffset:
         return self._rtt
 
     def update(self, viewer_send: float, streamer_timestamp: float, viewer_receive: float) -> None:
-        """Update offset from a round-trip measurement.
+        """
+        Update offset from a round-trip measurement.
 
         Args:
             viewer_send: T1 - viewer send time (seconds)
@@ -40,4 +61,4 @@ class ClockOffset:
     def _evict(self, now: float) -> None:
         cutoff = now - self._window_seconds
         while self._samples and self._samples[0][0] < cutoff:
-            self._samples.pop(0)
+            self._samples.popleft()
