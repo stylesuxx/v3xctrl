@@ -447,6 +447,77 @@ class TestOnSeiExtractProbe(unittest.TestCase):
         self.assertNotIn(5000, receiver._sei_timestamps)
 
 
+class TestOnFrameDisplayed(unittest.TestCase):
+    def test_calculates_e2e_with_valid_offset(self):
+        clock_offset = ClockOffset()
+        clock_offset.update(viewer_send=1.0, streamer_timestamp=1.005, viewer_receive=1.010)
+
+        receiver = _make_receiver(
+            _clock_offset=clock_offset,
+            _timing_e2e_samples=deque(maxlen=100),
+        )
+
+        # capture_timestamp_us simulates a frame captured 50ms ago
+        capture_us = int(time.time() * 1_000_000) - 50_000
+        receiver._on_frame_displayed(capture_us)
+
+        self.assertEqual(len(receiver._timing_e2e_samples), 1)
+        e2e = receiver._timing_e2e_samples[0]
+        # Should be approximately 50ms (0.05s) plus offset adjustment
+        self.assertGreater(e2e, 0.03)
+        self.assertLess(e2e, 0.15)
+
+    def test_skips_when_capture_timestamp_zero(self):
+        clock_offset = ClockOffset()
+        clock_offset.update(viewer_send=1.0, streamer_timestamp=1.005, viewer_receive=1.010)
+
+        receiver = _make_receiver(
+            _clock_offset=clock_offset,
+            _timing_e2e_samples=deque(maxlen=100),
+        )
+
+        receiver._on_frame_displayed(0)
+
+        self.assertEqual(len(receiver._timing_e2e_samples), 0)
+
+    def test_skips_when_clock_offset_invalid(self):
+        clock_offset = ClockOffset()
+
+        receiver = _make_receiver(
+            _clock_offset=clock_offset,
+            _timing_e2e_samples=deque(maxlen=100),
+        )
+
+        receiver._on_frame_displayed(int(time.time() * 1_000_000) - 50_000)
+
+        self.assertEqual(len(receiver._timing_e2e_samples), 0)
+
+    def test_skips_when_no_clock_offset(self):
+        receiver = _make_receiver(
+            _clock_offset=None,
+            _timing_e2e_samples=deque(maxlen=100),
+        )
+
+        receiver._on_frame_displayed(int(time.time() * 1_000_000) - 50_000)
+
+        self.assertEqual(len(receiver._timing_e2e_samples), 0)
+
+    def test_skips_negative_e2e(self):
+        clock_offset = ClockOffset()
+        clock_offset.update(viewer_send=1.0, streamer_timestamp=1.005, viewer_receive=1.010)
+
+        receiver = _make_receiver(
+            _clock_offset=clock_offset,
+            _timing_e2e_samples=deque(maxlen=100),
+        )
+
+        # Capture timestamp far in the future - would produce negative e2e
+        future_us = int(time.time() * 1_000_000) + 10_000_000
+        receiver._on_frame_displayed(future_us)
+
+        self.assertEqual(len(receiver._timing_e2e_samples), 0)
+
+
 class TestSetClockOffset(unittest.TestCase):
     def test_sets_clock_offset(self):
         receiver = _make_receiver()

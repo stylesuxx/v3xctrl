@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 from v3xctrl_ui.network.video.ClockOffset import ClockOffset
 
@@ -22,8 +23,7 @@ class TestClockOffset(unittest.TestCase):
         offset = ClockOffset()
 
         # Symmetric 10ms RTT, clocks perfectly synced
-        # T1=1.0, T2=1.005, T4=1.010
-        # offset = 1.005 - (1.0 + 1.010) / 2 = 1.005 - 1.005 = 0
+        # offset = 1.005 - (1.0 + 1.010) / 2 = 0
         offset.update(viewer_send=1.0, streamer_timestamp=1.005, viewer_receive=1.010)
 
         self.assertEqual(offset.offset_us, 0)
@@ -32,7 +32,6 @@ class TestClockOffset(unittest.TestCase):
         offset = ClockOffset()
 
         # Streamer clock is 1ms ahead
-        # T1=1.0, T2=1.006, T4=1.010
         # offset = 1.006 - 1.005 = 0.001 = 1000us
         offset.update(viewer_send=1.0, streamer_timestamp=1.006, viewer_receive=1.010)
 
@@ -42,7 +41,6 @@ class TestClockOffset(unittest.TestCase):
         offset = ClockOffset()
 
         # Streamer clock is 2ms behind
-        # T1=1.0, T2=1.003, T4=1.010
         # offset = 1.003 - 1.005 = -0.002 = -2000us
         offset.update(viewer_send=1.0, streamer_timestamp=1.003, viewer_receive=1.010)
 
@@ -55,14 +53,49 @@ class TestClockOffset(unittest.TestCase):
 
         self.assertAlmostEqual(offset.rtt, 0.010)
 
-    def test_update_overwrites_previous(self):
+    def test_averages_multiple_samples(self):
+        offset = ClockOffset(window_seconds=10.0)
+        monotonic = 100.0
+
+        with patch("v3xctrl_ui.network.video.ClockOffset.time") as mock_time:
+            # Three measurements: 1000, 2000, 3000 us offset
+            mock_time.monotonic.return_value = monotonic
+            offset.update(viewer_send=1.0, streamer_timestamp=1.006, viewer_receive=1.010)  # 1000us
+
+            mock_time.monotonic.return_value = monotonic + 1
+            offset.update(viewer_send=2.0, streamer_timestamp=2.007, viewer_receive=2.010)  # 2000us
+
+            mock_time.monotonic.return_value = monotonic + 2
+            offset.update(viewer_send=3.0, streamer_timestamp=3.008, viewer_receive=3.010)  # 3000us
+
+        self.assertEqual(offset.offset_us, 2000)
+
+    def test_evicts_samples_outside_window(self):
+        offset = ClockOffset(window_seconds=3.0)
+        monotonic = 100.0
+
+        with patch("v3xctrl_ui.network.video.ClockOffset.time") as mock_time:
+            mock_time.monotonic.return_value = monotonic
+            offset.update(viewer_send=1.0, streamer_timestamp=1.010, viewer_receive=1.010)  # 5000us
+
+            mock_time.monotonic.return_value = monotonic + 4
+            offset.update(viewer_send=2.0, streamer_timestamp=2.005, viewer_receive=2.010)  # 0us
+
+        # First sample (5000us) should be evicted, only 0us remains
+        self.assertEqual(offset.offset_us, 0)
+        self.assertEqual(len(offset._samples), 1)
+
+    def test_single_sample_no_averaging(self):
         offset = ClockOffset()
 
         offset.update(viewer_send=1.0, streamer_timestamp=1.006, viewer_receive=1.010)
+
         self.assertEqual(offset.offset_us, 1000)
 
-        offset.update(viewer_send=2.0, streamer_timestamp=2.005, viewer_receive=2.010)
-        self.assertEqual(offset.offset_us, 0)
+    def test_default_window_is_five_seconds(self):
+        offset = ClockOffset()
+
+        self.assertEqual(offset._window_seconds, 5.0)
 
 
 if __name__ == "__main__":

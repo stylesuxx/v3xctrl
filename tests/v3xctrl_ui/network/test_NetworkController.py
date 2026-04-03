@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from v3xctrl_ui.network.NetworkController import NetworkController
+from v3xctrl_ui.network.video.ClockOffset import ClockOffset
 
 
 class TestNetworkController(unittest.TestCase):
@@ -46,6 +47,8 @@ class TestNetworkController(unittest.TestCase):
         self.mock_thread = MagicMock()
         self.mock_thread_cls.return_value = self.mock_thread
 
+        self.clock_offset = ClockOffset()
+
     def tearDown(self):
         """Clean up patches."""
         self.server_patcher.stop()
@@ -56,7 +59,7 @@ class TestNetworkController(unittest.TestCase):
 
     def test_initialization_relay_disabled(self):
         """Test NetworkController initialization with relay disabled."""
-        nm = NetworkController(self.settings, self.handlers)
+        nm = NetworkController(self.settings, self.handlers, self.clock_offset)
 
         self.assertEqual(nm.video_port, 5000)
         self.assertEqual(nm.control_port, 6000)
@@ -78,7 +81,7 @@ class TestNetworkController(unittest.TestCase):
             "udp_packet_ttl": 100,
         }.get(key, default)
 
-        nm = NetworkController(relay_settings, self.handlers)
+        nm = NetworkController(relay_settings, self.handlers, self.clock_offset)
 
         # Relay should be configured
         self.assertTrue(nm.relay_enable)
@@ -88,7 +91,7 @@ class TestNetworkController(unittest.TestCase):
 
     def test_setup_relay_valid_port(self):
         """Test setup_relay with valid port in server string."""
-        nm = NetworkController(self.settings, self.handlers)
+        nm = NetworkController(self.settings, self.handlers, self.clock_offset)
 
         nm.setup_relay("example.com:9999", "testid")
 
@@ -99,7 +102,7 @@ class TestNetworkController(unittest.TestCase):
 
     def test_setup_relay_invalid_port(self):
         """Test setup_relay with invalid port in server string."""
-        nm = NetworkController(self.settings, self.handlers)
+        nm = NetworkController(self.settings, self.handlers, self.clock_offset)
 
         with patch("v3xctrl_ui.network.NetworkController.logger") as mock_logger:
             nm.setup_relay("example.com:notaport", "testid")
@@ -112,7 +115,7 @@ class TestNetworkController(unittest.TestCase):
 
     def test_setup_relay_no_port(self):
         """Test setup_relay with no port in server string."""
-        nm = NetworkController(self.settings, self.handlers)
+        nm = NetworkController(self.settings, self.handlers, self.clock_offset)
 
         nm.setup_relay("example.com", "testid")
 
@@ -125,7 +128,7 @@ class TestNetworkController(unittest.TestCase):
         """Test setup_ports without relay."""
         from v3xctrl_ui.network.NetworkSetup import NetworkSetupResult, ServerSetupResult, VideoReceiverSetupResult
 
-        nm = NetworkController(self.settings, self.handlers)
+        nm = NetworkController(self.settings, self.handlers, self.clock_offset)
 
         # Mock NetworkSetup to return successful result
         mock_result = NetworkSetupResult(
@@ -162,7 +165,7 @@ class TestNetworkController(unittest.TestCase):
             VideoReceiverSetupResult,
         )
 
-        nm = NetworkController(self.settings, self.handlers)
+        nm = NetworkController(self.settings, self.handlers, self.clock_offset)
         nm.setup_relay("relay.example.com:8080", "testid")
 
         # Mock NetworkSetup to return successful relay result
@@ -202,7 +205,7 @@ class TestNetworkController(unittest.TestCase):
             VideoReceiverSetupResult,
         )
 
-        nm = NetworkController(self.settings, self.handlers)
+        nm = NetworkController(self.settings, self.handlers, self.clock_offset)
         nm.setup_relay("relay.example.com:8080", "badid")
 
         # Mock NetworkSetup to return relay error
@@ -228,7 +231,7 @@ class TestNetworkController(unittest.TestCase):
         """Test setup_ports when server initialization fails."""
         from v3xctrl_ui.network.NetworkSetup import NetworkSetupResult, ServerSetupResult, VideoReceiverSetupResult
 
-        nm = NetworkController(self.settings, self.handlers)
+        nm = NetworkController(self.settings, self.handlers, self.clock_offset)
 
         # Mock NetworkSetup to return server error
         mock_result = NetworkSetupResult(
@@ -249,7 +252,7 @@ class TestNetworkController(unittest.TestCase):
 
     def test_send_latency_check_with_server(self):
         """Test send_latency_check when server is available."""
-        nm = NetworkController(self.settings, self.handlers)
+        nm = NetworkController(self.settings, self.handlers, self.clock_offset)
 
         # Mock server
         mock_server = MagicMock()
@@ -266,7 +269,7 @@ class TestNetworkController(unittest.TestCase):
 
     def test_send_latency_check_no_server(self):
         """Test send_latency_check when no server is available."""
-        nm = NetworkController(self.settings, self.handlers)
+        nm = NetworkController(self.settings, self.handlers, self.clock_offset)
 
         # No server
         nm.server = None
@@ -278,7 +281,7 @@ class TestNetworkController(unittest.TestCase):
 
     def test_send_latency_check_with_server_error(self):
         """Test send_latency_check when server has an error."""
-        nm = NetworkController(self.settings, self.handlers)
+        nm = NetworkController(self.settings, self.handlers, self.clock_offset)
 
         # Server with error
         mock_server = MagicMock()
@@ -292,7 +295,7 @@ class TestNetworkController(unittest.TestCase):
 
     def test_get_data_queue_size_with_server(self):
         """Test get_data_queue_size when server is available."""
-        nm = NetworkController(self.settings, self.handlers)
+        nm = NetworkController(self.settings, self.handlers, self.clock_offset)
 
         # Mock server with queue
         mock_server = MagicMock()
@@ -306,7 +309,7 @@ class TestNetworkController(unittest.TestCase):
 
     def test_get_data_queue_size_no_server(self):
         """Test get_data_queue_size when no server is available."""
-        nm = NetworkController(self.settings, self.handlers)
+        nm = NetworkController(self.settings, self.handlers, self.clock_offset)
 
         # No server
         nm.server = None
@@ -317,7 +320,7 @@ class TestNetworkController(unittest.TestCase):
 
     def test_get_data_queue_size_with_server_error(self):
         """Test get_data_queue_size when server has an error."""
-        nm = NetworkController(self.settings, self.handlers)
+        nm = NetworkController(self.settings, self.handlers, self.clock_offset)
 
         # Server with error
         mock_server = MagicMock()
@@ -330,7 +333,7 @@ class TestNetworkController(unittest.TestCase):
 
     def test_update_ttl(self):
         """Test update_ttl method."""
-        nm = NetworkController(self.settings, self.handlers)
+        nm = NetworkController(self.settings, self.handlers, self.clock_offset)
 
         # Mock server
         mock_server = MagicMock()
@@ -342,7 +345,7 @@ class TestNetworkController(unittest.TestCase):
 
     def test_update_ttl_no_server(self):
         """Test update_ttl when no server exists."""
-        nm = NetworkController(self.settings, self.handlers)
+        nm = NetworkController(self.settings, self.handlers, self.clock_offset)
 
         # No server
         nm.server = None
@@ -352,7 +355,7 @@ class TestNetworkController(unittest.TestCase):
 
     def test_shutdown_with_all_components(self):
         """Test shutdown when all components exist."""
-        nm = NetworkController(self.settings, self.handlers)
+        nm = NetworkController(self.settings, self.handlers, self.clock_offset)
 
         # Mock components
         mock_server = MagicMock()
@@ -373,7 +376,7 @@ class TestNetworkController(unittest.TestCase):
 
     def test_shutdown_with_no_components(self):
         """Test shutdown when no components exist."""
-        nm = NetworkController(self.settings, self.handlers)
+        nm = NetworkController(self.settings, self.handlers, self.clock_offset)
 
         # No components
         nm.server = None
@@ -385,7 +388,7 @@ class TestNetworkController(unittest.TestCase):
 
     def test_shutdown_partial_components(self):
         """Test shutdown when only some components exist."""
-        nm = NetworkController(self.settings, self.handlers)
+        nm = NetworkController(self.settings, self.handlers, self.clock_offset)
 
         # Only server, no video receiver or setup
         mock_server = MagicMock()
@@ -408,7 +411,7 @@ class TestNetworkController(unittest.TestCase):
             "udp_packet_ttl": 100,
         }.get(key, default)
 
-        nm = NetworkController(relay_settings, self.handlers)
+        nm = NetworkController(relay_settings, self.handlers, self.clock_offset)
 
         # Relay should not be configured due to missing server
         self.assertFalse(nm.relay_enable)
@@ -424,7 +427,7 @@ class TestNetworkController(unittest.TestCase):
             "udp_packet_ttl": 100,
         }.get(key, default)
 
-        nm = NetworkController(relay_settings, self.handlers)
+        nm = NetworkController(relay_settings, self.handlers, self.clock_offset)
 
         # Relay should not be configured due to missing ID
         self.assertFalse(nm.relay_enable)
@@ -433,7 +436,7 @@ class TestNetworkController(unittest.TestCase):
 
     def test_setup_relay_empty_server(self):
         """Test setup_relay with empty server string."""
-        nm = NetworkController(self.settings, self.handlers)
+        nm = NetworkController(self.settings, self.handlers, self.clock_offset)
 
         nm.setup_relay("", "testid")
 
@@ -444,7 +447,7 @@ class TestNetworkController(unittest.TestCase):
 
     def test_get_control_buffer_size_with_server(self):
         """Test get_control_buffer_size when server is available."""
-        nm = NetworkController(self.settings, self.handlers)
+        nm = NetworkController(self.settings, self.handlers, self.clock_offset)
 
         mock_server = MagicMock()
         mock_server.transmitter.get_control_buffer_size.return_value = 3
@@ -457,7 +460,7 @@ class TestNetworkController(unittest.TestCase):
 
     def test_get_control_buffer_size_no_server(self):
         """Test get_control_buffer_size when no server is available."""
-        nm = NetworkController(self.settings, self.handlers)
+        nm = NetworkController(self.settings, self.handlers, self.clock_offset)
         nm.server = None
 
         result = nm.get_control_buffer_size()
@@ -466,7 +469,7 @@ class TestNetworkController(unittest.TestCase):
 
     def test_get_control_buffer_size_with_server_error(self):
         """Test get_control_buffer_size when server has an error."""
-        nm = NetworkController(self.settings, self.handlers)
+        nm = NetworkController(self.settings, self.handlers, self.clock_offset)
 
         mock_server = MagicMock()
         nm.server = mock_server

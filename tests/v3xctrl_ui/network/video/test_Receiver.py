@@ -373,6 +373,20 @@ class TestPickOldestFrame(unittest.TestCase):
         self.assertIsNotNone(receiver.last_displayed_decode_time)
         self.assertEqual(len(receiver.frame_buffer), 1)
 
+    def test_returns_oldest_capture_timestamp(self):
+        receiver = MockReceiver(5600, Mock())
+        receiver.enable_timing(True)
+
+        receiver._update_frame(np.zeros((10, 10, 3), dtype=np.uint8), capture_timestamp_us=1000)
+        receiver._update_frame(np.ones((10, 10, 3), dtype=np.uint8), capture_timestamp_us=2000)
+
+        receiver.render_ratio = 100
+        receiver.get_frame()
+
+        # Oldest was consumed, newest remains
+        self.assertEqual(len(receiver.capture_timestamps), 1)
+        self.assertEqual(receiver.capture_timestamps[0], 2000)
+
 
 class TestPickNewestFrame(unittest.TestCase):
     def test_returns_newest_and_clears_buffer(self):
@@ -400,6 +414,19 @@ class TestPickNewestFrame(unittest.TestCase):
         self.assertIsNotNone(receiver.last_displayed_decode_time)
         self.assertEqual(len(receiver.frame_timestamps), 0)
         self.assertEqual(len(receiver.decode_durations), 0)
+
+    def test_returns_newest_capture_timestamp_and_clears(self):
+        receiver = MockReceiver(5600, Mock())
+        receiver.enable_timing(True)
+
+        for i in range(3):
+            receiver._update_frame(np.full((10, 10, 3), i, dtype=np.uint8), capture_timestamp_us=(i + 1) * 1000)
+
+        receiver.render_ratio = 0
+        receiver.get_frame()
+
+        # All capture timestamps cleared (newest picked, rest dropped)
+        self.assertEqual(len(receiver.capture_timestamps), 0)
 
 
 class TestPickAdaptiveFrame(unittest.TestCase):
@@ -435,6 +462,33 @@ class TestPickAdaptiveFrame(unittest.TestCase):
         with patch("v3xctrl_ui.network.video.Receiver.logger") as mock_logger:
             receiver.get_frame()
             mock_logger.debug.assert_called()
+
+
+class TestOnFrameDisplayed(unittest.TestCase):
+    def test_hook_called_with_capture_timestamp(self):
+        receiver = MockReceiver(5600, Mock())
+        receiver.enable_timing(True)
+        receiver.timing_log_interval = 100
+        receiver._on_frame_displayed = Mock()
+
+        receiver._update_frame(np.zeros((10, 10, 3), dtype=np.uint8), capture_timestamp_us=5000)
+        receiver._update_frame(np.ones((10, 10, 3), dtype=np.uint8), capture_timestamp_us=6000)
+
+        receiver.render_ratio = 100
+        receiver.get_frame()
+
+        receiver._on_frame_displayed.assert_called_once_with(5000)
+
+    def test_hook_not_called_without_timing(self):
+        receiver = MockReceiver(5600, Mock())
+        receiver._on_frame_displayed = Mock()
+
+        receiver._update_frame(np.zeros((10, 10, 3), dtype=np.uint8), capture_timestamp_us=5000)
+
+        receiver.render_ratio = 100
+        receiver.get_frame()
+
+        receiver._on_frame_displayed.assert_not_called()
 
 
 class TestGetFrameTimingTracking(unittest.TestCase):

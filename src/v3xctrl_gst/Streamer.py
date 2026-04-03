@@ -180,9 +180,6 @@ class Streamer:
         if self.control_server:
             self.control_server.stop()
 
-        if self.ntp_clock:
-            self.ntp_clock.stop()
-
         if self.pipeline:
             self.pipeline.send_event(Gst.Event.new_eos())
             self.pipeline.set_state(Gst.State.NULL)

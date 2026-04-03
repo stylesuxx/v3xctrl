@@ -320,10 +320,10 @@ class TestNetworkCoordinator(unittest.TestCase):
         latency_handler = handlers["messages"][1][1]
 
         mock_telemetry = MagicMock(spec=Telemetry)
-        mock_latency = MagicMock(spec=Latency)
+        latency_message = Latency()
 
         telemetry_handler(mock_telemetry, "address")
-        latency_handler(mock_latency, "address")
+        latency_handler(latency_message, "address")
 
         self.assertEqual(self.mock_osd.message_handler.call_count, 2)
 

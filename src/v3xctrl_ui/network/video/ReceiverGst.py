@@ -70,6 +70,13 @@ class ReceiverGst(Receiver):
     def set_clock_offset(self, clock_offset: ClockOffset) -> None:
         self._clock_offset = clock_offset
 
+    def _on_frame_displayed(self, capture_timestamp_us: int) -> None:
+        if capture_timestamp_us > 0 and self._clock_offset is not None and self._clock_offset.valid:
+            viewer_us = int(time.time() * 1_000_000)
+            e2e_us = viewer_us - capture_timestamp_us + self._clock_offset.offset_us
+            if e2e_us >= 0:
+                self._timing_e2e_samples.append(e2e_us / 1_000_000)
+
     def _setup(self) -> None:
         """Setup GStreamer pipeline."""
         pass
@@ -309,6 +316,7 @@ class ReceiverGst(Receiver):
 
             # Calculate timing if enabled
             decode_duration = 0.0
+            capture_timestamp_us = 0
             if self.timing_enabled and self._decode_start_times is not None:
                 # Get decode duration (decoder entry -> appsink)
                 decode_start = self._decode_start_times.pop(pts, None)
@@ -320,16 +328,11 @@ class ReceiverGst(Receiver):
                 if receive_duration is not None:
                     self._timing_receive_samples.append(receive_duration)
 
-                # Calculate e2e latency from SEI timestamp + clock offset
-                if self._sei_timestamps is not None and self._clock_offset is not None and self._clock_offset.valid:
-                    capture_us = self._sei_timestamps.pop(pts, None)
-                    if capture_us is not None:
-                        viewer_us = int(time.time() * 1_000_000)
-                        e2e_us = viewer_us - capture_us + self._clock_offset.offset_us
-                        if e2e_us >= 0:
-                            self._timing_e2e_samples.append(e2e_us / 1_000_000)
+                # Pass SEI capture timestamp through to display time
+                if self._sei_timestamps is not None:
+                    capture_timestamp_us = self._sei_timestamps.pop(pts, None) or 0
 
-            self._update_frame(frame, decode_duration)
+            self._update_frame(frame, decode_duration, capture_timestamp_us)
 
         finally:
             buffer.unmap(mapinfo)

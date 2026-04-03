@@ -48,6 +48,9 @@ class OSD:
         self.throttle: float = 0.0
         self.steering: float = 0.0
 
+        self._latency_samples: list[tuple[float, float]] = []
+        self._latency_window_seconds: float = 1.0
+
         self.widgets_debug: dict[str, Widget] = {}
         self.widgets_signal: dict[str, Widget] = {}
         self.widgets_battery: dict[str, Widget] = {}
@@ -210,18 +213,27 @@ class OSD:
             return
 
         now = time.time()
-        timestamp = message.timestamp
         # RTT/2 for one-way network latency estimate
-        diff_ms = round((now - timestamp) * 1000 / 2)
+        diff_ms = (now - message.timestamp) * 1000 / 2
 
-        if diff_ms <= 40:
+        self._latency_samples.append((time.monotonic(), diff_ms))
+        self._evict_latency_samples()
+
+        avg_ms = round(sum(s[1] for s in self._latency_samples) / len(self._latency_samples))
+
+        if avg_ms <= 40:
             self.debug_latency = "green"
-        elif diff_ms <= 75:
+        elif avg_ms <= 75:
             self.debug_latency = "yellow"
         else:
             self.debug_latency = "red"
 
-        self.widgets_debug["debug_latency"].set_value(diff_ms)
+        self.widgets_debug["debug_latency"].set_value(avg_ms)
+
+    def _evict_latency_samples(self) -> None:
+        cutoff = time.monotonic() - self._latency_window_seconds
+        while self._latency_samples and self._latency_samples[0][0] < cutoff:
+            self._latency_samples.pop(0)
 
     def _telemetry_update(self, message: Telemetry) -> None:
         data = parse_telemetry(message)

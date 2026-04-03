@@ -116,6 +116,7 @@ class TestOSD(unittest.TestCase):
 
     def test_latency_color_ranges(self):
         for delta, expected in [(0.05, "green"), (0.1, "yellow"), (0.2, "red")]:
+            self.osd._latency_samples.clear()
             msg = Latency()
             msg.timestamp = time.time() - delta
             self.osd._latency_update(msg)
@@ -155,6 +156,42 @@ class TestOSD(unittest.TestCase):
         # Check it was called with an int, not "N/A"
         call_args = self.osd.widgets_debug["debug_latency"].set_value.call_args[0][0]
         self.assertIsInstance(call_args, int)
+
+    def test_latency_averages_multiple_samples(self):
+        self.osd.widgets_debug["debug_latency"].set_value = MagicMock()
+
+        # Send two latency messages: ~40ms and ~60ms RTT -> 20ms and 30ms one-way
+        msg1 = Latency()
+        msg1.timestamp = time.time() - 0.04
+        self.osd._latency_update(msg1)
+
+        msg2 = Latency()
+        msg2.timestamp = time.time() - 0.06
+        self.osd._latency_update(msg2)
+
+        # Average of ~20ms and ~30ms = ~25ms, should be green
+        self.assertEqual(self.osd.debug_latency, "green")
+        call_args = self.osd.widgets_debug["debug_latency"].set_value.call_args[0][0]
+        self.assertIsInstance(call_args, int)
+        self.assertGreater(call_args, 15)
+        self.assertLess(call_args, 35)
+
+    def test_latency_evicts_old_samples(self):
+        self.osd._latency_window_seconds = 0.5
+        self.osd.widgets_debug["debug_latency"].set_value = MagicMock()
+
+        # Insert an old sample manually
+        old_monotonic = time.monotonic() - 1.0
+        self.osd._latency_samples.append((old_monotonic, 200.0))
+
+        # Now add a fresh sample (~25ms one-way)
+        msg = Latency()
+        msg.timestamp = time.time() - 0.05
+        self.osd._latency_update(msg)
+
+        # Old sample should be evicted, only the fresh one remains
+        self.assertEqual(len(self.osd._latency_samples), 1)
+        self.assertEqual(self.osd.debug_latency, "green")
 
 
 if __name__ == "__main__":

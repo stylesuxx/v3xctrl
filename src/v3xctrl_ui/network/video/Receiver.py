@@ -113,6 +113,7 @@ class Receiver(ABC, threading.Thread):
         self.frame_timestamps: deque[float] = deque(maxlen=self.max_frame_buffer_size)
         self.last_displayed_decode_time: float | None = None
         self.decode_durations: deque[float] = deque(maxlen=self.max_frame_buffer_size)
+        self.capture_timestamps: deque[int] = deque(maxlen=self.max_frame_buffer_size)
         self.timing_decode_samples: deque[float] = deque(maxlen=100)
         self.timing_buffer_samples: deque[float] = deque(maxlen=100)
         self.timing_log_interval = 30
@@ -174,6 +175,7 @@ class Receiver(ABC, threading.Thread):
         now = time.monotonic()
         log_data = None
         decode_duration = None
+        capture_timestamp_us = 0
 
         with self.frame_lock:
             length = len(self.frame_buffer)
@@ -181,11 +183,11 @@ class Receiver(ABC, threading.Thread):
                 self.render_history.append(time.monotonic())
 
                 if self.render_ratio == 100:
-                    decode_duration = self._pick_oldest_frame()
+                    decode_duration, capture_timestamp_us = self._pick_oldest_frame()
                 elif self.render_ratio == 0:
-                    decode_duration = self._pick_newest_frame()
+                    decode_duration, capture_timestamp_us = self._pick_newest_frame()
                 else:
-                    decode_duration, log_data = self._pick_adaptive_frame(now, length)
+                    decode_duration, capture_timestamp_us, log_data = self._pick_adaptive_frame(now, length)
 
                 # Track timing
                 if self.timing_enabled and self.last_displayed_decode_time is not None:
@@ -194,6 +196,8 @@ class Receiver(ABC, threading.Thread):
 
                     if decode_duration is not None:
                         self.timing_decode_samples.append(decode_duration)
+
+                    self._on_frame_displayed(capture_timestamp_us)
 
                     if len(self.timing_buffer_samples) >= self.timing_log_interval:
                         self._log_timing_stats()
@@ -209,23 +213,30 @@ class Receiver(ABC, threading.Thread):
 
         return result
 
-    def _pick_oldest_frame(self) -> float | None:
+    def _on_frame_displayed(self, capture_timestamp_us: int) -> None:
+        """Hook for subclasses to collect e2e timing when a frame is displayed."""
+
+    def _pick_oldest_frame(self) -> tuple[float | None, int]:
         """Render oldest frame (maximum smoothness, render_ratio=100). Caller must hold frame_lock."""
         self.frame = self.frame_buffer.popleft()
         decode_duration = None
+        capture_timestamp_us = 0
 
         if self.timing_enabled:
             if self.frame_timestamps:
                 self.last_displayed_decode_time = self.frame_timestamps.popleft()
             if self.decode_durations:
                 decode_duration = self.decode_durations.popleft()
+            if self.capture_timestamps:
+                capture_timestamp_us = self.capture_timestamps.popleft()
 
-        return decode_duration
+        return decode_duration, capture_timestamp_us
 
-    def _pick_newest_frame(self) -> float | None:
+    def _pick_newest_frame(self) -> tuple[float | None, int]:
         """Render newest frame (minimum latency, render_ratio=0). Caller must hold frame_lock."""
         self.frame = self.frame_buffer.pop()
         decode_duration = None
+        capture_timestamp_us = 0
 
         if self.timing_enabled:
             if self.frame_timestamps:
@@ -236,12 +247,16 @@ class Receiver(ABC, threading.Thread):
                 decode_duration = self.decode_durations.pop()
                 self.decode_durations.clear()
 
+            if self.capture_timestamps:
+                capture_timestamp_us = self.capture_timestamps.pop()
+                self.capture_timestamps.clear()
+
         self.dropped_burst_frames += len(self.frame_buffer)
         self.frame_buffer.clear()
 
-        return decode_duration
+        return decode_duration, capture_timestamp_us
 
-    def _pick_adaptive_frame(self, now: float, length: int) -> tuple[float | None, tuple]:
+    def _pick_adaptive_frame(self, now: float, length: int) -> tuple[float | None, int, tuple]:
         """Render frame at ratio position (0 < render_ratio < 100). Caller must hold frame_lock."""
         target_buffer_size = round(self.max_frame_buffer_size * self.render_ratio / 100)
         frames_to_drop = max(0, length - target_buffer_size - 1)
@@ -260,8 +275,12 @@ class Receiver(ABC, threading.Thread):
                 if self.decode_durations:
                     self.decode_durations.popleft()
 
+                if self.capture_timestamps:
+                    self.capture_timestamps.popleft()
+
         self.frame = self.frame_buffer.popleft()
         decode_duration = None
+        capture_timestamp_us = 0
 
         if self.timing_enabled:
             if self.frame_timestamps:
@@ -270,9 +289,14 @@ class Receiver(ABC, threading.Thread):
             if self.decode_durations:
                 decode_duration = self.decode_durations.popleft()
 
-        return decode_duration, log_data
+            if self.capture_timestamps:
+                capture_timestamp_us = self.capture_timestamps.popleft()
 
-    def _update_frame(self, new_frame: npt.NDArray[np.uint8], decode_duration: float = 0.0) -> None:
+        return decode_duration, capture_timestamp_us, log_data
+
+    def _update_frame(
+        self, new_frame: npt.NDArray[np.uint8], decode_duration: float = 0.0, capture_timestamp_us: int = 0
+    ) -> None:
         """Append new frame to frame buffer"""
         now = time.monotonic()
 
@@ -283,6 +307,7 @@ class Receiver(ABC, threading.Thread):
             if self.timing_enabled:
                 self.frame_timestamps.append(now)
                 self.decode_durations.append(decode_duration)
+                self.capture_timestamps.append(capture_timestamp_us)
 
         self.decoded_frame_count += 1
 
