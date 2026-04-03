@@ -101,6 +101,8 @@ class PipelineTimer:
 
         timing = self._data[pts]
 
+        # payloader_in is only set by on_payloader_in when source, capsfilter,
+        # and encoder are all present, so this implicitly guarantees completeness.
         if "payloader_in" not in timing:
             return
 
