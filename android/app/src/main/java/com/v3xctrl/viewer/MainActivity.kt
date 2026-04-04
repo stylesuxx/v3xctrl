@@ -456,6 +456,7 @@ class MainActivity : ComponentActivity() {
                             ),
                             controlHz = frequencySettings.controlHz,
                             controlBufferCapacity = frequencySettings.controlBufferCapacity,
+                            renderQueueSize = frequencySettings.renderQueueSize,
                             osdSettings = osdSettings,
                             generalSettings = generalSettings,
                             spectatorMode = networkSettings.spectatorMode,

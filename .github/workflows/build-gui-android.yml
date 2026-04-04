@@ -86,9 +86,9 @@ jobs:
 
       - name: Upload coverage to Codecov
         if: always()
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
-          file: android/app/build/reports/kover/reportDebug.xml
+          files: android/app/build/reports/kover/reportDebug.xml
           flags: android
           token: ${{ secrets.CODECOV_TOKEN }}
 

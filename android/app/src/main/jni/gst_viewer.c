@@ -8,6 +8,7 @@
 #include <android/native_window_jni.h>
 #include <gst/gst.h>
 #include <gst/video/videooverlay.h>
+#include <gst/gl/gl.h>
 
 #define LOG_TAG "GstViewer"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
@@ -25,7 +26,10 @@ typedef struct {
     GstElement *jitterbuffer;
     GstElement *depay;
     GstElement *decode_queue;
-    GstElement *decodebin;
+    GstElement *decodebin;     // NULL when using direct pipeline
+    GstElement *h264parse;     // NULL when using decodebin pipeline
+    GstElement *decoder;       // NULL when using decodebin pipeline
+    GstElement *glupload;      // NULL when using decodebin pipeline
     GstElement *render_queue;
     GstElement *video_sink;
     GMainLoop *main_loop;
@@ -34,6 +38,7 @@ typedef struct {
     gint video_port;
     pthread_t thread;
     gboolean thread_active;
+    gboolean using_direct_pipeline;
 } GstViewerData;
 
 static GstViewerData gst_data = {0};
@@ -63,6 +68,31 @@ static guint stats_timer_id = 0;
 // Decoder name discovered by decodebin (e.g. "amcviddec-omxgaborchardovideodecoderavc")
 static gchar decoder_name[128] = "";
 
+// Decoder output format discovered during caps negotiation (e.g. "NV12 (memory:AndroidHardwareBuffer)")
+static gchar decoder_output_format[256] = "";
+
+// GL API version (e.g. "gles2", "gles3", "opengl3")
+static gchar gl_api[64] = "";
+
+// Configurable render queue size (set from Java before pipeline creation)
+static gint render_queue_size = 1;
+
+// Sink frame interval tracking (microseconds)
+#define FRAME_INTERVAL_WINDOW 60
+static volatile gint64 sink_frame_interval_avg_us = 0;
+static volatile gint64 sink_frame_interval_min_us = 0;
+static volatile gint64 sink_frame_interval_max_us = 0;
+static gint64 sink_last_frame_time_us = 0;
+static gint64 frame_intervals[FRAME_INTERVAL_WINDOW];
+static gint frame_interval_index = 0;
+static gint frame_interval_count = 0;
+
+// Jitter buffer stats
+static volatile gint64 jbuf_num_pushed = 0;
+static volatile gint64 jbuf_num_lost = 0;
+static volatile gint64 jbuf_num_late = 0;
+static volatile gint64 jbuf_num_duplicates = 0;
+
 static GstPadProbeReturn count_udpsrc_cb(GstPad *pad, GstPadProbeInfo *info, gpointer user_data) {
     count_udpsrc++;
     return GST_PAD_PROBE_OK;
@@ -85,12 +115,64 @@ static GstPadProbeReturn count_decoder_cb(GstPad *pad, GstPadProbeInfo *info, gp
 
 static GstPadProbeReturn count_sink_cb(GstPad *pad, GstPadProbeInfo *info, gpointer user_data) {
     count_sink++;  // Always count sink frames (used by FPS counter)
+
+    // Track frame interval timing
+    gint64 now = g_get_monotonic_time();
+    if (sink_last_frame_time_us > 0) {
+        gint64 interval = now - sink_last_frame_time_us;
+        frame_intervals[frame_interval_index] = interval;
+        frame_interval_index = (frame_interval_index + 1) % FRAME_INTERVAL_WINDOW;
+        if (frame_interval_count < FRAME_INTERVAL_WINDOW) {
+            frame_interval_count++;
+        }
+
+        // Compute min/max/avg over the window
+        gint64 sum = 0;
+        gint64 min_val = G_MAXINT64;
+        gint64 max_val = 0;
+        for (gint i = 0; i < frame_interval_count; i++) {
+            gint64 v = frame_intervals[i];
+            sum += v;
+            if (v < min_val) {
+                min_val = v;
+            }
+            if (v > max_val) {
+                max_val = v;
+            }
+        }
+        sink_frame_interval_avg_us = sum / frame_interval_count;
+        sink_frame_interval_min_us = min_val;
+        sink_frame_interval_max_us = max_val;
+    }
+    sink_last_frame_time_us = now;
+
     return GST_PAD_PROBE_OK;
 }
 
 static GstPadProbeReturn count_queue_in_cb(GstPad *pad, GstPadProbeInfo *info, gpointer user_data) {
     count_queue_in++;
     return GST_PAD_PROBE_OK;
+}
+
+static void query_jitterbuffer_stats(void) {
+    if (!gst_data.jitterbuffer) {
+        return;
+    }
+
+    GstStructure *stats = NULL;
+    g_object_get(gst_data.jitterbuffer, "stats", &stats, NULL);
+    if (stats) {
+        guint64 pushed = 0, lost = 0, late = 0, duplicates = 0;
+        gst_structure_get_uint64(stats, "num-pushed", &pushed);
+        gst_structure_get_uint64(stats, "num-lost", &lost);
+        gst_structure_get_uint64(stats, "num-late", &late);
+        gst_structure_get_uint64(stats, "num-duplicates", &duplicates);
+        jbuf_num_pushed = (gint64)pushed;
+        jbuf_num_lost = (gint64)lost;
+        jbuf_num_late = (gint64)late;
+        jbuf_num_duplicates = (gint64)duplicates;
+        gst_structure_free(stats);
+    }
 }
 
 // Periodic stats logging - shows buffer counts per element to identify where data stops
@@ -101,6 +183,15 @@ static gboolean log_stats_cb(gpointer user_data) {
 
     LOGI("Pipeline stats: udpsrc=%d jbuf=%d depay=%d dec=%d sink=%d",
          count_udpsrc, count_jitterbuffer, count_depay, count_decoder, count_sink);
+
+    LOGI("Sink frame interval: avg=%" G_GINT64_FORMAT "us min=%" G_GINT64_FORMAT
+         "us max=%" G_GINT64_FORMAT "us",
+         sink_frame_interval_avg_us, sink_frame_interval_min_us, sink_frame_interval_max_us);
+
+    query_jitterbuffer_stats();
+    LOGI("Jitter buffer: pushed=%" G_GINT64_FORMAT " lost=%" G_GINT64_FORMAT
+         " late=%" G_GINT64_FORMAT " duplicates=%" G_GINT64_FORMAT,
+         jbuf_num_pushed, jbuf_num_lost, jbuf_num_late, jbuf_num_duplicates);
 
     return G_SOURCE_CONTINUE;
 }
@@ -144,8 +235,10 @@ static void attach_stats_probes(void) {
     probe_id_jitterbuffer = add_element_src_probe(gst_data.jitterbuffer, count_jitterbuffer_cb);
     probe_id_depay = add_element_src_probe(gst_data.depay, count_depay_cb);
 
-    // Attach decoder probe to decodebin's existing src pad (if already linked)
-    if (gst_data.decodebin && !probe_id_decoder) {
+    // Attach decoder probe: direct pipeline uses decoder element, decodebin uses dynamic pad
+    if (gst_data.using_direct_pipeline && gst_data.decoder && !probe_id_decoder) {
+        probe_id_decoder = add_element_src_probe(gst_data.decoder, count_decoder_cb);
+    } else if (gst_data.decodebin && !probe_id_decoder) {
         GstPad *src_pad = gst_element_get_static_pad(gst_data.decodebin, "src_0");
         if (src_pad) {
             probe_id_decoder = gst_pad_add_probe(src_pad,
@@ -168,12 +261,15 @@ static void detach_stats_probes(void) {
         if (probe_id_depay) {
             remove_element_src_probe(gst_data.depay, probe_id_depay);
         }
-        // Decoder probe is on decodebin's dynamic src pad - remove via decodebin
-        if (probe_id_decoder && gst_data.decodebin) {
-            GstPad *src_pad = gst_element_get_static_pad(gst_data.decodebin, "src_0");
-            if (src_pad) {
-                gst_pad_remove_probe(src_pad, probe_id_decoder);
-                gst_object_unref(src_pad);
+        if (probe_id_decoder) {
+            if (gst_data.using_direct_pipeline && gst_data.decoder) {
+                remove_element_src_probe(gst_data.decoder, probe_id_decoder);
+            } else if (gst_data.decodebin) {
+                GstPad *src_pad = gst_element_get_static_pad(gst_data.decodebin, "src_0");
+                if (src_pad) {
+                    gst_pad_remove_probe(src_pad, probe_id_decoder);
+                    gst_object_unref(src_pad);
+                }
             }
         }
     }
@@ -206,7 +302,7 @@ static void log_decodebin_decoder(GstElement *decodebin) {
                 LOGI("decodebin element: %s (factory=%s, klass=%s)",
                      GST_OBJECT_NAME(element), factory_name, klass ? klass : "");
                 if (klass && g_strrstr(klass, "Decoder")) {
-                    g_strlcpy(decoder_name, factory_name, sizeof(decoder_name));
+                    g_snprintf(decoder_name, sizeof(decoder_name), "%s (decodebin)", factory_name);
                 }
             }
             g_value_reset(&item);
@@ -225,6 +321,39 @@ static void log_decodebin_decoder(GstElement *decodebin) {
 
     g_value_unset(&item);
     gst_iterator_free(it);
+}
+
+static void capture_decoder_output_format(GstCaps *caps) {
+    GstStructure *structure = gst_caps_get_structure(caps, 0);
+    const gchar *format = gst_structure_get_string(structure, "format");
+    GstCapsFeatures *features = gst_caps_get_features(caps, 0);
+    if (format) {
+        if (features && !gst_caps_features_is_any(features)) {
+            gchar *features_str = gst_caps_features_to_string(features);
+            g_snprintf(decoder_output_format, sizeof(decoder_output_format),
+                       "%s (%s)", format, features_str);
+            g_free(features_str);
+        } else {
+            g_strlcpy(decoder_output_format, format, sizeof(decoder_output_format));
+        }
+        LOGI("Decoder output format: %s", decoder_output_format);
+    }
+}
+
+static void log_sink_input_caps(void) {
+    GstPad *render_queue_src = gst_element_get_static_pad(gst_data.render_queue, "src");
+    if (render_queue_src) {
+        GstCaps *sink_caps = gst_pad_get_current_caps(render_queue_src);
+        if (sink_caps) {
+            gchar *sink_caps_str = gst_caps_to_string(sink_caps);
+            LOGI("render_queue -> glimagesink caps: %s", sink_caps_str);
+            g_free(sink_caps_str);
+            gst_caps_unref(sink_caps);
+        } else {
+            LOGI("render_queue -> glimagesink caps: not yet negotiated");
+        }
+        gst_object_unref(render_queue_src);
+    }
 }
 
 static void on_decodebin_pad_added(GstElement *decodebin, GstPad *new_pad, gpointer user_data) {
@@ -252,23 +381,10 @@ static void on_decodebin_pad_added(GstElement *decodebin, GstPad *new_pad, gpoin
         if (ret != GST_PAD_LINK_OK) {
             LOGE("Failed to link decodebin to render queue: %d", ret);
         } else {
-            LOGI("Linked decodebin to render queue to video sink");
-
-            // Log negotiated caps on render_queue src -> glimagesink
-            GstPad *render_queue_src = gst_element_get_static_pad(gst_data.render_queue, "src");
-            if (render_queue_src) {
-                GstCaps *sink_caps = gst_pad_get_current_caps(render_queue_src);
-                if (sink_caps) {
-                    gchar *sink_caps_str = gst_caps_to_string(sink_caps);
-                    LOGI("render_queue -> glimagesink caps: %s", sink_caps_str);
-                    g_free(sink_caps_str);
-                    gst_caps_unref(sink_caps);
-                } else {
-                    LOGI("render_queue -> glimagesink caps: not yet negotiated");
-                }
-                gst_object_unref(render_queue_src);
-            }
+            LOGI("Linked decodebin -> render_queue -> glimagesink");
         }
+
+        log_sink_input_caps();
 
         // Attach decoder probe on decodebin's output pad
         if (stats_enabled) {
@@ -396,6 +512,99 @@ static void *gst_main_loop_thread(void *arg) {
     return NULL;
 }
 
+// One-shot probe to capture decoder output format and GL API from the sink pad on first buffer
+static GstPadProbeReturn capture_format_cb(GstPad *pad, GstPadProbeInfo *info, gpointer user_data) {
+    GstCaps *caps = gst_pad_get_current_caps(pad);
+    if (caps) {
+        gchar *caps_str = gst_caps_to_string(caps);
+        LOGI("Sink input caps: %s", caps_str);
+        g_free(caps_str);
+        capture_decoder_output_format(caps);
+        gst_caps_unref(caps);
+    }
+
+    // Query GL API from the sink's GL context
+    if (gst_data.video_sink) {
+        GstGLContext *context = NULL;
+        g_object_get(gst_data.video_sink, "context", &context, NULL);
+        if (context) {
+            GstGLAPI api = gst_gl_context_get_gl_api(context);
+            gchar *api_str = gst_gl_api_to_string(api);
+            gint major = 0, minor = 0;
+            gst_gl_context_get_gl_version(context, &major, &minor);
+            LOGI("GL API: %s %d.%d", api_str, major, minor);
+            g_snprintf(gl_api, sizeof(gl_api), "%s %d.%d", api_str, major, minor);
+            g_free(api_str);
+            gst_object_unref(context);
+        }
+    }
+
+    return GST_PAD_PROBE_REMOVE;
+}
+
+/**
+ * Find an H.264 hardware video decoder in the GStreamer element registry.
+ * Returns a newly created element or NULL if none found.
+ */
+static GstElement *find_h264_hw_decoder(void) {
+    GList *factories = gst_element_factory_list_get_elements(
+        GST_ELEMENT_FACTORY_TYPE_DECODER | GST_ELEMENT_FACTORY_TYPE_MEDIA_VIDEO,
+        GST_RANK_MARGINAL);
+
+    GstElement *decoder = NULL;
+
+    for (GList *l = factories; l != NULL; l = l->next) {
+        GstElementFactory *factory = (GstElementFactory *)l->data;
+        const gchar *klass = gst_element_factory_get_metadata(factory,
+            GST_ELEMENT_METADATA_KLASS);
+        const gchar *factory_name = gst_plugin_feature_get_name(
+            GST_PLUGIN_FEATURE(factory));
+
+        // Only consider hardware decoders from the androidmedia plugin
+        if (!klass || !g_strrstr(klass, "Hardware")) {
+            continue;
+        }
+
+        // Check if this factory can handle H.264
+        const GList *templates = gst_element_factory_get_static_pad_templates(factory);
+        gboolean handles_h264 = FALSE;
+        for (const GList *t = templates; t != NULL; t = t->next) {
+            GstStaticPadTemplate *tmpl = (GstStaticPadTemplate *)t->data;
+            if (tmpl->direction != GST_PAD_SINK) {
+                continue;
+            }
+            GstCaps *tmpl_caps = gst_static_caps_get(&tmpl->static_caps);
+            if (tmpl_caps) {
+                for (guint i = 0; i < gst_caps_get_size(tmpl_caps); i++) {
+                    GstStructure *s = gst_caps_get_structure(tmpl_caps, i);
+                    if (g_str_equal(gst_structure_get_name(s), "video/x-h264")) {
+                        handles_h264 = TRUE;
+                        break;
+                    }
+                }
+                gst_caps_unref(tmpl_caps);
+            }
+            if (handles_h264) {
+                break;
+            }
+        }
+
+        if (!handles_h264) {
+            continue;
+        }
+
+        LOGI("Found H.264 HW decoder: %s (klass=%s)", factory_name, klass);
+        decoder = gst_element_factory_create(factory, "hwdec");
+        if (decoder) {
+            g_snprintf(decoder_name, sizeof(decoder_name), "%s (direct)", factory_name);
+            break;
+        }
+    }
+
+    gst_plugin_feature_list_free(factories);
+    return decoder;
+}
+
 static gboolean create_test_pipeline(void) {
     GError *error = NULL;
     gchar *pipeline_str = g_strdup(
@@ -421,27 +630,7 @@ static gboolean create_test_pipeline(void) {
     return TRUE;
 }
 
-static gboolean create_rtp_pipeline(gint port) {
-    gst_data.pipeline = gst_pipeline_new("viewer-pipeline");
-    gst_data.udpsrc = gst_element_factory_make("udpsrc", "src");
-    gst_data.jitterbuffer = gst_element_factory_make("rtpjitterbuffer", "jbuf");
-    gst_data.depay = gst_element_factory_make("rtph264depay", "depay");
-    gst_data.decode_queue = gst_element_factory_make("queue", "decode_queue");
-    gst_data.decodebin = gst_element_factory_make("decodebin", "dec");
-    gst_data.render_queue = gst_element_factory_make("queue", "render_queue");
-    gst_data.video_sink = gst_element_factory_make("glimagesink", "videosink");
-
-    if (!gst_data.pipeline || !gst_data.udpsrc || !gst_data.jitterbuffer ||
-        !gst_data.depay || !gst_data.decode_queue ||
-        !gst_data.decodebin || !gst_data.render_queue || !gst_data.video_sink) {
-        LOGE("Failed to create one or more pipeline elements");
-        if (gst_data.pipeline) {
-            gst_object_unref(gst_data.pipeline);
-            gst_data.pipeline = NULL;
-        }
-        return FALSE;
-    }
-
+static void configure_common_elements(gint port) {
     // Configure udpsrc
     GstCaps *caps = gst_caps_from_string(
         "application/x-rtp,media=video,encoding-name=H264,payload=96,clock-rate=90000");
@@ -459,27 +648,119 @@ static gboolean create_rtp_pipeline(gint port) {
                  "max-size-bytes", 0, "max-size-time", (guint64)0, NULL);
 
     // Configure render queue to prevent buffer buildup after decoder (leaky)
-    g_object_set(gst_data.render_queue, "max-size-buffers", 1,
+    g_object_set(gst_data.render_queue, "max-size-buffers", (guint)render_queue_size,
                  "leaky", 2 /* downstream */, NULL);
+    LOGI("Render queue size: %d", render_queue_size);
+}
 
-    // Add all elements to the pipeline
+/**
+ * Direct pipeline bypassing decodebin:
+ *   udpsrc -> jitterbuffer -> depay -> decode_queue -> h264parse -> [HW decoder]
+ *     -> glupload -> render_queue -> glimagesink
+ *
+ * Bypasses decodebin's auto-negotiation overhead. The glupload element still
+ * converts NV12->RGBA during texture upload, but this avoids the extra elements
+ * and thread scheduling that decodebin introduces.
+ */
+static gboolean create_direct_rtp_pipeline(gint port) {
+    GstElement *hw_decoder = find_h264_hw_decoder();
+    if (!hw_decoder) {
+        LOGI("No H.264 HW decoder found, cannot create direct pipeline");
+        return FALSE;
+    }
+
+    gst_data.pipeline = gst_pipeline_new("viewer-pipeline");
+    gst_data.udpsrc = gst_element_factory_make("udpsrc", "src");
+    gst_data.jitterbuffer = gst_element_factory_make("rtpjitterbuffer", "jbuf");
+    gst_data.depay = gst_element_factory_make("rtph264depay", "depay");
+    gst_data.decode_queue = gst_element_factory_make("queue", "decode_queue");
+    gst_data.h264parse = gst_element_factory_make("h264parse", "parser");
+    gst_data.decoder = hw_decoder;
+    gst_data.glupload = gst_element_factory_make("glupload", "upload");
+    gst_data.render_queue = gst_element_factory_make("queue", "render_queue");
+    gst_data.video_sink = gst_element_factory_make("glimagesink", "videosink");
+
+    if (!gst_data.pipeline || !gst_data.udpsrc || !gst_data.jitterbuffer ||
+        !gst_data.depay || !gst_data.decode_queue || !gst_data.h264parse ||
+        !gst_data.decoder || !gst_data.glupload ||
+        !gst_data.render_queue || !gst_data.video_sink) {
+        LOGE("Failed to create one or more direct pipeline elements");
+        if (gst_data.pipeline) {
+            gst_object_unref(gst_data.pipeline);
+            gst_data.pipeline = NULL;
+        }
+        return FALSE;
+    }
+
+    configure_common_elements(port);
+
     gst_bin_add_many(GST_BIN(gst_data.pipeline),
         gst_data.udpsrc, gst_data.jitterbuffer, gst_data.depay,
-        gst_data.decode_queue, gst_data.decodebin,
-        gst_data.render_queue, gst_data.video_sink, NULL);
+        gst_data.decode_queue, gst_data.h264parse, gst_data.decoder,
+        gst_data.glupload, gst_data.render_queue, gst_data.video_sink, NULL);
 
-    // Link static chain: udpsrc -> jitterbuffer -> depay -> decode_queue -> decodebin
-    // (h264parse is not needed - decodebin adds its own internally)
     if (!gst_element_link_many(gst_data.udpsrc, gst_data.jitterbuffer,
                                 gst_data.depay, gst_data.decode_queue,
-                                gst_data.decodebin, NULL)) {
-        LOGE("Failed to link pipeline elements");
+                                gst_data.h264parse, gst_data.decoder,
+                                gst_data.glupload, gst_data.render_queue,
+                                gst_data.video_sink, NULL)) {
+        LOGE("Failed to link direct pipeline elements");
         gst_object_unref(gst_data.pipeline);
         gst_data.pipeline = NULL;
         return FALSE;
     }
 
-    // Pre-link render_queue -> video_sink (static pads)
+    gst_data.using_direct_pipeline = TRUE;
+    gst_data.decodebin = NULL;
+
+    LOGI("Pipeline (direct): udpsrc port=%d ! rtpjitterbuffer ! rtph264depay ! "
+         "decode_queue ! h264parse ! %s ! glupload ! render_queue ! glimagesink",
+         port, decoder_name);
+    return TRUE;
+}
+
+/**
+ * Decodebin pipeline (fallback):
+ *   udpsrc -> jitterbuffer -> depay -> decode_queue -> decodebin
+ *     -> render_queue -> glimagesink
+ */
+static gboolean create_decodebin_rtp_pipeline(gint port) {
+    gst_data.pipeline = gst_pipeline_new("viewer-pipeline");
+    gst_data.udpsrc = gst_element_factory_make("udpsrc", "src");
+    gst_data.jitterbuffer = gst_element_factory_make("rtpjitterbuffer", "jbuf");
+    gst_data.depay = gst_element_factory_make("rtph264depay", "depay");
+    gst_data.decode_queue = gst_element_factory_make("queue", "decode_queue");
+    gst_data.decodebin = gst_element_factory_make("decodebin", "dec");
+    gst_data.render_queue = gst_element_factory_make("queue", "render_queue");
+    gst_data.video_sink = gst_element_factory_make("glimagesink", "videosink");
+
+    if (!gst_data.pipeline || !gst_data.udpsrc || !gst_data.jitterbuffer ||
+        !gst_data.depay || !gst_data.decode_queue ||
+        !gst_data.decodebin || !gst_data.render_queue || !gst_data.video_sink) {
+        LOGE("Failed to create one or more decodebin pipeline elements");
+        if (gst_data.pipeline) {
+            gst_object_unref(gst_data.pipeline);
+            gst_data.pipeline = NULL;
+        }
+        return FALSE;
+    }
+
+    configure_common_elements(port);
+
+    gst_bin_add_many(GST_BIN(gst_data.pipeline),
+        gst_data.udpsrc, gst_data.jitterbuffer, gst_data.depay,
+        gst_data.decode_queue, gst_data.decodebin,
+        gst_data.render_queue, gst_data.video_sink, NULL);
+
+    if (!gst_element_link_many(gst_data.udpsrc, gst_data.jitterbuffer,
+                                gst_data.depay, gst_data.decode_queue,
+                                gst_data.decodebin, NULL)) {
+        LOGE("Failed to link decodebin pipeline elements");
+        gst_object_unref(gst_data.pipeline);
+        gst_data.pipeline = NULL;
+        return FALSE;
+    }
+
     if (!gst_element_link(gst_data.render_queue, gst_data.video_sink)) {
         LOGE("Failed to link render queue to video sink");
         gst_object_unref(gst_data.pipeline);
@@ -487,12 +768,24 @@ static gboolean create_rtp_pipeline(gint port) {
         return FALSE;
     }
 
-    // decodebin -> render_queue is linked dynamically when decodebin selects a decoder
     g_signal_connect(gst_data.decodebin, "pad-added",
         G_CALLBACK(on_decodebin_pad_added), NULL);
 
-    LOGI("Pipeline: udpsrc port=%d ! rtpjitterbuffer ! rtph264depay ! decode_queue ! decodebin ! render_queue ! glimagesink", port);
+    gst_data.using_direct_pipeline = FALSE;
+
+    LOGI("Pipeline (decodebin): udpsrc port=%d ! rtpjitterbuffer ! rtph264depay ! "
+         "decode_queue ! decodebin ! render_queue ! glimagesink", port);
     return TRUE;
+}
+
+static gboolean create_rtp_pipeline(gint port) {
+    // Try direct pipeline first (bypasses decodebin's NV12->RGBA conversion)
+    if (create_direct_rtp_pipeline(port)) {
+        return TRUE;
+    }
+
+    LOGI("Falling back to decodebin pipeline");
+    return create_decodebin_rtp_pipeline(port);
 }
 
 JNIEXPORT void JNICALL
@@ -503,9 +796,6 @@ Java_com_v3xctrl_viewer_GstViewer_nativeInit(JNIEnv *env, jclass clazz) {
     }
 
     LOGI("Initializing GStreamer");
-
-    // Force GLES 2.0 for better emulator compatibility
-    setenv("GST_GL_API", "gles2", 1);
 
     gst_init(NULL, NULL);
     gst_data.initialized = TRUE;
@@ -574,6 +864,18 @@ Java_com_v3xctrl_viewer_GstViewer_nativeStartPipeline(JNIEnv *env, jclass clazz,
         }
     }
 
+    // Capture decoder output format on first buffer reaching the sink.
+    // For decodebin pipelines this is also done in on_decodebin_pad_added,
+    // but this probe captures the final format after all conversions.
+    if (gst_data.video_sink) {
+        GstPad *sink_input = gst_element_get_static_pad(gst_data.video_sink, "sink");
+        if (sink_input) {
+            gst_pad_add_probe(sink_input, GST_PAD_PROBE_TYPE_BUFFER,
+                capture_format_cb, NULL, NULL);
+            gst_object_unref(sink_input);
+        }
+    }
+
     // Diagnostic probes only when stats are enabled
     if (stats_enabled) {
         attach_stats_probes();
@@ -623,9 +925,13 @@ Java_com_v3xctrl_viewer_GstViewer_nativeStartPipeline(JNIEnv *env, jclass clazz,
         gst_data.jitterbuffer = NULL;
         gst_data.depay = NULL;
         gst_data.decode_queue = NULL;
-        gst_data.render_queue = NULL;
         gst_data.decodebin = NULL;
+        gst_data.h264parse = NULL;
+        gst_data.decoder = NULL;
+        gst_data.glupload = NULL;
+        gst_data.render_queue = NULL;
         gst_data.video_sink = NULL;
+        gst_data.using_direct_pipeline = FALSE;
         ANativeWindow_release(gst_data.native_window);
         gst_data.native_window = NULL;
         return;
@@ -664,8 +970,12 @@ Java_com_v3xctrl_viewer_GstViewer_nativeStopPipeline(JNIEnv *env, jclass clazz) 
     gst_data.depay = NULL;
     gst_data.decode_queue = NULL;
     gst_data.decodebin = NULL;
+    gst_data.h264parse = NULL;
+    gst_data.decoder = NULL;
+    gst_data.glupload = NULL;
     gst_data.render_queue = NULL;
     gst_data.video_sink = NULL;
+    gst_data.using_direct_pipeline = FALSE;
 
     if (gst_data.main_loop) {
         g_main_loop_unref(gst_data.main_loop);
@@ -689,6 +999,25 @@ Java_com_v3xctrl_viewer_GstViewer_nativeStopPipeline(JNIEnv *env, jclass clazz) 
 
     gst_data.video_port = 0;
     restart_count = 0;
+
+    // Reset frame interval tracking
+    sink_last_frame_time_us = 0;
+    sink_frame_interval_avg_us = 0;
+    sink_frame_interval_min_us = 0;
+    sink_frame_interval_max_us = 0;
+    frame_interval_index = 0;
+    frame_interval_count = 0;
+
+    // Reset jitter buffer stats
+    jbuf_num_pushed = 0;
+    jbuf_num_lost = 0;
+    jbuf_num_late = 0;
+    jbuf_num_duplicates = 0;
+
+    // Reset decoder output format and GL API
+    decoder_output_format[0] = '\0';
+    gl_api[0] = '\0';
+
     LOGI("Pipeline stopped");
 }
 
@@ -830,4 +1159,42 @@ Java_com_v3xctrl_viewer_GstViewer_nativeGetRenderQueueLevel(JNIEnv *env, jclass 
     guint level = 0;
     g_object_get(gst_data.render_queue, "current-level-buffers", &level, NULL);
     return (jint)level;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_v3xctrl_viewer_GstViewer_nativeGetFrameIntervalStats(JNIEnv *env, jclass clazz) {
+    gchar buf[128];
+    g_snprintf(buf, sizeof(buf), "%" G_GINT64_FORMAT "|%" G_GINT64_FORMAT "|%" G_GINT64_FORMAT,
+               sink_frame_interval_avg_us, sink_frame_interval_min_us, sink_frame_interval_max_us);
+    return (*env)->NewStringUTF(env, buf);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_v3xctrl_viewer_GstViewer_nativeGetJitterBufferStats(JNIEnv *env, jclass clazz) {
+    query_jitterbuffer_stats();
+    gchar buf[128];
+    g_snprintf(buf, sizeof(buf), "%" G_GINT64_FORMAT "|%" G_GINT64_FORMAT "|%" G_GINT64_FORMAT "|%" G_GINT64_FORMAT,
+               jbuf_num_pushed, jbuf_num_lost, jbuf_num_late, jbuf_num_duplicates);
+    return (*env)->NewStringUTF(env, buf);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_v3xctrl_viewer_GstViewer_nativeGetDecoderOutputFormat(JNIEnv *env, jclass clazz) {
+    return (*env)->NewStringUTF(env, decoder_output_format);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_v3xctrl_viewer_GstViewer_nativeGetGlApi(JNIEnv *env, jclass clazz) {
+    return (*env)->NewStringUTF(env, gl_api);
+}
+
+JNIEXPORT void JNICALL
+Java_com_v3xctrl_viewer_GstViewer_nativeSetRenderQueueSize(JNIEnv *env, jclass clazz, jint size) {
+    render_queue_size = size;
+    LOGI("Render queue size set to %d", size);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_v3xctrl_viewer_GstViewer_nativeGetRenderQueueSize(JNIEnv *env, jclass clazz) {
+    return render_queue_size;
 }

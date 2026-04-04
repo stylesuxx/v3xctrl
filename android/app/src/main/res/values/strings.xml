@@ -37,6 +37,8 @@
     <string name="control_hz_description">Control message rate in Hz (1-100). Higher values provide more responsive control but use more bandwidth.</string>
     <string name="control_buffer_capacity">Control buffer capacity</string>
     <string name="control_buffer_capacity_description">Maximum number of control messages to buffer before sending (1-100). A value of 1 ensures only the latest control input is sent, dropping stale inputs.</string>
+    <string name="render_queue_size">Render queue size</string>
+    <string name="render_queue_size_description">Number of decoded frames to buffer before rendering (0-30). Lower values reduce latency, higher values improve smoothness. Default: 1. Set to 0 to disable the render queue.</string>
 
     <!-- Control screen -->
     <string name="control_title">Control</string>

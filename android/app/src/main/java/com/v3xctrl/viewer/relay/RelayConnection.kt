@@ -93,6 +93,7 @@ class RelayConnection(
             actualControlPort = controlSocket!!.localPort
             Log.d(TAG, "Created sockets on ports $actualVideoPort (video) and $actualControlPort (control)")
         } catch (e: Exception) {
+            videoSocket?.close()
             Log.e(TAG, "Failed to create sockets", e)
             return@withContext ConnectionResult.Error("Failed to create sockets: ${e.message}")
         }

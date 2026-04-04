@@ -72,6 +72,7 @@ fun ViewerScreen(
     connection: ConnectionInfo,
     controlHz: Int = 30,
     controlBufferCapacity: Int = 1,
+    renderQueueSize: Int = 1,
     osdSettings: OsdSettings = OsdSettings(),
     generalSettings: GeneralSettings = GeneralSettings(),
     spectatorMode: Boolean = false,
@@ -329,8 +330,9 @@ fun ViewerScreen(
         }
     }
 
-    DisposableEffect(reconnectionGeneration) {
-        GstViewer.init()
+    DisposableEffect(reconnectionGeneration, renderQueueSize) {
+        GstViewer.init(context)
+        GstViewer.setRenderQueueSize(renderQueueSize)
         onDispose {
             GstViewer.stop()
             isPipelineStarted = false
@@ -403,7 +405,7 @@ fun ViewerScreen(
 
     // Remember the SurfaceView to persist it across recompositions.
     // Keyed on reconnectionGeneration to recreate after reconnection.
-    val surfaceView = remember(connection.videoPort, reconnectionGeneration) {
+    val surfaceView = remember(connection.videoPort, reconnectionGeneration, renderQueueSize) {
         SurfaceView(context).apply {
             isFocusable = false
             isFocusableInTouchMode = false

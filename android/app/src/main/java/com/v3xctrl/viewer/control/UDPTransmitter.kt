@@ -6,16 +6,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.selects.select
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
-import java.util.ArrayDeque
 import java.util.concurrent.atomic.AtomicLong
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
 
 private const val TAG = "UDPTransmitter"
 private const val DEFAULT_TTL_MS = 1000L
@@ -32,7 +29,7 @@ data class UDPPacket(
  * Transmits UDP packets from a queue.
  * Drops packets that exceed TTL to prevent sending stale data.
  *
- * Control messages use a separate bounded buffer so only the latest
+ * Control messages use a separate bounded channel so only the latest
  * control state is sent, preventing stale control inputs from queuing up.
  */
 class UDPTransmitter(
@@ -42,10 +39,9 @@ class UDPTransmitter(
   private val controlBufferCapacity: Int = DEFAULT_CONTROL_BUFFER_CAPACITY
 ) {
   private val packetChannel = Channel<UDPPacket>(Channel.UNLIMITED)
+  private val controlChannel = Channel<UDPPacket>(controlBufferCapacity)
   private var transmitJob: Job? = null
 
-  private val controlBuffer = ArrayDeque<UDPPacket>()
-  private val controlLock = ReentrantLock()
   private val lastControlDropTimestamp = AtomicLong(0)
 
   @Volatile private var isRunning = false
@@ -67,6 +63,7 @@ class UDPTransmitter(
     transmitJob?.cancel()
     transmitJob = null
     packetChannel.close()
+    controlChannel.close()
   }
 
   fun addMessage(message: Message, address: InetAddress, port: Int) {
@@ -79,13 +76,13 @@ class UDPTransmitter(
   fun setControlMessage(message: Message, address: InetAddress, port: Int) {
     val data = message.toBytes()
     val packet = UDPPacket(data, address, port)
-    controlLock.withLock {
-      if (controlBuffer.size >= controlBufferCapacity) {
-        controlBuffer.removeFirst()
-        lastControlDropTimestamp.set(System.currentTimeMillis())
-        Log.d(TAG, "Evicting oldest control message from buffer")
-      }
-      controlBuffer.addLast(packet)
+
+    // Drop oldest if full, keeping only the latest control state
+    if (controlChannel.trySend(packet).isFailure) {
+      controlChannel.tryReceive()
+      lastControlDropTimestamp.set(System.currentTimeMillis())
+      Log.d(TAG, "Evicting oldest control message from buffer")
+      controlChannel.trySend(packet)
     }
   }
 
@@ -112,31 +109,43 @@ class UDPTransmitter(
     }
   }
 
+  private fun processPacket(packet: UDPPacket) {
+    val age = System.currentTimeMillis() - packet.timestamp
+    if (age <= ttlMs) {
+      sendPacket(packet)
+    } else {
+      Log.d(TAG, "Dropping old packet (age: ${age}ms)")
+    }
+  }
+
   private suspend fun processQueue() {
     while (isRunning && scope.isActive) {
-      var sentAnything = false
-
-      // Send oldest control message from buffer
-      controlLock.withLock {
-        controlBuffer.pollFirst()
-      }?.let { packet ->
-        sendPacket(packet)
-        sentAnything = true
-      }
-
-      // Also process one regular queued packet (non-blocking)
-      packetChannel.tryReceive().getOrNull()?.let { packet ->
-        val age = System.currentTimeMillis() - packet.timestamp
-        if (age <= ttlMs) {
+      // Suspend until either channel has data - no polling, no CPU waste
+      select {
+        controlChannel.onReceive { packet ->
           sendPacket(packet)
-        } else {
-          Log.d(TAG, "Dropping old packet (age: ${age}ms)")
         }
-        sentAnything = true
+        packetChannel.onReceive { packet ->
+          processPacket(packet)
+        }
       }
 
-      if (!sentAnything) {
-        delay(1)
+      // Drain any remaining ready packets without suspending
+      while (true) {
+        val control = controlChannel.tryReceive().getOrNull()
+        if (control != null) {
+          sendPacket(control)
+        } else {
+          break
+        }
+      }
+      while (true) {
+        val regular = packetChannel.tryReceive().getOrNull()
+        if (regular != null) {
+          processPacket(regular)
+        } else {
+          break
+        }
       }
     }
   }
