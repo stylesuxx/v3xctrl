@@ -74,6 +74,9 @@ static gchar decoder_output_format[256] = "";
 // GL API version (e.g. "gles2", "gles3", "opengl3")
 static gchar gl_api[64] = "";
 
+// Configurable render queue size (set from Java before pipeline creation)
+static gint render_queue_size = 1;
+
 // Sink frame interval tracking (microseconds)
 #define FRAME_INTERVAL_WINDOW 60
 static volatile gint64 sink_frame_interval_avg_us = 0;
@@ -645,8 +648,9 @@ static void configure_common_elements(gint port) {
                  "max-size-bytes", 0, "max-size-time", (guint64)0, NULL);
 
     // Configure render queue to prevent buffer buildup after decoder (leaky)
-    g_object_set(gst_data.render_queue, "max-size-buffers", 1,
+    g_object_set(gst_data.render_queue, "max-size-buffers", (guint)render_queue_size,
                  "leaky", 2 /* downstream */, NULL);
+    LOGI("Render queue size: %d", render_queue_size);
 }
 
 /**
@@ -1182,4 +1186,15 @@ Java_com_v3xctrl_viewer_GstViewer_nativeGetDecoderOutputFormat(JNIEnv *env, jcla
 JNIEXPORT jstring JNICALL
 Java_com_v3xctrl_viewer_GstViewer_nativeGetGlApi(JNIEnv *env, jclass clazz) {
     return (*env)->NewStringUTF(env, gl_api);
+}
+
+JNIEXPORT void JNICALL
+Java_com_v3xctrl_viewer_GstViewer_nativeSetRenderQueueSize(JNIEnv *env, jclass clazz, jint size) {
+    render_queue_size = size;
+    LOGI("Render queue size set to %d", size);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_v3xctrl_viewer_GstViewer_nativeGetRenderQueueSize(JNIEnv *env, jclass clazz) {
+    return render_queue_size;
 }

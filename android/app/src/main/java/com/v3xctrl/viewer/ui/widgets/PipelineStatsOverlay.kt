@@ -104,6 +104,7 @@ fun DebugStatsOverlay(
     var glApi by remember { mutableStateOf("") }
     var decodeQueueLevel by remember { mutableStateOf(0) }
     var renderQueueLevel by remember { mutableStateOf(0) }
+    var renderQueueMax by remember { mutableStateOf(1) }
     var frameInterval by remember { mutableStateOf(GstViewer.FrameIntervalStats(0, 0, 0)) }
     var jitterBufferStats by remember { mutableStateOf(GstViewer.JitterBufferStats(0, 0, 0, 0)) }
     var cpuUsage by remember { mutableStateOf<Int?>(null) }
@@ -120,6 +121,7 @@ fun DebugStatsOverlay(
                 stats = GstViewer.getPipelineStats()
                 decodeQueueLevel = GstViewer.decodeQueueLevel
                 renderQueueLevel = GstViewer.renderQueueLevel
+                renderQueueMax = GstViewer.renderQueueSize
                 frameInterval = GstViewer.getFrameIntervalStats()
                 jitterBufferStats = GstViewer.getJitterBufferStats()
             }
@@ -184,8 +186,8 @@ fun DebugStatsOverlay(
                     StatsRow("decode queue", "$decodeQueueLevel/3",
                         if (decodeQueueLevel >= 2) Color.Red else ValueColor,
                         Modifier.weight(1f))
-                    StatsRow("render queue", "$renderQueueLevel/1",
-                        if (renderQueueLevel >= 1) Color.Red else ValueColor,
+                    StatsRow("render queue", "$renderQueueLevel/$renderQueueMax",
+                        if (renderQueueMax > 0 && renderQueueLevel >= renderQueueMax) Color.Red else ValueColor,
                         Modifier.weight(1f))
                 }
 

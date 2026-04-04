@@ -41,7 +41,8 @@ data class NetworkSettings(
 
 data class FrequencySettings(
     val controlHz: Int = 30,
-    val controlBufferCapacity: Int = 1
+    val controlBufferCapacity: Int = 1,
+    val renderQueueSize: Int = 1
 )
 
 data class OsdSettings(
@@ -115,6 +116,7 @@ class SettingsDataStore(private val context: Context) {
 
         private val CONTROL_HZ = intPreferencesKey("control_hz")
         private val CONTROL_BUFFER_CAPACITY = intPreferencesKey("control_buffer_capacity")
+        private val RENDER_QUEUE_SIZE = intPreferencesKey("render_queue_size")
         private val CONTROL_MODE = stringPreferencesKey("control_mode")
         private val FORWARD_SCALE = intPreferencesKey("forward_scale")
         private val BACKWARD_SCALE = intPreferencesKey("backward_scale")
@@ -164,7 +166,8 @@ class SettingsDataStore(private val context: Context) {
         val defaults = FrequencySettings()
         FrequencySettings(
             controlHz = prefs[CONTROL_HZ] ?: defaults.controlHz,
-            controlBufferCapacity = prefs[CONTROL_BUFFER_CAPACITY] ?: defaults.controlBufferCapacity
+            controlBufferCapacity = prefs[CONTROL_BUFFER_CAPACITY] ?: defaults.controlBufferCapacity,
+            renderQueueSize = prefs[RENDER_QUEUE_SIZE] ?: defaults.renderQueueSize
         )
     }
 
@@ -235,6 +238,7 @@ class SettingsDataStore(private val context: Context) {
         context.dataStore.edit { prefs ->
             prefs[CONTROL_HZ] = settings.controlHz
             prefs[CONTROL_BUFFER_CAPACITY] = settings.controlBufferCapacity
+            prefs[RENDER_QUEUE_SIZE] = settings.renderQueueSize
         }
     }
 

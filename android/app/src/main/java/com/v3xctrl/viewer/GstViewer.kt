@@ -30,6 +30,8 @@ object GstViewer {
     private external fun nativeGetJitterBufferStats(): String
     private external fun nativeGetDecoderOutputFormat(): String
     private external fun nativeGetGlApi(): String
+    private external fun nativeSetRenderQueueSize(size: Int)
+    private external fun nativeGetRenderQueueSize(): Int
 
     fun init(context: Context? = null) {
         if (!contextInitialized && context != null) {
@@ -96,6 +98,12 @@ object GstViewer {
     val decoderName: String get() = nativeGetDecoderName()
     val decoderOutputFormat: String get() = nativeGetDecoderOutputFormat()
     val glApi: String get() = nativeGetGlApi()
+
+    fun setRenderQueueSize(size: Int) {
+        nativeSetRenderQueueSize(size)
+    }
+
+    val renderQueueSize: Int get() = nativeGetRenderQueueSize()
 
     data class FrameIntervalStats(
         val averageUs: Long,
