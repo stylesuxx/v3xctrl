@@ -31,7 +31,6 @@ import com.v3xctrl.viewer.ui.widgets.BatteryWidget
 import com.v3xctrl.viewer.ui.widgets.FpsCounter
 import com.v3xctrl.viewer.ui.widgets.FrameDropIndicator
 import com.v3xctrl.viewer.ui.widgets.PipelineTimer
-import com.v3xctrl.viewer.ui.widgets.DecoderWarning
 import com.v3xctrl.viewer.ui.widgets.RecordingIndicator
 import com.v3xctrl.viewer.ui.widgets.SignalStrengthWidget
 
@@ -168,10 +167,6 @@ fun LandscapeViewer(
             }
         }
 
-        // Decoder backpressure warning (bottom center)
-        DecoderWarning(
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
 
         // Control overlay (hidden in spectator mode)
         if (!spectatorMode) {
