@@ -9,14 +9,15 @@ from typing import Any
 
 import gi
 
+from v3xctrl_gst.ControlServer import ControlServer
+from v3xctrl_gst.PipelineTimer import PipelineTimer
+from v3xctrl_gst.QPManager import QPManager
+from v3xctrl_gst.RecordingManager import RecordingManager
+from v3xctrl_gst.SEIInjector import SEIInjector
+from v3xctrl_gst.SourceRegistry import SourceRegistry
+
 gi.require_version("Gst", "1.0")
 from gi.repository import GLib, Gst  # noqa: E402
-
-from v3xctrl_gst.ControlServer import ControlServer  # noqa: E402
-from v3xctrl_gst.PipelineTimer import PipelineTimer  # noqa: E402
-from v3xctrl_gst.QPManager import QPManager  # noqa: E402
-from v3xctrl_gst.RecordingManager import RecordingManager  # noqa: E402
-from v3xctrl_gst.SourceRegistry import SourceRegistry  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -118,6 +119,11 @@ class Streamer:
         self.bus: Gst.Bus | None = None
 
         Gst.init(None)
+
+        self.sei_injector: SEIInjector | None = None
+        if self.timer.enabled:
+            self.sei_injector = SEIInjector()
+
         self.control_server = ControlServer(self, control_socket)
 
     def start(self) -> None:
@@ -510,6 +516,10 @@ class Streamer:
         encoder.set_property("output-io-mode", self.settings["output_io_mode"])
         self.pipeline.add(encoder)
 
+        if self.timer.enabled and self.sei_injector:
+            encoder_sink_pad = encoder.get_static_pad("sink")
+            encoder_sink_pad.add_probe(Gst.PadProbeType.BUFFER, self.sei_injector.on_pre_encode)
+
         encoder_caps_filter = Gst.ElementFactory.make("capsfilter", "encoder_caps")
         if not encoder_caps_filter:
             logger.error("Failed to create encoder capsfilter")
@@ -518,6 +528,9 @@ class Streamer:
         # Add probe to measure encoder jitter
         encoder_pad = encoder_caps_filter.get_static_pad("src")
         encoder_pad.add_probe(Gst.PadProbeType.BUFFER, self._on_encoder_buffer)
+
+        if self.timer.enabled and self.sei_injector:
+            encoder_pad.add_probe(Gst.PadProbeType.BUFFER, self.sei_injector.on_post_encode)
 
         encoder_caps = Gst.Caps.from_string(
             f"video/x-h264,"
@@ -561,12 +574,16 @@ class Streamer:
         # which is not caught by BUFFER probes.
         if self.timer.enabled:
             payloader_pad = payloader.get_static_pad("sink")
-            payloader_pad.add_probe(Gst.PadProbeType.BUFFER, self._on_udp_buffer)
+            payloader_pad.add_probe(Gst.PadProbeType.BUFFER, self._on_payloader_in)
 
         udpsink = Gst.ElementFactory.make("udpsink", "udpsink")
         if not udpsink:
             logger.error("Failed to create udpsink")
             return False
+
+        if self.timer.enabled:
+            udpsink_pad = udpsink.get_static_pad("sink")
+            udpsink_pad.add_probe(Gst.PadProbeType.BUFFER_LIST, self._on_udpsink_buffer_list)
 
         udpsink.set_property("host", self.host)
         udpsink.set_property("port", self.port)
@@ -694,8 +711,14 @@ class Streamer:
 
         return Gst.PadProbeReturn.OK
 
-    def _on_udp_buffer(self, pad, info):
+    def _on_payloader_in(self, pad, info):
         buffer = info.get_buffer()
-        self.timer.on_udp_buffer(buffer.pts)
+        self.timer.on_payloader_in(buffer.pts)
+        return Gst.PadProbeReturn.OK
 
+    def _on_udpsink_buffer_list(self, pad, info):
+        buffer_list = info.get_buffer_list()
+        if buffer_list.length() == 0:
+            return Gst.PadProbeReturn.OK
+        self.timer.on_udpsink_buffer_list(buffer_list.get(0).pts)
         return Gst.PadProbeReturn.OK

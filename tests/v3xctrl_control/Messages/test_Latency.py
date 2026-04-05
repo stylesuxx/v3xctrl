@@ -15,11 +15,29 @@ class TestLatency(unittest.TestCase):
 
         self.assertIsInstance(restored, Latency)
         self.assertEqual(restored.timestamp, ts)
-        self.assertEqual(restored.payload, {})  # empty by design
+        self.assertIsNone(restored.streamer_timestamp)
 
     def test_default_constructor(self) -> None:
         latency = Latency()
-        self.assertEqual(latency.payload, {})  # timestamp auto-set
+        self.assertIsNone(latency.streamer_timestamp)
+        self.assertEqual(latency.payload, {})
+
+    def test_with_streamer_timestamp(self) -> None:
+        latency = Latency(st=100.5, timestamp=99.0)
+
+        self.assertEqual(latency.streamer_timestamp, 100.5)
+        self.assertEqual(latency.timestamp, 99.0)
+        self.assertEqual(latency.payload, {"st": 100.5})
+
+    def test_roundtrip_with_streamer_timestamp(self) -> None:
+        latency = Latency(st=100.5, timestamp=99.0)
+
+        data = latency.to_bytes()
+        restored = Message.from_bytes(data)
+
+        self.assertIsInstance(restored, Latency)
+        self.assertEqual(restored.timestamp, 99.0)
+        self.assertEqual(restored.streamer_timestamp, 100.5)
 
     def test_peek_type(self) -> None:
         latency = Latency()
@@ -37,7 +55,7 @@ class TestLatency(unittest.TestCase):
     def test_extra_field_in_payload_raises_typeerror(self) -> None:
         latency = Latency()
         obj = msgpack.unpackb(latency.to_bytes())
-        obj["p"]["unexpected"] = "nope"  # Latency.__init__ accepts only timestamp
+        obj["p"]["unexpected"] = "nope"
         altered = msgpack.packb(obj)
         with self.assertRaises(TypeError):
             Message.from_bytes(altered)

@@ -6,6 +6,7 @@ from typing import ClassVar
 import pygame
 
 from v3xctrl_control.message import Latency, Message, Telemetry
+from v3xctrl_helper import SlidingWindowAverage
 from v3xctrl_ui.core.dataclasses import GpsFixType
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext
@@ -47,6 +48,8 @@ class OSD:
         self.is_spectator: bool = False
         self.throttle: float = 0.0
         self.steering: float = 0.0
+
+        self._latency_samples = SlidingWindowAverage(window_seconds=1.0)
 
         self.widgets_debug: dict[str, Widget] = {}
         self.widgets_signal: dict[str, Widget] = {}
@@ -202,11 +205,6 @@ class OSD:
         self.widgets_gps = create_gps_widgets()
 
     def _latency_update(self, message: Latency) -> None:
-        """
-        NOTE: We rely on the streamer and viewer to have the same timezone set
-              and do not account for any form of drift.
-        """
-
         # In spectator mode, latency is not meaningful
         if self.is_spectator:
             self.debug_latency = "default"
@@ -214,19 +212,20 @@ class OSD:
 
             return
 
-        now = time.time()
-        timestamp = message.timestamp
         # RTT/2 for one-way network latency estimate
-        diff_ms = round((now - timestamp) * 1000 / 2)
+        diff_ms = (time.time() - message.timestamp) * 1000 / 2
+        self._latency_samples.append(diff_ms)
 
-        if diff_ms <= 40:
+        avg_ms = round(self._latency_samples.average)
+
+        if avg_ms <= 40:
             self.debug_latency = "green"
-        elif diff_ms <= 75:
+        elif avg_ms <= 75:
             self.debug_latency = "yellow"
         else:
             self.debug_latency = "red"
 
-        self.widgets_debug["debug_latency"].set_value(diff_ms)
+        self.widgets_debug["debug_latency"].set_value(avg_ms)
 
     def _telemetry_update(self, message: Telemetry) -> None:
         data = parse_telemetry(message)
@@ -268,8 +267,6 @@ class OSD:
             fix_color = ORANGE
 
         self.widgets_gps["gps_fix"].set_text_color(fix_color)
-
-        logger.debug(f"Received telemetry message: {message.get_values()}")
 
     def _get_steering_value(self, name: str):
         return getattr(self, name)

@@ -75,7 +75,7 @@ class PipelineTimer:
         else:
             self._debug["encoder_miss"] += 1
 
-    def on_udp_buffer(self, pts: int) -> None:
+    def on_payloader_in(self, pts: int) -> None:
         if not self._enabled:
             return
 
@@ -90,26 +90,45 @@ class PipelineTimer:
             self._debug["incomplete"] += 1
             return
 
+        timing["payloader_in"] = time.monotonic()
+
+    def on_udpsink_buffer_list(self, pts: int) -> None:
+        if not self._enabled:
+            return
+
+        if pts not in self._data:
+            return
+
+        timing = self._data[pts]
+
+        # payloader_in is only set by on_payloader_in when source, capsfilter,
+        # and encoder are all present, so this implicitly guarantees completeness.
+        if "payloader_in" not in timing:
+            return
+
         now = time.monotonic()
         self._data.pop(pts)
 
         capture_time = timing.get("capture_delay", 0)
         capsfilter_time = (timing["capsfilter"] - timing["source"]) * 1000
         encode_time = (timing["encoder"] - timing["capsfilter"]) * 1000
-        package_time = (now - timing["encoder"]) * 1000
+        package_time = (timing["payloader_in"] - timing["encoder"]) * 1000
+        payloader_time = (now - timing["payloader_in"]) * 1000
 
         self._stats["capture"].append(capture_time)
         self._stats["capsfilter"].append(capsfilter_time)
         self._stats["encode"].append(encode_time)
         self._stats["package"].append(package_time)
+        self._stats["payloader"].append(payloader_time)
 
         if now - self._last_log >= self._log_interval:
             self._log_stats()
             self._last_log = now
 
-        if len(self._data) > 100:
-            oldest_pts = min(self._data.keys())
-            del self._data[oldest_pts]
+        # Purge entries older than current PTS (dropped frames)
+        stale = [k for k in self._data if k < pts]
+        for k in stale:
+            del self._data[k]
 
     def _log_stats(self) -> None:
         if not self._stats["capture"]:
@@ -123,8 +142,9 @@ class PipelineTimer:
         _cap_min, cap_avg, _cap_max = stats(self._stats["capture"])
         _enc_min, enc_avg, _enc_max = stats(self._stats["encode"])
         _pkg_min, pkg_avg, _pkg_max = stats(self._stats["package"])
+        _pay_min, pay_avg, _pay_max = stats(self._stats["payloader"])
 
-        total_avg = cap_avg + enc_avg + pkg_avg
+        total_avg = cap_avg + enc_avg + pkg_avg + pay_avg
         frame_count = len(self._stats["capture"])
         interval = time.monotonic() - self._last_log
         fps = frame_count / interval if interval > 0 else 0
@@ -132,6 +152,8 @@ class PipelineTimer:
         logger.debug(
             f"[TIMING] capture: {cap_avg:.1f}ms | "
             f"encode: {enc_avg:.1f}ms | "
+            f"package: {pkg_avg:.1f}ms | "
+            f"payloader: {pay_avg:.1f}ms | "
             f"total: {total_avg:.1f}ms | "
             f"fps: {fps:.1f} ({frame_count} frames)"
         )
@@ -146,6 +168,7 @@ class PipelineTimer:
             "capsfilter": [],
             "encode": [],
             "package": [],
+            "payloader": [],
         }
 
     @staticmethod

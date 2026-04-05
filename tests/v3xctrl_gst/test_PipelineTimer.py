@@ -54,9 +54,13 @@ class TestNoOpWhenDisabled:
         timer.on_encoder_buffer(100)
         assert timer._debug["encoder_probe"] == 0
 
-    def test_on_udp_buffer_noop(self, timer):
-        timer.on_udp_buffer(100)
+    def test_on_payloader_in_noop(self, timer):
+        timer.on_payloader_in(100)
         assert timer._debug["udp_miss"] == 0
+
+    def test_on_udpsink_buffer_list_noop(self, timer):
+        timer.on_udpsink_buffer_list(100)
+        assert timer._stats["payloader"] == []
 
 
 class TestSourceBuffer:
@@ -117,10 +121,10 @@ class TestEncoderBuffer:
         assert timer._debug["encoder_miss"] == 1
 
 
-class TestUdpBuffer:
-    def test_udp_miss_when_no_data(self, timer):
+class TestPayloaderIn:
+    def test_payloader_miss_when_no_data(self, timer):
         timer.enable()
-        timer.on_udp_buffer(999)
+        timer.on_payloader_in(999)
 
         assert timer._debug["udp_miss"] == 1
 
@@ -129,9 +133,42 @@ class TestUdpBuffer:
         pts = 100
         timer._data[pts] = {"source": 1.0}
 
-        timer.on_udp_buffer(pts)
+        timer.on_payloader_in(pts)
 
         assert timer._debug["incomplete"] == 1
+
+    def test_records_payloader_in_timing(self, timer):
+        timer.enable()
+        pts = 100
+        now = time.monotonic()
+        timer._data[pts] = {
+            "source": now - 0.010,
+            "capsfilter": now - 0.008,
+            "encoder": now - 0.003,
+        }
+
+        timer.on_payloader_in(pts)
+
+        assert "payloader_in" in timer._data[pts]
+        assert timer._debug["udp_probe"] == 1
+
+
+class TestUdpsinkBufferList:
+    def test_no_data_is_noop(self, timer):
+        timer.enable()
+        timer.on_udpsink_buffer_list(999)
+
+        assert timer._stats["capture"] == []
+
+    def test_missing_payloader_in_is_noop(self, timer):
+        timer.enable()
+        pts = 100
+        timer._data[pts] = {"source": 1.0, "capsfilter": 1.001, "encoder": 1.002}
+
+        timer.on_udpsink_buffer_list(pts)
+
+        assert timer._stats["capture"] == []
+        assert pts in timer._data
 
     def test_full_pipeline_timing(self, timer):
         timer.enable()
@@ -142,16 +179,17 @@ class TestUdpBuffer:
             "capture_delay": 5.0,
             "capsfilter": now - 0.008,
             "encoder": now - 0.003,
+            "payloader_in": now - 0.001,
         }
 
-        timer.on_udp_buffer(pts)
+        timer.on_udpsink_buffer_list(pts)
 
         assert pts not in timer._data
         assert len(timer._stats["capture"]) == 1
         assert len(timer._stats["encode"]) == 1
         assert len(timer._stats["package"]) == 1
+        assert len(timer._stats["payloader"]) == 1
         assert timer._stats["capture"][0] == pytest.approx(5.0)
-        assert timer._debug["udp_probe"] == 1
 
     def test_old_entries_cleaned_up(self, timer):
         timer.enable()
@@ -165,11 +203,13 @@ class TestUdpBuffer:
             "capture_delay": 0,
             "capsfilter": now,
             "encoder": now,
+            "payloader_in": now,
         }
 
-        timer.on_udp_buffer(pts)
+        timer.on_udpsink_buffer_list(pts)
 
-        assert len(timer._data) <= 105
+        # All entries with PTS < 200 should be purged
+        assert all(k >= 200 for k in timer._data)
 
 
 class TestLogStats:
@@ -184,11 +224,12 @@ class TestLogStats:
             "capture_delay": 5.0,
             "capsfilter": now - 0.008,
             "encoder": now - 0.003,
+            "payloader_in": now - 0.001,
         }
         timer._last_log = now - 1.0
 
         with patch("v3xctrl_gst.PipelineTimer.logger") as mock_logger:
-            timer.on_udp_buffer(pts)
+            timer.on_udpsink_buffer_list(pts)
             mock_logger.debug.assert_called_once()
             assert "[TIMING]" in mock_logger.debug.call_args[0][0]
 

@@ -12,6 +12,7 @@ from v3xctrl_control.message import Command, Control, Latency, Telemetry
 from v3xctrl_ui.core.dataclasses import ApplicationModel
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.network.NetworkController import NetworkController
+from v3xctrl_ui.network.video.ClockOffset import ClockOffset
 from v3xctrl_ui.osd.OSD import OSD
 
 logger = logging.getLogger(__name__)
@@ -35,6 +36,7 @@ class NetworkCoordinator:
         self.network_controller: NetworkController | None = None
         self.restart_complete = threading.Event()
         self.on_connection_change: Callable[[bool], None] | None = None
+        self.clock_offset = ClockOffset()
 
         # Queue for deferring callbacks to the main thread.
         # Network callbacks (e.g. command ACKs) are invoked from background threads,
@@ -44,7 +46,7 @@ class NetworkCoordinator:
 
     def create_network_controller(self, settings: Settings) -> NetworkController:
         handlers = self._create_handlers()
-        return NetworkController(settings, handlers)
+        return NetworkController(settings, handlers, self.clock_offset)
 
     def restart_network_controller(self, settings: Settings) -> threading.Thread:
         def _restart() -> None:
@@ -178,10 +180,15 @@ class NetworkCoordinator:
             if self.on_connection_change:
                 self.on_connection_change(state)
 
+        def latency_handler(message: Latency, address: tuple[str, int]) -> None:
+            self.osd.message_handler(message)
+            if message.streamer_timestamp is not None:
+                self.clock_offset.update(message.timestamp, message.streamer_timestamp, time.time())
+
         return {
             "messages": [
                 (Telemetry, lambda message, address: self.osd.message_handler(message)),
-                (Latency, lambda message, address: self.osd.message_handler(message)),
+                (Latency, latency_handler),
             ],
             "states": [
                 (State.CONNECTED, lambda: self.osd.connect_handler()),
