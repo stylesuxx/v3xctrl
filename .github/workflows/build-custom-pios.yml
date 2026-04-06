@@ -29,8 +29,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y \
-          wget jq qemu-user-static f2fs-tools
-        sudo modprobe f2fs
+          wget jq qemu-user-static
 
     - name: Restore cached PiOS image
       id: cache-pios

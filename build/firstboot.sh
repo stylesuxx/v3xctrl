@@ -29,6 +29,7 @@ log() {
 
 PART="/dev/mmcblk0p3"
 TARGET="/data"
+STAGED="/data.staged"
 
 # Just in case data was already added to fstab in a previous run but failed
 # somewhere else inbetween.
@@ -45,8 +46,8 @@ partprobe /dev/mmcblk0
 sleep 5
 udevadm settle
 
-log "Resizing filesystem on $PART..."
-resize.f2fs "$PART"
+log "Formatting $PART as f2fs..."
+mkfs.f2fs -f "$PART"
 
 log "Checking filesystem on $PART..."
 fsck.f2fs -f "$PART"
@@ -59,8 +60,22 @@ PARTUUID=${PARTUUID} ${TARGET} f2fs defaults,noatime,nodiratime 0 0
 EOF
 fi
 
-log "Mounting ${TARGET} and copying config files..."
+# Move staged /data contents (placed on root during image build) onto the
+# real f2fs partition. Rename first so the mount point is clear.
+if [ -d "$TARGET" ] && [ -n "$(ls -A $TARGET 2>/dev/null)" ]; then
+  log "Moving staged /data contents aside..."
+  mv "$TARGET" "$STAGED"
+  mkdir -p "$TARGET"
+fi
+
+log "Mounting ${TARGET}..."
 mount "$TARGET"
+
+if [ -d "$STAGED" ]; then
+  log "Copying staged contents to f2fs partition..."
+  cp -a "$STAGED"/. "$TARGET"/
+  rm -rf "$STAGED"
+fi
 
 NM_CONNECTIONS="/etc/NetworkManager/system-connections"
 if [ -d "$NM_CONNECTIONS" ] && [ -n "$(ls -A $NM_CONNECTIONS 2>/dev/null)" ]; then
