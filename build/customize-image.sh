@@ -6,6 +6,20 @@ if [[ $EUID -ne 0 ]]; then
   exit 1
 fi
 
+# Check required host dependencies
+REQUIRED_CMDS=(parted losetup mkfs.f2fs e2fsck resize2fs xz udevadm qemu-aarch64-static)
+MISSING_CMDS=()
+for cmd in "${REQUIRED_CMDS[@]}"; do
+  if ! command -v "$cmd" &>/dev/null; then
+    MISSING_CMDS+=("$cmd")
+  fi
+done
+if [[ ${#MISSING_CMDS[@]} -gt 0 ]]; then
+  echo "[ERROR] Missing required commands: ${MISSING_CMDS[*]}" >&2
+  echo "Install with: apt install f2fs-tools parted e2fsprogs xz-utils udev qemu-user-static" >&2
+  exit 1
+fi
+
 # Parse flags
 USE_LOCAL_DEBS=false
 POSITIONAL_ARGS=()
