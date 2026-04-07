@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# Prevent non-wlan interfaces (e.g. RNDIS modem on eth0) from taking the
+# default route unless the user has explicitly configured rndis routing.
+# Without this, NetworkManager gives eth0 a lower metric than wlan0, causing
+# all traffic to route through a modem that may have no internet (no SIM).
+
+INTERFACE="$1"
+ACTION="$2"
+
+if [[ "$INTERFACE" == "wlan0" || "$INTERFACE" == "lo" ]]; then
+    exit 0
+fi
+
+if [[ "$ACTION" == "up" || "$ACTION" == "dhcp4-change" ]]; then
+    ROUTING_MODE="wlan"
+    if [ -f /run/v3xctrl.env ]; then
+        ROUTING_MODE=$(grep -oP '^network_routing=\K.*' /run/v3xctrl.env || echo "wlan")
+    fi
+
+    if [[ "$ROUTING_MODE" != "rndis" ]]; then
+        ip route del default dev "$INTERFACE" 2>/dev/null || true
+    fi
+fi
