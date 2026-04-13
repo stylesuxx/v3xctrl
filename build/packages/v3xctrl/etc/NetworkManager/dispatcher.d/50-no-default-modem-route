@@ -1,10 +1,28 @@
 #!/bin/bash
 
-# Prevent non-wlan interfaces (e.g. RNDIS modem on eth0) from taking the
-# default route or DNS priority unless the user has explicitly configured
-# rndis routing. Without this, NetworkManager gives eth0 a lower metric than
-# wlan0, causing all traffic and DNS to go through a modem that may have no
-# internet (no SIM).
+# NetworkManager dispatcher script to prevent the RNDIS modem (typically eth0)
+# from hijacking the default route and DNS.
+#
+# Why this is needed:
+#   NetworkManager assigns ethernet a lower metric (100) than WiFi (600).
+#   When the modem is plugged in, it gets an IP via DHCP and becomes the
+#   default gateway - even without a SIM card. This breaks all internet
+#   connectivity and DNS resolution because traffic is sent to a modem
+#   with no upstream connection.
+#
+# Why a dispatcher script instead of declarative config:
+#   The ideal fix would be dhcp4-overrides in /boot/firmware/network-config
+#   (use-routes: false, use-dns: false). However, Raspberry Pi Imager
+#   overwrites network-config at flash time, so we cannot control its
+#   contents from the image build. NetworkManager.conf also does not
+#   support ipv4.never-default as a connection default. A dispatcher
+#   script is the only reliable mechanism that survives reflashing.
+#
+# What it does:
+#   - Removes the default route from non-wlan interfaces
+#   - Clears DNS servers from non-wlan interfaces (runtime only, no disk writes)
+#   - Skips both when rndis routing is explicitly configured, since
+#     v3xctrl-route-manager handles routing in that case
 
 INTERFACE="$1"
 ACTION="$2"
@@ -22,8 +40,6 @@ if [[ "$ACTION" == "up" || "$ACTION" == "dhcp4-change" ]]; then
     if [[ "$ROUTING_MODE" != "rndis" ]]; then
         ip route del default dev "$INTERFACE" 2>/dev/null || true
 
-        # Remove DNS servers provided by this interface so wlan0 DNS is used.
-        # NM regenerates resolv.conf from remaining connections.
         CONNECTION=$(nmcli -g GENERAL.CONNECTION device show "$INTERFACE" 2>/dev/null)
         if [ -n "$CONNECTION" ]; then
             nmcli device modify "$INTERFACE" ipv4.dns "" 2>/dev/null || true
