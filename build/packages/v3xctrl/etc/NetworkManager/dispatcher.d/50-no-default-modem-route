@@ -1,9 +1,10 @@
 #!/bin/bash
 
 # Prevent non-wlan interfaces (e.g. RNDIS modem on eth0) from taking the
-# default route unless the user has explicitly configured rndis routing.
-# Without this, NetworkManager gives eth0 a lower metric than wlan0, causing
-# all traffic to route through a modem that may have no internet (no SIM).
+# default route or DNS priority unless the user has explicitly configured
+# rndis routing. Without this, NetworkManager gives eth0 a lower metric than
+# wlan0, causing all traffic and DNS to go through a modem that may have no
+# internet (no SIM).
 
 INTERFACE="$1"
 ACTION="$2"
@@ -20,5 +21,13 @@ if [[ "$ACTION" == "up" || "$ACTION" == "dhcp4-change" ]]; then
 
     if [[ "$ROUTING_MODE" != "rndis" ]]; then
         ip route del default dev "$INTERFACE" 2>/dev/null || true
+
+        # Remove DNS servers provided by this interface so wlan0 DNS is used.
+        # NM regenerates resolv.conf from remaining connections.
+        CONNECTION=$(nmcli -g GENERAL.CONNECTION device show "$INTERFACE" 2>/dev/null)
+        if [ -n "$CONNECTION" ]; then
+            nmcli device modify "$INTERFACE" ipv4.dns "" 2>/dev/null || true
+            nmcli device modify "$INTERFACE" ipv6.dns "" 2>/dev/null || true
+        fi
     fi
 fi
