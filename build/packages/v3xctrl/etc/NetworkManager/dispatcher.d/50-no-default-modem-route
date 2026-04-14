@@ -31,7 +31,7 @@ if [[ "$INTERFACE" == "wlan0" || "$INTERFACE" == "lo" ]]; then
     exit 0
 fi
 
-if [[ "$ACTION" == "up" || "$ACTION" == "dhcp4-change" ]]; then
+if [[ "$ACTION" == "up" || "$ACTION" == "dhcp4-change" || "$ACTION" == "reapply" ]]; then
     ROUTING_MODE="wlan"
     if [ -f /run/v3xctrl.env ]; then
         ROUTING_MODE=$(grep -oP '^network_routing=\K.*' /run/v3xctrl.env || echo "wlan")
@@ -40,10 +40,13 @@ if [[ "$ACTION" == "up" || "$ACTION" == "dhcp4-change" ]]; then
     if [[ "$ROUTING_MODE" != "rndis" ]]; then
         ip route del default dev "$INTERFACE" 2>/dev/null || true
 
-        CONNECTION=$(nmcli -g GENERAL.CONNECTION device show "$INTERFACE" 2>/dev/null)
-        if [ -n "$CONNECTION" ]; then
-            nmcli device modify "$INTERFACE" ipv4.dns "" 2>/dev/null || true
-            nmcli device modify "$INTERFACE" ipv6.dns "" 2>/dev/null || true
+        # Deprioritize DNS from this interface so wlan0 DNS is preferred.
+        # NM default priority is 100; setting higher = lower priority.
+        # Only on initial events, not reapply (which this triggers), to
+        # avoid an infinite loop.
+        if [[ "$ACTION" != "reapply" ]]; then
+            nmcli device modify "$INTERFACE" ipv4.dns-priority 300 2>/dev/null || true
+            nmcli device modify "$INTERFACE" ipv6.dns-priority 300 2>/dev/null || true
         fi
     fi
 fi
