@@ -41,10 +41,13 @@ fi
 
 echo "Using $PRIMARY_IF as default route interface"
 
-# Find gateway for selected interface
+# Find gateway for selected interface.
+# Check existing default route first, then ask NetworkManager (handles
+# ipv4.never-default connections where no default route exists), and
+# finally infer from the device IP as a last resort.
 GW=$(ip -4 route show default dev "$PRIMARY_IF" | awk '{print $3}' | head -n1 | tr -d '\r\n')
 if [ -z "$GW" ]; then
-  GW=$(ip route | grep "^default.*$PRIMARY_IF" | awk '{print $3}' | head -n1 | tr -d '\r\n')
+  GW=$(nmcli -g IP4.GATEWAY device show "$PRIMARY_IF" 2>/dev/null | tr -d '\r\n')
 fi
 
 if [ -z "$GW" ]; then
