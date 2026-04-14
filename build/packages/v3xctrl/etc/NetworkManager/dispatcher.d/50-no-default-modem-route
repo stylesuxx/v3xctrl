@@ -1,0 +1,52 @@
+#!/bin/bash
+
+# NetworkManager dispatcher script to prevent the RNDIS modem (typically eth0)
+# from hijacking the default route and DNS.
+#
+# Why this is needed:
+#   NetworkManager assigns ethernet a lower metric (100) than WiFi (600).
+#   When the modem is plugged in, it gets an IP via DHCP and becomes the
+#   default gateway - even without a SIM card. This breaks all internet
+#   connectivity and DNS resolution because traffic is sent to a modem
+#   with no upstream connection.
+#
+# Why a dispatcher script instead of declarative config:
+#   The ideal fix would be dhcp4-overrides in /boot/firmware/network-config
+#   (use-routes: false, use-dns: false). However, Raspberry Pi Imager
+#   overwrites network-config at flash time, so we cannot control its
+#   contents from the image build. NetworkManager.conf also does not
+#   support ipv4.never-default as a connection default. A dispatcher
+#   script is the only reliable mechanism that survives reflashing.
+#
+# What it does:
+#   - Removes the default route from non-wlan interfaces
+#   - Clears DNS servers from non-wlan interfaces (runtime only, no disk writes)
+#   - Skips both when rndis routing is explicitly configured, since
+#     v3xctrl-route-manager handles routing in that case
+
+INTERFACE="$1"
+ACTION="$2"
+
+if [[ "$INTERFACE" == "wlan0" || "$INTERFACE" == "lo" ]]; then
+    exit 0
+fi
+
+if [[ "$ACTION" == "up" || "$ACTION" == "dhcp4-change" || "$ACTION" == "reapply" ]]; then
+    ROUTING_MODE="wlan"
+    if [ -f /run/v3xctrl.env ]; then
+        ROUTING_MODE=$(grep -oP '^network_routing=\K.*' /run/v3xctrl.env || echo "wlan")
+    fi
+
+    if [[ "$ROUTING_MODE" != "rndis" ]]; then
+        ip route del default dev "$INTERFACE" 2>/dev/null || true
+
+        # Deprioritize DNS from this interface so wlan0 DNS is preferred.
+        # NM default priority is 100; setting higher = lower priority.
+        # Only on initial events, not reapply (which this triggers), to
+        # avoid an infinite loop.
+        if [[ "$ACTION" != "reapply" ]]; then
+            nmcli device modify "$INTERFACE" ipv4.dns-priority 300 2>/dev/null || true
+            nmcli device modify "$INTERFACE" ipv6.dns-priority 300 2>/dev/null || true
+        fi
+    fi
+fi

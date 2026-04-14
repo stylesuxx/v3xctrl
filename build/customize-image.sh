@@ -7,7 +7,7 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 # Check required host dependencies
-REQUIRED_CMDS=(parted losetup mkfs.f2fs e2fsck resize2fs xz udevadm qemu-aarch64-static)
+REQUIRED_CMDS=(parted losetup e2fsck resize2fs xz udevadm qemu-aarch64-static)
 MISSING_CMDS=()
 for cmd in "${REQUIRED_CMDS[@]}"; do
   if ! command -v "$cmd" &>/dev/null; then
@@ -16,7 +16,7 @@ for cmd in "${REQUIRED_CMDS[@]}"; do
 done
 if [[ ${#MISSING_CMDS[@]} -gt 0 ]]; then
   echo "[ERROR] Missing required commands: ${MISSING_CMDS[*]}" >&2
-  echo "Install with: apt install f2fs-tools parted e2fsprogs xz-utils udev qemu-user-static" >&2
+  echo "Install with: apt install parted e2fsprogs xz-utils udev qemu-user-static" >&2
   exit 1
 fi
 
@@ -98,17 +98,8 @@ blockdev --rereadpt "$LOOP_DEV" || true
 sleep 5
 udevadm settle
 
-echo "[HOST] Verifying partition exists before formatting"
-if [ ! -b "${LOOP_DEV}p3" ]; then
-  echo "[ERROR] Partition 3 device ${LOOP_DEV}p3 not found after partitioning"
-  exit 1
-fi
-
-echo "[HOST] Formatting /data partition at full partition size"
-mkfs.f2fs -f "${LOOP_DEV}p3"
-
 echo "[HOST] Checking and mounting partitions"
-for i in 1 2 3; do
+for i in 1 2; do
   [ -b "${LOOP_DEV}p$i" ] || { echo "Partition $i missing on $LOOP_DEV"; exit 1; }
 done
 
@@ -117,10 +108,10 @@ mount "${LOOP_DEV}p2" "$MOUNT_DIR"
 mkdir -p "$MOUNT_DIR/boot/firmware"
 mount "${LOOP_DEV}p1" "$MOUNT_DIR/boot/firmware"
 
-mkdir -p "$MOUNT_DIR/data"
-mount "${LOOP_DEV}p3" "$MOUNT_DIR/data"
-
-echo "[HOST] Creating structure under /data"
+# Stage /data contents on the root partition. The f2fs partition (p3) is left
+# unformatted - CI runner kernels lack f2fs support so we cannot mount it here.
+# firstboot.sh will format p3, then move these staged contents onto it.
+echo "[HOST] Staging /data structure on root partition"
 mkdir -p "${MOUNT_DIR}/data"/{log,config,recordings,.cache}
 chmod a+rw "${MOUNT_DIR}/data/recordings"
 chmod a+rw "${MOUNT_DIR}/data/.cache"
@@ -246,7 +237,6 @@ echo "[HOST] Cleaning up and unmounting"
 sync
 
 umount "$MOUNT_DIR/boot/firmware"
-umount "$MOUNT_DIR/data"
 umount "$MOUNT_DIR/dev/pts"
 for d in $MOUNT_BIND_DIRS; do
   umount "$MOUNT_DIR/$d"
