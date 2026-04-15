@@ -90,7 +90,7 @@ exe = EXE(
     exclude_binaries=True,
     name='V3XCTRL',
     icon=os.path.join(SRC, 'v3xctrl_ui', 'assets', 'images', 'logo.ico'),
-    console=True,
+    console=False,
 )
 
 coll = COLLECT(
