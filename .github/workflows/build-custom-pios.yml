@@ -7,6 +7,11 @@ on:
         description: 'Git branch to build'
         required: true
         default: 'master'
+      use_latest_release:
+        description: 'Use .deb packages from the latest GitHub release instead of the apt repo'
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   build:
@@ -51,9 +56,21 @@ jobs:
         path: image/raspios-arm64-lite.img.xz
         key: raspios-arm64-lite.img.xz
 
+    - name: Download .deb packages from latest release
+      if: ${{ inputs.use_latest_release }}
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        mkdir -p debs
+        gh release download --pattern '*.deb' --dir debs
+
     - name: Customize PiOS image
       run: |
-        sudo ./build/customize-image.sh mnt image/raspios-arm64-lite.img.xz "" image/v3xctrl-raspios.img.xz
+        if [ "${{ inputs.use_latest_release }}" = "true" ]; then
+          sudo ./build/customize-image.sh --local mnt image/raspios-arm64-lite.img.xz debs image/v3xctrl-raspios.img.xz
+        else
+          sudo ./build/customize-image.sh mnt image/raspios-arm64-lite.img.xz "" image/v3xctrl-raspios.img.xz
+        fi
 
     - name: Upload final image
       uses: actions/upload-artifact@v7
