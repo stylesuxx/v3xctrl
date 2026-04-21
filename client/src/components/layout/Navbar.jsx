@@ -5,6 +5,7 @@ import { systemApi } from '@/api/system'
 import { CountdownDialog } from '@/components/shared/CountdownDialog'
 import { ReconnectDialog } from '@/components/shared/ReconnectDialog'
 import { Menu, X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 const EMBEDDED = import.meta.env.VITE_EMBEDDED === 'true'
 
@@ -73,27 +74,18 @@ export function Navbar({ tabs, activeTab, onTabChange }) {
           </div>
 
           {/* Desktop actions */}
-          <div className="hidden items-center gap-3 md:flex">
+          <div className="hidden items-center gap-1 md:flex">
             {!EMBEDDED && (
-              <button
-                onClick={disconnect}
-                className="mr-2 text-sm text-destructive hover:text-destructive/80"
-              >
+              <Button variant="ghost" size="sm" className="mr-2 text-destructive hover:text-destructive/80" onClick={disconnect}>
                 {t('nav.disconnect')}
-              </button>
+              </Button>
             )}
-            <button
-              onClick={handleReboot}
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
+            <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={handleReboot}>
               {t('nav.restart')}
-            </button>
-            <button
-              onClick={handleShutdown}
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
+            </Button>
+            <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={handleShutdown}>
               {t('nav.shutdown')}
-            </button>
+            </Button>
             <a
               href="https://discord.v3xctrl.com"
               target="_blank"
@@ -105,12 +97,9 @@ export function Navbar({ tabs, activeTab, onTabChange }) {
           </div>
 
           {/* Mobile hamburger */}
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="rounded-md p-2 text-muted-foreground hover:text-foreground md:hidden"
-          >
+          <Button variant="ghost" size="icon" className="text-muted-foreground md:hidden" onClick={() => setMenuOpen(!menuOpen)}>
             {menuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
+          </Button>
         </div>
 
       </nav>

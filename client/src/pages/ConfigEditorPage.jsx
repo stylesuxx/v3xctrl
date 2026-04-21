@@ -10,6 +10,7 @@ import { adaptSchemaForRjsf, buildUiSchema } from '@/lib/schemaUtils'
 import { ReconnectDialog } from '@/components/shared/ReconnectDialog'
 import { toast } from 'sonner'
 import { RefreshCw } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 // Maps config sections to the service that needs restarting after changes.
 // null = full system reboot, string = specific service name, undefined = save only.
@@ -146,13 +147,10 @@ export function ConfigEditorPage() {
     return (
       <div className="space-y-2">
         <p className="text-sm text-red-500">{t('errors.fetchFailed')}</p>
-        <button
-          onClick={fetchConfig}
-          className="inline-flex h-8 items-center gap-1 rounded-md bg-secondary px-3 text-sm font-medium text-secondary-foreground hover:bg-secondary/80"
-        >
+        <Button variant="secondary" size="sm" onClick={fetchConfig}>
           <RefreshCw className="h-3 w-3" />
           {t('errors.retry')}
-        </button>
+        </Button>
       </div>
     )
   }
@@ -194,24 +192,20 @@ export function ConfigEditorPage() {
             liveValidate
           >
             <div className="mt-4 flex justify-end gap-3">
-              <button
-                type="submit"
-                disabled={!dirty || saving}
-                className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-              >
+              <Button type="submit" disabled={!dirty || saving}>
                 {t('config.saveButton')}
-              </button>
+              </Button>
               {activeSection in SECTION_RESTART && (
-                <button
+                <Button
                   type="button"
+                  variant="destructive"
                   disabled={!dirty || saving}
                   onClick={handleSaveAndRestart}
-                  className="inline-flex h-9 items-center rounded-md bg-destructive px-4 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
                 >
                   {SECTION_RESTART[activeSection] === null
                     ? t('config.saveAndRestart')
                     : t('config.saveAndRestartService', { service: SECTION_RESTART[activeSection] })}
-                </button>
+                </Button>
               )}
             </div>
           </Form>

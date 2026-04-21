@@ -6,6 +6,7 @@ import { useCalibrationStore } from '@/stores/calibration'
 import { ServiceWarning } from '@/components/shared/ServiceWarning'
 import { PwmControl } from '@/components/shared/PwmControl'
 import { Info } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 export function CalibrationPage() {
   const { t } = useTranslation()
@@ -72,12 +73,9 @@ export function CalibrationPage() {
             />
 
             <div className="flex justify-end">
-              <button
-                onClick={saveSteeringCalibration}
-                className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-              >
+              <Button onClick={saveSteeringCalibration}>
                 {t('calibration.saveCalibration')}
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -109,12 +107,9 @@ export function CalibrationPage() {
             />
 
             <div className="flex justify-end">
-              <button
-                onClick={saveThrottleCalibration}
-                className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-              >
+              <Button onClick={saveThrottleCalibration}>
                 {t('calibration.saveCalibration')}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

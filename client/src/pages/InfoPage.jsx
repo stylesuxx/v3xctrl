@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useConnectionStore } from '@/stores/connection'
 import { systemApi } from '@/api/system'
 import { RefreshCw, Download, Trash2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 function formatFileSize(bytes) {
   if (bytes < 1024) {
@@ -72,13 +73,10 @@ export function InfoPage() {
     return (
       <div className="space-y-2">
         <p className="text-sm text-red-500">{t('errors.fetchFailed')}</p>
-        <button
-          onClick={fetchInfo}
-          className="inline-flex h-8 items-center gap-1 rounded-md bg-secondary px-3 text-sm font-medium text-secondary-foreground hover:bg-secondary/80"
-        >
+        <Button variant="secondary" size="sm" onClick={fetchInfo}>
           <RefreshCw className="h-3 w-3" />
           {t('errors.retry')}
-        </button>
+        </Button>
       </div>
     )
   }
@@ -142,13 +140,10 @@ export function InfoPage() {
                         <Download className="h-3 w-3" />
                         {t('info.download')}
                       </a>
-                      <button
-                        onClick={() => deleteArchive(archive.name)}
-                        className="inline-flex h-7 items-center gap-1 rounded-md bg-destructive px-2 text-xs font-medium text-destructive-foreground hover:bg-destructive/80"
-                      >
+                      <Button variant="destructive" size="sm" className="h-7 px-2 text-xs" onClick={() => deleteArchive(archive.name)}>
                         <Trash2 className="h-3 w-3" />
                         {t('info.delete')}
-                      </button>
+                      </Button>
                     </div>
                   </td>
                 </tr>

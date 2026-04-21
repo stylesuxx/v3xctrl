@@ -5,6 +5,7 @@ import { useConnectionStore } from '@/stores/connection'
 import { modemApi } from '@/api/modem'
 import { ServiceWarning } from '@/components/shared/ServiceWarning'
 import { Loader2, RefreshCw } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 export function ModemPage() {
   const { t } = useTranslation()
@@ -66,21 +67,13 @@ export function ModemPage() {
       {controlInactive && (
         <>
           <div className="flex items-center justify-between">
-            <button
-              onClick={handleReset}
-              disabled={resetting || fetching}
-              className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-            >
+            <Button onClick={handleReset} disabled={resetting || fetching}>
               {resetting ? t('modem.resetting') : t('modem.reset')}
-            </button>
-            <button
-              onClick={fetchModemInfo}
-              disabled={fetching || resetting}
-              className="inline-flex h-9 items-center gap-1 rounded-md bg-secondary px-4 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50"
-            >
+            </Button>
+            <Button variant="secondary" onClick={fetchModemInfo} disabled={fetching || resetting}>
               <RefreshCw className={`h-3 w-3 ${fetching ? 'animate-spin' : ''}`} />
               {modemInfo ? t('modem.refresh') : t('errors.retry')}
-            </button>
+            </Button>
           </div>
 
           {modemError ? (
