@@ -45,7 +45,8 @@
       "scaleReverse": 100,
       "minForward": 0,
       "minReverse": 0,
-      "idle": 1500
+      "idle": 1500,
+      "expo": 0
     },
     "steering": {
       "min": 1000,
@@ -53,7 +54,8 @@
       "failsafe": 1500,
       "trim": 0,
       "scale": 100,
-      "invert": false
+      "invert": false,
+      "expo": 0
     },
     "pwm": {
       "throttle": 0,
