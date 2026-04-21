@@ -16,6 +16,7 @@
     "@rjsf/shadcn": "^6.3.1",
     "@rjsf/utils": "^6.3.1",
     "@rjsf/validator-ajv8": "^6.3.1",
+    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "i18next": "^25.8.13",
     "lucide-react": "^0.575.0",
@@ -23,8 +24,8 @@
     "react-dom": "^19.2.0",
     "react-i18next": "^16.5.4",
     "sonner": "^2.0.7",
-    "tailwind-merge": "^3.5.0",
     "swagger-ui-dist": "^5.32.0",
+    "tailwind-merge": "^3.5.0",
     "zustand": "5.0.11"
   },
   "devDependencies": {

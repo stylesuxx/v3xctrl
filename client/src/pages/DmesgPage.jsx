@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useConnectionStore } from '@/stores/connection'
 import { systemApi } from '@/api/system'
 import { RefreshCw } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 export function DmesgPage() {
   const { t } = useTranslation()
@@ -32,14 +33,10 @@ export function DmesgPage() {
   return (
     <div className="space-y-3">
       <div className="flex justify-end">
-        <button
-          onClick={fetchDmesg}
-          disabled={loading}
-          className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-        >
+        <Button onClick={fetchDmesg} disabled={loading}>
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           {t('dmesg.refresh')}
-        </button>
+        </Button>
       </div>
       <textarea
         readOnly

@@ -6,6 +6,7 @@ import { useCameraStore } from '@/stores/camera'
 import { ServiceWarning } from '@/components/shared/ServiceWarning'
 import { Info } from 'lucide-react'
 import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 
 const CAMERA_SETTINGS = [
   { name: 'brightness', labelKey: 'camera.brightness', min: -1.0, max: 1.0, step: 0.1 },
@@ -51,14 +52,14 @@ export function CameraPage() {
       />
 
       {videoActive && (
-        <>
+        <div className="w-full space-y-3 lg:w-1/2">
           <div className="flex items-start gap-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-800 dark:bg-blue-950/30 dark:text-blue-300">
             <Info className="mt-0.5 h-4 w-4 shrink-0" />
             <p>{t('camera.note')}</p>
           </div>
 
           {CAMERA_SETTINGS.map((setting) => (
-            <div key={setting.name} className="mb-3">
+            <div key={setting.name}>
               <label className="mb-1 block text-sm font-medium sm:hidden">
                 {t(setting.labelKey)}
               </label>
@@ -75,26 +76,23 @@ export function CameraPage() {
                   onChange={(e) => updateSetting(setting.name, e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
                   className="h-9 w-28 shrink-0 rounded-md border border-input bg-background px-3 text-sm"
                 />
-                <button
-                  onClick={() => applySetting(setting.name)}
-                  className="inline-flex h-9 flex-1 items-center justify-center rounded-md bg-secondary text-sm font-medium text-secondary-foreground hover:bg-secondary/80"
-                >
+                <Button variant="secondary" className="flex-1" onClick={() => applySetting(setting.name)}>
                   {t('camera.set')}
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
+                  variant="secondary"
+                  className="flex-1"
                   onClick={() => applySettingWithValue(setting.name, Math.round(((settings[setting.name] || 0) + setting.step) * 1e6) / 1e6)}
-                  className="inline-flex h-9 flex-1 items-center justify-center rounded-md bg-secondary text-sm font-medium text-secondary-foreground hover:bg-secondary/80"
                 >
                   +{setting.step}
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
+                  variant="secondary"
+                  className="flex-1"
                   onClick={() => applySettingWithValue(setting.name, Math.round(((settings[setting.name] || 0) - setting.step) * 1e6) / 1e6)}
-                  className="inline-flex h-9 flex-1 items-center justify-center rounded-md bg-secondary text-sm font-medium text-secondary-foreground hover:bg-secondary/80"
                 >
                   -{setting.step}
-                </button>
+                </Button>
               </div>
               {setting.noteKey && (
                 <p className="mt-1 text-xs text-muted-foreground sm:ml-47">
@@ -105,14 +103,11 @@ export function CameraPage() {
           ))}
 
           <div className="flex justify-end">
-            <button
-              onClick={handleSave}
-              className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-            >
+            <Button onClick={handleSave}>
               {t('camera.saveSettings')}
-            </button>
+            </Button>
           </div>
-        </>
+        </div>
       )}
     </div>
   )

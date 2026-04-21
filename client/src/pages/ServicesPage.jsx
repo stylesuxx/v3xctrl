@@ -2,6 +2,7 @@ import { useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useServicesStore } from '@/stores/services'
 import { Loader2, RefreshCw, X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 function getServiceStatus(service) {
   switch (service.type) {
@@ -32,10 +33,8 @@ function getServiceStatus(service) {
   }
 }
 
-const ACTION_BTN =
-  'w-20 rounded bg-primary py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50'
-const LOG_BTN =
-  'w-20 rounded bg-secondary py-1 text-xs font-medium text-secondary-foreground hover:bg-secondary/80'
+const ACTION_BTN = 'w-20 text-xs'
+const LOG_BTN = 'w-20 text-xs'
 
 export function ServicesPage() {
   const { t } = useTranslation()
@@ -91,13 +90,10 @@ export function ServicesPage() {
     return (
       <div className="space-y-2">
         <p className="text-sm text-red-500">{t('errors.fetchFailed')}</p>
-        <button
-          onClick={fetchServices}
-          className="inline-flex h-8 items-center gap-1 rounded-md bg-secondary px-3 text-sm font-medium text-secondary-foreground hover:bg-secondary/80"
-        >
+        <Button variant="secondary" size="sm" onClick={fetchServices}>
           <RefreshCw className="h-3 w-3" />
           {t('errors.retry')}
-        </button>
+        </Button>
       </div>
     )
   }
@@ -113,14 +109,10 @@ export function ServicesPage() {
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <button
-          onClick={fetchServices}
-          disabled={loading}
-          className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-        >
+        <Button onClick={fetchServices} disabled={loading}>
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           {t('services.refresh')}
-        </button>
+        </Button>
       </div>
       <div className="rounded-lg border">
         <table className="w-full text-sm">
@@ -153,48 +145,29 @@ export function ServicesPage() {
                     <div className="flex flex-col items-end gap-1 sm:flex-row sm:gap-2">
                       {(service.type === 'simple' || service.type === 'forking') && (
                         status.success ? (
-                          <button
-                            onClick={() => stopService(service.name)}
-                            disabled={isActionPending}
-                            className={ACTION_BTN}
-                          >
+                          <Button size="sm" className={ACTION_BTN} onClick={() => stopService(service.name)} disabled={isActionPending}>
                             {t('services.actions.stop')}
-                          </button>
+                          </Button>
                         ) : (
-                          <button
-                            onClick={() => startService(service.name)}
-                            disabled={isActionPending}
-                            className={ACTION_BTN}
-                          >
+                          <Button size="sm" className={ACTION_BTN} onClick={() => startService(service.name)} disabled={isActionPending}>
                             {t('services.actions.start')}
-                          </button>
+                          </Button>
                         )
                       )}
                       {service.type === 'oneshot' && (
                         status.success && service.state === 'activating' ? (
-                          <button
-                            onClick={() => stopService(service.name)}
-                            disabled={isActionPending}
-                            className={ACTION_BTN}
-                          >
+                          <Button size="sm" className={ACTION_BTN} onClick={() => stopService(service.name)} disabled={isActionPending}>
                             {t('services.actions.stop')}
-                          </button>
+                          </Button>
                         ) : (
-                          <button
-                            onClick={() => restartService(service.name)}
-                            disabled={isActionPending}
-                            className={ACTION_BTN}
-                          >
+                          <Button size="sm" className={ACTION_BTN} onClick={() => restartService(service.name)} disabled={isActionPending}>
                             {t('services.actions.restart')}
-                          </button>
+                          </Button>
                         )
                       )}
-                      <button
-                        onClick={() => fetchLog(service.name)}
-                        className={LOG_BTN}
-                      >
+                      <Button variant="secondary" size="sm" className={LOG_BTN} onClick={() => fetchLog(service.name)}>
                         {t('services.actions.showLogs')}
-                      </button>
+                      </Button>
                     </div>
                   </td>
                 </tr>
@@ -221,12 +194,9 @@ export function ServicesPage() {
           >
             <div className="flex shrink-0 items-center justify-between border-b px-4 py-3">
               <h2 className="text-sm font-semibold">{logServiceName}</h2>
-              <button
-                onClick={clearLog}
-                className="rounded-md p-1 hover:bg-muted"
-              >
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={clearLog}>
                 <X className="h-4 w-4" />
-              </button>
+              </Button>
             </div>
             {logLoading ? (
               <div className="flex items-center justify-center py-12">
