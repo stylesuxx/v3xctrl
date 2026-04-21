@@ -192,12 +192,12 @@ class AppState:
         # Wait for any pending network restart
         self.settings_controller.wait_for_network_restart()
 
-        pygame.quit()
-
         start = time.monotonic()
         self.input_controller.shutdown()
         delta = round(time.monotonic() - start)
         logger.debug(f"Input manager shut down after {delta}s")
+
+        pygame.quit()
 
         self.network_coordinator.shutdown()
 
