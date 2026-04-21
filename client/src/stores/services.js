@@ -110,6 +110,6 @@ export const useServicesStore = create((set, get) => ({
   isServiceInactive: (name) => {
     const { services } = get()
     const svc = services.find((s) => s.name === name)
-    return svc?.state === 'inactive'
+    return svc?.state !== 'active'
   },
 }))

@@ -62,7 +62,7 @@ describe('useServicesStore', () => {
     await useServicesStore.getState().fetchServices()
     const store = useServicesStore.getState()
     expect(store.isServiceActive('nonexistent')).toBe(false)
-    expect(store.isServiceInactive('nonexistent')).toBeFalsy()
+    expect(store.isServiceInactive('nonexistent')).toBeTruthy()
   })
 
   it('fetches service log', async () => {
