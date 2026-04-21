@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useConnectionStore } from '@/stores/connection'
 import { Search, Monitor, ArrowRight, TriangleAlert } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 const COMMON_SUBNETS = ['192.168.1', '192.168.0', '10.0.0', '172.16.0']
 
@@ -93,14 +94,10 @@ export function DeviceDiscovery() {
             <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">
               {t('discovery.lastConnected')}
             </p>
-            <button
-              onClick={() => handleConnect(lastDevice)}
-              disabled={busy}
-              className="flex w-full items-center justify-between rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-            >
+            <Button className="w-full justify-between" onClick={() => handleConnect(lastDevice)} disabled={busy}>
               <span>{lastDevice}</span>
               <ArrowRight className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
         )}
 
@@ -119,14 +116,10 @@ export function DeviceDiscovery() {
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm sm:flex-1"
                 disabled={busy}
               />
-              <button
-                onClick={handleScan}
-                disabled={busy}
-                className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-              >
+              <Button onClick={handleScan} disabled={busy}>
                 <Search className="h-4 w-4" />
                 {isScanning ? t('discovery.scanning') : t('discovery.scanButton')}
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -136,14 +129,16 @@ export function DeviceDiscovery() {
               {t('discovery.commonSubnets')}:
             </span>
             {COMMON_SUBNETS.map((subnet) => (
-              <button
+              <Button
                 key={subnet}
+                variant="secondary"
+                size="sm"
+                className="h-auto px-2 py-0.5 text-xs"
                 onClick={() => setSubnetBase(subnet)}
                 disabled={busy}
-                className="rounded bg-secondary px-2 py-0.5 text-xs text-secondary-foreground hover:bg-secondary/80"
               >
                 {subnet}
-              </button>
+              </Button>
             ))}
           </div>
 
@@ -170,11 +165,12 @@ export function DeviceDiscovery() {
                 {t('discovery.found', { count: discoveredDevices.length })}
               </p>
               {discoveredDevices.map((device) => (
-                <button
+                <Button
                   key={device.ip}
+                  variant="outline"
+                  className="h-auto w-full justify-between p-3 text-left"
                   onClick={() => handleConnect(device.url)}
                   disabled={connecting}
-                  className="flex w-full items-center justify-between rounded-md border p-3 text-left hover:bg-accent disabled:opacity-50"
                 >
                   <div className="flex items-center gap-3">
                     <Monitor className="h-5 w-5 text-muted-foreground" />
@@ -186,7 +182,7 @@ export function DeviceDiscovery() {
                     </div>
                   </div>
                   <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                </button>
+                </Button>
               ))}
             </div>
           )}
@@ -213,13 +209,9 @@ export function DeviceDiscovery() {
               className="h-9 rounded-md border border-input bg-background px-3 text-sm sm:flex-1"
               disabled={busy}
             />
-            <button
-              onClick={handleManualConnect}
-              disabled={!manualAddress.trim() || busy}
-              className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-            >
+            <Button onClick={handleManualConnect} disabled={!manualAddress.trim() || busy}>
               {connecting ? t('discovery.connecting') : t('discovery.connect')}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

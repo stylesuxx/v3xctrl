@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { Button } from '@/components/ui/button'
 
 export function PwmControl({ label, value, onChange, onSend }) {
   const { t } = useTranslation()
@@ -20,27 +21,15 @@ export function PwmControl({ label, value, onChange, onSend }) {
           onChange={(e) => onChange(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
           className="h-9 w-28 shrink-0 rounded-md border border-input bg-background px-3 text-sm"
         />
-        <button
-          type="button"
-          onClick={() => onSend(value)}
-          className="inline-flex h-9 flex-1 items-center justify-center rounded-md bg-secondary text-sm font-medium text-secondary-foreground hover:bg-secondary/80"
-        >
+        <Button variant="secondary" className="flex-1" onClick={() => onSend(value)}>
           {t('calibration.send')}
-        </button>
-        <button
-          type="button"
-          onClick={() => handleChange(value + 10)}
-          className="inline-flex h-9 flex-1 items-center justify-center rounded-md bg-secondary text-sm font-medium text-secondary-foreground hover:bg-secondary/80"
-        >
+        </Button>
+        <Button variant="secondary" className="flex-1" onClick={() => handleChange(value + 10)}>
           +10
-        </button>
-        <button
-          type="button"
-          onClick={() => handleChange(value - 10)}
-          className="inline-flex h-9 flex-1 items-center justify-center rounded-md bg-secondary text-sm font-medium text-secondary-foreground hover:bg-secondary/80"
-        >
+        </Button>
+        <Button variant="secondary" className="flex-1" onClick={() => handleChange(value - 10)}>
           -10
-        </button>
+        </Button>
       </div>
     </div>
   )
