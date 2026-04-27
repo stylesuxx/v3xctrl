@@ -1,6 +1,8 @@
 FROM arm64v8/debian:trixie
 
+ARG VERSION
 ENV DEBIAN_FRONTEND=noninteractive
+ENV VERSION=${VERSION}
 
 # Install base tools and deps for package build
 RUN apt-get update

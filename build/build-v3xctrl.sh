@@ -54,6 +54,28 @@ mkdir -p "${PYTHON_LIB_PATH}"
 # Move files into place
 cp -r "${SRC_DIR}/" "$TMP_DIR"
 
+# Resolve package version
+# VERSION env var can be: "1.0.0", "1.0.0-RC1", or unset (dev build).
+# Converts to Debian-compatible versions using tilde for pre-release:
+#   1.0.0-RC1  -> 1.0.0~rc1
+#   1.0.0      -> 1.0.0
+#   (unset)    -> <base>~dev.<timestamp>.<hash>  (from DEBIAN/control + git)
+CONTROL_FILE="${DEST_DIR}/DEBIAN/control"
+BASE_VERSION=$(grep '^Version:' "${CONTROL_FILE}" | awk '{print $2}')
+
+if [ -n "${VERSION:-}" ]; then
+  # Explicit version: convert "1.0.0-RC1" to "1.0.0~rc1"
+  DEB_VERSION=$(echo "$VERSION" | sed 's/-\(.*\)/~\L\1/')
+else
+  # Dev build: append ~dev.<timestamp>.<short hash>
+  TIMESTAMP=$(date -u +%Y%m%d%H%M%S)
+  SHORT_HASH=$(git -C "${ROOT_DIR}" rev-parse --short HEAD 2>/dev/null || echo "unknown")
+  DEB_VERSION="${BASE_VERSION}~dev.${TIMESTAMP}.${SHORT_HASH}"
+fi
+
+echo "[BUILD] Package version: ${DEB_VERSION}"
+sed -i "s/^Version: .*/Version: ${DEB_VERSION}/" "${CONTROL_FILE}"
+
 # Move python dependencies into place
 cp -r "${ROOT_DIR}/src/v3xctrl_control" "${PYTHON_LIB_PATH}"
 cp -r "${ROOT_DIR}/src/v3xctrl_gst" "${PYTHON_LIB_PATH}"

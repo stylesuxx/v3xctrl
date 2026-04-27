@@ -7,6 +7,10 @@ on:
         description: 'Git branch to build'
         required: true
         default: 'master'
+      version:
+        description: 'Package version (e.g. 1.0.0, 1.0.0-RC1). Leave empty for dev build.'
+        required: false
+        default: ''
 
 jobs:
   build-arm64-deb:
@@ -37,6 +41,19 @@ jobs:
             https://api.github.com/repos/${{ github.repository }}/releases/assets/$ASSET_ID \
             -o v3xctrl-python.deb
 
+      - name: Resolve dev version
+        if: ${{ !inputs.version }}
+        run: |
+          BASE_VERSION=$(grep '^Version:' build/packages/v3xctrl/DEBIAN/control | awk '{print $2}')
+          TIMESTAMP=$(date -u +%Y%m%d%H%M%S)
+          SHORT_HASH=$(git rev-parse --short HEAD)
+          echo "VERSION=${BASE_VERSION}~dev.${TIMESTAMP}.${SHORT_HASH}" >> $GITHUB_ENV
+
+      - name: Set explicit version
+        if: ${{ inputs.version }}
+        run: |
+          echo "VERSION=${{ inputs.version }}" >> $GITHUB_ENV
+
       - name: Set up QEMU for ARM emulation
         uses: docker/setup-qemu-action@v4
         with:
@@ -55,6 +72,8 @@ jobs:
           outputs: type=local,dest=./build/out
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            VERSION=${{ env.VERSION }}
 
       - name: Upload built .deb package
         uses: actions/upload-artifact@v7
