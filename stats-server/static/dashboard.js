@@ -26,12 +26,10 @@
 
   let timerId = null;
 
-  const autoRefreshCheckbox = document.getElementById("auto-refresh");
   const intervalSelect = document.getElementById("refresh-interval");
   const refreshNowButton = document.getElementById("refresh-now");
   const lastUpdatedElement = document.getElementById("last-updated");
   const pulseElement = document.getElementById("pulse");
-  const summaryBody = document.getElementById("summary-body");
   const sessionsBody = document.getElementById("sessions-body");
 
   function getIntervalMilliseconds() {
@@ -248,10 +246,9 @@
 
   function startAutoRefresh() {
     stopAutoRefresh();
-    if (autoRefreshCheckbox.checked) {
-      timerId = setInterval(fetchStats, getIntervalMilliseconds());
-      pulseElement.style.display = "";
-    }
+
+    timerId = setInterval(fetchStats, getIntervalMilliseconds());
+    pulseElement.style.display = "";
   }
 
   function stopAutoRefresh() {
@@ -262,18 +259,8 @@
     pulseElement.style.display = "none";
   }
 
-  autoRefreshCheckbox.addEventListener("change", function () {
-    if (this.checked) {
-      startAutoRefresh();
-    } else {
-      stopAutoRefresh();
-    }
-  });
-
   intervalSelect.addEventListener("change", function () {
-    if (autoRefreshCheckbox.checked) {
-      startAutoRefresh();
-    }
+    startAutoRefresh();
   });
 
   refreshNowButton.addEventListener("click", fetchStats);
@@ -281,7 +268,7 @@
   document.addEventListener("visibilitychange", function () {
     if (document.hidden) {
       stopAutoRefresh();
-    } else if (autoRefreshCheckbox.checked) {
+    } else {
       fetchStats();
       startAutoRefresh();
     }
