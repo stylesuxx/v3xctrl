@@ -102,7 +102,14 @@ cp "./build/chroot/build-debs.sh" "${MOUNT_DIR}"
 chmod +x "${MOUNT_DIR}/build-debs.sh"
 
 echo "[HOST] Entering chroot and starting build"
-chroot "$MOUNT_DIR" bash -c "./build-debs.sh ${BUILD_PARAMS}"
+# Resolve version on the host where .git is available, pass it into the chroot
+if [ -z "${VERSION:-}" ]; then
+  BASE_VERSION=$(grep '^Version:' "./${PACKAGES_DIR}/v3xctrl/DEBIAN/control" | awk '{print $2}')
+  TIMESTAMP=$(date -u +%Y%m%d%H%M%S)
+  SHORT_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+  export VERSION="${BASE_VERSION}~dev.${TIMESTAMP}.${SHORT_HASH}"
+fi
+chroot "$MOUNT_DIR" bash -c "VERSION='${VERSION}' ./build-debs.sh ${BUILD_PARAMS}"
 
 echo "[HOST] Copying deb packages into place"
 cp ${MOUNT_DIR}/src/build/tmp/*.deb "${DEB_PATH}"
