@@ -29,6 +29,39 @@ import java.net.SocketException
 import java.net.SocketTimeoutException
 import java.util.concurrent.ConcurrentHashMap
 
+/**
+ * Resolves the [Control] message that should go on the wire for one tick of
+ * the state loop. Pure for testability.
+ *
+ * Returns a neutral (zero) Control when transmission should be suppressed
+ * (paused by the user or controls inactive because the viewer isn't
+ * foregrounded). Otherwise scales [ControlState.throttle] and
+ * [ControlState.steering] with the configured forward/backward/steering
+ * scales.
+ */
+internal fun resolveControlMessage(
+    state: ControlState?,
+    controlsActive: Boolean,
+    forwardScale: Float,
+    backwardScale: Float,
+    steeringScale: Float
+): Control {
+    val paused = state?.paused ?: false
+    if (paused || !controlsActive) {
+        return Control(throttle = 0.0, steering = 0.0)
+    }
+
+    val rawThrottle = state?.throttle?.toDouble() ?: 0.0
+    val throttle = if (rawThrottle >= 0) {
+        rawThrottle * forwardScale
+    } else {
+        rawThrottle * backwardScale
+    }
+    val steering = (state?.steering?.toDouble() ?: 0.0) * steeringScale
+
+    return Control(throttle = throttle, steering = steering)
+}
+
 private const val TAG = "UDPReceiver"
 private const val BUFFER_SIZE = 65535
 private const val SOCKET_TIMEOUT_MS = 1000
@@ -75,6 +108,18 @@ class UDPReceiver(
     @Volatile private var isRunning = false
     @Volatile private var isConnected = false
     @Volatile private var receivedPeerInfo = false
+
+    /**
+     * When false, the control loop forces throttle=0/steering=0 on the wire,
+     * regardless of [controlState]. Frames are still transmitted so the
+     * streamers timeout doesn't fire. Same wire-side semantics as
+     * [ControlState.paused].
+     */
+    @Volatile private var controlsActive: Boolean = true
+
+    fun setControlsActive(active: Boolean) {
+        controlsActive = active
+    }
 
     fun start() {
         if (isRunning) {
@@ -143,15 +188,14 @@ class UDPReceiver(
         while (isRunning && receiverScope.isActive) {
             if (isConnected) {
                 lastPeerAddress?.let { addr ->
-                    val paused = controlState?.paused ?: false
-                    if (paused) {
-                        sendControl(Control(throttle = 0.0, steering = 0.0), addr, lastPeerPort)
-                    } else {
-                        val rawThrottle = controlState?.throttle?.toDouble() ?: 0.0
-                        val throttle = if (rawThrottle >= 0) rawThrottle * forwardScale else rawThrottle * backwardScale
-                        val steering = (controlState?.steering?.toDouble() ?: 0.0) * steeringScale
-                        sendControl(Control(throttle = throttle, steering = steering), addr, lastPeerPort)
-                    }
+                    val message = resolveControlMessage(
+                        controlState,
+                        controlsActive,
+                        forwardScale,
+                        backwardScale,
+                        steeringScale
+                    )
+                    sendControl(message, addr, lastPeerPort)
                 }
             }
 

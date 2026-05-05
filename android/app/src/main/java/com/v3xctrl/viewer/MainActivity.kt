@@ -462,6 +462,7 @@ class MainActivity : ComponentActivity() {
                             spectatorMode = networkSettings.spectatorMode,
                             controlSettings = controlSettings,
                             isInPipMode = isInPipMode,
+                            isViewerForegrounded = currentScreen == Screen.Viewer,
                             isReconnecting = isReconnecting,
                             reconnectionGeneration = reconnectionGeneration,
                             onBack = {
