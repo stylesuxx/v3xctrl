@@ -8,6 +8,7 @@ import android.content.res.Configuration
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.view.InputDevice
+import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.view.WindowManager
@@ -78,6 +79,7 @@ fun ViewerScreen(
     spectatorMode: Boolean = false,
     controlSettings: ControlSettings = ControlSettings(),
     isInPipMode: Boolean = false,
+    isViewerForegrounded: Boolean = true,
     isReconnecting: Boolean = false,
     reconnectionGeneration: Int = 0,
     onBack: () -> Unit,
@@ -171,9 +173,9 @@ fun ViewerScreen(
     // Gamepad controller for USB/Bluetooth HID controllers
     val isGamepadMode = controlSettings.controlMode == "gamepad" && !spectatorMode
 
-    // Start/stop motion controller based on mode and orientation (disabled in PiP)
-    DisposableEffect(isMotionMode, isLandscape, isInPipMode, controlSettings.motionSteeringDeg, controlSettings.motionForwardDeg, controlSettings.motionBackwardDeg, controlSettings.motionSteeringInvert, controlSettings.motionThrottleInvert) {
-        if (isMotionMode && isLandscape && !isInPipMode) {
+    // Start/stop motion controller based on mode and orientation (disabled in PiP and menus)
+    DisposableEffect(isMotionMode, isLandscape, isInPipMode, isViewerForegrounded, controlSettings.motionSteeringDeg, controlSettings.motionForwardDeg, controlSettings.motionBackwardDeg, controlSettings.motionSteeringInvert, controlSettings.motionThrottleInvert) {
+        if (isMotionMode && isLandscape && !isInPipMode && isViewerForegrounded) {
             val controller = MotionController(
                 context = context,
                 controlState = controlState,
@@ -192,10 +194,11 @@ fun ViewerScreen(
         }
     }
 
-    // Start/stop gamepad controller based on mode and orientation
-    DisposableEffect(isGamepadMode, isLandscape, controlSettings.gamepadDeviceName, controlSettings.gamepadSteeringAxis, controlSettings.gamepadSteeringSign, controlSettings.gamepadThrottleAxis, controlSettings.gamepadThrottleSign, controlSettings.gamepadReverseAxis, controlSettings.gamepadReverseSign, controlSettings.gamepadSteeringInvert, controlSettings.gamepadThrottleInvert, controlSettings.gamepadReverseInvert) {
+    // Start/stop gamepad controller based on mode and orientation (disabled in menus)
+    DisposableEffect(isGamepadMode, isLandscape, isViewerForegrounded, controlSettings.gamepadDeviceName, controlSettings.gamepadSteeringAxis, controlSettings.gamepadSteeringSign, controlSettings.gamepadThrottleAxis, controlSettings.gamepadThrottleSign, controlSettings.gamepadReverseAxis, controlSettings.gamepadReverseSign, controlSettings.gamepadSteeringInvert, controlSettings.gamepadThrottleInvert, controlSettings.gamepadReverseInvert) {
         val activity = context as? MainActivity
-        if (isGamepadMode && isLandscape) {
+        var installedHandler: ((MotionEvent) -> Boolean)? = null
+        if (isGamepadMode && isLandscape && isViewerForegrounded) {
             val selectedDeviceId = if (controlSettings.gamepadDeviceName.isNotEmpty()) {
                 InputDevice.getDeviceIds()
                     .toList()
@@ -219,10 +222,16 @@ fun ViewerScreen(
                 throttleInvert = controlSettings.gamepadThrottleInvert,
                 reverseInvert = controlSettings.gamepadReverseInvert
             )
-            activity?.onGamepadMotionEvent = { controller.handleMotionEvent(it) }
+            val handler: (MotionEvent) -> Boolean = { controller.handleMotionEvent(it) }
+            activity?.onGamepadMotionEvent = handler
+            installedHandler = handler
         }
         onDispose {
-            activity?.onGamepadMotionEvent = null
+            // Only null the slot if it still holds the handler we installed.
+            // ControlScreen may have taken ownership of it in the meantime.
+            if (installedHandler != null && activity?.onGamepadMotionEvent === installedHandler) {
+                activity?.onGamepadMotionEvent = null
+            }
             controlState.reset()
         }
     }
@@ -230,6 +239,19 @@ fun ViewerScreen(
     // Reset controls when switching to portrait mode
     if (!isLandscape) {
         controlState.reset()
+    }
+
+    // Reset controls whenever we are not the foregrounded screen (in a menu).
+    // Belt and suspenders alongside the input-controller gates above and the
+    // wire-side gate in UDPReceiver.
+    if (!isViewerForegrounded) {
+        controlState.reset()
+    }
+
+    // Wire-side gate: while not foregrounded, force the control loop to send
+    // throttle=0/steering=0 even if controlState somehow holds a stale value.
+    LaunchedEffect(isViewerForegrounded, udpReceiver) {
+        udpReceiver?.setControlsActive(isViewerForegrounded)
     }
 
     // Poll control channel timeout
