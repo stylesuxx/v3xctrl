@@ -59,9 +59,9 @@
     <string name="control_select_gamepad">Select a controller</string>
     <string name="control_no_gamepads">No gamepads detected</string>
     <string name="control_calibrate">Calibrate</string>
-    <string name="control_calibrate_steering">Move the steering axis through its full range. Hold right, then press OK.</string>
-    <string name="control_calibrate_throttle">Move the throttle axis through its full range. Hold forward, then press OK.</string>
-    <string name="control_calibrate_reverse">Move the reverse axis through its full range. Hold in reverse, then press OK.</string>
+    <string name="control_calibrate_steering">Move the steering axis through its full range, then release and press OK.</string>
+    <string name="control_calibrate_throttle">Move the throttle axis through its full range, then release and press OK.</string>
+    <string name="control_calibrate_reverse">Move the reverse axis through its full range, then release and press OK.</string>
     <string name="control_gamepad_steering">Steering</string>
     <string name="control_gamepad_throttle">Throttle</string>
     <string name="control_gamepad_forward">Forward</string>

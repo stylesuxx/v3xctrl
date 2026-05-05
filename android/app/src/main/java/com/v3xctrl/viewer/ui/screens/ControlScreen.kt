@@ -265,12 +265,9 @@ fun ControlScreen(
                         val isCalibrating = remember { mutableStateOf(false) }
                         val calibrationStep = remember { mutableIntStateOf(0) }
                         val axisRanges = remember { Array(AXES_TO_CHECK.size) { floatArrayOf(Float.MAX_VALUE, Float.MIN_VALUE) } }
-                        val lastAxisValues = remember { FloatArray(AXES_TO_CHECK.size) }
                         val detectedRange = remember { mutableFloatStateOf(0f) }
                         val calSteeringAxis = remember { mutableIntStateOf(0) }
-                        val calSteeringSign = remember { mutableIntStateOf(1) }
                         val calThrottleAxis = remember { mutableIntStateOf(0) }
-                        val calThrottleSign = remember { mutableIntStateOf(1) }
 
                         // Live display state
                         val liveSteering = remember { mutableFloatStateOf(0f) }
@@ -292,7 +289,7 @@ fun ControlScreen(
 
                         // Single handler for both calibration and live display
                         DisposableEffect(selectedDeviceId) {
-                            activity?.onGamepadMotionEvent = { event ->
+                            val handler: (MotionEvent) -> Boolean = { event ->
                                 if (event.source and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK &&
                                     event.action == MotionEvent.ACTION_MOVE &&
                                     (selectedDeviceId == null || event.deviceId == selectedDeviceId)
@@ -303,7 +300,6 @@ fun ControlScreen(
                                             val v = event.getAxisValue(AXES_TO_CHECK[i])
                                             if (v < axisRanges[i][0]) axisRanges[i][0] = v
                                             if (v > axisRanges[i][1]) axisRanges[i][1] = v
-                                            lastAxisValues[i] = v
                                             val range = axisRanges[i][1] - axisRanges[i][0]
                                             if (range > maxRange) maxRange = range
                                         }
@@ -334,9 +330,15 @@ fun ControlScreen(
                                     false
                                 }
                             }
+                            activity?.onGamepadMotionEvent = handler
 
                             onDispose {
-                                activity?.onGamepadMotionEvent = null
+                                // Only null the slot if it still holds the
+                                // handler we installed - ViewerScreen may
+                                // have re-registered its own in the meantime.
+                                if (activity?.onGamepadMotionEvent === handler) {
+                                    activity?.onGamepadMotionEvent = null
+                                }
                             }
                         }
 
@@ -388,26 +390,23 @@ fun ControlScreen(
                                                     }
                                                 }
                                                 val axis = AXES_TO_CHECK[bestIdx]
-                                                val sign = if (lastAxisValues[bestIdx] >= 0f) 1 else -1
 
+                                                // Sign is left at +1 by design - calibration only
+                                                // identifies the axis mapping, not the polarity.
+                                                // Users flip the invert switch below if direction
+                                                // is wrong.
                                                 when (calibrationStep.intValue) {
-                                                    0 -> {
-                                                        calSteeringAxis.intValue = axis
-                                                        calSteeringSign.intValue = sign
-                                                    }
-                                                    1 -> {
-                                                        calThrottleAxis.intValue = axis
-                                                        calThrottleSign.intValue = sign
-                                                    }
+                                                    0 -> calSteeringAxis.intValue = axis
+                                                    1 -> calThrottleAxis.intValue = axis
                                                     2 -> {
                                                         curOnSettingsChange.value(
                                                             curSettings.value.copy(
                                                                 gamepadSteeringAxis = calSteeringAxis.intValue,
-                                                                gamepadSteeringSign = calSteeringSign.intValue,
+                                                                gamepadSteeringSign = 1,
                                                                 gamepadThrottleAxis = calThrottleAxis.intValue,
-                                                                gamepadThrottleSign = calThrottleSign.intValue,
+                                                                gamepadThrottleSign = 1,
                                                                 gamepadReverseAxis = axis,
-                                                                gamepadReverseSign = sign
+                                                                gamepadReverseSign = 1
                                                             )
                                                         )
                                                     }
