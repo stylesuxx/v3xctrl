@@ -18,7 +18,3 @@ class GstTelemetry:
 
     def get_state(self) -> GstFlags:
         return self._state
-
-    def get_byte(self) -> int:
-        """Return flags packed as a byte for telemetry transmission."""
-        return self._state.to_byte()

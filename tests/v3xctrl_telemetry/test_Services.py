@@ -93,7 +93,7 @@ class TestServiceTelemetry(unittest.TestCase):
         telemetry = ServiceTelemetry()
         telemetry.update()
 
-        assert telemetry.get_byte() == 0x00
+        assert int(telemetry.get_state()) == 0x00
 
     def test_get_byte_video_only(self):
         """Test get_byte() with only v3xctrl_video active (bit 0)."""
@@ -102,7 +102,7 @@ class TestServiceTelemetry(unittest.TestCase):
         telemetry = ServiceTelemetry()
         telemetry.update()
 
-        assert telemetry.get_byte() == 0x01  # 0000 0001
+        assert int(telemetry.get_state()) == 0x01  # 0000 0001
 
     def test_get_byte_reverse_shell_only(self):
         """Test get_byte() with only v3xctrl_reverse_shell active (bit 1)."""
@@ -111,7 +111,7 @@ class TestServiceTelemetry(unittest.TestCase):
         telemetry = ServiceTelemetry()
         telemetry.update()
 
-        assert telemetry.get_byte() == 0x02  # 0000 0010
+        assert int(telemetry.get_state()) == 0x02  # 0000 0010
 
     def test_get_byte_debug_only(self):
         """Test get_byte() with only v3xctrl_debug active (bit 2)."""
@@ -120,7 +120,7 @@ class TestServiceTelemetry(unittest.TestCase):
         telemetry = ServiceTelemetry()
         telemetry.update()
 
-        assert telemetry.get_byte() == 0x04  # 0000 0100
+        assert int(telemetry.get_state()) == 0x04  # 0000 0100
 
     def test_get_byte_all_services(self):
         """Test get_byte() with all services active."""
@@ -129,7 +129,7 @@ class TestServiceTelemetry(unittest.TestCase):
         telemetry = ServiceTelemetry()
         telemetry.update()
 
-        assert telemetry.get_byte() == 0x07  # 0000 0111
+        assert int(telemetry.get_state()) == 0x07  # 0000 0111
 
 
 if __name__ == "__main__":
