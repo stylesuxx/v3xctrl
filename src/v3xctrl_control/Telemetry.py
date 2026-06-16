@@ -1,24 +1,24 @@
 """
-This class collects telemetry data, all fetching of telemetry data should happen
-here.
+Telemetry coordinator.
 
-The only public interface is the get_telemetry() method.
+Owns a `TelemetryStore` plus one `TelemetryCollector` per data source. Each
+source is polled at its own configurable rate; the store is kept up to date
+in the background. The send loop reads the latest snapshot via
+`get_telemetry()` at whatever rate is appropriate for the transport.
 """
 
 import logging
-import threading
-import time
 from collections.abc import Callable
-from dataclasses import asdict
 from typing import Any, TypeVar
 
-from atlib import AIR780EU
-
-from v3xctrl_telemetry import BatteryInfo, CellInfo, GpsProtocol, LocationInfo, SignalInfo, TelemetryPayload
+from v3xctrl_telemetry import GpsProtocol
 from v3xctrl_telemetry.BatteryTelemetry import BatteryTelemetry
 from v3xctrl_telemetry.GpsTelemetry import GpsTelemetry
 from v3xctrl_telemetry.GstTelemetry import GstTelemetry
+from v3xctrl_telemetry.ModemTelemetry import ModemTelemetry
 from v3xctrl_telemetry.ServiceTelemetry import ServiceTelemetry
+from v3xctrl_telemetry.TelemetryCollector import TelemetryCollector
+from v3xctrl_telemetry.TelemetryStore import TelemetryStore
 from v3xctrl_telemetry.UBXGpsTelemetry import UBXGpsTelemetry
 from v3xctrl_telemetry.VideoCoreTelemetry import VideoCoreTelemetry
 
@@ -27,9 +27,7 @@ T = TypeVar("T")
 logger = logging.getLogger(__name__)
 
 
-class Telemetry(threading.Thread):
-    _SIM_RECHECK_INTERVAL = 30
-
+class Telemetry:
     def __init__(
         self,
         modem_path: str,
@@ -42,30 +40,23 @@ class Telemetry(threading.Thread):
         gps_path: str = "/dev/serial0",
         gps_rate_hz: int = 5,
         gps_protocol: GpsProtocol = GpsProtocol.UBLOX,
-        interval: float = 1.0,
+        battery_update_rate: float = 10.0,
+        gst_update_rate: float = 10.0,
+        videocore_update_rate: float = 1.0,
+        services_update_rate: float = 0.2,
+        modem_update_rate: float = 1.0,
     ) -> None:
-        super().__init__(daemon=True)
+        # gps_protocol is accepted for forward compatibility; today only UBLOX is wired
+        del gps_protocol
 
-        self._modem_path = modem_path
-        self._interval = interval
-        self.payload = TelemetryPayload(
-            sig=SignalInfo(), cell=CellInfo(), loc=LocationInfo(), bat=BatteryInfo(), svc=0, vc=0, gst=0
-        )
+        self._store = TelemetryStore()
+        self._collectors: list[TelemetryCollector] = []
 
-        self._running = threading.Event()
-        self._lock = threading.Lock()
+        modem = self._init_component("modem", lambda: ModemTelemetry(modem_path))
+        self._register(modem, "modem", self._store.update_modem, modem_update_rate)
 
-        self._modem: AIR780EU | None = None
-        self._modem_init_failed = False
-        self._sim_absent = False
-        self._sim_recheck_counter = 0
-        self._init_modem()
-
-        self._gps: GpsTelemetry | None = self._init_component("GPS", lambda: UBXGpsTelemetry(gps_path, gps_rate_hz))
-        logger.debug("GPS telemetry %s", "available on " + gps_path if self._gps else "not available")
-
-        self._battery = self._init_component(
-            "Battery",
+        battery = self._init_component(
+            "battery",
             lambda: BatteryTelemetry(
                 battery_min_voltage,
                 battery_max_voltage,
@@ -75,170 +66,50 @@ class Telemetry(threading.Thread):
                 max_expected_current_A=battery_max_current,
             ),
         )
-        self._services = self._init_component("service", ServiceTelemetry)
-        self._videocore = self._init_component("VideoCore", VideoCoreTelemetry)
-        self._gst = self._init_component("GST", GstTelemetry)
+        self._register(battery, "battery", self._store.update_battery, battery_update_rate)
 
-    def get_telemetry(self) -> dict[str, Any]:
-        with self._lock:
-            return asdict(self.payload)
+        gps: GpsTelemetry | None = self._init_component("gps", lambda: UBXGpsTelemetry(gps_path, gps_rate_hz))
+        # GPS poll rate intentionally tied to the module's push rate - polling faster
+        # blocks on empty serial reads, polling slower drops messages.
+        self._register(gps, "gps", self._store.update_gps, float(gps_rate_hz))
 
-    def run(self) -> None:
-        self._running.set()
-        while self._running.is_set():
-            if self._modem_available():
-                self._update_signal()
-                self._update_cell()
+        services = self._init_component("services", ServiceTelemetry)
+        self._register(services, "services", self._store.update_services, services_update_rate)
 
-            self._update_gps()
-            self._update_battery()
-            self._update_services()
-            self._update_videocore()
-            self._update_gst()
+        videocore = self._init_component("videocore", VideoCoreTelemetry)
+        self._register(videocore, "videocore", self._store.update_videocore, videocore_update_rate)
 
-            time.sleep(self._interval)
+        gst = self._init_component("gst", GstTelemetry)
+        self._register(gst, "gst", self._store.update_gst, gst_update_rate)
+
+    def start(self) -> None:
+        for collector in self._collectors:
+            collector.start()
 
     def stop(self) -> None:
-        self._running.clear()
+        for collector in self._collectors:
+            collector.stop()
 
-    def _init_component(self, name: str, factory: Callable[[], T]) -> T | None:
+    def get_telemetry(self) -> dict[str, Any]:
+        return self._store.get_snapshot()
+
+    def _register(
+        self,
+        source: Any | None,
+        name: str,
+        store_updater: Callable[[Any], None],
+        rate_hz: float,
+    ) -> None:
+        if source is None:
+            return
+
+        self._collectors.append(TelemetryCollector(name, source, store_updater, 1.0 / rate_hz))
+
+    @staticmethod
+    def _init_component(name: str, factory: Callable[[], T]) -> T | None:
         try:
             return factory()
 
-        except Exception as e:
-            logger.warning("Failed to initialize %s telemetry: %s", name, e)
+        except Exception as exc:
+            logger.warning("Failed to initialize %s telemetry: %s", name, exc)
             return None
-
-    def _modem_available(self) -> bool:
-        if self._modem:
-            return True
-
-        if self._sim_absent:
-            self._sim_recheck_counter += 1
-            if self._sim_recheck_counter < self._SIM_RECHECK_INTERVAL:
-                return False
-            self._sim_recheck_counter = 0
-
-        return self._init_modem()
-
-    def _init_modem(self) -> bool:
-        try:
-            self._modem = AIR780EU(self._modem_path)
-            self._modem.enable_location_reporting()
-            if not self._modem:
-                if not self._modem_init_failed:
-                    logger.warning("Modem unavailable")
-                    self._modem_init_failed = True
-                self._modem = None
-                return False
-
-            sim_status = self._modem.get_sim_status()
-            if sim_status != "OK":
-                logger.info("No SIM card present (status: %s)", sim_status)
-                self._modem = None
-                self._sim_absent = True
-                return False
-
-            self._sim_absent = False
-            if self._modem_init_failed:
-                logger.info("Modem recovered")
-            self._modem_init_failed = False
-            logger.info("Modem initialized")
-            return True
-
-        except Exception as e:
-            if not self._modem_init_failed:
-                logger.warning("Failed to initialize modem: %s", e)
-                self._modem_init_failed = True
-            self._modem = None
-            return False
-
-    def _set_signal_unknown(self) -> None:
-        with self._lock:
-            self.payload.sig.rsrq = -1
-            self.payload.sig.rsrp = -1
-
-    def _set_cell_unknown(self) -> None:
-        with self._lock:
-            self.payload.cell.id = "?"
-            self.payload.cell.band = "?"
-
-    def _update_signal(self) -> None:
-        if self._modem is None:
-            return
-        try:
-            signal_quality = self._modem.get_signal_quality()
-            with self._lock:
-                self.payload.sig.rsrq = signal_quality.rsrq
-                self.payload.sig.rsrp = signal_quality.rsrp
-        except Exception as e:
-            self._set_signal_unknown()
-            logger.debug("Failed to fetch signal information: %s", e)
-            self._modem = None
-
-    def _update_cell(self) -> None:
-        if self._modem is None:
-            return
-        try:
-            band = self._modem.get_active_band()
-            cell_id = self._modem.get_cell_location()[3]
-            with self._lock:
-                self.payload.cell.id = cell_id
-                self.payload.cell.band = band
-        except Exception as e:
-            self._set_cell_unknown()
-            logger.debug("Failed to fetch cell information: %s", e)
-            self._modem = None
-
-    def _update_gps(self) -> None:
-        if self._gps:
-            try:
-                self._gps.update()
-                with self._lock:
-                    self.payload.loc = self._gps.get_state()
-            except Exception as e:
-                logger.debug("Failed to update GPS telemetry: %s", e)
-
-    def _update_battery(self) -> None:
-        if self._battery:
-            self._battery.update()
-            state = self._battery.get_state()
-            with self._lock:
-                self.payload.bat.vol = state.voltage
-                self.payload.bat.avg = state.average_voltage
-                self.payload.bat.pct = state.percentage
-                self.payload.bat.wrn = state.warning
-                self.payload.bat.cur = state.current
-
-    def _update_services(self) -> None:
-        if self._services:
-            try:
-                self._services.update()
-                with self._lock:
-                    self.payload.svc = self._services.get_byte()
-            except Exception as e:
-                logger.debug("Failed to update service telemetry: %s", e)
-                with self._lock:
-                    self.payload.svc = 0
-
-    def _update_videocore(self) -> None:
-        if self._videocore:
-            try:
-                self._videocore.update()
-                with self._lock:
-                    self.payload.vc = self._videocore.get_byte()
-            except Exception as e:
-                logger.debug("Failed to update VideoCore telemetry: %s", e)
-                with self._lock:
-                    self.payload.vc = 0
-
-    def _update_gst(self) -> None:
-        if self._gst:
-            try:
-                self._gst.update()
-                with self._lock:
-                    self.payload.gst = self._gst.get_byte()
-            except Exception as e:
-                logger.debug("Failed to update GST telemetry: %s", e)
-                with self._lock:
-                    self.payload.gst = 0

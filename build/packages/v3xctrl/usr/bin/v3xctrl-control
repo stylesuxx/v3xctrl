@@ -44,4 +44,10 @@ v3xctrl-python -m v3xctrl_control.apps.streamer "${viewer_direct_host}" "${viewe
   --gps-path "${telemetry_gps_path}" \
   --gps-protocol "${telemetry_gps_protocol}" \
   --gps-rate-hz "${telemetry_gps_rateHz}" \
+  --telemetry-send-rate "${telemetry_sendRate}" \
+  --telemetry-update-rate-battery "${telemetry_updateRates_battery}" \
+  --telemetry-update-rate-gst "${telemetry_updateRates_gst}" \
+  --telemetry-update-rate-videocore "${telemetry_updateRates_videocore}" \
+  --telemetry-update-rate-services "${telemetry_updateRates_services}" \
+  --telemetry-update-rate-modem "${telemetry_updateRates_modem}" \
   ${ARGS}
