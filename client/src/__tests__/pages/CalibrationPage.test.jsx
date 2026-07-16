@@ -34,6 +34,8 @@ describe('CalibrationPage', () => {
       error: null,
     })
     useCalibrationStore.setState({
+      mixerType: 'car',
+      reversible: false,
       steering: { min: 1000, max: 2000, trim: 0 },
       throttle: { min: 1000, max: 2000, idle: 1500 },
     })
@@ -236,5 +238,140 @@ describe('CalibrationPage', () => {
       // Throttle note mentions "ESC"
       expect(screen.getByText(/calibrating your ESC/i)).toBeInTheDocument()
     })
+  })
+})
+
+const differentialConfig = {
+  ...mockConfig,
+  control: {
+    ...mockConfig.control,
+    mixer: { type: 'differential', differential: { reversible: false } },
+  },
+}
+
+describe('CalibrationPage - differential mixer', () => {
+  beforeEach(() => {
+    useConnectionStore.setState({
+      apiClient: createApiClient(BASE),
+      connected: true,
+    })
+    useServicesStore.setState({
+      services: inactiveControlService,
+      loading: false,
+      error: null,
+      actionsInProgress: {},
+    })
+    useConfigStore.setState({
+      config: differentialConfig,
+      schema: null,
+      loading: false,
+      error: null,
+    })
+    useCalibrationStore.setState({
+      mixerType: 'differential',
+      reversible: false,
+      steering: { min: 1000, max: 2000, trim: 0 },
+      throttle: { min: 1000, max: 2000, idle: 1500 },
+    })
+  })
+
+  it('renders Motor A/B and balance panels instead of Steering', async () => {
+    render(<CalibrationPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Motor A')).toBeInTheDocument()
+      expect(screen.getByText('Motor B')).toBeInTheDocument()
+      expect(screen.getByText('Motor balance')).toBeInTheDocument()
+    })
+    expect(screen.queryByText('Steering')).not.toBeInTheDocument()
+  })
+
+  it('renders shared motor fields for both panels', async () => {
+    render(<CalibrationPage />)
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Motor Min').length).toBeGreaterThan(0)
+      expect(screen.getAllByText('Motor Max').length).toBeGreaterThan(0)
+      expect(screen.getAllByText('Motor Idle').length).toBeGreaterThan(0)
+    })
+  })
+
+  it('calls sendMotorPwm with the right channel for each panel', async () => {
+    const sendMotorPwm = vi.fn()
+    useCalibrationStore.setState({ sendMotorPwm })
+
+    render(<CalibrationPage />)
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Motor Min').length).toBeGreaterThan(0)
+    })
+
+    const sendButtons = screen.getAllByText('Send')
+    fireEvent.click(sendButtons[0])
+    expect(sendMotorPwm).toHaveBeenCalledWith('throttle', 'min')
+
+    fireEvent.click(sendButtons[3])
+    expect(sendMotorPwm).toHaveBeenCalledWith('steering', 'min')
+  })
+
+  it('calls saveThrottleCalibration once for the shared motor profile', async () => {
+    const saveThrottleCalibration = vi.fn()
+    useCalibrationStore.setState({ saveThrottleCalibration })
+
+    render(<CalibrationPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Save motor calibration')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByText('Save motor calibration'))
+    expect(saveThrottleCalibration).toHaveBeenCalled()
+  })
+
+  it('calls sendBalancePwm and saveBalanceCalibration for the balance panel', async () => {
+    const sendBalancePwm = vi.fn()
+    const saveBalanceCalibration = vi.fn()
+    useCalibrationStore.setState({ sendBalancePwm, saveBalanceCalibration })
+
+    render(<CalibrationPage />)
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Balance offset').length).toBeGreaterThan(0)
+    })
+
+    fireEvent.click(screen.getByText('Save balance'))
+    expect(saveBalanceCalibration).toHaveBeenCalled()
+
+    const sendButtons = screen.getAllByText('Send')
+    fireEvent.click(sendButtons[sendButtons.length - 1])
+    expect(sendBalancePwm).toHaveBeenCalled()
+  })
+
+  it('shows the non-reversible note by default', async () => {
+    render(<CalibrationPage />)
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/don't reverse/i).length).toBeGreaterThan(0)
+    })
+  })
+
+  it('shows the reversible note when motors support reverse', async () => {
+    useConfigStore.setState({
+      config: {
+        ...differentialConfig,
+        control: {
+          ...differentialConfig.control,
+          mixer: { type: 'differential', differential: { reversible: true } },
+        },
+      },
+    })
+    useCalibrationStore.setState({ reversible: true })
+
+    render(<CalibrationPage />)
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/share this calibration/i).length).toBeGreaterThan(0)
+    })
+    expect(screen.queryByText(/don't reverse/i)).not.toBeInTheDocument()
   })
 })

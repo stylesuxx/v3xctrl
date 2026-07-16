@@ -7,6 +7,8 @@ import { mockConfig } from '../mocks/data'
 describe('useCalibrationStore', () => {
   beforeEach(() => {
     useCalibrationStore.setState({
+      mixerType: 'car',
+      reversible: false,
       steering: { min: 0, max: 0, trim: 0 },
       throttle: { min: 0, max: 0, idle: 0 },
     })
@@ -17,12 +19,41 @@ describe('useCalibrationStore', () => {
     initFromConfig(mockConfig)
 
     const state = useCalibrationStore.getState()
+    expect(state.mixerType).toBe('car')
+    expect(state.reversible).toBe(false)
     expect(state.steering.min).toBe(1000)
     expect(state.steering.max).toBe(2000)
     expect(state.steering.trim).toBe(0)
     expect(state.throttle.min).toBe(1000)
     expect(state.throttle.max).toBe(2000)
     expect(state.throttle.idle).toBe(1500)
+  })
+
+  it('initializes mixer fields from a differential config', () => {
+    const { initFromConfig } = useCalibrationStore.getState()
+    const differentialConfig = {
+      ...mockConfig,
+      control: {
+        ...mockConfig.control,
+        mixer: { type: 'differential', differential: { reversible: true } },
+      },
+    }
+    initFromConfig(differentialConfig)
+
+    const state = useCalibrationStore.getState()
+    expect(state.mixerType).toBe('differential')
+    expect(state.reversible).toBe(true)
+  })
+
+  it('defaults mixer fields when config has no mixer section', () => {
+    const { initFromConfig } = useCalibrationStore.getState()
+    const legacyConfig = structuredClone(mockConfig)
+    delete legacyConfig.control.mixer
+    initFromConfig(legacyConfig)
+
+    const state = useCalibrationStore.getState()
+    expect(state.mixerType).toBe('car')
+    expect(state.reversible).toBe(false)
   })
 
   it('updates steering fields', () => {
@@ -86,6 +117,41 @@ describe('useCalibrationStore', () => {
     expect(mockPwm).toHaveBeenCalledWith('/gpio/0/pwm', { value: 1500 })
   })
 
+  it('sends motor PWM value to the requested channel', async () => {
+    const mockPwm = vi.fn().mockResolvedValue({})
+    const mockClient = { put: mockPwm }
+
+    useConnectionStore.setState({ apiClient: mockClient })
+    useConfigStore.setState({ config: mockConfig })
+
+    useCalibrationStore.setState({
+      throttle: { min: 1000, max: 2000, idle: 1500 },
+    })
+
+    await useCalibrationStore.getState().sendMotorPwm('throttle', 'min')
+    expect(mockPwm).toHaveBeenCalledWith('/gpio/0/pwm', { value: 1000 })
+
+    await useCalibrationStore.getState().sendMotorPwm('steering', 'max')
+    expect(mockPwm).toHaveBeenCalledWith('/gpio/1/pwm', { value: 2000 })
+  })
+
+  it('sends balance PWM as idle plus/minus trim to each motor channel', async () => {
+    const mockPwm = vi.fn().mockResolvedValue({})
+    const mockClient = { put: mockPwm }
+
+    useConnectionStore.setState({ apiClient: mockClient })
+    useConfigStore.setState({ config: mockConfig })
+
+    useCalibrationStore.setState({
+      throttle: { min: 1000, max: 2000, idle: 1500 },
+      steering: { min: 1000, max: 2000, trim: 30 },
+    })
+
+    await useCalibrationStore.getState().sendBalancePwm()
+    expect(mockPwm).toHaveBeenNthCalledWith(1, '/gpio/0/pwm', { value: 1530 })
+    expect(mockPwm).toHaveBeenNthCalledWith(2, '/gpio/1/pwm', { value: 1470 })
+  })
+
   it('saves steering calibration to config', async () => {
     const mockSaveConfig = vi.fn().mockResolvedValue(undefined)
     useConfigStore.setState({ config: structuredClone(mockConfig), saveConfig: mockSaveConfig })
@@ -118,6 +184,23 @@ describe('useCalibrationStore', () => {
     expect(saved.control.throttle.min).toBe(1100)
     expect(saved.control.throttle.max).toBe(1900)
     expect(saved.control.throttle.idle).toBe(1500)
+  })
+
+  it('saves balance calibration to config, leaving throttle/steering ranges untouched', async () => {
+    const mockSaveConfig = vi.fn().mockResolvedValue(undefined)
+    useConfigStore.setState({ config: structuredClone(mockConfig), saveConfig: mockSaveConfig })
+
+    useCalibrationStore.setState({
+      steering: { min: 1000, max: 2000, trim: 40 },
+    })
+
+    await useCalibrationStore.getState().saveBalanceCalibration()
+
+    expect(mockSaveConfig).toHaveBeenCalledTimes(1)
+    const saved = mockSaveConfig.mock.calls[0][0]
+    expect(saved.control.steering.trim).toBe(40)
+    expect(saved.control.steering.min).toBe(mockConfig.control.steering.min)
+    expect(saved.control.throttle.min).toBe(mockConfig.control.throttle.min)
   })
 
   it('does not mutate original config when saving', async () => {

@@ -9,6 +9,10 @@ if [ "$control_steering_invert" = "true" ]; then
   ARGS+="--steering-invert "
 fi
 
+if [ "$control_mixer_differential_reversible" = "true" ]; then
+  ARGS+="--mixer-differential-reversible "
+fi
+
 if [ "$viewer_mode" = "relay" ] && [ "$viewer_transport" = "tcp" ]; then
   ARGS+="--relay-session-id ${viewer_relay_sessionId} "
 fi
@@ -32,6 +36,7 @@ v3xctrl-python -m v3xctrl_control.apps.streamer "${viewer_direct_host}" "${viewe
   --failsafe-steering "${control_steering_failsafe}" \
   --pwm-channel-throttle "${control_pwm_throttle}" \
   --pwm-channel-steering "${control_pwm_steering}" \
+  --mixer-type "${control_mixer_type}" \
   --modem-path "${network_modem_path}" \
   --log "${development_logLevel}" \
   --transport "${viewer_transport}" \

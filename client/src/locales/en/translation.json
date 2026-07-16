@@ -85,8 +85,20 @@
     "throttleMin": "Throttle Min (Reverse)",
     "throttleMax": "Throttle Max (Forward)",
     "throttleNeutral": "Throttle Neutral",
+    "motorATitle": "Motor A",
+    "motorBTitle": "Motor B",
+    "motorMin": "Motor Min",
+    "motorMax": "Motor Max",
+    "motorIdle": "Motor Idle",
+    "motorNoteReversible": "Both motors share this calibration. Send min (Reverse), max (Forward) and idle (neutral) to each motor in the order your ESC manual specifies, then save once both motors respond correctly.",
+    "motorNoteNonReversible": "Both motors share this calibration. These motors don't reverse, so min is simply off - send idle (off), then max (full throttle) to each motor, then save once both motors respond correctly.",
+    "balanceTitle": "Motor balance",
+    "balanceNote": "If one motor spins faster than the other at the same signal, use this offset to compensate: it nudges Motor A up and Motor B down by the same amount.",
+    "balanceOffset": "Balance offset",
     "send": "Send",
-    "saveCalibration": "Save calibration"
+    "saveCalibration": "Save calibration",
+    "saveMotorCalibration": "Save motor calibration",
+    "saveBalance": "Save balance"
   },
   "camera": {
     "serviceWarning": "Camera settings cannot be applied while video service is stopped. Start the video service first!",

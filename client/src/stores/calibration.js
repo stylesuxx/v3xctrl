@@ -4,6 +4,8 @@ import { useConnectionStore } from './connection'
 import { useConfigStore } from './config'
 
 export const useCalibrationStore = create((set, get) => ({
+  mixerType: 'car',
+  reversible: false,
   steering: { min: 0, max: 0, trim: 0 },
   throttle: { min: 0, max: 0, idle: 0 },
 
@@ -12,6 +14,8 @@ export const useCalibrationStore = create((set, get) => ({
       return
     }
     set({
+      mixerType: config.control.mixer?.type ?? 'car',
+      reversible: config.control.mixer?.differential?.reversible ?? false,
       steering: {
         min: config.control.steering?.min ?? 0,
         max: config.control.steering?.max ?? 0,
@@ -52,14 +56,27 @@ export const useCalibrationStore = create((set, get) => ({
     await gpioApi.setPwm(apiClient, channel, value)
   },
 
-  sendThrottlePwm: async (field) => {
+  sendMotorPwm: async (channelKey, field) => {
     const { apiClient } = useConnectionStore.getState()
     const config = useConfigStore.getState().config
-    const channel = config.control.pwm.throttle
+    const channel = config.control.pwm[channelKey]
     const { throttle } = get()
     const value = throttle[field]
 
     await gpioApi.setPwm(apiClient, channel, value)
+  },
+
+  sendThrottlePwm: async (field) => {
+    await get().sendMotorPwm('throttle', field)
+  },
+
+  sendBalancePwm: async () => {
+    const { apiClient } = useConnectionStore.getState()
+    const config = useConfigStore.getState().config
+    const { throttle, steering } = get()
+
+    await gpioApi.setPwm(apiClient, config.control.pwm.throttle, throttle.idle + steering.trim)
+    await gpioApi.setPwm(apiClient, config.control.pwm.steering, throttle.idle - steering.trim)
   },
 
   saveSteeringCalibration: async () => {
@@ -79,6 +96,14 @@ export const useCalibrationStore = create((set, get) => ({
     config.control.throttle.min = throttle.min
     config.control.throttle.max = throttle.max
     config.control.throttle.idle = throttle.idle
+    await configStore.saveConfig(config)
+  },
+
+  saveBalanceCalibration: async () => {
+    const { steering } = get()
+    const configStore = useConfigStore.getState()
+    const config = structuredClone(configStore.config)
+    config.control.steering.trim = steering.trim
     await configStore.saveConfig(config)
   },
 }))

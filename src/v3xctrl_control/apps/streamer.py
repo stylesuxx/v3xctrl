@@ -20,7 +20,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from rpi_servo_pwm import HardwarePWM
 
-from v3xctrl_control import Client, State
+from v3xctrl_control import Client, MixerType, State, esc_pulse_width, map_range, mix_differential
 from v3xctrl_control.message import (
     Command,
     Control,
@@ -71,6 +71,18 @@ parser.add_argument(
 parser.add_argument("--pwm-channel-throttle", type=int, default=0, help="PWM channel for throttle signal (default: 0)")
 parser.add_argument("--pwm-channel-steering", type=int, default=1, help="PWM channel for steering signal (default: 1)")
 parser.add_argument(
+    "--mixer-type",
+    type=str,
+    default="car",
+    choices=["car", "differential"],
+    help="How throttle and steering are combined into the two available PWM outputs (default: car)",
+)
+parser.add_argument(
+    "--mixer-differential-reversible",
+    action="store_true",
+    help="Whether differential thrust motors support reverse (default: False)",
+)
+parser.add_argument(
     "--modem-path", type=str, default="/dev/ttyACM0", help="Path to modem device (default: /dev/ttyACM0)"
 )
 parser.add_argument(
@@ -89,7 +101,13 @@ parser.add_argument(
     "--failsafe-ms", type=int, default=500, help="Timeout in milliseconds to trigger failsafe (default: 500)"
 )
 parser.add_argument("--failsafe-throttle", type=int, default=1500, help="Throttle value when failsafe (default: 1500)")
-parser.add_argument("--failsafe-steering", type=int, default=1500, help="Steering value when failsafe (default: 1500)")
+parser.add_argument(
+    "--failsafe-steering",
+    type=int,
+    default=1500,
+    help="Steering value when failsafe (default: 1500). Unused with the differential mixer - "
+    "channel B falls back to --failsafe-throttle instead",
+)
 parser.add_argument("--battery-min-voltage", type=int, default=3500, help="Minimum cell voltage in mV (default: 3500)")
 parser.add_argument("--battery-max-voltage", type=int, default=4200, help="Maximum cell voltage in mV (default: 4200)")
 parser.add_argument("--battery-warn-voltage", type=int, default=3700, help="Warning cell voltage in mV (default: 3700)")
@@ -153,6 +171,9 @@ steering_scale = args.steering_scale
 pwm_channel_throttle = args.pwm_channel_throttle
 pwm_channel_steering = args.pwm_channel_steering
 
+mixer_type = MixerType(args.mixer_type)
+mixer_differential_reversible = args.mixer_differential_reversible
+
 modem_path = args.modem_path
 
 level_name = args.log.upper()
@@ -174,11 +195,13 @@ steering_multiplier = steering_scale / 100.0
 steering_left = -1
 steering_right = 1
 trim_multiplier = 1
+steering_invert_multiplier = 1
 
 if steering_invert:
     steering_left = 1
     steering_right = -1
     trim_multiplier = -1
+    steering_invert_multiplier = -1
 
 running = True
 received_command_ids: set[str] = set()
@@ -215,52 +238,70 @@ video_control = ControlClient()
 executor = ThreadPoolExecutor(max_workers=2)
 
 
-def map_range(value: float, in_min: float, in_max: float, servo_min: int = 1000, servo_max: int = 2000) -> int:
-    """
-    Maps a float value from an input range [in_min, in_max] to a servo PWM pulse width.
-
-    Args:
-        value: Input value to map.
-        in_min: Minimum of input range.
-        in_max: Maximum of input range.
-        servo_min: Minimum servo pulse width in microseconds.
-        servo_max: Maximum servo pulse width in microseconds.
-
-    Returns:
-        Mapped servo pulse width as integer in microseconds.
-    """
-    if in_min == in_max:
-        raise ValueError("Input range cannot be zero")
-
-    clamped = clamp(value, in_min, in_max)
-    normalized = (clamped - in_min) / (in_max - in_min)
-    return int(servo_min + normalized * (servo_max - servo_min))
-
-
 def control_handler(message: Control, address: Address) -> None:
-    throttle_value = failsafe_throttle
-    steering_value = failsafe_steering
+    throttle_value: float = failsafe_throttle
+    steering_value: float = failsafe_steering if mixer_type == MixerType.CAR else failsafe_throttle
 
     if client.state == State.CONNECTED:
         values = message.get_values()
         raw_throttle = apply_expo(values["throttle"], throttle_expo)
         raw_steering = apply_expo(values["steering"], steering_expo)
 
-        # Determine throttle pulse forward or reverse
-        scaled_throttle = raw_throttle * forward_multiplier
-        if raw_throttle > 0:
-            scaled_throttle = raw_throttle * forward_multiplier
-            throttle_value = map_range(scaled_throttle, 0, 1, forward_min, throttle_max)
-        elif raw_throttle < 0:
-            scaled_throttle = raw_throttle * reverse_multiplier
-            throttle_value = map_range(scaled_throttle, -1, 0, throttle_min, reverse_min)
+        match mixer_type:
+            case MixerType.CAR:
+                throttle_value = esc_pulse_width(
+                    raw_throttle,
+                    forward_min,
+                    throttle_max,
+                    throttle_min,
+                    reverse_min,
+                    forward_multiplier,
+                    reverse_multiplier,
+                    throttle_idle,
+                    reversible=True,
+                )
 
-        # Map, add trim and clamp
-        scaled_steering = raw_steering * steering_multiplier
-        steering_value = map_range(scaled_steering, steering_left, steering_right, steering_min, steering_max) + (
-            steering_trim * trim_multiplier
-        )
-        steering_value = clamp(steering_value, steering_min, steering_max)
+                scaled_steering = raw_steering * steering_multiplier
+                steering_value = map_range(
+                    scaled_steering, steering_left, steering_right, steering_min, steering_max
+                ) + (steering_trim * trim_multiplier)
+                steering_value = clamp(steering_value, steering_min, steering_max)
+
+            case MixerType.DIFFERENTIAL:
+                signed_steering = raw_steering * steering_multiplier * steering_invert_multiplier
+                left, right = mix_differential(raw_throttle, signed_steering)
+
+                throttle_value = (
+                    esc_pulse_width(
+                        left,
+                        forward_min,
+                        throttle_max,
+                        throttle_min,
+                        reverse_min,
+                        forward_multiplier,
+                        reverse_multiplier,
+                        throttle_idle,
+                        reversible=mixer_differential_reversible,
+                    )
+                    + steering_trim
+                )
+                steering_value = (
+                    esc_pulse_width(
+                        right,
+                        forward_min,
+                        throttle_max,
+                        throttle_min,
+                        reverse_min,
+                        forward_multiplier,
+                        reverse_multiplier,
+                        throttle_idle,
+                        reversible=mixer_differential_reversible,
+                    )
+                    - steering_trim
+                )
+
+                throttle_value = clamp(throttle_value, throttle_min, throttle_max)
+                steering_value = clamp(steering_value, throttle_min, throttle_max)
 
     logger.debug(f"Throttle: {throttle_value}; Steering: {steering_value}")
 
@@ -328,7 +369,7 @@ def disconnect_handler() -> None:
     """
 
     pwm_throttle.set_pulse_width(throttle_idle)
-    pwm_steering.set_pulse_width(steering_center)
+    pwm_steering.set_pulse_width(throttle_idle if mixer_type == MixerType.DIFFERENTIAL else steering_center)
 
     logger.info("Disconnected")
 
@@ -352,8 +393,10 @@ def cleanup_pwm() -> None:
     #
     # Setting for 0 pulse width for some reason seems to work really well to not
     # make the servo/ESC act up when disabling and closing PWM.
+    channel_b_idle = throttle_idle if mixer_type == MixerType.DIFFERENTIAL else steering_center
+
     pwm_throttle.set_pulse_width(throttle_idle)
-    pwm_steering.set_pulse_width(steering_center)
+    pwm_steering.set_pulse_width(channel_b_idle)
     time.sleep(1)
 
     pwm_throttle.set_pulse_width(0)

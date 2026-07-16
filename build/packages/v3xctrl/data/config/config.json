@@ -37,6 +37,12 @@
   "control": {
     "autostart": true,
     "failsafeTimeout": 150,
+    "mixer": {
+      "type": "car",
+      "differential": {
+        "reversible": false
+      }
+    },
     "throttle": {
       "min": 1000,
       "max": 2000,

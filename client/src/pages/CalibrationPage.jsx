@@ -13,6 +13,8 @@ export function CalibrationPage() {
   const { fetchServices, isServiceInactive } = useServicesStore()
   const { config } = useConfigStore()
   const {
+    mixerType,
+    reversible,
     steering,
     throttle,
     initFromConfig,
@@ -20,8 +22,11 @@ export function CalibrationPage() {
     setThrottleField,
     sendSteeringPwm,
     sendThrottlePwm,
+    sendMotorPwm,
+    sendBalancePwm,
     saveSteeringCalibration,
     saveThrottleCalibration,
+    saveBalanceCalibration,
   } = useCalibrationStore()
 
   const controlInactive = isServiceInactive('v3xctrl-control')
@@ -43,7 +48,7 @@ export function CalibrationPage() {
         visible={!controlInactive}
       />
 
-      {controlInactive && (
+      {controlInactive && mixerType === 'car' && (
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Steering */}
           <div className="space-y-3">
@@ -109,6 +114,96 @@ export function CalibrationPage() {
             <div className="flex justify-end">
               <Button onClick={saveThrottleCalibration}>
                 {t('calibration.saveCalibration')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {controlInactive && mixerType === 'differential' && (
+        <div className="space-y-6">
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Motor A */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold">{t('calibration.motorATitle')}</h3>
+              <div className="flex items-start gap-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-800 dark:bg-blue-950/30 dark:text-blue-300">
+                <Info className="mt-0.5 h-4 w-4 shrink-0" />
+                <p>{t(reversible ? 'calibration.motorNoteReversible' : 'calibration.motorNoteNonReversible')}</p>
+              </div>
+
+              <PwmControl
+                label={t('calibration.motorMin')}
+                value={throttle.min}
+                onChange={(v) => setThrottleField('min', v)}
+                onSend={() => sendMotorPwm('throttle', 'min')}
+              />
+              <PwmControl
+                label={t('calibration.motorMax')}
+                value={throttle.max}
+                onChange={(v) => setThrottleField('max', v)}
+                onSend={() => sendMotorPwm('throttle', 'max')}
+              />
+              <PwmControl
+                label={t('calibration.motorIdle')}
+                value={throttle.idle}
+                onChange={(v) => setThrottleField('idle', v)}
+                onSend={() => sendMotorPwm('throttle', 'idle')}
+              />
+            </div>
+
+            {/* Motor B */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold">{t('calibration.motorBTitle')}</h3>
+              <div className="flex items-start gap-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-800 dark:bg-blue-950/30 dark:text-blue-300">
+                <Info className="mt-0.5 h-4 w-4 shrink-0" />
+                <p>{t(reversible ? 'calibration.motorNoteReversible' : 'calibration.motorNoteNonReversible')}</p>
+              </div>
+
+              <PwmControl
+                label={t('calibration.motorMin')}
+                value={throttle.min}
+                onChange={(v) => setThrottleField('min', v)}
+                onSend={() => sendMotorPwm('steering', 'min')}
+              />
+              <PwmControl
+                label={t('calibration.motorMax')}
+                value={throttle.max}
+                onChange={(v) => setThrottleField('max', v)}
+                onSend={() => sendMotorPwm('steering', 'max')}
+              />
+              <PwmControl
+                label={t('calibration.motorIdle')}
+                value={throttle.idle}
+                onChange={(v) => setThrottleField('idle', v)}
+                onSend={() => sendMotorPwm('steering', 'idle')}
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={saveThrottleCalibration}>
+              {t('calibration.saveMotorCalibration')}
+            </Button>
+          </div>
+
+          {/* Motor balance */}
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold">{t('calibration.balanceTitle')}</h3>
+            <div className="flex items-start gap-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-800 dark:bg-blue-950/30 dark:text-blue-300">
+              <Info className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>{t('calibration.balanceNote')}</p>
+            </div>
+
+            <PwmControl
+              label={t('calibration.balanceOffset')}
+              value={steering.trim}
+              onChange={(v) => setSteeringField('trim', v)}
+              onSend={sendBalancePwm}
+            />
+
+            <div className="flex justify-end">
+              <Button onClick={saveBalanceCalibration}>
+                {t('calibration.saveBalance')}
               </Button>
             </div>
           </div>

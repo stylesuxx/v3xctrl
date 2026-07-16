@@ -711,6 +711,52 @@
           "title": "Failsafe",
           "description": "After this many ms without a control packet, failsafe is triggered and failsafe values are sent to the peripherals."
         },
+        "mixer": {
+          "propertyOrder": 25,
+          "type": "object",
+          "title": "Mixer",
+          "options": {
+            "collapsed": true
+          },
+          "properties": {
+            "type": {
+              "propertyOrder": 10,
+              "type": "string",
+              "required": true,
+              "default": "car",
+              "title": "Mixer type",
+              "description": "How throttle and steering are combined into the two available PWM outputs.",
+              "enum": [
+                "car",
+                "differential"
+              ],
+              "options": {
+                "enum_titles": [
+                  "Car (throttle + steering)",
+                  "Differential thrust (left + right motor)"
+                ]
+              }
+            },
+            "differential": {
+              "propertyOrder": 20,
+              "type": "object",
+              "title": "Differential thrust settings",
+              "options": {
+                "collapsed": true
+              },
+              "properties": {
+                "reversible": {
+                  "propertyOrder": 10,
+                  "type": "boolean",
+                  "format": "checkbox",
+                  "default": false,
+                  "title": "Motors are reversible",
+                  "description": "Enable if both motors are driven by reverse-capable ESCs; leave disabled for unidirectional motors like boat propellers."
+                }
+              }
+            }
+          }
+        },
         "throttle": {
           "propertyOrder": 30,
           "type": "object",
