@@ -723,185 +723,317 @@
               "propertyOrder": 10,
               "type": "string",
               "required": true,
-              "default": "car",
+              "default": "ackermann",
               "title": "Mixer type",
               "description": "How throttle and steering are combined into the two available PWM outputs.",
               "enum": [
-                "car",
+                "ackermann",
                 "differential"
               ],
               "options": {
                 "enum_titles": [
-                  "Car (throttle + steering)",
+                  "Ackermann (throttle + steering)",
                   "Differential thrust (left + right motor)"
                 ]
               }
             },
-            "differential": {
+            "ackermann": {
               "propertyOrder": 20,
+              "type": "object",
+              "title": "Ackermann steering settings",
+              "options": {
+                "collapsed": true
+              },
+              "properties": {
+                "throttle": {
+                  "propertyOrder": 10,
+                  "type": "object",
+                  "title": "Throttle",
+                  "options": {
+                    "collapsed": true
+                  },
+                  "properties": {
+                    "min": {
+                      "propertyOrder": 10,
+                      "type": "integer",
+                      "default": 1000,
+                      "title": "Minimum PWM pulse width",
+                      "description": "Check your ESC manual to find out more about range options"
+                    },
+                    "max": {
+                      "propertyOrder": 20,
+                      "type": "integer",
+                      "default": 2000,
+                      "title": "Maximum PWM pulse width",
+                      "description": "Check your ESC manual to find out more about range options"
+                    },
+                    "failsafe": {
+                      "propertyOrder": 30,
+                      "type": "integer",
+                      "default": 1500,
+                      "title": "Failsafe",
+                      "description": "Pulse width when failsafe state is detected. (No control messages for a certain time)"
+                    },
+                    "idle": {
+                      "propertyOrder": 40,
+                      "type": "integer",
+                      "default": 1500,
+                      "title": "Idle PWM pulse width",
+                      "description": "Pulse width for throttle position between forwards and brake/backwards"
+                    },
+                    "scaleForward": {
+                      "propertyOrder": 50,
+                      "type": "integer",
+                      "default": 100,
+                      "minimum": 1,
+                      "maximum": 100,
+                      "title": "Scale forward",
+                      "description": "Scales the throttle forward range as a percentage of the maximum possible value."
+                    },
+                    "scaleReverse": {
+                      "propertyOrder": 60,
+                      "type": "integer",
+                      "default": 100,
+                      "minimum": 1,
+                      "maximum": 100,
+                      "title": "Scale reverse",
+                      "description": "Scales the throttle reverse range as a percentage of the maximum possible value. (You would use this to for example limit your reverse speed to only half the possible speed)"
+                    },
+                    "minForward": {
+                      "propertyOrder": 70,
+                      "type": "integer",
+                      "default": 0,
+                      "title": "Dead-zone forward",
+                      "description": "Compensate for 'dead-zone' of ESC. Set this to a value just slightly before the motor starts spinning forward."
+                    },
+                    "minReverse": {
+                      "propertyOrder": 80,
+                      "type": "integer",
+                      "default": 0,
+                      "title": "Dead-zone reverse",
+                      "description": "Compensate for 'dead-zone' of ESC. Set this to a value just slightly before the motor starts spinning reverse."
+                    },
+                    "expo": {
+                      "propertyOrder": 90,
+                      "type": "integer",
+                      "default": 0,
+                      "minimum": 0,
+                      "maximum": 100,
+                      "title": "Expo",
+                      "description": "Exponential curve for throttle. 0 = linear, higher values = softer response around center for finer control."
+                    }
+                  }
+                },
+                "steering": {
+                  "propertyOrder": 20,
+                  "type": "object",
+                  "title": "Steering",
+                  "options": {
+                    "collapsed": true
+                  },
+                  "properties": {
+                    "min": {
+                      "propertyOrder": 10,
+                      "type": "integer",
+                      "default": 1000,
+                      "title": "Minimum PWM pulse width",
+                      "description": "Check your servo manual to find out more about range options"
+                    },
+                    "max": {
+                      "propertyOrder": 20,
+                      "type": "integer",
+                      "default": 2000,
+                      "title": "Maximum PWM pulse width",
+                      "description": "Check your servo manual to find out more about range options"
+                    },
+                    "failsafe": {
+                      "propertyOrder": 30,
+                      "type": "integer",
+                      "default": 1500,
+                      "title": "Failsafe",
+                      "description": "Pulse width when failsafe state is detected. (No control messages for a certain time)"
+                    },
+                    "trim": {
+                      "propertyOrder": 40,
+                      "type": "integer",
+                      "default": 0,
+                      "title": "Trim",
+                      "description": "Use this to adjust servo position so it is centered without steering input."
+                    },
+                    "scale": {
+                      "propertyOrder": 50,
+                      "title": "Scale (in percent)",
+                      "type": "integer",
+                      "default": 100,
+                      "minimum": 1,
+                      "maximum": 100,
+                      "description": "Scales the steering output range as a percentage of the maximum possible value. Example: setting to '50' will limit the output to 50% of the range and thus PWM pulse width."
+                    },
+                    "invert": {
+                      "propertyOrder": 60,
+                      "title": "Invert steering",
+                      "type": "boolean",
+                      "format": "checkbox",
+                      "default": false,
+                      "description": "Check if the servo does move in opposite directions when pressing [a] and [d] in the viewer."
+                    },
+                    "expo": {
+                      "propertyOrder": 70,
+                      "type": "integer",
+                      "default": 0,
+                      "minimum": 0,
+                      "maximum": 100,
+                      "title": "Expo",
+                      "description": "Exponential curve for steering. 0 = linear, higher values = softer response around center for finer control."
+                    }
+                  }
+                }
+              }
+            },
+            "differential": {
+              "propertyOrder": 30,
               "type": "object",
               "title": "Differential thrust settings",
               "options": {
                 "collapsed": true
               },
               "properties": {
-                "reversible": {
+                "motor": {
                   "propertyOrder": 10,
-                  "type": "boolean",
-                  "format": "checkbox",
-                  "default": false,
-                  "title": "Motors are reversible",
-                  "description": "Enable if both motors are driven by reverse-capable ESCs; leave disabled for unidirectional motors like boat propellers."
+                  "type": "object",
+                  "title": "Motor",
+                  "options": {
+                    "collapsed": true
+                  },
+                  "properties": {
+                    "min": {
+                      "propertyOrder": 10,
+                      "type": "integer",
+                      "default": 1000,
+                      "title": "Minimum PWM pulse width",
+                      "description": "Check your ESC manual to find out more about range options"
+                    },
+                    "max": {
+                      "propertyOrder": 20,
+                      "type": "integer",
+                      "default": 2000,
+                      "title": "Maximum PWM pulse width",
+                      "description": "Check your ESC manual to find out more about range options"
+                    },
+                    "failsafe": {
+                      "propertyOrder": 30,
+                      "type": "integer",
+                      "default": 1500,
+                      "title": "Failsafe",
+                      "description": "Pulse width sent to both motors when failsafe state is detected."
+                    },
+                    "idle": {
+                      "propertyOrder": 40,
+                      "type": "integer",
+                      "default": 1500,
+                      "title": "Idle PWM pulse width",
+                      "description": "Pulse width for zero throttle; also the 'motor off' pulse when motors are not reversible."
+                    },
+                    "scaleForward": {
+                      "propertyOrder": 50,
+                      "type": "integer",
+                      "default": 100,
+                      "minimum": 1,
+                      "maximum": 100,
+                      "title": "Scale forward",
+                      "description": "Scales the motor forward range as a percentage of the maximum possible value."
+                    },
+                    "scaleReverse": {
+                      "propertyOrder": 60,
+                      "type": "integer",
+                      "default": 100,
+                      "minimum": 1,
+                      "maximum": 100,
+                      "title": "Scale reverse",
+                      "description": "Scales the motor reverse range as a percentage of the maximum possible value. Ignored when motors are not reversible."
+                    },
+                    "minForward": {
+                      "propertyOrder": 70,
+                      "type": "integer",
+                      "default": 0,
+                      "title": "Dead-zone forward",
+                      "description": "Compensate for 'dead-zone' of ESC. Set this to a value just slightly before the motor starts spinning forward."
+                    },
+                    "minReverse": {
+                      "propertyOrder": 80,
+                      "type": "integer",
+                      "default": 0,
+                      "title": "Dead-zone reverse",
+                      "description": "Compensate for 'dead-zone' of ESC. Set this to a value just slightly before the motor starts spinning reverse. Ignored when motors are not reversible."
+                    },
+                    "expo": {
+                      "propertyOrder": 90,
+                      "type": "integer",
+                      "default": 0,
+                      "minimum": 0,
+                      "maximum": 100,
+                      "title": "Expo",
+                      "description": "Exponential curve for motor throttle. 0 = linear, higher values = softer response around center for finer control."
+                    },
+                    "reversible": {
+                      "propertyOrder": 100,
+                      "type": "boolean",
+                      "format": "checkbox",
+                      "default": false,
+                      "title": "Motors are reversible",
+                      "description": "Enable if both motors are driven by reverse-capable ESCs; leave disabled for unidirectional motors like boat propellers."
+                    }
+                  }
+                },
+                "mixing": {
+                  "propertyOrder": 20,
+                  "type": "object",
+                  "title": "Mixing",
+                  "options": {
+                    "collapsed": true
+                  },
+                  "properties": {
+                    "scale": {
+                      "propertyOrder": 10,
+                      "title": "Scale (in percent)",
+                      "type": "integer",
+                      "default": 100,
+                      "minimum": 1,
+                      "maximum": 100,
+                      "description": "Scales how strongly steering input biases the left/right motor mix, as a percentage."
+                    },
+                    "invert": {
+                      "propertyOrder": 20,
+                      "title": "Invert steering",
+                      "type": "boolean",
+                      "format": "checkbox",
+                      "default": false,
+                      "description": "Check if the vehicle turns in the opposite direction when pressing [a] and [d] in the viewer."
+                    },
+                    "expo": {
+                      "propertyOrder": 30,
+                      "type": "integer",
+                      "default": 0,
+                      "minimum": 0,
+                      "maximum": 100,
+                      "title": "Expo",
+                      "description": "Exponential curve for the turn input. 0 = linear, higher values = softer response around center for finer control."
+                    },
+                    "balance": {
+                      "propertyOrder": 40,
+                      "type": "integer",
+                      "default": 0,
+                      "title": "Balance",
+                      "description": "Nudges one motor's pulse width up and the other down by this amount, to compensate for motors that don't spin at identical speed for the same signal."
+                    }
+                  }
                 }
               }
             }
           }
         },
-        "throttle": {
-          "propertyOrder": 30,
-          "type": "object",
-          "title": "Throttle",
-          "options": {
-            "collapsed": true
-          },
-          "properties": {
-            "min": {
-              "propertyOrder": 10,
-              "type": "integer",
-              "default": 1000,
-              "title": "Minimum PWM pulse width",
-              "description": "Check your ESC manual to find out more about range options"
-            },
-            "max": {
-              "propertyOrder": 20,
-              "type": "integer",
-              "default": 2000,
-              "title": "Maximum PWM pulse width",
-              "description": "Check your ESC manual to find out more about range options"
-            },
-            "failsafe": {
-              "propertyOrder": 30,
-              "type": "integer",
-              "default": 1500,
-              "title": "Failsafe",
-              "description": "Pulse width when failsafe state is detected. (No control messages for a certain time)"
-            },
-            "idle": {
-              "propertyOrder": 40,
-              "type": "integer",
-              "default": 1500,
-              "title": "Idle PWM pulse width",
-              "description": "Pulse width for throttle position between forwards and brake/backwards"
-            },
-            "scaleForward": {
-              "propertyOrder": 50,
-              "type": "integer",
-              "default": 100,
-              "minimum": 1,
-              "maximum": 100,
-              "title": "Scale forward",
-              "description": "Scales the throttle forward range as a percentage of the maximum possible value."
-            },
-            "scaleReverse": {
-              "propertyOrder": 60,
-              "type": "integer",
-              "default": 100,
-              "minimum": 1,
-              "maximum": 100,
-              "title": "Scale reverse",
-              "description": "Scales the throttle reverse range as a percentage of the maximum possible value. (You would use this to for example limit your reverse speed to only half the possible speed)"
-            },
-            "minForward": {
-              "propertyOrder": 70,
-              "type": "integer",
-              "default": 0,
-              "title": "Dead-zone forward",
-              "description": "Compensate for 'dead-zone' of ESC. Set this to a value just slightly before the motor starts spinning forward."
-            },
-            "minReverse": {
-              "propertyOrder": 80,
-              "type": "integer",
-              "default": 0,
-              "title": "Dead-zone reverse",
-              "description": "Compensate for 'dead-zone' of ESC. Set this to a value just slightly before the motor starts spinning reverse."
-            },
-            "expo": {
-              "propertyOrder": 90,
-              "type": "integer",
-              "default": 0,
-              "minimum": 0,
-              "maximum": 100,
-              "title": "Expo",
-              "description": "Exponential curve for throttle. 0 = linear, higher values = softer response around center for finer control."
-            }
-          }
-        },
-        "steering": {
-          "propertyOrder": 40,
-          "type": "object",
-          "title": "Steering",
-          "options": {
-            "collapsed": true
-          },
-          "properties": {
-            "min": {
-              "propertyOrder": 10,
-              "type": "integer",
-              "default": 1000,
-              "title": "Minimum PWM pulse width",
-              "description": "Check your servo manual to find out more about range options"
-            },
-            "max": {
-              "propertyOrder": 20,
-              "type": "integer",
-              "default": 2000,
-              "title": "Maximum PWM pulse width",
-              "description": "Check your servo manual to find out more about range options"
-            },
-            "failsafe": {
-              "propertyOrder": 30,
-              "type": "integer",
-              "default": 1500,
-              "title": "Failsafe",
-              "description": "Pulse width when failsafe state is detected. (No control messages for a certain time)"
-            },
-            "trim": {
-              "propertyOrder": 40,
-              "type": "integer",
-              "default": 0,
-              "title": "Trim",
-              "description": "Use this to adjust servo position so it is centered without steering input."
-            },
-            "scale": {
-              "propertyOrder": 50,
-              "title": "Scale (in percent)",
-              "type": "integer",
-              "default": 100,
-              "minimum": 1,
-              "maximum": 100,
-              "description": "Scales the steering output range as a percentage of the maximum possible value. Example: setting to '50' will limit the output to 50% of the range and thus PWM pulse width."
-            },
-            "invert": {
-              "propertyOrder": 60,
-              "title": "Invert steering",
-              "type": "boolean",
-              "format": "checkbox",
-              "default": false,
-              "description": "Check if the servo does move in opposite directions when pressing [a] and [d] in the viewer."
-            },
-            "expo": {
-              "propertyOrder": 70,
-              "type": "integer",
-              "default": 0,
-              "minimum": 0,
-              "maximum": 100,
-              "title": "Expo",
-              "description": "Exponential curve for steering. 0 = linear, higher values = softer response around center for finer control."
-            }
-          }
-        },
         "pwm": {
-          "propertyOrder": 50,
+          "propertyOrder": 40,
           "type": "object",
           "title": "PWM Channel Mapping",
           "description": "Make sure that each channel is used only once.",
@@ -909,13 +1041,13 @@
             "collapsed": true
           },
           "properties": {
-            "throttle": {
-              "title": "Throttle PWM channel",
+            "channelA": {
+              "title": "Channel A PWM channel",
               "propertyOrder": 10,
               "type": "integer",
               "default": 0,
               "required": true,
-              "description": "PWM channel for ESC",
+              "description": "PWM channel for the throttle ESC (Ackermann) or the left motor (Differential).",
               "enum": [
                 0,
                 1
@@ -927,13 +1059,13 @@
                 ]
               }
             },
-            "steering": {
+            "channelB": {
               "propertyOrder": 20,
-              "title": "Steering PWM channel",
+              "title": "Channel B PWM channel",
               "type": "integer",
               "default": 1,
               "required": true,
-              "description": "PWM channel for Servo",
+              "description": "PWM channel for the steering servo (Ackermann) or the right motor (Differential).",
               "enum": [
                 0,
                 1

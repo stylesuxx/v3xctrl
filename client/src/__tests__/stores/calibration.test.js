@@ -7,8 +7,16 @@ import { mockConfig } from '../mocks/data'
 describe('useCalibrationStore', () => {
   beforeEach(() => {
     useCalibrationStore.setState({
-      mixerType: 'car',
+      mixerType: 'ackermann',
       reversible: false,
+      ackermann: {
+        throttle: { min: 0, max: 0, idle: 0 },
+        steering: { min: 0, max: 0, trim: 0 },
+      },
+      differential: {
+        motor: { min: 0, max: 0, idle: 0 },
+        mixing: { balance: 0 },
+      },
       steering: { min: 0, max: 0, trim: 0 },
       throttle: { min: 0, max: 0, idle: 0 },
     })
@@ -19,14 +27,13 @@ describe('useCalibrationStore', () => {
     initFromConfig(mockConfig)
 
     const state = useCalibrationStore.getState()
-    expect(state.mixerType).toBe('car')
+    expect(state.mixerType).toBe('ackermann')
     expect(state.reversible).toBe(false)
-    expect(state.steering.min).toBe(1000)
-    expect(state.steering.max).toBe(2000)
-    expect(state.steering.trim).toBe(0)
-    expect(state.throttle.min).toBe(1000)
-    expect(state.throttle.max).toBe(2000)
-    expect(state.throttle.idle).toBe(1500)
+    expect(state.ackermann.steering.min).toBe(1000)
+    expect(state.ackermann.steering.max).toBe(2000)
+    expect(state.ackermann.throttle.min).toBe(1000)
+    expect(state.ackermann.throttle.max).toBe(2000)
+    expect(state.ackermann.throttle.idle).toBe(1500)
   })
 
   it('initializes mixer fields from a differential config', () => {
@@ -35,7 +42,13 @@ describe('useCalibrationStore', () => {
       ...mockConfig,
       control: {
         ...mockConfig.control,
-        mixer: { type: 'differential', differential: { reversible: true } },
+        mixer: {
+          type: 'differential',
+          differential: {
+            motor: { reversible: true, min: 1000, max: 2000, idle: 1500 },
+            mixing: { scale: 100, invert: false, expo: 0, balance: 0 },
+          },
+        },
       },
     }
     initFromConfig(differentialConfig)
@@ -52,7 +65,7 @@ describe('useCalibrationStore', () => {
     initFromConfig(legacyConfig)
 
     const state = useCalibrationStore.getState()
-    expect(state.mixerType).toBe('car')
+    expect(state.mixerType).toBe('ackermann')
     expect(state.reversible).toBe(false)
   })
 
@@ -135,7 +148,7 @@ describe('useCalibrationStore', () => {
     expect(mockPwm).toHaveBeenCalledWith('/gpio/1/pwm', { value: 2000 })
   })
 
-  it('sends balance PWM as idle plus/minus trim to each motor channel', async () => {
+  it('sends balance PWM as idle plus/minus balance offset to each motor channel', async () => {
     const mockPwm = vi.fn().mockResolvedValue({})
     const mockClient = { put: mockPwm }
 
@@ -144,7 +157,7 @@ describe('useCalibrationStore', () => {
 
     useCalibrationStore.setState({
       throttle: { min: 1000, max: 2000, idle: 1500 },
-      steering: { min: 1000, max: 2000, trim: 30 },
+      differential: { motor: { min: 1000, max: 2000, idle: 1500 }, mixing: { balance: 30 } },
     })
 
     await useCalibrationStore.getState().sendBalancePwm()
@@ -157,16 +170,16 @@ describe('useCalibrationStore', () => {
     useConfigStore.setState({ config: structuredClone(mockConfig), saveConfig: mockSaveConfig })
 
     useCalibrationStore.setState({
-      steering: { min: 900, max: 2100, trim: 25 },
+      ackermann: { throttle: { min: 1000, max: 2000, idle: 1500 }, steering: { min: 900, max: 2100, trim: 25 } },
     })
 
     await useCalibrationStore.getState().saveSteeringCalibration()
 
     expect(mockSaveConfig).toHaveBeenCalledTimes(1)
     const saved = mockSaveConfig.mock.calls[0][0]
-    expect(saved.control.steering.min).toBe(900)
-    expect(saved.control.steering.max).toBe(2100)
-    expect(saved.control.steering.trim).toBe(25)
+    expect(saved.control.mixer.ackermann.steering.min).toBe(900)
+    expect(saved.control.mixer.ackermann.steering.max).toBe(2100)
+    expect(saved.control.mixer.ackermann.steering.trim).toBe(25)
   })
 
   it('saves throttle calibration to config', async () => {
@@ -174,6 +187,7 @@ describe('useCalibrationStore', () => {
     useConfigStore.setState({ config: structuredClone(mockConfig), saveConfig: mockSaveConfig })
 
     useCalibrationStore.setState({
+      mixerType: 'ackermann',
       throttle: { min: 1100, max: 1900, idle: 1500 },
     })
 
@@ -181,26 +195,26 @@ describe('useCalibrationStore', () => {
 
     expect(mockSaveConfig).toHaveBeenCalledTimes(1)
     const saved = mockSaveConfig.mock.calls[0][0]
-    expect(saved.control.throttle.min).toBe(1100)
-    expect(saved.control.throttle.max).toBe(1900)
-    expect(saved.control.throttle.idle).toBe(1500)
+    expect(saved.control.mixer.ackermann.throttle.min).toBe(1100)
+    expect(saved.control.mixer.ackermann.throttle.max).toBe(1900)
+    expect(saved.control.mixer.ackermann.throttle.idle).toBe(1500)
   })
 
-  it('saves balance calibration to config, leaving throttle/steering ranges untouched', async () => {
+  it('saves balance calibration to config, leaving throttle/motor ranges untouched', async () => {
     const mockSaveConfig = vi.fn().mockResolvedValue(undefined)
     useConfigStore.setState({ config: structuredClone(mockConfig), saveConfig: mockSaveConfig })
 
     useCalibrationStore.setState({
-      steering: { min: 1000, max: 2000, trim: 40 },
+      differential: { motor: { min: 1000, max: 2000, idle: 1500 }, mixing: { balance: 40 } },
     })
 
     await useCalibrationStore.getState().saveBalanceCalibration()
 
     expect(mockSaveConfig).toHaveBeenCalledTimes(1)
     const saved = mockSaveConfig.mock.calls[0][0]
-    expect(saved.control.steering.trim).toBe(40)
-    expect(saved.control.steering.min).toBe(mockConfig.control.steering.min)
-    expect(saved.control.throttle.min).toBe(mockConfig.control.throttle.min)
+    expect(saved.control.mixer.differential.mixing.balance).toBe(40)
+    expect(saved.control.mixer.differential.motor.min).toBe(mockConfig.control.mixer.differential.motor.min)
+    expect(saved.control.mixer.ackermann.throttle.min).toBe(mockConfig.control.mixer.ackermann.throttle.min)
   })
 
   it('does not mutate original config when saving', async () => {
@@ -209,12 +223,12 @@ describe('useCalibrationStore', () => {
     useConfigStore.setState({ config: originalConfig, saveConfig: mockSaveConfig })
 
     useCalibrationStore.setState({
-      steering: { min: 800, max: 2200, trim: 100 },
+      ackermann: { throttle: { min: 1000, max: 2000, idle: 1500 }, steering: { min: 800, max: 2200, trim: 100 } },
     })
 
     await useCalibrationStore.getState().saveSteeringCalibration()
 
-    expect(originalConfig.control.steering.min).toBe(1000)
+    expect(originalConfig.control.mixer.ackermann.steering.min).toBe(1000)
   })
 
   it('ignores initFromConfig when config has no control section', () => {

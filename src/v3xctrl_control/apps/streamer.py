@@ -42,46 +42,88 @@ parser.add_argument("host", help="The target IP address")
 parser.add_argument("port", type=int, help="The target port number")
 parser.add_argument("bind_port", type=int, help="The internal port number")
 
-parser.add_argument("--throttle-min", type=int, default=1000, help="Minimum pulse width for throttle (default: 1000)")
-parser.add_argument("--throttle-idle", type=int, default=1500, help="Mid pulse width for throttle (default: 1500)")
-parser.add_argument("--throttle-max", type=int, default=2000, help="Maximum pulse width for throttle (default: 2000)")
-parser.add_argument("--steering-min", type=int, default=1000, help="Minimum pulse width for steering (default: 1000)")
-parser.add_argument("--steering-max", type=int, default=2000, help="Maximum pulse width for steering (default: 2000)")
-parser.add_argument("--steering-trim", type=int, default=0, help="Pulse width to trim steering center (default: 0)")
-parser.add_argument("--steering-invert", action="store_true", help="Invert steering direction (default: False)")
-parser.add_argument("--steering-scale", type=int, default=100, help="Max percent of range for steering (default: 100)")
-parser.add_argument(
-    "--forward-scale", type=int, default=100, help="Max percent of range for forward throttle (default: 100)"
-)
-parser.add_argument(
-    "--reverse-scale", type=int, default=100, help="Max percent of range for reverse throttle (default: 100)"
-)
-parser.add_argument(
-    "--forward-boost", type=int, default=0, help="Minimum pulse width offset for going forward (default: 0)"
-)
-parser.add_argument(
-    "--reverse-boost", type=int, default=0, help="Minimum pulse width offset for going reverse (default: 0)"
-)
-parser.add_argument(
-    "--throttle-expo", type=int, default=0, help="Expo curve for throttle, 0 = linear, 100 = max (default: 0)"
-)
-parser.add_argument(
-    "--steering-expo", type=int, default=0, help="Expo curve for steering, 0 = linear, 100 = max (default: 0)"
-)
-parser.add_argument("--pwm-channel-throttle", type=int, default=0, help="PWM channel for throttle signal (default: 0)")
-parser.add_argument("--pwm-channel-steering", type=int, default=1, help="PWM channel for steering signal (default: 1)")
 parser.add_argument(
     "--mixer-type",
     type=str,
-    default="car",
-    choices=["car", "differential"],
-    help="How throttle and steering are combined into the two available PWM outputs (default: car)",
+    default="ackermann",
+    choices=["ackermann", "differential"],
+    help="How throttle and steering are combined into the two available PWM outputs (default: ackermann)",
+)
+
+# Ackermann mixer settings
+parser.add_argument("--ackermann-throttle-min", type=int, default=1000, help="Ackermann throttle min (default: 1000)")
+parser.add_argument("--ackermann-throttle-idle", type=int, default=1500, help="Ackermann throttle idle (default: 1500)")
+parser.add_argument("--ackermann-throttle-max", type=int, default=2000, help="Ackermann throttle max (default: 2000)")
+parser.add_argument(
+    "--ackermann-throttle-failsafe", type=int, default=1500, help="Ackermann throttle failsafe (default: 1500)"
 )
 parser.add_argument(
-    "--mixer-differential-reversible",
-    action="store_true",
-    help="Whether differential thrust motors support reverse (default: False)",
+    "--ackermann-throttle-scale-forward", type=int, default=100, help="Ackermann throttle forward scale (default: 100)"
 )
+parser.add_argument(
+    "--ackermann-throttle-scale-reverse", type=int, default=100, help="Ackermann throttle reverse scale (default: 100)"
+)
+parser.add_argument(
+    "--ackermann-throttle-min-forward", type=int, default=0, help="Ackermann throttle dead-zone forward (default: 0)"
+)
+parser.add_argument(
+    "--ackermann-throttle-min-reverse", type=int, default=0, help="Ackermann throttle dead-zone reverse (default: 0)"
+)
+parser.add_argument("--ackermann-throttle-expo", type=int, default=0, help="Ackermann throttle expo (default: 0)")
+
+parser.add_argument("--ackermann-steering-min", type=int, default=1000, help="Ackermann steering min (default: 1000)")
+parser.add_argument("--ackermann-steering-max", type=int, default=2000, help="Ackermann steering max (default: 2000)")
+parser.add_argument(
+    "--ackermann-steering-failsafe", type=int, default=1500, help="Ackermann steering failsafe (default: 1500)"
+)
+parser.add_argument("--ackermann-steering-trim", type=int, default=0, help="Ackermann steering trim (default: 0)")
+parser.add_argument("--ackermann-steering-scale", type=int, default=100, help="Ackermann steering scale (default: 100)")
+parser.add_argument(
+    "--ackermann-steering-invert", action="store_true", help="Ackermann steering invert (default: False)"
+)
+parser.add_argument("--ackermann-steering-expo", type=int, default=0, help="Ackermann steering expo (default: 0)")
+
+# Differential mixer settings
+parser.add_argument("--differential-motor-min", type=int, default=1000, help="Differential motor min (default: 1000)")
+parser.add_argument("--differential-motor-idle", type=int, default=1500, help="Differential motor idle (default: 1500)")
+parser.add_argument("--differential-motor-max", type=int, default=2000, help="Differential motor max (default: 2000)")
+parser.add_argument(
+    "--differential-motor-failsafe", type=int, default=1500, help="Differential motor failsafe (default: 1500)"
+)
+parser.add_argument(
+    "--differential-motor-scale-forward", type=int, default=100, help="Differential motor forward scale (default: 100)"
+)
+parser.add_argument(
+    "--differential-motor-scale-reverse", type=int, default=100, help="Differential motor reverse scale (default: 100)"
+)
+parser.add_argument(
+    "--differential-motor-min-forward", type=int, default=0, help="Differential motor dead-zone forward (default: 0)"
+)
+parser.add_argument(
+    "--differential-motor-min-reverse", type=int, default=0, help="Differential motor dead-zone reverse (default: 0)"
+)
+parser.add_argument("--differential-motor-expo", type=int, default=0, help="Differential motor expo (default: 0)")
+parser.add_argument(
+    "--differential-motor-reversible",
+    action="store_true",
+    help="Differential motors support reverse (default: False)",
+)
+
+parser.add_argument(
+    "--differential-mixing-scale", type=int, default=100, help="Differential mixing scale (default: 100)"
+)
+parser.add_argument(
+    "--differential-mixing-invert", action="store_true", help="Differential mixing invert (default: False)"
+)
+parser.add_argument("--differential-mixing-expo", type=int, default=0, help="Differential mixing expo (default: 0)")
+parser.add_argument(
+    "--differential-mixing-balance", type=int, default=0, help="Differential motor balance offset (default: 0)"
+)
+
+# PWM channel mapping
+parser.add_argument("--pwm-channel-a", type=int, default=0, help="PWM channel A (default: 0)")
+parser.add_argument("--pwm-channel-b", type=int, default=1, help="PWM channel B (default: 1)")
+
 parser.add_argument(
     "--modem-path", type=str, default="/dev/ttyACM0", help="Path to modem device (default: /dev/ttyACM0)"
 )
@@ -99,14 +141,6 @@ parser.add_argument(
 )
 parser.add_argument(
     "--failsafe-ms", type=int, default=500, help="Timeout in milliseconds to trigger failsafe (default: 500)"
-)
-parser.add_argument("--failsafe-throttle", type=int, default=1500, help="Throttle value when failsafe (default: 1500)")
-parser.add_argument(
-    "--failsafe-steering",
-    type=int,
-    default=1500,
-    help="Steering value when failsafe (default: 1500). Unused with the differential mixer - "
-    "channel B falls back to --failsafe-throttle instead",
 )
 parser.add_argument("--battery-min-voltage", type=int, default=3500, help="Minimum cell voltage in mV (default: 3500)")
 parser.add_argument("--battery-max-voltage", type=int, default=4200, help="Maximum cell voltage in mV (default: 4200)")
@@ -147,78 +181,105 @@ HOST = args.host
 PORT = args.port
 BIND_PORT = args.bind_port
 
-throttle_min = args.throttle_min
-throttle_idle = args.throttle_idle
-throttle_max = args.throttle_max
-forward_scale = args.forward_scale
-reverse_scale = args.reverse_scale
-
-forward_boost = args.forward_boost
-reverse_boost = args.reverse_boost
-
-forward_min = throttle_idle + forward_boost
-reverse_min = throttle_idle - reverse_boost
-
-throttle_expo = args.throttle_expo
-steering_expo = args.steering_expo
-
-steering_min = args.steering_min
-steering_max = args.steering_max
-steering_trim = args.steering_trim
-steering_invert = args.steering_invert
-steering_scale = args.steering_scale
-
-pwm_channel_throttle = args.pwm_channel_throttle
-pwm_channel_steering = args.pwm_channel_steering
-
 mixer_type = MixerType(args.mixer_type)
-mixer_differential_reversible = args.mixer_differential_reversible
-
 modem_path = args.modem_path
+failsafe_ms = args.failsafe_ms
+
+pwm_channel_a = args.pwm_channel_a
+pwm_channel_b = args.pwm_channel_b
 
 level_name = args.log.upper()
 level = getattr(logging, level_name, None)
-
-failsafe_ms = args.failsafe_ms
-failsafe_throttle = args.failsafe_throttle
-failsafe_steering = args.failsafe_steering
 
 if not isinstance(level, int):
     raise ValueError(f"Invalid log level: {args.log}")
 
 logging.basicConfig(level=level, format="%(asctime)s - %(levelname)s - %(message)s")
 
-forward_multiplier = forward_scale / 100.0
-reverse_multiplier = reverse_scale / 100.0
-steering_multiplier = steering_scale / 100.0
+# Ackermann mixer variables
+ackermann_throttle_min = args.ackermann_throttle_min
+ackermann_throttle_idle = args.ackermann_throttle_idle
+ackermann_throttle_max = args.ackermann_throttle_max
+ackermann_throttle_failsafe = args.ackermann_throttle_failsafe
+ackermann_throttle_scale_forward = args.ackermann_throttle_scale_forward
+ackermann_throttle_scale_reverse = args.ackermann_throttle_scale_reverse
+ackermann_throttle_min_forward = args.ackermann_throttle_min_forward
+ackermann_throttle_min_reverse = args.ackermann_throttle_min_reverse
+ackermann_throttle_expo = args.ackermann_throttle_expo
 
-steering_left = -1
-steering_right = 1
-trim_multiplier = 1
-steering_invert_multiplier = 1
+ackermann_steering_min = args.ackermann_steering_min
+ackermann_steering_max = args.ackermann_steering_max
+ackermann_steering_failsafe = args.ackermann_steering_failsafe
+ackermann_steering_trim = args.ackermann_steering_trim
+ackermann_steering_scale = args.ackermann_steering_scale
+ackermann_steering_invert = args.ackermann_steering_invert
+ackermann_steering_expo = args.ackermann_steering_expo
 
-if steering_invert:
-    steering_left = 1
-    steering_right = -1
-    trim_multiplier = -1
-    steering_invert_multiplier = -1
+ackermann_forward_min = ackermann_throttle_idle + ackermann_throttle_min_forward
+ackermann_reverse_min = ackermann_throttle_idle - ackermann_throttle_min_reverse
+ackermann_forward_multiplier = ackermann_throttle_scale_forward / 100.0
+ackermann_reverse_multiplier = ackermann_throttle_scale_reverse / 100.0
+ackermann_steering_multiplier = ackermann_steering_scale / 100.0
+
+ackermann_steering_left = -1
+ackermann_steering_right = 1
+ackermann_trim_multiplier = 1
+
+if ackermann_steering_invert:
+    ackermann_steering_left = 1
+    ackermann_steering_right = -1
+    ackermann_trim_multiplier = -1
+
+# Differential mixer variables
+differential_motor_min = args.differential_motor_min
+differential_motor_idle = args.differential_motor_idle
+differential_motor_max = args.differential_motor_max
+differential_motor_failsafe = args.differential_motor_failsafe
+differential_motor_scale_forward = args.differential_motor_scale_forward
+differential_motor_scale_reverse = args.differential_motor_scale_reverse
+differential_motor_min_forward = args.differential_motor_min_forward
+differential_motor_min_reverse = args.differential_motor_min_reverse
+differential_motor_expo = args.differential_motor_expo
+differential_motor_reversible = args.differential_motor_reversible
+
+differential_mixing_scale = args.differential_mixing_scale
+differential_mixing_invert = args.differential_mixing_invert
+differential_mixing_expo = args.differential_mixing_expo
+differential_mixing_balance = args.differential_mixing_balance
+
+differential_forward_min = differential_motor_idle + differential_motor_min_forward
+differential_reverse_min = differential_motor_idle - differential_motor_min_reverse
+differential_forward_multiplier = differential_motor_scale_forward / 100.0
+differential_reverse_multiplier = differential_motor_scale_reverse / 100.0
+differential_mixing_multiplier = differential_mixing_scale / 100.0
+
+differential_mixing_invert_multiplier = 1
+if differential_mixing_invert:
+    differential_mixing_invert_multiplier = -1
 
 running = True
 received_command_ids: set[str] = set()
 
-pwm_throttle = HardwarePWM(pwm_channel_throttle)
-pwm_steering = HardwarePWM(pwm_channel_steering)
+pwm_throttle = HardwarePWM(pwm_channel_a)
+pwm_steering = HardwarePWM(pwm_channel_b)
 
 
-def calculate_steering_center() -> int:
-    center = (steering_max + steering_min) / 2 + steering_trim
-    return int(max(steering_min, min(steering_max, center)))
+def calculate_ackermann_steering_center() -> int:
+    center = (ackermann_steering_max + ackermann_steering_min) / 2 + ackermann_steering_trim
+    return int(max(ackermann_steering_min, min(ackermann_steering_max, center)))
 
 
-steering_center = calculate_steering_center()
+if mixer_type == MixerType.ACKERMANN:
+    steering_center = calculate_ackermann_steering_center()
+    channel_b_idle = steering_center
+    throttle_idle = ackermann_throttle_idle
+else:
+    steering_center = 0
+    channel_b_idle = differential_motor_idle
+    throttle_idle = differential_motor_idle
 
 pwm_throttle.setup(throttle_idle)
-pwm_steering.setup(steering_center)
+pwm_steering.setup(channel_b_idle)
 
 telemetry = TelemetryHandler(
     modem_path,
@@ -239,69 +300,98 @@ executor = ThreadPoolExecutor(max_workers=2)
 
 
 def control_handler(message: Control, address: Address) -> None:
-    throttle_value: float = failsafe_throttle
-    steering_value: float = failsafe_steering if mixer_type == MixerType.CAR else failsafe_throttle
+    throttle_value: int = 0
+    steering_value: int = 0
 
     if client.state == State.CONNECTED:
         values = message.get_values()
-        raw_throttle = apply_expo(values["throttle"], throttle_expo)
-        raw_steering = apply_expo(values["steering"], steering_expo)
+        raw_throttle = values["throttle"]
+        raw_steering = values["steering"]
 
         match mixer_type:
-            case MixerType.CAR:
+            case MixerType.ACKERMANN:
+                raw_throttle = apply_expo(raw_throttle, ackermann_throttle_expo)
+                raw_steering = apply_expo(raw_steering, ackermann_steering_expo)
+
                 throttle_value = esc_pulse_width(
                     raw_throttle,
-                    forward_min,
-                    throttle_max,
-                    throttle_min,
-                    reverse_min,
-                    forward_multiplier,
-                    reverse_multiplier,
-                    throttle_idle,
+                    ackermann_forward_min,
+                    ackermann_throttle_max,
+                    ackermann_throttle_min,
+                    ackermann_reverse_min,
+                    ackermann_forward_multiplier,
+                    ackermann_reverse_multiplier,
+                    ackermann_throttle_idle,
                     reversible=True,
                 )
 
-                scaled_steering = raw_steering * steering_multiplier
-                steering_value = map_range(
-                    scaled_steering, steering_left, steering_right, steering_min, steering_max
-                ) + (steering_trim * trim_multiplier)
-                steering_value = clamp(steering_value, steering_min, steering_max)
+                scaled_steering = raw_steering * ackermann_steering_multiplier
+                steering_value = int(
+                    clamp(
+                        map_range(
+                            scaled_steering,
+                            ackermann_steering_left,
+                            ackermann_steering_right,
+                            ackermann_steering_min,
+                            ackermann_steering_max,
+                        )
+                        + (ackermann_steering_trim * ackermann_trim_multiplier),
+                        ackermann_steering_min,
+                        ackermann_steering_max,
+                    )
+                )
 
             case MixerType.DIFFERENTIAL:
-                signed_steering = raw_steering * steering_multiplier * steering_invert_multiplier
+                raw_throttle = apply_expo(raw_throttle, differential_motor_expo)
+                raw_steering = apply_expo(raw_steering, differential_mixing_expo)
+
+                signed_steering = raw_steering * differential_mixing_multiplier * differential_mixing_invert_multiplier
                 left, right = mix_differential(raw_throttle, signed_steering)
 
-                throttle_value = (
-                    esc_pulse_width(
-                        left,
-                        forward_min,
-                        throttle_max,
-                        throttle_min,
-                        reverse_min,
-                        forward_multiplier,
-                        reverse_multiplier,
-                        throttle_idle,
-                        reversible=mixer_differential_reversible,
+                throttle_value = int(
+                    clamp(
+                        esc_pulse_width(
+                            left,
+                            differential_forward_min,
+                            differential_motor_max,
+                            differential_motor_min,
+                            differential_reverse_min,
+                            differential_forward_multiplier,
+                            differential_reverse_multiplier,
+                            differential_motor_idle,
+                            reversible=differential_motor_reversible,
+                        )
+                        + differential_mixing_balance,
+                        differential_motor_min,
+                        differential_motor_max,
                     )
-                    + steering_trim
                 )
-                steering_value = (
-                    esc_pulse_width(
-                        right,
-                        forward_min,
-                        throttle_max,
-                        throttle_min,
-                        reverse_min,
-                        forward_multiplier,
-                        reverse_multiplier,
-                        throttle_idle,
-                        reversible=mixer_differential_reversible,
+                steering_value = int(
+                    clamp(
+                        esc_pulse_width(
+                            right,
+                            differential_forward_min,
+                            differential_motor_max,
+                            differential_motor_min,
+                            differential_reverse_min,
+                            differential_forward_multiplier,
+                            differential_reverse_multiplier,
+                            differential_motor_idle,
+                            reversible=differential_motor_reversible,
+                        )
+                        - differential_mixing_balance,
+                        differential_motor_min,
+                        differential_motor_max,
                     )
-                    - steering_trim
                 )
-
-                throttle_value = clamp(throttle_value, throttle_min, throttle_max)
-                steering_value = clamp(steering_value, throttle_min, throttle_max)
+    else:
+        match mixer_type:
+            case MixerType.ACKERMANN:
+                throttle_value = ackermann_throttle_failsafe
+                steering_value = ackermann_steering_failsafe
+            case MixerType.DIFFERENTIAL:
+                throttle_value = differential_motor_failsafe
+                steering_value = differential_motor_failsafe
 
     logger.debug(f"Throttle: {throttle_value}; Steering: {steering_value}")
 
@@ -339,19 +429,47 @@ def command_handler(command: Command, address: Address) -> None:
             executor.submit(video_control.recording, recording_action)
 
         case "trim":
-            global steering_trim, steering_center
             parameters = command.get_parameters()
             trim_action: str = parameters["action"]
-
             step = 5
 
-            if trim_action == "increase":
-                steering_trim += step
-            else:
-                steering_trim -= step
+            match mixer_type:
+                case MixerType.ACKERMANN:
+                    global ackermann_steering_trim, steering_center
 
-            steering_center = calculate_steering_center()
-            subprocess.Popen(["sudo", "v3xctrl-settings", "set", ".control.steering.trim", str(steering_trim)])
+                    if trim_action == "increase":
+                        ackermann_steering_trim += step
+                    else:
+                        ackermann_steering_trim -= step
+
+                    steering_center = calculate_ackermann_steering_center()
+                    subprocess.Popen(
+                        [
+                            "sudo",
+                            "v3xctrl-settings",
+                            "set",
+                            ".control.mixer.ackermann.steering.trim",
+                            str(ackermann_steering_trim),
+                        ]
+                    )
+
+                case MixerType.DIFFERENTIAL:
+                    global differential_mixing_balance
+
+                    if trim_action == "increase":
+                        differential_mixing_balance += step
+                    else:
+                        differential_mixing_balance -= step
+
+                    subprocess.Popen(
+                        [
+                            "sudo",
+                            "v3xctrl-settings",
+                            "set",
+                            ".control.mixer.differential.mixing.balance",
+                            str(differential_mixing_balance),
+                        ]
+                    )
 
         case "shutdown":
             subprocess.Popen(["sudo", "poweroff"])

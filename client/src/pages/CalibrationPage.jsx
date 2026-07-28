@@ -48,7 +48,7 @@ export function CalibrationPage() {
         visible={!controlInactive}
       />
 
-      {controlInactive && mixerType === 'car' && (
+      {controlInactive && mixerType === 'ackermann' && (
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Steering */}
           <div className="space-y-3">

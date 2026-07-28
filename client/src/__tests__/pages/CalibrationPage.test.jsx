@@ -34,8 +34,16 @@ describe('CalibrationPage', () => {
       error: null,
     })
     useCalibrationStore.setState({
-      mixerType: 'car',
+      mixerType: 'ackermann',
       reversible: false,
+      ackermann: {
+        throttle: { min: 1000, max: 2000, idle: 1500 },
+        steering: { min: 1000, max: 2000, trim: 0 },
+      },
+      differential: {
+        motor: { min: 1000, max: 2000, idle: 1500 },
+        mixing: { balance: 0 },
+      },
       steering: { min: 1000, max: 2000, trim: 0 },
       throttle: { min: 1000, max: 2000, idle: 1500 },
     })
@@ -222,9 +230,9 @@ describe('CalibrationPage', () => {
 
     // initFromConfig should have been called with mockConfig
     const state = useCalibrationStore.getState()
-    expect(state.steering.min).toBe(mockConfig.control.steering.min)
-    expect(state.steering.max).toBe(mockConfig.control.steering.max)
-    expect(state.throttle.idle).toBe(mockConfig.control.throttle.idle)
+    expect(state.steering.min).toBe(mockConfig.control.mixer.ackermann.steering.min)
+    expect(state.steering.max).toBe(mockConfig.control.mixer.ackermann.steering.max)
+    expect(state.throttle.idle).toBe(mockConfig.control.mixer.ackermann.throttle.idle)
   })
 
   it('renders info text for steering and throttle', async () => {
@@ -245,7 +253,14 @@ const differentialConfig = {
   ...mockConfig,
   control: {
     ...mockConfig.control,
-    mixer: { type: 'differential', differential: { reversible: false } },
+    mixer: {
+      type: 'differential',
+      ackermann: mockConfig.control.mixer.ackermann,
+      differential: {
+        motor: { min: 1000, max: 2000, failsafe: 1500, idle: 1500, scaleForward: 100, scaleReverse: 100, minForward: 0, minReverse: 0, expo: 0, reversible: false },
+        mixing: { scale: 100, invert: false, expo: 0, balance: 0 },
+      },
+    },
   },
 }
 
@@ -270,6 +285,14 @@ describe('CalibrationPage - differential mixer', () => {
     useCalibrationStore.setState({
       mixerType: 'differential',
       reversible: false,
+      ackermann: {
+        throttle: { min: 1000, max: 2000, idle: 1500 },
+        steering: { min: 1000, max: 2000, trim: 0 },
+      },
+      differential: {
+        motor: { min: 1000, max: 2000, idle: 1500 },
+        mixing: { balance: 0 },
+      },
       steering: { min: 1000, max: 2000, trim: 0 },
       throttle: { min: 1000, max: 2000, idle: 1500 },
     })
@@ -356,15 +379,21 @@ describe('CalibrationPage - differential mixer', () => {
   })
 
   it('shows the reversible note when motors support reverse', async () => {
-    useConfigStore.setState({
-      config: {
-        ...differentialConfig,
-        control: {
-          ...differentialConfig.control,
-          mixer: { type: 'differential', differential: { reversible: true } },
+    useServicesStore.setState({ services: inactiveControlService })
+    const reversibleDifferentialConfig = {
+      ...differentialConfig,
+      control: {
+        ...differentialConfig.control,
+        mixer: {
+          ...differentialConfig.control.mixer,
+          differential: {
+            ...differentialConfig.control.mixer.differential,
+            motor: { ...differentialConfig.control.mixer.differential.motor, reversible: true },
+          },
         },
       },
-    })
+    }
+    useConfigStore.setState({ config: reversibleDifferentialConfig })
     useCalibrationStore.setState({ reversible: true })
 
     render(<CalibrationPage />)
@@ -372,6 +401,6 @@ describe('CalibrationPage - differential mixer', () => {
     await waitFor(() => {
       expect(screen.getAllByText(/share this calibration/i).length).toBeGreaterThan(0)
     })
-    expect(screen.queryByText(/don't reverse/i)).not.toBeInTheDocument()
+    expect(screen.queryAllByText(/don't reverse/i).length).toBe(0)
   })
 })

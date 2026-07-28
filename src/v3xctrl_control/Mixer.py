@@ -4,7 +4,7 @@ from v3xctrl_helper import clamp
 
 
 class MixerType(StrEnum):
-    CAR = "car"
+    ACKERMANN = "ackermann"
     DIFFERENTIAL = "differential"
 
 
