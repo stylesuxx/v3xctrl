@@ -44,8 +44,6 @@ describe('CalibrationPage', () => {
         motor: { min: 1000, max: 2000, idle: 1500 },
         mixing: { balance: 0 },
       },
-      steering: { min: 1000, max: 2000, trim: 0 },
-      throttle: { min: 1000, max: 2000, idle: 1500 },
     })
   })
 
@@ -128,7 +126,7 @@ describe('CalibrationPage', () => {
     const inputs = screen.getAllByRole('spinbutton')
     fireEvent.change(inputs[0], { target: { value: '1100' } })
 
-    expect(useCalibrationStore.getState().steering.min).toBe(1100)
+    expect(useCalibrationStore.getState().ackermann.steering.min).toBe(1100)
   })
 
   it('updates throttle value when PWM input changes', async () => {
@@ -144,7 +142,7 @@ describe('CalibrationPage', () => {
     const inputs = screen.getAllByRole('spinbutton')
     fireEvent.change(inputs[3], { target: { value: '900' } })
 
-    expect(useCalibrationStore.getState().throttle.min).toBe(900)
+    expect(useCalibrationStore.getState().ackermann.throttle.min).toBe(900)
   })
 
   it('calls sendSteeringPwm when send button is clicked', async () => {
@@ -222,17 +220,19 @@ describe('CalibrationPage', () => {
   it('initializes calibration from config on mount', () => {
     useServicesStore.setState({ services: inactiveControlService })
     useCalibrationStore.setState({
-      steering: { min: 0, max: 0, trim: 0 },
-      throttle: { min: 0, max: 0, idle: 0 },
+      ackermann: {
+        steering: { min: 0, max: 0, trim: 0 },
+        throttle: { min: 0, max: 0, idle: 0 },
+      },
     })
 
     render(<CalibrationPage />)
 
     // initFromConfig should have been called with mockConfig
     const state = useCalibrationStore.getState()
-    expect(state.steering.min).toBe(mockConfig.control.mixer.ackermann.steering.min)
-    expect(state.steering.max).toBe(mockConfig.control.mixer.ackermann.steering.max)
-    expect(state.throttle.idle).toBe(mockConfig.control.mixer.ackermann.throttle.idle)
+    expect(state.ackermann.steering.min).toBe(mockConfig.control.mixer.ackermann.steering.min)
+    expect(state.ackermann.steering.max).toBe(mockConfig.control.mixer.ackermann.steering.max)
+    expect(state.ackermann.throttle.idle).toBe(mockConfig.control.mixer.ackermann.throttle.idle)
   })
 
   it('renders info text for steering and throttle', async () => {
@@ -293,8 +293,6 @@ describe('CalibrationPage - differential mixer', () => {
         motor: { min: 1000, max: 2000, idle: 1500 },
         mixing: { balance: 0 },
       },
-      steering: { min: 1000, max: 2000, trim: 0 },
-      throttle: { min: 1000, max: 2000, idle: 1500 },
     })
   })
 
@@ -319,6 +317,34 @@ describe('CalibrationPage - differential mixer', () => {
     })
   })
 
+  it('renders differential values, not ackermann values, in the motor panels', async () => {
+    const mismatchedConfig = {
+      ...differentialConfig,
+      control: {
+        ...differentialConfig.control,
+        mixer: {
+          ...differentialConfig.control.mixer,
+          ackermann: {
+            ...differentialConfig.control.mixer.ackermann,
+            throttle: { ...differentialConfig.control.mixer.ackermann.throttle, min: 1111, max: 1999, idle: 1499 },
+          },
+          differential: {
+            ...differentialConfig.control.mixer.differential,
+            motor: { ...differentialConfig.control.mixer.differential.motor, min: 1050, max: 1950, idle: 1500 },
+          },
+        },
+      },
+    }
+    useConfigStore.setState({ config: mismatchedConfig })
+
+    render(<CalibrationPage />)
+
+    await waitFor(() => {
+      expect(screen.getAllByDisplayValue('1050').length).toBeGreaterThan(0)
+    })
+    expect(screen.queryByDisplayValue('1111')).not.toBeInTheDocument()
+  })
+
   it('calls sendMotorPwm with the right channel for each panel', async () => {
     const sendMotorPwm = vi.fn()
     useCalibrationStore.setState({ sendMotorPwm })
@@ -331,10 +357,10 @@ describe('CalibrationPage - differential mixer', () => {
 
     const sendButtons = screen.getAllByText('Send')
     fireEvent.click(sendButtons[0])
-    expect(sendMotorPwm).toHaveBeenCalledWith('throttle', 'min')
+    expect(sendMotorPwm).toHaveBeenCalledWith('channelA', 'min')
 
     fireEvent.click(sendButtons[3])
-    expect(sendMotorPwm).toHaveBeenCalledWith('steering', 'min')
+    expect(sendMotorPwm).toHaveBeenCalledWith('channelB', 'min')
   })
 
   it('calls saveThrottleCalibration once for the shared motor profile', async () => {
@@ -368,6 +394,19 @@ describe('CalibrationPage - differential mixer', () => {
     const sendButtons = screen.getAllByText('Send')
     fireEvent.click(sendButtons[sendButtons.length - 1])
     expect(sendBalancePwm).toHaveBeenCalled()
+  })
+
+  it('updates the balance offset value when its PWM input changes', async () => {
+    render(<CalibrationPage />)
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Balance offset').length).toBeGreaterThan(0)
+    })
+
+    const inputs = screen.getAllByRole('spinbutton')
+    fireEvent.change(inputs[inputs.length - 1], { target: { value: '35' } })
+
+    expect(useCalibrationStore.getState().differential.mixing.balance).toBe(35)
   })
 
   it('shows the non-reversible note by default', async () => {

@@ -4,26 +4,25 @@ set -e
 ENV_PATH="/run/v3xctrl.env"
 source "${ENV_PATH}"
 
-MIXER_ARGS=""
-BOOL_ARGS=""
+EXTRA_ARGS=""
 
 # Ackermann mixer boolean flags
 if [ "$control_mixer_ackermann_steering_invert" = "true" ]; then
-  BOOL_ARGS+="--ackermann-steering-invert "
+  EXTRA_ARGS+="--ackermann-steering-invert "
 fi
 
 # Differential mixer boolean flags
 if [ "$control_mixer_differential_motor_reversible" = "true" ]; then
-  BOOL_ARGS+="--differential-motor-reversible "
+  EXTRA_ARGS+="--differential-motor-reversible "
 fi
 
 if [ "$control_mixer_differential_mixing_invert" = "true" ]; then
-  BOOL_ARGS+="--differential-mixing-invert "
+  EXTRA_ARGS+="--differential-mixing-invert "
 fi
 
 # Relay mode
 if [ "$viewer_mode" = "relay" ] && [ "$viewer_transport" = "tcp" ]; then
-  BOOL_ARGS+="--relay-session-id ${viewer_relay_sessionId} "
+  EXTRA_ARGS+="--relay-session-id ${viewer_relay_sessionId} "
 fi
 
 v3xctrl-python -m v3xctrl_control.apps.streamer "${viewer_direct_host}" "${viewer_ports_control}" "${viewer_ports_control_bind}" \
@@ -70,4 +69,4 @@ v3xctrl-python -m v3xctrl_control.apps.streamer "${viewer_direct_host}" "${viewe
   --gps-path "${telemetry_gps_path}" \
   --gps-protocol "${telemetry_gps_protocol}" \
   --gps-rate-hz "${telemetry_gps_rateHz}" \
-  ${BOOL_ARGS}
+  ${EXTRA_ARGS}

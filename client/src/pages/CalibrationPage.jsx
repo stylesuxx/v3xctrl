@@ -15,11 +15,13 @@ export function CalibrationPage() {
   const {
     mixerType,
     reversible,
-    steering,
-    throttle,
+    ackermann,
+    differential,
     initFromConfig,
-    setSteeringField,
-    setThrottleField,
+    setAckermannSteeringField,
+    setAckermannThrottleField,
+    setDifferentialMotorField,
+    setDifferentialBalance,
     sendSteeringPwm,
     sendThrottlePwm,
     sendMotorPwm,
@@ -60,20 +62,20 @@ export function CalibrationPage() {
 
             <PwmControl
               label={t('calibration.steeringMin')}
-              value={steering.min}
-              onChange={(v) => setSteeringField('min', v)}
+              value={ackermann.steering.min}
+              onChange={(v) => setAckermannSteeringField('min', v)}
               onSend={() => sendSteeringPwm('min')}
             />
             <PwmControl
               label={t('calibration.steeringMax')}
-              value={steering.max}
-              onChange={(v) => setSteeringField('max', v)}
+              value={ackermann.steering.max}
+              onChange={(v) => setAckermannSteeringField('max', v)}
               onSend={() => sendSteeringPwm('max')}
             />
             <PwmControl
               label={t('calibration.steeringTrim')}
-              value={steering.trim}
-              onChange={(v) => setSteeringField('trim', v)}
+              value={ackermann.steering.trim}
+              onChange={(v) => setAckermannSteeringField('trim', v)}
               onSend={() => sendSteeringPwm('trim')}
             />
 
@@ -94,20 +96,20 @@ export function CalibrationPage() {
 
             <PwmControl
               label={t('calibration.throttleMin')}
-              value={throttle.min}
-              onChange={(v) => setThrottleField('min', v)}
+              value={ackermann.throttle.min}
+              onChange={(v) => setAckermannThrottleField('min', v)}
               onSend={() => sendThrottlePwm('min')}
             />
             <PwmControl
               label={t('calibration.throttleMax')}
-              value={throttle.max}
-              onChange={(v) => setThrottleField('max', v)}
+              value={ackermann.throttle.max}
+              onChange={(v) => setAckermannThrottleField('max', v)}
               onSend={() => sendThrottlePwm('max')}
             />
             <PwmControl
               label={t('calibration.throttleNeutral')}
-              value={throttle.idle}
-              onChange={(v) => setThrottleField('idle', v)}
+              value={ackermann.throttle.idle}
+              onChange={(v) => setAckermannThrottleField('idle', v)}
               onSend={() => sendThrottlePwm('idle')}
             />
 
@@ -133,21 +135,21 @@ export function CalibrationPage() {
 
               <PwmControl
                 label={t('calibration.motorMin')}
-                value={throttle.min}
-                onChange={(v) => setThrottleField('min', v)}
-                onSend={() => sendMotorPwm('throttle', 'min')}
+                value={differential.motor.min}
+                onChange={(v) => setDifferentialMotorField('min', v)}
+                onSend={() => sendMotorPwm('channelA', 'min')}
               />
               <PwmControl
                 label={t('calibration.motorMax')}
-                value={throttle.max}
-                onChange={(v) => setThrottleField('max', v)}
-                onSend={() => sendMotorPwm('throttle', 'max')}
+                value={differential.motor.max}
+                onChange={(v) => setDifferentialMotorField('max', v)}
+                onSend={() => sendMotorPwm('channelA', 'max')}
               />
               <PwmControl
                 label={t('calibration.motorIdle')}
-                value={throttle.idle}
-                onChange={(v) => setThrottleField('idle', v)}
-                onSend={() => sendMotorPwm('throttle', 'idle')}
+                value={differential.motor.idle}
+                onChange={(v) => setDifferentialMotorField('idle', v)}
+                onSend={() => sendMotorPwm('channelA', 'idle')}
               />
             </div>
 
@@ -161,21 +163,21 @@ export function CalibrationPage() {
 
               <PwmControl
                 label={t('calibration.motorMin')}
-                value={throttle.min}
-                onChange={(v) => setThrottleField('min', v)}
-                onSend={() => sendMotorPwm('steering', 'min')}
+                value={differential.motor.min}
+                onChange={(v) => setDifferentialMotorField('min', v)}
+                onSend={() => sendMotorPwm('channelB', 'min')}
               />
               <PwmControl
                 label={t('calibration.motorMax')}
-                value={throttle.max}
-                onChange={(v) => setThrottleField('max', v)}
-                onSend={() => sendMotorPwm('steering', 'max')}
+                value={differential.motor.max}
+                onChange={(v) => setDifferentialMotorField('max', v)}
+                onSend={() => sendMotorPwm('channelB', 'max')}
               />
               <PwmControl
                 label={t('calibration.motorIdle')}
-                value={throttle.idle}
-                onChange={(v) => setThrottleField('idle', v)}
-                onSend={() => sendMotorPwm('steering', 'idle')}
+                value={differential.motor.idle}
+                onChange={(v) => setDifferentialMotorField('idle', v)}
+                onSend={() => sendMotorPwm('channelB', 'idle')}
               />
             </div>
           </div>
@@ -196,8 +198,8 @@ export function CalibrationPage() {
 
             <PwmControl
               label={t('calibration.balanceOffset')}
-              value={steering.trim}
-              onChange={(v) => setSteeringField('trim', v)}
+              value={differential.mixing.balance}
+              onChange={(v) => setDifferentialBalance(v)}
               onSend={sendBalancePwm}
             />
 

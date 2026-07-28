@@ -17,8 +17,6 @@ describe('useCalibrationStore', () => {
         motor: { min: 0, max: 0, idle: 0 },
         mixing: { balance: 0 },
       },
-      steering: { min: 0, max: 0, trim: 0 },
-      throttle: { min: 0, max: 0, idle: 0 },
     })
   })
 
@@ -45,8 +43,8 @@ describe('useCalibrationStore', () => {
         mixer: {
           type: 'differential',
           differential: {
-            motor: { reversible: true, min: 1000, max: 2000, idle: 1500 },
-            mixing: { scale: 100, invert: false, expo: 0, balance: 0 },
+            motor: { reversible: true, min: 900, max: 2100, idle: 1500 },
+            mixing: { scale: 100, invert: false, expo: 0, balance: 15 },
           },
         },
       },
@@ -56,6 +54,10 @@ describe('useCalibrationStore', () => {
     const state = useCalibrationStore.getState()
     expect(state.mixerType).toBe('differential')
     expect(state.reversible).toBe(true)
+    expect(state.differential.motor.min).toBe(900)
+    expect(state.differential.motor.max).toBe(2100)
+    expect(state.differential.motor.idle).toBe(1500)
+    expect(state.differential.mixing.balance).toBe(15)
   })
 
   it('defaults mixer fields when config has no mixer section', () => {
@@ -69,16 +71,28 @@ describe('useCalibrationStore', () => {
     expect(state.reversible).toBe(false)
   })
 
-  it('updates steering fields', () => {
-    const { setSteeringField } = useCalibrationStore.getState()
-    setSteeringField('min', 900)
-    expect(useCalibrationStore.getState().steering.min).toBe(900)
+  it('updates ackermann steering fields', () => {
+    const { setAckermannSteeringField } = useCalibrationStore.getState()
+    setAckermannSteeringField('min', 900)
+    expect(useCalibrationStore.getState().ackermann.steering.min).toBe(900)
   })
 
-  it('updates throttle fields', () => {
-    const { setThrottleField } = useCalibrationStore.getState()
-    setThrottleField('idle', 1550)
-    expect(useCalibrationStore.getState().throttle.idle).toBe(1550)
+  it('updates ackermann throttle fields', () => {
+    const { setAckermannThrottleField } = useCalibrationStore.getState()
+    setAckermannThrottleField('idle', 1550)
+    expect(useCalibrationStore.getState().ackermann.throttle.idle).toBe(1550)
+  })
+
+  it('updates differential motor fields', () => {
+    const { setDifferentialMotorField } = useCalibrationStore.getState()
+    setDifferentialMotorField('idle', 1550)
+    expect(useCalibrationStore.getState().differential.motor.idle).toBe(1550)
+  })
+
+  it('updates differential balance', () => {
+    const { setDifferentialBalance } = useCalibrationStore.getState()
+    setDifferentialBalance(25)
+    expect(useCalibrationStore.getState().differential.mixing.balance).toBe(25)
   })
 
   it('calculates trim correctly when sending steering PWM', async () => {
@@ -89,8 +103,10 @@ describe('useCalibrationStore', () => {
     useConfigStore.setState({ config: mockConfig })
 
     useCalibrationStore.setState({
-      steering: { min: 1000, max: 2000, trim: 50 },
-      throttle: { min: 1000, max: 2000, idle: 1500 },
+      ackermann: {
+        steering: { min: 1000, max: 2000, trim: 50 },
+        throttle: { min: 1000, max: 2000, idle: 1500 },
+      },
     })
 
     await useCalibrationStore.getState().sendSteeringPwm('trim')
@@ -108,7 +124,10 @@ describe('useCalibrationStore', () => {
     useConfigStore.setState({ config: mockConfig })
 
     useCalibrationStore.setState({
-      steering: { min: 900, max: 2000, trim: 0 },
+      ackermann: {
+        steering: { min: 900, max: 2000, trim: 0 },
+        throttle: { min: 1000, max: 2000, idle: 1500 },
+      },
     })
 
     await useCalibrationStore.getState().sendSteeringPwm('min')
@@ -123,7 +142,10 @@ describe('useCalibrationStore', () => {
     useConfigStore.setState({ config: mockConfig })
 
     useCalibrationStore.setState({
-      throttle: { min: 1000, max: 2000, idle: 1500 },
+      ackermann: {
+        steering: { min: 1000, max: 2000, trim: 0 },
+        throttle: { min: 1000, max: 2000, idle: 1500 },
+      },
     })
 
     await useCalibrationStore.getState().sendThrottlePwm('idle')
@@ -138,13 +160,16 @@ describe('useCalibrationStore', () => {
     useConfigStore.setState({ config: mockConfig })
 
     useCalibrationStore.setState({
-      throttle: { min: 1000, max: 2000, idle: 1500 },
+      differential: {
+        motor: { min: 1000, max: 2000, idle: 1500 },
+        mixing: { balance: 0 },
+      },
     })
 
-    await useCalibrationStore.getState().sendMotorPwm('throttle', 'min')
+    await useCalibrationStore.getState().sendMotorPwm('channelA', 'min')
     expect(mockPwm).toHaveBeenCalledWith('/gpio/0/pwm', { value: 1000 })
 
-    await useCalibrationStore.getState().sendMotorPwm('steering', 'max')
+    await useCalibrationStore.getState().sendMotorPwm('channelB', 'max')
     expect(mockPwm).toHaveBeenCalledWith('/gpio/1/pwm', { value: 2000 })
   })
 
@@ -156,8 +181,10 @@ describe('useCalibrationStore', () => {
     useConfigStore.setState({ config: mockConfig })
 
     useCalibrationStore.setState({
-      throttle: { min: 1000, max: 2000, idle: 1500 },
-      differential: { motor: { min: 1000, max: 2000, idle: 1500 }, mixing: { balance: 30 } },
+      differential: {
+        motor: { min: 1000, max: 2000, idle: 1500 },
+        mixing: { balance: 30 },
+      },
     })
 
     await useCalibrationStore.getState().sendBalancePwm()
@@ -182,13 +209,13 @@ describe('useCalibrationStore', () => {
     expect(saved.control.mixer.ackermann.steering.trim).toBe(25)
   })
 
-  it('saves throttle calibration to config', async () => {
+  it('saves throttle calibration to config in ackermann mode', async () => {
     const mockSaveConfig = vi.fn().mockResolvedValue(undefined)
     useConfigStore.setState({ config: structuredClone(mockConfig), saveConfig: mockSaveConfig })
 
     useCalibrationStore.setState({
       mixerType: 'ackermann',
-      throttle: { min: 1100, max: 1900, idle: 1500 },
+      ackermann: { throttle: { min: 1100, max: 1900, idle: 1500 }, steering: { min: 1000, max: 2000, trim: 0 } },
     })
 
     await useCalibrationStore.getState().saveThrottleCalibration()
@@ -198,6 +225,24 @@ describe('useCalibrationStore', () => {
     expect(saved.control.mixer.ackermann.throttle.min).toBe(1100)
     expect(saved.control.mixer.ackermann.throttle.max).toBe(1900)
     expect(saved.control.mixer.ackermann.throttle.idle).toBe(1500)
+  })
+
+  it('saves throttle calibration to config in differential mode', async () => {
+    const mockSaveConfig = vi.fn().mockResolvedValue(undefined)
+    useConfigStore.setState({ config: structuredClone(mockConfig), saveConfig: mockSaveConfig })
+
+    useCalibrationStore.setState({
+      mixerType: 'differential',
+      differential: { motor: { min: 1100, max: 1900, idle: 1500 }, mixing: { balance: 0 } },
+    })
+
+    await useCalibrationStore.getState().saveThrottleCalibration()
+
+    expect(mockSaveConfig).toHaveBeenCalledTimes(1)
+    const saved = mockSaveConfig.mock.calls[0][0]
+    expect(saved.control.mixer.differential.motor.min).toBe(1100)
+    expect(saved.control.mixer.differential.motor.max).toBe(1900)
+    expect(saved.control.mixer.differential.motor.idle).toBe(1500)
   })
 
   it('saves balance calibration to config, leaving throttle/motor ranges untouched', async () => {
@@ -234,6 +279,6 @@ describe('useCalibrationStore', () => {
   it('ignores initFromConfig when config has no control section', () => {
     useCalibrationStore.getState().initFromConfig({})
     const state = useCalibrationStore.getState()
-    expect(state.steering.min).toBe(0)
+    expect(state.ackermann.steering.min).toBe(0)
   })
 })

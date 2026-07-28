@@ -272,13 +272,13 @@ def calculate_ackermann_steering_center() -> int:
 if mixer_type == MixerType.ACKERMANN:
     steering_center = calculate_ackermann_steering_center()
     channel_b_idle = steering_center
-    throttle_idle = ackermann_throttle_idle
+    channel_a_idle = ackermann_throttle_idle
 else:
     steering_center = 0
     channel_b_idle = differential_motor_idle
-    throttle_idle = differential_motor_idle
+    channel_a_idle = differential_motor_idle
 
-pwm_throttle.setup(throttle_idle)
+pwm_throttle.setup(channel_a_idle)
 pwm_steering.setup(channel_b_idle)
 
 telemetry = TelemetryHandler(
@@ -429,14 +429,14 @@ def command_handler(command: Command, address: Address) -> None:
             executor.submit(video_control.recording, recording_action)
 
         case "trim":
+            global ackermann_steering_trim, steering_center, differential_mixing_balance
+
             parameters = command.get_parameters()
             trim_action: str = parameters["action"]
             step = 5
 
             match mixer_type:
                 case MixerType.ACKERMANN:
-                    global ackermann_steering_trim, steering_center
-
                     if trim_action == "increase":
                         ackermann_steering_trim += step
                     else:
@@ -454,8 +454,6 @@ def command_handler(command: Command, address: Address) -> None:
                     )
 
                 case MixerType.DIFFERENTIAL:
-                    global differential_mixing_balance
-
                     if trim_action == "increase":
                         differential_mixing_balance += step
                     else:
@@ -486,8 +484,13 @@ def disconnect_handler() -> None:
     Disconnect counts as failsafe, set values accordingly
     """
 
-    pwm_throttle.set_pulse_width(throttle_idle)
-    pwm_steering.set_pulse_width(throttle_idle if mixer_type == MixerType.DIFFERENTIAL else steering_center)
+    match mixer_type:
+        case MixerType.ACKERMANN:
+            pwm_throttle.set_pulse_width(ackermann_throttle_failsafe)
+            pwm_steering.set_pulse_width(ackermann_steering_failsafe)
+        case MixerType.DIFFERENTIAL:
+            pwm_throttle.set_pulse_width(differential_motor_failsafe)
+            pwm_steering.set_pulse_width(differential_motor_failsafe)
 
     logger.info("Disconnected")
 
@@ -511,9 +514,9 @@ def cleanup_pwm() -> None:
     #
     # Setting for 0 pulse width for some reason seems to work really well to not
     # make the servo/ESC act up when disabling and closing PWM.
-    channel_b_idle = throttle_idle if mixer_type == MixerType.DIFFERENTIAL else steering_center
+    channel_b_idle = channel_a_idle if mixer_type == MixerType.DIFFERENTIAL else steering_center
 
-    pwm_throttle.set_pulse_width(throttle_idle)
+    pwm_throttle.set_pulse_width(channel_a_idle)
     pwm_steering.set_pulse_width(channel_b_idle)
     time.sleep(1)
 

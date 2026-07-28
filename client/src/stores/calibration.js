@@ -14,8 +14,6 @@ export const useCalibrationStore = create((set, get) => ({
     motor: { min: 0, max: 0, idle: 0 },
     mixing: { balance: 0 },
   },
-  steering: { min: 0, max: 0, trim: 0 },
-  throttle: { min: 0, max: 0, idle: 0 },
 
   initFromConfig: (config) => {
     if (!config?.control?.mixer) {
@@ -25,7 +23,7 @@ export const useCalibrationStore = create((set, get) => ({
     const mixerType = config.control.mixer?.type ?? 'ackermann'
     const ackermannConfig = config.control.mixer?.ackermann ?? {}
     const differentialConfig = config.control.mixer?.differential ?? {}
-    const reversible = config.control.mixer?.differential?.motor?.reversible ?? false
+    const reversible = differentialConfig.motor?.reversible ?? false
 
     const ackermannThrottle = ackermannConfig.throttle ?? {}
     const ackermannSteering = ackermannConfig.steering ?? {}
@@ -57,22 +55,11 @@ export const useCalibrationStore = create((set, get) => ({
           balance: differentialMixing.balance ?? 0,
         },
       },
-      steering: {
-        min: ackermannSteering.min ?? 0,
-        max: ackermannSteering.max ?? 0,
-        trim: ackermannSteering.trim ?? 0,
-      },
-      throttle: {
-        min: ackermannThrottle.min ?? 0,
-        max: ackermannThrottle.max ?? 0,
-        idle: ackermannThrottle.idle ?? 0,
-      },
     })
   },
 
-  setSteeringField: (field, value) => {
+  setAckermannSteeringField: (field, value) => {
     set((state) => ({
-      steering: { ...state.steering, [field]: value },
       ackermann: {
         ...state.ackermann,
         steering: { ...state.ackermann.steering, [field]: value },
@@ -80,16 +67,29 @@ export const useCalibrationStore = create((set, get) => ({
     }))
   },
 
-  setThrottleField: (field, value) => {
+  setAckermannThrottleField: (field, value) => {
     set((state) => ({
-      throttle: { ...state.throttle, [field]: value },
       ackermann: {
         ...state.ackermann,
         throttle: { ...state.ackermann.throttle, [field]: value },
       },
+    }))
+  },
+
+  setDifferentialMotorField: (field, value) => {
+    set((state) => ({
       differential: {
         ...state.differential,
         motor: { ...state.differential.motor, [field]: value },
+      },
+    }))
+  },
+
+  setDifferentialBalance: (value) => {
+    set((state) => ({
+      differential: {
+        ...state.differential,
+        mixing: { ...state.differential.mixing, balance: value },
       },
     }))
   },
@@ -98,7 +98,7 @@ export const useCalibrationStore = create((set, get) => ({
     const { apiClient } = useConnectionStore.getState()
     const config = useConfigStore.getState().config
     const channel = config.control.pwm.channelB
-    const { steering } = get()
+    const { steering } = get().ackermann
     let value = steering[field]
 
     if (field === 'trim') {
@@ -109,27 +109,31 @@ export const useCalibrationStore = create((set, get) => ({
     await gpioApi.setPwm(apiClient, channel, value)
   },
 
-  sendMotorPwm: async (channelKey, field) => {
+  sendThrottlePwm: async (field) => {
     const { apiClient } = useConnectionStore.getState()
     const config = useConfigStore.getState().config
-    const channel = channelKey === 'throttle' ? config.control.pwm.channelA : config.control.pwm.channelB
-    const { throttle } = get()
-    const value = throttle[field]
+    const channel = config.control.pwm.channelA
+    const value = get().ackermann.throttle[field]
 
     await gpioApi.setPwm(apiClient, channel, value)
   },
 
-  sendThrottlePwm: async (field) => {
-    await get().sendMotorPwm('throttle', field)
+  sendMotorPwm: async (channelKey, field) => {
+    const { apiClient } = useConnectionStore.getState()
+    const config = useConfigStore.getState().config
+    const channel = channelKey === 'channelA' ? config.control.pwm.channelA : config.control.pwm.channelB
+    const value = get().differential.motor[field]
+
+    await gpioApi.setPwm(apiClient, channel, value)
   },
 
   sendBalancePwm: async () => {
     const { apiClient } = useConnectionStore.getState()
     const config = useConfigStore.getState().config
-    const { throttle, differential } = get()
+    const { differential } = get()
 
-    await gpioApi.setPwm(apiClient, config.control.pwm.channelA, throttle.idle + differential.mixing.balance)
-    await gpioApi.setPwm(apiClient, config.control.pwm.channelB, throttle.idle - differential.mixing.balance)
+    await gpioApi.setPwm(apiClient, config.control.pwm.channelA, differential.motor.idle + differential.mixing.balance)
+    await gpioApi.setPwm(apiClient, config.control.pwm.channelB, differential.motor.idle - differential.mixing.balance)
   },
 
   saveSteeringCalibration: async () => {
@@ -143,18 +147,18 @@ export const useCalibrationStore = create((set, get) => ({
   },
 
   saveThrottleCalibration: async () => {
-    const { throttle, mixerType } = get()
+    const { mixerType, ackermann, differential } = get()
     const configStore = useConfigStore.getState()
     const config = structuredClone(configStore.config)
 
     if (mixerType === 'ackermann') {
-      config.control.mixer.ackermann.throttle.min = throttle.min
-      config.control.mixer.ackermann.throttle.max = throttle.max
-      config.control.mixer.ackermann.throttle.idle = throttle.idle
+      config.control.mixer.ackermann.throttle.min = ackermann.throttle.min
+      config.control.mixer.ackermann.throttle.max = ackermann.throttle.max
+      config.control.mixer.ackermann.throttle.idle = ackermann.throttle.idle
     } else {
-      config.control.mixer.differential.motor.min = throttle.min
-      config.control.mixer.differential.motor.max = throttle.max
-      config.control.mixer.differential.motor.idle = throttle.idle
+      config.control.mixer.differential.motor.min = differential.motor.min
+      config.control.mixer.differential.motor.max = differential.motor.max
+      config.control.mixer.differential.motor.idle = differential.motor.idle
     }
 
     await configStore.saveConfig(config)
