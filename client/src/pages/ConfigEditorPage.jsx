@@ -6,7 +6,7 @@ import { useConfigStore } from '@/stores/config'
 import { useConnectionStore } from '@/stores/connection'
 import { useServicesStore } from '@/stores/services'
 import { systemApi } from '@/api/system'
-import { adaptSchemaForRjsf, buildUiSchema } from '@/lib/schemaUtils'
+import { adaptSchemaForRjsf, buildUiSchema, pruneHiddenProperties } from '@/lib/schemaUtils'
 import { ReconnectDialog } from '@/components/shared/ReconnectDialog'
 import { toast } from 'sonner'
 import { RefreshCw } from 'lucide-react'
@@ -86,6 +86,25 @@ export function ConfigEditorPage() {
     return result
   }, [schema, sectionKeys])
 
+  // Groups gated by "options.showWhen" depend on the live form data, so the active section is
+  // rebuilt separately. Sections without a hidden group reuse the memoized result untouched.
+  const activeSchemas = useMemo(() => {
+    const sectionProp = schema?.properties?.[activeSection]
+    if (!sectionProp) {
+      return null
+    }
+
+    const pruned = pruneHiddenProperties(sectionProp, config?.[activeSection])
+    if (pruned === sectionProp) {
+      return sectionSchemas[activeSection]
+    }
+
+    return {
+      adapted: adaptSchemaForRjsf(pruned),
+      uiSchema: pruned.type === 'object' ? buildUiSchema(pruned) : {},
+    }
+  }, [schema, activeSection, config, sectionSchemas])
+
   const handleSectionChange = useCallback(
     (sectionKey, { formData }) => {
       if (sectionKey === 'network') {
@@ -159,7 +178,7 @@ export function ConfigEditorPage() {
     return <p className="text-sm text-muted-foreground">{t('config.loading')}</p>
   }
 
-  const section = sectionSchemas[activeSection]
+  const section = activeSchemas
 
   return (
     <div className="space-y-4">

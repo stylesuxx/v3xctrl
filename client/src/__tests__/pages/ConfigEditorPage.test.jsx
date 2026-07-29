@@ -474,3 +474,91 @@ describe('ConfigEditorPage', () => {
     expect(screen.queryByText(/Save and restart/)).not.toBeInTheDocument()
   })
 })
+
+describe('ConfigEditorPage - conditional showWhen groups', () => {
+  const mixerSchema = {
+    title: 'Configuration',
+    type: 'object',
+    properties: {
+      control: {
+        propertyOrder: 10,
+        type: 'object',
+        title: 'Control',
+        properties: {
+          mixer: {
+            propertyOrder: 10,
+            type: 'object',
+            title: 'Mixer',
+            properties: {
+              type: {
+                propertyOrder: 10,
+                type: 'string',
+                title: 'Mixer type',
+                enum: ['ackermann', 'differential'],
+                options: { enum_titles: ['Ackermann', 'Differential'] },
+              },
+              ackermann: {
+                propertyOrder: 20,
+                type: 'object',
+                title: 'Ackermann steering settings',
+                options: { showWhen: { field: 'type', equals: 'ackermann' } },
+                properties: {
+                  trim: { propertyOrder: 10, type: 'integer', title: 'Steering Trim' },
+                },
+              },
+              differential: {
+                propertyOrder: 30,
+                type: 'object',
+                title: 'Differential thrust settings',
+                options: { showWhen: { field: 'type', equals: 'differential' } },
+                properties: {
+                  balance: { propertyOrder: 10, type: 'integer', title: 'Motor Balance' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  }
+
+  function mixerConfig(type) {
+    return {
+      control: {
+        mixer: {
+          type,
+          ackermann: { trim: 0 },
+          differential: { balance: 0 },
+        },
+      },
+    }
+  }
+
+  beforeEach(() => {
+    setupStores()
+  })
+
+  it('renders only the ackermann group when that mixer is selected', () => {
+    setupStores({ config: mixerConfig('ackermann'), schema: mixerSchema, previousModel: 'generic' })
+    render(<ConfigEditorPage />)
+
+    expect(screen.getByText('Steering Trim')).toBeInTheDocument()
+    expect(screen.queryByText('Motor Balance')).not.toBeInTheDocument()
+  })
+
+  it('renders only the differential group when that mixer is selected', () => {
+    setupStores({ config: mixerConfig('differential'), schema: mixerSchema, previousModel: 'generic' })
+    render(<ConfigEditorPage />)
+
+    expect(screen.getByText('Motor Balance')).toBeInTheDocument()
+    expect(screen.queryByText('Steering Trim')).not.toBeInTheDocument()
+  })
+
+  it('keeps the hidden group values in the config', () => {
+    const config = mixerConfig('differential')
+    setupStores({ config, schema: mixerSchema, previousModel: 'generic' })
+    render(<ConfigEditorPage />)
+
+    expect(useConfigStore.getState().config.control.mixer.ackermann).toEqual({ trim: 0 })
+  })
+})

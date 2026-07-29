@@ -742,7 +742,11 @@
               "type": "object",
               "title": "Ackermann steering settings",
               "options": {
-                "collapsed": true
+                "collapsed": true,
+                "showWhen": {
+                  "field": "type",
+                  "equals": "ackermann"
+                }
               },
               "properties": {
                 "throttle": {
@@ -895,7 +899,11 @@
               "type": "object",
               "title": "Differential thrust settings",
               "options": {
-                "collapsed": true
+                "collapsed": true,
+                "showWhen": {
+                  "field": "type",
+                  "equals": "differential"
+                }
               },
               "properties": {
                 "motor": {

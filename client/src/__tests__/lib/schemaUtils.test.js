@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { adaptSchemaForRjsf, buildUiSchema } from '@/lib/schemaUtils'
+import { adaptSchemaForRjsf, buildUiSchema, pruneHiddenProperties } from '@/lib/schemaUtils'
 
 describe('adaptSchemaForRjsf', () => {
   it('converts enum + enum_titles to oneOf', () => {
@@ -96,5 +96,83 @@ describe('buildUiSchema', () => {
     }
     const uiSchema = buildUiSchema(schema)
     expect(uiSchema.nested['ui:order']).toEqual(['a', 'b', '*'])
+  })
+})
+
+describe('pruneHiddenProperties', () => {
+  const mixerSchema = {
+    type: 'object',
+    properties: {
+      type: { type: 'string', enum: ['ackermann', 'differential'] },
+      ackermann: {
+        type: 'object',
+        options: { collapsed: true, showWhen: { field: 'type', equals: 'ackermann' } },
+        properties: { steering: { type: 'object' } },
+      },
+      differential: {
+        type: 'object',
+        options: { collapsed: true, showWhen: { field: 'type', equals: 'differential' } },
+        properties: { motor: { type: 'object' } },
+      },
+    },
+  }
+
+  it('keeps the matching branch and drops the other', () => {
+    const pruned = pruneHiddenProperties(mixerSchema, { type: 'differential' })
+
+    expect(Object.keys(pruned.properties)).toEqual(['type', 'differential'])
+  })
+
+  it('resolves the condition field against the object holding the property', () => {
+    const schema = {
+      type: 'object',
+      properties: {
+        control: {
+          type: 'object',
+          properties: {
+            mixer: mixerSchema,
+          },
+        },
+      },
+    }
+    const pruned = pruneHiddenProperties(schema, { control: { mixer: { type: 'ackermann' } } })
+
+    expect(Object.keys(pruned.properties.control.properties.mixer.properties)).toEqual(['type', 'ackermann'])
+  })
+
+  it('returns the identical reference when no property declares showWhen', () => {
+    const schema = {
+      type: 'object',
+      properties: {
+        routing: { type: 'string' },
+        modem: { type: 'object', properties: { model: { type: 'string' } } },
+      },
+    }
+
+    expect(pruneHiddenProperties(schema, { routing: 'wlan' })).toBe(schema)
+  })
+
+  it('does not mutate the input schema', () => {
+    pruneHiddenProperties(mixerSchema, { type: 'ackermann' })
+
+    expect(Object.keys(mixerSchema.properties)).toEqual(['type', 'ackermann', 'differential'])
+  })
+
+  it('keeps untouched subtrees by reference', () => {
+    const pruned = pruneHiddenProperties(mixerSchema, { type: 'ackermann' })
+
+    expect(pruned.properties.ackermann).toBe(mixerSchema.properties.ackermann)
+  })
+
+  it('drops a conditional property when form data is missing', () => {
+    const pruned = pruneHiddenProperties(mixerSchema, undefined)
+
+    expect(Object.keys(pruned.properties)).toEqual(['type'])
+  })
+
+  it('passes through schemas without properties', () => {
+    const schema = { type: 'string' }
+
+    expect(pruneHiddenProperties(schema, 'value')).toBe(schema)
   })
 })
