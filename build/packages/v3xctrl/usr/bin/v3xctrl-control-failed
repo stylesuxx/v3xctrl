@@ -4,8 +4,7 @@ set -e
 ENV_PATH="/run/v3xctrl.env"
 source "${ENV_PATH}"
 
-GPIO_THROTTLE="${control_gpio_throttle}"
-GPIO_STEERING="${control_gpio_steering}"
+PWM_THROTTLE="${control_pwm_throttle}"
+PWM_STEERING="${control_pwm_steering}"
 
-pigs s $GPIO_THROTTLE $control_throttle_failsafe
-pigs s $GPIO_STEERING $control_steering_failsafe
+v3xctrl-pwm-failsafe "$PWM_THROTTLE" "$control_throttle_failsafe" "$PWM_STEERING" "$control_steering_failsafe"

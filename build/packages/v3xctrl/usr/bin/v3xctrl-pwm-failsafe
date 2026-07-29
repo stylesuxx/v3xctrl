@@ -1,0 +1,36 @@
+#!/opt/v3xctrl-venv/bin/python
+import sys
+
+from rpi_servo_pwm import HardwarePWM
+
+
+def _set_channel(channel: int, pulse_us: int) -> bool:
+    try:
+        HardwarePWM(channel).setup(pulse_us)
+        return True
+    except Exception as exc:
+        print(
+            f"v3xctrl-pwm-failsafe: failed to set channel {channel} to {pulse_us}: {exc}",
+            file=sys.stderr,
+        )
+        return False
+
+
+def main() -> int:
+    if len(sys.argv) != 5:
+        print(
+            "Usage: v3xctrl-pwm-failsafe <channel_a> <pulse_a_us> <channel_b> <pulse_b_us>",
+            file=sys.stderr,
+        )
+        return 1
+
+    channel_a, pulse_a, channel_b, pulse_b = (int(value) for value in sys.argv[1:5])
+
+    ok_a = _set_channel(channel_a, pulse_a)
+    ok_b = _set_channel(channel_b, pulse_b)
+
+    return 0 if (ok_a and ok_b) else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
