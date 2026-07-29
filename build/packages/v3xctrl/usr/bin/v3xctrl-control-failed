@@ -4,19 +4,17 @@ set -e
 ENV_PATH="/run/v3xctrl.env"
 source "${ENV_PATH}"
 
-GPIO_THROTTLE="${control_pwm_channelA}"
-GPIO_STEERING="${control_pwm_channelB}"
+PWM_CHANNEL_A="${control_pwm_channelA}"
+PWM_CHANNEL_B="${control_pwm_channelB}"
 
 # Branch on mixer type to use the correct failsafe values
 case "${control_mixer_type}" in
   "ackermann")
-    pigs s $GPIO_THROTTLE $control_mixer_ackermann_throttle_failsafe
-    pigs s $GPIO_STEERING $control_mixer_ackermann_steering_failsafe
+    v3xctrl-pwm-failsafe "$PWM_CHANNEL_A" "$control_mixer_ackermann_throttle_failsafe" "$PWM_CHANNEL_B" "$control_mixer_ackermann_steering_failsafe"
     ;;
   "differential")
     # Both motors get the same failsafe value in differential mode
-    pigs s $GPIO_THROTTLE $control_mixer_differential_motor_failsafe
-    pigs s $GPIO_STEERING $control_mixer_differential_motor_failsafe
+    v3xctrl-pwm-failsafe "$PWM_CHANNEL_A" "$control_mixer_differential_motor_failsafe" "$PWM_CHANNEL_B" "$control_mixer_differential_motor_failsafe"
     ;;
   *)
     echo "v3xctrl-control-failed: unknown mixer type '${control_mixer_type}', refusing to guess a failsafe pulse" >&2
