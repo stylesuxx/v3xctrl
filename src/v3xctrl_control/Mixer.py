@@ -83,3 +83,16 @@ def esc_pulse_width(
         return map_range(scaled, -1, 0, throttle_min, reverse_min)
 
     return idle
+
+
+def apply_balance(pulse_width: int, balance: int, idle: int, motor_min: int, motor_max: int) -> int:
+    """
+    Applies a live balance/trim offset to a motor's pulse width, clamped to [motor_min, motor_max].
+
+    The offset is skipped whenever the motor is at idle (stopped, or a non-reversible
+    motor told to reverse), so trimming never causes a motor to move away from rest.
+    """
+    if pulse_width == idle:
+        return pulse_width
+
+    return int(clamp(pulse_width + balance, motor_min, motor_max))

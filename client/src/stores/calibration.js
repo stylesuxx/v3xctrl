@@ -12,6 +12,8 @@ export const useCalibrationStore = create((set, get) => ({
   },
   differential: {
     motor: { min: 0, max: 0, idle: 0 },
+    motorA: { minForward: 0, minReverse: 0 },
+    motorB: { minForward: 0, minReverse: 0 },
     mixing: { balance: 0 },
   },
 
@@ -28,6 +30,8 @@ export const useCalibrationStore = create((set, get) => ({
     const ackermannThrottle = ackermannConfig.throttle ?? {}
     const ackermannSteering = ackermannConfig.steering ?? {}
     const differentialMotor = differentialConfig.motor ?? {}
+    const differentialMotorA = differentialConfig.motorA ?? {}
+    const differentialMotorB = differentialConfig.motorB ?? {}
     const differentialMixing = differentialConfig.mixing ?? {}
 
     set({
@@ -50,6 +54,14 @@ export const useCalibrationStore = create((set, get) => ({
           min: differentialMotor.min ?? 0,
           max: differentialMotor.max ?? 0,
           idle: differentialMotor.idle ?? 0,
+        },
+        motorA: {
+          minForward: differentialMotorA.minForward ?? 0,
+          minReverse: differentialMotorA.minReverse ?? 0,
+        },
+        motorB: {
+          minForward: differentialMotorB.minForward ?? 0,
+          minReverse: differentialMotorB.minReverse ?? 0,
         },
         mixing: {
           balance: differentialMixing.balance ?? 0,
@@ -81,6 +93,15 @@ export const useCalibrationStore = create((set, get) => ({
       differential: {
         ...state.differential,
         motor: { ...state.differential.motor, [field]: value },
+      },
+    }))
+  },
+
+  setDifferentialDeadzoneField: (motorKey, field, value) => {
+    set((state) => ({
+      differential: {
+        ...state.differential,
+        [motorKey]: { ...state.differential[motorKey], [field]: value },
       },
     }))
   },
@@ -127,6 +148,17 @@ export const useCalibrationStore = create((set, get) => ({
     await gpioApi.setPwm(apiClient, channel, value)
   },
 
+  sendDeadzonePwm: async (motorKey, field) => {
+    const { apiClient } = useConnectionStore.getState()
+    const config = useConfigStore.getState().config
+    const channel = motorKey === 'motorA' ? config.control.pwm.channelA : config.control.pwm.channelB
+    const { motor } = get().differential
+    const deadzone = get().differential[motorKey][field]
+    const value = field === 'minForward' ? motor.idle + deadzone : motor.idle - deadzone
+
+    await gpioApi.setPwm(apiClient, channel, value)
+  },
+
   sendBalancePwm: async () => {
     const { apiClient } = useConnectionStore.getState()
     const config = useConfigStore.getState().config
@@ -159,6 +191,10 @@ export const useCalibrationStore = create((set, get) => ({
       config.control.mixer.differential.motor.min = differential.motor.min
       config.control.mixer.differential.motor.max = differential.motor.max
       config.control.mixer.differential.motor.idle = differential.motor.idle
+      config.control.mixer.differential.motorA.minForward = differential.motorA.minForward
+      config.control.mixer.differential.motorA.minReverse = differential.motorA.minReverse
+      config.control.mixer.differential.motorB.minForward = differential.motorB.minForward
+      config.control.mixer.differential.motorB.minReverse = differential.motorB.minReverse
     }
 
     await configStore.saveConfig(config)

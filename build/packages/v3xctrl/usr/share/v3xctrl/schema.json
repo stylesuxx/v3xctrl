@@ -910,6 +910,7 @@
                   "propertyOrder": 10,
                   "type": "object",
                   "title": "Motor",
+                  "description": "Settings shared by both motors. Use the Motor A / Motor B dead-zones below to compensate for a motor that needs more of a kick to start moving than the other.",
                   "options": {
                     "collapsed": true
                   },
@@ -960,22 +961,8 @@
                       "title": "Scale reverse",
                       "description": "Scales the motor reverse range as a percentage of the maximum possible value. Ignored when motors are not reversible."
                     },
-                    "minForward": {
-                      "propertyOrder": 70,
-                      "type": "integer",
-                      "default": 0,
-                      "title": "Dead-zone forward",
-                      "description": "Compensate for 'dead-zone' of ESC. Set this to a value just slightly before the motor starts spinning forward."
-                    },
-                    "minReverse": {
-                      "propertyOrder": 80,
-                      "type": "integer",
-                      "default": 0,
-                      "title": "Dead-zone reverse",
-                      "description": "Compensate for 'dead-zone' of ESC. Set this to a value just slightly before the motor starts spinning reverse. Ignored when motors are not reversible."
-                    },
                     "expo": {
-                      "propertyOrder": 90,
+                      "propertyOrder": 70,
                       "type": "integer",
                       "default": 0,
                       "minimum": 0,
@@ -984,7 +971,7 @@
                       "description": "Exponential curve for motor throttle. 0 = linear, higher values = softer response around center for finer control."
                     },
                     "reversible": {
-                      "propertyOrder": 100,
+                      "propertyOrder": 80,
                       "type": "boolean",
                       "format": "checkbox",
                       "default": false,
@@ -993,8 +980,58 @@
                     }
                   }
                 },
-                "mixing": {
+                "motorA": {
                   "propertyOrder": 20,
+                  "type": "object",
+                  "title": "Motor A",
+                  "description": "Left motor (PWM channel A). Dead-zones are calibrated per motor so they can compensate for a motor that needs more of a kick to start moving than the other.",
+                  "options": {
+                    "collapsed": true
+                  },
+                  "properties": {
+                    "minForward": {
+                      "propertyOrder": 10,
+                      "type": "integer",
+                      "default": 0,
+                      "title": "Dead-zone forward",
+                      "description": "Compensate for 'dead-zone' of ESC. Set this to a value just slightly before the motor starts spinning forward. Increase if this motor needs more of a kick to start moving than Motor B."
+                    },
+                    "minReverse": {
+                      "propertyOrder": 20,
+                      "type": "integer",
+                      "default": 0,
+                      "title": "Dead-zone reverse",
+                      "description": "Compensate for 'dead-zone' of ESC. Set this to a value just slightly before the motor starts spinning reverse. Ignored when motors are not reversible."
+                    }
+                  }
+                },
+                "motorB": {
+                  "propertyOrder": 30,
+                  "type": "object",
+                  "title": "Motor B",
+                  "description": "Right motor (PWM channel B). Dead-zones are calibrated per motor so they can compensate for a motor that needs more of a kick to start moving than the other.",
+                  "options": {
+                    "collapsed": true
+                  },
+                  "properties": {
+                    "minForward": {
+                      "propertyOrder": 10,
+                      "type": "integer",
+                      "default": 0,
+                      "title": "Dead-zone forward",
+                      "description": "Compensate for 'dead-zone' of ESC. Set this to a value just slightly before the motor starts spinning forward. Increase if this motor needs more of a kick to start moving than Motor A."
+                    },
+                    "minReverse": {
+                      "propertyOrder": 20,
+                      "type": "integer",
+                      "default": 0,
+                      "title": "Dead-zone reverse",
+                      "description": "Compensate for 'dead-zone' of ESC. Set this to a value just slightly before the motor starts spinning reverse. Ignored when motors are not reversible."
+                    }
+                  }
+                },
+                "mixing": {
+                  "propertyOrder": 40,
                   "type": "object",
                   "title": "Mixing",
                   "options": {
@@ -1031,8 +1068,10 @@
                       "propertyOrder": 40,
                       "type": "integer",
                       "default": 0,
+                      "minimum": -200,
+                      "maximum": 200,
                       "title": "Balance",
-                      "description": "Nudges one motor's pulse width up and the other down by this amount, to compensate for motors that don't spin at identical speed for the same signal."
+                      "description": "Live fine-tune nudge: adds this amount to Motor A's pulse width and subtracts it from Motor B's, only while a motor is actually being driven (never at rest). For a motor that consistently spins slower or has more resistance, prefer calibrating Motor A/B's own idle and dead-zone above - use this only for small on-the-fly corrections."
                     }
                   }
                 }

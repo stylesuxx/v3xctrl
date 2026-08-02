@@ -21,10 +21,12 @@ export function CalibrationPage() {
     setAckermannSteeringField,
     setAckermannThrottleField,
     setDifferentialMotorField,
+    setDifferentialDeadzoneField,
     setDifferentialBalance,
     sendSteeringPwm,
     sendThrottlePwm,
     sendMotorPwm,
+    sendDeadzonePwm,
     sendBalancePwm,
     saveSteeringCalibration,
     saveThrottleCalibration,
@@ -151,6 +153,20 @@ export function CalibrationPage() {
                 onChange={(v) => setDifferentialMotorField('idle', v)}
                 onSend={() => sendMotorPwm('channelA', 'idle')}
               />
+              <PwmControl
+                label={t('calibration.motorDeadzoneForward')}
+                value={differential.motorA.minForward}
+                onChange={(v) => setDifferentialDeadzoneField('motorA', 'minForward', v)}
+                onSend={() => sendDeadzonePwm('motorA', 'minForward')}
+              />
+              {reversible && (
+                <PwmControl
+                  label={t('calibration.motorDeadzoneReverse')}
+                  value={differential.motorA.minReverse}
+                  onChange={(v) => setDifferentialDeadzoneField('motorA', 'minReverse', v)}
+                  onSend={() => sendDeadzonePwm('motorA', 'minReverse')}
+                />
+              )}
             </div>
 
             {/* Motor B */}
@@ -179,6 +195,20 @@ export function CalibrationPage() {
                 onChange={(v) => setDifferentialMotorField('idle', v)}
                 onSend={() => sendMotorPwm('channelB', 'idle')}
               />
+              <PwmControl
+                label={t('calibration.motorDeadzoneForward')}
+                value={differential.motorB.minForward}
+                onChange={(v) => setDifferentialDeadzoneField('motorB', 'minForward', v)}
+                onSend={() => sendDeadzonePwm('motorB', 'minForward')}
+              />
+              {reversible && (
+                <PwmControl
+                  label={t('calibration.motorDeadzoneReverse')}
+                  value={differential.motorB.minReverse}
+                  onChange={(v) => setDifferentialDeadzoneField('motorB', 'minReverse', v)}
+                  onSend={() => sendDeadzonePwm('motorB', 'minReverse')}
+                />
+              )}
             </div>
           </div>
 

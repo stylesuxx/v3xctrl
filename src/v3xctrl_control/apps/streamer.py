@@ -20,7 +20,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from rpi_servo_pwm import HardwarePWM
 
-from v3xctrl_control import Client, MixerType, State, esc_pulse_width, map_range, mix_differential
+from v3xctrl_control import Client, MixerType, State, apply_balance, esc_pulse_width, map_range, mix_differential
 from v3xctrl_control.message import (
     Command,
     Control,
@@ -85,8 +85,8 @@ parser.add_argument("--ackermann-steering-expo", type=int, default=0, help="Acke
 
 # Differential mixer settings
 parser.add_argument("--differential-motor-min", type=int, default=1000, help="Differential motor min (default: 1000)")
-parser.add_argument("--differential-motor-idle", type=int, default=1500, help="Differential motor idle (default: 1500)")
 parser.add_argument("--differential-motor-max", type=int, default=2000, help="Differential motor max (default: 2000)")
+parser.add_argument("--differential-motor-idle", type=int, default=1500, help="Differential motor idle (default: 1500)")
 parser.add_argument(
     "--differential-motor-failsafe", type=int, default=1500, help="Differential motor failsafe (default: 1500)"
 )
@@ -96,17 +96,38 @@ parser.add_argument(
 parser.add_argument(
     "--differential-motor-scale-reverse", type=int, default=100, help="Differential motor reverse scale (default: 100)"
 )
-parser.add_argument(
-    "--differential-motor-min-forward", type=int, default=0, help="Differential motor dead-zone forward (default: 0)"
-)
-parser.add_argument(
-    "--differential-motor-min-reverse", type=int, default=0, help="Differential motor dead-zone reverse (default: 0)"
-)
 parser.add_argument("--differential-motor-expo", type=int, default=0, help="Differential motor expo (default: 0)")
 parser.add_argument(
     "--differential-motor-reversible",
     action="store_true",
     help="Differential motors support reverse (default: False)",
+)
+
+# Differential mixer - per motor dead-zones, so a motor that needs more of a kick to
+# start moving than the other can be compensated independently
+parser.add_argument(
+    "--differential-motor-a-min-forward",
+    type=int,
+    default=0,
+    help="Differential motor A dead-zone forward (default: 0)",
+)
+parser.add_argument(
+    "--differential-motor-a-min-reverse",
+    type=int,
+    default=0,
+    help="Differential motor A dead-zone reverse (default: 0)",
+)
+parser.add_argument(
+    "--differential-motor-b-min-forward",
+    type=int,
+    default=0,
+    help="Differential motor B dead-zone forward (default: 0)",
+)
+parser.add_argument(
+    "--differential-motor-b-min-reverse",
+    type=int,
+    default=0,
+    help="Differential motor B dead-zone reverse (default: 0)",
 )
 
 parser.add_argument(
@@ -232,23 +253,29 @@ if ackermann_steering_invert:
 
 # Differential mixer variables
 differential_motor_min = args.differential_motor_min
-differential_motor_idle = args.differential_motor_idle
 differential_motor_max = args.differential_motor_max
+differential_motor_idle = args.differential_motor_idle
 differential_motor_failsafe = args.differential_motor_failsafe
 differential_motor_scale_forward = args.differential_motor_scale_forward
 differential_motor_scale_reverse = args.differential_motor_scale_reverse
-differential_motor_min_forward = args.differential_motor_min_forward
-differential_motor_min_reverse = args.differential_motor_min_reverse
 differential_motor_expo = args.differential_motor_expo
 differential_motor_reversible = args.differential_motor_reversible
+
+differential_motor_a_min_forward = args.differential_motor_a_min_forward
+differential_motor_a_min_reverse = args.differential_motor_a_min_reverse
+
+differential_motor_b_min_forward = args.differential_motor_b_min_forward
+differential_motor_b_min_reverse = args.differential_motor_b_min_reverse
 
 differential_mixing_scale = args.differential_mixing_scale
 differential_mixing_invert = args.differential_mixing_invert
 differential_mixing_expo = args.differential_mixing_expo
 differential_mixing_balance = args.differential_mixing_balance
 
-differential_forward_min = differential_motor_idle + differential_motor_min_forward
-differential_reverse_min = differential_motor_idle - differential_motor_min_reverse
+differential_forward_min_a = differential_motor_idle + differential_motor_a_min_forward
+differential_reverse_min_a = differential_motor_idle - differential_motor_a_min_reverse
+differential_forward_min_b = differential_motor_idle + differential_motor_b_min_forward
+differential_reverse_min_b = differential_motor_idle - differential_motor_b_min_reverse
 differential_forward_multiplier = differential_motor_scale_forward / 100.0
 differential_reverse_multiplier = differential_motor_scale_reverse / 100.0
 differential_mixing_multiplier = differential_mixing_scale / 100.0
@@ -275,8 +302,8 @@ if mixer_type == MixerType.ACKERMANN:
     channel_a_idle = ackermann_throttle_idle
 else:
     steering_center = 0
-    channel_b_idle = differential_motor_idle
     channel_a_idle = differential_motor_idle
+    channel_b_idle = differential_motor_idle
 
 pwm_throttle.setup(channel_a_idle)
 pwm_steering.setup(channel_b_idle)
@@ -348,41 +375,39 @@ def control_handler(message: Control, address: Address) -> None:
                 signed_steering = raw_steering * differential_mixing_multiplier * differential_mixing_invert_multiplier
                 left, right = mix_differential(raw_throttle, signed_steering)
 
-                throttle_value = int(
-                    clamp(
-                        esc_pulse_width(
-                            left,
-                            differential_forward_min,
-                            differential_motor_max,
-                            differential_motor_min,
-                            differential_reverse_min,
-                            differential_forward_multiplier,
-                            differential_reverse_multiplier,
-                            differential_motor_idle,
-                            reversible=differential_motor_reversible,
-                        )
-                        + differential_mixing_balance,
-                        differential_motor_min,
+                throttle_value = apply_balance(
+                    esc_pulse_width(
+                        left,
+                        differential_forward_min_a,
                         differential_motor_max,
-                    )
+                        differential_motor_min,
+                        differential_reverse_min_a,
+                        differential_forward_multiplier,
+                        differential_reverse_multiplier,
+                        differential_motor_idle,
+                        reversible=differential_motor_reversible,
+                    ),
+                    differential_mixing_balance,
+                    differential_motor_idle,
+                    differential_motor_min,
+                    differential_motor_max,
                 )
-                steering_value = int(
-                    clamp(
-                        esc_pulse_width(
-                            right,
-                            differential_forward_min,
-                            differential_motor_max,
-                            differential_motor_min,
-                            differential_reverse_min,
-                            differential_forward_multiplier,
-                            differential_reverse_multiplier,
-                            differential_motor_idle,
-                            reversible=differential_motor_reversible,
-                        )
-                        - differential_mixing_balance,
-                        differential_motor_min,
+                steering_value = apply_balance(
+                    esc_pulse_width(
+                        right,
+                        differential_forward_min_b,
                         differential_motor_max,
-                    )
+                        differential_motor_min,
+                        differential_reverse_min_b,
+                        differential_forward_multiplier,
+                        differential_reverse_multiplier,
+                        differential_motor_idle,
+                        reversible=differential_motor_reversible,
+                    ),
+                    -differential_mixing_balance,
+                    differential_motor_idle,
+                    differential_motor_min,
+                    differential_motor_max,
                 )
     else:
         match mixer_type:

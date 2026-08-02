@@ -15,6 +15,8 @@ describe('useCalibrationStore', () => {
       },
       differential: {
         motor: { min: 0, max: 0, idle: 0 },
+        motorA: { minForward: 0, minReverse: 0 },
+        motorB: { minForward: 0, minReverse: 0 },
         mixing: { balance: 0 },
       },
     })
@@ -173,6 +175,71 @@ describe('useCalibrationStore', () => {
     expect(mockPwm).toHaveBeenCalledWith('/gpio/1/pwm', { value: 2000 })
   })
 
+  it('updates per motor dead-zone fields independently', () => {
+    const { setDifferentialDeadzoneField } = useCalibrationStore.getState()
+    setDifferentialDeadzoneField('motorA', 'minForward', 40)
+    setDifferentialDeadzoneField('motorB', 'minForward', 55)
+
+    const { differential } = useCalibrationStore.getState()
+    expect(differential.motorA.minForward).toBe(40)
+    expect(differential.motorB.minForward).toBe(55)
+  })
+
+  it('sends dead-zone PWM as idle plus/minus the dead-zone on that motor channel', async () => {
+    const mockPwm = vi.fn().mockResolvedValue({})
+    const mockClient = { put: mockPwm }
+
+    useConnectionStore.setState({ apiClient: mockClient })
+    useConfigStore.setState({ config: mockConfig })
+
+    useCalibrationStore.setState({
+      differential: {
+        motor: { min: 1000, max: 2000, idle: 1500 },
+        motorA: { minForward: 40, minReverse: 20 },
+        motorB: { minForward: 60, minReverse: 30 },
+        mixing: { balance: 0 },
+      },
+    })
+
+    await useCalibrationStore.getState().sendDeadzonePwm('motorA', 'minForward')
+    expect(mockPwm).toHaveBeenCalledWith('/gpio/0/pwm', { value: 1540 })
+
+    await useCalibrationStore.getState().sendDeadzonePwm('motorA', 'minReverse')
+    expect(mockPwm).toHaveBeenCalledWith('/gpio/0/pwm', { value: 1480 })
+
+    await useCalibrationStore.getState().sendDeadzonePwm('motorB', 'minForward')
+    expect(mockPwm).toHaveBeenCalledWith('/gpio/1/pwm', { value: 1560 })
+
+    await useCalibrationStore.getState().sendDeadzonePwm('motorB', 'minReverse')
+    expect(mockPwm).toHaveBeenCalledWith('/gpio/1/pwm', { value: 1470 })
+  })
+
+  it('initializes per motor dead-zones from a differential config', () => {
+    const { initFromConfig } = useCalibrationStore.getState()
+    const config = {
+      ...mockConfig,
+      control: {
+        ...mockConfig.control,
+        mixer: {
+          type: 'differential',
+          differential: {
+            motor: { reversible: true, min: 1000, max: 2000, idle: 1500 },
+            motorA: { minForward: 35, minReverse: 15 },
+            motorB: { minForward: 50, minReverse: 25 },
+            mixing: { balance: 0 },
+          },
+        },
+      },
+    }
+    initFromConfig(config)
+
+    const { differential } = useCalibrationStore.getState()
+    expect(differential.motorA.minForward).toBe(35)
+    expect(differential.motorA.minReverse).toBe(15)
+    expect(differential.motorB.minForward).toBe(50)
+    expect(differential.motorB.minReverse).toBe(25)
+  })
+
   it('sends balance PWM as idle plus/minus balance offset to each motor channel', async () => {
     const mockPwm = vi.fn().mockResolvedValue({})
     const mockClient = { put: mockPwm }
@@ -233,7 +300,12 @@ describe('useCalibrationStore', () => {
 
     useCalibrationStore.setState({
       mixerType: 'differential',
-      differential: { motor: { min: 1100, max: 1900, idle: 1500 }, mixing: { balance: 0 } },
+      differential: {
+        motor: { min: 1100, max: 1900, idle: 1500 },
+        motorA: { minForward: 30, minReverse: 20 },
+        motorB: { minForward: 45, minReverse: 25 },
+        mixing: { balance: 0 },
+      },
     })
 
     await useCalibrationStore.getState().saveThrottleCalibration()
@@ -243,6 +315,10 @@ describe('useCalibrationStore', () => {
     expect(saved.control.mixer.differential.motor.min).toBe(1100)
     expect(saved.control.mixer.differential.motor.max).toBe(1900)
     expect(saved.control.mixer.differential.motor.idle).toBe(1500)
+    expect(saved.control.mixer.differential.motorA.minForward).toBe(30)
+    expect(saved.control.mixer.differential.motorA.minReverse).toBe(20)
+    expect(saved.control.mixer.differential.motorB.minForward).toBe(45)
+    expect(saved.control.mixer.differential.motorB.minReverse).toBe(25)
   })
 
   it('saves balance calibration to config, leaving throttle/motor ranges untouched', async () => {

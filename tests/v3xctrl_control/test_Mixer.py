@@ -1,12 +1,14 @@
 import unittest
 
-from v3xctrl_control.Mixer import esc_pulse_width, map_range, mix_differential
+from v3xctrl_control.Mixer import apply_balance, esc_pulse_width, map_range, mix_differential
 
 FORWARD_MIN = 1500
 THROTTLE_MAX = 2000
 THROTTLE_MIN = 1000
 REVERSE_MIN = 1500
 IDLE = 1500
+MOTOR_MIN = 1000
+MOTOR_MAX = 2000
 
 
 class TestMapRange(unittest.TestCase):
@@ -87,3 +89,29 @@ class TestEscPulseWidthNonReversible(unittest.TestCase):
     def test_negative_returns_idle_instead_of_reversing(self) -> None:
         value = esc_pulse_width(-0.5, FORWARD_MIN, THROTTLE_MAX, THROTTLE_MIN, REVERSE_MIN, 1.0, 1.0, IDLE, False)
         self.assertEqual(value, IDLE)
+
+
+class TestApplyBalance(unittest.TestCase):
+    def test_skips_offset_when_at_idle(self) -> None:
+        value = apply_balance(IDLE, 50, IDLE, MOTOR_MIN, MOTOR_MAX)
+        self.assertEqual(value, IDLE)
+
+    def test_skips_negative_offset_when_at_idle(self) -> None:
+        value = apply_balance(IDLE, -50, IDLE, MOTOR_MIN, MOTOR_MAX)
+        self.assertEqual(value, IDLE)
+
+    def test_applies_positive_offset_when_moving(self) -> None:
+        value = apply_balance(1750, 50, IDLE, MOTOR_MIN, MOTOR_MAX)
+        self.assertEqual(value, 1800)
+
+    def test_applies_negative_offset_when_moving(self) -> None:
+        value = apply_balance(1750, -50, IDLE, MOTOR_MIN, MOTOR_MAX)
+        self.assertEqual(value, 1700)
+
+    def test_clamps_to_motor_max(self) -> None:
+        value = apply_balance(1980, 50, IDLE, MOTOR_MIN, MOTOR_MAX)
+        self.assertEqual(value, MOTOR_MAX)
+
+    def test_clamps_to_motor_min(self) -> None:
+        value = apply_balance(1020, -50, IDLE, MOTOR_MIN, MOTOR_MAX)
+        self.assertEqual(value, MOTOR_MIN)

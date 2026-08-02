@@ -43,14 +43,16 @@ v3xctrl-python -m v3xctrl_control.apps.streamer "${viewer_direct_host}" "${viewe
   --ackermann-steering-scale "${control_mixer_ackermann_steering_scale}" \
   --ackermann-steering-expo "${control_mixer_ackermann_steering_expo}" \
   --differential-motor-min "${control_mixer_differential_motor_min}" \
-  --differential-motor-idle "${control_mixer_differential_motor_idle}" \
   --differential-motor-max "${control_mixer_differential_motor_max}" \
+  --differential-motor-idle "${control_mixer_differential_motor_idle}" \
   --differential-motor-failsafe "${control_mixer_differential_motor_failsafe}" \
   --differential-motor-scale-forward "${control_mixer_differential_motor_scaleForward}" \
   --differential-motor-scale-reverse "${control_mixer_differential_motor_scaleReverse}" \
-  --differential-motor-min-forward "${control_mixer_differential_motor_minForward}" \
-  --differential-motor-min-reverse "${control_mixer_differential_motor_minReverse}" \
   --differential-motor-expo "${control_mixer_differential_motor_expo}" \
+  --differential-motor-a-min-forward "${control_mixer_differential_motorA_minForward}" \
+  --differential-motor-a-min-reverse "${control_mixer_differential_motorA_minReverse}" \
+  --differential-motor-b-min-forward "${control_mixer_differential_motorB_minForward}" \
+  --differential-motor-b-min-reverse "${control_mixer_differential_motorB_minReverse}" \
   --differential-mixing-scale "${control_mixer_differential_mixing_scale}" \
   --differential-mixing-expo "${control_mixer_differential_mixing_expo}" \
   --differential-mixing-balance "${control_mixer_differential_mixing_balance}" \

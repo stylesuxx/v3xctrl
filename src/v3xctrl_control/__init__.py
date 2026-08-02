@@ -1,6 +1,6 @@
 from .Client import Client
 from .MessageHandler import MessageHandler
-from .Mixer import MixerType, esc_pulse_width, map_range, mix_differential
+from .Mixer import MixerType, apply_balance, esc_pulse_width, map_range, mix_differential
 from .Server import Server
 from .State import State
 from .UDPPacket import UDPPacket
@@ -16,6 +16,7 @@ __all__ = [
     "UDPPacket",
     "UDPReceiver",
     "UDPTransmitter",
+    "apply_balance",
     "esc_pulse_width",
     "map_range",
     "mix_differential",

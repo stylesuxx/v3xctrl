@@ -257,7 +257,9 @@ const differentialConfig = {
       type: 'differential',
       ackermann: mockConfig.control.mixer.ackermann,
       differential: {
-        motor: { min: 1000, max: 2000, failsafe: 1500, idle: 1500, scaleForward: 100, scaleReverse: 100, minForward: 0, minReverse: 0, expo: 0, reversible: false },
+        motor: { min: 1000, max: 2000, failsafe: 1500, idle: 1500, scaleForward: 100, scaleReverse: 100, expo: 0, reversible: false },
+        motorA: { minForward: 0, minReverse: 0 },
+        motorB: { minForward: 0, minReverse: 0 },
         mixing: { scale: 100, invert: false, expo: 0, balance: 0 },
       },
     },
@@ -291,6 +293,8 @@ describe('CalibrationPage - differential mixer', () => {
       },
       differential: {
         motor: { min: 1000, max: 2000, idle: 1500 },
+        motorA: { minForward: 0, minReverse: 0 },
+        motorB: { minForward: 0, minReverse: 0 },
         mixing: { balance: 0 },
       },
     })
@@ -355,11 +359,13 @@ describe('CalibrationPage - differential mixer', () => {
       expect(screen.getAllByText('Motor Min').length).toBeGreaterThan(0)
     })
 
+    // Motor A owns the first four controls (min, max, idle, forward dead-zone),
+    // so Motor B's min is the fifth
     const sendButtons = screen.getAllByText('Send')
     fireEvent.click(sendButtons[0])
     expect(sendMotorPwm).toHaveBeenCalledWith('channelA', 'min')
 
-    fireEvent.click(sendButtons[3])
+    fireEvent.click(sendButtons[4])
     expect(sendMotorPwm).toHaveBeenCalledWith('channelB', 'min')
   })
 
@@ -438,8 +444,23 @@ describe('CalibrationPage - differential mixer', () => {
     render(<CalibrationPage />)
 
     await waitFor(() => {
-      expect(screen.getAllByText(/share this calibration/i).length).toBeGreaterThan(0)
+      expect(screen.getAllByText(/shared by both motors/i).length).toBeGreaterThan(0)
     })
     expect(screen.queryAllByText(/don't reverse/i).length).toBe(0)
+  })
+
+  it('shows a forward dead-zone per motor, and the reverse dead-zone only when reversible', async () => {
+    render(<CalibrationPage />)
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Dead-zone Forward').length).toBeGreaterThan(0)
+    })
+    expect(screen.queryAllByText('Dead-zone Reverse').length).toBe(0)
+
+    useCalibrationStore.setState({ reversible: true })
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Dead-zone Reverse').length).toBeGreaterThan(0)
+    })
   })
 })
