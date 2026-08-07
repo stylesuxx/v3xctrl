@@ -32,10 +32,6 @@ class VideoCoreTelemetry:
     def get_state(self) -> VideoCoreFlags:
         return self._state
 
-    def get_byte(self) -> int:
-        """Return flags packed as a byte for telemetry transmission."""
-        return self._state.to_byte()
-
     def _run_vcgencmd(self, *args: str) -> str:
         out = subprocess.check_output(
             ["vcgencmd", *args],

@@ -121,6 +121,27 @@ parser.add_argument(
     choices=["ublox", "nmea", "modem"],
     help="GPS module protocol (default: ublox)",
 )
+parser.add_argument(
+    "--telemetry-send-rate",
+    type=float,
+    default=1.0,
+    help="Telemetry transmission rate to viewer in Hz (default: 1.0)",
+)
+parser.add_argument(
+    "--telemetry-update-rate-battery", type=float, default=10.0, help="Battery poll rate in Hz (default: 10.0)"
+)
+parser.add_argument(
+    "--telemetry-update-rate-gst", type=float, default=10.0, help="GStreamer stats poll rate in Hz (default: 10.0)"
+)
+parser.add_argument(
+    "--telemetry-update-rate-videocore", type=float, default=1.0, help="VideoCore poll rate in Hz (default: 1.0)"
+)
+parser.add_argument(
+    "--telemetry-update-rate-services", type=float, default=0.2, help="Services poll rate in Hz (default: 0.2)"
+)
+parser.add_argument(
+    "--telemetry-update-rate-modem", type=float, default=1.0, help="Modem poll rate in Hz (default: 1.0)"
+)
 
 
 args = parser.parse_args()
@@ -208,6 +229,11 @@ telemetry = TelemetryHandler(
     gps_path=args.gps_path,
     gps_rate_hz=args.gps_rate_hz,
     gps_protocol=GpsProtocol(args.gps_protocol),
+    battery_update_rate=args.telemetry_update_rate_battery,
+    gst_update_rate=args.telemetry_update_rate_gst,
+    videocore_update_rate=args.telemetry_update_rate_videocore,
+    services_update_rate=args.telemetry_update_rate_services,
+    modem_update_rate=args.telemetry_update_rate_modem,
 )
 telemetry.start()
 
@@ -420,7 +446,7 @@ try:
             telemetry_message = Telemetry(telemetry_data)
             client.send(telemetry_message)
 
-        time.sleep(1)
+        time.sleep(1.0 / args.telemetry_send_rate)
 
 except Exception as e:
     logger.error(f"An error occurred: {e}")
@@ -436,7 +462,6 @@ finally:
         tcp_tunnel.stop()
 
     client.join()
-    telemetry.join()
 
     cleanup_pwm()
     logger.info("cleaned up.")

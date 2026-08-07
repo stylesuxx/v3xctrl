@@ -1018,6 +1018,79 @@
               "description": "GPS position update rate in Hz (u-blox M10 supports up to 10 Hz)"
             }
           }
+        },
+        "sendRate": {
+          "title": "Send Rate (Hz)",
+          "propertyOrder": 30,
+          "type": "number",
+          "required": true,
+          "default": 1.0,
+          "minimum": 0.1,
+          "maximum": 20,
+          "description": "How often the telemetry snapshot is transmitted to the viewer. Higher rates use more bandwidth."
+        },
+        "updateRates": {
+          "title": "Update Rates",
+          "description": "How often each telemetry source is polled, in Hz. Fast sources can stay fast even when slow ones (e.g. modem) take longer.",
+          "propertyOrder": 40,
+          "type": "object",
+          "options": {
+            "collapsed": true,
+            "disable_edit_json": true,
+            "disable_properties": true
+          },
+          "properties": {
+            "battery": {
+              "title": "Battery (Hz)",
+              "propertyOrder": 10,
+              "type": "number",
+              "required": true,
+              "default": 10.0,
+              "minimum": 0.1,
+              "maximum": 20,
+              "description": "Battery (INA I2C) poll rate"
+            },
+            "gst": {
+              "title": "GStreamer Stats (Hz)",
+              "propertyOrder": 20,
+              "type": "number",
+              "required": true,
+              "default": 10.0,
+              "minimum": 0.1,
+              "maximum": 20,
+              "description": "GStreamer pipeline stats poll rate"
+            },
+            "videocore": {
+              "title": "VideoCore (Hz)",
+              "propertyOrder": 40,
+              "type": "number",
+              "required": true,
+              "default": 1.0,
+              "minimum": 0.1,
+              "maximum": 10,
+              "description": "VideoCore (vcgencmd) poll rate"
+            },
+            "services": {
+              "title": "Services (Hz)",
+              "propertyOrder": 50,
+              "type": "number",
+              "required": true,
+              "default": 0.2,
+              "minimum": 0.1,
+              "maximum": 5,
+              "description": "Systemd service status poll rate"
+            },
+            "modem": {
+              "title": "Modem (Hz)",
+              "propertyOrder": 60,
+              "type": "number",
+              "required": true,
+              "default": 1.0,
+              "minimum": 0.1,
+              "maximum": 5,
+              "description": "Modem signal/cell poll rate (AT commands are slow)"
+            }
+          }
         }
       }
     },

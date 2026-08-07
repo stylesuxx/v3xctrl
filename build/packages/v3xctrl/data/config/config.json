@@ -75,6 +75,14 @@
       "path": "/dev/serial0",
       "protocol": "ublox",
       "rateHz": 5
+    },
+    "sendRate": 1.0,
+    "updateRates": {
+      "battery": 10.0,
+      "gst": 10.0,
+      "videocore": 1.0,
+      "services": 0.2,
+      "modem": 1.0
     }
   },
   "viewer": {
