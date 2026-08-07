@@ -1,6 +1,6 @@
 import unittest
 
-from v3xctrl_control.Mixer import apply_balance, esc_pulse_width, map_range, mix_differential
+from src.v3xctrl_control.Mixer import apply_balance, esc_pulse_width, map_range, mix_differential
 
 FORWARD_MIN = 1500
 THROTTLE_MAX = 2000
@@ -54,40 +54,56 @@ class TestMixDifferential(unittest.TestCase):
 
 class TestEscPulseWidthReversible(unittest.TestCase):
     def test_forward(self) -> None:
-        value = esc_pulse_width(0.5, FORWARD_MIN, THROTTLE_MAX, THROTTLE_MIN, REVERSE_MIN, 1.0, 1.0, IDLE, True)
+        value = esc_pulse_width(
+            0.5, FORWARD_MIN, THROTTLE_MAX, THROTTLE_MIN, REVERSE_MIN, 1.0, 1.0, IDLE, reversible=True
+        )
         self.assertEqual(value, 1750)
 
     def test_reverse(self) -> None:
-        value = esc_pulse_width(-0.5, FORWARD_MIN, THROTTLE_MAX, THROTTLE_MIN, REVERSE_MIN, 1.0, 1.0, IDLE, True)
+        value = esc_pulse_width(
+            -0.5, FORWARD_MIN, THROTTLE_MAX, THROTTLE_MIN, REVERSE_MIN, 1.0, 1.0, IDLE, reversible=True
+        )
         self.assertEqual(value, 1250)
 
     def test_zero_falls_through_to_idle(self) -> None:
-        value = esc_pulse_width(0, FORWARD_MIN, THROTTLE_MAX, THROTTLE_MIN, REVERSE_MIN, 1.0, 1.0, IDLE, True)
+        value = esc_pulse_width(
+            0, FORWARD_MIN, THROTTLE_MAX, THROTTLE_MIN, REVERSE_MIN, 1.0, 1.0, IDLE, reversible=True
+        )
         self.assertEqual(value, IDLE)
 
     def test_forward_multiplier_scales_output(self) -> None:
-        value = esc_pulse_width(1.0, FORWARD_MIN, THROTTLE_MAX, THROTTLE_MIN, REVERSE_MIN, 0.5, 1.0, IDLE, True)
+        value = esc_pulse_width(
+            1.0, FORWARD_MIN, THROTTLE_MAX, THROTTLE_MIN, REVERSE_MIN, 0.5, 1.0, IDLE, reversible=True
+        )
         self.assertEqual(value, 1750)
 
     def test_reverse_multiplier_scales_output(self) -> None:
-        value = esc_pulse_width(-1.0, FORWARD_MIN, THROTTLE_MAX, THROTTLE_MIN, REVERSE_MIN, 1.0, 0.5, IDLE, True)
+        value = esc_pulse_width(
+            -1.0, FORWARD_MIN, THROTTLE_MAX, THROTTLE_MIN, REVERSE_MIN, 1.0, 0.5, IDLE, reversible=True
+        )
         self.assertEqual(value, 1250)
 
 
 class TestEscPulseWidthNonReversible(unittest.TestCase):
     def test_forward_matches_reversible_behavior(self) -> None:
-        reversible = esc_pulse_width(0.5, FORWARD_MIN, THROTTLE_MAX, THROTTLE_MIN, REVERSE_MIN, 1.0, 1.0, IDLE, True)
+        reversible = esc_pulse_width(
+            0.5, FORWARD_MIN, THROTTLE_MAX, THROTTLE_MIN, REVERSE_MIN, 1.0, 1.0, IDLE, reversible=True
+        )
         non_reversible = esc_pulse_width(
-            0.5, FORWARD_MIN, THROTTLE_MAX, THROTTLE_MIN, REVERSE_MIN, 1.0, 1.0, IDLE, False
+            0.5, FORWARD_MIN, THROTTLE_MAX, THROTTLE_MIN, REVERSE_MIN, 1.0, 1.0, IDLE, reversible=False
         )
         self.assertEqual(reversible, non_reversible)
 
     def test_zero_returns_idle(self) -> None:
-        value = esc_pulse_width(0, FORWARD_MIN, THROTTLE_MAX, THROTTLE_MIN, REVERSE_MIN, 1.0, 1.0, IDLE, False)
+        value = esc_pulse_width(
+            0, FORWARD_MIN, THROTTLE_MAX, THROTTLE_MIN, REVERSE_MIN, 1.0, 1.0, IDLE, reversible=False
+        )
         self.assertEqual(value, IDLE)
 
     def test_negative_returns_idle_instead_of_reversing(self) -> None:
-        value = esc_pulse_width(-0.5, FORWARD_MIN, THROTTLE_MAX, THROTTLE_MIN, REVERSE_MIN, 1.0, 1.0, IDLE, False)
+        value = esc_pulse_width(
+            -0.5, FORWARD_MIN, THROTTLE_MAX, THROTTLE_MIN, REVERSE_MIN, 1.0, 1.0, IDLE, reversible=False
+        )
         self.assertEqual(value, IDLE)
 
 

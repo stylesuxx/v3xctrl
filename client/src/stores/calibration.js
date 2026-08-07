@@ -1,10 +1,11 @@
 import { create } from 'zustand'
 import { gpioApi } from '@/api/gpio'
+import { MixerType } from '@/lib/mixer'
 import { useConnectionStore } from './connection'
 import { useConfigStore } from './config'
 
 export const useCalibrationStore = create((set, get) => ({
-  mixerType: 'ackermann',
+  mixerType: MixerType.ACKERMANN,
   reversible: false,
   ackermann: {
     throttle: { min: 0, max: 0, idle: 0 },
@@ -22,7 +23,7 @@ export const useCalibrationStore = create((set, get) => ({
       return
     }
 
-    const mixerType = config.control.mixer?.type ?? 'ackermann'
+    const mixerType = config.control.mixer?.type ?? MixerType.ACKERMANN
     const ackermannConfig = config.control.mixer?.ackermann ?? {}
     const differentialConfig = config.control.mixer?.differential ?? {}
     const reversible = differentialConfig.motor?.reversible ?? false
@@ -183,7 +184,7 @@ export const useCalibrationStore = create((set, get) => ({
     const configStore = useConfigStore.getState()
     const config = structuredClone(configStore.config)
 
-    if (mixerType === 'ackermann') {
+    if (mixerType === MixerType.ACKERMANN) {
       config.control.mixer.ackermann.throttle.min = ackermann.throttle.min
       config.control.mixer.ackermann.throttle.max = ackermann.throttle.max
       config.control.mixer.ackermann.throttle.idle = ackermann.throttle.idle

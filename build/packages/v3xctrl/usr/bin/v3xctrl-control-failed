@@ -7,7 +7,6 @@ source "${ENV_PATH}"
 PWM_CHANNEL_A="${control_pwm_channelA}"
 PWM_CHANNEL_B="${control_pwm_channelB}"
 
-# Branch on mixer type to use the correct failsafe values
 case "${control_mixer_type}" in
   "ackermann")
     v3xctrl-pwm-failsafe "$PWM_CHANNEL_A" "$control_mixer_ackermann_throttle_failsafe" "$PWM_CHANNEL_B" "$control_mixer_ackermann_steering_failsafe"

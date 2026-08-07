@@ -6,12 +6,10 @@ source "${ENV_PATH}"
 
 EXTRA_ARGS=""
 
-# Ackermann mixer boolean flags
 if [ "$control_mixer_ackermann_steering_invert" = "true" ]; then
   EXTRA_ARGS+="--ackermann-steering-invert "
 fi
 
-# Differential mixer boolean flags
 if [ "$control_mixer_differential_motor_reversible" = "true" ]; then
   EXTRA_ARGS+="--differential-motor-reversible "
 fi
@@ -20,7 +18,6 @@ if [ "$control_mixer_differential_mixing_invert" = "true" ]; then
   EXTRA_ARGS+="--differential-mixing-invert "
 fi
 
-# Relay mode
 if [ "$viewer_mode" = "relay" ] && [ "$viewer_transport" = "tcp" ]; then
   EXTRA_ARGS+="--relay-session-id ${viewer_relay_sessionId} "
 fi

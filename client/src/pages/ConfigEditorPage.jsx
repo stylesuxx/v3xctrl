@@ -88,7 +88,7 @@ export function ConfigEditorPage() {
 
   // Groups gated by "options.showWhen" depend on the live form data, so the active section is
   // rebuilt separately. Sections without a hidden group reuse the memoized result untouched.
-  const activeSchemas = useMemo(() => {
+  const activeSectionSchema = useMemo(() => {
     const sectionProp = schema?.properties?.[activeSection]
     if (!sectionProp) {
       return null
@@ -178,8 +178,6 @@ export function ConfigEditorPage() {
     return <p className="text-sm text-muted-foreground">{t('config.loading')}</p>
   }
 
-  const section = activeSchemas
-
   return (
     <div className="space-y-4">
       <div className="flex gap-1 overflow-x-auto border-b">
@@ -198,12 +196,12 @@ export function ConfigEditorPage() {
         ))}
       </div>
 
-      {section && (
+      {activeSectionSchema && (
         <div className="rjsf-form">
           <Form
             key={activeSection}
-            schema={section.adapted}
-            uiSchema={section.uiSchema}
+            schema={activeSectionSchema.adapted}
+            uiSchema={activeSectionSchema.uiSchema}
             formData={config[activeSection]}
             validator={validator}
             onChange={(e) => handleSectionChange(activeSection, e)}

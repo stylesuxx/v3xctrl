@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useServicesStore } from '@/stores/services'
 import { useConfigStore } from '@/stores/config'
 import { useCalibrationStore } from '@/stores/calibration'
+import { MixerType } from '@/lib/mixer'
 import { ServiceWarning } from '@/components/shared/ServiceWarning'
 import { PwmControl } from '@/components/shared/PwmControl'
 import { Info } from 'lucide-react'
@@ -52,7 +53,7 @@ export function CalibrationPage() {
         visible={!controlInactive}
       />
 
-      {controlInactive && mixerType === 'ackermann' && (
+      {controlInactive && mixerType === MixerType.ACKERMANN && (
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Steering */}
           <div className="space-y-3">
@@ -124,7 +125,7 @@ export function CalibrationPage() {
         </div>
       )}
 
-      {controlInactive && mixerType === 'differential' && (
+      {controlInactive && mixerType === MixerType.DIFFERENTIAL && (
         <div className="space-y-6">
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Motor A */}
