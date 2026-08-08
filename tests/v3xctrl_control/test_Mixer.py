@@ -1,6 +1,6 @@
 import unittest
 
-from src.v3xctrl_control.Mixer import apply_balance, esc_pulse_width, map_range, mix_differential
+from v3xctrl_control.Mixer import apply_balance, esc_pulse_width, map_range, mix_differential
 
 FORWARD_MIN = 1500
 THROTTLE_MAX = 2000
