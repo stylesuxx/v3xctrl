@@ -733,9 +733,6 @@
           "propertyOrder": 40,
           "type": "object",
           "title": "Mixer",
-          "options": {
-            "collapsed": true
-          },
           "properties": {
             "ackermann": {
               "propertyOrder": 10,
