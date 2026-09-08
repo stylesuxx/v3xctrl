@@ -100,44 +100,56 @@ describe('buildUiSchema', () => {
 })
 
 describe('pruneHiddenProperties', () => {
-  const mixerSchema = {
+  // Mirrors the real control section: the selector sits next to the mixer object, so the groups it
+  // gates are one level deeper than the field deciding their visibility.
+  const controlSchema = {
     type: 'object',
     properties: {
-      type: { type: 'string', enum: ['ackermann', 'differential'] },
-      ackermann: {
+      mixerType: { type: 'string', enum: ['ackermann', 'differential'] },
+      mixer: {
         type: 'object',
-        options: { collapsed: true, showWhen: { field: 'type', equals: 'ackermann' } },
-        properties: { steering: { type: 'object' } },
-      },
-      differential: {
-        type: 'object',
-        options: { collapsed: true, showWhen: { field: 'type', equals: 'differential' } },
-        properties: { motor: { type: 'object' } },
+        properties: {
+          ackermann: {
+            type: 'object',
+            options: { collapsed: true, showWhen: { field: 'mixerType', equals: 'ackermann' } },
+            properties: { steering: { type: 'object' } },
+          },
+          differential: {
+            type: 'object',
+            options: { collapsed: true, showWhen: { field: 'mixerType', equals: 'differential' } },
+            properties: { motor: { type: 'object' } },
+          },
+        },
       },
     },
   }
 
   it('keeps the matching branch and drops the other', () => {
-    const pruned = pruneHiddenProperties(mixerSchema, { type: 'differential' })
+    const pruned = pruneHiddenProperties(controlSchema, { mixerType: 'differential' })
 
-    expect(Object.keys(pruned.properties)).toEqual(['type', 'differential'])
+    expect(Object.keys(pruned.properties.mixer.properties)).toEqual(['differential'])
   })
 
-  it('resolves the condition field against the object holding the property', () => {
+  it('resolves the condition field against the section data, not the holding object', () => {
+    const pruned = pruneHiddenProperties(controlSchema, { mixerType: 'ackermann' })
+
+    expect(Object.keys(pruned.properties.mixer.properties)).toEqual(['ackermann'])
+  })
+
+  it('resolves a dotted condition field path', () => {
     const schema = {
       type: 'object',
       properties: {
-        control: {
+        modem: {
           type: 'object',
-          properties: {
-            mixer: mixerSchema,
-          },
+          options: { showWhen: { field: 'routing.mode', equals: 'modem' } },
+          properties: { model: { type: 'string' } },
         },
       },
     }
-    const pruned = pruneHiddenProperties(schema, { control: { mixer: { type: 'ackermann' } } })
 
-    expect(Object.keys(pruned.properties.control.properties.mixer.properties)).toEqual(['type', 'ackermann'])
+    expect(pruneHiddenProperties(schema, { routing: { mode: 'wlan' } }).properties).toEqual({})
+    expect(pruneHiddenProperties(schema, { routing: { mode: 'modem' } })).toBe(schema)
   })
 
   it('returns the identical reference when no property declares showWhen', () => {
@@ -153,21 +165,21 @@ describe('pruneHiddenProperties', () => {
   })
 
   it('does not mutate the input schema', () => {
-    pruneHiddenProperties(mixerSchema, { type: 'ackermann' })
+    pruneHiddenProperties(controlSchema, { mixerType: 'ackermann' })
 
-    expect(Object.keys(mixerSchema.properties)).toEqual(['type', 'ackermann', 'differential'])
+    expect(Object.keys(controlSchema.properties.mixer.properties)).toEqual(['ackermann', 'differential'])
   })
 
   it('keeps untouched subtrees by reference', () => {
-    const pruned = pruneHiddenProperties(mixerSchema, { type: 'ackermann' })
+    const pruned = pruneHiddenProperties(controlSchema, { mixerType: 'ackermann' })
 
-    expect(pruned.properties.ackermann).toBe(mixerSchema.properties.ackermann)
+    expect(pruned.properties.mixer.properties.ackermann).toBe(controlSchema.properties.mixer.properties.ackermann)
   })
 
-  it('drops a conditional property when form data is missing', () => {
-    const pruned = pruneHiddenProperties(mixerSchema, undefined)
+  it('drops a conditional property when section data is missing', () => {
+    const pruned = pruneHiddenProperties(controlSchema, undefined)
 
-    expect(Object.keys(pruned.properties)).toEqual(['type'])
+    expect(Object.keys(pruned.properties.mixer.properties)).toEqual([])
   })
 
   it('passes through schemas without properties', () => {

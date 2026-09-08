@@ -43,8 +43,8 @@ export const mockConfig = {
   control: {
     autostart: true,
     failsafeTimeout: 150,
+    mixerType: 'ackermann',
     mixer: {
-      type: 'ackermann',
       ackermann: {
         throttle: { min: 1000, max: 2000, failsafe: 1500, idle: 1500, scaleForward: 100, scaleReverse: 100, minForward: 0, minReverse: 0, expo: 0 },
         steering: { min: 1000, max: 2000, failsafe: 1500, trim: 0, scale: 100, invert: false, expo: 0 },

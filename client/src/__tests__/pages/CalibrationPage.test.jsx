@@ -253,8 +253,8 @@ const differentialConfig = {
   ...mockConfig,
   control: {
     ...mockConfig.control,
+    mixerType: 'differential',
     mixer: {
-      type: 'differential',
       ackermann: mockConfig.control.mixer.ackermann,
       differential: {
         motor: { min: 1000, max: 2000, failsafe: 1500, idle: 1500, scaleForward: 100, scaleReverse: 100, expo: 0, reversible: false },

@@ -1,12 +1,12 @@
 /**
  * Removes properties whose "options.showWhen" condition does not match the current form data.
- * The condition's "field" is resolved against the object that holds the property, so a sibling
- * field decides which group stays visible.
+ * The condition's "field" is a dot-path resolved against the section's data, so any field in the
+ * section can decide which group stays visible, no matter how deep the group itself sits.
  *
  * Returns the input by reference when nothing is hidden, so untouched sections keep their identity
  * and can reuse an already memoized result.
  */
-export function pruneHiddenProperties(schema, formData) {
+export function pruneHiddenProperties(schema, sectionData) {
   if (!schema?.properties) {
     return schema
   }
@@ -16,12 +16,15 @@ export function pruneHiddenProperties(schema, formData) {
 
   for (const [key, prop] of Object.entries(schema.properties)) {
     const showWhen = prop.options?.showWhen
-    if (showWhen && formData?.[showWhen.field] !== showWhen.equals) {
-      changed = true
-      continue
+    if (showWhen) {
+      const fieldValue = showWhen.field.split('.').reduce((data, part) => data?.[part], sectionData)
+      if (fieldValue !== showWhen.equals) {
+        changed = true
+        continue
+      }
     }
 
-    const prunedProp = pruneHiddenProperties(prop, formData?.[key])
+    const prunedProp = pruneHiddenProperties(prop, sectionData)
     kept[key] = prunedProp
 
     if (prunedProp !== prop) {

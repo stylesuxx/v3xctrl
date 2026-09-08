@@ -42,8 +42,8 @@ describe('useCalibrationStore', () => {
       ...mockConfig,
       control: {
         ...mockConfig.control,
+        mixerType: 'differential',
         mixer: {
-          type: 'differential',
           differential: {
             motor: { reversible: true, min: 900, max: 2100, idle: 1500 },
             mixing: { scale: 100, invert: false, expo: 0, balance: 15 },
@@ -220,8 +220,8 @@ describe('useCalibrationStore', () => {
       ...mockConfig,
       control: {
         ...mockConfig.control,
+        mixerType: 'differential',
         mixer: {
-          type: 'differential',
           differential: {
             motor: { reversible: true, min: 1000, max: 2000, idle: 1500 },
             motorA: { minForward: 35, minReverse: 15 },

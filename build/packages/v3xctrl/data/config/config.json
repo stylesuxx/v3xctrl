@@ -37,8 +37,8 @@
   "control": {
     "autostart": true,
     "failsafeTimeout": 150,
+    "mixerType": "ackermann",
     "mixer": {
-      "type": "ackermann",
       "ackermann": {
         "throttle": {
           "min": 1000,

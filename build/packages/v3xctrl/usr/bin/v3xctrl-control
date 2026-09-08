@@ -23,7 +23,7 @@ if [ "$viewer_mode" = "relay" ] && [ "$viewer_transport" = "tcp" ]; then
 fi
 
 v3xctrl-python -m v3xctrl_control.apps.streamer "${viewer_direct_host}" "${viewer_ports_control}" "${viewer_ports_control_bind}" \
-  --mixer-type "${control_mixer_type}" \
+  --mixer-type "${control_mixerType}" \
   --ackermann-throttle-min "${control_mixer_ackermann_throttle_min}" \
   --ackermann-throttle-idle "${control_mixer_ackermann_throttle_idle}" \
   --ackermann-throttle-max "${control_mixer_ackermann_throttle_max}" \

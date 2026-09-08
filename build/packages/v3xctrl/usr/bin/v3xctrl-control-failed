@@ -7,7 +7,7 @@ source "${ENV_PATH}"
 PWM_CHANNEL_A="${control_pwm_channelA}"
 PWM_CHANNEL_B="${control_pwm_channelB}"
 
-case "${control_mixer_type}" in
+case "${control_mixerType}" in
   "ackermann")
     v3xctrl-pwm-failsafe "$PWM_CHANNEL_A" "$control_mixer_ackermann_throttle_failsafe" "$PWM_CHANNEL_B" "$control_mixer_ackermann_steering_failsafe"
     ;;
@@ -16,7 +16,7 @@ case "${control_mixer_type}" in
     v3xctrl-pwm-failsafe "$PWM_CHANNEL_A" "$control_mixer_differential_motor_failsafe" "$PWM_CHANNEL_B" "$control_mixer_differential_motor_failsafe"
     ;;
   *)
-    echo "v3xctrl-control-failed: unknown mixer type '${control_mixer_type}', refusing to guess a failsafe pulse" >&2
+    echo "v3xctrl-control-failed: unknown mixer type '${control_mixerType}', refusing to guess a failsafe pulse" >&2
     exit 1
     ;;
 esac

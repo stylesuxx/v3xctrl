@@ -485,32 +485,32 @@ describe('ConfigEditorPage - conditional showWhen groups', () => {
         type: 'object',
         title: 'Control',
         properties: {
-          mixer: {
+          mixerType: {
             propertyOrder: 10,
+            type: 'string',
+            title: 'Mixer type',
+            enum: ['ackermann', 'differential'],
+            options: { enum_titles: ['Ackermann', 'Differential'] },
+          },
+          mixer: {
+            propertyOrder: 20,
             type: 'object',
             title: 'Mixer',
             properties: {
-              type: {
-                propertyOrder: 10,
-                type: 'string',
-                title: 'Mixer type',
-                enum: ['ackermann', 'differential'],
-                options: { enum_titles: ['Ackermann', 'Differential'] },
-              },
               ackermann: {
-                propertyOrder: 20,
+                propertyOrder: 10,
                 type: 'object',
                 title: 'Ackermann steering settings',
-                options: { showWhen: { field: 'type', equals: 'ackermann' } },
+                options: { showWhen: { field: 'mixerType', equals: 'ackermann' } },
                 properties: {
                   trim: { propertyOrder: 10, type: 'integer', title: 'Steering Trim' },
                 },
               },
               differential: {
-                propertyOrder: 30,
+                propertyOrder: 20,
                 type: 'object',
                 title: 'Differential thrust settings',
-                options: { showWhen: { field: 'type', equals: 'differential' } },
+                options: { showWhen: { field: 'mixerType', equals: 'differential' } },
                 properties: {
                   balance: { propertyOrder: 10, type: 'integer', title: 'Motor Balance' },
                 },
@@ -522,11 +522,11 @@ describe('ConfigEditorPage - conditional showWhen groups', () => {
     },
   }
 
-  function mixerConfig(type) {
+  function mixerConfig(mixerType) {
     return {
       control: {
+        mixerType,
         mixer: {
-          type,
           ackermann: { trim: 0 },
           differential: { balance: 0 },
         },
@@ -560,5 +560,17 @@ describe('ConfigEditorPage - conditional showWhen groups', () => {
     render(<ConfigEditorPage />)
 
     expect(useConfigStore.getState().config.control.mixer.ackermann).toEqual({ trim: 0 })
+  })
+
+  it('keeps the hidden group values when a visible field is edited', () => {
+    setupStores({ config: mixerConfig('differential'), schema: mixerSchema, previousModel: 'generic' })
+    render(<ConfigEditorPage />)
+
+    const balanceInput = screen.getByLabelText(/Motor Balance/)
+    fireEvent.change(balanceInput, { target: { value: '25' } })
+
+    const mixer = useConfigStore.getState().config.control.mixer
+    expect(mixer.differential).toEqual({ balance: 25 })
+    expect(mixer.ackermann).toEqual({ trim: 0 })
   })
 })

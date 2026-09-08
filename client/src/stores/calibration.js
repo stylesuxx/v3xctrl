@@ -23,7 +23,7 @@ export const useCalibrationStore = create((set, get) => ({
       return
     }
 
-    const mixerType = config.control.mixer?.type ?? MixerType.ACKERMANN
+    const mixerType = config.control.mixerType ?? MixerType.ACKERMANN
     const ackermannConfig = config.control.mixer?.ackermann ?? {}
     const differentialConfig = config.control.mixer?.differential ?? {}
     const reversible = differentialConfig.motor?.reversible ?? false

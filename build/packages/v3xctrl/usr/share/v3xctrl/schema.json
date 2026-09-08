@@ -711,40 +711,40 @@
           "title": "Failsafe",
           "description": "After this many ms without a control packet, failsafe is triggered and failsafe values are sent to the peripherals."
         },
+        "mixerType": {
+          "propertyOrder": 30,
+          "type": "string",
+          "required": true,
+          "default": "ackermann",
+          "title": "Mixer type",
+          "description": "How throttle and steering are combined into the two available PWM outputs.",
+          "enum": [
+            "ackermann",
+            "differential"
+          ],
+          "options": {
+            "enum_titles": [
+              "Ackermann (throttle + steering)",
+              "Differential thrust (left + right motor)"
+            ]
+          }
+        },
         "mixer": {
-          "propertyOrder": 25,
+          "propertyOrder": 40,
           "type": "object",
           "title": "Mixer",
           "options": {
             "collapsed": true
           },
           "properties": {
-            "type": {
-              "propertyOrder": 10,
-              "type": "string",
-              "required": true,
-              "default": "ackermann",
-              "title": "Mixer type",
-              "description": "How throttle and steering are combined into the two available PWM outputs.",
-              "enum": [
-                "ackermann",
-                "differential"
-              ],
-              "options": {
-                "enum_titles": [
-                  "Ackermann (throttle + steering)",
-                  "Differential thrust (left + right motor)"
-                ]
-              }
-            },
             "ackermann": {
-              "propertyOrder": 20,
+              "propertyOrder": 10,
               "type": "object",
               "title": "Ackermann steering settings",
               "options": {
                 "collapsed": true,
                 "showWhen": {
-                  "field": "type",
+                  "field": "mixerType",
                   "equals": "ackermann"
                 }
               },
@@ -895,13 +895,13 @@
               }
             },
             "differential": {
-              "propertyOrder": 30,
+              "propertyOrder": 20,
               "type": "object",
               "title": "Differential thrust settings",
               "options": {
                 "collapsed": true,
                 "showWhen": {
-                  "field": "type",
+                  "field": "mixerType",
                   "equals": "differential"
                 }
               },
@@ -1080,7 +1080,7 @@
           }
         },
         "pwm": {
-          "propertyOrder": 40,
+          "propertyOrder": 50,
           "type": "object",
           "title": "PWM Channel Mapping",
           "description": "Make sure that each channel is used only once.",
