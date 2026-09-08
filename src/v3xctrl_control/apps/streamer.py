@@ -20,7 +20,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from rpi_servo_pwm import HardwarePWM
 
-from v3xctrl_control import Client, MixerType, State, apply_balance, esc_pulse_width, map_range, mix_differential
+from v3xctrl_control import Ackermann, Client, Differential, Mixer, MixerType, State
 from v3xctrl_control.message import (
     Command,
     Control,
@@ -30,7 +30,7 @@ from v3xctrl_control.message import (
 )
 from v3xctrl_control.Telemetry import Telemetry as TelemetryHandler
 from v3xctrl_gst import ControlClient
-from v3xctrl_helper import Address, apply_expo, clamp
+from v3xctrl_helper import Address
 from v3xctrl_tcp import Transport
 from v3xctrl_tcp.TcpTunnel import TcpTunnel
 from v3xctrl_telemetry import GpsProtocol
@@ -44,9 +44,9 @@ parser.add_argument("bind_port", type=int, help="The internal port number")
 
 parser.add_argument(
     "--mixer-type",
-    type=str,
-    default="ackermann",
-    choices=["ackermann", "differential"],
+    type=MixerType,
+    default=MixerType.ACKERMANN,
+    choices=list(MixerType),
     help="How throttle and steering are combined into the two available PWM outputs (default: ackermann)",
 )
 
@@ -199,7 +199,6 @@ HOST = args.host
 PORT = args.port
 BIND_PORT = args.bind_port
 
-mixer_type = MixerType(args.mixer_type)
 modem_path = args.modem_path
 failsafe_ms = args.failsafe_ms
 
@@ -214,71 +213,6 @@ if not isinstance(level, int):
 
 logging.basicConfig(level=level, format="%(asctime)s - %(levelname)s - %(message)s")
 
-ackermann_throttle_min = args.ackermann_throttle_min
-ackermann_throttle_idle = args.ackermann_throttle_idle
-ackermann_throttle_max = args.ackermann_throttle_max
-ackermann_throttle_failsafe = args.ackermann_throttle_failsafe
-ackermann_throttle_scale_forward = args.ackermann_throttle_scale_forward
-ackermann_throttle_scale_reverse = args.ackermann_throttle_scale_reverse
-ackermann_throttle_min_forward = args.ackermann_throttle_min_forward
-ackermann_throttle_min_reverse = args.ackermann_throttle_min_reverse
-ackermann_throttle_expo = args.ackermann_throttle_expo
-
-ackermann_steering_min = args.ackermann_steering_min
-ackermann_steering_max = args.ackermann_steering_max
-ackermann_steering_failsafe = args.ackermann_steering_failsafe
-ackermann_steering_trim = args.ackermann_steering_trim
-ackermann_steering_scale = args.ackermann_steering_scale
-ackermann_steering_invert = args.ackermann_steering_invert
-ackermann_steering_expo = args.ackermann_steering_expo
-
-ackermann_forward_min = ackermann_throttle_idle + ackermann_throttle_min_forward
-ackermann_reverse_min = ackermann_throttle_idle - ackermann_throttle_min_reverse
-ackermann_forward_multiplier = ackermann_throttle_scale_forward / 100.0
-ackermann_reverse_multiplier = ackermann_throttle_scale_reverse / 100.0
-ackermann_steering_multiplier = ackermann_steering_scale / 100.0
-
-ackermann_steering_left = -1
-ackermann_steering_right = 1
-ackermann_trim_multiplier = 1
-
-if ackermann_steering_invert:
-    ackermann_steering_left = 1
-    ackermann_steering_right = -1
-    ackermann_trim_multiplier = -1
-
-differential_motor_min = args.differential_motor_min
-differential_motor_max = args.differential_motor_max
-differential_motor_idle = args.differential_motor_idle
-differential_motor_failsafe = args.differential_motor_failsafe
-differential_motor_scale_forward = args.differential_motor_scale_forward
-differential_motor_scale_reverse = args.differential_motor_scale_reverse
-differential_motor_expo = args.differential_motor_expo
-differential_motor_reversible = args.differential_motor_reversible
-
-differential_motor_a_min_forward = args.differential_motor_a_min_forward
-differential_motor_a_min_reverse = args.differential_motor_a_min_reverse
-
-differential_motor_b_min_forward = args.differential_motor_b_min_forward
-differential_motor_b_min_reverse = args.differential_motor_b_min_reverse
-
-differential_mixing_scale = args.differential_mixing_scale
-differential_mixing_invert = args.differential_mixing_invert
-differential_mixing_expo = args.differential_mixing_expo
-differential_mixing_balance = args.differential_mixing_balance
-
-differential_forward_min_a = differential_motor_idle + differential_motor_a_min_forward
-differential_reverse_min_a = differential_motor_idle - differential_motor_a_min_reverse
-differential_forward_min_b = differential_motor_idle + differential_motor_b_min_forward
-differential_reverse_min_b = differential_motor_idle - differential_motor_b_min_reverse
-differential_forward_multiplier = differential_motor_scale_forward / 100.0
-differential_reverse_multiplier = differential_motor_scale_reverse / 100.0
-differential_mixing_multiplier = differential_mixing_scale / 100.0
-
-differential_mixing_invert_multiplier = 1
-if differential_mixing_invert:
-    differential_mixing_invert_multiplier = -1
-
 running = True
 received_command_ids: set[str] = set()
 
@@ -286,38 +220,14 @@ pwm_output_a = HardwarePWM(pwm_channel_a)
 pwm_output_b = HardwarePWM(pwm_channel_b)
 
 
-def calculate_ackermann_steering_center() -> int:
-    center = (ackermann_steering_max + ackermann_steering_min) / 2 + ackermann_steering_trim
+mixer: Mixer
+match args.mixer_type:
+    case MixerType.ACKERMANN:
+        mixer = Ackermann.from_args(args)
+    case MixerType.DIFFERENTIAL:
+        mixer = Differential.from_args(args)
 
-    return int(clamp(center, ackermann_steering_min, ackermann_steering_max))
-
-
-def differential_pulse_width(motor_value: float, forward_min: int, reverse_min: int, balance: int) -> int:
-    pulse_width = esc_pulse_width(
-        motor_value,
-        forward_min,
-        differential_motor_max,
-        differential_motor_min,
-        reverse_min,
-        differential_forward_multiplier,
-        differential_reverse_multiplier,
-        differential_motor_idle,
-        reversible=differential_motor_reversible,
-    )
-
-    return apply_balance(pulse_width, balance, differential_motor_idle, differential_motor_min, differential_motor_max)
-
-
-if mixer_type == MixerType.ACKERMANN:
-    channel_a_idle = ackermann_throttle_idle
-    channel_b_idle = calculate_ackermann_steering_center()
-    channel_a_failsafe = ackermann_throttle_failsafe
-    channel_b_failsafe = ackermann_steering_failsafe
-else:
-    channel_a_idle = differential_motor_idle
-    channel_b_idle = differential_motor_idle
-    channel_a_failsafe = differential_motor_failsafe
-    channel_b_failsafe = differential_motor_failsafe
+channel_a_idle, channel_b_idle = mixer.idle
 
 pwm_output_a.setup(channel_a_idle)
 pwm_output_b.setup(channel_b_idle)
@@ -341,58 +251,11 @@ executor = ThreadPoolExecutor(max_workers=2)
 
 
 def control_handler(message: Control, address: Address) -> None:
-    channel_a_value: int = 0
-    channel_b_value: int = 0
-
     if client.state == State.CONNECTED:
         values = message.get_values()
-        raw_throttle = values["throttle"]
-        raw_steering = values["steering"]
-
-        match mixer_type:
-            case MixerType.ACKERMANN:
-                raw_throttle = apply_expo(raw_throttle, ackermann_throttle_expo)
-                raw_steering = apply_expo(raw_steering, ackermann_steering_expo)
-
-                channel_a_value = esc_pulse_width(
-                    raw_throttle,
-                    ackermann_forward_min,
-                    ackermann_throttle_max,
-                    ackermann_throttle_min,
-                    ackermann_reverse_min,
-                    ackermann_forward_multiplier,
-                    ackermann_reverse_multiplier,
-                    ackermann_throttle_idle,
-                    reversible=True,
-                )
-
-                scaled_steering = raw_steering * ackermann_steering_multiplier
-                mapped_steering = map_range(
-                    scaled_steering,
-                    ackermann_steering_left,
-                    ackermann_steering_right,
-                    ackermann_steering_min,
-                    ackermann_steering_max,
-                )
-                trimmed_steering = mapped_steering + (ackermann_steering_trim * ackermann_trim_multiplier)
-                channel_b_value = int(clamp(trimmed_steering, ackermann_steering_min, ackermann_steering_max))
-
-            case MixerType.DIFFERENTIAL:
-                raw_throttle = apply_expo(raw_throttle, differential_motor_expo)
-                raw_steering = apply_expo(raw_steering, differential_mixing_expo)
-
-                signed_steering = raw_steering * differential_mixing_multiplier * differential_mixing_invert_multiplier
-                left, right = mix_differential(raw_throttle, signed_steering)
-
-                channel_a_value = differential_pulse_width(
-                    left, differential_forward_min_a, differential_reverse_min_a, differential_mixing_balance
-                )
-                channel_b_value = differential_pulse_width(
-                    right, differential_forward_min_b, differential_reverse_min_b, -differential_mixing_balance
-                )
+        channel_a_value, channel_b_value = mixer.calculate_channel_values(values["throttle"], values["steering"])
     else:
-        channel_a_value = channel_a_failsafe
-        channel_b_value = channel_b_failsafe
+        channel_a_value, channel_b_value = mixer.failsafe
 
     logger.debug(f"Channel A: {channel_a_value}; Channel B: {channel_b_value}")
 
@@ -430,8 +293,6 @@ def command_handler(command: Command, address: Address) -> None:
             executor.submit(video_control.recording, recording_action)
 
         case "trim":
-            global ackermann_steering_trim, channel_b_idle, differential_mixing_balance
-
             parameters = command.get_parameters()
             trim_action: str = parameters["action"]
 
@@ -439,33 +300,8 @@ def command_handler(command: Command, address: Address) -> None:
             if trim_action != "increase":
                 step = -step
 
-            match mixer_type:
-                case MixerType.ACKERMANN:
-                    ackermann_steering_trim += step
-                    channel_b_idle = calculate_ackermann_steering_center()
-
-                    subprocess.Popen(
-                        [
-                            "sudo",
-                            "v3xctrl-settings",
-                            "set",
-                            ".control.mixer.ackermann.steering.trim",
-                            str(ackermann_steering_trim),
-                        ]
-                    )
-
-                case MixerType.DIFFERENTIAL:
-                    differential_mixing_balance += step
-
-                    subprocess.Popen(
-                        [
-                            "sudo",
-                            "v3xctrl-settings",
-                            "set",
-                            ".control.mixer.differential.mixing.balance",
-                            str(differential_mixing_balance),
-                        ]
-                    )
+            setting, value = mixer.adjust_trim(step)
+            subprocess.Popen(["sudo", "v3xctrl-settings", "set", setting, str(value)])
 
         case "shutdown":
             subprocess.Popen(["sudo", "poweroff"])
@@ -481,6 +317,8 @@ def disconnect_handler() -> None:
     """
     Disconnect counts as failsafe, set values accordingly
     """
+
+    channel_a_failsafe, channel_b_failsafe = mixer.failsafe
 
     pwm_output_a.set_pulse_width(channel_a_failsafe)
     pwm_output_b.set_pulse_width(channel_b_failsafe)
@@ -507,8 +345,10 @@ def cleanup_pwm() -> None:
     #
     # Setting for 0 pulse width for some reason seems to work really well to not
     # make the servo/ESC act up when disabling and closing PWM.
-    pwm_output_a.set_pulse_width(channel_a_idle)
-    pwm_output_b.set_pulse_width(channel_b_idle)
+    channel_a_rest, channel_b_rest = mixer.idle
+
+    pwm_output_a.set_pulse_width(channel_a_rest)
+    pwm_output_b.set_pulse_width(channel_b_rest)
     time.sleep(1)
 
     pwm_output_a.set_pulse_width(0)
