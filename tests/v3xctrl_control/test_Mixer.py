@@ -198,6 +198,15 @@ class TestAckermann(unittest.TestCase):
     def test_idle_clamps_trim_to_steering_range(self) -> None:
         self.assertEqual(make_ackermann(steering_trim=900).idle, (1500, 2000))
 
+    def test_idle_follows_steering_direction_when_inverted(self) -> None:
+        self.assertEqual(make_ackermann(steering_invert=True, steering_trim=40).idle, (1500, 1460))
+
+    def test_idle_matches_where_the_servo_sits_while_driving(self) -> None:
+        for invert in (False, True):
+            with self.subTest(steering_invert=invert):
+                mixer = make_ackermann(steering_invert=invert, steering_trim=40)
+                self.assertEqual(mixer.idle[1], mixer.calculate_channel_values(0.0, 0.0)[1])
+
     def test_failsafe_is_per_channel(self) -> None:
         self.assertEqual(make_ackermann().failsafe, (1400, 1600))
 

@@ -234,9 +234,7 @@ class Ackermann(Mixer):
 
     @property
     def idle(self) -> tuple[int, int]:
-        # The trim multiplier is deliberately not applied here, to reproduce the behaviour
-        # of the code this class replaces. Fixed in the follow-up commit.
-        center = (self._steering_max + self._steering_min) / 2 + self._steering_trim
+        center = (self._steering_max + self._steering_min) / 2 + (self._steering_trim * self._trim_multiplier)
 
         return self._throttle_idle, int(clamp(center, self._steering_min, self._steering_max))
 
