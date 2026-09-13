@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
 import '@/lib/i18n'
 import { useConnectionStore } from '@/stores/connection'
 import { useServicesStore } from '@/stores/services'
@@ -457,7 +457,9 @@ describe('CalibrationPage - differential mixer', () => {
     })
     expect(screen.queryAllByText('Dead-zone Reverse').length).toBe(0)
 
-    useCalibrationStore.setState({ reversible: true })
+    act(() => {
+      useCalibrationStore.setState({ reversible: true })
+    })
 
     await waitFor(() => {
       expect(screen.getAllByText('Dead-zone Reverse').length).toBeGreaterThan(0)
