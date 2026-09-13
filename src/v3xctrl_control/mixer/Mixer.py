@@ -12,19 +12,7 @@ class MixerType(StrEnum):
 
 
 def map_range(value: float, in_min: float, in_max: float, servo_min: int = 1000, servo_max: int = 2000) -> int:
-    """
-    Maps a float value from an input range [in_min, in_max] to a servo PWM pulse width.
-
-    Args:
-        value: Input value to map.
-        in_min: Minimum of input range.
-        in_max: Maximum of input range.
-        servo_min: Minimum servo pulse width in microseconds.
-        servo_max: Maximum servo pulse width in microseconds.
-
-    Returns:
-        Mapped servo pulse width as integer in microseconds.
-    """
+    """Maps a float value from an input range to a servo PWM pulse width."""
     if in_min == in_max:
         raise ValueError("Input range cannot be zero")
 
@@ -60,20 +48,6 @@ def esc_pulse_width(
 
     Values at or below zero return idle when the motor is not reversible, since a
     unidirectional ESC has no reverse range to map into.
-
-    Args:
-        value: Normalized motor value in [-1, 1].
-        forward_min: Minimum pulse width for the forward range (idle + forward boost).
-        throttle_max: Maximum pulse width in microseconds.
-        throttle_min: Minimum pulse width in microseconds.
-        reverse_min: Minimum pulse width for the reverse range (idle - reverse boost).
-        forward_multiplier: Scale applied to positive values before mapping.
-        reverse_multiplier: Scale applied to negative values before mapping.
-        idle: Pulse width returned for zero, and for negative values when not reversible.
-        reversible: Whether the motor accepts a reverse pulse range.
-
-    Returns:
-        Mapped ESC pulse width as integer in microseconds.
     """
     if value > 0:
         scaled = value * forward_multiplier
@@ -90,10 +64,8 @@ def esc_pulse_width(
 
 def apply_balance(pulse_width: int, balance: int, idle: int, motor_min: int, motor_max: int) -> int:
     """
-    Applies a live balance/trim offset to a motor's pulse width, clamped to [motor_min, motor_max].
-
-    The offset is skipped whenever the motor is at idle (stopped, or a non-reversible
-    motor told to reverse), so trimming never causes a motor to move away from rest.
+    Applies a live balance offset, skipped while the motor is at idle so trimming
+    never moves a motor that is at rest.
     """
     if pulse_width == idle:
         return pulse_width
