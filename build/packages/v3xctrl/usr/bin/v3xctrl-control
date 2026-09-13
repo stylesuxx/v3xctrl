@@ -4,6 +4,11 @@ set -e
 ENV_PATH="/run/v3xctrl.env"
 source "${ENV_PATH}"
 
+if [ -z "${control_failsafe_channelA}" ] || [ -z "${control_failsafe_channelB}" ]; then
+  echo "v3xctrl-control: no failsafe values in ${ENV_PATH}, not starting the control service" >&2
+  exit 1
+fi
+
 EXTRA_ARGS=""
 
 if [ "$control_mixer_ackermann_steering_invert" = "true" ]; then
