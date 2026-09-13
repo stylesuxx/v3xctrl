@@ -287,6 +287,7 @@ describe('CalibrationPage - differential mixer', () => {
     useCalibrationStore.setState({
       mixerType: 'differential',
       reversible: false,
+      lastSent: { channelA: null, channelB: null },
       ackermann: {
         throttle: { min: 1000, max: 2000, idle: 1500 },
         steering: { min: 1000, max: 2000, trim: 0 },
@@ -367,6 +368,25 @@ describe('CalibrationPage - differential mixer', () => {
 
     fireEvent.click(sendButtons[4])
     expect(sendMotorPwm).toHaveBeenCalledWith('channelB', 'min')
+  })
+
+  it('shows the last sent pulse per channel, and unknown before anything is sent', async () => {
+    useCalibrationStore.setState({
+      lastSent: {
+        channelA: { base: 1500, deadzone: 70 },
+        channelB: null,
+      },
+    })
+
+    render(<CalibrationPage />)
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Last sent')).toHaveLength(2)
+    })
+
+    expect(screen.getByText('+70 active')).toBeInTheDocument()
+    expect(screen.getByText('1570 µs')).toBeInTheDocument()
+    expect(screen.getByText('unknown')).toBeInTheDocument()
   })
 
   it('calls saveThrottleCalibration once for the shared motor profile', async () => {

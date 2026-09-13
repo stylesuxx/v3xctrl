@@ -9,6 +9,41 @@ import { PwmControl } from '@/components/shared/PwmControl'
 import { Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
+function LastSent({ entry }) {
+  const { t } = useTranslation()
+
+  return (
+    <div className="rounded-lg border border-border p-3 text-sm">
+      <div className="mb-1 font-medium">{t('calibration.lastSentTitle')}</div>
+
+      {entry === null ? (
+        <p className="text-muted-foreground">{t('calibration.lastSentUnknown')}</p>
+      ) : (
+        <div className="space-y-0.5 text-muted-foreground">
+          <div className="flex justify-between gap-2">
+            <span>{t('calibration.lastSentBase')}</span>
+            <span className="tabular-nums">{entry.base} µs</span>
+          </div>
+          <div className="flex justify-between gap-2">
+            <span>{t('calibration.lastSentDeadzone')}</span>
+            <span className="tabular-nums">
+              {entry.deadzone === null
+                ? t('calibration.lastSentDeadzoneInactive')
+                : t('calibration.lastSentDeadzoneActive', {
+                    value: entry.deadzone > 0 ? `+${entry.deadzone}` : entry.deadzone,
+                  })}
+            </span>
+          </div>
+          <div className="flex justify-between gap-2 font-medium text-foreground">
+            <span>{t('calibration.lastSentOutput')}</span>
+            <span className="tabular-nums">{entry.base + (entry.deadzone ?? 0)} µs</span>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function CalibrationPage() {
   const { t } = useTranslation()
   const { fetchServices, isServiceInactive } = useServicesStore()
@@ -18,6 +53,7 @@ export function CalibrationPage() {
     reversible,
     ackermann,
     differential,
+    lastSent,
     initFromConfig,
     setAckermannSteeringField,
     setAckermannThrottleField,
@@ -168,6 +204,8 @@ export function CalibrationPage() {
                   onSend={() => sendDeadzonePwm('motorA', 'minReverse')}
                 />
               )}
+
+              <LastSent entry={lastSent.channelA} />
             </div>
 
             {/* Motor B */}
@@ -210,6 +248,8 @@ export function CalibrationPage() {
                   onSend={() => sendDeadzonePwm('motorB', 'minReverse')}
                 />
               )}
+
+              <LastSent entry={lastSent.channelB} />
             </div>
           </div>
 

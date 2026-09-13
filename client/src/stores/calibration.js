@@ -4,9 +4,16 @@ import { MixerType } from '@/lib/mixer'
 import { useConnectionStore } from './connection'
 import { useConfigStore } from './config'
 
+const recordLastSent = (set, channelKey, base, deadzone = null) => {
+  set((state) => ({
+    lastSent: { ...state.lastSent, [channelKey]: { base, deadzone } },
+  }))
+}
+
 export const useCalibrationStore = create((set, get) => ({
   mixerType: MixerType.ACKERMANN,
   reversible: false,
+  lastSent: { channelA: null, channelB: null },
   ackermann: {
     throttle: { min: 0, max: 0, idle: 0 },
     steering: { min: 0, max: 0, trim: 0 },
@@ -147,26 +154,35 @@ export const useCalibrationStore = create((set, get) => ({
     const value = get().differential.motor[field]
 
     await gpioApi.setPwm(apiClient, channel, value)
+    recordLastSent(set, channelKey, value)
   },
 
   sendDeadzonePwm: async (motorKey, field) => {
     const { apiClient } = useConnectionStore.getState()
     const config = useConfigStore.getState().config
-    const channel = motorKey === 'motorA' ? config.control.pwm.channelA : config.control.pwm.channelB
+    const channelKey = motorKey === 'motorA' ? 'channelA' : 'channelB'
+    const channel = config.control.pwm[channelKey]
     const { motor } = get().differential
     const deadzone = get().differential[motorKey][field]
-    const value = field === 'minForward' ? motor.idle + deadzone : motor.idle - deadzone
+    const signedDeadzone = field === 'minForward' ? deadzone : -deadzone
+    const value = motor.idle + signedDeadzone
 
     await gpioApi.setPwm(apiClient, channel, value)
+    recordLastSent(set, channelKey, motor.idle, signedDeadzone)
   },
 
   sendBalancePwm: async () => {
     const { apiClient } = useConnectionStore.getState()
     const config = useConfigStore.getState().config
     const { differential } = get()
+    const valueA = differential.motor.idle + differential.mixing.balance
+    const valueB = differential.motor.idle - differential.mixing.balance
 
-    await gpioApi.setPwm(apiClient, config.control.pwm.channelA, differential.motor.idle + differential.mixing.balance)
-    await gpioApi.setPwm(apiClient, config.control.pwm.channelB, differential.motor.idle - differential.mixing.balance)
+    await gpioApi.setPwm(apiClient, config.control.pwm.channelA, valueA)
+    recordLastSent(set, 'channelA', valueA)
+
+    await gpioApi.setPwm(apiClient, config.control.pwm.channelB, valueB)
+    recordLastSent(set, 'channelB', valueB)
   },
 
   saveSteeringCalibration: async () => {
