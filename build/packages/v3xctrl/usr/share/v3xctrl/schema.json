@@ -712,6 +712,7 @@
           "description": "After this many ms without a control packet, failsafe is triggered and failsafe values are sent to the peripherals."
         },
         "mixerType": {
+          "$comment": "A new value here must also be added to MixerType in client/src/lib/mixer.js and src/v3xctrl_control/mixer/Mixer.py.",
           "propertyOrder": 30,
           "type": "string",
           "required": true,
