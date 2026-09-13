@@ -1,6 +1,6 @@
 from .Client import Client
 from .MessageHandler import MessageHandler
-from .Mixer import (
+from .mixer import (
     Ackermann,
     Differential,
     Mixer,
