@@ -72,12 +72,14 @@ class InputTab(Tab):
 
     def get_settings(self) -> dict[str, Any]:
         return {
+            "controls": self.controls,
             "input": {"guid": self.calibration_widget.get_selected_guid()},
             "calibrations": self.gamepad_manager.get_calibrations(),
         }
 
     def apply_settings(self) -> None:
-        keyboard_controls = self.settings.get("controls", {}).get("keyboard", {})
+        self.controls = self._own_section("controls", {})
+        keyboard_controls = self.controls.get("keyboard", {})
 
         for widget in self.key_widgets:
             if widget.control_name in keyboard_controls:
@@ -92,10 +94,8 @@ class InputTab(Tab):
             self._on_calibration_done()
 
     def _on_control_key_change(self, control_name: str, key_code: int) -> None:
-        controls = self.settings.get("controls", None)
-        if controls:
-            keyboard = controls.setdefault("keyboard", {})
-            keyboard[control_name] = key_code
+        keyboard = self.controls.setdefault("keyboard", {})
+        keyboard[control_name] = key_code
 
     def _on_calibration_start(self) -> None:
         self.on_active_toggle(True)

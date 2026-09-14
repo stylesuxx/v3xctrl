@@ -217,6 +217,10 @@ class Menu:
         for tab in self.tabs:
             tab.view.settings = settings
 
+    def apply_fullscreen(self, fullscreen: bool) -> None:
+        for tab in self.tabs:
+            tab.view.apply_fullscreen(fullscreen)
+
     def update_dimensions(self, width: int, height: int) -> None:
         """Update menu dimensions (used when toggling fullscreen)."""
         self.width = width
@@ -409,12 +413,12 @@ class Menu:
         return next((t for t in self.tabs if t.name == self.active_tab), None)
 
     def _save_button_callback(self) -> None:
-        tab = self._get_active_tab()
-        if tab:
-            settings = tab.view.get_settings()
-            for key, val in settings.items():
+        """Commit every tab, so edits made on one tab survive saving from another."""
+        for tab in self.tabs:
+            for key, val in tab.view.get_settings().items():
                 self.settings.set(key, val)
-            self.settings.save()
+
+        self.settings.save()
 
     def _exit_button_callback(self) -> None:
         self.settings.load()

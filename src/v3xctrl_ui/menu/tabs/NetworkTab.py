@@ -170,8 +170,8 @@ class NetworkTab(Tab):
     def apply_settings(self) -> None:
         self._test_status = None
         self.transport = self.settings.get("transport", "udp")
-        self.ports = self.settings.get("ports", {})
-        self.relay = self.settings.get("relay", {})
+        self.ports = self._own_section("ports", {})
+        self.relay = self._own_section("relay", {})
         self.udp_packet_ttl = self.settings.get("udp_packet_ttl", 100)
         self.control_buffer_capacity = self.settings.get("control_buffer_capacity", 1)
 

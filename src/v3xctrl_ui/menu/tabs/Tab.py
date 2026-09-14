@@ -1,3 +1,4 @@
+import copy
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -52,9 +53,26 @@ class Tab(ABC):
         """
         return
 
+    def apply_fullscreen(self, fullscreen: bool) -> None:
+        """
+        Take a fullscreen toggle made outside the menu into this tab.
+        Called while the menu is open, so it leaves edits in progress untouched.
+        Override this method in subclasses that display fullscreen state.
+        """
+        return
+
     @abstractmethod
     def get_settings(self) -> dict[str, Any]:
         pass
+
+    def _own_section(self, key: str, default: Any) -> Any:
+        """
+        Return a private copy of a settings section.
+
+        A tab edits its own copy and hands it back from get_settings(), so an
+        edit reaches the rest of the application only once Save is pressed.
+        """
+        return copy.deepcopy(self.settings.get(key, default))
 
     @abstractmethod
     def draw(self, surface: Surface) -> None:
