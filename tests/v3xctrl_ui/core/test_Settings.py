@@ -10,7 +10,9 @@ from pathlib import Path
 import pygame
 import tomli_w
 
+from v3xctrl_tcp import Transport
 from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.core.SettingsSchema import PortSettings, RelaySettings, TimingSettings
 
 
 class TestSettings(unittest.TestCase):
@@ -87,6 +89,102 @@ class TestSettings(unittest.TestCase):
             config_path = Path(tmpdir) / "my_settings.toml"
             settings = Settings(str(config_path))
             self.assertEqual(settings.path, config_path)
+
+
+class TestTypedSections(unittest.TestCase):
+    def setUp(self):
+        self.path = str(Path(tempfile.mkdtemp()) / "settings.toml")
+
+    def _write(self, raw: dict) -> None:
+        with open(self.path, "wb") as f:
+            f.write(tomli_w.dumps(raw).encode("utf-8"))
+
+    def test_sections_are_parsed_at_load(self):
+        settings = Settings(self.path)
+
+        self.assertEqual(settings.ports, PortSettings())
+        self.assertEqual(settings.relay, RelaySettings())
+        self.assertEqual(settings.timing, TimingSettings())
+        self.assertEqual(settings.transport, Transport.UDP)
+
+    def test_a_section_default_lives_only_on_the_section(self):
+        for key in ("ports", "relay", "timing", "transport"):
+            with self.subTest(key=key):
+                self.assertNotIn(key, Settings.DEFAULTS)
+
+    def test_values_from_the_file_reach_the_section(self):
+        self._write({"ports": {"video": 9999}, "transport": "tcp"})
+        settings = Settings(self.path)
+
+        self.assertEqual(settings.ports.video, 9999)
+        self.assertEqual(settings.ports.control, 16386)
+        self.assertEqual(settings.transport, Transport.TCP)
+
+    def test_a_bad_value_in_the_file_falls_back_without_stopping_the_load(self):
+        self._write({"ports": {"video": "banana", "control": 9999}, "transport": "quic"})
+
+        with self.assertLogs("v3xctrl_ui.core.SettingsSchema", level="WARNING"):
+            settings = Settings(self.path)
+
+        self.assertEqual(settings.ports.video, 16384)
+        self.assertEqual(settings.ports.control, 9999)
+        self.assertEqual(settings.transport, Transport.UDP)
+
+    def test_sections_round_trip_through_the_file(self):
+        settings = Settings(self.path)
+        settings.ports = PortSettings(video=1234, control=5678)
+        settings.relay = RelaySettings(enabled=True, server="example.com:1", id="abc", spectator_mode=True)
+        settings.transport = Transport.TCP
+        settings.save()
+
+        loaded = Settings(self.path)
+
+        self.assertEqual(loaded.ports, settings.ports)
+        self.assertEqual(loaded.relay, settings.relay)
+        self.assertEqual(loaded.transport, Transport.TCP)
+
+    def test_get_still_hands_out_a_plain_table(self):
+        settings = Settings(self.path)
+
+        self.assertEqual(settings.get("ports"), {"video": 16384, "control": 16386})
+        self.assertEqual(settings.get("transport"), Transport.UDP)
+
+    def test_a_table_from_get_is_not_wired_back_into_the_section(self):
+        settings = Settings(self.path)
+
+        settings.get("ports")["video"] = 9999
+
+        self.assertEqual(settings.ports.video, 16384)
+
+    def test_set_accepts_a_table(self):
+        settings = Settings(self.path)
+
+        settings.set("ports", {"video": 9999, "control": 8888})
+
+        self.assertEqual(settings.ports, PortSettings(video=9999, control=8888))
+
+    def test_set_accepts_a_section(self):
+        settings = Settings(self.path)
+
+        settings.set("ports", PortSettings(video=9999, control=8888))
+
+        self.assertEqual(settings.ports, PortSettings(video=9999, control=8888))
+
+    def test_delete_resets_a_section_to_its_defaults(self):
+        settings = Settings(self.path)
+        settings.ports = PortSettings(video=9999)
+
+        settings.delete("ports")
+
+        self.assertEqual(settings.ports, PortSettings())
+
+    def test_an_existing_file_is_not_rewritten_on_construction(self):
+        self._write({"ports": {"video": 9999}})
+        before = Path(self.path).read_bytes()
+
+        Settings(self.path)
+
+        self.assertEqual(Path(self.path).read_bytes(), before)
 
 
 if __name__ == "__main__":
