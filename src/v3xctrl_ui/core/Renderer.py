@@ -274,8 +274,7 @@ class Renderer:
         rect.center = (self.center_x, self.center_y - 40)
         screen.blit(surface, rect)
 
-        show_connection_info = self.settings.get("show_connection_info", False)
-        if show_connection_info:
+        if self.settings.show_connection_info:
             if self.settings.relay.enabled:
                 self._render_relay_connection_info(screen)
             else:

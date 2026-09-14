@@ -82,7 +82,7 @@ class NetworkCoordinator:
         if not self.model.user_connected:
             self.network_controller = self.create_network_controller(settings)
 
-        self.update_ttl(settings.get("udp_packet_ttl", 100))
+        self.update_ttl(settings.udp_packet_ttl)
 
     def restart(self, settings: Settings) -> None:
         self._restart_thread = self.restart_network_controller(settings)

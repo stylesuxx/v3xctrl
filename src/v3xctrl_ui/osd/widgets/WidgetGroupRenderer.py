@@ -3,27 +3,26 @@ from typing import Any
 
 import pygame
 
+from v3xctrl_ui.core.SettingsSchema import WidgetConfig, WidgetSettings
 from v3xctrl_ui.osd.widgets import Widget
 from v3xctrl_ui.osd.widgets.WidgetGroup import WidgetGroup
 from v3xctrl_ui.utils.helpers import calculate_widget_position, round_corners
 
 
-def render_widget_group(screen: pygame.Surface, group: WidgetGroup, widget_settings: dict[str, dict[str, Any]]) -> None:
+def render_widget_group(screen: pygame.Surface, group: WidgetGroup, widget_settings: WidgetSettings) -> None:
     """
     Render a widget group using either composition or individual rendering.
 
     Args:
         screen: Surface to render onto
         group: WidgetGroup to render
-        widget_settings: Global widget settings dict
+        widget_settings: Configuration for every widget and group
     """
-    settings = widget_settings.get(group.name, {})
-
     if group.use_composition:
         render_group(
             screen,
             group.widgets.items(),
-            settings,
+            widget_settings.get(group.name) or WidgetConfig(),
             widget_settings,
             group.get_value,
             group.corner_radius,
@@ -40,22 +39,22 @@ def render_widget_group(screen: pygame.Surface, group: WidgetGroup, widget_setti
 def render_group(
     screen: pygame.Surface,
     widgets: ItemsView[str, Widget],
-    settings: dict[str, Any],
-    widget_settings: dict[str, dict[str, Any]],
+    config: WidgetConfig,
+    widget_settings: WidgetSettings,
     get_widget_value: Callable[[str], Any],
     corner_radius: int = 4,
 ) -> None:
     """Render widgets as a composed group with rounded corners."""
-    if not settings.get("display", False):
+    if not config.display:
         return
 
     visible_widgets = _filter_visible_widgets(widgets, widget_settings)
     if not visible_widgets:
         return
 
-    align = settings.get("align", "top-left")
-    offset = settings.get("offset", (0, 0))
-    padding = settings.get("padding", 0)
+    align = config.align
+    offset = config.offset
+    padding = config.padding
     width, height = _calculate_dimensions(visible_widgets, padding)
 
     composed = pygame.Surface((width, height), pygame.SRCALPHA)
@@ -71,18 +70,17 @@ def render_group(
 def _render_individual_widgets(
     screen: pygame.Surface,
     widgets: ItemsView[str, Widget],
-    widget_settings: dict[str, dict[str, Any]],
+    widget_settings: WidgetSettings,
     get_widget_value: Callable[[str], Any],
 ) -> None:
     for name, widget in widgets:
-        settings = widget_settings.get(name, {"align": "top-left", "offset": (0, 0), "display": False})
+        # A widget drawn on its own stays hidden unless the config names it
+        config = widget_settings.get(name)
 
-        if settings.get("display", False):
-            align = settings.get("align", "top-left")
-            offset = settings.get("offset", (0, 0))
+        if config is not None and config.display:
             screen_width, screen_height = screen.get_size()
             position = calculate_widget_position(
-                align, widget.width, widget.height, screen_width, screen_height, offset
+                config.align, widget.width, widget.height, screen_width, screen_height, config.offset
             )
 
             widget.position = position
@@ -91,12 +89,14 @@ def _render_individual_widgets(
 
 def _filter_visible_widgets(
     widgets: ItemsView[str, Widget],
-    widget_settings: dict[str, dict[str, Any]],
+    widget_settings: WidgetSettings,
 ) -> list[tuple[str, Widget]]:
     visible: list[tuple[str, Widget]] = []
     for name, widget in widgets:
-        settings = widget_settings.get(name, {})
-        if settings.get("display", True):
+        # A widget inside a group is drawn unless the config hides it, which is
+        # what keeps widgets the config file never names (debug_buffer) visible
+        config = widget_settings.get(name)
+        if config is None or config.display:
             visible.append((name, widget))
 
     return visible

@@ -51,28 +51,26 @@ class InputController:
         self.gamepad_controller.start()
 
     def _configure_gamepad_controller(self) -> None:
-        calibrations = self.settings.get("calibrations", {})
-        for guid, calibration in calibrations.items():
+        for guid, calibration in self.settings.calibrations.by_guid.items():
             self.gamepad_controller.set_calibration(guid, calibration)
 
-        input_settings = self.settings.get("input", {})
-        if "guid" in input_settings:
-            self.gamepad_controller.set_active(input_settings["guid"])
+        if self.settings.input.guid:
+            self.gamepad_controller.set_active(self.settings.input.guid)
 
     def _setup_key_handlers(self) -> None:
-        control_settings = self.settings.get("controls", {}).get("keyboard")
-        if control_settings:
-            self.key_handlers = {
-                "throttle": KeyAxisHandler(
-                    positive=control_settings["throttle_up"],
-                    negative=control_settings["throttle_down"],
-                    min_val=self.THROTTLE_RANGE[0],
-                    max_val=self.THROTTLE_RANGE[1],
-                ),
-                "steering": KeyAxisHandler(
-                    positive=control_settings["steering_right"],
-                    negative=control_settings["steering_left"],
-                    min_val=self.STEERING_RANGE[0],
-                    max_val=self.STEERING_RANGE[1],
-                ),
-            }
+        keyboard = self.settings.controls.keyboard
+
+        self.key_handlers = {
+            "throttle": KeyAxisHandler(
+                positive=keyboard.throttle_up,
+                negative=keyboard.throttle_down,
+                min_val=self.THROTTLE_RANGE[0],
+                max_val=self.THROTTLE_RANGE[1],
+            ),
+            "steering": KeyAxisHandler(
+                positive=keyboard.steering_right,
+                negative=keyboard.steering_left,
+                min_val=self.STEERING_RANGE[0],
+                max_val=self.STEERING_RANGE[1],
+            ),
+        }

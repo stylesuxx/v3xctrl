@@ -7,6 +7,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from src.v3xctrl_ui.menu.Menu import Menu
+from tests.v3xctrl_ui.settings_helper import build_settings
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 
 
@@ -15,7 +16,8 @@ from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 class TestMenu(unittest.TestCase):
     def setUp(self):
         self.mock_gamepad_manager = MagicMock()
-        self.mock_settings = MagicMock()
+        self.mock_settings = build_settings()
+        self.mock_settings.save = MagicMock()
         self.mock_callback = MagicMock()
         self.mock_invoke_command = MagicMock()
         self.mock_callback_quit = MagicMock()
@@ -136,9 +138,9 @@ class TestMenu(unittest.TestCase):
 
         active_tab_view.get_settings.assert_called_once()
         other_tab_view.get_settings.assert_called_once()
-        self.mock_settings.set.assert_any_call("key1", "value1")
-        self.mock_settings.set.assert_any_call("key2", "value2")
-        self.mock_settings.set.assert_any_call("key3", "value3")
+        self.assertEqual(self.mock_settings.get("key1"), "value1")
+        self.assertEqual(self.mock_settings.get("key2"), "value2")
+        self.assertEqual(self.mock_settings.get("key3"), "value3")
         self.mock_settings.save.assert_called_once()
 
     def test_exit_button_callback(self, mock_button_class, mock_pygame):
@@ -567,7 +569,7 @@ class TestMenu(unittest.TestCase):
         menu.active_tab = "NonExistentTab"
         menu._save_button_callback()
 
-        self.mock_settings.set.assert_any_call("key1", "value1")
+        self.assertEqual(self.mock_settings.get("key1"), "value1")
         self.mock_settings.save.assert_called_once()
 
     def test_handle_event_no_active_tab(self, mock_button_class, mock_pygame):

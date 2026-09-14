@@ -1,6 +1,7 @@
 import logging
 import signal
 import time
+from dataclasses import replace
 from typing import Any
 
 import pygame
@@ -27,13 +28,12 @@ class AppState:
         self.settings = settings
 
         self.model = ApplicationModel(
-            fullscreen=self.settings.get("video", {"fullscreen": False}).get("fullscreen", False),
+            fullscreen=settings.video.fullscreen,
             throttle=0,
             steering=0,
         )
 
-        video = settings.get("video")
-        self.size = (video.get("width"), video.get("height"))
+        self.size = (settings.video.width, settings.video.height)
 
         self.video_port = settings.ports.video
         self.control_port = settings.ports.control
@@ -241,9 +241,7 @@ class AppState:
     def _on_toggle_fullscreen(self) -> None:
         self.display_controller.toggle_fullscreen()
 
-        video_settings = self.settings.get("video", {})
-        video_settings["fullscreen"] = self.model.fullscreen
-        self.settings.set("video", video_settings)
+        self.settings.video = replace(self.settings.video, fullscreen=self.model.fullscreen)
         self.settings.save()
 
         # Update menu dimensions with new screen size
