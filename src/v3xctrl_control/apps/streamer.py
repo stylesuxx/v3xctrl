@@ -17,6 +17,7 @@ import time
 import traceback
 import types
 from concurrent.futures import ThreadPoolExecutor
+from typing import assert_never
 
 from rpi_servo_pwm import HardwarePWM
 
@@ -205,6 +206,9 @@ failsafe_ms = args.failsafe_ms
 pwm_channel_a = args.pwm_channel_a
 pwm_channel_b = args.pwm_channel_b
 
+# Pinned to the enum so an unhandled mixer type fails type checking instead of at runtime.
+mixer_type: MixerType = args.mixer_type
+
 level_name = args.log.upper()
 level = getattr(logging, level_name, None)
 
@@ -221,11 +225,13 @@ pwm_output_b = HardwarePWM(pwm_channel_b)
 
 
 mixer: Mixer
-match args.mixer_type:
+match mixer_type:
     case MixerType.ACKERMANN:
         mixer = Ackermann.from_args(args)
     case MixerType.DIFFERENTIAL:
         mixer = Differential.from_args(args)
+    case _:
+        assert_never(mixer_type)
 
 channel_a_idle, channel_b_idle = mixer.idle
 
