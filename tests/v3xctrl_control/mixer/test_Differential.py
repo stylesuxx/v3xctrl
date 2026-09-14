@@ -76,3 +76,58 @@ class TestDifferential(unittest.TestCase):
         mixer = make_differential()
         mixer.adjust_trim(25)
         self.assertEqual(mixer.idle, (1500, 1500))
+
+
+class TestMixDifferential(unittest.TestCase):
+    def test_straight(self) -> None:
+        left, right = Differential._mix_differential(0.6, 0.0)
+        self.assertEqual((left, right), (0.6, 0.6))
+
+    def test_full_right_turn_in_place(self) -> None:
+        left, right = Differential._mix_differential(0.0, 1.0)
+        self.assertEqual((left, right), (1.0, -1.0))
+
+    def test_full_left_turn_in_place(self) -> None:
+        left, right = Differential._mix_differential(0.0, -1.0)
+        self.assertEqual((left, right), (-1.0, 1.0))
+
+    def test_clamps_left_when_combined_exceeds_range(self) -> None:
+        left, right = Differential._mix_differential(0.8, 0.5)
+        self.assertEqual(left, 1.0)
+        self.assertAlmostEqual(right, 0.3)
+
+    def test_clamps_right_when_combined_exceeds_range(self) -> None:
+        left, right = Differential._mix_differential(0.8, -0.5)
+        self.assertAlmostEqual(left, 0.3)
+        self.assertEqual(right, 1.0)
+
+    def test_reverse_throttle_with_steering(self) -> None:
+        left, right = Differential._mix_differential(-0.6, 0.2)
+        self.assertAlmostEqual(left, -0.4)
+        self.assertAlmostEqual(right, -0.8)
+
+
+class TestApplyBalance(unittest.TestCase):
+    def test_skips_offset_when_at_idle(self) -> None:
+        value = make_differential()._apply_balance(1500, 50)
+        self.assertEqual(value, 1500)
+
+    def test_skips_negative_offset_when_at_idle(self) -> None:
+        value = make_differential()._apply_balance(1500, -50)
+        self.assertEqual(value, 1500)
+
+    def test_applies_positive_offset_when_moving(self) -> None:
+        value = make_differential()._apply_balance(1750, 50)
+        self.assertEqual(value, 1800)
+
+    def test_applies_negative_offset_when_moving(self) -> None:
+        value = make_differential()._apply_balance(1750, -50)
+        self.assertEqual(value, 1700)
+
+    def test_clamps_to_motor_max(self) -> None:
+        value = make_differential()._apply_balance(1980, 50)
+        self.assertEqual(value, 2000)
+
+    def test_clamps_to_motor_min(self) -> None:
+        value = make_differential()._apply_balance(1020, -50)
+        self.assertEqual(value, 1000)

@@ -22,16 +22,6 @@ def map_range(value: float, in_min: float, in_max: float, servo_min: int = 1000,
     return int(servo_min + normalized * (servo_max - servo_min))
 
 
-def mix_differential(throttle: float, steering: float) -> tuple[float, float]:
-    """
-    Combines throttle and steering into left/right motor values for differential thrust.
-    """
-    left = clamp(throttle + steering, -1, 1)
-    right = clamp(throttle - steering, -1, 1)
-
-    return left, right
-
-
 def esc_pulse_width(
     value: float,
     forward_min: int,
@@ -60,17 +50,6 @@ def esc_pulse_width(
         return map_range(scaled, -1, 0, throttle_min, reverse_min)
 
     return idle
-
-
-def apply_balance(pulse_width: int, balance: int, idle: int, motor_min: int, motor_max: int) -> int:
-    """
-    Applies a live balance offset, skipped while the motor is at idle so trimming
-    never moves a motor that is at rest.
-    """
-    if pulse_width == idle:
-        return pulse_width
-
-    return int(clamp(pulse_width + balance, motor_min, motor_max))
 
 
 class Mixer(ABC):

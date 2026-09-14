@@ -5,10 +5,8 @@ from .mixer import (
     Differential,
     Mixer,
     MixerType,
-    apply_balance,
     esc_pulse_width,
     map_range,
-    mix_differential,
 )
 from .Server import Server
 from .State import State
@@ -28,8 +26,6 @@ __all__ = [
     "UDPPacket",
     "UDPReceiver",
     "UDPTransmitter",
-    "apply_balance",
     "esc_pulse_width",
     "map_range",
-    "mix_differential",
 ]

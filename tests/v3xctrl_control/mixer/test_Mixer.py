@@ -1,14 +1,12 @@
 import unittest
 
-from v3xctrl_control.mixer import apply_balance, esc_pulse_width, map_range, mix_differential
+from v3xctrl_control.mixer import esc_pulse_width, map_range
 
 FORWARD_MIN = 1500
 THROTTLE_MAX = 2000
 THROTTLE_MIN = 1000
 REVERSE_MIN = 1500
 IDLE = 1500
-MOTOR_MIN = 1000
-MOTOR_MAX = 2000
 
 
 class TestMapRange(unittest.TestCase):
@@ -26,30 +24,6 @@ class TestMapRange(unittest.TestCase):
     def test_zero_input_range_raises(self) -> None:
         with self.assertRaises(ValueError):
             map_range(0, 1, 1)
-
-
-class TestMixDifferential(unittest.TestCase):
-    def test_straight(self) -> None:
-        left, right = mix_differential(0.6, 0.0)
-        self.assertEqual((left, right), (0.6, 0.6))
-
-    def test_full_right_turn_in_place(self) -> None:
-        left, right = mix_differential(0.0, 1.0)
-        self.assertEqual((left, right), (1.0, -1.0))
-
-    def test_full_left_turn_in_place(self) -> None:
-        left, right = mix_differential(0.0, -1.0)
-        self.assertEqual((left, right), (-1.0, 1.0))
-
-    def test_clamps_when_combined_exceeds_range(self) -> None:
-        left, right = mix_differential(0.8, 0.5)
-        self.assertEqual(left, 1.0)
-        self.assertAlmostEqual(right, 0.3)
-
-    def test_reverse_throttle_with_steering(self) -> None:
-        left, right = mix_differential(-0.6, 0.2)
-        self.assertAlmostEqual(left, -0.4)
-        self.assertAlmostEqual(right, -0.8)
 
 
 class TestEscPulseWidthReversible(unittest.TestCase):
@@ -105,29 +79,3 @@ class TestEscPulseWidthNonReversible(unittest.TestCase):
             -0.5, FORWARD_MIN, THROTTLE_MAX, THROTTLE_MIN, REVERSE_MIN, 1.0, 1.0, IDLE, reversible=False
         )
         self.assertEqual(value, IDLE)
-
-
-class TestApplyBalance(unittest.TestCase):
-    def test_skips_offset_when_at_idle(self) -> None:
-        value = apply_balance(IDLE, 50, IDLE, MOTOR_MIN, MOTOR_MAX)
-        self.assertEqual(value, IDLE)
-
-    def test_skips_negative_offset_when_at_idle(self) -> None:
-        value = apply_balance(IDLE, -50, IDLE, MOTOR_MIN, MOTOR_MAX)
-        self.assertEqual(value, IDLE)
-
-    def test_applies_positive_offset_when_moving(self) -> None:
-        value = apply_balance(1750, 50, IDLE, MOTOR_MIN, MOTOR_MAX)
-        self.assertEqual(value, 1800)
-
-    def test_applies_negative_offset_when_moving(self) -> None:
-        value = apply_balance(1750, -50, IDLE, MOTOR_MIN, MOTOR_MAX)
-        self.assertEqual(value, 1700)
-
-    def test_clamps_to_motor_max(self) -> None:
-        value = apply_balance(1980, 50, IDLE, MOTOR_MIN, MOTOR_MAX)
-        self.assertEqual(value, MOTOR_MAX)
-
-    def test_clamps_to_motor_min(self) -> None:
-        value = apply_balance(1020, -50, IDLE, MOTOR_MIN, MOTOR_MAX)
-        self.assertEqual(value, MOTOR_MIN)

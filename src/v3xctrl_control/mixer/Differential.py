@@ -1,9 +1,9 @@
 from argparse import Namespace
 from typing import Self
 
-from v3xctrl_helper import apply_expo
+from v3xctrl_helper import apply_expo, clamp
 
-from .Mixer import Mixer, apply_balance, esc_pulse_width, mix_differential
+from .Mixer import Mixer, esc_pulse_width
 
 
 class Differential(Mixer):
@@ -72,6 +72,23 @@ class Differential(Mixer):
             mixing_balance=args.differential_mixing_balance,
         )
 
+    @staticmethod
+    def _mix_differential(throttle: float, steering: float) -> tuple[float, float]:
+        left = clamp(throttle + steering, -1, 1)
+        right = clamp(throttle - steering, -1, 1)
+
+        return left, right
+
+    def _apply_balance(self, pulse_width: int, balance: int) -> int:
+        """
+        Applies a live balance offset, skipped while the motor is at idle so trimming
+        never moves a motor that is at rest.
+        """
+        if pulse_width == self._motor_idle:
+            return pulse_width
+
+        return int(clamp(pulse_width + balance, self._motor_min, self._motor_max))
+
     def _motor_pulse_width(self, motor_value: float, forward_min: int, reverse_min: int, balance: int) -> int:
         pulse_width = esc_pulse_width(
             motor_value,
@@ -85,14 +102,14 @@ class Differential(Mixer):
             reversible=self._motor_reversible,
         )
 
-        return apply_balance(pulse_width, balance, self._motor_idle, self._motor_min, self._motor_max)
+        return self._apply_balance(pulse_width, balance)
 
     def calculate_channel_values(self, throttle: float, steering: float) -> tuple[int, int]:
         throttle = apply_expo(throttle, self._motor_expo)
         steering = apply_expo(steering, self._mixing_expo)
 
         signed_steering = steering * self._mixing_multiplier * self._mixing_invert_multiplier
-        left, right = mix_differential(throttle, signed_steering)
+        left, right = self._mix_differential(throttle, signed_steering)
 
         channel_a = self._motor_pulse_width(left, self._forward_min_a, self._reverse_min_a, self._mixing_balance)
         channel_b = self._motor_pulse_width(right, self._forward_min_b, self._reverse_min_b, -self._mixing_balance)

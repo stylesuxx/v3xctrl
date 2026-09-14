@@ -3,10 +3,8 @@ from .Differential import Differential
 from .Mixer import (
     Mixer,
     MixerType,
-    apply_balance,
     esc_pulse_width,
     map_range,
-    mix_differential,
 )
 
 __all__ = [
@@ -14,8 +12,6 @@ __all__ = [
     "Differential",
     "Mixer",
     "MixerType",
-    "apply_balance",
     "esc_pulse_width",
     "map_range",
-    "mix_differential",
 ]
