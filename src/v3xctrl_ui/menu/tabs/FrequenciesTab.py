@@ -1,3 +1,4 @@
+from dataclasses import replace
 from typing import Any
 
 from pygame import Surface
@@ -73,15 +74,15 @@ class FrequenciesTab(Tab):
         return {"timing": self.timing}
 
     def apply_settings(self) -> None:
-        self.timing = self._own_section("timing", {})
+        self.timing = self.settings.timing
 
-        self.video_input.value = str(self.timing.get("main_loop_fps", ""))
-        self.control_input.value = str(self.timing.get("control_update_hz", ""))
-        self.latency_input.value = str(self.timing.get("latency_check_hz", ""))
+        self.video_input.value = str(self.timing.main_loop_fps)
+        self.control_input.value = str(self.timing.control_update_hz)
+        self.latency_input.value = str(self.timing.latency_check_hz)
 
     def _on_rate_change(self, name: str, value: str) -> None:
         if is_int(value):
-            self.timing[name] = int(value)
+            self.timing = replace(self.timing, **{name: int(value)})
 
     def _draw_frequency_section(self, surface: Surface, y: int) -> int:
         y = self.y_offset + self.padding

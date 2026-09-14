@@ -2,6 +2,7 @@ import errno
 import unittest
 from unittest.mock import MagicMock, patch
 
+from tests.v3xctrl_ui.settings_helper import build_settings
 from v3xctrl_helper import PeerAddresses
 from v3xctrl_helper.exceptions import PeerRegistrationError
 from v3xctrl_relay.Role import Role
@@ -18,13 +19,11 @@ from v3xctrl_ui.network.NetworkSetup import (
 class TestNetworkSetup(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures."""
-        # Mock settings
-        self.settings = MagicMock()
-        self.settings.get.side_effect = lambda key, default=None: {
-            "ports": {"video": 5000, "control": 6000},
-            "udp_packet_ttl": 100,
-            "video": {"render_ratio": 0, "receiver": "pyav"},
-        }.get(key, default)
+        self.settings = build_settings(
+            ports={"video": 5000, "control": 6000},
+            udp_packet_ttl=100,
+            video={"render_ratio": 0, "receiver": "pyav"},
+        )
 
         # Patch external dependencies
         self.peer_patcher = patch("v3xctrl_ui.network.NetworkSetup.Peer")
@@ -459,14 +458,12 @@ class TestTcpRelayHandshakeRole(unittest.TestCase):
         self.announcement_patcher.stop()
 
     def _make_settings(self):
-        settings = MagicMock()
-        settings.get.side_effect = lambda key, default=None: {
-            "ports": {"video": 5000, "control": 6000},
-            "transport": Transport.TCP,
-            "udp_packet_ttl": 100,
-            "video": {"render_ratio": 0},
-        }.get(key, default)
-        return settings
+        return build_settings(
+            ports={"video": 5000, "control": 6000},
+            transport=Transport.TCP,
+            udp_packet_ttl=100,
+            video={"render_ratio": 0},
+        )
 
     def test_tcp_viewer_sends_viewer_role(self):
         setup = NetworkSetup(self._make_settings())

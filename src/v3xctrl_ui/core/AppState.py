@@ -35,9 +35,8 @@ class AppState:
         video = settings.get("video")
         self.size = (video.get("width"), video.get("height"))
 
-        ports = settings.get("ports", {})
-        self.video_port = ports.get("video", 16384)
-        self.control_port = ports.get("control", 16386)
+        self.video_port = settings.ports.video
+        self.control_port = settings.ports.control
 
         from v3xctrl_ui import __version__
 

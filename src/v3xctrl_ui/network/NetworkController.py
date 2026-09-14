@@ -22,9 +22,8 @@ class NetworkController:
         self.server_handlers = handlers
         self.clock_offset = clock_offset
 
-        ports = self.settings.get("ports", {})
-        self.video_port = ports.get("video")
-        self.control_port = ports.get("control")
+        self.video_port = settings.ports.video
+        self.control_port = settings.ports.control
 
         # Network state
         self.video_receiver = None
@@ -141,13 +140,11 @@ class NetworkController:
             self.tcp_control_tunnel.stop()
 
     def _setup_relay_if_enabled(self) -> None:
-        relay = self.settings.get("relay", {})
-        if relay.get("enabled", False):
-            server = relay.get("server")
-            relay_id = relay.get("id")
-            self.relay_spectator_mode = relay.get("spectator_mode", False)
-            if server and relay_id:
-                self.setup_relay(server, relay_id)
+        relay = self.settings.relay
+        if relay.enabled:
+            self.relay_spectator_mode = relay.spectator_mode
+            if relay.server and relay.id:
+                self.setup_relay(relay.server, relay.id)
 
     def _setup_ports_task(self) -> None:
         """Background task to setup network ports and connections."""

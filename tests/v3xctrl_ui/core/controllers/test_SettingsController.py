@@ -2,8 +2,10 @@
 
 from unittest.mock import Mock
 
+from tests.v3xctrl_ui.settings_helper import build_settings
 from v3xctrl_ui.core.controllers.SettingsController import SettingsController
 from v3xctrl_ui.core.dataclasses import ApplicationModel
+from v3xctrl_ui.core.Settings import Settings
 
 
 class FakeSubscriber:
@@ -45,7 +47,7 @@ class FakeNetworkRestarter:
         return self.wait_result
 
 
-def build_controller(settings: dict, model: ApplicationModel | None = None):
+def build_controller(settings: Settings, model: ApplicationModel | None = None):
     model = model if model is not None else ApplicationModel()
     restarter = FakeNetworkRestarter()
     fullscreen_change = Mock()
@@ -56,88 +58,88 @@ def build_controller(settings: dict, model: ApplicationModel | None = None):
 
 class TestInitialization:
     def test_keeps_a_deep_copy_of_the_starting_settings(self):
-        settings = {"video": {"fullscreen": False}, "ports": {"video": 6666}}
+        settings = build_settings(video={"fullscreen": False}, ports={"video": 6666})
 
         controller, _restarter, _fullscreen, model = build_controller(settings)
 
-        assert controller.settings == settings
+        assert controller.settings is settings
         assert controller.model is model
-        assert controller.old_settings == settings
         assert controller.old_settings is not settings
+        assert controller.old_settings.ports == settings.ports
 
     def test_starts_with_no_subscribers(self):
-        controller, _restarter, _fullscreen, _model = build_controller({})
+        controller, _restarter, _fullscreen, _model = build_controller(build_settings())
 
-        controller.apply_settings({"video": {}})
+        controller.apply_settings(build_settings())
 
 
 class TestSubscriberNotification:
     def test_every_subscriber_receives_the_new_settings(self):
-        controller, _restarter, _fullscreen, _model = build_controller({})
+        controller, _restarter, _fullscreen, _model = build_controller(build_settings())
         first = FakeSubscriber("first")
         second = FakeSubscriber("second")
         controller.register(first)
         controller.register(second)
 
-        new_settings = {"video": {"fullscreen": True}}
+        new_settings = build_settings(video={"fullscreen": True})
         controller.apply_settings(new_settings)
 
         assert first.received == [new_settings]
         assert second.received == [new_settings]
 
     def test_subscribers_are_notified_in_registration_order(self):
-        controller, _restarter, _fullscreen, _model = build_controller({})
+        controller, _restarter, _fullscreen, _model = build_controller(build_settings())
         order: list[str] = []
         for name in ("timing", "network", "input", "osd", "renderer"):
             controller.register(FakeSubscriber(name, order))
 
-        controller.apply_settings({})
+        controller.apply_settings(build_settings())
 
         assert order == ["timing", "network", "input", "osd", "renderer"]
 
     def test_apply_settings_updates_its_own_references(self):
-        controller, _restarter, _fullscreen, _model = build_controller({"ports": {"video": 1}})
-        new_settings = {"ports": {"video": 2}}
+        controller, _restarter, _fullscreen, _model = build_controller(build_settings(ports={"video": 1}))
+        new_settings = build_settings(ports={"video": 2})
 
         controller.apply_settings(new_settings)
 
-        assert controller.settings == new_settings
-        assert controller.old_settings == new_settings
+        assert controller.settings is new_settings
+        assert controller.old_settings.ports == new_settings.ports
         assert controller.old_settings is not new_settings
 
 
 class TestUpdateSettings:
     def test_applies_immediately_when_nothing_network_facing_changed(self):
-        settings = {"video": {"fullscreen": False}, "ports": {"video": 6666}, "relay": {}}
+        settings = build_settings(video={"fullscreen": False}, ports={"video": 6666})
         controller, restarter, _fullscreen, model = build_controller(settings)
         model.user_connected = True
         subscriber = FakeSubscriber("subscriber")
         controller.register(subscriber)
 
-        applied = controller.update_settings({"video": {"fullscreen": False}, "ports": {"video": 6666}, "relay": {}})
+        applied = controller.update_settings(build_settings(video={"fullscreen": False}, ports={"video": 6666}))
 
         assert applied is True
         assert restarter.restart_calls == []
         assert len(subscriber.received) == 1
 
     def test_applies_immediately_before_the_user_connects(self):
-        settings = {"video": {}, "ports": {"video": 6666}, "relay": {}}
+        settings = build_settings(ports={"video": 6666})
         controller, restarter, _fullscreen, model = build_controller(settings)
         model.user_connected = False
 
-        applied = controller.update_settings({"video": {}, "ports": {"video": 9999}, "relay": {}})
+        applied = controller.update_settings(build_settings(ports={"video": 9999}))
 
         assert applied is True
         assert restarter.restart_calls == []
 
     def test_port_change_defers_behind_a_restart(self):
-        settings = {"video": {}, "ports": {"video": 6666}, "relay": {}}
+        settings = build_settings(ports={"video": 6666})
         controller, restarter, _fullscreen, model = build_controller(settings)
         model.user_connected = True
         subscriber = FakeSubscriber("subscriber")
         controller.register(subscriber)
 
-        new_settings = {"video": {}, "ports": {"video": 9999}, "relay": {}}
+        new_settings = build_settings(ports={"video": 9999})
         applied = controller.update_settings(new_settings)
 
         assert applied is False
@@ -146,22 +148,22 @@ class TestUpdateSettings:
         assert subscriber.received == []
 
     def test_relay_change_defers_behind_a_restart(self):
-        settings = {"video": {}, "ports": {}, "relay": {"enabled": False, "id": "abc"}}
+        settings = build_settings(relay={"enabled": False, "id": "abc"})
         controller, restarter, _fullscreen, model = build_controller(settings)
         model.user_connected = True
 
-        new_settings = {"video": {}, "ports": {}, "relay": {"enabled": True, "id": "abc"}}
+        new_settings = build_settings(relay={"enabled": True, "id": "abc"})
         applied = controller.update_settings(new_settings)
 
         assert applied is False
         assert restarter.restart_calls == [new_settings]
 
     def test_transport_change_defers_behind_a_restart(self):
-        settings = {"video": {}, "ports": {}, "relay": {}, "transport": "udp"}
+        settings = build_settings(transport="udp")
         controller, restarter, _fullscreen, model = build_controller(settings)
         model.user_connected = True
 
-        new_settings = {"video": {}, "ports": {}, "relay": {}, "transport": "tcp"}
+        new_settings = build_settings(transport="tcp")
         applied = controller.update_settings(new_settings)
 
         assert applied is False
@@ -170,32 +172,32 @@ class TestUpdateSettings:
 
 class TestFullscreen:
     def test_fullscreen_change_is_reported(self):
-        settings = {"video": {"fullscreen": False}, "ports": {}, "relay": {}}
+        settings = build_settings(video={"fullscreen": False})
         controller, _restarter, fullscreen_change, _model = build_controller(
             settings, ApplicationModel(fullscreen=False)
         )
 
-        controller.update_settings({"video": {"fullscreen": True}, "ports": {}, "relay": {}})
+        controller.update_settings(build_settings(video={"fullscreen": True}))
 
         fullscreen_change.assert_called_once_with(True)
 
     def test_unchanged_fullscreen_is_not_reported(self):
-        settings = {"video": {"fullscreen": False}, "ports": {}, "relay": {}}
+        settings = build_settings(video={"fullscreen": False})
         controller, _restarter, fullscreen_change, _model = build_controller(
             settings, ApplicationModel(fullscreen=False)
         )
 
-        controller.update_settings({"video": {"fullscreen": False}, "ports": {}, "relay": {}})
+        controller.update_settings(build_settings(video={"fullscreen": False}))
 
         fullscreen_change.assert_not_called()
 
     def test_fullscreen_applies_ahead_of_a_deferred_restart(self):
         """The window responds to the save even when everything else waits."""
-        settings = {"video": {"fullscreen": False}, "ports": {"video": 6666}, "relay": {}}
+        settings = build_settings(video={"fullscreen": False}, ports={"video": 6666})
         controller, restarter, fullscreen_change, model = build_controller(settings, ApplicationModel(fullscreen=False))
         model.user_connected = True
 
-        applied = controller.update_settings({"video": {"fullscreen": True}, "ports": {"video": 9999}, "relay": {}})
+        applied = controller.update_settings(build_settings(video={"fullscreen": True}, ports={"video": 9999}))
 
         assert applied is False
         assert restarter.restart_calls != []
@@ -204,15 +206,15 @@ class TestFullscreen:
 
 class TestRestartCompletion:
     def test_reports_nothing_while_the_restart_runs(self):
-        controller, _restarter, _fullscreen, _model = build_controller({})
+        controller, _restarter, _fullscreen, _model = build_controller(build_settings())
 
         assert controller.check_network_restart_complete() is False
 
     def test_pending_settings_are_applied_once_the_restart_finishes(self):
-        controller, restarter, _fullscreen, model = build_controller({})
+        controller, restarter, _fullscreen, model = build_controller(build_settings())
         subscriber = FakeSubscriber("subscriber")
         controller.register(subscriber)
-        pending = {"ports": {"video": 9999}}
+        pending = build_settings(ports={"video": 9999})
         model.pending_settings = pending
         restarter.complete = True
 
@@ -223,7 +225,7 @@ class TestRestartCompletion:
         assert model.pending_settings is None
 
     def test_completion_is_acknowledged_so_the_next_restart_can_signal(self):
-        controller, restarter, _fullscreen, _model = build_controller({})
+        controller, restarter, _fullscreen, _model = build_controller(build_settings())
         restarter.complete = True
 
         controller.check_network_restart_complete()
@@ -232,7 +234,7 @@ class TestRestartCompletion:
         assert restarter.is_restart_complete() is False
 
     def test_shutdown_waits_on_the_restarter(self):
-        controller, restarter, _fullscreen, _model = build_controller({})
+        controller, restarter, _fullscreen, _model = build_controller(build_settings())
 
         result = controller.wait_for_network_restart(timeout=2.0)
 
@@ -240,51 +242,29 @@ class TestRestartCompletion:
         assert restarter.waited_timeouts == [2.0]
 
     def test_shutdown_reports_a_restart_that_outlived_the_timeout(self):
-        controller, restarter, _fullscreen, _model = build_controller({})
+        controller, restarter, _fullscreen, _model = build_controller(build_settings())
         restarter.wait_result = False
 
         assert controller.wait_for_network_restart(timeout=0.1) is False
 
 
-class TestSettingsEqual:
-    def test_equal_when_identical(self):
-        settings = {"ports": {"video": 6666, "control": 6668}}
-        controller, _restarter, _fullscreen, _model = build_controller(settings)
-
-        assert controller.settings_equal({"ports": {"video": 6666, "control": 6668}}, "ports") is True
-
-    def test_not_equal_when_values_differ(self):
-        settings = {"ports": {"video": 6666}}
-        controller, _restarter, _fullscreen, _model = build_controller(settings)
-
-        assert controller.settings_equal({"ports": {"video": 9999}}, "ports") is False
-
-    def test_not_equal_when_keys_differ(self):
-        settings = {"ports": {"video": 6666}}
-        controller, _restarter, _fullscreen, _model = build_controller(settings)
-
-        assert controller.settings_equal({"ports": {"video": 6666, "control": 6668}}, "ports") is False
-
-
 class TestWorkflow:
     def test_save_that_needs_a_restart_applies_once_it_completes(self):
-        settings = {
-            "video": {"fullscreen": False},
-            "ports": {"video": 6666},
-            "relay": {},
-            "timing": {"control_update_hz": 30},
-        }
+        settings = build_settings(
+            video={"fullscreen": False},
+            ports={"video": 6666},
+            timing={"control_update_hz": 30},
+        )
         controller, restarter, _fullscreen, model = build_controller(settings)
         model.user_connected = True
         subscriber = FakeSubscriber("subscriber")
         controller.register(subscriber)
 
-        new_settings = {
-            "video": {"fullscreen": False},
-            "ports": {"video": 9999},
-            "relay": {},
-            "timing": {"control_update_hz": 60},
-        }
+        new_settings = build_settings(
+            video={"fullscreen": False},
+            ports={"video": 9999},
+            timing={"control_update_hz": 60},
+        )
 
         assert controller.update_settings(new_settings) is False
         assert subscriber.received == []
@@ -292,4 +272,4 @@ class TestWorkflow:
         restarter.complete = True
         assert controller.check_network_restart_complete() is True
         assert subscriber.received == [new_settings]
-        assert controller.settings == new_settings
+        assert controller.settings is new_settings
