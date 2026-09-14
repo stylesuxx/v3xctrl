@@ -28,7 +28,7 @@ class TestSettings(unittest.TestCase):
         settings = Settings(self.path)
         self.assertEqual(settings.get("debug"), True)
         self.assertEqual(settings.get("timing").get("main_loop_fps"), 60)
-        self.assertEqual(settings.settings["video"]["width"], 1280)
+        self.assertEqual(settings.video.width, 1280)
 
     def test_save_and_load_round_trip(self):
         settings = Settings(self.path)
@@ -58,15 +58,18 @@ class TestSettings(unittest.TestCase):
             f.write(tomli_w.dumps(partial).encode("utf-8"))
 
         settings = Settings(self.path)
-        self.assertEqual(settings.settings["video"]["width"], 800)
-        self.assertEqual(settings.settings["video"]["height"], 720)
+        self.assertEqual(settings.video.width, 800)
+        self.assertEqual(settings.video.height, 720)
         self.assertEqual(settings.settings["controls"]["keyboard"]["throttle_up"], pygame.K_UP)
         self.assertEqual(settings.settings["controls"]["keyboard"]["throttle_down"], pygame.K_s)
 
-    def test_delete_key(self):
+    def test_delete_resets_a_scalar_to_its_default(self):
         settings = Settings(self.path)
+        settings.set("debug", False)
+
         settings.delete("debug")
-        self.assertNotIn("debug", settings.settings)
+
+        self.assertEqual(settings.debug, True)
 
     def test_custom_path_creates_parent_directories(self):
         with tempfile.TemporaryDirectory() as tmpdir:

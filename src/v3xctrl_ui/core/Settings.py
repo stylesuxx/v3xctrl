@@ -1,5 +1,6 @@
 import copy
 import tomllib
+from enum import Enum
 from pathlib import Path
 from typing import Any, ClassVar
 
@@ -13,6 +14,7 @@ from v3xctrl_ui.core.SettingsSchema import (
     RelaySettings,
     Section,
     TimingSettings,
+    VideoSettings,
     coerce,
 )
 
@@ -30,6 +32,16 @@ class Settings:
         "ports": PortSettings,
         "relay": RelaySettings,
         "timing": TimingSettings,
+        "video": VideoSettings,
+    }
+
+    # Top-level keys that hold one value rather than a table, mapped to their default
+    SCALARS: ClassVar[dict[str, Any]] = {
+        "transport": DEFAULT_TRANSPORT,
+        "udp_packet_ttl": 100,
+        "control_buffer_capacity": 1,
+        "debug": True,
+        "show_connection_info": True,
     }
 
     DEFAULTS: ClassVar[dict[str, Any]] = {
@@ -44,17 +56,6 @@ class Settings:
                 "rec_toggle": pygame.K_r,
             }
         },
-        "video": {
-            "width": 1280,
-            "height": 720,
-            "fullscreen": False,
-            "render_ratio": 0,
-            "receiver": "auto",
-        },
-        "udp_packet_ttl": 100,
-        "control_buffer_capacity": 1,
-        "debug": True,
-        "show_connection_info": True,
         "widgets": {
             "debug": {"display": False, "align": "top-left", "offset": [10, 10], "padding": 5},
             "debug_fps_loop": {"display": True},
@@ -92,16 +93,6 @@ class Settings:
             "gps_satellites": {"display": True},
             "gps_speed": {"display": True},
         },
-        "settings": {
-            "throttle": {
-                "step": 0.1,
-                "friction": 0.2,
-            },
-            "steering": {
-                "step": 0.1,
-                "friction": 0.2,
-            },
-        },
     }
 
     def __init__(self, path: str | None = None) -> None:
@@ -114,7 +105,12 @@ class Settings:
         self.ports = PortSettings()
         self.relay = RelaySettings()
         self.timing = TimingSettings()
+        self.video = VideoSettings()
         self.transport = DEFAULT_TRANSPORT
+        self.udp_packet_ttl = self.SCALARS["udp_packet_ttl"]
+        self.control_buffer_capacity = self.SCALARS["control_buffer_capacity"]
+        self.debug = self.SCALARS["debug"]
+        self.show_connection_info = self.SCALARS["show_connection_info"]
 
         self.load()
 
@@ -132,7 +128,9 @@ class Settings:
         for key, section in self.SECTIONS.items():
             setattr(self, key, section.from_raw(merged.pop(key, {})))
 
-        self.transport = coerce("transport", merged.pop("transport", DEFAULT_TRANSPORT), DEFAULT_TRANSPORT)
+        for key, default in self.SCALARS.items():
+            setattr(self, key, coerce(key, merged.pop(key, default), default))
+
         self.settings = merged
 
     def save(self) -> None:
@@ -142,8 +140,8 @@ class Settings:
 
     def get(self, key: str, default: Any = None) -> Any:
         match key:
-            case "transport":
-                return self.transport
+            case _ if key in self.SCALARS:
+                return getattr(self, key)
 
             case _ if key in self.SECTIONS:
                 section: Section = getattr(self, key)
@@ -154,8 +152,8 @@ class Settings:
 
     def set(self, key: str, value: Any) -> None:
         match key:
-            case "transport":
-                self.transport = coerce("transport", value, DEFAULT_TRANSPORT)
+            case _ if key in self.SCALARS:
+                setattr(self, key, coerce(key, value, self.SCALARS[key]))
 
             case _ if key in self.SECTIONS:
                 section_type = self.SECTIONS[key]
@@ -166,10 +164,10 @@ class Settings:
                 self.settings[key] = value
 
     def delete(self, key: str) -> None:
-        """Drop a key, which for a typed section means resetting it to defaults."""
+        """Drop a key, which for anything typed means resetting it to its default."""
         match key:
-            case "transport":
-                self.transport = DEFAULT_TRANSPORT
+            case _ if key in self.SCALARS:
+                setattr(self, key, self.SCALARS[key])
 
             case _ if key in self.SECTIONS:
                 setattr(self, key, self.SECTIONS[key]())
@@ -179,7 +177,10 @@ class Settings:
 
     def _sections_to_raw(self) -> dict[str, Any]:
         raw: dict[str, Any] = {key: getattr(self, key).to_raw() for key in self.SECTIONS}
-        raw["transport"] = self.transport.value
+
+        for key in self.SCALARS:
+            value = getattr(self, key)
+            raw[key] = value.value if isinstance(value, Enum) else value
 
         return raw
 

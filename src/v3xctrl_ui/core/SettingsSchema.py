@@ -10,7 +10,7 @@ bad key in a hand-edited config file leaves the viewer running.
 
 import logging
 from dataclasses import dataclass, fields
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Any, ClassVar, Self
 
 from v3xctrl_tcp import Transport
@@ -18,6 +18,12 @@ from v3xctrl_tcp import Transport
 logger = logging.getLogger(__name__)
 
 DEFAULT_TRANSPORT = Transport.UDP
+
+
+class VideoReceiver(StrEnum):
+    AUTO = "auto"
+    GST = "gst"
+    PYAV = "pyav"
 
 
 def coerce(location: str, value: Any, default: Any) -> Any:
@@ -111,3 +117,14 @@ class TimingSettings(Section):
     main_loop_fps: int = 60
     control_update_hz: int = 30
     latency_check_hz: int = 1
+
+
+@dataclass(frozen=True, slots=True)
+class VideoSettings(Section):
+    NAME: ClassVar[str] = "video"
+
+    width: int = 1280
+    height: int = 720
+    fullscreen: bool = False
+    render_ratio: int = 0
+    receiver: VideoReceiver = VideoReceiver.AUTO

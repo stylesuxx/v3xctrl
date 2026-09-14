@@ -34,8 +34,8 @@ class OSD:
         self.settings = settings
         self.telemetry_context = telemetry_context
 
-        self.width = self.settings.get("video").get("width")
-        self.height = self.settings.get("video").get("height")
+        self.width = settings.video.width
+        self.height = settings.video.height
 
         self.widget_settings = {}
         self.apply_settings(settings)
