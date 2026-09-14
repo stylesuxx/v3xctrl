@@ -38,7 +38,7 @@ class OSD:
         self.height = self.settings.get("video").get("height")
 
         self.widget_settings = {}
-        self.update_settings(settings)
+        self.apply_settings(settings)
 
         self.debug_data: str | None = None
         self.debug_latency: str | None = None
@@ -111,7 +111,7 @@ class OSD:
 
         return get_fps(self.video_history)
 
-    def update_settings(self, settings: Settings) -> None:
+    def apply_settings(self, settings: Settings) -> None:
         self.settings = settings
         self.widget_settings = self.settings.get("widgets", {})
 

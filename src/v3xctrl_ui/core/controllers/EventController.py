@@ -112,7 +112,7 @@ class EventController:
 
         return True
 
-    def update_settings(self, settings: Settings) -> None:
+    def apply_settings(self, settings: Settings) -> None:
         self.settings = settings
         self._load_keyboard_controls()
 

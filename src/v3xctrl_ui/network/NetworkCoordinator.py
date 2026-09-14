@@ -39,6 +39,7 @@ class NetworkCoordinator:
 
         self.network_controller: NetworkController | None = None
         self.restart_complete = threading.Event()
+        self._restart_thread: threading.Thread | None = None
         self.on_connection_change: Callable[[bool], None] | None = None
         self.clock_offset = ClockOffset()
 
@@ -71,6 +72,35 @@ class NetworkCoordinator:
                 self.restart_complete.set()
 
         return threading.Thread(target=_restart)
+
+    def apply_settings(self, settings: Settings) -> None:
+        """Take new settings into use.
+
+        The controller is only rebuilt while idle. Once the user has connected,
+        a settings change that needs new sockets goes through restart().
+        """
+        if not self.model.user_connected:
+            self.network_controller = self.create_network_controller(settings)
+
+        self.update_ttl(settings.get("udp_packet_ttl", 100))
+
+    def restart(self, settings: Settings) -> None:
+        self._restart_thread = self.restart_network_controller(settings)
+        self._restart_thread.start()
+
+    def is_restart_complete(self) -> bool:
+        return self.restart_complete.is_set()
+
+    def acknowledge_restart(self) -> None:
+        self.restart_complete.clear()
+
+    def wait_for_restart(self, timeout: float) -> bool:
+        if self._restart_thread and self._restart_thread.is_alive():
+            logger.info("Waiting for network restart to complete...")
+            self._restart_thread.join(timeout=timeout)
+            return not self._restart_thread.is_alive()
+
+        return True
 
     def setup_ports(self):
         if self.network_controller:

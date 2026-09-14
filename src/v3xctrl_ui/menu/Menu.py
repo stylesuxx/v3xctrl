@@ -211,8 +211,8 @@ class Menu:
         self.tab_bar_dirty = True
         pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
 
-    def update_settings_reference(self, settings: Settings) -> None:
-        """Update settings reference for menu and all tabs."""
+    def apply_settings(self, settings: Settings) -> None:
+        """Point the menu and every tab at the new settings."""
         self.settings = settings
         for tab in self.tabs:
             tab.view.settings = settings

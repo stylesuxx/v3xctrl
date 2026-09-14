@@ -2,9 +2,10 @@
 
 import copy
 import logging
-import threading
 from collections.abc import Callable
 from typing import TYPE_CHECKING
+
+from v3xctrl_ui.core.SettingsSubscriber import NetworkRestarter, SettingsSubscriber
 
 if TYPE_CHECKING:
     from v3xctrl_ui.core.dataclasses import ApplicationModel
@@ -16,31 +17,35 @@ logger = logging.getLogger(__name__)
 class SettingsController:
     """Manages settings updates, comparison, and component coordination."""
 
-    def __init__(self, settings: "Settings", model: "ApplicationModel"):
+    def __init__(
+        self,
+        settings: "Settings",
+        model: "ApplicationModel",
+        network_restarter: NetworkRestarter,
+        on_fullscreen_change: Callable[[bool], None],
+    ):
         """Initialize settings manager.
 
         Args:
             settings: Initial application settings
             model: Application model to store pending settings
+            network_restarter: The network stack, restarted when ports, relay or
+                transport change
+            on_fullscreen_change: Called with the new fullscreen state as soon as
+                it changes, ahead of any network restart, so the window responds
+                to the save immediately
         """
         self.settings = settings
         self.model = model
         self.old_settings = copy.deepcopy(settings)
+        self.network_restarter = network_restarter
+        self.on_fullscreen_change = on_fullscreen_change
 
-        # Network restart coordination
-        self.network_restart_thread: threading.Thread | None = None
-        self.network_restart_complete = threading.Event()
+        self._subscribers: list[SettingsSubscriber] = []
 
-        # Callbacks for component updates
-        self.on_timing_update: Callable[[Settings], None] | None = None
-        self.on_network_update: Callable[[Settings], None] | None = None
-        self.on_input_update: Callable[[Settings], None] | None = None
-        self.on_osd_update: Callable[[Settings], None] | None = None
-        self.on_renderer_update: Callable[[Settings], None] | None = None
-        self.on_display_update: Callable[[bool], None] | None = None
-
-        # Callback for network restart
-        self.create_network_restart_thread: Callable[[Settings], threading.Thread] | None = None
+    def register(self, subscriber: SettingsSubscriber) -> None:
+        """Add a subscriber. Subscribers are notified in registration order."""
+        self._subscribers.append(subscriber)
 
     def update_settings(self, new_settings: "Settings") -> bool:
         """Update settings and coordinate component updates.
@@ -54,8 +59,8 @@ class SettingsController:
         # Handle fullscreen changes
         fullscreen_previous = self.model.fullscreen
         fullscreen_new = new_settings.get("video", {}).get("fullscreen", False)
-        if fullscreen_previous != fullscreen_new and self.on_display_update:
-            self.on_display_update(fullscreen_new)
+        if fullscreen_previous != fullscreen_new:
+            self.on_fullscreen_change(fullscreen_new)
 
         # Skip network restart if user hasn't connected yet
         if not self.model.user_connected:
@@ -69,10 +74,7 @@ class SettingsController:
             or self._transport_changed(new_settings)
         ):
             self.model.pending_settings = new_settings
-
-            if self.create_network_restart_thread:
-                self.network_restart_thread = self.create_network_restart_thread(new_settings)
-                self.network_restart_thread.start()
+            self.network_restarter.restart(new_settings)
 
             return False
 
@@ -86,8 +88,8 @@ class SettingsController:
         Returns:
             True if restart was complete and settings were applied
         """
-        if self.network_restart_complete.is_set():
-            self.network_restart_complete.clear()
+        if self.network_restarter.is_restart_complete():
+            self.network_restarter.acknowledge_restart()
 
             if self.model.pending_settings:
                 self.apply_settings(self.model.pending_settings)
@@ -98,30 +100,16 @@ class SettingsController:
         return False
 
     def apply_settings(self, new_settings: "Settings") -> None:
-        """Apply new settings to all components.
+        """Hand the new settings to every subscriber.
 
         Args:
             new_settings: Settings to apply
         """
-        # Update settings and old_settings
         self.settings = new_settings
         self.old_settings = copy.deepcopy(new_settings)
 
-        # Update all components via callbacks
-        if self.on_timing_update:
-            self.on_timing_update(new_settings)
-
-        if self.on_network_update:
-            self.on_network_update(new_settings)
-
-        if self.on_input_update:
-            self.on_input_update(new_settings)
-
-        if self.on_osd_update:
-            self.on_osd_update(new_settings)
-
-        if self.on_renderer_update:
-            self.on_renderer_update(new_settings)
+        for subscriber in self._subscribers:
+            subscriber.apply_settings(new_settings)
 
     def _needs_relay_restart(self, new_settings: "Settings") -> bool:
         """Check if relay settings changes require a network restart.
@@ -209,9 +197,4 @@ class SettingsController:
         Returns:
             True if restart completed within timeout
         """
-        if self.network_restart_thread and self.network_restart_thread.is_alive():
-            logger.info("Waiting for network restart to complete...")
-            self.network_restart_thread.join(timeout=timeout)
-            return not self.network_restart_thread.is_alive()
-
-        return True
+        return self.network_restarter.wait_for_restart(timeout)
