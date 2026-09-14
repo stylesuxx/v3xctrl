@@ -83,7 +83,13 @@ class TestAppState(unittest.TestCase):
         self.assertEqual(call_args[0], self.settings)  # First arg is settings
         # Second arg is TelemetryContext instance - just verify it exists
         self.assertIsNotNone(call_args[1])
-        mock_renderer_cls.assert_called_once_with((800, 600), self.settings)
+        # Renderer owns draw order, so it takes the OSD and the menu it composes
+        mock_renderer_cls.assert_called_once()
+        renderer_args = mock_renderer_cls.call_args[0]
+        self.assertEqual(renderer_args[0], (800, 600))
+        self.assertEqual(renderer_args[1], self.settings)
+        self.assertIs(renderer_args[2], _app.osd)
+        self.assertIs(renderer_args[3], _app.menu)
 
         # NetworkCoordinator should be created with model and osd
         mock_coordinator_cls.assert_called_once()
@@ -193,27 +199,37 @@ class TestAppState(unittest.TestCase):
 
         app.model.user_connected = True
         mock_coordinator.get_control_buffer_size.return_value = 5
-        mock_coordinator.has_server_error.return_value = False
+        mock_coordinator.get_control_error.return_value = None
 
         app.render()
 
         mock_osd.update_control_queue.assert_called_with(5)
         mock_osd.set_control.assert_called_with(app.model.throttle, app.model.steering)
-        mock_renderer.render_all.assert_called_with(app, mock_coordinator.network_controller, False, 1.0)
 
-    def test_render_handles_server_error(
+        screen, snapshot = mock_renderer.render.call_args[0]
+        self.assertIs(screen, app.screen)
+        self.assertIs(snapshot.video_frame, mock_coordinator.get_video_frame.return_value)
+        self.assertTrue(snapshot.connection.user_connected)
+        self.assertEqual(snapshot.connection.control_queue_depth, 5)
+        self.assertFalse(snapshot.fullscreen)
+        self.assertEqual(snapshot.scale, 1.0)
+
+    def test_render_handles_control_error(
         self, mock_coordinator_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_display_cls
     ):
-        app, _mock_input, mock_osd, _mock_renderer, mock_coordinator = self._create_app(
+        app, _mock_input, mock_osd, mock_renderer, mock_coordinator = self._create_app(
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_display_cls
         )
 
         app.model.user_connected = True
-        mock_coordinator.is_control_connected.return_value = True
-        mock_coordinator.has_server_error.return_value = True
+        app.model.control_connected = True
+        mock_coordinator.get_control_error.return_value = "Control port already in use"
         app.render()
 
         mock_osd.update_debug_status.assert_called_with("fail")
+
+        _screen, snapshot = mock_renderer.render.call_args[0]
+        self.assertEqual(snapshot.connection.control_error, "Control port already in use")
 
     @patch("v3xctrl_ui.core.AppState.pygame.quit")
     def test_shutdown_stops_all_components(

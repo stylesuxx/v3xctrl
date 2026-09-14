@@ -12,6 +12,7 @@ from v3xctrl_ui.core.controllers.input.InputController import InputController
 from v3xctrl_ui.core.controllers.SettingsController import SettingsController
 from v3xctrl_ui.core.controllers.TimingController import TimingController
 from v3xctrl_ui.core.dataclasses import ApplicationModel
+from v3xctrl_ui.core.FrameSnapshot import ConnectionStatus, FrameSnapshot
 from v3xctrl_ui.core.Renderer import Renderer
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext
@@ -48,8 +49,6 @@ class AppState:
         self.telemetry_context = TelemetryContext()
 
         self.osd = OSD(settings, self.telemetry_context)
-        self.renderer = Renderer(self.size, self.settings)
-        self.renderer.set_connect_callback(self.connect)
 
         # Network coordination
         self.network_coordinator = NetworkCoordinator(self.model, self.osd)
@@ -65,6 +64,9 @@ class AppState:
 
         # Create menu once
         self.menu = self._create_menu()
+
+        self.renderer = Renderer(self.size, self.settings, self.osd, self.menu)
+        self.renderer.set_connect_callback(self.connect)
 
         # Event handling
         self.event_controller = EventController(
@@ -156,34 +158,60 @@ class AppState:
         return self.event_controller.handle_events()
 
     def render(self) -> None:
-        if self.model.user_connected:
-            # Update OSD with network data
-            control_buffer_size = self.network_coordinator.get_control_buffer_size()
-            if self.network_coordinator.is_control_connected():
-                if (
-                    self.network_coordinator.has_server_error()
-                    or self.network_coordinator.has_recent_control_drops()
-                    or self.network_coordinator.has_recent_send_failures()
-                ):
-                    self.osd.update_debug_status("fail")
-                else:
-                    self.osd.update_debug_status("success")
+        connection = self._connection_status()
+        video_frame = None
 
-            buffer_size = self.network_coordinator.get_video_buffer_size()
-            self.osd.update_buffer_queue(buffer_size)
+        if connection.user_connected:
+            video_frame = self.network_coordinator.get_video_frame()
+            self._update_osd(connection)
 
-            self.osd.update_control_queue(control_buffer_size)
-            self.osd.set_control(self.model.throttle, self.model.steering)
-            self.osd.set_spectator_mode(self.network_coordinator.is_spectator())
+        snapshot = FrameSnapshot(
+            connection=connection,
+            video_frame=video_frame,
+            throttle=self.model.throttle,
+            steering=self.model.steering,
+            fullscreen=self.model.fullscreen,
+            scale=self.model.scale,
+            menu_visible=self.menu.visible,
+            loop_history=self.model.loop_history.copy(),
+            video_history=self.network_coordinator.get_video_history(),
+        )
 
-            inversion = self.input_controller.gamepad_controller.get_axis_inversion()
-            self.osd.set_axis_inversion(
-                steering=inversion.get("steering", False),
-                throttle=inversion.get("throttle", False),
+        self.renderer.render(self.screen, snapshot)
+
+    def _connection_status(self) -> ConnectionStatus:
+        """Read the network state once, so every reader sees the same frame."""
+        coordinator = self.network_coordinator
+
+        return ConnectionStatus(
+            user_connected=self.model.user_connected,
+            control_connected=self.model.control_connected,
+            spectator=coordinator.is_spectator(),
+            control_error=coordinator.get_control_error(),
+            relay_enabled=coordinator.is_relay_enabled(),
+            relay_status_message=coordinator.get_relay_status_message(),
+            control_queue_depth=coordinator.get_control_buffer_size(),
+            video_buffer_depth=coordinator.get_video_buffer_size(),
+        )
+
+    def _update_osd(self, connection: ConnectionStatus) -> None:
+        if connection.control_connected:
+            degraded = (
+                connection.control_error is not None
+                or self.network_coordinator.has_recent_control_drops()
+                or self.network_coordinator.has_recent_send_failures()
             )
+            self.osd.update_debug_status("fail" if degraded else "success")
 
-        self.renderer.render_all(
-            self, self.network_coordinator.network_controller, self.model.fullscreen, self.model.scale
+        self.osd.update_buffer_queue(connection.video_buffer_depth)
+        self.osd.update_control_queue(connection.control_queue_depth)
+        self.osd.set_control(self.model.throttle, self.model.steering)
+        self.osd.set_spectator_mode(connection.spectator)
+
+        inversion = self.input_controller.gamepad_controller.get_axis_inversion()
+        self.osd.set_axis_inversion(
+            steering=inversion.get("steering", False),
+            throttle=inversion.get("throttle", False),
         )
 
     def shutdown(self) -> None:

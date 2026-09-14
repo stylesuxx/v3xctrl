@@ -4,18 +4,16 @@ import sys
 import time
 from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import numpy as np
 import numpy.typing as npt
 import pygame
 
-if TYPE_CHECKING:
-    from v3xctrl_ui.core.AppState import AppState
+from v3xctrl_ui.core.FrameSnapshot import FrameSnapshot
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.menu.input.Button import Button
 from v3xctrl_ui.menu.Menu import Menu
-from v3xctrl_ui.network.NetworkController import NetworkController
+from v3xctrl_ui.osd.OSD import OSD
 from v3xctrl_ui.utils.colors import BLACK, RED, WHITE
 from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT_24, BOLD_MONO_FONT_32, BOLD_MONO_FONT_48, TEXT_FONT
 from v3xctrl_ui.utils.helpers import get_external_ip
@@ -28,15 +26,17 @@ class Renderer:
     Rendering display content
     """
 
-    def __init__(self, size: tuple[int, int], settings: Settings) -> None:
+    def __init__(self, size: tuple[int, int], settings: Settings, osd: OSD, menu: Menu) -> None:
         self.video_width = size[0]
         self.video_height = size[1]
         self.video_size = size
         self.settings = settings
+        self.osd = osd
+        self.menu = menu
 
-        self.ip = get_external_ip()
+        self._ip: str | None = None
         self.video_surface = pygame.Surface(self.video_size)
-        self.last_frame_id = None
+        self.last_frame_id: int | None = None
 
         self.fullscreen = False
         self.scale = 1.0
@@ -61,61 +61,62 @@ class Renderer:
     def connect_button(self) -> Button:
         return self._connect_button
 
+    @property
+    def ip(self) -> str:
+        """External IP, resolved on first use.
+
+        The lookup blocks on a network request, so it is kept out of the
+        constructor and off the startup path. Only the direct-mode connection
+        info screen needs it.
+        """
+        if self._ip is None:
+            self._ip = get_external_ip()
+
+        return self._ip
+
     def set_connect_callback(self, callback: Callable[[], None]) -> None:
         self._connect_button.callback = callback
 
-    def render_all(
-        self,
-        state: "AppState",
-        network_controller: NetworkController,
-        fullscreen: bool = False,
-        scale: float = 1.0,
-    ) -> None:
-        self.fullscreen = fullscreen
-        self.scale = scale
+    def render(self, screen: pygame.Surface, snapshot: FrameSnapshot) -> None:
+        self.fullscreen = snapshot.fullscreen
+        self.scale = snapshot.scale
 
         # Use screen surface size (not window size) to handle HiDPI scaling correctly
-        screen_size = state.screen.get_size()
+        screen_size = screen.get_size()
         self.center_x = screen_size[0] // 2
         self.center_y = screen_size[1] // 2
 
-        if not state.model.user_connected:
-            self._render_connect_screen(state.screen)
-            self._render_menu(state.screen, state.menu)
+        connection = snapshot.connection
+
+        if not connection.user_connected:
+            self._render_connect_screen(screen)
+            self._render_menu(screen, snapshot.menu_visible)
             pygame.display.flip()
+
             return
 
-        frame = self._get_video_frame(network_controller)
-
-        if frame is not None:
-            self._render_video_frame(state.screen, frame)
+        if snapshot.video_frame is not None:
+            self._render_video_frame(screen, snapshot.video_frame)
         else:
-            self._render_no_video_signal_screen(state.screen, network_controller.relay_status_message)
+            self._render_no_video_signal_screen(screen)
 
-            if not state.model.control_connected:
-                self._render_no_control_signal_screen(state.screen)
+            if not connection.control_connected:
+                self._render_no_control_signal_screen(screen)
 
-            if network_controller.relay_enable:
+            if connection.relay_enabled:
                 self._render_relay_status_screen(
-                    network_controller.relay_status_message.upper(),
+                    connection.relay_status_message.upper(),
                     (self.center_x - 6, self.center_y - 110),
-                    state.screen,
+                    screen,
                 )
 
-        self._render_osd(state, network_controller)
-        self._render_error_text(state.screen, network_controller)
-        self._render_menu(state.screen, state.menu)
+        self.osd.render(screen, snapshot.loop_history, snapshot.video_history)
+        self._render_error_text(screen, connection.control_error)
+        self._render_menu(screen, snapshot.menu_visible)
 
         pygame.display.flip()
 
-    def _get_video_frame(self, network_manager: NetworkController) -> npt.NDArray[np.uint8] | None:
-        """Get the current video frame if available."""
-        if not network_manager.video_receiver:
-            return None
-
-        return network_manager.video_receiver.get_frame()
-
-    def _render_video_frame(self, screen: pygame.Surface, frame: bytes) -> None:
+    def _render_video_frame(self, screen: pygame.Surface, frame: npt.NDArray[np.uint8]) -> None:
         """Render a video frame to the screen."""
         current_frame_id = id(frame)
         if current_frame_id != self.last_frame_id:
@@ -249,7 +250,7 @@ class Renderer:
         rect.center = (self.center_x - 6, self.center_y - 75)
         screen.blit(surface, rect)
 
-    def _render_no_video_signal_screen(self, screen: pygame.Surface, relay_status_message: str) -> None:
+    def _render_no_video_signal_screen(self, screen: pygame.Surface) -> None:
         """
         Render connection information depending on connection and signal states
 
@@ -319,29 +320,14 @@ class Renderer:
 
         self._render_text(screen, data, 50, self.center_y + 10)
 
-    def _render_error_text(self, screen: pygame.Surface, network_manager: "NetworkController") -> None:
+    def _render_error_text(self, screen: pygame.Surface, control_error: str | None) -> None:
         """Render error messages on top of main UI."""
-        if network_manager.server_error:
-            surface, rect = BOLD_MONO_FONT_24.render(network_manager.server_error, RED)
+        if control_error:
+            surface, rect = BOLD_MONO_FONT_24.render(control_error, RED)
             rect.center = (self.center_x, 50)
             screen.blit(surface, rect)
 
-    def _render_osd(self, state: "AppState", network_manager: NetworkController) -> None:
-        """Render OSD and overlay information."""
-        control_buffer_size = network_manager.get_control_buffer_size()
-        if network_manager.server_error:
-            state.osd.update_debug_status("fail")
-
-        state.osd.update_control_queue(control_buffer_size)
-        state.osd.set_control(state.model.throttle, state.model.steering)
-
-        video_history = None
-        if network_manager.video_receiver is not None:
-            video_history = network_manager.video_receiver.render_history.copy()
-
-        state.osd.render(state.screen, state.model.loop_history.copy(), video_history)
-
-    def _render_menu(self, screen: pygame.Surface, menu: Menu) -> None:
+    def _render_menu(self, screen: pygame.Surface, menu_visible: bool) -> None:
         """Render menu above everything else."""
-        if menu.visible:
-            menu.draw(screen)
+        if menu_visible:
+            self.menu.draw(screen)
