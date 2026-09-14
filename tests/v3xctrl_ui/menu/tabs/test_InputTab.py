@@ -105,9 +105,24 @@ class TestInputTab(unittest.TestCase):
         self.assertIn("forward", key_names)
         self.assertIn("backward", key_names)
 
-    def test_on_control_key_change_updates_settings(self):
+    def test_on_control_key_change_edits_the_tabs_own_copy(self):
         self.tab._on_control_key_change("forward", 97)  # A
-        self.assertEqual(self.tab.settings["controls"]["keyboard"]["forward"], 97)
+
+        self.assertEqual(self.tab.controls["keyboard"]["forward"], 97)
+        self.assertEqual(self.settings["controls"]["keyboard"]["forward"], 119)
+
+    def test_rebound_key_is_handed_back_for_saving(self):
+        """Rebinding has no other persistence path, so get_settings must carry it."""
+        self.tab._on_control_key_change("forward", 97)  # A
+
+        self.assertEqual(self.tab.get_settings()["controls"]["keyboard"]["forward"], 97)
+
+    def test_apply_settings_discards_uncommitted_rebinds(self):
+        self.tab._on_control_key_change("forward", 97)  # A
+
+        self.tab.apply_settings()
+
+        self.assertEqual(self.tab.controls["keyboard"]["forward"], 119)
 
     def test_on_active_toggle_invokes_callback(self):
         self.assertEqual(len(self.toggle_called), 0)

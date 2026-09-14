@@ -124,15 +124,21 @@ class TestMenu(unittest.TestCase):
             telemetry_context=self.telemetry_context,
         )
 
-        mock_tab_view = MagicMock()
-        mock_tab_view.get_settings.return_value = {"key1": "value1", "key2": "value2"}
-        menu.tabs[0] = menu.tabs[0]._replace(view=mock_tab_view)
+        active_tab_view = MagicMock()
+        active_tab_view.get_settings.return_value = {"key1": "value1", "key2": "value2"}
+        menu.tabs[0] = menu.tabs[0]._replace(view=active_tab_view)
+
+        other_tab_view = MagicMock()
+        other_tab_view.get_settings.return_value = {"key3": "value3"}
+        menu.tabs[1] = menu.tabs[1]._replace(view=other_tab_view)
 
         menu._save_button_callback()
 
-        mock_tab_view.get_settings.assert_called_once()
+        active_tab_view.get_settings.assert_called_once()
+        other_tab_view.get_settings.assert_called_once()
         self.mock_settings.set.assert_any_call("key1", "value1")
         self.mock_settings.set.assert_any_call("key2", "value2")
+        self.mock_settings.set.assert_any_call("key3", "value3")
         self.mock_settings.save.assert_called_once()
 
     def test_exit_button_callback(self, mock_button_class, mock_pygame):
@@ -540,7 +546,7 @@ class TestMenu(unittest.TestCase):
         menu.active_tab = "NonExistentTab"
         self.assertIsNone(menu._get_active_tab())
 
-    def test_save_button_callback_no_active_tab(self, mock_button_class, mock_pygame):
+    def test_save_button_callback_does_not_depend_on_the_active_tab(self, mock_button_class, mock_pygame):
         self._setup_mocks(mock_button_class, mock_pygame)
 
         menu = Menu(
@@ -554,11 +560,15 @@ class TestMenu(unittest.TestCase):
             telemetry_context=self.telemetry_context,
         )
 
+        mock_tab_view = MagicMock()
+        mock_tab_view.get_settings.return_value = {"key1": "value1"}
+        menu.tabs[0] = menu.tabs[0]._replace(view=mock_tab_view)
+
         menu.active_tab = "NonExistentTab"
         menu._save_button_callback()
 
-        self.mock_settings.set.assert_not_called()
-        self.mock_settings.save.assert_not_called()
+        self.mock_settings.set.assert_any_call("key1", "value1")
+        self.mock_settings.save.assert_called_once()
 
     def test_handle_event_no_active_tab(self, mock_button_class, mock_pygame):
         self._setup_mocks(mock_button_class, mock_pygame)

@@ -65,7 +65,7 @@ class OsdTab(Tab):
         return {"widgets": self.widgets}
 
     def apply_settings(self) -> None:
-        self.widgets = self.settings.get("widgets", {})
+        self.widgets = self._own_section("widgets", {})
 
         for key, checkbox in self.checkboxes.items():
             checkbox.checked = self.widgets.get(key, {}).get("display", False)

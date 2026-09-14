@@ -73,7 +73,7 @@ class FrequenciesTab(Tab):
         return {"timing": self.timing}
 
     def apply_settings(self) -> None:
-        self.timing = self.settings.get("timing", {})
+        self.timing = self._own_section("timing", {})
 
         self.video_input.value = str(self.timing.get("main_loop_fps", ""))
         self.control_input.value = str(self.timing.get("control_update_hz", ""))

@@ -69,8 +69,12 @@ class GeneralTab(Tab):
             "video": self.video,
         }
 
+    def apply_fullscreen(self, fullscreen: bool) -> None:
+        self.video["fullscreen"] = fullscreen
+        self.fullscreen_enabled_checkbox.checked = fullscreen
+
     def apply_settings(self) -> None:
-        self.video = self.settings.get("video", {})
+        self.video = self._own_section("video", {})
         self.show_connection_info = self.settings.get("show_connection_info", False)
 
         # Could have been updated via [F11]
