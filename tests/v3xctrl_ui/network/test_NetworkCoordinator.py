@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from v3xctrl_control import State
-from v3xctrl_control.message import Command, Control, Latency, Telemetry
+from v3xctrl_control.message import Command, Latency, Telemetry
 from v3xctrl_ui.core.dataclasses import ApplicationModel
 from v3xctrl_ui.network.NetworkCoordinator import NetworkCoordinator
 
@@ -84,19 +84,14 @@ class TestNetworkCoordinator(unittest.TestCase):
         mock_nm_old.shutdown.assert_called_once()
 
     def test_send_control_message(self):
-        """Test sending control message."""
-        mock_server = MagicMock()
+        """The coordinator forwards control to the channel; the channel builds the message."""
         mock_nm = MagicMock()
-        mock_nm.server = mock_server
-        mock_nm.server_error = False
         mock_nm.relay_spectator_mode = False
         self.coordinator.network_controller = mock_nm
 
         self.coordinator.send_control_message(0.5, -0.3)
 
-        mock_server.send_control.assert_called_once()
-        call_args = mock_server.send_control.call_args[0][0]
-        self.assertIsInstance(call_args, Control)
+        mock_nm.send_control.assert_called_once_with(0.5, -0.3)
 
     def test_send_control_message_no_server(self):
         """Test sending control message when server is None."""
@@ -122,10 +117,9 @@ class TestNetworkCoordinator(unittest.TestCase):
 
     def test_send_command(self):
         """Test sending a command to the server."""
-        mock_server = MagicMock()
         mock_nm = MagicMock()
-        mock_nm.server = mock_server
         mock_nm.relay_spectator_mode = False
+        mock_nm.send_command.return_value = True
         self.coordinator.network_controller = mock_nm
 
         command = Command({"action": "test"})
@@ -134,8 +128,8 @@ class TestNetworkCoordinator(unittest.TestCase):
         self.coordinator.send_command(command, callback)
 
         # Verify send_command was called with the command and a deferred callback wrapper
-        mock_server.send_command.assert_called_once()
-        call_args = mock_server.send_command.call_args
+        mock_nm.send_command.assert_called_once()
+        call_args = mock_nm.send_command.call_args
         self.assertEqual(call_args[0][0], command)
         # The second arg should be the deferred callback wrapper (a callable)
         self.assertTrue(callable(call_args[0][1]))
@@ -149,9 +143,9 @@ class TestNetworkCoordinator(unittest.TestCase):
         callback.assert_called_once_with(True)
 
     def test_send_command_no_server(self):
-        """Test sending command when server is None calls callback with False."""
+        """A channel that reports it could not send makes the callback fire with False."""
         mock_nm = MagicMock()
-        mock_nm.server = None
+        mock_nm.send_command.return_value = False
         mock_nm.relay_spectator_mode = False
         self.coordinator.network_controller = mock_nm
 
@@ -214,25 +208,19 @@ class TestNetworkCoordinator(unittest.TestCase):
 
     def test_get_video_buffer_size(self):
         """Test getting video buffer size."""
-        mock_video_receiver = MagicMock()
-        mock_video_receiver.frame_buffer = [1, 2, 3, 4, 5]
         mock_nm = MagicMock()
-        mock_nm.video_receiver = mock_video_receiver
+        mock_nm.get_video_buffer_size.return_value = 5
         self.coordinator.network_controller = mock_nm
 
         result = self.coordinator.get_video_buffer_size()
 
         self.assertEqual(result, 5)
 
-    def test_get_video_buffer_size_no_receiver(self):
-        """Test getting video buffer size when no video receiver."""
-        mock_nm = MagicMock()
-        mock_nm.video_receiver = None
-        self.coordinator.network_controller = mock_nm
+    def test_get_video_buffer_size_without_a_channel(self):
+        """Nothing connected yet, so nothing is buffered."""
+        self.coordinator.network_controller = None
 
-        result = self.coordinator.get_video_buffer_size()
-
-        self.assertEqual(result, 0)
+        self.assertEqual(self.coordinator.get_video_buffer_size(), 0)
 
     def test_has_server_error(self):
         """Test checking for server error."""
@@ -454,15 +442,11 @@ class TestNetworkCoordinator(unittest.TestCase):
 
         self.assertTrue(result)
 
-    def test_has_recent_send_failures_no_server(self):
-        """Test checking for send failures when no server."""
-        mock_nm = MagicMock()
-        mock_nm.server = None
-        self.coordinator.network_controller = mock_nm
+    def test_has_recent_send_failures_without_a_channel(self):
+        """Nothing connected yet, so nothing has failed to send."""
+        self.coordinator.network_controller = None
 
-        result = self.coordinator.has_recent_send_failures()
-
-        self.assertFalse(result)
+        self.assertFalse(self.coordinator.has_recent_send_failures())
 
     def test_send_command_spectator_mode(self):
         """Test that commands are not sent in spectator mode."""

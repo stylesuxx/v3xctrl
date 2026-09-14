@@ -55,6 +55,21 @@ class CountingController:
         self.control_buffer_calls += 1
         return 3
 
+    def get_video_frame(self):
+        return self.video_receiver.get_frame()
+
+    def get_video_history(self) -> deque[float]:
+        return self.video_receiver.render_history.copy()
+
+    def get_video_buffer_size(self) -> int:
+        return len(self.video_receiver.frame_buffer)
+
+    def has_recent_control_drops(self) -> bool:
+        return False
+
+    def has_recent_send_failures(self) -> bool:
+        return False
+
 
 @patch("v3xctrl_ui.core.AppState.Menu")
 @patch("v3xctrl_ui.core.AppState.OSD")

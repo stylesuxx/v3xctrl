@@ -12,7 +12,7 @@ import numpy as np
 import numpy.typing as npt
 
 from v3xctrl_control import State
-from v3xctrl_control.message import Command, Control, Latency, Telemetry
+from v3xctrl_control.message import Command, Latency, Telemetry
 from v3xctrl_ui.core.dataclasses import ApplicationModel
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.network.NetworkController import NetworkController
@@ -111,15 +111,8 @@ class NetworkCoordinator:
         if self.network_controller and self.network_controller.relay_spectator_mode:
             return
 
-        if self.network_controller and self.network_controller.server and not self.network_controller.server_error:
-            self.network_controller.server.send_control(
-                Control(
-                    {
-                        "steering": steering,
-                        "throttle": throttle,
-                    }
-                )
-            )
+        if self.network_controller:
+            self.network_controller.send_control(throttle, steering)
 
     def send_command(self, command: Command, callback: Callable[[bool], None]) -> None:
         # Skip sending commands in spectator mode
@@ -128,13 +121,11 @@ class NetworkCoordinator:
             self._callback_queue.put((callback, (False,)))
             return
 
-        if self.network_controller and self.network_controller.server:
-            # Wrap callback to defer execution to the main thread
-            def deferred_callback(result: bool) -> None:
-                self._callback_queue.put((callback, (result,)))
+        # Wrap callback to defer execution to the main thread
+        def deferred_callback(result: bool) -> None:
+            self._callback_queue.put((callback, (result,)))
 
-            self.network_controller.server.send_command(command, deferred_callback)
-        else:
+        if not self.network_controller or not self.network_controller.send_command(command, deferred_callback):
             logger.error(f"Server is not set, cannot send command: {command}")
             callback(False)
 
@@ -176,8 +167,8 @@ class NetworkCoordinator:
         return 0
 
     def get_video_buffer_size(self) -> int:
-        if self.network_controller and self.network_controller.video_receiver:
-            return len(self.network_controller.video_receiver.frame_buffer)
+        if self.network_controller:
+            return self.network_controller.get_video_buffer_size()
 
         return 0
 
@@ -187,14 +178,14 @@ class NetworkCoordinator:
         Call this exactly once per rendered frame: the receiver advances its
         buffer and records render timing on every call.
         """
-        if self.network_controller and self.network_controller.video_receiver:
-            return self.network_controller.video_receiver.get_frame()
+        if self.network_controller:
+            return self.network_controller.get_video_frame()
 
         return None
 
     def get_video_history(self) -> deque[float] | None:
-        if self.network_controller and self.network_controller.video_receiver:
-            return self.network_controller.video_receiver.render_history.copy()
+        if self.network_controller:
+            return self.network_controller.get_video_history()
 
         return None
 
@@ -214,13 +205,14 @@ class NetworkCoordinator:
         return ""
 
     def has_recent_control_drops(self) -> bool:
-        if self.network_controller and self.network_controller.server and not self.network_controller.server_error:
-            return self.network_controller.server.transmitter.has_recent_control_drops()
+        if self.network_controller:
+            return self.network_controller.has_recent_control_drops()
+
         return False
 
     def has_recent_send_failures(self) -> bool:
-        if self.network_controller and self.network_controller.server and not self.network_controller.server_error:
-            return self.network_controller.server.transmitter.has_recent_send_failures()
+        if self.network_controller:
+            return self.network_controller.has_recent_send_failures()
 
         return False
 

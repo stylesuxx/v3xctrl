@@ -1,10 +1,15 @@
 import logging
 import threading
 import time
+from collections import deque
+from collections.abc import Callable
 from typing import Any
 
+import numpy as np
+import numpy.typing as npt
+
 from v3xctrl_control import Server
-from v3xctrl_control.message import Latency
+from v3xctrl_control.message import Command, Control, Latency
 from v3xctrl_tcp.TcpTunnel import TcpTunnel
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.network.NetworkSetup import NetworkSetup
@@ -70,6 +75,54 @@ class NetworkController:
     def send_latency_check(self) -> None:
         if self.server and not self.server_error:
             self.server.send(Latency())
+
+    def send_control(self, throttle: float, steering: float) -> None:
+        if self.server and not self.server_error:
+            self.server.send_control(Control({"steering": steering, "throttle": throttle}))
+
+    def send_command(self, command: Command, callback: Callable[[bool], None]) -> bool:
+        """Send a command. False means there was no control channel to send on."""
+        if not self.server:
+            return False
+
+        self.server.send_command(command, callback)
+
+        return True
+
+    def has_recent_control_drops(self) -> bool:
+        if self.server and not self.server_error:
+            return self.server.transmitter.has_recent_control_drops()
+
+        return False
+
+    def has_recent_send_failures(self) -> bool:
+        if self.server and not self.server_error:
+            return self.server.transmitter.has_recent_send_failures()
+
+        return False
+
+    def get_video_frame(self) -> "npt.NDArray[np.uint8] | None":
+        """Take the frame to display this tick.
+
+        Call this exactly once per rendered frame: the receiver advances its
+        buffer and records render timing on every call.
+        """
+        if self.video_receiver:
+            return self.video_receiver.get_frame()
+
+        return None
+
+    def get_video_history(self) -> deque[float] | None:
+        if self.video_receiver:
+            return self.video_receiver.render_history.copy()
+
+        return None
+
+    def get_video_buffer_size(self) -> int:
+        if self.video_receiver:
+            return len(self.video_receiver.frame_buffer)
+
+        return 0
 
     def get_data_queue_size(self) -> int:
         if self.server and not self.server_error:
