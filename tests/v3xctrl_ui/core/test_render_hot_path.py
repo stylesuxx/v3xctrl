@@ -98,7 +98,7 @@ class TestRenderHotPath(unittest.TestCase):
         receiver = CountingReceiver()
         controller = CountingController(receiver)
 
-        coordinator = NetworkCoordinator(app.model, app.osd)
+        coordinator = NetworkCoordinator(app.model, app.osd, self.settings)
         coordinator.network_controller = controller
         app.network_coordinator = coordinator
 

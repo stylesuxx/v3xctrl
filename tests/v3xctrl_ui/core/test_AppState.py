@@ -59,7 +59,6 @@ class TestAppState(unittest.TestCase):
             mock_coordinator.get_video_buffer_size.return_value = 0
             mock_coordinator.has_server_error.return_value = False
             mock_coordinator.is_control_connected.return_value = False
-            mock_coordinator.create_network_controller.return_value = mock_coordinator_manager
             mock_coordinator_cls.return_value = mock_coordinator
 
             # Let deepcopy work normally - no mocking needed
@@ -90,9 +89,12 @@ class TestAppState(unittest.TestCase):
         self.assertIs(renderer_args[2], _app.osd)
         self.assertIs(renderer_args[3], _app.menu)
 
-        # NetworkCoordinator should be created with model and osd
+        # The coordinator builds its own channel, so it is handed the settings
         mock_coordinator_cls.assert_called_once()
-        mock_coordinator.create_network_controller.assert_called_once_with(self.settings)
+        coordinator_args = mock_coordinator_cls.call_args[0]
+        self.assertIs(coordinator_args[0], _app.model)
+        self.assertIs(coordinator_args[1], _app.osd)
+        self.assertIs(coordinator_args[2], self.settings)
 
         # setup_ports is NOT called during init — only when user clicks Connect
         mock_coordinator.setup_ports.assert_not_called()

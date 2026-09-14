@@ -49,9 +49,8 @@ class AppState:
         self.osd = OSD(settings, self.telemetry_context)
 
         # Network coordination
-        self.network_coordinator = NetworkCoordinator(self.model, self.osd)
+        self.network_coordinator = NetworkCoordinator(self.model, self.osd, self.settings)
         self.network_coordinator.on_connection_change = self._on_connection_change
-        self.network_coordinator.network_controller = self.network_coordinator.create_network_controller(self.settings)
 
         # Timing
         self.timing_controller = TimingController(self.settings, self.model)
