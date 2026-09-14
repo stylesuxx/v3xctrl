@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
+from tests.v3xctrl_ui.settings_helper import build_settings
 from v3xctrl_ui.network.NetworkController import NetworkController
 from v3xctrl_ui.network.video.ClockOffset import ClockOffset
 
@@ -8,13 +9,11 @@ from v3xctrl_ui.network.video.ClockOffset import ClockOffset
 class TestNetworkController(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures with proper mocking."""
-        # Mock settings
-        self.settings = MagicMock()
-        self.settings.get.side_effect = lambda key, default=None: {
-            "relay": {"enabled": False},
-            "ports": {"video": 5000, "control": 6000},
-            "udp_packet_ttl": 100,
-        }.get(key, default)
+        self.settings = build_settings(
+            relay={"enabled": False},
+            ports={"video": 5000, "control": 6000},
+            udp_packet_ttl=100,
+        )
 
         # Mock handlers
         self.handlers = {"messages": [("TestMessage", lambda msg, addr: None)], "states": [("CONNECTED", lambda: None)]}
@@ -74,12 +73,11 @@ class TestNetworkController(unittest.TestCase):
 
     def test_initialization_relay_enabled(self):
         """Test NetworkController initialization with relay enabled."""
-        relay_settings = MagicMock()
-        relay_settings.get.side_effect = lambda key, default=None: {
-            "relay": {"enabled": True, "server": "relay.example.com:8080", "id": "test123"},
-            "ports": {"video": 5000, "control": 6000},
-            "udp_packet_ttl": 100,
-        }.get(key, default)
+        relay_settings = build_settings(
+            relay={"enabled": True, "server": "relay.example.com:8080", "id": "test123"},
+            ports={"video": 5000, "control": 6000},
+            udp_packet_ttl=100,
+        )
 
         nm = NetworkController(relay_settings, self.handlers, self.clock_offset)
 
@@ -404,12 +402,11 @@ class TestNetworkController(unittest.TestCase):
 
     def test_initialization_relay_enabled_no_server(self):
         """Test NetworkController initialization with relay enabled but no server."""
-        relay_settings = MagicMock()
-        relay_settings.get.side_effect = lambda key, default=None: {
-            "relay": {"enabled": True, "id": "test123"},  # Missing server
-            "ports": {"video": 5000, "control": 6000},
-            "udp_packet_ttl": 100,
-        }.get(key, default)
+        relay_settings = build_settings(
+            relay={"enabled": True, "id": "test123", "server": ""},  # Missing server
+            ports={"video": 5000, "control": 6000},
+            udp_packet_ttl=100,
+        )
 
         nm = NetworkController(relay_settings, self.handlers, self.clock_offset)
 
@@ -420,12 +417,11 @@ class TestNetworkController(unittest.TestCase):
 
     def test_initialization_relay_enabled_no_id(self):
         """Test NetworkController initialization with relay enabled but no ID."""
-        relay_settings = MagicMock()
-        relay_settings.get.side_effect = lambda key, default=None: {
-            "relay": {"enabled": True, "server": "relay.example.com:8080"},  # Missing ID
-            "ports": {"video": 5000, "control": 6000},
-            "udp_packet_ttl": 100,
-        }.get(key, default)
+        relay_settings = build_settings(
+            relay={"enabled": True, "server": "relay.example.com:8080", "id": ""},  # Missing ID
+            ports={"video": 5000, "control": 6000},
+            udp_packet_ttl=100,
+        )
 
         nm = NetworkController(relay_settings, self.handlers, self.clock_offset)
 

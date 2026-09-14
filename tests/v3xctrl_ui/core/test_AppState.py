@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pygame
 
+from tests.v3xctrl_ui.settings_helper import build_settings
 from v3xctrl_ui.core.AppState import AppState
 
 
@@ -17,13 +18,11 @@ from v3xctrl_ui.core.AppState import AppState
 @patch("v3xctrl_ui.core.AppState.NetworkCoordinator")
 class TestAppState(unittest.TestCase):
     def setUp(self):
-        self.settings = {
-            "timing": {"control_update_hz": 30, "latency_check_hz": 1, "main_loop_fps": 60},
-            "video": {"width": 800, "height": 600, "fullscreen": False},
-            "settings": {"title": "Test"},
-            "ports": {"video": 6666, "control": 6668},
-            "relay": {},  # Add relay to initial settings
-        }
+        self.settings = build_settings(
+            timing={"control_update_hz": 30, "latency_check_hz": 1, "main_loop_fps": 60},
+            video={"width": 800, "height": 600, "fullscreen": False},
+            ports={"video": 6666, "control": 6668},
+        )
 
     def _create_app(self, mock_coordinator_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_display_cls):
         # Mock DisplayManager
@@ -128,16 +127,15 @@ class TestAppState(unittest.TestCase):
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_display_cls
         )
 
-        new_settings = {
-            "timing": {"control_update_hz": 60, "latency_check_hz": 2, "main_loop_fps": 120},
-            "video": {"fullscreen": False},
-            "ports": self.settings["ports"],  # Include ports to avoid restart
-            "relay": {},  # Include relay to avoid restart
-        }
+        new_settings = build_settings(
+            timing={"control_update_hz": 60, "latency_check_hz": 2, "main_loop_fps": 120},
+            video={"fullscreen": False},
+            ports=self.settings.ports,  # Same ports, so no restart is needed
+        )
 
         app.update_settings(new_settings)
 
-        self.assertEqual(app.settings, new_settings)
+        self.assertIs(app.settings, new_settings)
         mock_input.apply_settings.assert_called_with(new_settings)
         mock_osd.apply_settings.assert_called_with(new_settings)
         mock_renderer.apply_settings.assert_called_with(new_settings)
@@ -299,12 +297,11 @@ class TestAppState(unittest.TestCase):
         self.assertEqual(app.model.control_interval, 1.0 / 30)
         self.assertEqual(app.model.latency_interval, 1.0 / 1)
 
-        new_settings = {
-            "timing": {"control_update_hz": 60, "latency_check_hz": 5, "main_loop_fps": 60},
-            "video": {"fullscreen": False},
-            "ports": self.settings["ports"],  # Include ports to avoid restart
-            "relay": {},  # Include relay to avoid restart
-        }
+        new_settings = build_settings(
+            timing={"control_update_hz": 60, "latency_check_hz": 5, "main_loop_fps": 60},
+            video={"fullscreen": False},
+            ports=self.settings.ports,  # Same ports, so no restart is needed
+        )
 
         app.update_settings(new_settings)
 
@@ -332,9 +329,9 @@ class TestAppState(unittest.TestCase):
         )
 
         # Modify settings
-        app.timing_controller.settings = {
-            "timing": {"control_update_hz": 120, "latency_check_hz": 10, "main_loop_fps": 144}
-        }
+        app.timing_controller.settings = build_settings(
+            timing={"control_update_hz": 120, "latency_check_hz": 10, "main_loop_fps": 144}
+        )
 
         # Call update method on timing controller
         app.timing_controller.update_from_settings()

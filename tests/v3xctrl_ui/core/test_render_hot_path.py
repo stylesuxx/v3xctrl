@@ -16,6 +16,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pygame
 
+from tests.v3xctrl_ui.settings_helper import build_settings
 from v3xctrl_ui.core.AppState import AppState
 from v3xctrl_ui.network.NetworkCoordinator import NetworkCoordinator
 
@@ -62,12 +63,11 @@ class CountingController:
 class TestRenderHotPath(unittest.TestCase):
     def setUp(self):
         pygame.init()
-        self.settings = {
-            "timing": {"control_update_hz": 30, "latency_check_hz": 1, "main_loop_fps": 60},
-            "video": {"width": 800, "height": 600, "fullscreen": False},
-            "ports": {"video": 6666, "control": 6668},
-            "relay": {},
-        }
+        self.settings = build_settings(
+            timing={"control_update_hz": 30, "latency_check_hz": 1, "main_loop_fps": 60},
+            video={"width": 800, "height": 600, "fullscreen": False},
+            ports={"video": 6666, "control": 6668},
+        )
 
     def _build_app(self, mock_display_cls, mock_input_cls, mock_osd_cls, mock_menu_cls):
         screen = pygame.Surface((800, 600))

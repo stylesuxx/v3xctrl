@@ -49,12 +49,16 @@ class TestTabOwnership(unittest.TestCase):
         self.osd._on_widget_toggle("clock", True)
         self.network._on_port_change("video", 12345)
 
-    def test_a_section_handed_to_a_tab_is_not_the_one_inside_settings(self):
+    def test_a_dict_section_handed_to_a_tab_is_copied(self):
+        """Sections still backed by a dict have to be copied, or the tab edits Settings."""
         self.assertIsNot(self.general.video, self.settings.get("video"))
-        self.assertIsNot(self.frequencies.timing, self.settings.get("timing"))
         self.assertIsNot(self.osd.widgets, self.settings.get("widgets"))
-        self.assertIsNot(self.network.ports, self.settings.get("ports"))
-        self.assertIsNot(self.network.relay, self.settings.get("relay"))
+
+    def test_a_frozen_section_is_shared_rather_than_copied(self):
+        """A typed section cannot be mutated, so there is nothing to protect against."""
+        self.assertIs(self.network.ports, self.settings.ports)
+        self.assertIs(self.network.relay, self.settings.relay)
+        self.assertIs(self.frequencies.timing, self.settings.timing)
 
     def test_editing_a_tab_leaves_settings_untouched(self):
         self._make_one_edit_per_tab()
@@ -93,9 +97,9 @@ class TestTabOwnership(unittest.TestCase):
             tab.apply_settings()
 
         self.assertEqual(self.general.video["render_ratio"], 0)
-        self.assertEqual(self.frequencies.timing["main_loop_fps"], 60)
+        self.assertEqual(self.frequencies.timing.main_loop_fps, 60)
         self.assertEqual(self.osd.widgets["clock"]["display"], False)
-        self.assertEqual(self.network.ports["video"], 16384)
+        self.assertEqual(self.network.ports.video, 16384)
 
     def test_fullscreen_toggled_outside_the_menu_keeps_edits_in_progress(self):
         """[F11] works while the menu is open, and must not wipe what is being typed."""
