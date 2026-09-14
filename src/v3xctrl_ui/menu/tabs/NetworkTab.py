@@ -1,10 +1,12 @@
 from collections.abc import Callable
+from dataclasses import replace
 from typing import Any
 
 import pygame
 from pygame import Surface
 
 from v3xctrl_helper import is_int
+from v3xctrl_tcp import Transport
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.menu.input import BaseInput, BaseWidget, Button, Checkbox, NumberInput, Select, TextInput, WidgetRow
 from v3xctrl_ui.utils.colors import GREEN, RED
@@ -169,9 +171,9 @@ class NetworkTab(Tab):
 
     def apply_settings(self) -> None:
         self._test_status = None
-        self.transport = self.settings.get("transport", "udp")
-        self.ports = self._own_section("ports", {})
-        self.relay = self._own_section("relay", {})
+        self.transport = self.settings.transport
+        self.ports = self.settings.ports
+        self.relay = self.settings.relay
         self.udp_packet_ttl = self.settings.get("udp_packet_ttl", 100)
         self.control_buffer_capacity = self.settings.get("control_buffer_capacity", 1)
 
@@ -185,25 +187,25 @@ class NetworkTab(Tab):
         self.transport_select.selected_index = transport_index
 
         # Port inputs
-        self.video_input.value = str(self.ports.get("video", ""))
-        self.control_input.value = str(self.ports.get("control", ""))
+        self.video_input.value = str(self.ports.video)
+        self.control_input.value = str(self.ports.control)
 
         # Relay inputs
-        self.relay_server_input.value = self.relay.get("server", "")
-        self.relay_id_input.value = self.relay.get("id", "")
-        self.relay_enabled_checkbox.checked = self.relay.get("enabled", False)
-        self.relay_spectator_checkbox.checked = self.relay.get("spectator_mode", False)
+        self.relay_server_input.value = self.relay.server
+        self.relay_id_input.value = self.relay.id
+        self.relay_enabled_checkbox.checked = self.relay.enabled
+        self.relay_spectator_checkbox.checked = self.relay.spectator_mode
 
         # Misc inputs
         self.udp_packet_ttl_input.value = str(self.udp_packet_ttl)
         self.control_buffer_capacity_input.value = str(self.control_buffer_capacity)
 
     def _on_transport_change(self, index: int) -> None:
-        self.transport = self._transport_options[index].lower()
+        self.transport = Transport(self._transport_options[index].lower())
 
     def _on_port_change(self, name: str, value: str) -> None:
         if is_int(value):
-            self.ports[name] = int(value)
+            self.ports = replace(self.ports, **{name: int(value)})
 
     def _on_udp_packet_ttl_change(self, value: str) -> None:
         if is_int(value):
@@ -214,13 +216,13 @@ class NetworkTab(Tab):
             self.control_buffer_capacity = int(value)
 
     def _on_relay_enable_change(self, value: bool) -> None:
-        self.relay["enabled"] = value
+        self.relay = replace(self.relay, enabled=value)
 
     def _on_relay_server_change(self, value: str) -> None:
-        self.relay["server"] = value
+        self.relay = replace(self.relay, server=value)
 
     def _on_relay_id_change(self, value: str) -> None:
-        self.relay["id"] = value
+        self.relay = replace(self.relay, id=value)
 
     def _on_paste_id(self) -> None:
         if pygame.scrap.get_init():
@@ -256,7 +258,7 @@ class NetworkTab(Tab):
         self._test_status = (success, message)
 
     def _on_relay_spectator_change(self, value: bool) -> None:
-        self.relay["spectator_mode"] = value
+        self.relay = replace(self.relay, spectator_mode=value)
 
     def _draw_general_section(self, surface: Surface, y: int) -> int:
         y += self.y_offset + self.padding

@@ -276,8 +276,7 @@ class Renderer:
 
         show_connection_info = self.settings.get("show_connection_info", False)
         if show_connection_info:
-            relay = self.settings.get("relay", {})
-            if relay.get("enabled", False):
+            if self.settings.relay.enabled:
                 self._render_relay_connection_info(screen)
             else:
                 self._render_direct_connection_info(screen)
@@ -294,31 +293,31 @@ class Renderer:
 
     def _render_relay_connection_info(self, screen: pygame.Surface) -> None:
         """Video and control ports are fixed with the relay."""
-        ports = self.settings.get("ports")
-        relay_settings = self.settings.get("relay")
+        ports = self.settings.ports
+        relay = self.settings.relay
         data: list[tuple[str, str | None]] = [
             ("STREAMER SETUP", None),
             ("Mode", "relay"),
-            ("Relay Server", relay_settings.get("server")),
-            ("Session ID", relay_settings.get("id")),
+            ("Relay Server", relay.server),
+            ("Session ID", relay.id),
             ("", None),
             ("Network Ports", None),
-            ("Video", str(ports["video"])),
-            ("Control", str(ports["control"])),
+            ("Video", str(ports.video)),
+            ("Control", str(ports.control)),
         ]
         self._render_text(screen, data, 50, self.center_y + 10)
 
     def _render_direct_connection_info(self, screen: pygame.Surface) -> None:
         """Render IP and port information."""
-        ports = self.settings.get("ports")
+        ports = self.settings.ports
         data: list[tuple[str, str | None]] = [
             ("STREAMER SETUP", None),
             ("Mode", "direct"),
             ("Host", self.ip),
             ("", None),
             ("Network Ports", None),
-            ("Video", str(ports["video"])),
-            ("Control", str(ports["control"])),
+            ("Video", str(ports.video)),
+            ("Control", str(ports.control)),
         ]
 
         self._render_text(screen, data, 50, self.center_y + 10)

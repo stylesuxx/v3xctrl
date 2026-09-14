@@ -118,10 +118,9 @@ class NetworkSetup:
 
     def __init__(self, settings: Settings):
         self.settings = settings
-        self.ports = settings.get("ports", {})
-        self.video_port = self.ports.get("video")
-        self.control_port = self.ports.get("control")
-        self.transport = settings.get("transport", Transport.UDP)
+        self.video_port = settings.ports.video
+        self.control_port = settings.ports.control
+        self.transport = settings.transport
         self._peer: Peer | None = None
 
     def abort(self) -> None:
