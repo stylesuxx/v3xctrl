@@ -1,6 +1,5 @@
 import logging
 import signal
-import threading
 import time
 from typing import Any
 
@@ -89,8 +88,13 @@ class AppState:
         self.model.last_latency_check = start_time
 
         # Settings management
-        self.settings_controller = SettingsController(self.settings, self.model)
-        self._configure_settings_controller()
+        self.settings_controller = SettingsController(
+            self.settings,
+            self.model,
+            network_restarter=self.network_coordinator,
+            on_fullscreen_change=self._on_fullscreen_change,
+        )
+        self._register_settings_subscribers()
 
     @property
     def screen(self) -> pygame.Surface:
@@ -272,50 +276,28 @@ class AppState:
 
         return menu
 
-    def _configure_settings_controller(self) -> None:
-        """Configure settings controller with all necessary callbacks."""
-        self.settings_controller.on_timing_update = self._on_timing_update
-        self.settings_controller.on_network_update = self._on_network_update
-        self.settings_controller.on_input_update = self._on_input_update
-        self.settings_controller.on_osd_update = self._on_osd_update
-        self.settings_controller.on_renderer_update = self._on_renderer_update
-        self.settings_controller.on_display_update = self._on_display_update
-        self.settings_controller.create_network_restart_thread = self._create_network_restart_thread
-        self.settings_controller.network_restart_complete = self.network_coordinator.restart_complete
+    def _register_settings_subscribers(self) -> None:
+        """Register every module a settings change reaches, in apply order."""
+        for subscriber in (
+            self.timing_controller,
+            self,
+            self.menu,
+            self.network_coordinator,
+            self.input_controller,
+            self.event_controller,
+            self.osd,
+            self.renderer,
+        ):
+            self.settings_controller.register(subscriber)
 
-    def _update_network_settings(self) -> None:
-        udp_ttl_ms = self.settings.get("udp_packet_ttl", 100)
-        self.network_coordinator.update_ttl(udp_ttl_ms)
-
-    def _on_timing_update(self, settings: Settings) -> None:
-        self.timing_controller.settings = settings
-        self.timing_controller.update_from_settings()
+    def apply_settings(self, settings: Settings) -> None:
         self.settings = settings
-        self.menu.update_settings_reference(settings)
 
-    def _on_network_update(self, settings: Settings) -> None:
-        if not self.model.user_connected:
-            self.network_coordinator.network_controller = self.network_coordinator.create_network_controller(settings)
-        self._update_network_settings()
-
-    def _on_input_update(self, settings: Settings) -> None:
-        self.input_controller.update_settings(settings)
-        self.event_controller.update_settings(settings)
-
-    def _on_osd_update(self, settings: Settings) -> None:
-        self.osd.update_settings(settings)
-
-    def _on_renderer_update(self, settings: Settings) -> None:
-        self.renderer.settings = settings
-
-    def _on_display_update(self, fullscreen: bool) -> None:
+    def _on_fullscreen_change(self, fullscreen: bool) -> None:
         self.display_controller.set_fullscreen(fullscreen)
 
         screen_size = self.screen.get_size()
         self.menu.update_dimensions(screen_size[0], screen_size[1])
-
-    def _create_network_restart_thread(self, new_settings: Settings) -> threading.Thread:
-        return self.network_coordinator.restart_network_controller(new_settings)
 
     def _on_connection_change(self, connected: bool) -> None:
         streamer_enabled = connected and not self.network_coordinator.is_spectator()

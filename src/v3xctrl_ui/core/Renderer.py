@@ -74,6 +74,9 @@ class Renderer:
 
         return self._ip
 
+    def apply_settings(self, settings: Settings) -> None:
+        self.settings = settings
+
     def set_connect_callback(self, callback: Callable[[], None]) -> None:
         self._connect_button.callback = callback
 

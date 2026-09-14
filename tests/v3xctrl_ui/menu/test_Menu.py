@@ -835,8 +835,8 @@ class TestMenu(unittest.TestCase):
         for tab in menu.tabs:
             tab.view.apply_settings.assert_called_once()
 
-    def test_update_settings_reference(self, mock_button_class, mock_pygame):
-        """Test that update_settings_reference updates settings for menu and all tabs"""
+    def test_apply_settings_updates_menu_and_tabs(self, mock_button_class, mock_pygame):
+        """Test that apply_settings updates settings for menu and all tabs"""
         self._setup_mocks(mock_button_class, mock_pygame)
 
         menu = Menu(
@@ -854,7 +854,7 @@ class TestMenu(unittest.TestCase):
         new_settings = MagicMock()
 
         # Update settings reference
-        menu.update_settings_reference(new_settings)
+        menu.apply_settings(new_settings)
 
         # Verify menu settings updated
         self.assertEqual(menu.settings, new_settings)

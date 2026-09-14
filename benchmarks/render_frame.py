@@ -134,7 +134,7 @@ def main() -> None:
         connection = ConnectionStatus(
             user_connected=True,
             control_connected=True,
-            server_error=controller.server_error,
+            control_error=controller.server_error,
             relay_enabled=controller.relay_enable,
             relay_status_message=controller.relay_status_message,
             control_queue_depth=controller.get_control_buffer_size(),
