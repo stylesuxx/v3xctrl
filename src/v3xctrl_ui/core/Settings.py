@@ -15,6 +15,7 @@ from v3xctrl_ui.core.SettingsSchema import (
     Section,
     TimingSettings,
     VideoSettings,
+    WidgetSettings,
     coerce,
 )
 
@@ -33,6 +34,7 @@ class Settings:
         "relay": RelaySettings,
         "timing": TimingSettings,
         "video": VideoSettings,
+        "widgets": WidgetSettings,
     }
 
     # Top-level keys that hold one value rather than a table, mapped to their default
@@ -56,43 +58,6 @@ class Settings:
                 "rec_toggle": pygame.K_r,
             }
         },
-        "widgets": {
-            "debug": {"display": False, "align": "top-left", "offset": [10, 10], "padding": 5},
-            "debug_fps_loop": {"display": True},
-            "debug_fps_video": {"display": True},
-            "debug_data": {"display": True},
-            "debug_latency": {"display": True},
-            "fps": {
-                "width": 100,
-                "height": 75,
-                "average_window": 30,
-                "graph_frames": 300,
-            },
-            "steering": {"display": True, "align": "bottom-center", "offset": [10, 0]},
-            "throttle": {"display": True, "align": "bottom-left", "offset": [10, 10]},
-            "signal": {
-                "display": True,
-                "align": "top-right",
-                "offset": [10, 10],
-                "padding": 0,
-            },
-            "signal_quality": {"display": True},
-            "signal_band": {"display": True},
-            "signal_cell": {"display": False},
-            "battery": {"display": True, "align": "top-right", "offset": [105, 10]},
-            "battery_icon": {"display": True},
-            "battery_voltage": {"display": True},
-            "battery_average_voltage": {"display": True},
-            "battery_percent": {"display": True},
-            "battery_current": {"display": False},
-            "rec": {"display": True, "align": "bottom-right", "offset": [10, 10]},
-            "clock": {"display": False, "align": "bottom-right", "offset": [0, 0]},
-            "gps": {"display": True, "align": "top-right", "offset": [248, 10]},
-            "gps_icon": {"display": True},
-            "gps_fix": {"display": True},
-            "gps_satellites": {"display": True},
-            "gps_speed": {"display": True},
-        },
     }
 
     def __init__(self, path: str | None = None) -> None:
@@ -106,6 +71,7 @@ class Settings:
         self.relay = RelaySettings()
         self.timing = TimingSettings()
         self.video = VideoSettings()
+        self.widgets = WidgetSettings()
         self.transport = DEFAULT_TRANSPORT
         self.udp_packet_ttl = self.SCALARS["udp_packet_ttl"]
         self.control_buffer_capacity = self.SCALARS["control_buffer_capacity"]

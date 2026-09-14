@@ -65,13 +65,14 @@ class OsdTab(Tab):
         return {"widgets": self.widgets}
 
     def apply_settings(self) -> None:
-        self.widgets = self._own_section("widgets", {})
+        self.widgets = self.settings.widgets
 
         for key, checkbox in self.checkboxes.items():
-            checkbox.checked = self.widgets.get(key, {}).get("display", False)
+            config = self.widgets.get(key)
+            checkbox.checked = config is not None and config.display
 
     def _on_widget_toggle(self, key: str, value: bool) -> None:
-        self.widgets.setdefault(key, {})["display"] = value
+        self.widgets = self.widgets.with_display(key, value)
 
     def _draw_debug_section(self, surface: Surface, y: int) -> int:
         y += self.y_offset + self.padding

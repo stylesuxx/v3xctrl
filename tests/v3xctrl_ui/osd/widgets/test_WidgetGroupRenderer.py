@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 import pygame
 
+from v3xctrl_ui.core.SettingsSchema import WidgetAlignment, WidgetConfig, WidgetSettings
 from v3xctrl_ui.osd.widgets import TextWidget
 from v3xctrl_ui.osd.widgets.WidgetGroup import WidgetGroup
 from v3xctrl_ui.osd.widgets.WidgetGroupRenderer import (
@@ -34,11 +35,13 @@ class TestWidgetGroupRenderer(unittest.TestCase):
 
         self.widgets = {"widget1": self.widget1, "widget2": self.widget2, "widget3": self.widget3}.items()
 
-        self.widget_settings = {
-            "widget1": {"display": True},
-            "widget2": {"display": True},
-            "widget3": {"display": True},
-        }
+        self.widget_settings = WidgetSettings(
+            configs={
+                "widget1": WidgetConfig(display=True),
+                "widget2": WidgetConfig(display=True),
+                "widget3": WidgetConfig(display=True),
+            }
+        )
 
         self.get_value = lambda name: f"Value for {name}"
 
@@ -52,7 +55,7 @@ class TestWidgetGroupRenderer(unittest.TestCase):
         self.assertIn("widget3", names)
 
     def test_filter_visible_widgets_filters_hidden_widgets(self):
-        self.widget_settings["widget2"]["display"] = False
+        self.widget_settings = self.widget_settings.with_display("widget2", False)
 
         visible = _filter_visible_widgets(self.widgets, self.widget_settings)
 
@@ -63,16 +66,15 @@ class TestWidgetGroupRenderer(unittest.TestCase):
         self.assertIn("widget3", names)
 
     def test_filter_visible_widgets_defaults_to_visible_when_no_settings(self):
-        widget_settings = {}
+        widget_settings = WidgetSettings(configs={})
 
         visible = _filter_visible_widgets(self.widgets, widget_settings)
 
         self.assertEqual(len(visible), 3)
 
     def test_filter_visible_widgets_returns_empty_when_all_hidden(self):
-        self.widget_settings["widget1"]["display"] = False
-        self.widget_settings["widget2"]["display"] = False
-        self.widget_settings["widget3"]["display"] = False
+        for name in ("widget1", "widget2", "widget3"):
+            self.widget_settings = self.widget_settings.with_display(name, False)
 
         visible = _filter_visible_widgets(self.widgets, self.widget_settings)
 
@@ -148,7 +150,7 @@ class TestWidgetGroupRenderer(unittest.TestCase):
             mock_draw.assert_called_once_with(surface, "Value for widget1")
 
     def test_render_group_uses_default_alignment(self):
-        settings = {"display": True}
+        settings = WidgetConfig(display=True)
 
         with (
             patch("pygame.display.get_window_size", return_value=(800, 600)),
@@ -162,7 +164,7 @@ class TestWidgetGroupRenderer(unittest.TestCase):
             self.assertEqual(args[0], "top-left")
 
     def test_render_group_uses_custom_alignment(self):
-        settings = {"display": True, "align": "bottom-right", "offset": (10, 20)}
+        settings = WidgetConfig(display=True, align=WidgetAlignment.BOTTOM_RIGHT, offset=(10, 20))
 
         with (
             patch("pygame.display.get_window_size", return_value=(800, 600)),
@@ -176,7 +178,7 @@ class TestWidgetGroupRenderer(unittest.TestCase):
             self.assertEqual(args[0], "bottom-right")
 
     def test_render_group_applies_rounded_corners(self):
-        settings = {"display": True}
+        settings = WidgetConfig(display=True)
 
         with (
             patch("pygame.display.get_window_size", return_value=(800, 600)),
@@ -191,7 +193,7 @@ class TestWidgetGroupRenderer(unittest.TestCase):
             self.assertEqual(mock_round.call_args[0][1], 4)
 
     def test_render_group_with_custom_corner_radius(self):
-        settings = {"display": True}
+        settings = WidgetConfig(display=True)
 
         with (
             patch("pygame.display.get_window_size", return_value=(800, 600)),
@@ -206,11 +208,13 @@ class TestWidgetGroupRenderer(unittest.TestCase):
 
     def test_render_individual_widgets(self):
         """Test _render_individual_widgets renders widgets at their individual positions."""
-        widget_settings = {
-            "widget1": {"display": True, "align": "top-left", "offset": (10, 10)},
-            "widget2": {"display": True, "align": "top-right", "offset": (20, 20)},
-            "widget3": {"display": False, "align": "bottom-left", "offset": (0, 0)},
-        }
+        widget_settings = WidgetSettings(
+            configs={
+                "widget1": WidgetConfig(display=True, align=WidgetAlignment.TOP_LEFT, offset=(10, 10)),
+                "widget2": WidgetConfig(display=True, align=WidgetAlignment.TOP_RIGHT, offset=(20, 20)),
+                "widget3": WidgetConfig(display=False, align=WidgetAlignment.BOTTOM_LEFT, offset=(0, 0)),
+            }
+        )
 
         with (
             patch("pygame.display.get_window_size", return_value=(800, 600)),
@@ -228,11 +232,13 @@ class TestWidgetGroupRenderer(unittest.TestCase):
     def test_render_widget_group_composition_mode(self):
         """Test render_widget_group with composition mode."""
         widgets = {"widget1": self.widget1, "widget2": self.widget2}
-        widget_settings = {
-            "test_group": {"display": True, "align": "center"},
-            "widget1": {"display": True},
-            "widget2": {"display": True},
-        }
+        widget_settings = WidgetSettings(
+            configs={
+                "test_group": WidgetConfig(display=True),
+                "widget1": WidgetConfig(display=True),
+                "widget2": WidgetConfig(display=True),
+            }
+        )
 
         group = WidgetGroup.create(
             name="test_group", widgets=widgets, get_value=self.get_value, use_composition=True, corner_radius=6
@@ -252,10 +258,12 @@ class TestWidgetGroupRenderer(unittest.TestCase):
     def test_render_widget_group_individual_mode(self):
         """Test render_widget_group with individual rendering mode."""
         widgets = {"widget1": self.widget1}
-        widget_settings = {
-            "test_group": {"display": True},
-            "widget1": {"display": True, "align": "center", "offset": (0, 0)},
-        }
+        widget_settings = WidgetSettings(
+            configs={
+                "test_group": WidgetConfig(display=True),
+                "widget1": WidgetConfig(display=True, offset=(0, 0)),
+            }
+        )
 
         group = WidgetGroup.create(name="test_group", widgets=widgets, get_value=self.get_value, use_composition=False)
 

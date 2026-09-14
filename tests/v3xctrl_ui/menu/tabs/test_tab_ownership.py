@@ -49,23 +49,20 @@ class TestTabOwnership(unittest.TestCase):
         self.osd._on_widget_toggle("clock", True)
         self.network._on_port_change("video", 12345)
 
-    def test_a_dict_section_handed_to_a_tab_is_copied(self):
-        """Sections still backed by a dict have to be copied, or the tab edits Settings."""
-        self.assertIsNot(self.osd.widgets, self.settings.get("widgets"))
-
     def test_a_frozen_section_is_shared_rather_than_copied(self):
         """A typed section cannot be mutated, so there is nothing to protect against."""
         self.assertIs(self.network.ports, self.settings.ports)
         self.assertIs(self.network.relay, self.settings.relay)
         self.assertIs(self.frequencies.timing, self.settings.timing)
         self.assertIs(self.general.video, self.settings.video)
+        self.assertIs(self.osd.widgets, self.settings.widgets)
 
     def test_editing_a_tab_leaves_settings_untouched(self):
         self._make_one_edit_per_tab()
 
         self.assertEqual(self.settings.video.render_ratio, 0)
         self.assertEqual(self.settings.get("timing")["main_loop_fps"], 60)
-        self.assertEqual(self.settings.get("widgets")["clock"]["display"], False)
+        self.assertEqual(self.settings.widgets.get("clock").display, False)
         self.assertEqual(self.settings.get("ports")["video"], 16384)
 
     def test_editing_a_tab_leaves_the_config_file_untouched(self):
@@ -86,7 +83,7 @@ class TestTabOwnership(unittest.TestCase):
 
         self.assertEqual(on_disk.video.render_ratio, 99)
         self.assertEqual(on_disk.get("timing")["main_loop_fps"], 75)
-        self.assertEqual(on_disk.get("widgets")["clock"]["display"], True)
+        self.assertEqual(on_disk.widgets.get("clock").display, True)
         self.assertEqual(on_disk.get("ports")["video"], 12345)
 
     def test_reapplying_settings_discards_uncommitted_edits(self):
@@ -98,7 +95,7 @@ class TestTabOwnership(unittest.TestCase):
 
         self.assertEqual(self.general.video.render_ratio, 0)
         self.assertEqual(self.frequencies.timing.main_loop_fps, 60)
-        self.assertEqual(self.osd.widgets["clock"]["display"], False)
+        self.assertEqual(self.osd.widgets.get("clock").display, False)
         self.assertEqual(self.network.ports.video, 16384)
 
     def test_fullscreen_toggled_outside_the_menu_keeps_edits_in_progress(self):

@@ -9,7 +9,8 @@ bad key in a hand-edited config file leaves the viewer running.
 """
 
 import logging
-from dataclasses import dataclass, fields
+from collections.abc import Mapping
+from dataclasses import dataclass, field, fields, replace
 from enum import Enum, StrEnum
 from typing import Any, ClassVar, Self
 
@@ -18,6 +19,14 @@ from v3xctrl_tcp import Transport
 logger = logging.getLogger(__name__)
 
 DEFAULT_TRANSPORT = Transport.UDP
+
+
+class WidgetAlignment(StrEnum):
+    TOP_LEFT = "top-left"
+    TOP_RIGHT = "top-right"
+    BOTTOM_LEFT = "bottom-left"
+    BOTTOM_RIGHT = "bottom-right"
+    BOTTOM_CENTER = "bottom-center"
 
 
 class VideoReceiver(StrEnum):
@@ -53,6 +62,11 @@ def coerce(location: str, value: Any, default: Any) -> Any:
             if isinstance(value, int) and not isinstance(value, bool):
                 return value
 
+        case tuple():
+            # TOML has arrays, not tuples, so a fixed-length pair arrives as a list
+            if isinstance(value, list | tuple) and len(value) == len(default):
+                return tuple(value)
+
         case _:
             if isinstance(value, type(default)):
                 return value
@@ -74,10 +88,12 @@ class Section:
         defaults = cls()
         values = {}
 
-        for field in fields(cls):
-            if field.name in raw:
-                location = f"{cls.NAME}.{field.name}"
-                values[field.name] = coerce(location, raw[field.name], getattr(defaults, field.name))
+        for section_field in fields(cls):
+            if section_field.name in raw:
+                location = f"{cls.NAME}.{section_field.name}"
+                values[section_field.name] = coerce(
+                    location, raw[section_field.name], getattr(defaults, section_field.name)
+                )
 
         return cls(**values)
 
@@ -85,11 +101,22 @@ class Section:
         """Render the section back into the shape the config file holds."""
         raw: dict[str, Any] = {}
 
-        for field in fields(self):
-            value = getattr(self, field.name)
-            raw[field.name] = value.value if isinstance(value, Enum) else value
+        for section_field in fields(self):
+            raw[section_field.name] = _to_toml(getattr(self, section_field.name))
 
         return raw
+
+
+def _to_toml(value: Any) -> Any:
+    match value:
+        case Enum():
+            return value.value
+
+        case tuple():
+            return list(value)
+
+        case _:
+            return value
 
 
 @dataclass(frozen=True, slots=True)
@@ -117,6 +144,109 @@ class TimingSettings(Section):
     main_loop_fps: int = 60
     control_update_hz: int = 30
     latency_check_hz: int = 1
+
+
+@dataclass(frozen=True, slots=True)
+class WidgetConfig(Section):
+    NAME: ClassVar[str] = "widgets"
+
+    display: bool = False
+    align: WidgetAlignment = WidgetAlignment.TOP_LEFT
+    offset: tuple[int, int] = (0, 0)
+    padding: int = 0
+
+
+@dataclass(frozen=True, slots=True)
+class FpsGraphConfig(Section):
+    NAME: ClassVar[str] = "widgets.fps"
+
+    width: int = 100
+    height: int = 75
+    average_window: int = 30
+    graph_frames: int = 300
+
+
+@dataclass(frozen=True, slots=True)
+class WidgetSettings(Section):
+    """Widget configuration, keyed by widget or group name.
+
+    The `fps` key holds graph dimensions rather than placement, so it is parsed
+    into its own type and kept out of the mapping.
+    """
+
+    NAME: ClassVar[str] = "widgets"
+
+    FPS_KEY: ClassVar[str] = "fps"
+
+    DEFAULT_CONFIGS: ClassVar[Mapping[str, WidgetConfig]] = {
+        "debug": WidgetConfig(display=False, offset=(10, 10), padding=5),
+        "debug_fps_loop": WidgetConfig(display=True),
+        "debug_fps_video": WidgetConfig(display=True),
+        "debug_data": WidgetConfig(display=True),
+        "debug_latency": WidgetConfig(display=True),
+        "steering": WidgetConfig(display=True, align=WidgetAlignment.BOTTOM_CENTER, offset=(10, 0)),
+        "throttle": WidgetConfig(display=True, align=WidgetAlignment.BOTTOM_LEFT, offset=(10, 10)),
+        "signal": WidgetConfig(display=True, align=WidgetAlignment.TOP_RIGHT, offset=(10, 10)),
+        "signal_quality": WidgetConfig(display=True),
+        "signal_band": WidgetConfig(display=True),
+        "signal_cell": WidgetConfig(display=False),
+        "battery": WidgetConfig(display=True, align=WidgetAlignment.TOP_RIGHT, offset=(105, 10)),
+        "battery_icon": WidgetConfig(display=True),
+        "battery_voltage": WidgetConfig(display=True),
+        "battery_average_voltage": WidgetConfig(display=True),
+        "battery_percent": WidgetConfig(display=True),
+        "battery_current": WidgetConfig(display=False),
+        "rec": WidgetConfig(display=True, align=WidgetAlignment.BOTTOM_RIGHT, offset=(10, 10)),
+        "clock": WidgetConfig(display=False, align=WidgetAlignment.BOTTOM_RIGHT),
+        "gps": WidgetConfig(display=True, align=WidgetAlignment.TOP_RIGHT, offset=(248, 10)),
+        "gps_icon": WidgetConfig(display=True),
+        "gps_fix": WidgetConfig(display=True),
+        "gps_satellites": WidgetConfig(display=True),
+        "gps_speed": WidgetConfig(display=True),
+    }
+
+    configs: Mapping[str, WidgetConfig] = field(default_factory=lambda: dict(WidgetSettings.DEFAULT_CONFIGS))
+    fps: FpsGraphConfig = field(default_factory=FpsGraphConfig)
+
+    @classmethod
+    def from_raw(cls, raw: dict[str, Any]) -> Self:
+        configs = dict(cls.DEFAULT_CONFIGS)
+        for name, table in raw.items():
+            if name != cls.FPS_KEY:
+                configs[name] = cls._config_from_raw(name, table)
+
+        return cls(configs=configs, fps=FpsGraphConfig.from_raw(raw.get(cls.FPS_KEY, {})))
+
+    @classmethod
+    def _config_from_raw(cls, name: str, raw: dict[str, Any]) -> WidgetConfig:
+        """Lay one widget's configured keys over that widget's own defaults.
+
+        Keys the file leaves out keep the default for *this* widget, so hiding
+        the steering indicator does not also move it to the top left.
+        """
+        base = cls.DEFAULT_CONFIGS.get(name, WidgetConfig())
+        values = {}
+
+        for widget_field in fields(WidgetConfig):
+            if widget_field.name in raw:
+                location = f"{cls.NAME}.{name}.{widget_field.name}"
+                values[widget_field.name] = coerce(location, raw[widget_field.name], getattr(base, widget_field.name))
+
+        return replace(base, **values)
+
+    def to_raw(self) -> dict[str, Any]:
+        raw: dict[str, Any] = {name: config.to_raw() for name, config in self.configs.items()}
+        raw[self.FPS_KEY] = self.fps.to_raw()
+
+        return raw
+
+    def get(self, name: str) -> WidgetConfig | None:
+        return self.configs.get(name)
+
+    def with_display(self, name: str, display: bool) -> "WidgetSettings":
+        config = self.configs.get(name, WidgetConfig())
+
+        return replace(self, configs={**self.configs, name: replace(config, display=display)})
 
 
 @dataclass(frozen=True, slots=True)
