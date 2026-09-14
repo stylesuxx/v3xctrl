@@ -250,11 +250,7 @@ class AppState:
         # Update menu dimensions with new screen size
         screen_size = self.screen.get_size()
         self.menu.update_dimensions(screen_size[0], screen_size[1])
-
-        # Refresh menu tabs to update widget states (e.g., fullscreen checkbox)
-        if self.menu.visible:
-            for tab in self.menu.tabs:
-                tab.view.apply_settings()
+        self.menu.apply_fullscreen(self.model.fullscreen)
 
     def _create_menu(self) -> Menu:
         """Callback to create a new menu instance."""
