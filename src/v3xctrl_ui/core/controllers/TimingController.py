@@ -25,6 +25,10 @@ class TimingController:
         self.main_loop_fps: int = 60
         self.update_from_settings()
 
+    def apply_settings(self, settings: "Settings") -> None:
+        self.settings = settings
+        self.update_from_settings()
+
     def update_from_settings(self) -> None:
         """Update timing intervals from current settings."""
         timing = self.settings.get("timing", {})

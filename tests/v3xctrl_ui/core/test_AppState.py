@@ -138,9 +138,9 @@ class TestAppState(unittest.TestCase):
         app.update_settings(new_settings)
 
         self.assertEqual(app.settings, new_settings)
-        mock_input.update_settings.assert_called_with(new_settings)
-        mock_osd.update_settings.assert_called_with(new_settings)
-        self.assertEqual(mock_renderer.settings, new_settings)
+        mock_input.apply_settings.assert_called_with(new_settings)
+        mock_osd.apply_settings.assert_called_with(new_settings)
+        mock_renderer.apply_settings.assert_called_with(new_settings)
 
         # Check timing intervals were updated (now in model)
         self.assertEqual(app.model.control_interval, 1.0 / 60)
