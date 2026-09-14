@@ -148,8 +148,8 @@ class EventController:
         return None
 
     def _load_keyboard_controls(self) -> None:
-        keyboard_controls = self.settings.get("controls", {}).get("keyboard", {})
+        keyboard = self.settings.controls.keyboard
 
-        self.trim_increase_key = keyboard_controls.get("trim_increase")
-        self.trim_decrease_key = keyboard_controls.get("trim_decrease")
-        self.rec_toggle_key = keyboard_controls.get("rec_toggle")
+        self.trim_increase_key = keyboard.trim_increase
+        self.trim_decrease_key = keyboard.trim_decrease
+        self.rec_toggle_key = keyboard.rec_toggle

@@ -1,15 +1,17 @@
-import copy
+import logging
 import tomllib
 from enum import Enum
 from pathlib import Path
 from typing import Any, ClassVar
 
-import pygame
 import tomli_w
 from platformdirs import user_config_dir
 
 from v3xctrl_ui.core.SettingsSchema import (
     DEFAULT_TRANSPORT,
+    CalibrationSettings,
+    ControlSettings,
+    InputSettings,
     PortSettings,
     RelaySettings,
     Section,
@@ -19,14 +21,16 @@ from v3xctrl_ui.core.SettingsSchema import (
     coerce,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class Settings:
     """The viewer configuration, as typed sections over a TOML file.
 
-    Sections listed in SECTIONS are parsed once at load and handed out as frozen
-    values. Keys that have not been given a section yet stay in the `settings`
-    dict, and `get`/`set` cover both, so a caller can move to a section at its
-    own pace.
+    Every key the viewer knows about is parsed once at load into a frozen
+    section or a scalar, and handed out as that. A key the file carries but the
+    viewer does not know is reported and kept, so a hand-edited addition is
+    never silently dropped.
     """
 
     SECTIONS: ClassVar[dict[str, type[Section]]] = {
@@ -35,6 +39,9 @@ class Settings:
         "timing": TimingSettings,
         "video": VideoSettings,
         "widgets": WidgetSettings,
+        "controls": ControlSettings,
+        "calibrations": CalibrationSettings,
+        "input": InputSettings,
     }
 
     # Top-level keys that hold one value rather than a table, mapped to their default
@@ -44,20 +51,6 @@ class Settings:
         "control_buffer_capacity": 1,
         "debug": True,
         "show_connection_info": True,
-    }
-
-    DEFAULTS: ClassVar[dict[str, Any]] = {
-        "controls": {
-            "keyboard": {
-                "throttle_up": pygame.K_w,
-                "throttle_down": pygame.K_s,
-                "steering_left": pygame.K_a,
-                "steering_right": pygame.K_d,
-                "trim_increase": pygame.K_RIGHT,
-                "trim_decrease": pygame.K_LEFT,
-                "rec_toggle": pygame.K_r,
-            }
-        },
     }
 
     def __init__(self, path: str | None = None) -> None:
@@ -72,6 +65,9 @@ class Settings:
         self.timing = TimingSettings()
         self.video = VideoSettings()
         self.widgets = WidgetSettings()
+        self.controls = ControlSettings()
+        self.calibrations = CalibrationSettings()
+        self.input = InputSettings()
         self.transport = DEFAULT_TRANSPORT
         self.udp_packet_ttl = self.SCALARS["udp_packet_ttl"]
         self.control_buffer_capacity = self.SCALARS["control_buffer_capacity"]
@@ -87,20 +83,21 @@ class Settings:
         loaded: dict[str, Any] = {}
         if self.path.exists():
             with self.path.open("rb") as file:
-                loaded = self._deserialize(tomllib.load(file))
-
-        merged = self._merge(copy.deepcopy(self.DEFAULTS), loaded)
+                loaded = tomllib.load(file)
 
         for key, section in self.SECTIONS.items():
-            setattr(self, key, section.from_raw(merged.pop(key, {})))
+            setattr(self, key, section.from_raw(loaded.pop(key, {})))
 
         for key, default in self.SCALARS.items():
-            setattr(self, key, coerce(key, merged.pop(key, default), default))
+            setattr(self, key, coerce(key, loaded.pop(key, default), default))
 
-        self.settings = merged
+        for key in loaded:
+            logger.warning(f"{key}: not a setting this viewer knows. Leaving it in {self.path.name} untouched.")
+
+        self.settings = loaded
 
     def save(self) -> None:
-        serialized = self._serialize({**self.settings, **self._sections_to_raw()})
+        serialized = self._remove_none({**self.settings, **self._sections_to_raw()})
         with self.path.open("wb") as f:
             f.write(tomli_w.dumps(serialized).encode("utf-8"))
 
@@ -150,24 +147,6 @@ class Settings:
 
         return raw
 
-    def _merge(self, base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
-        for key, value in override.items():
-            match base.get(key), value:
-                case dict() as existing, dict():
-                    base[key] = self._merge(existing, value)
-
-                case _:
-                    base[key] = value
-
-        return base
-
-    def _serialize(self, data: dict[str, Any]) -> dict[str, Any] | list[Any]:
-        if "controls" in data:
-            data = data.copy()
-            data["controls"] = self._serialize_controls(data["controls"])
-
-        return self._remove_none(data)
-
     def _remove_none(self, obj: object) -> dict[str, Any] | list[Any] | object:
         match obj:
             case dict():
@@ -178,51 +157,3 @@ class Settings:
 
             case _:
                 return obj
-
-    def _deserialize(self, data: dict[str, Any]) -> dict[str, Any]:
-        if "controls" in data:
-            data = data.copy()
-            data["controls"] = self._deserialize_controls(data["controls"])
-
-        return data
-
-    def _serialize_controls(self, controls: dict[str, Any]) -> dict[str, Any]:
-        """Turn each device's keycodes into the pygame key names the file holds."""
-        serialized: dict[str, Any] = {}
-
-        for device, bindings in controls.items():
-            key_names: dict[str, str] = {}
-            for control, keycode in bindings.items():
-                key_names[control] = self._key_to_string(keycode)
-
-            serialized[device] = key_names
-
-        return serialized
-
-    def _deserialize_controls(self, controls: dict[str, Any]) -> dict[str, Any]:
-        """Turn each device's key names back into the keycodes pygame compares against."""
-        deserialized: dict[str, Any] = {}
-
-        for device, bindings in controls.items():
-            keycodes: dict[str, int] = {}
-            for control, key_name in bindings.items():
-                keycodes[control] = self._string_to_key(key_name)
-
-            deserialized[device] = keycodes
-
-        return deserialized
-
-    def _key_to_string(self, keycode: Any) -> str:
-        for name in dir(pygame):
-            if name.startswith("K_") and getattr(pygame, name) == keycode:
-                return name
-
-        raise ValueError(f"Unknown key code: {keycode}")
-
-    def _string_to_key(self, key_name: str) -> int:
-        try:
-            keycode: int = getattr(pygame, key_name)
-        except AttributeError:
-            raise ValueError(f"Invalid key name in config: {key_name}") from None
-
-        return keycode

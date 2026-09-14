@@ -7,6 +7,8 @@ import unittest
 
 import pygame
 
+from tests.v3xctrl_ui.settings_helper import build_settings
+from v3xctrl_ui.core.SettingsSchema import ControlSettings, KeyboardControls
 from v3xctrl_ui.menu.tabs.InputTab import InputTab
 
 
@@ -75,14 +77,9 @@ class TestInputTab(unittest.TestCase):
         pygame.init()
         pygame.display.set_mode((1, 1))
 
-        self.settings = {
-            "controls": {
-                "keyboard": {
-                    "forward": 119,  # W
-                    "backward": 115,  # S
-                }
-            }
-        }
+        self.settings = build_settings(
+            controls=ControlSettings(keyboard=KeyboardControls(throttle_up=pygame.K_w, throttle_down=pygame.K_s))
+        )
 
         self.toggle_called = []
 
@@ -91,7 +88,7 @@ class TestInputTab(unittest.TestCase):
 
         self.manager = DummyGamepadManager()
         self.tab = InputTab(
-            settings=self.settings.copy(),
+            settings=self.settings,
             width=640,
             height=480,
             padding=10,
@@ -102,27 +99,28 @@ class TestInputTab(unittest.TestCase):
 
     def test_initial_keyboard_controls_loaded(self):
         key_names = [w.control_name for w in self.tab.key_widgets]
-        self.assertIn("forward", key_names)
-        self.assertIn("backward", key_names)
+        self.assertIn("throttle_up", key_names)
+        self.assertIn("throttle_down", key_names)
+        self.assertIn("rec_toggle", key_names)
 
     def test_on_control_key_change_edits_the_tabs_own_copy(self):
-        self.tab._on_control_key_change("forward", 97)  # A
+        self.tab._on_control_key_change("throttle_up", pygame.K_a)
 
-        self.assertEqual(self.tab.controls["keyboard"]["forward"], 97)
-        self.assertEqual(self.settings["controls"]["keyboard"]["forward"], 119)
+        self.assertEqual(self.tab.controls.keyboard.throttle_up, pygame.K_a)
+        self.assertEqual(self.settings.controls.keyboard.throttle_up, pygame.K_w)
 
     def test_rebound_key_is_handed_back_for_saving(self):
         """Rebinding has no other persistence path, so get_settings must carry it."""
-        self.tab._on_control_key_change("forward", 97)  # A
+        self.tab._on_control_key_change("throttle_up", pygame.K_a)
 
-        self.assertEqual(self.tab.get_settings()["controls"]["keyboard"]["forward"], 97)
+        self.assertEqual(self.tab.get_settings()["controls"].keyboard.throttle_up, pygame.K_a)
 
     def test_apply_settings_discards_uncommitted_rebinds(self):
-        self.tab._on_control_key_change("forward", 97)  # A
+        self.tab._on_control_key_change("throttle_up", pygame.K_a)
 
         self.tab.apply_settings()
 
-        self.assertEqual(self.tab.controls["keyboard"]["forward"], 119)
+        self.assertEqual(self.tab.controls.keyboard.throttle_up, pygame.K_w)
 
     def test_on_active_toggle_invokes_callback(self):
         self.assertEqual(len(self.toggle_called), 0)
@@ -134,10 +132,9 @@ class TestInputTab(unittest.TestCase):
     def test_get_settings_returns_expected_structure(self):
         result = self.tab.get_settings()
         self.assertIn("input", result)
-        self.assertIn("guid", result["input"])
         self.assertIn("calibrations", result)
-        self.assertEqual(result["input"]["guid"], "guid-123")
-        self.assertEqual(result["calibrations"], self.manager.get_calibrations())
+        self.assertEqual(result["input"].guid, "guid-123")
+        self.assertEqual(result["calibrations"].by_guid, self.manager.get_calibrations())
 
     def test_draw_does_not_crash(self):
         surface = pygame.Surface((640, 480))

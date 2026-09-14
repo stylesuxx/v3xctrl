@@ -14,6 +14,8 @@ from dataclasses import dataclass, field, fields, replace
 from enum import Enum, StrEnum
 from typing import Any, ClassVar, Self
 
+import pygame
+
 from v3xctrl_tcp import Transport
 
 logger = logging.getLogger(__name__)
@@ -105,6 +107,25 @@ class Section:
             raw[section_field.name] = _to_toml(getattr(self, section_field.name))
 
         return raw
+
+
+def key_name_for(key_code: int) -> str:
+    for name in dir(pygame):
+        if name.startswith("K_") and getattr(pygame, name) == key_code:
+            return name
+
+    raise ValueError(f"Unknown key code: {key_code}")
+
+
+def key_code_for(location: str, key_name: Any, default: int) -> int:
+    if isinstance(key_name, str):
+        key_code = getattr(pygame, key_name, None)
+        if isinstance(key_code, int):
+            return key_code
+
+    logger.warning(f"{location}: {key_name!r} is not a pygame key name. Using {key_name_for(default)!r}.")
+
+    return default
 
 
 def _to_toml(value: Any) -> Any:
@@ -247,6 +268,85 @@ class WidgetSettings(Section):
         config = self.configs.get(name, WidgetConfig())
 
         return replace(self, configs={**self.configs, name: replace(config, display=display)})
+
+
+@dataclass(frozen=True, slots=True)
+class KeyboardControls(Section):
+    """Key bindings, held as pygame keycodes.
+
+    The config file stores pygame key names (`K_w`) rather than the numbers they
+    stand for, so that a binding survives a pygame version that renumbers them.
+    """
+
+    NAME: ClassVar[str] = "controls.keyboard"
+
+    throttle_up: int = pygame.K_w
+    throttle_down: int = pygame.K_s
+    steering_left: int = pygame.K_a
+    steering_right: int = pygame.K_d
+    trim_increase: int = pygame.K_RIGHT
+    trim_decrease: int = pygame.K_LEFT
+    rec_toggle: int = pygame.K_r
+
+    @classmethod
+    def from_raw(cls, raw: dict[str, Any]) -> Self:
+        defaults = cls()
+        values = {}
+
+        for control_field in fields(cls):
+            if control_field.name in raw:
+                location = f"{cls.NAME}.{control_field.name}"
+                default = getattr(defaults, control_field.name)
+                values[control_field.name] = key_code_for(location, raw[control_field.name], default)
+
+        return cls(**values)
+
+    def to_raw(self) -> dict[str, Any]:
+        return {control_field.name: key_name_for(getattr(self, control_field.name)) for control_field in fields(self)}
+
+
+@dataclass(frozen=True, slots=True)
+class ControlSettings(Section):
+    NAME: ClassVar[str] = "controls"
+
+    keyboard: KeyboardControls = field(default_factory=KeyboardControls)
+
+    @classmethod
+    def from_raw(cls, raw: dict[str, Any]) -> Self:
+        return cls(keyboard=KeyboardControls.from_raw(raw.get("keyboard", {})))
+
+    def to_raw(self) -> dict[str, Any]:
+        return {"keyboard": self.keyboard.to_raw()}
+
+
+@dataclass(frozen=True, slots=True)
+class InputSettings(Section):
+    NAME: ClassVar[str] = "input"
+
+    guid: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class CalibrationSettings(Section):
+    """Recorded gamepad calibrations, keyed by device GUID.
+
+    These are recorded by the calibration widget rather than configured, so
+    there is nothing to default and no schema to enforce. The inner shape
+    belongs to the gamepad subsystem, which both writes and reads it; this
+    section exists so the data is declared and round-trips rather than living
+    in an untyped leftover.
+    """
+
+    NAME: ClassVar[str] = "calibrations"
+
+    by_guid: Mapping[str, dict[str, Any]] = field(default_factory=dict)
+
+    @classmethod
+    def from_raw(cls, raw: dict[str, Any]) -> Self:
+        return cls(by_guid=dict(raw))
+
+    def to_raw(self) -> dict[str, Any]:
+        return dict(self.by_guid)
 
 
 @dataclass(frozen=True, slots=True)

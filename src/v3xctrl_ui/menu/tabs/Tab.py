@@ -1,4 +1,3 @@
-import copy
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -63,19 +62,6 @@ class Tab(ABC):
 
     @abstractmethod
     def get_settings(self) -> dict[str, Any]:
-        pass
-
-    def _own_section(self, key: str, default: Any) -> Any:
-        """
-        Return a private copy of a settings section.
-
-        A tab edits its own copy and hands it back from get_settings(), so an
-        edit reaches the rest of the application only once Save is pressed.
-        """
-        return copy.deepcopy(self.settings.get(key, default))
-
-    @abstractmethod
-    def draw(self, surface: Surface) -> None:
         pass
 
     def _add_headline(self, key: str, title: str, draw_top_line: bool = False) -> None:

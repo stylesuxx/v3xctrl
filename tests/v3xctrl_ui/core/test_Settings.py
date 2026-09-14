@@ -60,8 +60,8 @@ class TestSettings(unittest.TestCase):
         settings = Settings(self.path)
         self.assertEqual(settings.video.width, 800)
         self.assertEqual(settings.video.height, 720)
-        self.assertEqual(settings.settings["controls"]["keyboard"]["throttle_up"], pygame.K_UP)
-        self.assertEqual(settings.settings["controls"]["keyboard"]["throttle_down"], pygame.K_s)
+        self.assertEqual(settings.controls.keyboard.throttle_up, pygame.K_UP)
+        self.assertEqual(settings.controls.keyboard.throttle_down, pygame.K_s)
 
     def test_delete_resets_a_scalar_to_its_default(self):
         settings = Settings(self.path)
@@ -110,10 +110,11 @@ class TestTypedSections(unittest.TestCase):
         self.assertEqual(settings.timing, TimingSettings())
         self.assertEqual(settings.transport, Transport.UDP)
 
-    def test_a_section_default_lives_only_on_the_section(self):
-        for key in ("ports", "relay", "timing", "transport"):
-            with self.subTest(key=key):
-                self.assertNotIn(key, Settings.DEFAULTS)
+    def test_every_key_is_typed(self):
+        """Nothing is left in the untyped leftover dict for a stock config."""
+        settings = Settings(self.path)
+
+        self.assertEqual(settings.settings, {})
 
     def test_values_from_the_file_reach_the_section(self):
         self._write({"ports": {"video": 9999}, "transport": "tcp"})
