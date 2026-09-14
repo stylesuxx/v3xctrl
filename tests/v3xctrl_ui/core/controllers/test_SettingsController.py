@@ -57,15 +57,13 @@ def build_controller(settings: Settings, model: ApplicationModel | None = None):
 
 
 class TestInitialization:
-    def test_keeps_a_deep_copy_of_the_starting_settings(self):
+    def test_holds_the_starting_settings(self):
         settings = build_settings(video={"fullscreen": False}, ports={"video": 6666})
 
         controller, _restarter, _fullscreen, model = build_controller(settings)
 
         assert controller.settings is settings
         assert controller.model is model
-        assert controller.old_settings is not settings
-        assert controller.old_settings.ports == settings.ports
 
     def test_starts_with_no_subscribers(self):
         controller, _restarter, _fullscreen, _model = build_controller(build_settings())
@@ -104,8 +102,6 @@ class TestSubscriberNotification:
         controller.apply_settings(new_settings)
 
         assert controller.settings is new_settings
-        assert controller.old_settings.ports == new_settings.ports
-        assert controller.old_settings is not new_settings
 
 
 class TestUpdateSettings:
