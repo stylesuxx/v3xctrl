@@ -1,9 +1,11 @@
+from dataclasses import replace
 from typing import Any
 
 from pygame import Surface
 
 from v3xctrl_helper import is_int
 from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.core.SettingsSchema import VideoSettings
 from v3xctrl_ui.menu.input import (
     BaseInput,
     BaseWidget,
@@ -20,6 +22,10 @@ from .VerticalLayout import VerticalLayout
 class GeneralTab(Tab):
     def __init__(self, settings: Settings, width: int, height: int, padding: int, y_offset: int) -> None:
         super().__init__(settings, width, height, padding, y_offset)
+
+        # Set by apply_settings(), which runs at the end of this constructor
+        self.video: VideoSettings
+        self.show_connection_info: bool
 
         # General widgets
         self.fullscreen_enabled_checkbox = Checkbox(
@@ -70,28 +76,28 @@ class GeneralTab(Tab):
         }
 
     def apply_fullscreen(self, fullscreen: bool) -> None:
-        self.video["fullscreen"] = fullscreen
+        self.video = replace(self.video, fullscreen=fullscreen)
         self.fullscreen_enabled_checkbox.checked = fullscreen
 
     def apply_settings(self) -> None:
-        self.video = self._own_section("video", {})
-        self.show_connection_info = self.settings.get("show_connection_info", False)
+        self.video = self.settings.video
+        self.show_connection_info = self.settings.show_connection_info
 
         # Could have been updated via [F11]
-        self.fullscreen_enabled_checkbox.checked = self.video.get("fullscreen", False)
+        self.fullscreen_enabled_checkbox.checked = self.video.fullscreen
         self.show_connection_info_checkbox.checked = self.show_connection_info
 
-        self.render_ratio_input.value = str(self.video.get("render_ratio", 0))
+        self.render_ratio_input.value = str(self.video.render_ratio)
 
     def _on_render_ratio_change(self, value: str) -> None:
         if is_int(value):
-            self.video["render_ratio"] = int(value)
+            self.video = replace(self.video, render_ratio=int(value))
 
     def _on_show_connection_info_change(self, value: bool) -> None:
         self.show_connection_info = value
 
     def _on_fullscreen_enable_change(self, value: bool) -> None:
-        self.video["fullscreen"] = value
+        self.video = replace(self.video, fullscreen=value)
 
     def _draw_general_section(self, surface: Surface, y: int) -> int:
         y += self.y_offset + self.padding

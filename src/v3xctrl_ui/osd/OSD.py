@@ -34,11 +34,12 @@ class OSD:
         self.settings = settings
         self.telemetry_context = telemetry_context
 
-        self.width = self.settings.get("video").get("width")
-        self.height = self.settings.get("video").get("height")
+        self.width = settings.video.width
+        self.height = settings.video.height
 
-        self.widget_settings = {}
-        self.apply_settings(settings)
+        self.widget_settings = settings.widgets
+        self._render_settings = settings.widgets
+        self._is_rec_visible: bool | None = None
 
         self.debug_data: str | None = None
         self.debug_latency: str | None = None
@@ -113,7 +114,11 @@ class OSD:
 
     def apply_settings(self, settings: Settings) -> None:
         self.settings = settings
-        self.widget_settings = self.settings.get("widgets", {})
+        self.widget_settings = settings.widgets
+
+        # Drop the cached REC override so the next frame rebuilds it
+        self._render_settings = settings.widgets
+        self._is_rec_visible = None
 
     def set_spectator_mode(self, is_spectator: bool) -> None:
         self.is_spectator = is_spectator
@@ -160,14 +165,18 @@ class OSD:
         else:
             video_fps_widget.clear_status_icon()
 
-        rec_enabled_in_settings = self.widget_settings.get("rec", {}).get("display", True)
-        render_settings = {
-            **self.widget_settings,
-            "rec": {**self.widget_settings.get("rec", {}), "display": rec_enabled_in_settings and gst.recording},
-        }
+        # The REC indicator is shown only while recording, so its configured
+        # visibility is overridden here. Rebuilt when the recording state flips
+        # rather than every frame.
+        rec_config = self.widget_settings.get("rec")
+        is_rec_visible = (rec_config is None or rec_config.display) and gst.recording
+
+        if is_rec_visible != self._is_rec_visible:
+            self._is_rec_visible = is_rec_visible
+            self._render_settings = self.widget_settings.with_display("rec", is_rec_visible)
 
         for group in self.widget_groups:
-            render_widget_group(screen, group, render_settings)
+            render_widget_group(screen, group, self._render_settings)
 
     def reset(self) -> None:
         self.debug_data = None
@@ -191,8 +200,8 @@ class OSD:
         self.widgets_signal = create_signal_widgets()
 
     def _init_widgets_debug(self) -> None:
-        width = self.widget_settings["fps"].get("width")
-        height = self.widget_settings["fps"].get("height")
+        width = self.widget_settings.fps.width
+        height = self.widget_settings.fps.height
         self.widgets_debug = create_debug_widgets(width, height)
 
     def _init_widgets_rec(self) -> None:

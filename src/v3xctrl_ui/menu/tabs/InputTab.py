@@ -1,10 +1,12 @@
 from collections.abc import Callable
+from dataclasses import fields, replace
 from typing import Any
 
 from pygame import Surface
 
 from v3xctrl_ui.core.controllers.input.GamepadController import GamepadController
 from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.core.SettingsSchema import CalibrationSettings, InputSettings
 from v3xctrl_ui.menu.calibration.GamepadCalibrationWidget import GamepadCalibrationWidget
 from v3xctrl_ui.menu.input import KeyMappingWidget
 from v3xctrl_ui.utils.fonts import LABEL_FONT
@@ -31,9 +33,9 @@ class InputTab(Tab):
         self.gamepad_manager = gamepad_manager
 
         self.key_widgets: list[KeyMappingWidget] = []
-        keyboard_controls = self.settings.get("controls", {}).get("keyboard", {})
+        keyboard = self.settings.controls.keyboard
 
-        for name, key in keyboard_controls.items():
+        for name, key in ((f.name, getattr(keyboard, f.name)) for f in fields(keyboard)):
             widget = KeyMappingWidget(
                 control_name=name,
                 key_code=key,
@@ -73,17 +75,15 @@ class InputTab(Tab):
     def get_settings(self) -> dict[str, Any]:
         return {
             "controls": self.controls,
-            "input": {"guid": self.calibration_widget.get_selected_guid()},
-            "calibrations": self.gamepad_manager.get_calibrations(),
+            "input": InputSettings(guid=self.calibration_widget.get_selected_guid() or ""),
+            "calibrations": CalibrationSettings(by_guid=self.gamepad_manager.get_calibrations()),
         }
 
     def apply_settings(self) -> None:
-        self.controls = self._own_section("controls", {})
-        keyboard_controls = self.controls.get("keyboard", {})
+        self.controls = self.settings.controls
 
         for widget in self.key_widgets:
-            if widget.control_name in keyboard_controls:
-                widget.key_code = keyboard_controls[widget.control_name]
+            widget.key_code = getattr(self.controls.keyboard, widget.control_name)
 
     def _on_active_toggle(self, active: bool) -> None:
         self.on_active_toggle(active)
@@ -94,8 +94,8 @@ class InputTab(Tab):
             self._on_calibration_done()
 
     def _on_control_key_change(self, control_name: str, key_code: int) -> None:
-        keyboard = self.controls.setdefault("keyboard", {})
-        keyboard[control_name] = key_code
+        keyboard = replace(self.controls.keyboard, **{control_name: key_code})
+        self.controls = replace(self.controls, keyboard=keyboard)
 
     def _on_calibration_start(self) -> None:
         self.on_active_toggle(True)

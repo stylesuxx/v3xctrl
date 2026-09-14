@@ -9,6 +9,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pygame
 
+from tests.v3xctrl_ui.settings_helper import build_settings
 from v3xctrl_ui.core.FrameSnapshot import ConnectionStatus, FrameSnapshot
 from v3xctrl_ui.core.Renderer import Renderer
 
@@ -28,8 +29,7 @@ class TestRenderer(unittest.TestCase):
         pygame.init()
         pygame.display.set_mode((800, 600))
 
-        self.settings = MagicMock()
-        self.settings.get.return_value = {}
+        self.settings = build_settings()
         self.osd = MagicMock()
         self.menu = MagicMock()
         self.screen = pygame.Surface((800, 600))

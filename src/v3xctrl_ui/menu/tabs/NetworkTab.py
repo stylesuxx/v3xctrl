@@ -174,8 +174,8 @@ class NetworkTab(Tab):
         self.transport = self.settings.transport
         self.ports = self.settings.ports
         self.relay = self.settings.relay
-        self.udp_packet_ttl = self.settings.get("udp_packet_ttl", 100)
-        self.control_buffer_capacity = self.settings.get("control_buffer_capacity", 1)
+        self.udp_packet_ttl = self.settings.udp_packet_ttl
+        self.control_buffer_capacity = self.settings.control_buffer_capacity
 
         # Transport select - defer set_options until positioned (rect != None)
         transport_index = (

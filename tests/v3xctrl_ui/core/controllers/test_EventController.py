@@ -11,19 +11,23 @@ from unittest.mock import Mock
 import pygame
 import pytest
 
+from tests.v3xctrl_ui.settings_helper import build_settings
 from v3xctrl_ui.core.controllers.EventController import EventController
-from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.core.SettingsSchema import ControlSettings, KeyboardControls
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 
 
 @pytest.fixture
 def mock_settings():
-    """Create a mock settings object."""
-    settings = Mock(spec=Settings)
-    settings.get.return_value = {
-        "keyboard": {"trim_increase": pygame.K_LEFT, "trim_decrease": pygame.K_RIGHT, "rec_toggle": pygame.K_r}
-    }
-    return settings
+    return build_settings(
+        controls=ControlSettings(
+            keyboard=KeyboardControls(
+                trim_increase=pygame.K_LEFT,
+                trim_decrease=pygame.K_RIGHT,
+                rec_toggle=pygame.K_r,
+            )
+        )
+    )
 
 
 @pytest.fixture

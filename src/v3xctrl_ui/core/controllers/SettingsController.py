@@ -58,7 +58,7 @@ class SettingsController:
         """
         # Handle fullscreen changes
         fullscreen_previous = self.model.fullscreen
-        fullscreen_new = new_settings.get("video", {}).get("fullscreen", False)
+        fullscreen_new = new_settings.video.fullscreen
         if fullscreen_previous != fullscreen_new:
             self.on_fullscreen_change(fullscreen_new)
 
