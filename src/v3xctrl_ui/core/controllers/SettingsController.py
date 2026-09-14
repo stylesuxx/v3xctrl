@@ -1,6 +1,5 @@
 """Settings manager for handling configuration updates and hot-reload."""
 
-import copy
 import logging
 from collections.abc import Callable
 from typing import TYPE_CHECKING
@@ -37,7 +36,6 @@ class SettingsController:
         """
         self.settings = settings
         self.model = model
-        self.old_settings = copy.deepcopy(settings)
         self.network_restarter = network_restarter
         self.on_fullscreen_change = on_fullscreen_change
 
@@ -69,9 +67,9 @@ class SettingsController:
 
         # Check if network manager needs to be restarted
         if (
-            new_settings.ports != self.old_settings.ports
+            new_settings.ports != self.settings.ports
             or self._needs_relay_restart(new_settings)
-            or new_settings.transport != self.old_settings.transport
+            or new_settings.transport != self.settings.transport
         ):
             self.model.pending_settings = new_settings
             self.network_restarter.restart(new_settings)
@@ -106,7 +104,6 @@ class SettingsController:
             new_settings: Settings to apply
         """
         self.settings = new_settings
-        self.old_settings = copy.deepcopy(new_settings)
 
         for subscriber in self._subscribers:
             subscriber.apply_settings(new_settings)
@@ -125,7 +122,7 @@ class SettingsController:
         Returns:
             True if network restart is needed
         """
-        old_relay = self.old_settings.relay
+        old_relay = self.settings.relay
         new_relay = new_settings.relay
 
         has_session_id = bool(new_relay.id)
