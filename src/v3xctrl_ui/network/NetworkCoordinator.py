@@ -4,8 +4,12 @@ import logging
 import queue
 import threading
 import time
+from collections import deque
 from collections.abc import Callable
 from typing import Any
+
+import numpy as np
+import numpy.typing as npt
 
 from v3xctrl_control import State
 from v3xctrl_control.message import Command, Control, Latency, Telemetry
@@ -146,6 +150,38 @@ class NetworkCoordinator:
             return len(self.network_controller.video_receiver.frame_buffer)
 
         return 0
+
+    def get_video_frame(self) -> "npt.NDArray[np.uint8] | None":
+        """Take the frame to display this tick.
+
+        Call this exactly once per rendered frame: the receiver advances its
+        buffer and records render timing on every call.
+        """
+        if self.network_controller and self.network_controller.video_receiver:
+            return self.network_controller.video_receiver.get_frame()
+
+        return None
+
+    def get_video_history(self) -> deque[float] | None:
+        if self.network_controller and self.network_controller.video_receiver:
+            return self.network_controller.video_receiver.render_history.copy()
+
+        return None
+
+    def get_control_error(self) -> str | None:
+        if self.network_controller:
+            return self.network_controller.server_error
+
+        return None
+
+    def is_relay_enabled(self) -> bool:
+        return bool(self.network_controller and self.network_controller.relay_enable)
+
+    def get_relay_status_message(self) -> str:
+        if self.network_controller:
+            return self.network_controller.relay_status_message
+
+        return ""
 
     def has_recent_control_drops(self) -> bool:
         if self.network_controller and self.network_controller.server and not self.network_controller.server_error:

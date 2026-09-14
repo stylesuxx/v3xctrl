@@ -8,12 +8,14 @@ on:
     paths:
       - 'src/**'
       - 'tests/**'
+      - 'benchmarks/**'
       - 'ruff.toml'
       - 'pyproject.toml'
   pull_request:
     paths:
       - 'src/**'
       - 'tests/**'
+      - 'benchmarks/**'
       - 'ruff.toml'
       - 'pyproject.toml'
 
@@ -26,8 +28,8 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install ruff==0.15.6
-      - run: ruff check src/ tests/ stats-server/
-      - run: ruff format --check src/ tests/ stats-server/
+      - run: ruff check src/ tests/ stats-server/ benchmarks/
+      - run: ruff format --check src/ tests/ stats-server/ benchmarks/
 
   typecheck:
     runs-on: ubuntu-latest
