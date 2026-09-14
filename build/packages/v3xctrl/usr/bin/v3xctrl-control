@@ -9,22 +9,22 @@ if [ -z "${control_failsafe_channelA}" ] || [ -z "${control_failsafe_channelB}" 
   exit 1
 fi
 
-EXTRA_ARGS=""
+ARGS=""
 
 if [ "$control_mixer_ackermann_steering_invert" = "true" ]; then
-  EXTRA_ARGS+="--ackermann-steering-invert "
+  ARGS+="--ackermann-steering-invert "
 fi
 
 if [ "$control_mixer_differential_motor_reversible" = "true" ]; then
-  EXTRA_ARGS+="--differential-motor-reversible "
+  ARGS+="--differential-motor-reversible "
 fi
 
 if [ "$control_mixer_differential_mixing_invert" = "true" ]; then
-  EXTRA_ARGS+="--differential-mixing-invert "
+  ARGS+="--differential-mixing-invert "
 fi
 
 if [ "$viewer_mode" = "relay" ] && [ "$viewer_transport" = "tcp" ]; then
-  EXTRA_ARGS+="--relay-session-id ${viewer_relay_sessionId} "
+  ARGS+="--relay-session-id ${viewer_relay_sessionId} "
 fi
 
 v3xctrl-python -m v3xctrl_control.apps.streamer "${viewer_direct_host}" "${viewer_ports_control}" "${viewer_ports_control_bind}" \
@@ -73,4 +73,4 @@ v3xctrl-python -m v3xctrl_control.apps.streamer "${viewer_direct_host}" "${viewe
   --gps-path "${telemetry_gps_path}" \
   --gps-protocol "${telemetry_gps_protocol}" \
   --gps-rate-hz "${telemetry_gps_rateHz}" \
-  ${EXTRA_ARGS}
+  ${ARGS}

@@ -12,7 +12,6 @@ class MixerType(StrEnum):
 
 
 def map_range(value: float, in_min: float, in_max: float, servo_min: int = 1000, servo_max: int = 2000) -> int:
-    """Maps a float value from an input range to a servo PWM pulse width."""
     if in_min == in_max:
         raise ValueError("Input range cannot be zero")
 
