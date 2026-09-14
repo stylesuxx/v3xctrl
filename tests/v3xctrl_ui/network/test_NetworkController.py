@@ -1,7 +1,9 @@
 import unittest
+from collections import deque
 from unittest.mock import MagicMock, patch
 
 from tests.v3xctrl_ui.settings_helper import build_settings
+from v3xctrl_control.message import Command
 from v3xctrl_ui.network.NetworkController import NetworkController
 from v3xctrl_ui.network.video.ClockOffset import ClockOffset
 
@@ -474,6 +476,99 @@ class TestNetworkController(unittest.TestCase):
         result = nm.get_control_buffer_size()
 
         self.assertEqual(result, 0)
+
+
+class TestChannelOperations(unittest.TestCase):
+    """The guards that used to live in NetworkCoordinator, now where the state is."""
+
+    def setUp(self):
+        self.settings = build_settings(relay={"enabled": False}, ports={"video": 5000, "control": 6000})
+        self.handlers = {"messages": [], "states": []}
+        self.clock_offset = ClockOffset()
+
+    def _controller(self) -> NetworkController:
+        return NetworkController(self.settings, self.handlers, self.clock_offset)
+
+    def test_control_is_sent_when_the_channel_is_up(self):
+        controller = self._controller()
+        controller.server = MagicMock()
+        controller.server_error = None
+
+        controller.send_control(0.5, -0.3)
+
+        sent = controller.server.send_control.call_args[0][0]
+        self.assertEqual(sent.values, {"steering": -0.3, "throttle": 0.5})
+
+    def test_control_is_dropped_without_a_server(self):
+        controller = self._controller()
+        controller.server = None
+
+        controller.send_control(0.5, -0.3)
+
+    def test_control_is_dropped_while_the_server_is_in_error(self):
+        controller = self._controller()
+        controller.server = MagicMock()
+        controller.server_error = "Control port already in use"
+
+        controller.send_control(0.5, -0.3)
+
+        controller.server.send_control.assert_not_called()
+
+    def test_send_command_reports_whether_it_could_send(self):
+        controller = self._controller()
+        callback = MagicMock()
+
+        controller.server = None
+        self.assertFalse(controller.send_command(Command({"action": "test"}), callback))
+
+        controller.server = MagicMock()
+        self.assertTrue(controller.send_command(Command({"action": "test"}), callback))
+        controller.server.send_command.assert_called_once()
+
+    def test_video_reads_fall_back_without_a_receiver(self):
+        controller = self._controller()
+        controller.video_receiver = None
+
+        self.assertIsNone(controller.get_video_frame())
+        self.assertIsNone(controller.get_video_history())
+        self.assertEqual(controller.get_video_buffer_size(), 0)
+
+    def test_video_reads_go_to_the_receiver(self):
+        controller = self._controller()
+        receiver = MagicMock()
+        receiver.frame_buffer = [1, 2, 3]
+        receiver.render_history = deque([1.0, 2.0])
+        controller.video_receiver = receiver
+
+        self.assertIs(controller.get_video_frame(), receiver.get_frame.return_value)
+        self.assertEqual(controller.get_video_history(), deque([1.0, 2.0]))
+        self.assertEqual(controller.get_video_buffer_size(), 3)
+
+    def test_the_video_history_handed_out_is_a_copy(self):
+        """The render path must not be able to mutate the receiver's history."""
+        controller = self._controller()
+        receiver = MagicMock()
+        receiver.render_history = deque([1.0])
+        controller.video_receiver = receiver
+
+        controller.get_video_history().append(2.0)
+
+        self.assertEqual(receiver.render_history, deque([1.0]))
+
+    def test_transmitter_health_falls_back_without_a_server(self):
+        controller = self._controller()
+        controller.server = None
+
+        self.assertFalse(controller.has_recent_control_drops())
+        self.assertFalse(controller.has_recent_send_failures())
+
+    def test_transmitter_health_falls_back_while_the_server_is_in_error(self):
+        controller = self._controller()
+        controller.server = MagicMock()
+        controller.server_error = "Control port already in use"
+
+        self.assertFalse(controller.has_recent_control_drops())
+        self.assertFalse(controller.has_recent_send_failures())
 
 
 if __name__ == "__main__":
