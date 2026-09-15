@@ -1,6 +1,9 @@
+import glob
 import logging
 import os
 import sys
+
+from v3xctrl_ui import __version__
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +43,40 @@ def _check_gstreamer_elements() -> str | None:
     return None
 
 
+def _is_running_in_flatpak() -> bool:
+    """Check whether the process runs inside a Flatpak sandbox."""
+    return os.path.exists("/.flatpak-info")
+
+
+def _use_versioned_registry() -> None:
+    """Point GStreamer at a plugin registry file keyed on the viewer version.
+
+    The registry caches which elements every plugin provides and revalidates
+    an entry from that plugin file's own mtime and size. Inside the sandbox a
+    plugin gains elements when one of its shared library dependencies is
+    replaced while the plugin file itself stays byte-identical, so keying the
+    registry on the viewer version is what lets an upgrade observe them.
+    """
+    cache_home = os.environ.get("XDG_CACHE_HOME") or os.path.join(os.path.expanduser("~"), ".cache")
+    registry_directory = os.path.join(cache_home, "gstreamer-1.0")
+    registry_path = os.path.join(registry_directory, f"registry-{__version__}.bin")
+
+    try:
+        os.makedirs(registry_directory, exist_ok=True)
+        for outdated_registry in glob.glob(os.path.join(registry_directory, "registry-*.bin")):
+            if outdated_registry != registry_path:
+                os.unlink(outdated_registry)
+    except OSError as error:
+        logger.warning(f"Could not prepare GStreamer registry directory: {error}")
+        return
+
+    os.environ["GST_REGISTRY"] = registry_path
+
+
 def _do_gstreamer_check() -> bool:
+    if _is_running_in_flatpak():
+        _use_versioned_registry()
+
     if getattr(sys, "frozen", False):
         # PyInstaller's built-in gi hook (or gi/__init__.py itself) may set
         # GST_PLUGIN_PATH to include the bundle root (_MEIPASS), which causes
