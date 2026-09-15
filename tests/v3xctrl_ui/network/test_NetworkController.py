@@ -70,8 +70,8 @@ class TestNetworkController(unittest.TestCase):
         # Initial state
         self.assertIsNone(nm.video_receiver)
         self.assertIsNone(nm.server)
-        self.assertIsNone(nm.server_error)
-        self.assertFalse(nm.relay_enable)
+        self.assertIsNone(nm.get_server_error())
+        self.assertFalse(nm.is_relay_enabled())
 
     def test_initialization_relay_enabled(self):
         """Test NetworkController initialization with relay enabled."""
@@ -84,7 +84,7 @@ class TestNetworkController(unittest.TestCase):
         nm = NetworkController(relay_settings, self.handlers, self.clock_offset)
 
         # Relay should be configured
-        self.assertTrue(nm.relay_enable)
+        self.assertTrue(nm.is_relay_enabled())
         self.assertEqual(nm.relay_server, "relay.example.com")
         self.assertEqual(nm.relay_port, 8080)
         self.assertEqual(nm.relay_id, "test123")
@@ -95,7 +95,7 @@ class TestNetworkController(unittest.TestCase):
 
         nm.setup_relay("example.com:9999", "testid")
 
-        self.assertTrue(nm.relay_enable)
+        self.assertTrue(nm.is_relay_enabled())
         self.assertEqual(nm.relay_server, "example.com")
         self.assertEqual(nm.relay_port, 9999)
         self.assertEqual(nm.relay_id, "testid")
@@ -107,7 +107,7 @@ class TestNetworkController(unittest.TestCase):
         with patch("v3xctrl_ui.network.NetworkController.logger") as mock_logger:
             nm.setup_relay("example.com:notaport", "testid")
 
-            self.assertTrue(nm.relay_enable)
+            self.assertTrue(nm.is_relay_enabled())
             self.assertEqual(nm.relay_server, "example.com")
             self.assertEqual(nm.relay_port, 8888)  # Default port
             self.assertEqual(nm.relay_id, "testid")
@@ -119,7 +119,7 @@ class TestNetworkController(unittest.TestCase):
 
         nm.setup_relay("example.com", "testid")
 
-        self.assertTrue(nm.relay_enable)
+        self.assertTrue(nm.is_relay_enabled())
         self.assertEqual(nm.relay_server, "example.com")
         self.assertEqual(nm.relay_port, 8888)  # Default port
         self.assertEqual(nm.relay_id, "testid")
@@ -225,7 +225,7 @@ class TestNetworkController(unittest.TestCase):
         task_func()
 
         # Verify error message was set
-        self.assertIn("registration failed", nm.relay_status_message.lower())
+        self.assertIn("registration failed", nm.get_relay_status_message().lower())
 
     def test_setup_ports_server_error(self):
         """Test setup_ports when server initialization fails."""
@@ -248,7 +248,7 @@ class TestNetworkController(unittest.TestCase):
         task_func()
 
         # Verify error was stored
-        self.assertEqual(nm.server_error, "Control port already in use")
+        self.assertEqual(nm.get_server_error(), "Control port already in use")
 
     def test_send_latency_check_with_server(self):
         """Test send_latency_check when server is available."""
@@ -257,7 +257,7 @@ class TestNetworkController(unittest.TestCase):
         # Mock server
         mock_server = MagicMock()
         nm.server = mock_server
-        nm.server_error = None
+        nm._server_error = None
 
         nm.send_latency_check()
 
@@ -273,7 +273,7 @@ class TestNetworkController(unittest.TestCase):
 
         # No server
         nm.server = None
-        nm.server_error = None
+        nm._server_error = None
 
         nm.send_latency_check()
 
@@ -286,7 +286,7 @@ class TestNetworkController(unittest.TestCase):
         # Server with error
         mock_server = MagicMock()
         nm.server = mock_server
-        nm.server_error = "Connection failed"
+        nm._server_error = "Connection failed"
 
         nm.send_latency_check()
 
@@ -301,7 +301,7 @@ class TestNetworkController(unittest.TestCase):
         mock_server = MagicMock()
         mock_server.transmitter.queue.qsize.return_value = 42
         nm.server = mock_server
-        nm.server_error = None
+        nm._server_error = None
 
         result = nm.get_data_queue_size()
 
@@ -325,7 +325,7 @@ class TestNetworkController(unittest.TestCase):
         # Server with error
         mock_server = MagicMock()
         nm.server = mock_server
-        nm.server_error = "Connection failed"
+        nm._server_error = "Connection failed"
 
         result = nm.get_data_queue_size()
 
@@ -413,7 +413,7 @@ class TestNetworkController(unittest.TestCase):
         nm = NetworkController(relay_settings, self.handlers, self.clock_offset)
 
         # Relay should not be configured due to missing server
-        self.assertFalse(nm.relay_enable)
+        self.assertFalse(nm.is_relay_enabled())
         self.assertIsNone(nm.relay_server)
         self.assertIsNone(nm.relay_id)
 
@@ -428,7 +428,7 @@ class TestNetworkController(unittest.TestCase):
         nm = NetworkController(relay_settings, self.handlers, self.clock_offset)
 
         # Relay should not be configured due to missing ID
-        self.assertFalse(nm.relay_enable)
+        self.assertFalse(nm.is_relay_enabled())
         self.assertIsNone(nm.relay_server)
         self.assertIsNone(nm.relay_id)
 
@@ -438,7 +438,7 @@ class TestNetworkController(unittest.TestCase):
 
         nm.setup_relay("", "testid")
 
-        self.assertTrue(nm.relay_enable)
+        self.assertTrue(nm.is_relay_enabled())
         self.assertEqual(nm.relay_server, "")
         self.assertEqual(nm.relay_port, 8888)  # Default port
         self.assertEqual(nm.relay_id, "testid")
@@ -450,7 +450,7 @@ class TestNetworkController(unittest.TestCase):
         mock_server = MagicMock()
         mock_server.transmitter.get_control_buffer_size.return_value = 3
         nm.server = mock_server
-        nm.server_error = None
+        nm._server_error = None
 
         result = nm.get_control_buffer_size()
 
@@ -471,7 +471,7 @@ class TestNetworkController(unittest.TestCase):
 
         mock_server = MagicMock()
         nm.server = mock_server
-        nm.server_error = "Connection failed"
+        nm._server_error = "Connection failed"
 
         result = nm.get_control_buffer_size()
 
@@ -492,7 +492,7 @@ class TestChannelOperations(unittest.TestCase):
     def test_control_is_sent_when_the_channel_is_up(self):
         controller = self._controller()
         controller.server = MagicMock()
-        controller.server_error = None
+        controller._server_error = None
 
         controller.send_control(0.5, -0.3)
 
@@ -508,7 +508,7 @@ class TestChannelOperations(unittest.TestCase):
     def test_control_is_dropped_while_the_server_is_in_error(self):
         controller = self._controller()
         controller.server = MagicMock()
-        controller.server_error = "Control port already in use"
+        controller._server_error = "Control port already in use"
 
         controller.send_control(0.5, -0.3)
 
@@ -565,7 +565,7 @@ class TestChannelOperations(unittest.TestCase):
     def test_transmitter_health_falls_back_while_the_server_is_in_error(self):
         controller = self._controller()
         controller.server = MagicMock()
-        controller.server_error = "Control port already in use"
+        controller._server_error = "Control port already in use"
 
         self.assertFalse(controller.has_recent_control_drops())
         self.assertFalse(controller.has_recent_send_failures())

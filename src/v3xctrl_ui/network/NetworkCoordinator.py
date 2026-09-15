@@ -110,14 +110,14 @@ class NetworkCoordinator:
 
     def send_control_message(self, throttle: float, steering: float) -> None:
         # Skip sending control messages in spectator mode
-        if self.network_controller.relay_spectator_mode:
+        if self.network_controller.is_spectator():
             return
 
         self.network_controller.send_control(throttle, steering)
 
     def send_command(self, command: Command, callback: Callable[[bool], None]) -> None:
         # Skip sending commands in spectator mode
-        if self.network_controller.relay_spectator_mode:
+        if self.network_controller.is_spectator():
             logger.debug(f"Blocked command in spectator mode: {command}")
             self.main_thread_dispatcher.post(callback, False)
             return
@@ -132,7 +132,7 @@ class NetworkCoordinator:
 
     def send_latency_check(self) -> None:
         # Skip latency checks in spectator mode
-        if self.network_controller.relay_spectator_mode:
+        if self.network_controller.is_spectator():
             return
 
         self.network_controller.send_latency_check()
@@ -158,13 +158,13 @@ class NetworkCoordinator:
         return self.network_controller.get_video_history()
 
     def get_control_error(self) -> str | None:
-        return self.network_controller.server_error
+        return self.network_controller.get_server_error()
 
     def is_relay_enabled(self) -> bool:
-        return self.network_controller.relay_enable
+        return self.network_controller.is_relay_enabled()
 
     def get_relay_status_message(self) -> str:
-        return self.network_controller.relay_status_message
+        return self.network_controller.get_relay_status_message()
 
     def has_recent_control_drops(self) -> bool:
         return self.network_controller.has_recent_control_drops()
@@ -176,7 +176,7 @@ class NetworkCoordinator:
         return self.model.control_connected
 
     def is_spectator(self) -> bool:
-        return self.network_controller.relay_spectator_mode
+        return self.network_controller.is_spectator()
 
     def shutdown(self) -> None:
         start = time.monotonic()
