@@ -8,6 +8,7 @@ import unittest
 import pygame
 
 from v3xctrl_ui.osd.widgets import TextWidget
+from v3xctrl_ui.osd.widgets.TextWidget import ColoredText
 
 
 class TestTextWidget(unittest.TestCase):
@@ -24,7 +25,7 @@ class TestTextWidget(unittest.TestCase):
         self.assertEqual(self.widget.length, 100)
 
     def test_draw_sets_surface_and_text_rect(self):
-        self.widget.draw(self.screen, "Test")
+        self.widget.draw(self.screen, ColoredText("Test"))
         self.assertIsNotNone(self.widget.surface)
         self.assertGreater(self.widget.surface.get_height(), 0)
         self.assertEqual(self.widget.surface.get_width(), self.widget.length)
@@ -33,7 +34,7 @@ class TestTextWidget(unittest.TestCase):
         self.assertGreater(self.widget.height, 0)
 
     def test_draw_executes_without_crash(self):
-        self.widget.draw(self.screen, "Draw safely")
+        self.widget.draw(self.screen, ColoredText("Draw safely"))
 
     def test_text_is_centered(self):
         dummy_surface = pygame.Surface((40, 10), pygame.SRCALPHA)
@@ -45,7 +46,7 @@ class TestTextWidget(unittest.TestCase):
 
         self.widget.font = DummyFont()
 
-        self.widget.draw(self.screen, "Centered")
+        self.widget.draw(self.screen, ColoredText("Centered"))
         expected_x = (self.widget.length - 40) // 2
         expected_y = self.widget.top_padding
 
@@ -63,16 +64,24 @@ class TestTextWidget(unittest.TestCase):
         self.widget.set_alignment(Alignment.CENTER)
         self.assertEqual(self.widget.alignment, Alignment.CENTER)
 
-    def test_set_text_color(self):
-        new_color = (255, 0, 0)
-        self.widget.set_text_color(new_color)
-        self.assertEqual(self.widget.color, new_color)
+    def test_draw_uses_the_color_it_is_given(self):
+        rendered = []
+
+        class RecordingFont:
+            def render(self, text, color=None):
+                rendered.append((text, color))
+                return pygame.Surface((40, 10), pygame.SRCALPHA), pygame.Rect(0, 0, 40, 10)
+
+        self.widget.font = RecordingFont()
+        self.widget.draw(self.screen, ColoredText("Warning", (255, 0, 0)))
+
+        self.assertEqual(rendered, [("Warning", (255, 0, 0))])
 
     def test_left_alignment(self):
         from v3xctrl_ui.osd.widgets.TextWidget import Alignment
 
         self.widget.set_alignment(Alignment.LEFT)
-        self.widget.draw(self.screen, "Left")
+        self.widget.draw(self.screen, ColoredText("Left"))
 
         # Verify text is positioned at left_padding
         dummy_surface = pygame.Surface((40, 10), pygame.SRCALPHA)
@@ -83,7 +92,7 @@ class TestTextWidget(unittest.TestCase):
                 return dummy_surface, dummy_rect
 
         self.widget.font = DummyFont()
-        self.widget.draw(self.screen, "Left")
+        self.widget.draw(self.screen, ColoredText("Left"))
 
         # Text should be at left_padding position
         expected_x = self.widget.left_padding
@@ -102,7 +111,7 @@ class TestTextWidget(unittest.TestCase):
                 return dummy_surface, dummy_rect
 
         self.widget.font = DummyFont()
-        self.widget.draw(self.screen, "Right")
+        self.widget.draw(self.screen, ColoredText("Right"))
 
         # Text should be positioned from the right edge minus text width and right padding
         expected_x = self.widget.length - 40 - self.widget.right_padding

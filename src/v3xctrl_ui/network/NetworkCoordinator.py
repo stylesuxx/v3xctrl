@@ -15,6 +15,7 @@ from v3xctrl_control.message import Command, Latency, Telemetry
 from v3xctrl_ui.core.dataclasses import ApplicationModel
 from v3xctrl_ui.core.MainThreadDispatcher import MainThreadDispatcher
 from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.core.TelemetrySink import TelemetrySink
 from v3xctrl_ui.network.NetworkController import NetworkController
 from v3xctrl_ui.network.video.ClockOffset import ClockOffset
 from v3xctrl_ui.osd.OSD import OSD
@@ -36,11 +37,13 @@ class NetworkCoordinator:
         self,
         model: ApplicationModel,
         osd: OSD,
+        telemetry_sink: TelemetrySink,
         settings: Settings,
         main_thread_dispatcher: MainThreadDispatcher,
     ):
         self.model = model
         self.osd = osd
+        self.telemetry_sink = telemetry_sink
         self.main_thread_dispatcher = main_thread_dispatcher
 
         self.restart_complete = threading.Event()
@@ -193,20 +196,24 @@ class NetworkCoordinator:
             if self.on_connection_change:
                 self.on_connection_change(state)
 
+        def disconnect() -> None:
+            self.osd.disconnect_handler()
+            self.telemetry_sink.reset()
+
         def latency_handler(message: Latency, address: tuple[str, int]) -> None:
-            self.osd.message_handler(message)
+            self.telemetry_sink.handle_message(message)
             if message.streamer_timestamp is not None:
                 self.clock_offset.update(message.timestamp, message.streamer_timestamp, time.time())
 
         return {
             "messages": [
-                (Telemetry, lambda message, address: self.osd.message_handler(message)),
+                (Telemetry, lambda message, address: self.telemetry_sink.handle_message(message)),
                 (Latency, latency_handler),
             ],
             "states": [
                 (State.CONNECTED, lambda: self.osd.connect_handler()),
                 (State.SPECTATING, lambda: self.osd.connect_handler()),
-                (State.DISCONNECTED, lambda: self.osd.disconnect_handler()),
+                (State.DISCONNECTED, disconnect),
                 (State.CONNECTED, lambda: update_connected(True)),
                 (State.SPECTATING, lambda: update_connected(True)),
                 (State.DISCONNECTED, lambda: update_connected(False)),

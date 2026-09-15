@@ -99,7 +99,7 @@ class TestRenderHotPath(unittest.TestCase):
         receiver = CountingReceiver()
         controller = CountingController(receiver)
 
-        coordinator = NetworkCoordinator(app.model, app.osd, self.settings, MainThreadDispatcher())
+        coordinator = NetworkCoordinator(app.model, app.osd, app.telemetry_sink, self.settings, MainThreadDispatcher())
         coordinator.network_controller = controller
         app.network_coordinator = coordinator
 
