@@ -8,7 +8,8 @@ import unittest
 import pygame
 
 from v3xctrl_ui.osd.widgets import RecWidget
-from v3xctrl_ui.utils.colors import RED, WHITE
+from v3xctrl_ui.osd.widgets.TextWidget import ColoredText
+from v3xctrl_ui.utils.colors import RED
 
 
 class TestRecWidget(unittest.TestCase):
@@ -23,7 +24,6 @@ class TestRecWidget(unittest.TestCase):
     def test_initial_values(self):
         self.assertEqual(self.widget.position, (10, 20))
         self.assertEqual(self.widget.border_radius, 5)
-        self.assertEqual(self.widget.color, WHITE)
         self.assertEqual(self.widget.bg_color, RED)
         self.assertEqual(self.widget.background_alpha, 255)
 
@@ -39,7 +39,7 @@ class TestRecWidget(unittest.TestCase):
         self.assertEqual(widget.border_radius, 10)
 
     def test_draw_renders_the_text_it_is_given(self):
-        self.widget.draw(self.screen, "REC")
+        self.widget.draw(self.screen, ColoredText("REC"))
         self.assertIsNotNone(self.widget.surface)
 
     def test_background_has_rounded_corners(self):
@@ -59,10 +59,10 @@ class TestRecWidget(unittest.TestCase):
         self.assertEqual(self.widget.width, self.widget.length)
 
     def test_draw_executes_without_crash(self):
-        self.widget.draw(self.screen, "REC")
+        self.widget.draw(self.screen, ColoredText("REC"))
 
     def test_surface_created_after_draw(self):
-        self.widget.draw(self.screen, "REC")
+        self.widget.draw(self.screen, ColoredText("REC"))
         self.assertIsNotNone(self.widget.surface)
         self.assertIsNotNone(self.widget.text_surface)
 

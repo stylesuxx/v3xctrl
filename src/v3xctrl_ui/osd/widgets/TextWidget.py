@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from enum import Enum
 
 from pygame import SRCALPHA, Surface
@@ -13,7 +14,13 @@ class Alignment(Enum):
     CENTER = "center"
 
 
-class TextWidget(Widget[str]):
+@dataclass(frozen=True, slots=True)
+class ColoredText:
+    text: str
+    color: tuple[int, int, int] = WHITE
+
+
+class TextWidget(Widget[ColoredText]):
     def __init__(
         self,
         position: tuple[int, int],
@@ -37,7 +44,6 @@ class TextWidget(Widget[str]):
         self.bg_color = GREY
 
         # Set defaults, can be overwritten
-        self.color = WHITE
         self.alignment = Alignment.CENTER
 
         """
@@ -56,16 +62,13 @@ class TextWidget(Widget[str]):
     def set_alignment(self, align: Alignment) -> None:
         self.alignment = align
 
-    def set_text_color(self, color: tuple[int, int, int]) -> None:
-        self.color = color
-
     def set_background_color(self, color: tuple[int, int, int], alpha: int = 180) -> None:
         self.bg_color = color
         self.background_alpha = alpha
         self._create_background()
 
-    def draw(self, screen: Surface, text: str) -> None:
-        self.text_surface, self.text_rect = self.font.render(text, self.color)
+    def draw(self, screen: Surface, value: ColoredText) -> None:
+        self.text_surface, self.text_rect = self.font.render(value.text, value.color)
         self.surface = self.bg_surface.copy()
 
         match self.alignment:

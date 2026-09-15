@@ -30,6 +30,7 @@ from v3xctrl_ui.core.FrameSnapshot import ConnectionStatus, FrameSnapshot
 from v3xctrl_ui.core.Renderer import Renderer
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext
+from v3xctrl_ui.core.TelemetrySink import TelemetrySink
 from v3xctrl_ui.osd.OSD import OSD
 
 WIDTH = 1280
@@ -116,6 +117,7 @@ def main() -> None:
 
     settings = build_settings()
     telemetry_context = TelemetryContext()
+    telemetry_sink = TelemetrySink(telemetry_context)
 
     pygame.display.set_mode((WIDTH, HEIGHT), pygame.DOUBLEBUF | pygame.SCALED)
     screen = pygame.display.get_surface()
@@ -144,7 +146,9 @@ def main() -> None:
         osd.update_buffer_queue(connection.video_buffer_depth)
         osd.update_control_queue(connection.control_queue_depth)
         osd.set_control(model.throttle, model.steering)
-        osd.set_spectator_mode(connection.spectator)
+
+        telemetry_sink.set_spectator_mode(connection.spectator)
+        osd.update_latency(telemetry_sink.latency)
 
         return FrameSnapshot(
             connection=connection,

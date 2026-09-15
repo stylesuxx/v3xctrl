@@ -10,6 +10,7 @@ import pygame
 
 from v3xctrl_ui.core.SettingsSchema import WidgetAlignment, WidgetConfig, WidgetSettings
 from v3xctrl_ui.osd.widgets import TextWidget, Widget
+from v3xctrl_ui.osd.widgets.TextWidget import ColoredText
 from v3xctrl_ui.osd.widgets.WidgetGroup import WidgetEntry, WidgetGroup
 from v3xctrl_ui.osd.widgets.WidgetGroupRenderer import (
     _calculate_dimensions,
@@ -22,7 +23,7 @@ from v3xctrl_ui.osd.widgets.WidgetGroupRenderer import (
 
 
 def entry(name: str, widget: Widget) -> WidgetEntry:
-    return WidgetEntry(name, widget, lambda: f"Value for {name}")
+    return WidgetEntry(name, widget, lambda: ColoredText(f"Value for {name}"))
 
 
 class TestWidgetGroupRenderer(unittest.TestCase):
@@ -142,12 +143,17 @@ class TestWidgetGroupRenderer(unittest.TestCase):
 
         with patch.object(self.widget1, "draw") as mock_draw:
             _draw_entries_to_surface(surface, (self.entry1,), 0)
-            mock_draw.assert_called_once_with(surface, "Value for widget1")
+            mock_draw.assert_called_once_with(surface, ColoredText("Value for widget1"))
 
     def test_a_value_is_read_once_per_widget_per_render(self):
         """Each widget pulls its own value, so a group costs one read per widget."""
         reads = []
-        counted = WidgetEntry("widget1", self.widget1, lambda: reads.append(1))
+
+        def read_value():
+            reads.append(1)
+            return ColoredText("read")
+
+        counted = WidgetEntry("widget1", self.widget1, read_value)
         surface = pygame.Surface((100, 50), pygame.SRCALPHA)
 
         _draw_entries_to_surface(surface, (counted,), 0)

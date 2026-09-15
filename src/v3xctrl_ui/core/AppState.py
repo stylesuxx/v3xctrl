@@ -16,7 +16,9 @@ from v3xctrl_ui.core.FrameSnapshot import ConnectionStatus, FrameSnapshot
 from v3xctrl_ui.core.MainThreadDispatcher import MainThreadDispatcher
 from v3xctrl_ui.core.Renderer import Renderer
 from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.core.StatusLevel import StatusLevel
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext
+from v3xctrl_ui.core.TelemetrySink import TelemetrySink
 from v3xctrl_ui.menu.Menu import Menu
 from v3xctrl_ui.network.NetworkCoordinator import NetworkCoordinator
 from v3xctrl_ui.osd.OSD import OSD
@@ -47,13 +49,18 @@ class AppState:
 
         self.telemetry_context = TelemetryContext()
 
+        # Fed from the receive thread, read by the OSD and the menu
+        self.telemetry_sink = TelemetrySink(self.telemetry_context)
+
         self.osd = OSD(settings, self.telemetry_context)
 
         # Drained once per loop iteration, so background threads can touch the UI
         self.main_thread_dispatcher = MainThreadDispatcher()
 
         # Network coordination
-        self.network_coordinator = NetworkCoordinator(self.model, self.osd, self.settings, self.main_thread_dispatcher)
+        self.network_coordinator = NetworkCoordinator(
+            self.model, self.osd, self.telemetry_sink, self.settings, self.main_thread_dispatcher
+        )
         self.network_coordinator.on_connection_change = self._on_connection_change
 
         # Timing
@@ -209,12 +216,17 @@ class AppState:
                 or self.network_coordinator.has_recent_control_drops()
                 or self.network_coordinator.has_recent_send_failures()
             )
-            self.osd.update_debug_status("fail" if degraded else "success")
+            if degraded:
+                self.osd.update_debug_status(StatusLevel.BAD)
+            else:
+                self.osd.update_debug_status(StatusLevel.GOOD)
 
         self.osd.update_buffer_queue(connection.video_buffer_depth)
         self.osd.update_control_queue(connection.control_queue_depth)
         self.osd.set_control(self.model.throttle, self.model.steering)
-        self.osd.set_spectator_mode(connection.spectator)
+
+        self.telemetry_sink.set_spectator_mode(connection.spectator)
+        self.osd.update_latency(self.telemetry_sink.latency)
 
         inversion = self.input_controller.gamepad_controller.get_axis_inversion()
         self.osd.set_axis_inversion(

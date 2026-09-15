@@ -31,7 +31,6 @@ class RecWidget(TextWidget):
         )
 
         self.set_background_color(RED, alpha=255)
-        self.set_text_color(WHITE)
 
         _, text_rect = self.font.render("REC", WHITE)
         self.width = text_rect.width + self.left_padding + self.right_padding
