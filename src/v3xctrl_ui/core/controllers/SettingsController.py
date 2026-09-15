@@ -137,11 +137,7 @@ class SettingsController:
             or old_relay.server != new_relay.server
             or old_relay.spectator_mode != new_relay.spectator_mode
         )
-        if new_relay.enabled and connection_changed:
-            return True
-
-        # Direct mode: spectator enabled (requires session ID for relay connection)
-        return not new_relay.enabled and not old_relay.spectator_mode and new_relay.spectator_mode and has_session_id
+        return new_relay.enabled and connection_changed
 
     def wait_for_network_restart(self, timeout: float = 5.0) -> bool:
         """Wait for pending network restart to complete.

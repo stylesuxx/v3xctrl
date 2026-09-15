@@ -165,6 +165,29 @@ class TestUpdateSettings:
         assert applied is False
         assert restarter.restart_calls == [new_settings]
 
+    def test_spectator_without_relay_does_not_restart(self):
+        """Spectator mode only exists over the relay, so toggling it in direct mode changes nothing."""
+        settings = build_settings(relay={"enabled": False, "id": "abc", "spectator_mode": False})
+        controller, restarter, _fullscreen, model = build_controller(settings)
+        model.user_connected = True
+
+        new_settings = build_settings(relay={"enabled": False, "id": "abc", "spectator_mode": True})
+        applied = controller.update_settings(new_settings)
+
+        assert applied is True
+        assert restarter.restart_calls == []
+
+    def test_spectator_over_relay_restarts(self):
+        settings = build_settings(relay={"enabled": True, "id": "abc", "spectator_mode": False})
+        controller, restarter, _fullscreen, model = build_controller(settings)
+        model.user_connected = True
+
+        new_settings = build_settings(relay={"enabled": True, "id": "abc", "spectator_mode": True})
+        applied = controller.update_settings(new_settings)
+
+        assert applied is False
+        assert restarter.restart_calls == [new_settings]
+
 
 class TestFullscreen:
     def test_fullscreen_change_is_reported(self):
