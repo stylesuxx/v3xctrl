@@ -10,6 +10,7 @@ from pygame import Surface, event
 from v3xctrl_control.message import Command
 from v3xctrl_relay.helper import test_relay_connection
 from v3xctrl_ui.core.controllers.input.GamepadController import GamepadController
+from v3xctrl_ui.core.MainThreadDispatcher import MainThreadDispatcher
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 from v3xctrl_ui.menu.input import Button
@@ -45,6 +46,7 @@ class Menu:
         callback: Callable[[], None],
         callback_quit: Callable[[], None],
         telemetry_context: TelemetryContext,
+        main_thread_dispatcher: MainThreadDispatcher,
     ) -> None:
         self.width = width
         self.height = height
@@ -52,6 +54,7 @@ class Menu:
         self.settings = settings
         self.invoke_command = invoke_command
         self.telemetry_context = telemetry_context
+        self.main_thread_dispatcher = main_thread_dispatcher
 
         self.callback = callback
         self.callback_quit = callback_quit
@@ -115,7 +118,7 @@ class Menu:
         self.loading_text = "Applying settings!"
         self.loading_result_time = 1.2
 
-        # Pending command result for thread-safe UI updates
+        # Result waiting to be shown, then held on screen for loading_result_time
         self._pending_result: tuple[bool, Callable[[bool], None]] | None = None
         self._result_start_time: float | None = None
 
@@ -123,11 +126,6 @@ class Menu:
         self.spinner_radius = 30
         self.spinner_thickness = 4
         self.spinner_offset = 60
-
-        # Timer-based loading result display (non-blocking)
-        self._loading_hide_time: float | None = None
-        self._loading_callback: Callable[[bool], None] | None = None
-        self._loading_result: bool = False
 
     def handle_event(self, event: event.Event) -> None:
         # Events can be ignored if loading screen is shown
@@ -167,14 +165,6 @@ class Menu:
         tab = self._get_active_tab()
         if tab:
             tab.view.draw(surface)
-
-        # Check if loading result display time has passed
-        if self._loading_hide_time is not None and time.monotonic() >= self._loading_hide_time:
-            self.is_loading = False
-            self._loading_hide_time = None
-            if self._loading_callback:
-                self._loading_callback(self._loading_result)
-                self._loading_callback = None
 
         if self.is_loading:
             self._process_pending_result()
@@ -316,21 +306,24 @@ class Menu:
 
         def run_test() -> None:
             success, message = test_relay_connection(server, port, session_id, spectator)
-            self._pending_result = (success, lambda s: result_callback(s, message))
+            self.main_thread_dispatcher.post(
+                self._set_pending_result, success, lambda state: result_callback(state, message)
+            )
 
         self.show_loading(t("Testing relay connection..."))
         threading.Thread(target=run_test, daemon=True).start()
 
     def _on_send_command(self, command: Command, callback: Callable[[bool], None]) -> None:
-        # Wrap callback so we can handle loading screen updates
-        # This callback is called from a background thread, so we store the
-        # result and process it in the main thread's draw loop
+        # invoke_command already hands its acknowledgement back on the main
+        # thread, so the result only waits here to stay on screen
         def callback_wrapper(state: bool = False) -> None:
-            # Store the result to be processed in the main thread
-            self._pending_result = (state, callback)
+            self._set_pending_result(state, callback)
 
         self.show_loading(t("Sending command..."))
         self.invoke_command(command, callback_wrapper)
+
+    def _set_pending_result(self, state: bool, callback: Callable[[bool], None]) -> None:
+        self._pending_result = (state, callback)
 
     def _process_pending_result(self) -> None:
         """Process pending command result in the main thread."""
@@ -342,11 +335,12 @@ class Menu:
             state, _ = self._pending_result
             result = t("Success!") if state else t("Failed!")
             self.loading_text = result
-            self._result_start_time = time.time()
+            self._result_start_time = time.monotonic()
             return
 
-        # Wait for the result display time
-        elapsed = time.time() - self._result_start_time
+        # Wait for the result display time. Monotonic: this is a duration, and
+        # a wall-clock step would leave the result on screen or flash it away.
+        elapsed = time.monotonic() - self._result_start_time
         if elapsed < self.loading_result_time:
             return
 

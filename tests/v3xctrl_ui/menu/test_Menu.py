@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 
 from src.v3xctrl_ui.menu.Menu import Menu
 from tests.v3xctrl_ui.settings_helper import build_settings
+from v3xctrl_ui.core.MainThreadDispatcher import MainThreadDispatcher
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 
 
@@ -22,6 +23,7 @@ class TestMenu(unittest.TestCase):
         self.mock_invoke_command = MagicMock()
         self.mock_callback_quit = MagicMock()
         self.telemetry_context = TelemetryContext()
+        self.main_thread_dispatcher = MainThreadDispatcher()
 
     def _setup_mocks(self, mock_button_class, mock_pygame):
         mock_surface = MagicMock()
@@ -56,6 +58,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         self.assertEqual(menu.width, 800)
@@ -81,6 +84,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         tab_names = [tab.name for tab in menu.tabs]
@@ -106,6 +110,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         active_tab = menu._get_active_tab()
@@ -124,6 +129,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         active_tab_view = MagicMock()
@@ -155,6 +161,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         menu.active_tab = "Input"
@@ -175,6 +182,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         menu._quit_button_callback()
@@ -192,6 +200,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         menu._on_active_toggle(True)
@@ -211,6 +220,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         menu._on_active_toggle(False)
@@ -230,6 +240,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         mock_command = MagicMock()
@@ -251,6 +262,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         mock_command = MagicMock()
@@ -277,6 +289,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         mock_event = MagicMock()
@@ -297,6 +310,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         # Clear the initial dirty flag
@@ -335,6 +349,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         mock_event = MagicMock()
@@ -370,6 +385,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         menu.disable_tabs = True
@@ -401,6 +417,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         menu._render_tabs()
@@ -425,6 +442,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         mock_surface = MagicMock()
@@ -453,6 +471,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         mock_surface = MagicMock()
@@ -478,6 +497,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         mock_surface = MagicMock()
@@ -501,6 +521,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         mock_surface = MagicMock()
@@ -523,6 +544,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         mock_surface = MagicMock()
@@ -543,6 +565,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         menu.active_tab = "NonExistentTab"
@@ -560,6 +583,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         mock_tab_view = MagicMock()
@@ -584,6 +608,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         menu.active_tab = "NonExistentTab"
@@ -602,6 +627,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         menu.active_tab = "NonExistentTab"
@@ -624,6 +650,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         # Starts dirty
@@ -657,6 +684,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         self.assertFalse(menu.visible)
@@ -674,6 +702,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         self.assertFalse(menu.visible)
@@ -693,6 +722,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         # Show menu and change to different tab
@@ -720,6 +750,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         # Change dimensions
@@ -748,6 +779,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         # Change dimensions
@@ -771,6 +803,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         # Reset call counts from initialization
@@ -796,6 +829,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         # Initially not visible
@@ -834,6 +868,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         # Mock apply_settings on all tab views
@@ -860,6 +895,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         # Create new settings object
@@ -875,6 +911,66 @@ class TestMenu(unittest.TestCase):
         for tab in menu.tabs:
             self.assertEqual(tab.view.settings, new_settings)
 
+    @patch("src.v3xctrl_ui.menu.Menu.threading.Thread")
+    @patch("src.v3xctrl_ui.menu.Menu.test_relay_connection")
+    def test_relay_test_result_reaches_the_menu_only_on_drain(
+        self, mock_test_relay_connection, mock_thread_class, mock_button_class, mock_pygame
+    ):
+        """The relay test runs on its own thread, so its result goes through the dispatcher."""
+        self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
+            callback=self.mock_callback,
+            callback_quit=self.mock_callback_quit,
+            telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
+        )
+
+        mock_test_relay_connection.return_value = (True, "Connected")
+        result_callback = MagicMock()
+
+        menu._on_test_relay("relay.example.com", 8888, "session", False, result_callback)
+
+        run_test = mock_thread_class.call_args.kwargs["target"]
+        run_test()
+
+        self.assertIsNone(menu._pending_result)
+
+        self.main_thread_dispatcher.drain()
+
+        self.assertIsNotNone(menu._pending_result)
+        state, deferred_callback = menu._pending_result
+        self.assertTrue(state)
+
+        deferred_callback(state)
+        result_callback.assert_called_once_with(True, "Connected")
+
+    @patch("src.v3xctrl_ui.menu.Menu.threading.Thread")
+    def test_test_relay_shows_the_loading_overlay(self, mock_thread_class, mock_button_class, mock_pygame):
+        self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
+            callback=self.mock_callback,
+            callback_quit=self.mock_callback_quit,
+            telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
+        )
+
+        menu._on_test_relay("relay.example.com", 8888, "session", False, MagicMock())
+
+        self.assertTrue(menu.is_loading)
+        mock_thread_class.return_value.start.assert_called_once()
+
     def test_on_send_command_stores_pending_result(self, mock_button_class, mock_pygame):
         """Test that callback stores result for main thread processing."""
         self._setup_mocks(mock_button_class, mock_pygame)
@@ -888,6 +984,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         mock_command = MagicMock()
@@ -920,6 +1017,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         # Should not raise when no pending result
@@ -939,6 +1037,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         mock_callback = MagicMock()
@@ -965,6 +1064,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         mock_callback = MagicMock()
@@ -990,6 +1090,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         mock_callback = MagicMock()
@@ -998,7 +1099,7 @@ class TestMenu(unittest.TestCase):
         menu.is_loading = True
 
         # Simulate enough time has passed
-        mock_time.time.return_value = menu.loading_result_time + 1
+        mock_time.monotonic.return_value = menu.loading_result_time + 1
 
         menu._process_pending_result()
 
@@ -1021,6 +1122,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         self.assertIsNone(menu._pending_result)
@@ -1039,6 +1141,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         widget_a = MagicMock()
@@ -1062,6 +1165,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         child = MagicMock()
@@ -1087,6 +1191,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         menu.save_button.hovered = True
@@ -1110,6 +1215,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         # Ensure no footer button is hovered
@@ -1138,6 +1244,7 @@ class TestMenu(unittest.TestCase):
             callback=self.mock_callback,
             callback_quit=self.mock_callback_quit,
             telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
         )
 
         menu.quit_button.hovered = False

@@ -1,7 +1,6 @@
 """Network coordination for handling message routing and network lifecycle."""
 
 import logging
-import queue
 import threading
 import time
 from collections import deque
@@ -14,6 +13,7 @@ import numpy.typing as npt
 from v3xctrl_control import State
 from v3xctrl_control.message import Command, Latency, Telemetry
 from v3xctrl_ui.core.dataclasses import ApplicationModel
+from v3xctrl_ui.core.MainThreadDispatcher import MainThreadDispatcher
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.network.NetworkController import NetworkController
 from v3xctrl_ui.network.video.ClockOffset import ClockOffset
@@ -30,23 +30,23 @@ class NetworkCoordinator:
     * Sets up network controller
     * Sends control messages, commands, latency checks
     * Setup handlers for incoming messages and state changes
-    * Handles callbacks that should deferred to the main thread
     """
 
-    def __init__(self, model: ApplicationModel, osd: OSD, settings: Settings):
+    def __init__(
+        self,
+        model: ApplicationModel,
+        osd: OSD,
+        settings: Settings,
+        main_thread_dispatcher: MainThreadDispatcher,
+    ):
         self.model = model
         self.osd = osd
+        self.main_thread_dispatcher = main_thread_dispatcher
 
         self.restart_complete = threading.Event()
         self._restart_thread: threading.Thread | None = None
         self.on_connection_change: Callable[[bool], None] | None = None
         self.clock_offset = ClockOffset()
-
-        # Queue for deferring callbacks to the main thread.
-        # Network callbacks (e.g. command ACKs) are invoked from background threads,
-        # but UI operations like font rendering are not thread-safe. This queue
-        # collects callbacks to be processed on the main thread.
-        self._callback_queue: queue.Queue[tuple[Callable, tuple]] = queue.Queue()
 
         # Built last: the handlers it is given close over everything above
         self.network_controller = self.create_network_controller(settings)
@@ -116,12 +116,12 @@ class NetworkCoordinator:
         # Skip sending commands in spectator mode
         if self.network_controller.relay_spectator_mode:
             logger.debug(f"Blocked command in spectator mode: {command}")
-            self._callback_queue.put((callback, (False,)))
+            self.main_thread_dispatcher.post(callback, False)
             return
 
-        # Wrap callback to defer execution to the main thread
+        # Command acknowledgements arrive on a network thread
         def deferred_callback(result: bool) -> None:
-            self._callback_queue.put((callback, (result,)))
+            self.main_thread_dispatcher.post(callback, result)
 
         if not self.network_controller.send_command(command, deferred_callback):
             logger.error(f"Server is not set, cannot send command: {command}")
@@ -133,19 +133,6 @@ class NetworkCoordinator:
             return
 
         self.network_controller.send_latency_check()
-
-    def process_callbacks(self) -> None:
-        """Process pending callbacks on the main thread.
-
-        This should be called from the main loop to ensure UI callbacks
-        (which may do font rendering) run on the main thread.
-        """
-        while True:
-            try:
-                callback, args = self._callback_queue.get_nowait()
-                callback(*args)
-            except queue.Empty:
-                break
 
     def update_ttl(self, udp_ttl_ms: int) -> None:
         self.network_controller.update_ttl(udp_ttl_ms)
