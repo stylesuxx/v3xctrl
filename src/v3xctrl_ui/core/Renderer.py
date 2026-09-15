@@ -1,5 +1,6 @@
 import logging
 import math
+import threading
 import time
 from collections.abc import Callable
 
@@ -25,6 +26,8 @@ class Renderer:
     Rendering display content
     """
 
+    IP_PLACEHOLDER = "resolving..."
+
     def __init__(self, size: tuple[int, int], settings: Settings, osd: OSD, menu: Menu) -> None:
         self.video_width = size[0]
         self.video_height = size[1]
@@ -34,6 +37,7 @@ class Renderer:
         self.menu = menu
 
         self._ip: str | None = None
+        self._ip_lookup_started = False
         self.video_surface = pygame.Surface(self.video_size)
         self.last_frame_id: int | None = None
 
@@ -62,16 +66,21 @@ class Renderer:
 
     @property
     def ip(self) -> str:
-        """External IP, resolved on first use.
+        """External IP, looked up on a background thread the first time it is read.
 
-        The lookup blocks on a network request, so it is kept out of the
-        constructor and off the startup path. Only the direct-mode connection
-        info screen needs it.
+        The lookup can block for the full request timeout, and this is read
+        while drawing the direct-mode connection info screen, so the frame
+        shows a placeholder until the lookup lands. A single string rebind
+        crosses the threads, which is atomic.
         """
-        if self._ip is None:
-            self._ip = get_external_ip()
+        if self._ip is None and not self._ip_lookup_started:
+            self._ip_lookup_started = True
+            threading.Thread(target=self._resolve_ip, daemon=True).start()
 
-        return self._ip
+        return self._ip if self._ip is not None else self.IP_PLACEHOLDER
+
+    def _resolve_ip(self) -> None:
+        self._ip = get_external_ip()
 
     def apply_settings(self, settings: Settings) -> None:
         self.settings = settings

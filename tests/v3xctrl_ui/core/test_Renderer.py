@@ -2,6 +2,8 @@ import os
 
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
+import threading
+import time
 import unittest
 from collections import deque
 from unittest.mock import MagicMock, patch
@@ -48,14 +50,35 @@ class TestRenderer(unittest.TestCase):
         self.assertEqual(renderer.video_height, 600)
 
     @patch("v3xctrl_ui.core.Renderer.get_external_ip", return_value="1.2.3.4")
-    def test_ip_is_resolved_on_first_use_only(self, mock_get_ip):
+    def test_ip_is_looked_up_once_off_the_calling_thread(self, mock_get_ip):
         renderer = self._build_renderer()
 
         mock_get_ip.assert_not_called()
 
+        deadline = time.monotonic() + 2
+        while renderer.ip == Renderer.IP_PLACEHOLDER and time.monotonic() < deadline:
+            time.sleep(0.01)
+
         self.assertEqual(renderer.ip, "1.2.3.4")
         self.assertEqual(renderer.ip, "1.2.3.4")
         mock_get_ip.assert_called_once()
+
+    def test_the_render_path_never_waits_for_the_lookup(self):
+        lookup_started = threading.Event()
+        release_lookup = threading.Event()
+
+        def slow_lookup(timeout: int = 5) -> str:
+            lookup_started.set()
+            release_lookup.wait(2)
+            return "1.2.3.4"
+
+        with patch("v3xctrl_ui.core.Renderer.get_external_ip", side_effect=slow_lookup):
+            renderer = self._build_renderer()
+
+            self.assertEqual(renderer.ip, Renderer.IP_PLACEHOLDER)
+            self.assertTrue(lookup_started.wait(1))
+            self.assertEqual(renderer.ip, Renderer.IP_PLACEHOLDER)
+            release_lookup.set()
 
     @patch("v3xctrl_ui.core.Renderer.pygame.display.flip")
     def test_render_blits_the_video_frame(self, _mock_flip):
