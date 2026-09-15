@@ -1,7 +1,7 @@
 import logging
 import time
 from collections.abc import Callable
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from v3xctrl_ui.menu.calibration.CalibrationSteps import CalibrationSteps
 from v3xctrl_ui.menu.calibration.defs import AxisCalibrationData, CalibrationStage, CalibratorState
@@ -29,14 +29,20 @@ class GamepadCalibrator:
         on_done: Callable[[], None] | None = None,
         dialog: DialogBox | None = None,
         clock: Callable[[], float] | None = None,
+        recorded_settings: dict[str, Any] | None = None,
     ) -> None:
         self.on_start = on_start
         self.on_done = on_done
         self.dialog = dialog
         self._clock = clock or time.monotonic
 
+        # A calibration recorded earlier, replayed rather than measured again
+        self._recorded_settings = recorded_settings
+
         self.stage: CalibrationStage | None = None
-        self.state: CalibratorState = CalibratorState.PAUSE
+        self.state: CalibratorState = (
+            CalibratorState.COMPLETE if recorded_settings is not None else CalibratorState.PAUSE
+        )
         self.pending_stage: CalibrationStage | None = None
         self.waiting_for_user = False
 
@@ -79,7 +85,10 @@ class GamepadCalibrator:
         elif self.stage == CalibrationStage.BRAKE:
             self._detect_and_record_axis("brake", axes, exclude=["steering"], on_complete=self._complete)
 
-    def get_settings(self) -> dict[str, dict[str, float | int | None]]:
+    def get_settings(self) -> dict[str, Any]:
+        if self._recorded_settings is not None:
+            return self._recorded_settings
+
         return {
             name: {
                 "axis": axis.axis,
