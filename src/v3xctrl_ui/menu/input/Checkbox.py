@@ -95,8 +95,9 @@ class Checkbox(BaseWidget):
         icon_y = 0
         label_x = self.BOX_SIZE + self.BOX_MARGIN
         # Use consistent font metrics for alignment regardless of per-label descenders
-        font_ascent = self.font.get_sized_ascender()
-        font_descent = abs(self.font.get_sized_descender())
+        # 0 asks for the font's own size, which is what the stub omits a default for
+        font_ascent = self.font.get_sized_ascender(0)
+        font_descent = abs(self.font.get_sized_descender(0))
         font_height = font_ascent + font_descent
         label_y = (height - font_height + font_descent) // 2 + 2
 

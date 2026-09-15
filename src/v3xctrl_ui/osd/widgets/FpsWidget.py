@@ -5,7 +5,7 @@ from pygame import Surface
 
 from v3xctrl_ui.osd.widgets.Widget import Widget
 from v3xctrl_ui.utils.colors import GREEN, WHITE
-from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT
+from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT, font_point_size
 from v3xctrl_ui.utils.helpers import get_icon, round_corners
 
 
@@ -30,12 +30,12 @@ class FpsWidget(Widget[float]):
         self.font = BOLD_MONO_FONT
 
         top_padding = 2
-        label_offset: int = self.font.size // 2 + top_padding
+        label_offset: int = font_point_size(self.font) // 2 + top_padding
         self.label, self.label_rect = self.font.render(label, WHITE)
         self.label_rect.center = (self.width // 2, label_offset)
 
         self.surface = Surface((self.width, self.height), pygame.SRCALPHA)
-        self.value_offset = label_offset + self.font.size
+        self.value_offset = label_offset + font_point_size(self.font)
 
         self.graph_top = int(self.height * 0.5)
         self.graph_height = self.height - self.graph_top
