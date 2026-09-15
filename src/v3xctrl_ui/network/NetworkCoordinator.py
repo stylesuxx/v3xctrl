@@ -185,13 +185,18 @@ class NetworkCoordinator:
         logger.debug(f"Network controller shut down after {delta}s")
 
     def _create_handlers(self) -> dict[str, Any]:
+        """Handlers run on the control channel's threads, so OSD and menu work is posted to the main loop."""
+
         def update_connected(state: bool) -> None:
             self.model.control_connected = state
             if self.on_connection_change:
-                self.on_connection_change(state)
+                self.main_thread_dispatcher.post(self.on_connection_change, state)
+
+        def connect() -> None:
+            self.main_thread_dispatcher.post(self.osd.connect_handler)
 
         def disconnect() -> None:
-            self.osd.disconnect_handler()
+            self.main_thread_dispatcher.post(self.osd.disconnect_handler)
             self.telemetry_sink.reset()
 
         def latency_handler(message: Latency, address: tuple[str, int]) -> None:
@@ -205,8 +210,8 @@ class NetworkCoordinator:
                 (Latency, latency_handler),
             ],
             "states": [
-                (State.CONNECTED, lambda: self.osd.connect_handler()),
-                (State.SPECTATING, lambda: self.osd.connect_handler()),
+                (State.CONNECTED, connect),
+                (State.SPECTATING, connect),
                 (State.DISCONNECTED, disconnect),
                 (State.CONNECTED, lambda: update_connected(True)),
                 (State.SPECTATING, lambda: update_connected(True)),

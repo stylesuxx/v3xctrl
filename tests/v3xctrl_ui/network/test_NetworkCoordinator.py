@@ -268,9 +268,15 @@ class TestNetworkCoordinator(unittest.TestCase):
         spectating_handler()
         disconnect_handler()
 
+        # The sink is built for the receive thread; the OSD waits for the main loop
+        self.mock_telemetry_sink.reset.assert_called_once()
+        self.mock_osd.connect_handler.assert_not_called()
+        self.mock_osd.disconnect_handler.assert_not_called()
+
+        self.main_thread_dispatcher.drain()
+
         self.assertEqual(self.mock_osd.connect_handler.call_count, 2)  # Called by both CONNECTED and SPECTATING
         self.mock_osd.disconnect_handler.assert_called_once()
-        self.mock_telemetry_sink.reset.assert_called_once()
 
     def test_connection_change_callback(self):
         """Test that connection change callback is invoked."""
@@ -283,12 +289,14 @@ class TestNetworkCoordinator(unittest.TestCase):
         connected_handler = handlers["states"][3][1]
         disconnected_handler = handlers["states"][5][1]
 
-        # Test connected
+        # The callback reaches the menu, so it waits for the main loop
         connected_handler()
+        mock_callback.assert_not_called()
+        self.main_thread_dispatcher.drain()
         mock_callback.assert_called_with(True)
 
-        # Test disconnected
         disconnected_handler()
+        self.main_thread_dispatcher.drain()
         mock_callback.assert_called_with(False)
 
         self.assertEqual(mock_callback.call_count, 2)
