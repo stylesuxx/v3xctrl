@@ -18,9 +18,12 @@ class TestNetworkCoordinator(unittest.TestCase):
         """Set up test fixtures."""
         self.model = ApplicationModel(fullscreen=False, throttle=0.0, steering=0.0)
         self.mock_osd = MagicMock()
+        self.mock_telemetry_sink = MagicMock()
         self.settings = build_settings(ports={"video": 6666, "control": 6668})
         self.main_thread_dispatcher = MainThreadDispatcher()
-        self.coordinator = NetworkCoordinator(self.model, self.mock_osd, self.settings, self.main_thread_dispatcher)
+        self.coordinator = NetworkCoordinator(
+            self.model, self.mock_osd, self.mock_telemetry_sink, self.settings, self.main_thread_dispatcher
+        )
 
     def test_initialization(self):
         """Test NetworkCoordinator initialization."""
@@ -270,8 +273,8 @@ class TestNetworkCoordinator(unittest.TestCase):
         disconnected_handler()
         self.assertFalse(self.model.control_connected)
 
-    def test_handlers_call_osd_methods(self):
-        """Test that handlers call OSD methods."""
+    def test_handlers_route_to_the_osd_and_the_sink(self):
+        """Telemetry lands in the sink; connection state lands in the OSD."""
         handlers = self.coordinator._create_handlers()
 
         # Test message handlers
@@ -284,7 +287,7 @@ class TestNetworkCoordinator(unittest.TestCase):
         telemetry_handler(mock_telemetry, "address")
         latency_handler(latency_message, "address")
 
-        self.assertEqual(self.mock_osd.message_handler.call_count, 2)
+        self.assertEqual(self.mock_telemetry_sink.handle_message.call_count, 2)
 
         # Test state handlers (both CONNECTED and SPECTATING call connect_handler)
         connect_handler = handlers["states"][0][1]
@@ -297,6 +300,7 @@ class TestNetworkCoordinator(unittest.TestCase):
 
         self.assertEqual(self.mock_osd.connect_handler.call_count, 2)  # Called by both CONNECTED and SPECTATING
         self.mock_osd.disconnect_handler.assert_called_once()
+        self.mock_telemetry_sink.reset.assert_called_once()
 
     def test_connection_change_callback(self):
         """Test that connection change callback is invoked."""

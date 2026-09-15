@@ -9,6 +9,7 @@ import pygame
 
 from tests.v3xctrl_ui.settings_helper import build_settings
 from v3xctrl_ui.core.AppState import AppState
+from v3xctrl_ui.core.StatusLevel import StatusLevel
 
 
 @patch("v3xctrl_ui.core.AppState.DisplayController")
@@ -94,7 +95,8 @@ class TestAppState(unittest.TestCase):
         coordinator_args = mock_coordinator_cls.call_args[0]
         self.assertIs(coordinator_args[0], _app.model)
         self.assertIs(coordinator_args[1], _app.osd)
-        self.assertIs(coordinator_args[2], self.settings)
+        self.assertIs(coordinator_args[2], _app.telemetry_sink)
+        self.assertIs(coordinator_args[3], self.settings)
 
         # setup_ports is NOT called during init — only when user clicks Connect
         mock_coordinator.setup_ports.assert_not_called()
@@ -242,7 +244,7 @@ class TestAppState(unittest.TestCase):
         mock_coordinator.get_control_error.return_value = "Control port already in use"
         app.render()
 
-        mock_osd.update_debug_status.assert_called_with("fail")
+        mock_osd.update_debug_status.assert_called_with(StatusLevel.BAD)
 
         _screen, snapshot = mock_renderer.render.call_args[0]
         self.assertEqual(snapshot.connection.control_error, "Control port already in use")
