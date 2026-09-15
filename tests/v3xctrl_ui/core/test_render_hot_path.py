@@ -18,6 +18,7 @@ import pygame
 
 from tests.v3xctrl_ui.settings_helper import build_settings
 from v3xctrl_ui.core.AppState import AppState
+from v3xctrl_ui.core.MainThreadDispatcher import MainThreadDispatcher
 from v3xctrl_ui.network.NetworkCoordinator import NetworkCoordinator
 
 FRAME_COUNT = 5
@@ -98,7 +99,7 @@ class TestRenderHotPath(unittest.TestCase):
         receiver = CountingReceiver()
         controller = CountingController(receiver)
 
-        coordinator = NetworkCoordinator(app.model, app.osd, self.settings)
+        coordinator = NetworkCoordinator(app.model, app.osd, self.settings, MainThreadDispatcher())
         coordinator.network_controller = controller
         app.network_coordinator = coordinator
 
