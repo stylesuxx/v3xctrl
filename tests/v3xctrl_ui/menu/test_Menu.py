@@ -936,18 +936,20 @@ class TestMenu(unittest.TestCase):
 
         menu._on_test_relay("relay.example.com", 8888, "session", False, result_callback)
 
+        menu.loading_overlay = MagicMock()
+
         run_test = mock_thread_class.call_args.kwargs["target"]
         run_test()
 
-        self.assertIsNone(menu._pending_result)
+        menu.loading_overlay.show_result.assert_not_called()
 
         self.main_thread_dispatcher.drain()
 
-        self.assertIsNotNone(menu._pending_result)
-        state, deferred_callback = menu._pending_result
-        self.assertTrue(state)
+        menu.loading_overlay.show_result.assert_called_once()
+        is_success, on_dismissed = menu.loading_overlay.show_result.call_args[0]
+        self.assertTrue(is_success)
 
-        deferred_callback(state)
+        on_dismissed(is_success)
         result_callback.assert_called_once_with(True, "Connected")
 
     @patch("src.v3xctrl_ui.menu.Menu.threading.Thread")
@@ -971,8 +973,73 @@ class TestMenu(unittest.TestCase):
         self.assertTrue(menu.is_loading)
         mock_thread_class.return_value.start.assert_called_once()
 
-    def test_on_send_command_stores_pending_result(self, mock_button_class, mock_pygame):
-        """Test that callback stores result for main thread processing."""
+    def test_update_advances_the_loading_overlay(self, mock_button_class, mock_pygame):
+        """The overlay is timed in the update phase, not as a side effect of drawing."""
+        self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
+            callback=self.mock_callback,
+            callback_quit=self.mock_callback_quit,
+            telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
+        )
+        menu.loading_overlay = MagicMock()
+
+        menu.update(12.5)
+
+        menu.loading_overlay.update.assert_called_once_with(12.5)
+
+    def test_drawing_does_not_advance_the_loading_overlay(self, mock_button_class, mock_pygame):
+        self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
+            callback=self.mock_callback,
+            callback_quit=self.mock_callback_quit,
+            telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
+        )
+        menu.loading_overlay = MagicMock()
+        menu.loading_overlay.is_visible = True
+
+        menu.draw(MagicMock())
+
+        menu.loading_overlay.update.assert_not_called()
+        menu.loading_overlay.draw.assert_called_once()
+
+    def test_is_loading_follows_the_overlay(self, mock_button_class, mock_pygame):
+        self._setup_mocks(mock_button_class, mock_pygame)
+
+        menu = Menu(
+            width=800,
+            height=600,
+            gamepad_manager=self.mock_gamepad_manager,
+            settings=self.mock_settings,
+            invoke_command=self.mock_invoke_command,
+            callback=self.mock_callback,
+            callback_quit=self.mock_callback_quit,
+            telemetry_context=self.telemetry_context,
+            main_thread_dispatcher=self.main_thread_dispatcher,
+        )
+
+        self.assertFalse(menu.is_loading)
+
+        menu.show_loading("Sending command...")
+
+        self.assertTrue(menu.is_loading)
+        self.assertEqual(menu.loading_overlay.text, "Sending command...")
+
+    def test_on_send_command_reports_the_result_to_the_overlay(self, mock_button_class, mock_pygame):
+        """The acknowledgement is handed to the overlay, which holds it on screen."""
         self._setup_mocks(mock_button_class, mock_pygame)
 
         menu = Menu(
@@ -989,144 +1056,16 @@ class TestMenu(unittest.TestCase):
 
         mock_command = MagicMock()
         mock_callback = MagicMock()
+        menu.loading_overlay = MagicMock()
 
         menu._on_send_command(mock_command, mock_callback)
 
-        # Get the wrapped callback that was passed to invoke_command
-        args = self.mock_invoke_command.call_args[0]
-        callback_wrapper = args[1]
+        menu.loading_overlay.show.assert_called_once()
 
-        # Simulate the callback being called from a background thread
+        callback_wrapper = self.mock_invoke_command.call_args[0][1]
         callback_wrapper(True)
 
-        # Pending result should be stored
-        self.assertIsNotNone(menu._pending_result)
-        self.assertEqual(menu._pending_result[0], True)
-        self.assertEqual(menu._pending_result[1], mock_callback)
-
-    def test_process_pending_result_no_result(self, mock_button_class, mock_pygame):
-        """Test that _process_pending_result does nothing when no result pending."""
-        self._setup_mocks(mock_button_class, mock_pygame)
-
-        menu = Menu(
-            width=800,
-            height=600,
-            gamepad_manager=self.mock_gamepad_manager,
-            settings=self.mock_settings,
-            invoke_command=self.mock_invoke_command,
-            callback=self.mock_callback,
-            callback_quit=self.mock_callback_quit,
-            telemetry_context=self.telemetry_context,
-            main_thread_dispatcher=self.main_thread_dispatcher,
-        )
-
-        # Should not raise when no pending result
-        menu._process_pending_result()
-        self.assertIsNone(menu._pending_result)
-
-    def test_process_pending_result_shows_success(self, mock_button_class, mock_pygame):
-        """Test that _process_pending_result shows success message."""
-        self._setup_mocks(mock_button_class, mock_pygame)
-
-        menu = Menu(
-            width=800,
-            height=600,
-            gamepad_manager=self.mock_gamepad_manager,
-            settings=self.mock_settings,
-            invoke_command=self.mock_invoke_command,
-            callback=self.mock_callback,
-            callback_quit=self.mock_callback_quit,
-            telemetry_context=self.telemetry_context,
-            main_thread_dispatcher=self.main_thread_dispatcher,
-        )
-
-        mock_callback = MagicMock()
-        menu._pending_result = (True, mock_callback)
-
-        # First call should set the loading text and start time
-        menu._process_pending_result()
-
-        self.assertEqual(menu.loading_text, "Success!")
-        self.assertIsNotNone(menu._result_start_time)
-        # Callback should not be called yet
-        mock_callback.assert_not_called()
-
-    def test_process_pending_result_shows_failed(self, mock_button_class, mock_pygame):
-        """Test that _process_pending_result shows failed message."""
-        self._setup_mocks(mock_button_class, mock_pygame)
-
-        menu = Menu(
-            width=800,
-            height=600,
-            gamepad_manager=self.mock_gamepad_manager,
-            settings=self.mock_settings,
-            invoke_command=self.mock_invoke_command,
-            callback=self.mock_callback,
-            callback_quit=self.mock_callback_quit,
-            telemetry_context=self.telemetry_context,
-            main_thread_dispatcher=self.main_thread_dispatcher,
-        )
-
-        mock_callback = MagicMock()
-        menu._pending_result = (False, mock_callback)
-
-        # First call should set the loading text
-        menu._process_pending_result()
-
-        self.assertEqual(menu.loading_text, "Failed!")
-        self.assertIsNotNone(menu._result_start_time)
-
-    @patch("src.v3xctrl_ui.menu.Menu.time")
-    def test_process_pending_result_completes_after_timeout(self, mock_time, mock_button_class, mock_pygame):
-        """Test that _process_pending_result completes after display time."""
-        self._setup_mocks(mock_button_class, mock_pygame)
-
-        menu = Menu(
-            width=800,
-            height=600,
-            gamepad_manager=self.mock_gamepad_manager,
-            settings=self.mock_settings,
-            invoke_command=self.mock_invoke_command,
-            callback=self.mock_callback,
-            callback_quit=self.mock_callback_quit,
-            telemetry_context=self.telemetry_context,
-            main_thread_dispatcher=self.main_thread_dispatcher,
-        )
-
-        mock_callback = MagicMock()
-        menu._pending_result = (True, mock_callback)
-        menu._result_start_time = 0  # Already started
-        menu.is_loading = True
-
-        # Simulate enough time has passed
-        mock_time.monotonic.return_value = menu.loading_result_time + 1
-
-        menu._process_pending_result()
-
-        # Should have cleaned up and called callback
-        self.assertIsNone(menu._pending_result)
-        self.assertIsNone(menu._result_start_time)
-        self.assertFalse(menu.is_loading)
-        mock_callback.assert_called_once_with(True)
-
-    def test_pending_result_initialized_to_none(self, mock_button_class, mock_pygame):
-        """Test that pending result is initialized to None."""
-        self._setup_mocks(mock_button_class, mock_pygame)
-
-        menu = Menu(
-            width=800,
-            height=600,
-            gamepad_manager=self.mock_gamepad_manager,
-            settings=self.mock_settings,
-            invoke_command=self.mock_invoke_command,
-            callback=self.mock_callback,
-            callback_quit=self.mock_callback_quit,
-            telemetry_context=self.telemetry_context,
-            main_thread_dispatcher=self.main_thread_dispatcher,
-        )
-
-        self.assertIsNone(menu._pending_result)
-        self.assertIsNone(menu._result_start_time)
+        menu.loading_overlay.show_result.assert_called_once_with(True, mock_callback)
 
     def test_collect_hover_widgets_flat(self, mock_button_class, mock_pygame):
         """Test _collect_hover_widgets with flat elements (no children)"""

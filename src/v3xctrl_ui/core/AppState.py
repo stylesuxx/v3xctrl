@@ -124,14 +124,16 @@ class AppState:
         self.settings_controller.update_settings(new_settings)
 
     def update(self) -> None:
+        now = time.monotonic()
+
         self.main_thread_dispatcher.drain()
+        self.menu.update(now)
         self.settings_controller.check_network_restart_complete()
         self.display_controller.update_cursor_visibility(self.menu.visible or not self.model.user_connected)
 
         if not self.model.user_connected:
             return
 
-        now = time.monotonic()
         self.model.loop_history.append(now)
 
         # Handle control updates, send last values if user is in menu
