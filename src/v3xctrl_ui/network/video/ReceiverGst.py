@@ -331,7 +331,7 @@ class ReceiverGst(Receiver):
                     self._timing_receive_samples.append(receive_duration)
 
                 # Pass SEI capture timestamp through to display time
-                capture_timestamp_us = self._sei_timestamps.pop(pts, None) or 0
+                capture_timestamp_us = self._sei_timestamps.pop(pts, 0)
 
             self._update_frame(frame, decode_duration, capture_timestamp_us)
 
@@ -412,7 +412,11 @@ class ReceiverGst(Receiver):
             self.consecutive_old_frames = 0
             self.last_frame_time = 0.0
 
-            state = self.pipeline.set_state(Gst.State.PLAYING)
+            pipeline = self.pipeline
+            if pipeline is None:
+                continue
+
+            state = pipeline.set_state(Gst.State.PLAYING)
             if state == Gst.StateChangeReturn.FAILURE:
                 logger.error("Failed to set pipeline to PLAYING")
                 self._stop_pipeline()
@@ -425,7 +429,9 @@ class ReceiverGst(Receiver):
 
             def check_running() -> bool:
                 if not self.running.is_set():
-                    self.loop.quit()
+                    if self.loop:
+                        self.loop.quit()
+
                     return False
 
                 self._check_timeout()

@@ -1,16 +1,10 @@
-import sys
-from pathlib import Path
-
 import pygame
 from pygame.freetype import Font
 
+from v3xctrl_ui.utils.resources import get_resource_path
+
 pygame.init()
 pygame.freetype.init()
-
-
-def _get_resource_path(relative_path: str) -> Path:
-    base_path = Path(sys._MEIPASS) if getattr(sys, "frozen", False) else Path(__file__).parent.parent
-    return base_path / relative_path
 
 
 def font_point_size(font: Font) -> int:
@@ -28,7 +22,7 @@ def font_point_size(font: Font) -> int:
 
 
 def _load_font(filename: str, size: int) -> Font:
-    font_path = _get_resource_path(f"assets/fonts/{filename}")
+    font_path = get_resource_path(f"assets/fonts/{filename}")
     return Font(str(font_path), size)
 
 

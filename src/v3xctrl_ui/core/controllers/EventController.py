@@ -127,6 +127,9 @@ class EventController:
 
     def _match_gamepad_mapping(self, event: pygame.event.Event) -> str | None:
         """Check if a pygame event matches any gamepad button/hat mapping."""
+        if self.gamepad_controller is None:
+            return None
+
         for name in ("trim_increase", "trim_decrease", "rec_toggle"):
             mapping = self.gamepad_controller.get_button_mapping(name)
             if mapping is None:

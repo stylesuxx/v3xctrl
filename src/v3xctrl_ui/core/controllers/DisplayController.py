@@ -1,12 +1,12 @@
 """Display management for handling screen modes, sizing, and scaling."""
 
 import logging
-import sys
 import time
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pygame
+
+from v3xctrl_ui.utils.resources import get_resource_path
 
 if TYPE_CHECKING:
     from v3xctrl_ui.core.dataclasses import ApplicationModel
@@ -45,10 +45,7 @@ class DisplayController:
         pygame.display.set_caption(self.title)
 
         try:
-            # Get path to icon, works for both dev and PyInstaller
-            base_path = Path(sys._MEIPASS) if getattr(sys, "frozen", False) else Path(__file__).parent.parent.parent
-
-            icon_path = base_path / "assets" / "images" / "logo.png"
+            icon_path = get_resource_path("assets/images/logo.png")
             icon = pygame.image.load(str(icon_path))
             pygame.display.set_icon(icon)
         except Exception as e:

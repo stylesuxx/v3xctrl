@@ -10,11 +10,14 @@ import numpy.typing as npt
 
 from v3xctrl_control import Server
 from v3xctrl_control.message import Command, Control, Latency
+from v3xctrl_control.UDPTransmitter import UDPTransmitter
 from v3xctrl_tcp.TcpTunnel import TcpTunnel
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.network.NetworkSetup import NetworkSetup
 from v3xctrl_ui.network.TcpServer import TcpServer
 from v3xctrl_ui.network.video.ClockOffset import ClockOffset
+from v3xctrl_ui.network.video.Receiver import Receiver
+from v3xctrl_ui.network.VideoPortKeepAlive import VideoPortKeepAlive
 
 logger = logging.getLogger(__name__)
 
@@ -31,10 +34,10 @@ class NetworkController:
         self.control_port = settings.ports.control
 
         # Network state
-        self.video_receiver = None
-        self.video_keep_alive = None
+        self.video_receiver: Receiver | None = None
+        self.video_keep_alive: VideoPortKeepAlive | None = None
         self.server: Server | None = None
-        self.server_error = None
+        self.server_error: str | None = None
         self.tcp_server: TcpServer | None = None
         self.tcp_video_tunnel: TcpTunnel | None = None
         self.tcp_control_tunnel: TcpTunnel | None = None
@@ -42,9 +45,9 @@ class NetworkController:
         # Relay state
         self.relay_status_message = "Waiting for streamer..."
         self.relay_enable = False
-        self.relay_server = None
+        self.relay_server: str | None = None
         self.relay_port = 8888
-        self.relay_id = None
+        self.relay_id: str | None = None
         self.relay_spectator_mode = False
         self._setup: NetworkSetup | None = None
         self._setup_thread: threading.Thread | None = None
@@ -90,14 +93,16 @@ class NetworkController:
         return True
 
     def has_recent_control_drops(self) -> bool:
-        if self.server and not self.server_error:
-            return self.server.transmitter.has_recent_control_drops()
+        transmitter = self._sending_transmitter()
+        if transmitter:
+            return transmitter.has_recent_control_drops()
 
         return False
 
     def has_recent_send_failures(self) -> bool:
-        if self.server and not self.server_error:
-            return self.server.transmitter.has_recent_send_failures()
+        transmitter = self._sending_transmitter()
+        if transmitter:
+            return transmitter.has_recent_send_failures()
 
         return False
 
@@ -125,14 +130,16 @@ class NetworkController:
         return 0
 
     def get_data_queue_size(self) -> int:
-        if self.server and not self.server_error:
-            return self.server.transmitter.queue.qsize()
+        transmitter = self._sending_transmitter()
+        if transmitter:
+            return transmitter.queue.qsize()
 
         return 0
 
     def get_control_buffer_size(self) -> int:
-        if self.server and not self.server_error:
-            return self.server.transmitter.get_control_buffer_size()
+        transmitter = self._sending_transmitter()
+        if transmitter:
+            return transmitter.get_control_buffer_size()
 
         return 0
 
@@ -192,6 +199,17 @@ class NetworkController:
         if self.tcp_control_tunnel:
             self.tcp_control_tunnel.stop()
 
+    def _sending_transmitter(self) -> UDPTransmitter | None:
+        """The transmitter behind a control channel that is up, if there is one.
+
+        A `Base` only gets its transmitter once it connects, so the channel
+        existing is not enough.
+        """
+        if self.server and not self.server_error:
+            return self.server.transmitter
+
+        return None
+
     def _setup_relay_if_enabled(self) -> None:
         relay = self.settings.relay
         if relay.enabled:
@@ -234,13 +252,13 @@ class NetworkController:
         if result.tcp_control_tunnel:
             self.tcp_control_tunnel = result.tcp_control_tunnel
 
-        if result.relay_result and not result.relay_result.success:
+        if result.relay_result and not result.relay_result.success and result.relay_result.error_message:
             self.relay_status_message = result.relay_result.error_message
 
         if result.video_keep_alive:
             self.video_keep_alive = result.video_keep_alive
 
-        if result.video_receiver_result and result.video_receiver_result.success:
+        if result.video_receiver_result and result.video_receiver_result.video_receiver:
             self.video_receiver = result.video_receiver_result.video_receiver
             self.video_receiver.set_clock_offset(self.clock_offset)
 
