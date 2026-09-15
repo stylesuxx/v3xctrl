@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from v3xctrl_ui.osd.widgets import (
     Alignment,
     BatteryIconWidget,
@@ -11,7 +13,6 @@ from v3xctrl_ui.osd.widgets import (
     StatusValueWidget,
     TextWidget,
     VerticalIndicatorWidget,
-    Widget,
 )
 from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT_14
 from v3xctrl_ui.utils.helpers import (
@@ -20,7 +21,46 @@ from v3xctrl_ui.utils.helpers import (
 )
 
 
-def create_steering_widgets() -> dict[str, Widget]:
+@dataclass(frozen=True, slots=True)
+class SteeringWidgets:
+    steering: HorizontalIndicatorWidget
+    throttle: VerticalIndicatorWidget
+
+
+@dataclass(frozen=True, slots=True)
+class BatteryWidgets:
+    icon: BatteryIconWidget
+    voltage: TextWidget
+    average_voltage: TextWidget
+    percent: TextWidget
+    current: TextWidget
+
+
+@dataclass(frozen=True, slots=True)
+class SignalWidgets:
+    quality: SignalQualityWidget
+    band: TextWidget
+    cell: TextWidget
+
+
+@dataclass(frozen=True, slots=True)
+class DebugWidgets:
+    fps_loop: FpsWidget
+    fps_video: FpsWidget
+    data: StatusValueWidget
+    latency: StatusValueWidget
+    buffer: StatusValueWidget
+
+
+@dataclass(frozen=True, slots=True)
+class GpsWidgets:
+    icon: GpsIconWidget
+    fix: TextWidget
+    satellites: TextWidget
+    speed: GpsSpeedWidget
+
+
+def create_steering_widgets() -> SteeringWidgets:
     steering_widget = HorizontalIndicatorWidget(
         position=(0, 0), size=(412, 22), bar_size=(20, 10), range_mode="symmetric", color_fn=interpolate_steering_color
     )
@@ -29,10 +69,10 @@ def create_steering_widgets() -> dict[str, Widget]:
         position=(0, 0), size=(32, 212), bar_width=20, range_mode="symmetric", color_fn=interpolate_throttle_color
     )
 
-    return {"steering": steering_widget, "throttle": throttle_widget}
+    return SteeringWidgets(steering=steering_widget, throttle=throttle_widget)
 
 
-def create_battery_widgets() -> dict[str, Widget]:
+def create_battery_widgets() -> BatteryWidgets:
     position = (0, 0)
 
     battery_voltage_widget = TextWidget(position, 70)
@@ -47,16 +87,16 @@ def create_battery_widgets() -> dict[str, Widget]:
 
     battery_icon_widget = BatteryIconWidget(position, 70)
 
-    return {
-        "battery_icon": battery_icon_widget,
-        "battery_voltage": battery_voltage_widget,
-        "battery_average_voltage": battery_average_voltage_widget,
-        "battery_percent": battery_percent_widget,
-        "battery_current": battery_current_widget,
-    }
+    return BatteryWidgets(
+        icon=battery_icon_widget,
+        voltage=battery_voltage_widget,
+        average_voltage=battery_average_voltage_widget,
+        percent=battery_percent_widget,
+        current=battery_current_widget,
+    )
 
 
-def create_signal_widgets() -> dict[str, Widget]:
+def create_signal_widgets() -> SignalWidgets:
     position = (0, 0)
 
     signal_quality_widget = SignalQualityWidget(position, (70, 50))
@@ -64,46 +104,30 @@ def create_signal_widgets() -> dict[str, Widget]:
     signal_cell_widget = TextWidget(position, 70)
     signal_cell_widget.font = BOLD_MONO_FONT_14
 
-    return {
-        "signal_quality": signal_quality_widget,
-        "signal_band": signal_band_widget,
-        "signal_cell": signal_cell_widget,
-    }
+    return SignalWidgets(quality=signal_quality_widget, band=signal_band_widget, cell=signal_cell_widget)
 
 
-def create_debug_widgets(fps_width: int, fps_height: int) -> dict[str, Widget]:
+def create_debug_widgets(fps_width: int, fps_height: int) -> DebugWidgets:
     position = (0, 0)
 
-    debug_fps_loop_widget = FpsWidget(position, (fps_width, fps_height), "LOOP")
-    debug_fps_video_widget = FpsWidget(position, (fps_width, fps_height), "VIDEO")
-    debug_data_widget = StatusValueWidget(position, 26, "CTRL", average=True)
-    debug_latency_widget = StatusValueWidget(position, 26, "LATENCY")
-    debug_buffer_widget = StatusValueWidget(position, 26, "BUFFER", average=True, average_window=2)
-
-    return {
-        "debug_fps_loop": debug_fps_loop_widget,
-        "debug_fps_video": debug_fps_video_widget,
-        "debug_data": debug_data_widget,
-        "debug_latency": debug_latency_widget,
-        "debug_buffer": debug_buffer_widget,
-    }
+    return DebugWidgets(
+        fps_loop=FpsWidget(position, (fps_width, fps_height), "LOOP"),
+        fps_video=FpsWidget(position, (fps_width, fps_height), "VIDEO"),
+        data=StatusValueWidget(position, 26, "CTRL", average=True),
+        latency=StatusValueWidget(position, 26, "LATENCY"),
+        buffer=StatusValueWidget(position, 26, "BUFFER", average=True, average_window=2),
+    )
 
 
-def create_rec_widget() -> dict[str, Widget]:
-    position = (0, 0)
-    rec_widget = RecWidget(position)
-
-    return {"rec": rec_widget}
+def create_rec_widget() -> RecWidget:
+    return RecWidget((0, 0))
 
 
-def create_clock_widget() -> dict[str, Widget]:
-    position = (0, 0)
-    clock_widget = ClockWidget(position)
-
-    return {"clock": clock_widget}
+def create_clock_widget() -> ClockWidget:
+    return ClockWidget((0, 0))
 
 
-def create_gps_widgets() -> dict[str, Widget]:
+def create_gps_widgets() -> GpsWidgets:
     position = (0, 0)
 
     gps_icon_widget = GpsIconWidget(position, 70)
@@ -114,9 +138,9 @@ def create_gps_widgets() -> dict[str, Widget]:
     gps_fix_widget.set_alignment(Alignment.RIGHT)
     gps_satellites_widget.set_alignment(Alignment.RIGHT)
 
-    return {
-        "gps_icon": gps_icon_widget,
-        "gps_fix": gps_fix_widget,
-        "gps_satellites": gps_satellites_widget,
-        "gps_speed": gps_speed_widget,
-    }
+    return GpsWidgets(
+        icon=gps_icon_widget,
+        fix=gps_fix_widget,
+        satellites=gps_satellites_widget,
+        speed=gps_speed_widget,
+    )

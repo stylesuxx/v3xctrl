@@ -8,7 +8,7 @@ from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT
 from v3xctrl_ui.utils.helpers import round_corners
 
 
-class StatusWidget(Widget):
+class StatusWidget(Widget[str | None]):
     STATUS_COLORS: ClassVar[dict[str, Any]] = {
         "waiting": YELLOW,
         "success": GREEN,
@@ -46,8 +46,8 @@ class StatusWidget(Widget):
         self.surface = Surface((self.width, self.height), SRCALPHA)
         self.square_rect = Rect(0, square_y, self.size, self.size)
 
-    def draw(self, screen: Surface, status: str) -> None:
-        self.color = self.STATUS_COLORS.get(status, self.STATUS_COLORS["default"])
+    def draw(self, screen: Surface, status: str | None) -> None:
+        self.color = self.STATUS_COLORS.get(status or "default", self.STATUS_COLORS["default"])
 
         self.surface.fill((0, 0, 0, self.background_alpha))
 
