@@ -56,9 +56,7 @@ class TestAppState(unittest.TestCase):
             mock_coordinator_manager.server = None
             mock_coordinator_manager.server_error = None
             mock_coordinator.network_controller = mock_coordinator_manager
-            mock_coordinator.get_data_queue_size.return_value = 0
             mock_coordinator.get_video_buffer_size.return_value = 0
-            mock_coordinator.has_server_error.return_value = False
             mock_coordinator.is_control_connected.return_value = False
             mock_coordinator_cls.return_value = mock_coordinator
 

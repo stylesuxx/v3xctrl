@@ -39,7 +39,7 @@ class TestNetworkCoordinator(unittest.TestCase):
         mock_nm = MagicMock()
         mock_nm_class.return_value = mock_nm
 
-        result = self.coordinator.create_network_controller(self.settings)
+        result = self.coordinator._create_network_controller(self.settings)
 
         self.assertEqual(result, mock_nm)
         mock_nm_class.assert_called_once()
@@ -70,7 +70,7 @@ class TestNetworkCoordinator(unittest.TestCase):
         # Set up the mock to return new network manager on second call
         mock_nm_class.return_value = mock_nm_new
 
-        thread = self.coordinator.restart_network_controller(self.settings)
+        thread = self.coordinator._restart_network_controller(self.settings)
 
         self.assertIsInstance(thread, threading.Thread)
         self.assertFalse(self.coordinator.restart_complete.is_set())
@@ -176,16 +176,6 @@ class TestNetworkCoordinator(unittest.TestCase):
 
         mock_nm.update_ttl.assert_called_once_with(150)
 
-    def test_get_data_queue_size(self):
-        """Test getting data queue size."""
-        mock_nm = MagicMock()
-        mock_nm.get_data_queue_size.return_value = 42
-        self.coordinator.network_controller = mock_nm
-
-        result = self.coordinator.get_data_queue_size()
-
-        self.assertEqual(result, 42)
-
     def test_get_video_buffer_size(self):
         """Test getting video buffer size."""
         mock_nm = MagicMock()
@@ -195,26 +185,6 @@ class TestNetworkCoordinator(unittest.TestCase):
         result = self.coordinator.get_video_buffer_size()
 
         self.assertEqual(result, 5)
-
-    def test_has_server_error(self):
-        """Test checking for server error."""
-        mock_nm = MagicMock()
-        mock_nm.server_error = True
-        self.coordinator.network_controller = mock_nm
-
-        result = self.coordinator.has_server_error()
-
-        self.assertTrue(result)
-
-    def test_has_server_error_false(self):
-        """Test checking for server error when no error."""
-        mock_nm = MagicMock()
-        mock_nm.server_error = False
-        self.coordinator.network_controller = mock_nm
-
-        result = self.coordinator.has_server_error()
-
-        self.assertFalse(result)
 
     def test_is_control_connected(self):
         """Test checking control connection status."""

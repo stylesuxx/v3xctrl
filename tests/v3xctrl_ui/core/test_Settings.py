@@ -26,29 +26,29 @@ class TestSettings(unittest.TestCase):
     def test_load_defaults_if_file_missing(self):
         Path(self.path).unlink()
         settings = Settings(self.path)
-        self.assertEqual(settings.get("debug"), True)
+        self.assertEqual(settings.get("show_connection_info"), True)
         self.assertEqual(settings.get("timing").get("main_loop_fps"), 60)
         self.assertEqual(settings.video.width, 1280)
 
     def test_save_and_load_round_trip(self):
         settings = Settings(self.path)
-        settings.set("debug", False)
+        settings.set("show_connection_info", False)
         settings.set("video", {"width": 640, "height": 480})
         settings.save()
 
         loaded = Settings(self.path)
-        self.assertEqual(loaded.get("debug"), False)
+        self.assertEqual(loaded.get("show_connection_info"), False)
         self.assertEqual(loaded.get("video")["width"], 640)
         self.assertEqual(loaded.get("video")["height"], 480)
 
     def test_save_and_load_round_trip_one(self):
         settings = Settings(self.path)
-        settings.set("debug", False)
+        settings.set("show_connection_info", False)
         settings.set("video", {"width": 640, "height": 480})
         settings.save()
 
         loaded = Settings(self.path)
-        self.assertEqual(loaded.get("debug"), False)
+        self.assertEqual(loaded.get("show_connection_info"), False)
         self.assertEqual(loaded.get("video")["width"], 640)
         self.assertEqual(loaded.get("video")["height"], 480)
 
@@ -65,11 +65,11 @@ class TestSettings(unittest.TestCase):
 
     def test_delete_resets_a_scalar_to_its_default(self):
         settings = Settings(self.path)
-        settings.set("debug", False)
+        settings.set("show_connection_info", False)
 
-        settings.delete("debug")
+        settings.delete("show_connection_info")
 
-        self.assertEqual(settings.debug, True)
+        self.assertEqual(settings.show_connection_info, True)
 
     def test_custom_path_creates_parent_directories(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -84,7 +84,7 @@ class TestSettings(unittest.TestCase):
             self.assertFalse(config_path.exists())
             settings = Settings(str(config_path))
             self.assertTrue(config_path.exists())
-            self.assertEqual(settings.get("debug"), True)
+            self.assertEqual(settings.get("show_connection_info"), True)
             self.assertEqual(settings.get("timing").get("main_loop_fps"), 60)
 
     def test_custom_path_preserves_path_attribute(self):
