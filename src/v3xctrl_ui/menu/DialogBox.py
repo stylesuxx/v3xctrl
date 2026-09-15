@@ -39,7 +39,9 @@ class DialogBox(BaseWidget):
         self.box_rect = pygame.Rect(0, 0, 0, 0)
 
     def get_size(self) -> tuple[int, int]:
-        return self.box_rect.size
+        size: tuple[int, int] = self.box_rect.size
+
+        return size
 
     def show(self) -> None:
         self.visible = True

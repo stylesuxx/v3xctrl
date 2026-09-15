@@ -98,7 +98,9 @@ class DisplayController:
         return self.screen
 
     def get_size(self) -> tuple[int, int]:
-        return self.screen.get_size()
+        size: tuple[int, int] = self.screen.get_size()
+
+        return size
 
     def get_base_size(self) -> tuple[int, int]:
         return self.base_size

@@ -88,4 +88,6 @@ class Tab(ABC):
         note_rect.topleft = (self.padding, y)
         surface.blit(note_surface, note_rect)
 
-        return y + note_rect.height
+        next_y: int = y + note_rect.height
+
+        return next_y
