@@ -154,7 +154,7 @@ class RelaySettings(Section):
 
     enabled: bool = False
     server: str = "relay.v3xctrl.com:8888"
-    id: str = "test123"
+    id: str = ""
     spectator_mode: bool = False
 
 
@@ -183,8 +183,6 @@ class FpsGraphConfig(Section):
 
     width: int = 100
     height: int = 75
-    average_window: int = 30
-    graph_frames: int = 300
 
 
 @dataclass(frozen=True, slots=True)

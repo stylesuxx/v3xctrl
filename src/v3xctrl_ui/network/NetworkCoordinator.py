@@ -52,18 +52,18 @@ class NetworkCoordinator:
         self.clock_offset = ClockOffset()
 
         # Built last: the handlers it is given close over everything above
-        self.network_controller = self.create_network_controller(settings)
+        self.network_controller = self._create_network_controller(settings)
 
-    def create_network_controller(self, settings: Settings) -> NetworkController:
+    def _create_network_controller(self, settings: Settings) -> NetworkController:
         handlers = self._create_handlers()
         return NetworkController(settings, handlers, self.clock_offset)
 
-    def restart_network_controller(self, settings: Settings) -> threading.Thread:
+    def _restart_network_controller(self, settings: Settings) -> threading.Thread:
         def _restart() -> None:
             logger.info("[NetworkController] Restarting...")
             try:
                 self.network_controller.shutdown()
-                self.network_controller = self.create_network_controller(settings)
+                self.network_controller = self._create_network_controller(settings)
                 self.network_controller.setup_ports()
 
                 logger.info("[NetworkController] Restart complete...")
@@ -83,12 +83,12 @@ class NetworkCoordinator:
         a settings change that needs new sockets goes through restart().
         """
         if not self.model.user_connected:
-            self.network_controller = self.create_network_controller(settings)
+            self.network_controller = self._create_network_controller(settings)
 
         self.update_ttl(settings.udp_packet_ttl)
 
     def restart(self, settings: Settings) -> None:
-        self._restart_thread = self.restart_network_controller(settings)
+        self._restart_thread = self._restart_network_controller(settings)
         self._restart_thread.start()
 
     def is_restart_complete(self) -> bool:
@@ -140,9 +140,6 @@ class NetworkCoordinator:
     def update_ttl(self, udp_ttl_ms: int) -> None:
         self.network_controller.update_ttl(udp_ttl_ms)
 
-    def get_data_queue_size(self) -> int:
-        return self.network_controller.get_data_queue_size()
-
     def get_control_buffer_size(self) -> int:
         return self.network_controller.get_control_buffer_size()
 
@@ -174,9 +171,6 @@ class NetworkCoordinator:
 
     def has_recent_send_failures(self) -> bool:
         return self.network_controller.has_recent_send_failures()
-
-    def has_server_error(self) -> bool:
-        return bool(self.network_controller.server_error)
 
     def is_control_connected(self) -> bool:
         return self.model.control_connected

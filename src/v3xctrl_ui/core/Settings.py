@@ -49,7 +49,6 @@ class Settings:
         "transport": DEFAULT_TRANSPORT,
         "udp_packet_ttl": 100,
         "control_buffer_capacity": 1,
-        "debug": True,
         "show_connection_info": True,
     }
 
@@ -71,7 +70,6 @@ class Settings:
         self.transport = DEFAULT_TRANSPORT
         self.udp_packet_ttl = self.SCALARS["udp_packet_ttl"]
         self.control_buffer_capacity = self.SCALARS["control_buffer_capacity"]
-        self.debug = self.SCALARS["debug"]
         self.show_connection_info = self.SCALARS["show_connection_info"]
 
         self.load()
