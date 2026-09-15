@@ -1,6 +1,4 @@
-import math
 import threading
-import time
 from collections.abc import Callable
 from typing import NamedTuple
 
@@ -14,8 +12,9 @@ from v3xctrl_ui.core.MainThreadDispatcher import MainThreadDispatcher
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 from v3xctrl_ui.menu.input import Button
+from v3xctrl_ui.menu.LoadingOverlay import LoadingOverlay
 from v3xctrl_ui.menu.tabs import FrequenciesTab, GeneralTab, InputTab, NetworkTab, OsdTab, StreamerTab, Tab
-from v3xctrl_ui.utils.colors import CHARCOAL, DARK_GREY, GREY, TRANSPARENT_BLACK, WHITE
+from v3xctrl_ui.utils.colors import CHARCOAL, DARK_GREY, GREY, WHITE
 from v3xctrl_ui.utils.fonts import MAIN_FONT
 from v3xctrl_ui.utils.i18n import t
 
@@ -34,7 +33,6 @@ class Menu:
     TAB_SEPARATOR_COLOR = BG_COLOR
     FONT_COLOR = WHITE
     FONT_COLOR_INACTIVE = GREY
-    LOADING_OVERLAY_COLOR = TRANSPARENT_BLACK
 
     def __init__(
         self,
@@ -113,19 +111,11 @@ class Menu:
         self.tab_bar_dirty = True
         self.tab_bar_surface = pygame.Surface((self.width, self.tab_height))
 
-        # Loading screen
-        self.is_loading = False
-        self.loading_text = "Applying settings!"
-        self.loading_result_time = 1.2
+        self.loading_overlay = LoadingOverlay()
 
-        # Result waiting to be shown, then held on screen for loading_result_time
-        self._pending_result: tuple[bool, Callable[[bool], None]] | None = None
-        self._result_start_time: float | None = None
-
-        self.spinner_angle = 0
-        self.spinner_radius = 30
-        self.spinner_thickness = 4
-        self.spinner_offset = 60
+    @property
+    def is_loading(self) -> bool:
+        return self.loading_overlay.is_visible
 
     def handle_event(self, event: event.Event) -> None:
         # Events can be ignored if loading screen is shown
@@ -166,10 +156,8 @@ class Menu:
         if tab:
             tab.view.draw(surface)
 
-        if self.is_loading:
-            self._process_pending_result()
-            self._draw_loading_overlay(surface)
-            self.spinner_angle = (self.spinner_angle + 5) % 360
+        if self.loading_overlay.is_visible:
+            self.loading_overlay.draw(surface)
 
     def set_tab_enabled(self, tab_name: str, enabled: bool) -> None:
         for i, entry in enumerate(self.tabs):
@@ -182,9 +170,12 @@ class Menu:
                 self.tab_bar_dirty = True
                 break
 
-    def show_loading(self, text: str = t("Applying settings!")) -> None:
-        self.is_loading = True
-        self.loading_text = text
+    def update(self, now: float) -> None:
+        """Advance anything the menu animates or times."""
+        self.loading_overlay.update(now)
+
+    def show_loading(self, text: str) -> None:
+        self.loading_overlay.show(text)
 
     def show(self) -> None:
         self.visible = True
@@ -307,7 +298,7 @@ class Menu:
         def run_test() -> None:
             success, message = test_relay_connection(server, port, session_id, spectator)
             self.main_thread_dispatcher.post(
-                self._set_pending_result, success, lambda state: result_callback(state, message)
+                self.loading_overlay.show_result, success, lambda state: result_callback(state, message)
             )
 
         self.show_loading(t("Testing relay connection..."))
@@ -317,39 +308,10 @@ class Menu:
         # invoke_command already hands its acknowledgement back on the main
         # thread, so the result only waits here to stay on screen
         def callback_wrapper(state: bool = False) -> None:
-            self._set_pending_result(state, callback)
+            self.loading_overlay.show_result(state, callback)
 
         self.show_loading(t("Sending command..."))
         self.invoke_command(command, callback_wrapper)
-
-    def _set_pending_result(self, state: bool, callback: Callable[[bool], None]) -> None:
-        self._pending_result = (state, callback)
-
-    def _process_pending_result(self) -> None:
-        """Process pending command result in the main thread."""
-        if self._pending_result is None:
-            return
-
-        # First time seeing the result - show success/fail message
-        if self._result_start_time is None:
-            state, _ = self._pending_result
-            result = t("Success!") if state else t("Failed!")
-            self.loading_text = result
-            self._result_start_time = time.monotonic()
-            return
-
-        # Wait for the result display time. Monotonic: this is a duration, and
-        # a wall-clock step would leave the result on screen or flash it away.
-        elapsed = time.monotonic() - self._result_start_time
-        if elapsed < self.loading_result_time:
-            return
-
-        # Done waiting - clean up and call the original callback
-        state, callback = self._pending_result
-        self._pending_result = None
-        self._result_start_time = None
-        self.is_loading = False
-        callback(state)
 
     def _on_active_toggle(self, active: bool) -> None:
         if active:
@@ -452,35 +414,3 @@ class Menu:
         self.quit_button.draw(surface)
         self.save_button.draw(surface)
         self.exit_button.draw(surface)
-
-    def _draw_loading_overlay(self, surface: Surface) -> None:
-        """Draw semi-transparent overlay with loading spinner and text"""
-        overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-        overlay.fill(self.LOADING_OVERLAY_COLOR)
-        surface.blit(overlay, (0, 0))
-
-        center_x = self.width // 2
-        center_y = self.height // 2
-
-        # Draw spinning arc
-        # Draw multiple arcs to create a smooth spinner effect
-        num_segments = 8
-
-        for i in range(num_segments):
-            # Calculate opacity for each segment (fade effect)
-            segment_angle = (self.spinner_angle + i * (360 / num_segments)) % 360
-            alpha = int(255 * (i / num_segments))
-
-            # Calculate start and end points for this segment
-            angle_rad = math.radians(segment_angle)
-            x = center_x + int(self.spinner_radius * math.cos(angle_rad))
-            y = center_y + int(self.spinner_radius * math.sin(angle_rad))
-
-            # Draw small circle for each segment
-            color = (*WHITE[:3], alpha) if len(WHITE) == 3 else (WHITE[0], WHITE[1], WHITE[2], alpha)
-            pygame.draw.circle(surface, color, (x, y), self.spinner_thickness)
-
-        # Render loading text below the spinner
-        text_surface, text_rect = MAIN_FONT.render(self.loading_text, WHITE)
-        text_rect.center = (center_x, center_y + self.spinner_offset)
-        surface.blit(text_surface, text_rect)

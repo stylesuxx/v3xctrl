@@ -171,6 +171,22 @@ class TestAppState(unittest.TestCase):
         mock_coordinator.send_control_message.assert_called_once_with(0.5, 0.3)
         mock_coordinator.send_latency_check.assert_called_once()
 
+    def test_update_advances_the_menu_before_the_connection_check(
+        self, mock_coordinator_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_display_cls
+    ):
+        """The loading overlay has to run while the user is still on the connect screen."""
+        app, _, _, _, _ = self._create_app(
+            mock_coordinator_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_display_cls
+        )
+
+        app.menu = MagicMock(visible=False)
+        app.model.user_connected = False
+
+        app.update()
+
+        app.menu.update.assert_called_once()
+        self.assertIsInstance(app.menu.update.call_args[0][0], float)
+
     def test_update_no_control_when_timing_not_ready(
         self, mock_coordinator_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_display_cls
     ):
