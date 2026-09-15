@@ -4,6 +4,7 @@ from typing import Any
 from pygame import Surface, event
 
 from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.menu.input.Select import Select
 from v3xctrl_ui.menu.tabs.Headline import Headline
 from v3xctrl_ui.utils.colors import WHITE
 from v3xctrl_ui.utils.fonts import TEXT_FONT
@@ -27,6 +28,12 @@ class Tab(ABC):
         self.headlines: dict[str, Headline] = {}
 
     def handle_event(self, event: event.Event) -> None:
+        expanded_select = next((e for e in self.elements if isinstance(e, Select) and e.expanded), None)
+        if expanded_select:
+            # The open option list is drawn over its siblings, so it takes the event alone
+            expanded_select.handle_event(event)
+            return
+
         for element in self.elements:
             element.handle_event(event)
 
