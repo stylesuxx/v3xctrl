@@ -13,6 +13,7 @@ NOTE: Make sure to add observers before starting the GamepadController, otherwis
       you might miss the first update.
 """
 
+import copy
 import logging
 import threading
 from collections.abc import Callable
@@ -114,14 +115,19 @@ class GamepadController(threading.Thread):
         return self._gamepads[guid]
 
     def set_calibration(self, guid: str, settings: dict[str, Any]) -> None:
+        """Store a copy, so later edits to the caller's dict stay out of the polling thread."""
         with self._lock:
-            self._settings[guid] = settings
+            self._settings[guid] = copy.deepcopy(settings)
+            if guid == self._active_guid:
+                self._set_active_unlocked(guid)
 
     def get_calibrations(self) -> dict[str, Any]:
-        return self._settings
+        with self._lock:
+            return copy.deepcopy(self._settings)
 
     def get_calibration(self, guid: str) -> dict[str, Any]:
-        calibration: dict[str, Any] = self._settings.get(guid, {})
+        with self._lock:
+            calibration: dict[str, Any] = copy.deepcopy(self._settings.get(guid, {}))
 
         return calibration
 
