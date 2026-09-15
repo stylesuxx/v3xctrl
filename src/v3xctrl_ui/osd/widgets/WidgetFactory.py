@@ -1,19 +1,16 @@
 from dataclasses import dataclass
 
-from v3xctrl_ui.osd.widgets import (
-    Alignment,
-    BatteryIconWidget,
-    ClockWidget,
-    FpsWidget,
-    GpsIconWidget,
-    GpsSpeedWidget,
-    HorizontalIndicatorWidget,
-    RecWidget,
-    SignalQualityWidget,
-    StatusValueWidget,
-    TextWidget,
-    VerticalIndicatorWidget,
-)
+from v3xctrl_ui.osd.widgets.BatteryIconWidget import BatteryIconWidget
+from v3xctrl_ui.osd.widgets.ClockWidget import ClockWidget
+from v3xctrl_ui.osd.widgets.FpsWidget import FpsWidget
+from v3xctrl_ui.osd.widgets.GpsIconWidget import GpsIconWidget
+from v3xctrl_ui.osd.widgets.GpsSpeedWidget import GpsSpeedWidget
+from v3xctrl_ui.osd.widgets.HorizontalIndicatorWidget import HorizontalIndicatorWidget
+from v3xctrl_ui.osd.widgets.RecWidget import RecWidget
+from v3xctrl_ui.osd.widgets.SignalQualityWidget import SignalQualityWidget
+from v3xctrl_ui.osd.widgets.StatusValueWidget import StatusValueWidget
+from v3xctrl_ui.osd.widgets.TextWidget import Alignment, TextWidget
+from v3xctrl_ui.osd.widgets.VerticalIndicatorWidget import VerticalIndicatorWidget
 from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT_14
 from v3xctrl_ui.utils.helpers import (
     interpolate_steering_color,

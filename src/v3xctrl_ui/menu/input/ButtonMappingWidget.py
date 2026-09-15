@@ -5,7 +5,8 @@ import pygame
 from pygame import Surface
 from pygame.freetype import Font
 
-from v3xctrl_ui.menu.input import BaseWidget, Button
+from v3xctrl_ui.menu.input.BaseWidget import BaseWidget
+from v3xctrl_ui.menu.input.Button import Button
 from v3xctrl_ui.utils.colors import WHITE
 
 # Mapping value is either an int (button index) or a dict (hat mapping)

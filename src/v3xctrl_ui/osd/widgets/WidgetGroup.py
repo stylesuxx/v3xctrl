@@ -4,7 +4,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Generic, TypeVar
 
-from v3xctrl_ui.osd.widgets import Widget
+from v3xctrl_ui.osd.widgets.Widget import Widget
 
 ValueT = TypeVar("ValueT")
 

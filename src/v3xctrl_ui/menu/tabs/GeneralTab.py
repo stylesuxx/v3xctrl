@@ -6,12 +6,10 @@ from pygame import Surface
 from v3xctrl_helper import is_int
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.core.SettingsSchema import VideoSettings
-from v3xctrl_ui.menu.input import (
-    BaseInput,
-    BaseWidget,
-    Checkbox,
-    NumberInput,
-)
+from v3xctrl_ui.menu.input.BaseInput import BaseInput
+from v3xctrl_ui.menu.input.BaseWidget import BaseWidget
+from v3xctrl_ui.menu.input.Checkbox import Checkbox
+from v3xctrl_ui.menu.input.NumberInput import NumberInput
 from v3xctrl_ui.utils.fonts import LABEL_FONT, MONO_FONT
 from v3xctrl_ui.utils.i18n import t
 
