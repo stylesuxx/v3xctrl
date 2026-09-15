@@ -14,6 +14,26 @@ finish-args:
   - --device=all
 
 modules:
+  # The freedesktop runtime ships FFmpeg 7.0.3 with the H.264 and H.265
+  # decoders stripped out, which leaves the runtime's gst-libav without
+  # avdec_h264 and forces the viewer onto the slower PyAV receiver.
+  # Installing a matching FFmpeg into /app/lib puts it ahead of /usr/lib in
+  # the loader path, so the runtime's libgstlibav.so binds to this build and
+  # registers avdec_h264. The version matches the runtime exactly so the
+  # libraries stay ABI-consistent with everything else in the sandbox.
+  - name: ffmpeg
+    buildsystem: simple
+    build-commands:
+      - ./configure --prefix=/app --libdir=/app/lib --enable-shared --disable-static
+        --disable-programs --disable-doc --disable-encoders --disable-muxers
+        --disable-devices
+      - make -j$(nproc)
+      - make install
+    sources:
+      - type: archive
+        url: https://ffmpeg.org/releases/ffmpeg-7.0.3.tar.xz
+        sha256: bbb18f3cc5c1c34b21cf176c0168c4d9aa97697542a97f60d491a58a814dea65
+
   - python-deps.json
 
   - name: v3xctrl-viewer
