@@ -86,7 +86,7 @@ class TestNetworkCoordinator(unittest.TestCase):
     def test_send_control_message(self):
         """The coordinator forwards control to the channel; the channel builds the message."""
         mock_nm = MagicMock()
-        mock_nm.relay_spectator_mode = False
+        mock_nm.is_spectator.return_value = False
         self.coordinator.network_controller = mock_nm
 
         self.coordinator.send_control_message(0.5, -0.3)
@@ -107,7 +107,7 @@ class TestNetworkCoordinator(unittest.TestCase):
         mock_server = MagicMock()
         mock_nm = MagicMock()
         mock_nm.server = mock_server
-        mock_nm.server_error = True
+        mock_nm.get_server_error.return_value = True
         self.coordinator.network_controller = mock_nm
 
         self.coordinator.send_control_message(0.5, -0.3)
@@ -118,7 +118,7 @@ class TestNetworkCoordinator(unittest.TestCase):
     def test_send_command(self):
         """Test sending a command to the server."""
         mock_nm = MagicMock()
-        mock_nm.relay_spectator_mode = False
+        mock_nm.is_spectator.return_value = False
         mock_nm.send_command.return_value = True
         self.coordinator.network_controller = mock_nm
 
@@ -146,7 +146,7 @@ class TestNetworkCoordinator(unittest.TestCase):
         """A channel that reports it could not send makes the callback fire with False."""
         mock_nm = MagicMock()
         mock_nm.send_command.return_value = False
-        mock_nm.relay_spectator_mode = False
+        mock_nm.is_spectator.return_value = False
         self.coordinator.network_controller = mock_nm
 
         command = Command({"action": "test"})
@@ -160,7 +160,7 @@ class TestNetworkCoordinator(unittest.TestCase):
     def test_send_latency_check(self):
         """Test sending latency check."""
         mock_nm = MagicMock()
-        mock_nm.relay_spectator_mode = False
+        mock_nm.is_spectator.return_value = False
         self.coordinator.network_controller = mock_nm
 
         self.coordinator.send_latency_check()
@@ -307,7 +307,7 @@ class TestNetworkCoordinator(unittest.TestCase):
     def test_is_spectator_true(self):
         """Test checking spectator mode when enabled."""
         mock_nm = MagicMock()
-        mock_nm.relay_spectator_mode = True
+        mock_nm.is_spectator.return_value = True
         self.coordinator.network_controller = mock_nm
 
         result = self.coordinator.is_spectator()
@@ -317,7 +317,7 @@ class TestNetworkCoordinator(unittest.TestCase):
     def test_is_spectator_false(self):
         """Test checking spectator mode when disabled."""
         mock_nm = MagicMock()
-        mock_nm.relay_spectator_mode = False
+        mock_nm.is_spectator.return_value = False
         self.coordinator.network_controller = mock_nm
 
         result = self.coordinator.is_spectator()
@@ -329,8 +329,8 @@ class TestNetworkCoordinator(unittest.TestCase):
         mock_server = MagicMock()
         mock_nm = MagicMock()
         mock_nm.server = mock_server
-        mock_nm.server_error = False
-        mock_nm.relay_spectator_mode = True
+        mock_nm.get_server_error.return_value = False
+        mock_nm.is_spectator.return_value = True
         self.coordinator.network_controller = mock_nm
 
         self.coordinator.send_control_message(0.5, -0.3)
@@ -341,7 +341,7 @@ class TestNetworkCoordinator(unittest.TestCase):
     def test_send_latency_check_spectator_mode(self):
         """Test that latency checks are not sent in spectator mode."""
         mock_nm = MagicMock()
-        mock_nm.relay_spectator_mode = True
+        mock_nm.is_spectator.return_value = True
         self.coordinator.network_controller = mock_nm
 
         self.coordinator.send_latency_check()
@@ -363,7 +363,7 @@ class TestNetworkCoordinator(unittest.TestCase):
         """Test checking for recent send failures."""
         mock_nm = MagicMock()
         mock_nm.server = MagicMock()
-        mock_nm.server_error = None
+        mock_nm.get_server_error.return_value = None
         mock_nm.server.transmitter.has_recent_send_failures.return_value = True
         self.coordinator.network_controller = mock_nm
 
@@ -376,7 +376,7 @@ class TestNetworkCoordinator(unittest.TestCase):
         mock_server = MagicMock()
         mock_nm = MagicMock()
         mock_nm.server = mock_server
-        mock_nm.relay_spectator_mode = True
+        mock_nm.is_spectator.return_value = True
         self.coordinator.network_controller = mock_nm
 
         command = Command({"action": "test"})
