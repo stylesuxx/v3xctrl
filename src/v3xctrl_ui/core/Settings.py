@@ -97,9 +97,9 @@ class Settings:
         self.settings = loaded
 
     def save(self) -> None:
-        serialized = self._remove_none({**self.settings, **self._sections_to_raw()})
+        serialized: dict[str, Any] = {**self.settings, **self._sections_to_raw()}
         with self.path.open("wb") as f:
-            f.write(tomli_w.dumps(serialized).encode("utf-8"))
+            f.write(tomli_w.dumps(self._remove_none(serialized)).encode("utf-8"))
 
     def get(self, key: str, default: Any = None) -> Any:
         match key:
@@ -147,7 +147,7 @@ class Settings:
 
         return raw
 
-    def _remove_none(self, obj: object) -> dict[str, Any] | list[Any] | object:
+    def _remove_none(self, obj: object) -> Any:
         match obj:
             case dict():
                 return {key: self._remove_none(value) for key, value in obj.items() if value is not None}

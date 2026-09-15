@@ -1,7 +1,7 @@
 from collections import deque
 
 import pygame
-from pygame import Surface
+from pygame import Rect, Surface
 
 from v3xctrl_ui.osd.widgets.Widget import Widget
 from v3xctrl_ui.utils.colors import GREEN, WHITE
@@ -48,7 +48,7 @@ class FpsWidget(Widget[float]):
         # Cache for rendered FPS text
         self._cached_smoothed_fps: int | None = None
         self._cached_fps_surface: Surface | None = None
-        self._cached_fps_rect = None
+        self._cached_fps_rect: Rect | None = None
 
         # Status icon state
         self._status_icon: Surface | None = None
@@ -90,7 +90,7 @@ class FpsWidget(Widget[float]):
             self._cached_smoothed_fps = smoothed_fps
 
         # Blit cached FPS text
-        if self._cached_fps_surface is not None:
+        if self._cached_fps_surface is not None and self._cached_fps_rect is not None:
             self.surface.blit(self._cached_fps_surface, self._cached_fps_rect)
 
         # Draw graph (updated every frame)

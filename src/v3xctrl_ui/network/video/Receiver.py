@@ -390,7 +390,7 @@ class Receiver(ABC, threading.Thread):
                 dropped_total = self.dropped_empty_frames + self.dropped_old_frames + self.dropped_burst_frames
                 drop_rate = (dropped_total / self.packet_count) * 100
 
-                time_elapsed = self.log_interval
+                time_elapsed: float = self.log_interval
                 if self.last_log_time > 0:
                     time_elapsed = current_time - self.last_log_time
                 avg_decoded_fps = round(self.decoded_frame_count / time_elapsed) if time_elapsed > 0 else 0

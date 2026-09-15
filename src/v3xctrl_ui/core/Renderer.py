@@ -1,9 +1,7 @@
 import logging
 import math
-import sys
 import time
 from collections.abc import Callable
-from pathlib import Path
 
 import numpy as np
 import numpy.typing as npt
@@ -17,6 +15,7 @@ from v3xctrl_ui.osd.OSD import OSD
 from v3xctrl_ui.utils.colors import BLACK, RED, WHITE
 from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT_24, BOLD_MONO_FONT_32, BOLD_MONO_FONT_48, TEXT_FONT
 from v3xctrl_ui.utils.helpers import get_external_ip
+from v3xctrl_ui.utils.resources import get_resource_path
 
 logger = logging.getLogger(__name__)
 
@@ -180,9 +179,7 @@ class Renderer:
     def _get_splash_logo(self) -> pygame.Surface | None:
         if not self._splash_logo_loaded:
             self._splash_logo_loaded = True
-            base_path = Path(sys._MEIPASS) if getattr(sys, "frozen", False) else Path(__file__).parent.parent
-
-            logo_path = base_path / "assets" / "images" / "v3xctrl_logo.png"
+            logo_path = get_resource_path("assets/images/v3xctrl_logo.png")
             try:
                 self._splash_logo = pygame.image.load(str(logo_path)).convert_alpha()
             except Exception as e:

@@ -47,7 +47,7 @@ def _do_gstreamer_check() -> bool:
         # GStreamer to scan all DLLs there as plugins and corrupts the GLib
         # type system. Override it here, after all hooks have run, to point
         # only at the actual plugin directory.
-        bundle_dir = sys._MEIPASS
+        bundle_dir = getattr(sys, "_MEIPASS", "")
         _plugin_dir_candidates = [
             os.path.join(bundle_dir, "gstreamer_libs", "lib", "gstreamer-1.0"),
             os.path.join(bundle_dir, "gstreamer_plugins", "lib", "gstreamer-1.0"),

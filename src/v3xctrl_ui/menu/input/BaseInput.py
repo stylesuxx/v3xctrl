@@ -161,7 +161,9 @@ class BaseInput(BaseWidget):
             self.cursor_timer = current_time
 
     def _get_text_x(self) -> int:
-        return self.input_rect.right - self.input_padding - self.mono_font.get_rect(self.value).width
+        text_x: int = self.input_rect.right - self.input_padding - self.mono_font.get_rect(self.value).width
+
+        return text_x
 
     def _get_clipboard_text(self) -> str | None:
         for type in pygame.scrap.get_types():
