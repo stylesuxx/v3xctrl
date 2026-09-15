@@ -54,7 +54,7 @@ class TestAppState(unittest.TestCase):
             mock_coordinator = MagicMock()
             mock_coordinator_manager = MagicMock()
             mock_coordinator_manager.server = None
-            mock_coordinator_manager.server_error = None
+            mock_coordinator_manager.get_server_error.return_value = None
             mock_coordinator.network_controller = mock_coordinator_manager
             mock_coordinator.get_video_buffer_size.return_value = 0
             mock_coordinator.is_control_connected.return_value = False

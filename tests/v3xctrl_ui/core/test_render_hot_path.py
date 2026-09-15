@@ -46,11 +46,19 @@ class CountingController:
     def __init__(self, receiver: CountingReceiver) -> None:
         self.video_receiver = receiver
         self.server = None
-        self.server_error = None
-        self.relay_enable = False
-        self.relay_status_message = ""
-        self.relay_spectator_mode = False
         self.control_buffer_calls = 0
+
+    def get_server_error(self) -> None:
+        return None
+
+    def is_relay_enabled(self) -> bool:
+        return False
+
+    def get_relay_status_message(self) -> str:
+        return ""
+
+    def is_spectator(self) -> bool:
+        return False
 
     def get_control_buffer_size(self) -> int:
         self.control_buffer_calls += 1
