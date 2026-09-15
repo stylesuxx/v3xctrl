@@ -61,6 +61,10 @@ class Tab(ABC):
         return
 
     @abstractmethod
+    def draw(self, surface: Surface) -> None:
+        pass
+
+    @abstractmethod
     def get_settings(self) -> dict[str, Any]:
         pass
 
