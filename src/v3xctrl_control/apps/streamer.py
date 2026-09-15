@@ -17,10 +17,11 @@ import time
 import traceback
 import types
 from concurrent.futures import ThreadPoolExecutor
+from typing import assert_never
 
 from rpi_servo_pwm import HardwarePWM
 
-from v3xctrl_control import Client, State
+from v3xctrl_control import Ackermann, Client, Differential, Mixer, MixerType, State
 from v3xctrl_control.message import (
     Command,
     Control,
@@ -30,7 +31,7 @@ from v3xctrl_control.message import (
 )
 from v3xctrl_control.Telemetry import Telemetry as TelemetryHandler
 from v3xctrl_gst import ControlClient
-from v3xctrl_helper import Address, apply_expo, clamp
+from v3xctrl_helper import Address
 from v3xctrl_tcp import Transport
 from v3xctrl_tcp.TcpTunnel import TcpTunnel
 from v3xctrl_telemetry import GpsProtocol
@@ -42,34 +43,106 @@ parser.add_argument("host", help="The target IP address")
 parser.add_argument("port", type=int, help="The target port number")
 parser.add_argument("bind_port", type=int, help="The internal port number")
 
-parser.add_argument("--throttle-min", type=int, default=1000, help="Minimum pulse width for throttle (default: 1000)")
-parser.add_argument("--throttle-idle", type=int, default=1500, help="Mid pulse width for throttle (default: 1500)")
-parser.add_argument("--throttle-max", type=int, default=2000, help="Maximum pulse width for throttle (default: 2000)")
-parser.add_argument("--steering-min", type=int, default=1000, help="Minimum pulse width for steering (default: 1000)")
-parser.add_argument("--steering-max", type=int, default=2000, help="Maximum pulse width for steering (default: 2000)")
-parser.add_argument("--steering-trim", type=int, default=0, help="Pulse width to trim steering center (default: 0)")
-parser.add_argument("--steering-invert", action="store_true", help="Invert steering direction (default: False)")
-parser.add_argument("--steering-scale", type=int, default=100, help="Max percent of range for steering (default: 100)")
 parser.add_argument(
-    "--forward-scale", type=int, default=100, help="Max percent of range for forward throttle (default: 100)"
+    "--mixer-type",
+    type=MixerType,
+    default=MixerType.ACKERMANN,
+    choices=list(MixerType),
+    help="How throttle and steering are combined into the two available PWM outputs (default: ackermann)",
+)
+
+parser.add_argument("--ackermann-throttle-min", type=int, default=1000, help="Ackermann throttle min (default: 1000)")
+parser.add_argument("--ackermann-throttle-idle", type=int, default=1500, help="Ackermann throttle idle (default: 1500)")
+parser.add_argument("--ackermann-throttle-max", type=int, default=2000, help="Ackermann throttle max (default: 2000)")
+parser.add_argument(
+    "--ackermann-throttle-failsafe", type=int, default=1500, help="Ackermann throttle failsafe (default: 1500)"
 )
 parser.add_argument(
-    "--reverse-scale", type=int, default=100, help="Max percent of range for reverse throttle (default: 100)"
+    "--ackermann-throttle-scale-forward", type=int, default=100, help="Ackermann throttle forward scale (default: 100)"
 )
 parser.add_argument(
-    "--forward-boost", type=int, default=0, help="Minimum pulse width offset for going forward (default: 0)"
+    "--ackermann-throttle-scale-reverse", type=int, default=100, help="Ackermann throttle reverse scale (default: 100)"
 )
 parser.add_argument(
-    "--reverse-boost", type=int, default=0, help="Minimum pulse width offset for going reverse (default: 0)"
+    "--ackermann-throttle-min-forward", type=int, default=0, help="Ackermann throttle dead-zone forward (default: 0)"
 )
 parser.add_argument(
-    "--throttle-expo", type=int, default=0, help="Expo curve for throttle, 0 = linear, 100 = max (default: 0)"
+    "--ackermann-throttle-min-reverse", type=int, default=0, help="Ackermann throttle dead-zone reverse (default: 0)"
+)
+parser.add_argument("--ackermann-throttle-expo", type=int, default=0, help="Ackermann throttle expo (default: 0)")
+
+parser.add_argument("--ackermann-steering-min", type=int, default=1000, help="Ackermann steering min (default: 1000)")
+parser.add_argument("--ackermann-steering-max", type=int, default=2000, help="Ackermann steering max (default: 2000)")
+parser.add_argument(
+    "--ackermann-steering-failsafe", type=int, default=1500, help="Ackermann steering failsafe (default: 1500)"
+)
+parser.add_argument("--ackermann-steering-trim", type=int, default=0, help="Ackermann steering trim (default: 0)")
+parser.add_argument("--ackermann-steering-scale", type=int, default=100, help="Ackermann steering scale (default: 100)")
+parser.add_argument(
+    "--ackermann-steering-invert", action="store_true", help="Ackermann steering invert (default: False)"
+)
+parser.add_argument("--ackermann-steering-expo", type=int, default=0, help="Ackermann steering expo (default: 0)")
+
+parser.add_argument("--differential-motor-min", type=int, default=1000, help="Differential motor min (default: 1000)")
+parser.add_argument("--differential-motor-max", type=int, default=2000, help="Differential motor max (default: 2000)")
+parser.add_argument("--differential-motor-idle", type=int, default=1000, help="Differential motor idle (default: 1000)")
+parser.add_argument(
+    "--differential-motor-failsafe", type=int, default=1000, help="Differential motor failsafe (default: 1000)"
 )
 parser.add_argument(
-    "--steering-expo", type=int, default=0, help="Expo curve for steering, 0 = linear, 100 = max (default: 0)"
+    "--differential-motor-scale-forward", type=int, default=100, help="Differential motor forward scale (default: 100)"
 )
-parser.add_argument("--pwm-channel-throttle", type=int, default=0, help="PWM channel for throttle signal (default: 0)")
-parser.add_argument("--pwm-channel-steering", type=int, default=1, help="PWM channel for steering signal (default: 1)")
+parser.add_argument(
+    "--differential-motor-scale-reverse", type=int, default=100, help="Differential motor reverse scale (default: 100)"
+)
+parser.add_argument("--differential-motor-expo", type=int, default=0, help="Differential motor expo (default: 0)")
+parser.add_argument(
+    "--differential-motor-reversible",
+    action="store_true",
+    help="Differential motors support reverse (default: False)",
+)
+
+# Differential mixer - per motor dead-zones, so a motor that needs more of a kick to
+# start moving than the other can be compensated independently
+parser.add_argument(
+    "--differential-motor-a-min-forward",
+    type=int,
+    default=0,
+    help="Differential motor A dead-zone forward (default: 0)",
+)
+parser.add_argument(
+    "--differential-motor-a-min-reverse",
+    type=int,
+    default=0,
+    help="Differential motor A dead-zone reverse (default: 0)",
+)
+parser.add_argument(
+    "--differential-motor-b-min-forward",
+    type=int,
+    default=0,
+    help="Differential motor B dead-zone forward (default: 0)",
+)
+parser.add_argument(
+    "--differential-motor-b-min-reverse",
+    type=int,
+    default=0,
+    help="Differential motor B dead-zone reverse (default: 0)",
+)
+
+parser.add_argument(
+    "--differential-mixing-scale", type=int, default=100, help="Differential mixing scale (default: 100)"
+)
+parser.add_argument(
+    "--differential-mixing-invert", action="store_true", help="Differential mixing invert (default: False)"
+)
+parser.add_argument("--differential-mixing-expo", type=int, default=0, help="Differential mixing expo (default: 0)")
+parser.add_argument(
+    "--differential-mixing-balance", type=int, default=0, help="Differential motor balance offset (default: 0)"
+)
+
+parser.add_argument("--pwm-channel-a", type=int, default=0, help="PWM channel A (default: 0)")
+parser.add_argument("--pwm-channel-b", type=int, default=1, help="PWM channel B (default: 1)")
+
 parser.add_argument(
     "--modem-path", type=str, default="/dev/ttyACM0", help="Path to modem device (default: /dev/ttyACM0)"
 )
@@ -88,8 +161,6 @@ parser.add_argument(
 parser.add_argument(
     "--failsafe-ms", type=int, default=500, help="Timeout in milliseconds to trigger failsafe (default: 500)"
 )
-parser.add_argument("--failsafe-throttle", type=int, default=1500, help="Throttle value when failsafe (default: 1500)")
-parser.add_argument("--failsafe-steering", type=int, default=1500, help="Steering value when failsafe (default: 1500)")
 parser.add_argument("--battery-min-voltage", type=int, default=3500, help="Minimum cell voltage in mV (default: 3500)")
 parser.add_argument("--battery-max-voltage", type=int, default=4200, help="Maximum cell voltage in mV (default: 4200)")
 parser.add_argument("--battery-warn-voltage", type=int, default=3700, help="Warning cell voltage in mV (default: 3700)")
@@ -129,73 +200,43 @@ HOST = args.host
 PORT = args.port
 BIND_PORT = args.bind_port
 
-throttle_min = args.throttle_min
-throttle_idle = args.throttle_idle
-throttle_max = args.throttle_max
-forward_scale = args.forward_scale
-reverse_scale = args.reverse_scale
-
-forward_boost = args.forward_boost
-reverse_boost = args.reverse_boost
-
-forward_min = throttle_idle + forward_boost
-reverse_min = throttle_idle - reverse_boost
-
-throttle_expo = args.throttle_expo
-steering_expo = args.steering_expo
-
-steering_min = args.steering_min
-steering_max = args.steering_max
-steering_trim = args.steering_trim
-steering_invert = args.steering_invert
-steering_scale = args.steering_scale
-
-pwm_channel_throttle = args.pwm_channel_throttle
-pwm_channel_steering = args.pwm_channel_steering
-
 modem_path = args.modem_path
+failsafe_ms = args.failsafe_ms
+
+pwm_channel_a = args.pwm_channel_a
+pwm_channel_b = args.pwm_channel_b
+
+# Pinned to the enum so an unhandled mixer type fails type checking instead of at runtime.
+mixer_type: MixerType = args.mixer_type
 
 level_name = args.log.upper()
 level = getattr(logging, level_name, None)
-
-failsafe_ms = args.failsafe_ms
-failsafe_throttle = args.failsafe_throttle
-failsafe_steering = args.failsafe_steering
 
 if not isinstance(level, int):
     raise ValueError(f"Invalid log level: {args.log}")
 
 logging.basicConfig(level=level, format="%(asctime)s - %(levelname)s - %(message)s")
 
-forward_multiplier = forward_scale / 100.0
-reverse_multiplier = reverse_scale / 100.0
-steering_multiplier = steering_scale / 100.0
-
-steering_left = -1
-steering_right = 1
-trim_multiplier = 1
-
-if steering_invert:
-    steering_left = 1
-    steering_right = -1
-    trim_multiplier = -1
-
 running = True
 received_command_ids: set[str] = set()
 
-pwm_throttle = HardwarePWM(pwm_channel_throttle)
-pwm_steering = HardwarePWM(pwm_channel_steering)
+pwm_output_a = HardwarePWM(pwm_channel_a)
+pwm_output_b = HardwarePWM(pwm_channel_b)
 
 
-def calculate_steering_center() -> int:
-    center = (steering_max + steering_min) / 2 + steering_trim
-    return int(max(steering_min, min(steering_max, center)))
+mixer: Mixer
+match mixer_type:
+    case MixerType.ACKERMANN:
+        mixer = Ackermann.from_args(args)
+    case MixerType.DIFFERENTIAL:
+        mixer = Differential.from_args(args)
+    case _:
+        assert_never(mixer_type)
 
+channel_a_idle, channel_b_idle = mixer.idle
 
-steering_center = calculate_steering_center()
-
-pwm_throttle.setup(throttle_idle)
-pwm_steering.setup(steering_center)
+pwm_output_a.setup(channel_a_idle)
+pwm_output_b.setup(channel_b_idle)
 
 telemetry = TelemetryHandler(
     modem_path,
@@ -215,57 +256,17 @@ video_control = ControlClient()
 executor = ThreadPoolExecutor(max_workers=2)
 
 
-def map_range(value: float, in_min: float, in_max: float, servo_min: int = 1000, servo_max: int = 2000) -> int:
-    """
-    Maps a float value from an input range [in_min, in_max] to a servo PWM pulse width.
-
-    Args:
-        value: Input value to map.
-        in_min: Minimum of input range.
-        in_max: Maximum of input range.
-        servo_min: Minimum servo pulse width in microseconds.
-        servo_max: Maximum servo pulse width in microseconds.
-
-    Returns:
-        Mapped servo pulse width as integer in microseconds.
-    """
-    if in_min == in_max:
-        raise ValueError("Input range cannot be zero")
-
-    clamped = clamp(value, in_min, in_max)
-    normalized = (clamped - in_min) / (in_max - in_min)
-    return int(servo_min + normalized * (servo_max - servo_min))
-
-
 def control_handler(message: Control, address: Address) -> None:
-    throttle_value = failsafe_throttle
-    steering_value = failsafe_steering
-
     if client.state == State.CONNECTED:
         values = message.get_values()
-        raw_throttle = apply_expo(values["throttle"], throttle_expo)
-        raw_steering = apply_expo(values["steering"], steering_expo)
+        channel_a_value, channel_b_value = mixer.calculate_channel_values(values["throttle"], values["steering"])
+    else:
+        channel_a_value, channel_b_value = mixer.failsafe
 
-        # Determine throttle pulse forward or reverse
-        scaled_throttle = raw_throttle * forward_multiplier
-        if raw_throttle > 0:
-            scaled_throttle = raw_throttle * forward_multiplier
-            throttle_value = map_range(scaled_throttle, 0, 1, forward_min, throttle_max)
-        elif raw_throttle < 0:
-            scaled_throttle = raw_throttle * reverse_multiplier
-            throttle_value = map_range(scaled_throttle, -1, 0, throttle_min, reverse_min)
+    logger.debug(f"Channel A: {channel_a_value}; Channel B: {channel_b_value}")
 
-        # Map, add trim and clamp
-        scaled_steering = raw_steering * steering_multiplier
-        steering_value = map_range(scaled_steering, steering_left, steering_right, steering_min, steering_max) + (
-            steering_trim * trim_multiplier
-        )
-        steering_value = clamp(steering_value, steering_min, steering_max)
-
-    logger.debug(f"Throttle: {throttle_value}; Steering: {steering_value}")
-
-    pwm_throttle.set_pulse_width(int(throttle_value))
-    pwm_steering.set_pulse_width(int(steering_value))
+    pwm_output_a.set_pulse_width(channel_a_value)
+    pwm_output_b.set_pulse_width(channel_b_value)
 
 
 def latency_handler(message: Latency, address: Address) -> None:
@@ -298,19 +299,15 @@ def command_handler(command: Command, address: Address) -> None:
             executor.submit(video_control.recording, recording_action)
 
         case "trim":
-            global steering_trim, steering_center
             parameters = command.get_parameters()
             trim_action: str = parameters["action"]
 
             step = 5
+            if trim_action != "increase":
+                step = -step
 
-            if trim_action == "increase":
-                steering_trim += step
-            else:
-                steering_trim -= step
-
-            steering_center = calculate_steering_center()
-            subprocess.Popen(["sudo", "v3xctrl-settings", "set", ".control.steering.trim", str(steering_trim)])
+            setting, value = mixer.adjust_trim(step)
+            subprocess.Popen(["sudo", "v3xctrl-settings", "set", setting, str(value)])
 
         case "shutdown":
             subprocess.Popen(["sudo", "poweroff"])
@@ -327,8 +324,10 @@ def disconnect_handler() -> None:
     Disconnect counts as failsafe, set values accordingly
     """
 
-    pwm_throttle.set_pulse_width(throttle_idle)
-    pwm_steering.set_pulse_width(steering_center)
+    channel_a_failsafe, channel_b_failsafe = mixer.failsafe
+
+    pwm_output_a.set_pulse_width(channel_a_failsafe)
+    pwm_output_b.set_pulse_width(channel_b_failsafe)
 
     logger.info("Disconnected")
 
@@ -352,19 +351,21 @@ def cleanup_pwm() -> None:
     #
     # Setting for 0 pulse width for some reason seems to work really well to not
     # make the servo/ESC act up when disabling and closing PWM.
-    pwm_throttle.set_pulse_width(throttle_idle)
-    pwm_steering.set_pulse_width(steering_center)
+    channel_a_rest, channel_b_rest = mixer.idle
+
+    pwm_output_a.set_pulse_width(channel_a_rest)
+    pwm_output_b.set_pulse_width(channel_b_rest)
     time.sleep(1)
 
-    pwm_throttle.set_pulse_width(0)
-    pwm_steering.set_pulse_width(0)
+    pwm_output_a.set_pulse_width(0)
+    pwm_output_b.set_pulse_width(0)
     time.sleep(1)
 
-    pwm_throttle.disable()
-    pwm_steering.disable()
+    pwm_output_a.disable()
+    pwm_output_b.disable()
 
-    pwm_throttle.close()
-    pwm_steering.close()
+    pwm_output_a.close()
+    pwm_output_b.close()
 
 
 tcp_tunnel = None
