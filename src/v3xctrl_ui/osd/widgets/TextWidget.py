@@ -13,7 +13,7 @@ class Alignment(Enum):
     CENTER = "center"
 
 
-class TextWidget(Widget):
+class TextWidget(Widget[str]):
     def __init__(
         self,
         position: tuple[int, int],

@@ -9,7 +9,7 @@ from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT
 from v3xctrl_ui.utils.helpers import get_icon, round_corners
 
 
-class FpsWidget(Widget):
+class FpsWidget(Widget[float]):
     def __init__(
         self, position: tuple[int, int], size: tuple[int, int], label: str, smoothing_window: int = 15
     ) -> None:

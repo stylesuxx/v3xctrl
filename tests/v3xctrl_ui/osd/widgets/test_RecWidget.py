@@ -38,14 +38,8 @@ class TestRecWidget(unittest.TestCase):
         widget = RecWidget(position=(0, 0), border_radius=10)
         self.assertEqual(widget.border_radius, 10)
 
-    def test_draw_without_parameters(self):
-        # RecWidget.draw() should work without passing text parameter
-        self.widget.draw(self.screen)
-        self.assertIsNotNone(self.widget.surface)
-
-    def test_draw_ignores_text_parameter(self):
-        # RecWidget should always draw "REC" regardless of parameter
-        self.widget.draw(self.screen, "IGNORE")
+    def test_draw_renders_the_text_it_is_given(self):
+        self.widget.draw(self.screen, "REC")
         self.assertIsNotNone(self.widget.surface)
 
     def test_background_has_rounded_corners(self):
@@ -65,10 +59,10 @@ class TestRecWidget(unittest.TestCase):
         self.assertEqual(self.widget.width, self.widget.length)
 
     def test_draw_executes_without_crash(self):
-        self.widget.draw(self.screen)
+        self.widget.draw(self.screen, "REC")
 
     def test_surface_created_after_draw(self):
-        self.widget.draw(self.screen)
+        self.widget.draw(self.screen, "REC")
         self.assertIsNotNone(self.widget.surface)
         self.assertIsNotNone(self.widget.text_surface)
 

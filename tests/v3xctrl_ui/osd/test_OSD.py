@@ -2,6 +2,7 @@ import os
 
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
+import inspect
 import tempfile
 import time
 import unittest
@@ -45,15 +46,67 @@ class TestOSD(unittest.TestCase):
         self.assertEqual(self.osd.throttle, 0.0)
         self.assertEqual(self.osd.steering, 0.0)
 
+    def test_rec_group_supplies_the_text_the_widget_draws(self):
+        """The REC widget renders whatever it is handed, like any other TextWidget."""
+        entry = self._find_entry("rec")
+
+        self.assertEqual(entry.get_value(), "REC")
+
+    def _find_group(self, name):
+        for group in self.osd.widget_groups:
+            if group.name == name:
+                return group
+
+        raise AssertionError(f"no widget group named {name}")
+
+    def _find_entry(self, name):
+        for group in self.osd.widget_groups:
+            for entry in group.entries:
+                if entry.name == name:
+                    return entry
+
+        raise AssertionError(f"no widget entry named {name}")
+
+    def test_every_widget_takes_a_required_value(self):
+        """The group renderer hands each widget a value, so none may pad its signature."""
+        for group in self.osd.widget_groups:
+            for entry in group.entries:
+                parameters = list(inspect.signature(entry.widget.draw).parameters.values())
+
+                self.assertEqual(len(parameters), 2, entry.name)
+                self.assertEqual(parameters[0].name, "screen", entry.name)
+                self.assertIs(parameters[1].default, inspect.Parameter.empty, entry.name)
+
+    def test_every_entry_resolves_a_value(self):
+        """No widget is wired to a source that no longer produces anything."""
+        self.osd.render(self.screen, deque([time.monotonic()]), deque([time.monotonic()]))
+
+        for group in self.osd.widget_groups:
+            for entry in group.entries:
+                entry.get_value()
+
+    def test_a_group_reads_its_telemetry_once_per_frame(self):
+        """Each getter takes a lock and builds a dataclass, so widgets share one reading."""
+        with (
+            patch.object(self.telemetry_context, "get_battery", wraps=self.telemetry_context.get_battery) as battery,
+            patch.object(self.telemetry_context, "get_signal", wraps=self.telemetry_context.get_signal) as signal,
+            patch.object(self.telemetry_context, "get_gps", wraps=self.telemetry_context.get_gps) as gps,
+        ):
+            self.osd.render(self.screen, deque([time.monotonic()]), deque([time.monotonic()]))
+
+        self.assertEqual(battery.call_count, 1)
+        self.assertEqual(signal.call_count, 1)
+        self.assertEqual(gps.call_count, 1)
+
     def test_set_control(self):
         self.osd.set_control(throttle=1.0, steering=-0.5)
         self.assertEqual(self.osd.throttle, 1.0)
         self.assertEqual(self.osd.steering, -0.5)
 
     def test_update_control_queue(self):
-        self.osd.widgets_debug["debug_data"].set_value = MagicMock()
+        self.osd.debug_widgets.data.set_value = MagicMock()
         self.osd.update_control_queue(10)
-        self.osd.widgets_debug["debug_data"].set_value.assert_called_with(10)
+        self.osd.debug_widgets.data.set_value.assert_called_with(10)
 
     def test_update_debug_status(self):
         self.osd.update_debug_status("error")
@@ -62,9 +115,9 @@ class TestOSD(unittest.TestCase):
     def test_latency_update_sets_latency(self):
         latency = Latency()
         latency.timestamp = time.time() - 0.05  # ~50ms ago
-        self.osd.widgets_debug["debug_latency"].set_value = MagicMock()
+        self.osd.debug_widgets.latency.set_value = MagicMock()
         self.osd._latency_update(latency)
-        self.osd.widgets_debug["debug_latency"].set_value.assert_called()
+        self.osd.debug_widgets.latency.set_value.assert_called()
 
     def test_telemetry_update_sets_values(self):
         telemetry = Telemetry(
@@ -96,25 +149,26 @@ class TestOSD(unittest.TestCase):
         self.osd.widget_settings = self.osd.widget_settings.with_display("steering", True).with_display(
             "throttle", True
         )
-        self.osd.widgets_steering["steering"].draw = MagicMock()
-        self.osd.widgets_steering["throttle"].draw = MagicMock()
+        self.osd.steering_widgets.steering.draw = MagicMock()
+        self.osd.steering_widgets.throttle.draw = MagicMock()
 
         self.osd.render(self.screen, loop_history=deque([time.time()]), video_history=deque([time.time()]))
 
-        self.osd.widgets_steering["steering"].draw.assert_called()
-        self.osd.widgets_steering["throttle"].draw.assert_called()
+        self.osd.steering_widgets.steering.draw.assert_called()
+        self.osd.steering_widgets.throttle.draw.assert_called()
 
     @patch("v3xctrl_ui.osd.OSD.pygame.display.get_window_size", return_value=(800, 600))
     def test_render_draws_debug(self, mock_get_size):
+        debug_group = self._find_group("debug")
         self.osd.widget_settings = self.osd.widget_settings.with_display("debug", True)
-        for key in self.osd.widgets_debug:
-            self.osd.widget_settings = self.osd.widget_settings.with_display(key, True)
-            self.osd.widgets_debug[key].draw = MagicMock()
+        for entry in debug_group.entries:
+            self.osd.widget_settings = self.osd.widget_settings.with_display(entry.name, True)
+            entry.widget.draw = MagicMock()
 
         self.osd.render(self.screen, loop_history=deque([time.time()]), video_history=deque([time.time()]))
 
-        for widget in self.osd.widgets_debug.values():
-            widget.draw.assert_called()
+        for entry in debug_group.entries:
+            entry.widget.draw.assert_called()
 
     def test_latency_color_ranges(self):
         for delta, expected in [(0.05, "green"), (0.1, "yellow"), (0.2, "red")]:
@@ -132,14 +186,14 @@ class TestOSD(unittest.TestCase):
 
     def test_latency_update_in_spectator_mode(self):
         self.osd.set_spectator_mode(True)
-        self.osd.widgets_debug["debug_latency"].set_value = MagicMock()
+        self.osd.debug_widgets.latency.set_value = MagicMock()
 
         msg = Latency()
         msg.timestamp = time.time() - 0.05
         self.osd._latency_update(msg)
 
         # Should display N/A and default color
-        self.osd.widgets_debug["debug_latency"].set_value.assert_called_with("N/A")
+        self.osd.debug_widgets.latency.set_value.assert_called_with("N/A")
         self.assertEqual(self.osd.debug_latency, "default")
 
     def test_latency_update_normal_mode_after_spectator(self):
@@ -147,20 +201,20 @@ class TestOSD(unittest.TestCase):
         self.osd.set_spectator_mode(True)
         self.osd.set_spectator_mode(False)
 
-        self.osd.widgets_debug["debug_latency"].set_value = MagicMock()
+        self.osd.debug_widgets.latency.set_value = MagicMock()
         msg = Latency()
         msg.timestamp = time.time() - 0.05  # ~50ms, should be green
         self.osd._latency_update(msg)
 
         # Should work normally
         self.assertEqual(self.osd.debug_latency, "green")
-        self.osd.widgets_debug["debug_latency"].set_value.assert_called()
+        self.osd.debug_widgets.latency.set_value.assert_called()
         # Check it was called with an int, not "N/A"
-        call_args = self.osd.widgets_debug["debug_latency"].set_value.call_args[0][0]
+        call_args = self.osd.debug_widgets.latency.set_value.call_args[0][0]
         self.assertIsInstance(call_args, int)
 
     def test_latency_averages_multiple_samples(self):
-        self.osd.widgets_debug["debug_latency"].set_value = MagicMock()
+        self.osd.debug_widgets.latency.set_value = MagicMock()
 
         # Send two latency messages: ~40ms and ~60ms RTT -> 20ms and 30ms one-way
         msg1 = Latency()
@@ -173,14 +227,14 @@ class TestOSD(unittest.TestCase):
 
         # Average of ~20ms and ~30ms = ~25ms, should be green
         self.assertEqual(self.osd.debug_latency, "green")
-        call_args = self.osd.widgets_debug["debug_latency"].set_value.call_args[0][0]
+        call_args = self.osd.debug_widgets.latency.set_value.call_args[0][0]
         self.assertIsInstance(call_args, int)
         self.assertGreater(call_args, 15)
         self.assertLess(call_args, 35)
 
     def test_latency_evicts_old_samples(self):
         self.osd._latency_samples = SlidingWindowAverage(window_seconds=0.5)
-        self.osd.widgets_debug["debug_latency"].set_value = MagicMock()
+        self.osd.debug_widgets.latency.set_value = MagicMock()
 
         # Insert an old sample manually via internal deque
         old_monotonic = time.monotonic() - 1.0
