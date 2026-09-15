@@ -85,9 +85,9 @@ parser.add_argument("--ackermann-steering-expo", type=int, default=0, help="Acke
 
 parser.add_argument("--differential-motor-min", type=int, default=1000, help="Differential motor min (default: 1000)")
 parser.add_argument("--differential-motor-max", type=int, default=2000, help="Differential motor max (default: 2000)")
-parser.add_argument("--differential-motor-idle", type=int, default=1500, help="Differential motor idle (default: 1500)")
+parser.add_argument("--differential-motor-idle", type=int, default=1000, help="Differential motor idle (default: 1000)")
 parser.add_argument(
-    "--differential-motor-failsafe", type=int, default=1500, help="Differential motor failsafe (default: 1500)"
+    "--differential-motor-failsafe", type=int, default=1000, help="Differential motor failsafe (default: 1000)"
 )
 parser.add_argument(
     "--differential-motor-scale-forward", type=int, default=100, help="Differential motor forward scale (default: 100)"

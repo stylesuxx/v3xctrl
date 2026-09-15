@@ -718,7 +718,7 @@
           "required": true,
           "default": "ackermann",
           "title": "Mixer type",
-          "description": "How throttle and steering are combined into the two available PWM outputs.",
+          "description": "How throttle and steering are combined into the two available PWM outputs. Each mixer has its own idle pulse, so switching changes what both channels output at rest. Make sure the motors are unpowered or disconnected before you switch.",
           "enum": [
             "ackermann",
             "differential"
@@ -930,14 +930,14 @@
                     "failsafe": {
                       "propertyOrder": 30,
                       "type": "integer",
-                      "default": 1500,
+                      "default": 1000,
                       "title": "Failsafe",
                       "description": "Pulse width sent to both motors when failsafe state is detected."
                     },
                     "idle": {
                       "propertyOrder": 40,
                       "type": "integer",
-                      "default": 1500,
+                      "default": 1000,
                       "title": "Idle PWM pulse width",
                       "description": "Pulse width for zero throttle; also the 'motor off' pulse when motors are not reversible."
                     },
