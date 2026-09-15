@@ -10,7 +10,7 @@ _RIGHT_PADDING = 4
 _UNIT_GAP = 4
 
 
-class GpsSpeedWidget(Widget):
+class GpsSpeedWidget(Widget[float]):
     def __init__(self, position: tuple[int, int], width: int) -> None:
         super().__init__()
         self.position = position

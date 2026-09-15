@@ -2,6 +2,7 @@ import os
 
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
+import inspect
 import tempfile
 import time
 import unittest
@@ -44,6 +45,20 @@ class TestOSD(unittest.TestCase):
         self.assertEqual(battery.percent, "0%")
         self.assertEqual(self.osd.throttle, 0.0)
         self.assertEqual(self.osd.steering, 0.0)
+
+    def test_rec_group_supplies_the_text_the_widget_draws(self):
+        """The REC widget renders whatever it is handed, like any other TextWidget."""
+        self.assertEqual(self.osd._get_rec_value("rec"), "REC")
+
+    def test_every_widget_takes_a_required_value(self):
+        """The group renderer hands each widget a value, so none may pad its signature."""
+        for group in self.osd.widget_groups:
+            for name, widget in group.widgets.items():
+                parameters = list(inspect.signature(widget.draw).parameters.values())
+
+                self.assertEqual(len(parameters), 2, name)
+                self.assertEqual(parameters[0].name, "screen", name)
+                self.assertIs(parameters[1].default, inspect.Parameter.empty, name)
 
     def test_set_control(self):
         self.osd.set_control(throttle=1.0, steering=-0.5)

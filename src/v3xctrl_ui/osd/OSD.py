@@ -306,8 +306,7 @@ class OSD:
         return getattr(self, name)
 
     def _get_rec_value(self, name: str):
-        gst = self.telemetry_context.get_gst()
-        return gst.recording
+        return "REC"
 
     def _get_clock_value(self, name: str):
         # ClockWidget gets its own time internally

@@ -1,5 +1,3 @@
-from pygame import Surface
-
 from v3xctrl_ui.osd.widgets.TextWidget import TextWidget
 from v3xctrl_ui.utils.colors import RED, WHITE
 from v3xctrl_ui.utils.helpers import round_corners
@@ -44,6 +42,3 @@ class RecWidget(TextWidget):
     def _create_background(self) -> None:
         super()._create_background()
         self.bg_surface = round_corners(self.bg_surface, self.border_radius)
-
-    def draw(self, screen: Surface, _=None) -> None:
-        super().draw(screen, "REC")

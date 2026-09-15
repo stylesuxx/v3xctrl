@@ -23,7 +23,7 @@ class SignalQuality(IntEnum):
     EXCELLENT = 3
 
 
-class SignalQualityWidget(Widget):
+class SignalQualityWidget(Widget[dict[str, Any]]):
     BAR_COUNT = 5
     SPACING_RATIO = 0.05
     PADDING = 16
