@@ -121,7 +121,9 @@ class GamepadController(threading.Thread):
         return self._settings
 
     def get_calibration(self, guid: str) -> dict[str, Any]:
-        return self._settings.get(guid, {})
+        calibration: dict[str, Any] = self._settings.get(guid, {})
+
+        return calibration
 
     def get_active(self) -> str | None:
         return self._active_guid
@@ -161,7 +163,7 @@ class GamepadController(threading.Thread):
             if axis is not None and 0 <= axis < js.get_numaxes():
                 try:
                     raw = js.get_axis(axis)
-                    normalized = 0
+                    normalized = 0.0
 
                     invert = cfg.get("invert")
                     min_cal = cfg.get("min")
@@ -170,18 +172,14 @@ class GamepadController(threading.Thread):
 
                     center_cal = cfg.get("center", None)
                     if center_cal is not None:
-                        cal = (min_cal, center_cal, max_cal)
-                        out = (-1.0, 0.0, 1.0)
-
-                        normalized = self._remap_centered(raw, cal, out)
+                        normalized = self._remap_centered(raw, (min_cal, center_cal, max_cal), (-1.0, 0.0, 1.0))
                         if invert:
                             normalized = -normalized
                     else:
                         if invert:
                             min_cal, max_cal = max_cal, min_cal
-                        cal = (min_cal, max_cal)
-                        out = (0.0, 1.0)
-                        normalized = self._remap(raw, cal, out)
+
+                        normalized = self._remap(raw, (min_cal, max_cal), (0.0, 1.0))
 
                     if apply_deadband:
                         deadband_pct = cfg.get("deadband", 0) / 100.0

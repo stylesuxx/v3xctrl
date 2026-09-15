@@ -5,8 +5,11 @@ import threading
 import time
 from collections.abc import Callable
 from pathlib import Path
+from typing import cast
 
 import av
+import numpy as np
+import numpy.typing as npt
 
 from v3xctrl_ui.network.video.Receiver import Receiver
 from v3xctrl_ui.network.video.UdpVideoProxy import UdpVideoProxy
@@ -43,12 +46,12 @@ class ReceiverPyAV(Receiver):
         self.relay_address = relay_address
         self._proxy: UdpVideoProxy | None = None
 
-        self.container = None
+        self.container: av.container.InputContainer | None = None
         self.sdp_path = Path(tempfile.gettempdir()) / f"rtp_{self.port}.sdp"
         self.container_lock = threading.Lock()
         self.thread_count = str(min(os.cpu_count() or 1, 4))
 
-        self.latest_packet_pts = None
+        self.latest_packet_pts: int | None = None
         self.consecutive_old_frames = 0
         self.max_consecutive_old_frames = 60
 
@@ -184,8 +187,12 @@ class ReceiverPyAV(Receiver):
 
                     if decoded_frames:
                         decode_duration = (time.monotonic() - decode_start) / len(decoded_frames)
-                        for frame in decoded_frames:
-                            rgb_frame = frame.to_ndarray(format="rgb24")
+                        # decode() is declared across every stream kind, so its
+                        # element type admits subtitles; a video stream yields frames
+                        for frame in cast(list[av.VideoFrame], decoded_frames):
+                            # rgb24 is three 8-bit channels; the declared return
+                            # type spans every pixel format
+                            rgb_frame = cast(npt.NDArray[np.uint8], frame.to_ndarray(format="rgb24"))
                             self._update_frame(rgb_frame, decode_duration)
                     else:
                         self.dropped_empty_frames += 1
@@ -265,6 +272,9 @@ a=recvonly
 
         # Update latest pts if this packet is newer
         time_base = stream.time_base
+        if time_base is None:
+            return False
+
         time_diff = (self.latest_packet_pts - packet.pts) * time_base
         if time_diff >= self.max_age_seconds:
             return True

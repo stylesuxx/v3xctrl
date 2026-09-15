@@ -139,7 +139,7 @@ class AppState:
         # Handle control updates, send last values if user is in menu
         if self.timing_controller.should_update_control(now):
             try:
-                throttle, steering = (0, 0)
+                throttle, steering = (0.0, 0.0)
                 if not self.menu.visible:
                     throttle, steering = self.input_controller.read_inputs()
 

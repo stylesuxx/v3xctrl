@@ -13,7 +13,7 @@ class HorizontalIndicatorWidget(BaseIndicatorWidget):
         position: tuple[int, int],
         size: tuple[int, int],
         bar_size: tuple[int, int] = (20, 10),
-        **kwargs: dict[str, Any],
+        **kwargs: Any,
     ) -> None:
         super().__init__(position, size, **kwargs)
 

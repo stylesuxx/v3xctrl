@@ -4,7 +4,7 @@ import socket
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from v3xctrl_control import Server
 from v3xctrl_control.message import Heartbeat, PeerAnnouncement
@@ -19,6 +19,9 @@ from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.core.SettingsSchema import VideoReceiver
 from v3xctrl_ui.network.TcpServer import TcpServer
 from v3xctrl_ui.network.video.Receiver import Receiver
+
+if TYPE_CHECKING:
+    from v3xctrl_ui.network.video.ReceiverPyAV import ReceiverPyAV
 from v3xctrl_ui.network.VideoPortKeepAlive import VideoPortKeepAlive
 from v3xctrl_ui.utils.gstreamer import is_gstreamer_available
 
@@ -27,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 # Receivers are loaded lazily to avoid hard dependencies on optional backends
 _ReceiverGst: type[Receiver] | None = None
-_ReceiverPyAV: type[Receiver] | None = None
+_ReceiverPyAV: "type[ReceiverPyAV] | None" = None
 
 
 def _get_gstreamer_receiver() -> type[Receiver] | None:
@@ -40,7 +43,7 @@ def _get_gstreamer_receiver() -> type[Receiver] | None:
     return _ReceiverGst
 
 
-def _get_pyav_receiver() -> type[Receiver] | None:
+def _get_pyav_receiver() -> "type[ReceiverPyAV] | None":
     """Get the PyAV receiver class, loading it lazily."""
     global _ReceiverPyAV
     if _ReceiverPyAV is None:

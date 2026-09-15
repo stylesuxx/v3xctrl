@@ -171,10 +171,15 @@ class GamepadCalibrator:
             min_val = min(axis_data.max_values)
             max_val = max(axis_data.max_values)
 
+            min_stable_since = axis_data.min_stable_since
+            max_stable_since = axis_data.max_stable_since
+
             if (
-                max_val - min_val >= self.AXIS_MOVEMENT_THRESHOLD
-                and now - axis_data.min_stable_since >= self.STABLE_TIME
-                and now - axis_data.max_stable_since >= self.STABLE_TIME
+                min_stable_since is not None
+                and max_stable_since is not None
+                and max_val - min_val >= self.AXIS_MOVEMENT_THRESHOLD
+                and now - min_stable_since >= self.STABLE_TIME
+                and now - max_stable_since >= self.STABLE_TIME
             ):
                 logger.info(f"{name.capitalize()} axis min/max: {min_val:.2f}/{max_val:.2f}")
 
@@ -186,8 +191,10 @@ class GamepadCalibrator:
 
     def _record_center_idle(self, name: str, axes: list[float], next_stage: CalibrationStage) -> None:
         axis_data = self.axes[name]
-        i = axis_data.axis
-        value = axes[i]
+        if axis_data.axis is None:
+            return
+
+        value = axes[axis_data.axis]
         now = self._clock()
 
         if axis_data.idle_last is None:
