@@ -6,7 +6,7 @@ from v3xctrl_ui.utils.colors import GREEN, GREY, ORANGE, RED
 from v3xctrl_ui.utils.helpers import get_icon
 
 
-class GpsIconWidget(Widget):
+class GpsIconWidget(Widget[GpsFixType]):
     _ICON_SIZE = 46  # matches BatteryIconWidget height (int(70 / 3 * 2))
     _BOTTOM_PADDING = 4
 

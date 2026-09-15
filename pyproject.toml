@@ -30,11 +30,11 @@ files = [
     "src/v3xctrl_relay",
     "src/v3xctrl_telemetry",
     "src/v3xctrl_self_test",
+    "src/v3xctrl_ui",
 ]
 
 [[tool.mypy.overrides]]
 module = [
-    "v3xctrl_ui.*",
     "v3xctrl_web.*",
     "v3xctrl_udp_relay.*",
     "v3xctrl_plot.*",

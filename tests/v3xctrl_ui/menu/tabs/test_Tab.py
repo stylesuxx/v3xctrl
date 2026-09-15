@@ -9,8 +9,12 @@ from unittest.mock import MagicMock, patch
 
 import pygame
 from pygame import Surface
+from pygame.event import Event
+from pygame.freetype import SysFont
+from pygame.locals import MOUSEBUTTONDOWN, MOUSEMOTION
 
 from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.menu.input.Select import Select
 from v3xctrl_ui.menu.tabs.Tab import Tab
 
 
@@ -330,3 +334,39 @@ class TestTabAbstractMethods(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestExpandedSelectTakesTheEvent(unittest.TestCase):
+    """An open option list is drawn over its siblings, so a click on it must not reach them."""
+
+    def setUp(self):
+        pygame.init()
+        pygame.display.set_mode((1, 1))
+        self.settings = MagicMock(spec=Settings)
+        self.tab = ConcreteTab(self.settings, width=800, height=600, padding=10, y_offset=20)
+        self.select = Select(
+            label="Transport", label_width=100, length=120, font=SysFont("Arial", 16), callback=lambda i: None
+        )
+        self.select.set_position(0, 0)
+        self.select.set_options(["udp", "tcp"], selected_index=0)
+        self.sibling = MagicMock()
+        self.tab.elements = [self.select, self.sibling]
+
+    def test_option_click_does_not_reach_a_sibling(self):
+        self.tab.handle_event(Event(MOUSEBUTTONDOWN, {"pos": self.select.rect.center, "button": 1}))
+        self.assertTrue(self.select.expanded)
+        self.sibling.handle_event.reset_mock()
+
+        option_click = Event(MOUSEBUTTONDOWN, {"pos": self.select.option_rects[1].center, "button": 1})
+        self.tab.handle_event(option_click)
+
+        self.assertEqual(self.select.selected_index, 1)
+        self.assertFalse(self.select.expanded)
+        self.sibling.handle_event.assert_not_called()
+
+    def test_siblings_receive_events_while_the_select_is_closed(self):
+        motion = Event(MOUSEMOTION, {"pos": (400, 400)})
+
+        self.tab.handle_event(motion)
+
+        self.sibling.handle_event.assert_called_once_with(motion)

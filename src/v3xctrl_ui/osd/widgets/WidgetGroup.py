@@ -2,36 +2,37 @@
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Generic, TypeVar
 
-from v3xctrl_ui.osd.widgets import Widget
+from v3xctrl_ui.osd.widgets.Widget import Widget
+
+ValueT = TypeVar("ValueT")
 
 
-@dataclass
-class WidgetGroup:
+@dataclass(frozen=True, slots=True)
+class WidgetEntry(Generic[ValueT]):
+    """A widget, the settings key it is configured under, and where its value comes from.
+
+    `get_value` is called once per rendered frame, for this widget alone.
+    """
+
     name: str
-    widgets: dict[str, Widget]
-    get_value: Callable[[str], Any]
+    widget: Widget[ValueT]
+    get_value: Callable[[], ValueT]
+
+
+@dataclass(frozen=True, slots=True)
+class WidgetGroup:
+    """Widgets drawn together under one settings key.
+
+    name: settings key for the group (e.g. "battery", "debug")
+    entries: the widgets, in draw order
+    use_composition: compose into a single surface, or position each widget on
+        its own from its own config
+    corner_radius: radius for the rounded corners of a composed group
+    """
+
+    name: str
+    entries: tuple[WidgetEntry[Any], ...]
     use_composition: bool = True
     corner_radius: int = 4
-
-    @classmethod
-    def create(
-        cls,
-        name: str,
-        widgets: dict[str, Widget],
-        get_value: Callable[[str], Any],
-        use_composition: bool = True,
-        corner_radius: int = 4,
-    ) -> "WidgetGroup":
-        """Create a widget group.
-
-        Args:
-            name: Settings key for this group (e.g., "battery", "debug")
-            widgets: Dict of widget name to widget instance
-            get_value: Callable to get attribute value by name
-            use_composition: If True, compose widgets into single surface.
-                           If False, render individually with separate positioning.
-            corner_radius: Radius for rounded corners when using composition
-        """
-        return cls(name, widgets, get_value, use_composition, corner_radius)

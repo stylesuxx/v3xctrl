@@ -4,6 +4,7 @@ from typing import Any
 from pygame import Surface, event
 
 from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.menu.input.Select import Select
 from v3xctrl_ui.menu.tabs.Headline import Headline
 from v3xctrl_ui.utils.colors import WHITE
 from v3xctrl_ui.utils.fonts import TEXT_FONT
@@ -27,6 +28,12 @@ class Tab(ABC):
         self.headlines: dict[str, Headline] = {}
 
     def handle_event(self, event: event.Event) -> None:
+        expanded_select = next((e for e in self.elements if isinstance(e, Select) and e.expanded), None)
+        if expanded_select:
+            # The open option list is drawn over its siblings, so it takes the event alone
+            expanded_select.handle_event(event)
+            return
+
         for element in self.elements:
             element.handle_event(event)
 
@@ -52,12 +59,20 @@ class Tab(ABC):
         """
         return
 
-    @abstractmethod
-    def get_settings(self) -> dict[str, Any]:
-        pass
+    def apply_fullscreen(self, fullscreen: bool) -> None:
+        """
+        Take a fullscreen toggle made outside the menu into this tab.
+        Called while the menu is open, so it leaves edits in progress untouched.
+        Override this method in subclasses that display fullscreen state.
+        """
+        return
 
     @abstractmethod
     def draw(self, surface: Surface) -> None:
+        pass
+
+    @abstractmethod
+    def get_settings(self) -> dict[str, Any]:
         pass
 
     def _add_headline(self, key: str, title: str, draw_top_line: bool = False) -> None:
@@ -80,4 +95,6 @@ class Tab(ABC):
         note_rect.topleft = (self.padding, y)
         surface.blit(note_surface, note_rect)
 
-        return y + note_rect.height
+        next_y: int = y + note_rect.height
+
+        return next_y

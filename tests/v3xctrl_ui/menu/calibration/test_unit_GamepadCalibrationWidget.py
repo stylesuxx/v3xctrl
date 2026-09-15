@@ -275,7 +275,7 @@ class TestGamepadCalibrationWidget(unittest.TestCase):
 
         self.widget._apply_known_calibration(mock_js)
 
-        self.assertEqual(mock_calibrator.state, CalibratorState.COMPLETE)
+        mock_calibrator_class.assert_called_once_with(recorded_settings=settings)
         self.assertTrue(self.widget.invert_axes["steering"])
         self.assertFalse(self.widget.invert_axes["throttle"])
         self.widget.manager.set_active.assert_called_once_with("test_guid")
@@ -361,25 +361,25 @@ class TestGamepadCalibrationWidget(unittest.TestCase):
         self.assertEqual(self.mock_font.render.call_count, 2)
 
     def test_update_calibrator_no_gamepad(self):
-        self.widget.calibrator = MagicMock()
+        calibrator = MagicMock()
         self.widget.selected_guid = "nonexistent"
         self.widget.gamepads = {}
 
-        self.widget._update_calibrator()
+        self.widget._update_calibrator(calibrator)
 
-        self.widget.calibrator.update.assert_not_called()
+        calibrator.update.assert_not_called()
 
     def test_update_calibrator_gamepad_not_initialized(self):
         mock_js = MagicMock()
         mock_js.get_init.return_value = False
 
-        self.widget.calibrator = MagicMock()
+        calibrator = MagicMock()
         self.widget.selected_guid = "test_guid"
         self.widget.gamepads = {"test_guid": mock_js}
 
-        self.widget._update_calibrator()
+        self.widget._update_calibrator(calibrator)
 
-        self.widget.calibrator.update.assert_not_called()
+        calibrator.update.assert_not_called()
 
     def test_update_calibrator_success(self):
         mock_js = MagicMock()
@@ -387,13 +387,13 @@ class TestGamepadCalibrationWidget(unittest.TestCase):
         mock_js.get_numaxes.return_value = 3
         mock_js.get_axis.side_effect = [0.1, 0.2, 0.3]
 
-        self.widget.calibrator = MagicMock()
+        calibrator = MagicMock()
         self.widget.selected_guid = "test_guid"
         self.widget.gamepads = {"test_guid": mock_js}
 
-        self.widget._update_calibrator()
+        self.widget._update_calibrator(calibrator)
 
-        self.widget.calibrator.update.assert_called_once_with([0.1, 0.2, 0.3])
+        calibrator.update.assert_called_once_with([0.1, 0.2, 0.3])
 
     def test_draw_calibration_bars_no_inputs(self):
         surface = pygame.Surface((800, 600))

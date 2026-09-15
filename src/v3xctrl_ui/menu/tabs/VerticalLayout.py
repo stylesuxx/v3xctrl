@@ -1,6 +1,6 @@
 from pygame import Surface
 
-from v3xctrl_ui.menu.input import BaseWidget
+from v3xctrl_ui.menu.input.BaseWidget import BaseWidget
 
 
 class VerticalLayout:

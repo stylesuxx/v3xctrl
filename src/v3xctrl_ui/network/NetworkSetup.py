@@ -4,7 +4,7 @@ import socket
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from v3xctrl_control import Server
 from v3xctrl_control.message import Heartbeat, PeerAnnouncement
@@ -16,8 +16,12 @@ from v3xctrl_relay.Role import Role
 from v3xctrl_tcp import Transport
 from v3xctrl_tcp.TcpTunnel import TcpTunnel
 from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.core.SettingsSchema import VideoReceiver
 from v3xctrl_ui.network.TcpServer import TcpServer
 from v3xctrl_ui.network.video.Receiver import Receiver
+
+if TYPE_CHECKING:
+    from v3xctrl_ui.network.video.ReceiverPyAV import ReceiverPyAV
 from v3xctrl_ui.network.VideoPortKeepAlive import VideoPortKeepAlive
 from v3xctrl_ui.utils.gstreamer import is_gstreamer_available
 
@@ -26,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 # Receivers are loaded lazily to avoid hard dependencies on optional backends
 _ReceiverGst: type[Receiver] | None = None
-_ReceiverPyAV: type[Receiver] | None = None
+_ReceiverPyAV: "type[ReceiverPyAV] | None" = None
 
 
 def _get_gstreamer_receiver() -> type[Receiver] | None:
@@ -39,7 +43,7 @@ def _get_gstreamer_receiver() -> type[Receiver] | None:
     return _ReceiverGst
 
 
-def _get_pyav_receiver() -> type[Receiver] | None:
+def _get_pyav_receiver() -> "type[ReceiverPyAV] | None":
     """Get the PyAV receiver class, loading it lazily."""
     global _ReceiverPyAV
     if _ReceiverPyAV is None:
@@ -118,10 +122,9 @@ class NetworkSetup:
 
     def __init__(self, settings: Settings):
         self.settings = settings
-        self.ports = settings.get("ports", {})
-        self.video_port = self.ports.get("video")
-        self.control_port = self.ports.get("control")
-        self.transport = settings.get("transport", Transport.UDP)
+        self.video_port = settings.ports.video
+        self.control_port = settings.ports.control
+        self.transport = settings.transport
         self._peer: Peer | None = None
 
     def abort(self) -> None:
@@ -330,13 +333,12 @@ class NetworkSetup:
         Returns:
             VideoReceiverSetupResult with receiver instance or error
         """
-        video_settings = self.settings.get("video", {})
-        render_ratio = video_settings.get("render_ratio", 0)
-        receiver_type = video_settings.get("receiver", "auto")
+        render_ratio = self.settings.video.render_ratio
+        receiver_type = self.settings.video.receiver
 
         try:
             match receiver_type:
-                case "auto":
+                case VideoReceiver.AUTO:
                     gst_receiver = _get_gstreamer_receiver()
                     pyav_receiver = _get_pyav_receiver()
                     if gst_receiver:
@@ -345,7 +347,7 @@ class NetworkSetup:
                             keep_alive_callback,
                             render_ratio=render_ratio,
                         )
-                        receiver_type = "gst"
+                        chosen_receiver = VideoReceiver.GST
                     elif pyav_receiver:
                         video_receiver = pyav_receiver(
                             self.video_port,
@@ -353,10 +355,10 @@ class NetworkSetup:
                             render_ratio=render_ratio,
                             relay_address=video_address,
                         )
-                        receiver_type = "pyav"
+                        chosen_receiver = VideoReceiver.PYAV
                     else:
                         raise RuntimeError("No video receiver available (neither GStreamer nor PyAV found)")
-                case "gst":
+                case VideoReceiver.GST:
                     gst_receiver = _get_gstreamer_receiver()
                     if not gst_receiver:
                         raise RuntimeError("GStreamer receiver requested but not available")
@@ -365,7 +367,8 @@ class NetworkSetup:
                         keep_alive_callback,
                         render_ratio=render_ratio,
                     )
-                case "pyav":
+                    chosen_receiver = VideoReceiver.GST
+                case VideoReceiver.PYAV:
                     pyav_receiver = _get_pyav_receiver()
                     if not pyav_receiver:
                         raise RuntimeError("PyAV receiver requested but not available")
@@ -375,10 +378,13 @@ class NetworkSetup:
                         render_ratio=render_ratio,
                         relay_address=video_address,
                     )
+                    chosen_receiver = VideoReceiver.PYAV
                 case _:
+                    # Defensive: VideoReceiver is parsed at load, so this only
+                    # fires if a member is added to the enum without a branch here
                     raise ValueError(f"Unknown receiver type: {receiver_type}")
 
-            logger.info(f"Using {receiver_type} video receiver")
+            logger.info(f"Using {chosen_receiver} video receiver")
 
             # Enable timing when DEBUG level is set
             if logging.getLogger().isEnabledFor(logging.DEBUG):
@@ -410,8 +416,8 @@ class NetworkSetup:
             ServerSetupResult with server instance or error message
         """
         try:
-            udp_ttl_ms = self.settings.get("udp_packet_ttl", 100)
-            control_buffer_capacity = self.settings.get("control_buffer_capacity", 1)
+            udp_ttl_ms = self.settings.udp_packet_ttl
+            control_buffer_capacity = self.settings.control_buffer_capacity
             server = Server(self.control_port, udp_ttl_ms, control_buffer_capacity)
 
             for message_type, callback in message_handlers:

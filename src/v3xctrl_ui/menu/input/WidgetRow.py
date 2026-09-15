@@ -32,7 +32,12 @@ class WidgetRow(BaseWidget):
         return total_w, max_h
 
     def handle_event(self, event: pygame.event.Event) -> bool:
-        return any(child.handle_event(event) for child in self.children)
+        """Every child sees the event, so a hovered child cannot hide it from the rest."""
+        handled = False
+        for child in self.children:
+            handled = child.handle_event(event) or handled
+
+        return handled
 
     def _draw(self, surface: Surface) -> None:
         for child in self.children:

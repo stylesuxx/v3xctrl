@@ -7,7 +7,9 @@ from unittest.mock import MagicMock, patch
 
 import pygame
 
+from tests.v3xctrl_ui.settings_helper import build_settings
 from v3xctrl_ui.core.AppState import AppState
+from v3xctrl_ui.core.StatusLevel import StatusLevel
 
 
 @patch("v3xctrl_ui.core.AppState.DisplayController")
@@ -17,13 +19,11 @@ from v3xctrl_ui.core.AppState import AppState
 @patch("v3xctrl_ui.core.AppState.NetworkCoordinator")
 class TestAppState(unittest.TestCase):
     def setUp(self):
-        self.settings = {
-            "timing": {"control_update_hz": 30, "latency_check_hz": 1, "main_loop_fps": 60},
-            "video": {"width": 800, "height": 600, "fullscreen": False},
-            "settings": {"title": "Test"},
-            "ports": {"video": 6666, "control": 6668},
-            "relay": {},  # Add relay to initial settings
-        }
+        self.settings = build_settings(
+            timing={"control_update_hz": 30, "latency_check_hz": 1, "main_loop_fps": 60},
+            video={"width": 800, "height": 600, "fullscreen": False},
+            ports={"video": 6666, "control": 6668},
+        )
 
     def _create_app(self, mock_coordinator_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_display_cls):
         # Mock DisplayManager
@@ -54,13 +54,10 @@ class TestAppState(unittest.TestCase):
             mock_coordinator = MagicMock()
             mock_coordinator_manager = MagicMock()
             mock_coordinator_manager.server = None
-            mock_coordinator_manager.server_error = None
+            mock_coordinator_manager.get_server_error.return_value = None
             mock_coordinator.network_controller = mock_coordinator_manager
-            mock_coordinator.get_data_queue_size.return_value = 0
             mock_coordinator.get_video_buffer_size.return_value = 0
-            mock_coordinator.has_server_error.return_value = False
             mock_coordinator.is_control_connected.return_value = False
-            mock_coordinator.create_network_controller.return_value = mock_coordinator_manager
             mock_coordinator_cls.return_value = mock_coordinator
 
             # Let deepcopy work normally - no mocking needed
@@ -83,11 +80,21 @@ class TestAppState(unittest.TestCase):
         self.assertEqual(call_args[0], self.settings)  # First arg is settings
         # Second arg is TelemetryContext instance - just verify it exists
         self.assertIsNotNone(call_args[1])
-        mock_renderer_cls.assert_called_once_with((800, 600), self.settings)
+        # Renderer owns draw order, so it takes the OSD and the menu it composes
+        mock_renderer_cls.assert_called_once()
+        renderer_args = mock_renderer_cls.call_args[0]
+        self.assertEqual(renderer_args[0], (800, 600))
+        self.assertEqual(renderer_args[1], self.settings)
+        self.assertIs(renderer_args[2], _app.osd)
+        self.assertIs(renderer_args[3], _app.menu)
 
-        # NetworkCoordinator should be created with model and osd
+        # The coordinator builds its own channel, so it is handed the settings
         mock_coordinator_cls.assert_called_once()
-        mock_coordinator.create_network_controller.assert_called_once_with(self.settings)
+        coordinator_args = mock_coordinator_cls.call_args[0]
+        self.assertIs(coordinator_args[0], _app.model)
+        self.assertIs(coordinator_args[1], _app.osd)
+        self.assertIs(coordinator_args[2], _app.telemetry_sink)
+        self.assertIs(coordinator_args[3], self.settings)
 
         # setup_ports is NOT called during init — only when user clicks Connect
         mock_coordinator.setup_ports.assert_not_called()
@@ -122,19 +129,18 @@ class TestAppState(unittest.TestCase):
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_display_cls
         )
 
-        new_settings = {
-            "timing": {"control_update_hz": 60, "latency_check_hz": 2, "main_loop_fps": 120},
-            "video": {"fullscreen": False},
-            "ports": self.settings["ports"],  # Include ports to avoid restart
-            "relay": {},  # Include relay to avoid restart
-        }
+        new_settings = build_settings(
+            timing={"control_update_hz": 60, "latency_check_hz": 2, "main_loop_fps": 120},
+            video={"fullscreen": False},
+            ports=self.settings.ports,  # Same ports, so no restart is needed
+        )
 
         app.update_settings(new_settings)
 
-        self.assertEqual(app.settings, new_settings)
-        mock_input.update_settings.assert_called_with(new_settings)
-        mock_osd.update_settings.assert_called_with(new_settings)
-        self.assertEqual(mock_renderer.settings, new_settings)
+        self.assertIs(app.settings, new_settings)
+        mock_input.apply_settings.assert_called_with(new_settings)
+        mock_osd.apply_settings.assert_called_with(new_settings)
+        mock_renderer.apply_settings.assert_called_with(new_settings)
 
         # Check timing intervals were updated (now in model)
         self.assertEqual(app.model.control_interval, 1.0 / 60)
@@ -165,6 +171,22 @@ class TestAppState(unittest.TestCase):
         mock_coordinator.send_control_message.assert_called_once_with(0.5, 0.3)
         mock_coordinator.send_latency_check.assert_called_once()
 
+    def test_update_advances_the_menu_before_the_connection_check(
+        self, mock_coordinator_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_display_cls
+    ):
+        """The loading overlay has to run while the user is still on the connect screen."""
+        app, _, _, _, _ = self._create_app(
+            mock_coordinator_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_display_cls
+        )
+
+        app.menu = MagicMock(visible=False)
+        app.model.user_connected = False
+
+        app.update()
+
+        app.menu.update.assert_called_once()
+        self.assertIsInstance(app.menu.update.call_args[0][0], float)
+
     def test_update_no_control_when_timing_not_ready(
         self, mock_coordinator_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_display_cls
     ):
@@ -193,27 +215,37 @@ class TestAppState(unittest.TestCase):
 
         app.model.user_connected = True
         mock_coordinator.get_control_buffer_size.return_value = 5
-        mock_coordinator.has_server_error.return_value = False
+        mock_coordinator.get_control_error.return_value = None
 
         app.render()
 
         mock_osd.update_control_queue.assert_called_with(5)
         mock_osd.set_control.assert_called_with(app.model.throttle, app.model.steering)
-        mock_renderer.render_all.assert_called_with(app, mock_coordinator.network_controller, False, 1.0)
 
-    def test_render_handles_server_error(
+        screen, snapshot = mock_renderer.render.call_args[0]
+        self.assertIs(screen, app.screen)
+        self.assertIs(snapshot.video_frame, mock_coordinator.get_video_frame.return_value)
+        self.assertTrue(snapshot.connection.user_connected)
+        self.assertEqual(snapshot.connection.control_queue_depth, 5)
+        self.assertFalse(snapshot.fullscreen)
+        self.assertEqual(snapshot.scale, 1.0)
+
+    def test_render_handles_control_error(
         self, mock_coordinator_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_display_cls
     ):
-        app, _mock_input, mock_osd, _mock_renderer, mock_coordinator = self._create_app(
+        app, _mock_input, mock_osd, mock_renderer, mock_coordinator = self._create_app(
             mock_coordinator_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_display_cls
         )
 
         app.model.user_connected = True
-        mock_coordinator.is_control_connected.return_value = True
-        mock_coordinator.has_server_error.return_value = True
+        app.model.control_connected = True
+        mock_coordinator.get_control_error.return_value = "Control port already in use"
         app.render()
 
-        mock_osd.update_debug_status.assert_called_with("fail")
+        mock_osd.update_debug_status.assert_called_with(StatusLevel.BAD)
+
+        _screen, snapshot = mock_renderer.render.call_args[0]
+        self.assertEqual(snapshot.connection.control_error, "Control port already in use")
 
     @patch("v3xctrl_ui.core.AppState.pygame.quit")
     def test_shutdown_stops_all_components(
@@ -283,12 +315,11 @@ class TestAppState(unittest.TestCase):
         self.assertEqual(app.model.control_interval, 1.0 / 30)
         self.assertEqual(app.model.latency_interval, 1.0 / 1)
 
-        new_settings = {
-            "timing": {"control_update_hz": 60, "latency_check_hz": 5, "main_loop_fps": 60},
-            "video": {"fullscreen": False},
-            "ports": self.settings["ports"],  # Include ports to avoid restart
-            "relay": {},  # Include relay to avoid restart
-        }
+        new_settings = build_settings(
+            timing={"control_update_hz": 60, "latency_check_hz": 5, "main_loop_fps": 60},
+            video={"fullscreen": False},
+            ports=self.settings.ports,  # Same ports, so no restart is needed
+        )
 
         app.update_settings(new_settings)
 
@@ -316,9 +347,9 @@ class TestAppState(unittest.TestCase):
         )
 
         # Modify settings
-        app.timing_controller.settings = {
-            "timing": {"control_update_hz": 120, "latency_check_hz": 10, "main_loop_fps": 144}
-        }
+        app.timing_controller.settings = build_settings(
+            timing={"control_update_hz": 120, "latency_check_hz": 10, "main_loop_fps": 144}
+        )
 
         # Call update method on timing controller
         app.timing_controller.update_from_settings()

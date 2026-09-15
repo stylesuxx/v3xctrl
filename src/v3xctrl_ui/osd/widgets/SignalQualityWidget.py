@@ -23,7 +23,7 @@ class SignalQuality(IntEnum):
     EXCELLENT = 3
 
 
-class SignalQualityWidget(Widget):
+class SignalQualityWidget(Widget[dict[str, Any]]):
     BAR_COUNT = 5
     SPACING_RATIO = 0.05
     PADDING = 16
@@ -60,7 +60,7 @@ class SignalQualityWidget(Widget):
         rsrq = signal.get("rsrq")
 
         # No signal
-        if rsrp in (-1, 255) or rsrq in (-1, 255):
+        if rsrp is None or rsrq is None or rsrp in (-1, 255) or rsrq in (-1, 255):
             position = (self.position[0] + self.x_offset, self.position[1] + self.y_offset)
             screen.blit(self.no_data, position)
 

@@ -4,6 +4,7 @@ import time
 
 import pytest
 
+from tests.v3xctrl_ui.settings_helper import build_settings
 from v3xctrl_ui.core.controllers.TimingController import TimingController
 from v3xctrl_ui.core.dataclasses import ApplicationModel
 
@@ -13,7 +14,7 @@ class TestTimingControllerInitialization:
 
     def test_initialization_with_default_settings(self):
         """Test that TimingController initializes with default timing values."""
-        settings = {"timing": {"control_update_hz": 30, "latency_check_hz": 1, "main_loop_fps": 60}}
+        settings = build_settings(timing={"control_update_hz": 30, "latency_check_hz": 1, "main_loop_fps": 60})
         model = ApplicationModel()
 
         controller = TimingController(settings, model)
@@ -26,7 +27,7 @@ class TestTimingControllerInitialization:
 
     def test_initialization_with_custom_settings(self):
         """Test that TimingController initializes with custom timing values."""
-        settings = {"timing": {"control_update_hz": 60, "latency_check_hz": 5, "main_loop_fps": 120}}
+        settings = build_settings(timing={"control_update_hz": 60, "latency_check_hz": 5, "main_loop_fps": 120})
         model = ApplicationModel()
 
         controller = TimingController(settings, model)
@@ -37,7 +38,7 @@ class TestTimingControllerInitialization:
 
     def test_initialization_with_missing_timing_section(self):
         """Test that TimingController handles missing timing section gracefully."""
-        settings = {}
+        settings = build_settings()
         model = ApplicationModel()
 
         controller = TimingController(settings, model)
@@ -49,12 +50,12 @@ class TestTimingControllerInitialization:
 
     def test_initialization_with_partial_timing_settings(self):
         """Test that TimingController handles partial timing settings."""
-        settings = {
-            "timing": {
+        settings = build_settings(
+            timing={
                 "control_update_hz": 90
                 # Missing latency_check_hz and main_loop_fps
             }
-        }
+        )
         model = ApplicationModel()
 
         controller = TimingController(settings, model)
@@ -69,12 +70,14 @@ class TestUpdateFromSettings:
 
     def test_update_from_settings(self):
         """Test that update_from_settings recalculates intervals."""
-        settings = {"timing": {"control_update_hz": 30, "latency_check_hz": 1, "main_loop_fps": 60}}
+        settings = build_settings(timing={"control_update_hz": 30, "latency_check_hz": 1, "main_loop_fps": 60})
         model = ApplicationModel()
         controller = TimingController(settings, model)
 
         # Change settings
-        controller.settings = {"timing": {"control_update_hz": 120, "latency_check_hz": 10, "main_loop_fps": 144}}
+        controller.settings = build_settings(
+            timing={"control_update_hz": 120, "latency_check_hz": 10, "main_loop_fps": 144}
+        )
         controller.update_from_settings()
 
         assert controller.main_loop_fps == 144
@@ -83,7 +86,7 @@ class TestUpdateFromSettings:
 
     def test_update_from_settings_preserves_model_reference(self):
         """Test that updating settings doesn't break model reference."""
-        settings = {"timing": {"control_update_hz": 30}}
+        settings = build_settings(timing={"control_update_hz": 30})
         model = ApplicationModel()
         controller = TimingController(settings, model)
 
@@ -98,11 +101,11 @@ class TestShouldUpdateControl:
 
     def test_should_update_control_when_enough_time_passed(self):
         """Test that should_update_control returns True when interval elapsed."""
-        settings = {
-            "timing": {
+        settings = build_settings(
+            timing={
                 "control_update_hz": 30  # 1/30 = 0.0333s interval
             }
-        }
+        )
         model = ApplicationModel()
         controller = TimingController(settings, model)
 
@@ -113,11 +116,11 @@ class TestShouldUpdateControl:
 
     def test_should_not_update_control_when_insufficient_time(self):
         """Test that should_update_control returns False when interval not elapsed."""
-        settings = {
-            "timing": {
+        settings = build_settings(
+            timing={
                 "control_update_hz": 30  # 1/30 = 0.0333s interval
             }
-        }
+        )
         model = ApplicationModel()
         controller = TimingController(settings, model)
 
@@ -128,7 +131,7 @@ class TestShouldUpdateControl:
 
     def test_should_update_control_exact_boundary(self):
         """Test boundary condition when time exceeds interval slightly."""
-        settings = {"timing": {"control_update_hz": 30}}
+        settings = build_settings(timing={"control_update_hz": 30})
         model = ApplicationModel()
         controller = TimingController(settings, model)
 
@@ -143,11 +146,11 @@ class TestShouldCheckLatency:
 
     def test_should_check_latency_when_enough_time_passed(self):
         """Test that should_check_latency returns True when interval elapsed."""
-        settings = {
-            "timing": {
+        settings = build_settings(
+            timing={
                 "latency_check_hz": 1  # 1 second interval
             }
-        }
+        )
         model = ApplicationModel()
         controller = TimingController(settings, model)
 
@@ -158,11 +161,11 @@ class TestShouldCheckLatency:
 
     def test_should_not_check_latency_when_insufficient_time(self):
         """Test that should_check_latency returns False when interval not elapsed."""
-        settings = {
-            "timing": {
+        settings = build_settings(
+            timing={
                 "latency_check_hz": 1  # 1 second interval
             }
-        }
+        )
         model = ApplicationModel()
         controller = TimingController(settings, model)
 
@@ -173,11 +176,11 @@ class TestShouldCheckLatency:
 
     def test_should_check_latency_with_high_frequency(self):
         """Test latency checking with high frequency settings."""
-        settings = {
-            "timing": {
+        settings = build_settings(
+            timing={
                 "latency_check_hz": 10  # 0.1s interval
             }
-        }
+        )
         model = ApplicationModel()
         controller = TimingController(settings, model)
 
@@ -192,7 +195,7 @@ class TestMarkTimestamps:
 
     def test_mark_control_updated(self):
         """Test that mark_control_updated sets the timestamp."""
-        settings = {"timing": {}}
+        settings = build_settings(timing={})
         model = ApplicationModel()
         controller = TimingController(settings, model)
 
@@ -203,7 +206,7 @@ class TestMarkTimestamps:
 
     def test_mark_latency_checked(self):
         """Test that mark_latency_checked sets the timestamp."""
-        settings = {"timing": {}}
+        settings = build_settings(timing={})
         model = ApplicationModel()
         controller = TimingController(settings, model)
 
@@ -214,7 +217,7 @@ class TestMarkTimestamps:
 
     def test_mark_updates_independent(self):
         """Test that marking one timestamp doesn't affect the other."""
-        settings = {"timing": {}}
+        settings = build_settings(timing={})
         model = ApplicationModel()
         controller = TimingController(settings, model)
 
@@ -236,7 +239,7 @@ class TestTimingControllerIntegration:
 
     def test_typical_update_cycle(self):
         """Test a typical update cycle with control and latency checks."""
-        settings = {"timing": {"control_update_hz": 30, "latency_check_hz": 1, "main_loop_fps": 60}}
+        settings = build_settings(timing={"control_update_hz": 30, "latency_check_hz": 1, "main_loop_fps": 60})
         model = ApplicationModel()
         controller = TimingController(settings, model)
 
@@ -258,14 +261,14 @@ class TestTimingControllerIntegration:
 
     def test_settings_hot_reload(self):
         """Test changing settings during runtime."""
-        settings = {"timing": {"control_update_hz": 30, "main_loop_fps": 60}}
+        settings = build_settings(timing={"control_update_hz": 30, "main_loop_fps": 60})
         model = ApplicationModel()
         controller = TimingController(settings, model)
 
         original_interval = model.control_interval
 
         # User changes settings in menu
-        controller.settings = {"timing": {"control_update_hz": 60, "main_loop_fps": 120}}
+        controller.settings = build_settings(timing={"control_update_hz": 60, "main_loop_fps": 120})
         controller.update_from_settings()
 
         # Intervals should be updated
@@ -275,11 +278,11 @@ class TestTimingControllerIntegration:
 
     def test_multiple_frames_with_timing(self):
         """Test multiple frame updates respecting timing intervals."""
-        settings = {
-            "timing": {
+        settings = build_settings(
+            timing={
                 "control_update_hz": 10  # Very slow for testing
             }
-        }
+        )
         model = ApplicationModel()
         controller = TimingController(settings, model)
 
@@ -300,7 +303,7 @@ class TestTimingControllerIntegration:
 
     def test_high_frequency_control_updates(self):
         """Test high frequency control updates (120Hz)."""
-        settings = {"timing": {"control_update_hz": 120}}
+        settings = build_settings(timing={"control_update_hz": 120})
         model = ApplicationModel()
         controller = TimingController(settings, model)
 

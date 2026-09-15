@@ -1,22 +1,20 @@
-from typing import Any, ClassVar
+from typing import ClassVar
 
 from pygame import SRCALPHA, Rect, Surface, draw
 
+from v3xctrl_ui.core.StatusLevel import StatusLevel
 from v3xctrl_ui.osd.widgets.Widget import Widget
 from v3xctrl_ui.utils.colors import GREEN, GREY, RED, WHITE, YELLOW
 from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT
 from v3xctrl_ui.utils.helpers import round_corners
 
 
-class StatusWidget(Widget):
-    STATUS_COLORS: ClassVar[dict[str, Any]] = {
-        "waiting": YELLOW,
-        "success": GREEN,
-        "fail": RED,
-        "default": GREY,
-        "green": GREEN,
-        "yellow": YELLOW,
-        "red": RED,
+class StatusWidget(Widget[StatusLevel]):
+    LEVEL_COLORS: ClassVar[dict[StatusLevel, tuple[int, int, int]]] = {
+        StatusLevel.NEUTRAL: GREY,
+        StatusLevel.GOOD: GREEN,
+        StatusLevel.WARNING: YELLOW,
+        StatusLevel.BAD: RED,
     }
 
     def __init__(self, position: tuple[int, int], size: int, label: str, padding: int = 8) -> None:
@@ -26,7 +24,7 @@ class StatusWidget(Widget):
         self.size = size
         self.label = label
         self.padding = padding
-        self.color = self.STATUS_COLORS["default"]
+        self.color = self.LEVEL_COLORS[StatusLevel.NEUTRAL]
         self.background_alpha = 180
 
         self.font = BOLD_MONO_FONT
@@ -46,8 +44,8 @@ class StatusWidget(Widget):
         self.surface = Surface((self.width, self.height), SRCALPHA)
         self.square_rect = Rect(0, square_y, self.size, self.size)
 
-    def draw(self, screen: Surface, status: str) -> None:
-        self.color = self.STATUS_COLORS.get(status, self.STATUS_COLORS["default"])
+    def draw(self, screen: Surface, level: StatusLevel) -> None:
+        self.color = self.LEVEL_COLORS[level]
 
         self.surface.fill((0, 0, 0, self.background_alpha))
 
