@@ -13,6 +13,7 @@ from v3xctrl_ui.core.controllers.SettingsController import SettingsController
 from v3xctrl_ui.core.controllers.TimingController import TimingController
 from v3xctrl_ui.core.dataclasses import ApplicationModel
 from v3xctrl_ui.core.FrameSnapshot import ConnectionStatus, FrameSnapshot
+from v3xctrl_ui.core.MainThreadDispatcher import MainThreadDispatcher
 from v3xctrl_ui.core.Renderer import Renderer
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext
@@ -48,8 +49,11 @@ class AppState:
 
         self.osd = OSD(settings, self.telemetry_context)
 
+        # Drained once per loop iteration, so background threads can touch the UI
+        self.main_thread_dispatcher = MainThreadDispatcher()
+
         # Network coordination
-        self.network_coordinator = NetworkCoordinator(self.model, self.osd, self.settings)
+        self.network_coordinator = NetworkCoordinator(self.model, self.osd, self.settings, self.main_thread_dispatcher)
         self.network_coordinator.on_connection_change = self._on_connection_change
 
         # Timing
@@ -120,7 +124,7 @@ class AppState:
         self.settings_controller.update_settings(new_settings)
 
     def update(self) -> None:
-        self.network_coordinator.process_callbacks()
+        self.main_thread_dispatcher.drain()
         self.settings_controller.check_network_restart_complete()
         self.display_controller.update_cursor_visibility(self.menu.visible or not self.model.user_connected)
 
@@ -259,6 +263,7 @@ class AppState:
             self.update_settings,
             self._signal_handler,
             self.telemetry_context,
+            self.main_thread_dispatcher,
         )
 
         streamer_enabled = (

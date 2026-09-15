@@ -6,6 +6,7 @@ from tests.v3xctrl_ui.settings_helper import build_settings
 from v3xctrl_control import State
 from v3xctrl_control.message import Command, Latency, Telemetry
 from v3xctrl_ui.core.dataclasses import ApplicationModel
+from v3xctrl_ui.core.MainThreadDispatcher import MainThreadDispatcher
 from v3xctrl_ui.network.NetworkController import NetworkController
 from v3xctrl_ui.network.NetworkCoordinator import NetworkCoordinator
 
@@ -18,7 +19,8 @@ class TestNetworkCoordinator(unittest.TestCase):
         self.model = ApplicationModel(fullscreen=False, throttle=0.0, steering=0.0)
         self.mock_osd = MagicMock()
         self.settings = build_settings(ports={"video": 6666, "control": 6668})
-        self.coordinator = NetworkCoordinator(self.model, self.mock_osd, self.settings)
+        self.main_thread_dispatcher = MainThreadDispatcher()
+        self.coordinator = NetworkCoordinator(self.model, self.mock_osd, self.settings, self.main_thread_dispatcher)
 
     def test_initialization(self):
         """Test NetworkCoordinator initialization."""
@@ -133,8 +135,8 @@ class TestNetworkCoordinator(unittest.TestCase):
         deferred_callback = call_args[0][1]
         deferred_callback(True)
 
-        # Process the callback queue to invoke the original callback
-        self.coordinator.process_callbacks()
+        # Draining is what puts the callback on the main thread
+        self.main_thread_dispatcher.drain()
         callback.assert_called_once_with(True)
 
     def test_send_command_no_server(self):
@@ -410,8 +412,8 @@ class TestNetworkCoordinator(unittest.TestCase):
 
         # Should not send command when in spectator mode
         mock_server.send_command.assert_not_called()
-        # Callback is queued, process it to invoke with False
-        self.coordinator.process_callbacks()
+        # Callback is posted, draining invokes it with False
+        self.main_thread_dispatcher.drain()
         callback.assert_called_once_with(False)
 
 
