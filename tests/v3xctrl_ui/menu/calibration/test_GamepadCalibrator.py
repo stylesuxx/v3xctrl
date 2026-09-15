@@ -53,6 +53,21 @@ class TestGamepadCalibrator(unittest.TestCase):
         self.assertIsNone(calibrator.on_done)
         self.assertIsNone(calibrator.dialog)
 
+    def test_recorded_settings_start_it_complete(self):
+        """A calibration read back from disk is already done."""
+        recorded = {"steering": {"axis": 0, "min": -1, "max": 1, "center": 0.0}}
+
+        calibrator = GamepadCalibrator(recorded_settings=recorded)
+
+        self.assertEqual(calibrator.state, CalibratorState.COMPLETE)
+        self.assertEqual(calibrator.get_settings(), recorded)
+
+    def test_without_recorded_settings_it_measures(self):
+        calibrator = GamepadCalibrator()
+
+        self.assertEqual(calibrator.state, CalibratorState.PAUSE)
+        self.assertEqual(set(calibrator.get_settings()), {"steering", "throttle", "brake"})
+
     def test_start(self):
         self.calibrator.start()
 

@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from functools import partial
 from typing import Any
 
 import pygame
@@ -66,7 +67,7 @@ class GamepadCalibrationWidget(BaseWidget):
         self._create_ui(font)
         self.set_position(self.x, self.y)
 
-        self.gamepads: dict[str, pygame.joystick.Joystick] = self.manager.get_gamepads()
+        self.gamepads: dict[str, pygame.joystick.JoystickType] = self.manager.get_gamepads()
         self._on_gamepads_changed(self.gamepads)
 
         # When gamepads change, trigger handler
@@ -127,9 +128,15 @@ class GamepadCalibrationWidget(BaseWidget):
 
         self.calibrate_button.set_position(x + select_width + 20, button_y)
 
+    def _selected_gamepad(self) -> pygame.joystick.JoystickType | None:
+        if self.selected_guid is None:
+            return None
+
+        return self.gamepads.get(self.selected_guid)
+
     def toggle_invert(self, key: str, state: bool) -> None:
         self.invert_axes[key] = state
-        js = self.gamepads.get(self.selected_guid)
+        js = self._selected_gamepad()
         if js:
             guid = str(js.get_guid())
             settings = self.manager.get_calibration(guid)
@@ -141,7 +148,7 @@ class GamepadCalibrationWidget(BaseWidget):
             deadband_val = int(value) if value else 0
             self.deadband_values[key] = deadband_val
 
-            js = self.gamepads.get(self.selected_guid)
+            js = self._selected_gamepad()
             if js:
                 guid = str(js.get_guid())
                 settings = self.manager.get_calibration(guid)
@@ -155,7 +162,7 @@ class GamepadCalibrationWidget(BaseWidget):
     def update_button_mapping(self, key: str, button: Any) -> None:
         self.button_mappings[key] = button
 
-        js = self.gamepads.get(self.selected_guid)
+        js = self._selected_gamepad()
         if js:
             guid = str(js.get_guid())
             settings = self.manager.get_calibration(guid)
@@ -209,9 +216,7 @@ class GamepadCalibrationWidget(BaseWidget):
         self.calibrate_button = Button("Start Calibration", font, self._start_calibration)
 
         self.invert_checkboxes = {
-            name: Checkbox(
-                label="Invert", font=font, checked=False, on_change=lambda state, k=name: self.toggle_invert(k, state)
-            )
+            name: Checkbox(label="Invert", font=font, checked=False, on_change=partial(self.toggle_invert, name))
             for name in ["steering", "throttle", "brake"]
         }
 
@@ -224,7 +229,7 @@ class GamepadCalibrationWidget(BaseWidget):
                 max_val=100,
                 font=font,
                 mono_font=MONO_FONT,
-                on_change=lambda value, k=name: self.update_deadband(k, value),
+                on_change=partial(self.update_deadband, name),
             )
             for name in ["steering", "throttle", "brake"]
         }
@@ -253,7 +258,7 @@ class GamepadCalibrationWidget(BaseWidget):
             ),
         }
 
-    def _on_gamepads_changed(self, gamepads: dict[str, pygame.joystick.Joystick]) -> None:
+    def _on_gamepads_changed(self, gamepads: dict[str, pygame.joystick.JoystickType]) -> None:
         self.gamepads = gamepads
 
         if not self.selected_guid:
@@ -287,8 +292,8 @@ class GamepadCalibrationWidget(BaseWidget):
             self.calibrate_button.enable()
             self.controller_select.enable()
 
-            js = self.gamepads.get(self.selected_guid)
-            if js:
+            js = self._selected_gamepad()
+            if js and self.calibrator:
                 guid = js.get_guid()
                 settings = self.calibrator.get_settings()
                 for setting in settings:
@@ -300,25 +305,23 @@ class GamepadCalibrationWidget(BaseWidget):
                 self.on_calibration_done()
 
         self.calibrator = GamepadCalibrator(
-            on_start=lambda: (
-                self.calibrate_button.disable(),
-                self.controller_select.disable(),
-                self.on_calibration_start(),
-            ),
+            on_start=self._on_calibration_started,
             on_done=on_done,
             dialog=self.dialog,
         )
         self.calibrator.start()
 
-    def _apply_known_calibration(self, js: pygame.joystick.Joystick) -> None:
+    def _on_calibration_started(self) -> None:
+        self.calibrate_button.disable()
+        self.controller_select.disable()
+        self.on_calibration_start()
+
+    def _apply_known_calibration(self, js: pygame.joystick.JoystickType) -> None:
         guid = js.get_guid()
         settings = self.manager.get_calibration(guid)
         if settings:
             self.manager.set_active(guid)
-            self.calibrator = GamepadCalibrator(lambda: None, lambda: None)
-            self.calibrator.state = CalibratorState.COMPLETE
-            self.calibrator._settings = settings
-            self.calibrator.get_settings = lambda: settings
+            self.calibrator = GamepadCalibrator(recorded_settings=settings)
             for k in self.invert_axes:
                 self.invert_axes[k] = settings.get(k, {}).get("invert", False)
                 self.invert_checkboxes[k].checked = self.invert_axes[k]
@@ -344,12 +347,12 @@ class GamepadCalibrationWidget(BaseWidget):
             return
 
         if self.calibrator:
-            self._update_calibrator()
+            self._update_calibrator(self.calibrator)
 
             if self.calibrator.state == CalibratorState.COMPLETE:
                 self._draw_calibration_bars(surface)
             elif self.calibrator.stage is not None:
-                self._draw_calibration_steps(surface)
+                self._draw_calibration_steps(surface, self.calibrator)
 
         # Draw UI elements before dialog so Select options can overlap bars but not dialog
         self._draw_ui_elements(surface)
@@ -367,11 +370,11 @@ class GamepadCalibrationWidget(BaseWidget):
         self.controller_select.draw(surface)
         self.calibrate_button.draw(surface)
 
-    def _update_calibrator(self) -> None:
-        js = self.gamepads.get(self.selected_guid)
+    def _update_calibrator(self, calibrator: GamepadCalibrator) -> None:
+        js = self._selected_gamepad()
         if js and js.get_init():
             axes = [js.get_axis(i) for i in range(js.get_numaxes())]
-            self.calibrator.update(axes)
+            calibrator.update(axes)
 
     def _draw_calibration_bars(self, surface: Surface) -> None:
         # Get raw inputs (without deadband) for display
@@ -379,7 +382,11 @@ class GamepadCalibrationWidget(BaseWidget):
         if not inputs:
             return
 
-        settings = self.manager.get_calibration(self.selected_guid)
+        js = self._selected_gamepad()
+        if js is None:
+            return
+
+        settings = self.manager.get_calibration(js.get_guid())
         if not settings:
             return
 
@@ -434,9 +441,9 @@ class GamepadCalibrationWidget(BaseWidget):
             widget.set_position(self.x + self.BUTTON_MAPPING_X_OFFSET, bar_y)
             widget.draw(surface)
 
-    def _draw_calibration_steps(self, surface: Surface) -> None:
+    def _draw_calibration_steps(self, surface: Surface, calibrator: GamepadCalibrator) -> None:
         y_base = self.y + self.INSTRUCTION_Y_OFFSET
-        for i, (label, active) in enumerate(self.calibrator.get_steps()):
+        for i, (label, active) in enumerate(calibrator.get_steps()):
             color = WHITE if active else GREY
             rendered, rect = self.font.render(label, color)
             rect.topleft = (self.x, y_base + i * 40)
