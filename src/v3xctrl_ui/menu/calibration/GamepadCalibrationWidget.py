@@ -11,14 +11,12 @@ from v3xctrl_ui.menu.calibration.GamepadCalibrator import (
     GamepadCalibrator,
 )
 from v3xctrl_ui.menu.DialogBox import DialogBox
-from v3xctrl_ui.menu.input import (
-    BaseWidget,
-    Button,
-    ButtonMappingWidget,
-    Checkbox,
-    NumberInput,
-    Select,
-)
+from v3xctrl_ui.menu.input.BaseWidget import BaseWidget
+from v3xctrl_ui.menu.input.Button import Button
+from v3xctrl_ui.menu.input.ButtonMappingWidget import ButtonMappingWidget
+from v3xctrl_ui.menu.input.Checkbox import Checkbox
+from v3xctrl_ui.menu.input.NumberInput import NumberInput
+from v3xctrl_ui.menu.input.Select import Select
 from v3xctrl_ui.utils.colors import GREY, TRANSPARENT_GREY, WHITE
 from v3xctrl_ui.utils.fonts import MONO_FONT
 

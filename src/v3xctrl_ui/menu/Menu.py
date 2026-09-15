@@ -11,7 +11,7 @@ from v3xctrl_ui.core.controllers.input.GamepadController import GamepadControlle
 from v3xctrl_ui.core.MainThreadDispatcher import MainThreadDispatcher
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext
-from v3xctrl_ui.menu.input import Button
+from v3xctrl_ui.menu.input.Button import Button
 from v3xctrl_ui.menu.LoadingOverlay import LoadingOverlay
 from v3xctrl_ui.menu.tabs import FrequenciesTab, GeneralTab, InputTab, NetworkTab, OsdTab, StreamerTab, Tab
 from v3xctrl_ui.utils.colors import CHARCOAL, DARK_GREY, GREY, WHITE
@@ -22,7 +22,7 @@ from v3xctrl_ui.utils.i18n import t
 class TabEntry(NamedTuple):
     name: str
     rect: pygame.Rect
-    view: NamedTuple
+    view: Tab
     enabled: bool = True
 
 
@@ -365,7 +365,7 @@ class Menu:
                 result.extend(self._collect_hover_widgets(children))
         return result
 
-    def _get_active_tab(self) -> TabEntry:
+    def _get_active_tab(self) -> TabEntry | None:
         return next((t for t in self.tabs if t.name == self.active_tab), None)
 
     def _save_button_callback(self) -> None:
