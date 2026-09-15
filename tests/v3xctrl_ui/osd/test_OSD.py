@@ -48,17 +48,48 @@ class TestOSD(unittest.TestCase):
 
     def test_rec_group_supplies_the_text_the_widget_draws(self):
         """The REC widget renders whatever it is handed, like any other TextWidget."""
-        self.assertEqual(self.osd._get_rec_value("rec"), "REC")
+        entry = self._find_entry("rec")
+
+        self.assertEqual(entry.get_value(), "REC")
+
+    def _find_entry(self, name):
+        for group in self.osd.widget_groups:
+            for entry in group.entries:
+                if entry.name == name:
+                    return entry
+
+        raise AssertionError(f"no widget entry named {name}")
 
     def test_every_widget_takes_a_required_value(self):
         """The group renderer hands each widget a value, so none may pad its signature."""
         for group in self.osd.widget_groups:
-            for name, widget in group.widgets.items():
-                parameters = list(inspect.signature(widget.draw).parameters.values())
+            for entry in group.entries:
+                parameters = list(inspect.signature(entry.widget.draw).parameters.values())
 
-                self.assertEqual(len(parameters), 2, name)
-                self.assertEqual(parameters[0].name, "screen", name)
-                self.assertIs(parameters[1].default, inspect.Parameter.empty, name)
+                self.assertEqual(len(parameters), 2, entry.name)
+                self.assertEqual(parameters[0].name, "screen", entry.name)
+                self.assertIs(parameters[1].default, inspect.Parameter.empty, entry.name)
+
+    def test_every_entry_resolves_a_value(self):
+        """No widget is wired to a source that no longer produces anything."""
+        self.osd.render(self.screen, deque([time.monotonic()]), deque([time.monotonic()]))
+
+        for group in self.osd.widget_groups:
+            for entry in group.entries:
+                entry.get_value()
+
+    def test_a_group_reads_its_telemetry_once_per_frame(self):
+        """Each getter takes a lock and builds a dataclass, so widgets share one reading."""
+        with (
+            patch.object(self.telemetry_context, "get_battery", wraps=self.telemetry_context.get_battery) as battery,
+            patch.object(self.telemetry_context, "get_signal", wraps=self.telemetry_context.get_signal) as signal,
+            patch.object(self.telemetry_context, "get_gps", wraps=self.telemetry_context.get_gps) as gps,
+        ):
+            self.osd.render(self.screen, deque([time.monotonic()]), deque([time.monotonic()]))
+
+        self.assertEqual(battery.call_count, 1)
+        self.assertEqual(signal.call_count, 1)
+        self.assertEqual(gps.call_count, 1)
 
     def test_set_control(self):
         self.osd.set_control(throttle=1.0, steering=-0.5)

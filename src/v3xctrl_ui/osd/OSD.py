@@ -7,7 +7,7 @@ import pygame
 
 from v3xctrl_control.message import Latency, Message, Telemetry
 from v3xctrl_helper import SlidingWindowAverage
-from v3xctrl_ui.core.dataclasses import GpsFixType
+from v3xctrl_ui.core.dataclasses import BatteryData, GpsData, GpsFixType, SignalData
 from v3xctrl_ui.core.Settings import Settings
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 from v3xctrl_ui.core.TelemetryParser import parse_telemetry
@@ -21,7 +21,7 @@ from v3xctrl_ui.osd.widgets.WidgetFactory import (
     create_signal_widgets,
     create_steering_widgets,
 )
-from v3xctrl_ui.osd.widgets.WidgetGroup import WidgetGroup
+from v3xctrl_ui.osd.widgets.WidgetGroup import WidgetEntry, WidgetGroup
 from v3xctrl_ui.osd.widgets.WidgetGroupRenderer import render_widget_group
 from v3xctrl_ui.utils.colors import GREEN, ORANGE, RED, WHITE
 from v3xctrl_ui.utils.helpers import get_fps
@@ -52,57 +52,30 @@ class OSD:
 
         self._latency_samples = SlidingWindowAverage(window_seconds=1.0)
 
-        self.widgets_debug: dict[str, Widget] = {}
-        self.widgets_signal: dict[str, Widget] = {}
-        self.widgets_battery: dict[str, Widget] = {}
-        self.widgets_rec: dict[str, Widget] = {}
-        self.widgets_steering: dict[str, Widget] = {}
-        self.widgets_clock: dict[str, Widget] = {}
-        self.widgets_gps: dict[str, Widget] = {}
+        # Read once at the top of each frame, so every widget in a group shows
+        # the same reading and each lock is taken once rather than per widget
+        self._frame_battery: BatteryData = telemetry_context.get_battery()
+        self._frame_signal: SignalData = telemetry_context.get_signal()
+        self._frame_gps: GpsData = telemetry_context.get_gps()
 
-        self._init_widgets_debug()
-        self._init_widgets_signal()
-        self._init_widgets_battery()
-        self._init_widgets_rec()
-        self._init_widgets_steering()
-        self._init_widgets_clock()
-        self._init_widgets_gps()
+        fps_config = self.widget_settings.fps
+        self.widgets_debug: dict[str, Widget] = create_debug_widgets(fps_config.width, fps_config.height)
+        self.widgets_signal: dict[str, Widget] = create_signal_widgets()
+        self.widgets_battery: dict[str, Widget] = create_battery_widgets()
+        self.widgets_rec: dict[str, Widget] = create_rec_widget()
+        self.widgets_steering: dict[str, Widget] = create_steering_widgets()
+        self.widgets_clock: dict[str, Widget] = create_clock_widget()
+        self.widgets_gps: dict[str, Widget] = create_gps_widgets()
 
         self.reset()
 
-        # Create unified widget groups for rendering
-        self.widget_groups: list[WidgetGroup] = [
-            WidgetGroup.create(
-                name="steering",
-                widgets=self.widgets_steering,
-                get_value=self._get_steering_value,
-                use_composition=False,
-            ),
-            WidgetGroup.create(
-                name="battery", widgets=self.widgets_battery, get_value=self._get_battery_value, use_composition=True
-            ),
-            WidgetGroup.create(
-                name="signal", widgets=self.widgets_signal, get_value=self._get_signal_value, use_composition=True
-            ),
-            WidgetGroup.create(
-                name="debug", widgets=self.widgets_debug, get_value=self._get_debug_value, use_composition=True
-            ),
-            WidgetGroup.create(
-                name="rec", widgets=self.widgets_rec, get_value=self._get_rec_value, use_composition=False
-            ),
-            WidgetGroup.create(
-                name="clock", widgets=self.widgets_clock, get_value=self._get_clock_value, use_composition=False
-            ),
-            WidgetGroup.create(
-                name="gps",
-                widgets=self.widgets_gps,
-                get_value=self._get_gps_value,
-                use_composition=True,
-            ),
-        ]
+        self.widget_groups: list[WidgetGroup] = self._create_widget_groups()
 
     @property
     def debug_fps_loop(self) -> float:
+        if self.loop_history is None:
+            return 0
+
         return get_fps(self.loop_history)
 
     @property
@@ -158,6 +131,9 @@ class OSD:
         self.video_history = video_history
 
         gst = self.telemetry_context.get_gst()
+        self._frame_battery = self.telemetry_context.get_battery()
+        self._frame_signal = self.telemetry_context.get_signal()
+        self._frame_gps = self.telemetry_context.get_gps()
 
         video_fps_widget = self.widgets_debug["debug_fps_video"]
         if gst.udp_overrun:
@@ -190,28 +166,89 @@ class OSD:
         self.throttle = 0.0
         self.steering = 0.0
 
-    def _init_widgets_steering(self) -> None:
-        self.widgets_steering = create_steering_widgets()
+    def _create_widget_groups(self) -> list[WidgetGroup]:
+        """Wire each widget to the one value it draws from."""
+        steering = self.widgets_steering
+        battery = self.widgets_battery
+        signal = self.widgets_signal
+        debug = self.widgets_debug
+        gps = self.widgets_gps
 
-    def _init_widgets_battery(self) -> None:
-        self.widgets_battery = create_battery_widgets()
+        return [
+            WidgetGroup(
+                name="steering",
+                entries=(
+                    WidgetEntry("steering", steering["steering"], lambda: self.steering),
+                    WidgetEntry("throttle", steering["throttle"], lambda: self.throttle),
+                ),
+                use_composition=False,
+            ),
+            WidgetGroup(
+                name="battery",
+                entries=(
+                    WidgetEntry("battery_icon", battery["battery_icon"], lambda: self._frame_battery.icon),
+                    WidgetEntry("battery_voltage", battery["battery_voltage"], lambda: self._frame_battery.voltage),
+                    WidgetEntry(
+                        "battery_average_voltage",
+                        battery["battery_average_voltage"],
+                        lambda: self._frame_battery.average_voltage,
+                    ),
+                    WidgetEntry("battery_percent", battery["battery_percent"], lambda: self._frame_battery.percent),
+                    WidgetEntry("battery_current", battery["battery_current"], lambda: self._frame_battery.current),
+                ),
+            ),
+            WidgetGroup(
+                name="signal",
+                entries=(
+                    WidgetEntry("signal_quality", signal["signal_quality"], lambda: self._frame_signal.quality),
+                    WidgetEntry("signal_band", signal["signal_band"], lambda: self._frame_signal.band),
+                    WidgetEntry("signal_cell", signal["signal_cell"], lambda: self._frame_signal.cell),
+                ),
+            ),
+            WidgetGroup(
+                name="debug",
+                entries=(
+                    WidgetEntry("debug_fps_loop", debug["debug_fps_loop"], lambda: self.debug_fps_loop),
+                    WidgetEntry("debug_fps_video", debug["debug_fps_video"], lambda: self.debug_fps_video),
+                    WidgetEntry("debug_data", debug["debug_data"], lambda: self.debug_data),
+                    WidgetEntry("debug_latency", debug["debug_latency"], lambda: self.debug_latency),
+                    WidgetEntry("debug_buffer", debug["debug_buffer"], lambda: self.debug_buffer),
+                ),
+            ),
+            WidgetGroup(
+                name="rec",
+                # Whether it is drawn at all is the display override in render()
+                entries=(WidgetEntry("rec", self.widgets_rec["rec"], lambda: "REC"),),
+                use_composition=False,
+            ),
+            WidgetGroup(
+                name="clock",
+                # The clock reads its own time
+                entries=(WidgetEntry("clock", self.widgets_clock["clock"], lambda: None),),
+                use_composition=False,
+            ),
+            WidgetGroup(
+                name="gps",
+                entries=(
+                    WidgetEntry("gps_icon", gps["gps_icon"], lambda: self._frame_gps.fix_type),
+                    WidgetEntry("gps_fix", gps["gps_fix"], self._gps_fix_label),
+                    WidgetEntry("gps_satellites", gps["gps_satellites"], lambda: self._frame_gps.satellites),
+                    WidgetEntry("gps_speed", gps["gps_speed"], lambda: self._frame_gps.speed),
+                ),
+            ),
+        ]
 
-    def _init_widgets_signal(self) -> None:
-        self.widgets_signal = create_signal_widgets()
+    def _gps_fix_label(self) -> str:
+        return self._GPS_FIX_LABELS.get(self._frame_gps.fix_type, "NO FIX")
 
-    def _init_widgets_debug(self) -> None:
-        width = self.widget_settings.fps.width
-        height = self.widget_settings.fps.height
-        self.widgets_debug = create_debug_widgets(width, height)
-
-    def _init_widgets_rec(self) -> None:
-        self.widgets_rec = create_rec_widget()
-
-    def _init_widgets_clock(self) -> None:
-        self.widgets_clock = create_clock_widget()
-
-    def _init_widgets_gps(self) -> None:
-        self.widgets_gps = create_gps_widgets()
+    _GPS_FIX_LABELS: ClassVar[dict[GpsFixType, str]] = {
+        GpsFixType.NO_HARDWARE: "NO GPS",
+        GpsFixType.NO_FIX: "NO FIX",
+        GpsFixType.DEAD_RECKONING: "DEAD REC",
+        GpsFixType.FIX_2D: "2D FIX",
+        GpsFixType.FIX_3D: "3D FIX",
+        GpsFixType.GNSS_DEAD_RECKONING: "GNSS+DR",
+    }
 
     def _latency_update(self, message: Latency) -> None:
         # In spectator mode, latency is not meaningful
@@ -276,57 +313,3 @@ class OSD:
             fix_color = ORANGE
 
         self.widgets_gps["gps_fix"].set_text_color(fix_color)
-
-    def _get_steering_value(self, name: str):
-        return getattr(self, name)
-
-    def _get_battery_value(self, name: str):
-        battery = self.telemetry_context.get_battery()
-        mapping = {
-            "battery_icon": battery.icon,
-            "battery_voltage": battery.voltage,
-            "battery_average_voltage": battery.average_voltage,
-            "battery_percent": battery.percent,
-            "battery_current": battery.current,
-        }
-
-        return mapping.get(name)
-
-    def _get_signal_value(self, name: str):
-        signal = self.telemetry_context.get_signal()
-        mapping = {
-            "signal_quality": signal.quality,
-            "signal_band": signal.band,
-            "signal_cell": signal.cell,
-        }
-
-        return mapping.get(name)
-
-    def _get_debug_value(self, name: str):
-        return getattr(self, name)
-
-    def _get_rec_value(self, name: str):
-        return "REC"
-
-    def _get_clock_value(self, name: str):
-        # ClockWidget gets its own time internally
-        return None
-
-    _GPS_FIX_LABELS: ClassVar[dict[GpsFixType, str]] = {
-        GpsFixType.NO_HARDWARE: "NO GPS",
-        GpsFixType.NO_FIX: "NO FIX",
-        GpsFixType.DEAD_RECKONING: "DEAD REC",
-        GpsFixType.FIX_2D: "2D FIX",
-        GpsFixType.FIX_3D: "3D FIX",
-        GpsFixType.GNSS_DEAD_RECKONING: "GNSS+DR",
-    }
-
-    def _get_gps_value(self, name: str):
-        gps = self.telemetry_context.get_gps()
-        mapping = {
-            "gps_fix": self._GPS_FIX_LABELS.get(gps.fix_type, "NO FIX"),
-            "gps_icon": gps.fix_type,
-            "gps_satellites": gps.satellites,
-            "gps_speed": gps.speed,
-        }
-        return mapping.get(name)
