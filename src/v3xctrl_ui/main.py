@@ -32,6 +32,7 @@ def main() -> None:
     parser.add_argument(
         "--config", default=None, help="Path to custom config file. If not specified, uses default location."
     )
+    parser.add_argument("--connect", action="store_true", help="Connect on start instead of waiting for the button.")
 
     args, _unknown = parser.parse_known_args()
 
@@ -63,6 +64,9 @@ def main() -> None:
 
     settings = Settings(args.config)
     state = AppState(settings)
+
+    if args.connect:
+        state.connect()
 
     while state.model.running:
         if not state.handle_events():
