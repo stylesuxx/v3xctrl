@@ -4,7 +4,11 @@ set -e
 ENV_PATH="/run/v3xctrl.env"
 source "${ENV_PATH}"
 
-PWM_THROTTLE="${control_pwm_throttle}"
-PWM_STEERING="${control_pwm_steering}"
+if [ -z "${control_failsafe_channelA}" ] || [ -z "${control_failsafe_channelB}" ]; then
+  echo "v3xctrl-control-failed: no failsafe values in ${ENV_PATH}, refusing to guess a pulse" >&2
+  exit 1
+fi
 
-v3xctrl-pwm-failsafe "$PWM_THROTTLE" "$control_throttle_failsafe" "$PWM_STEERING" "$control_steering_failsafe"
+v3xctrl-pwm-failsafe \
+  "${control_pwm_channelA}" "${control_failsafe_channelA}" \
+  "${control_pwm_channelB}" "${control_failsafe_channelB}"

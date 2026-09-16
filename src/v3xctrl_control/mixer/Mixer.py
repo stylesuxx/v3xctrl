@@ -1,0 +1,86 @@
+from abc import ABC, abstractmethod
+from argparse import Namespace
+from enum import StrEnum
+from typing import Self
+
+from v3xctrl_helper import clamp
+
+
+class MixerType(StrEnum):
+    ACKERMANN = "ackermann"
+    DIFFERENTIAL = "differential"
+
+
+def map_range(value: float, in_min: float, in_max: float, servo_min: int = 1000, servo_max: int = 2000) -> int:
+    if in_min == in_max:
+        raise ValueError("Input range cannot be zero")
+
+    clamped = clamp(value, in_min, in_max)
+    normalized = (clamped - in_min) / (in_max - in_min)
+
+    return int(servo_min + normalized * (servo_max - servo_min))
+
+
+def esc_pulse_width(
+    value: float,
+    forward_min: int,
+    throttle_max: int,
+    throttle_min: int,
+    reverse_min: int,
+    forward_multiplier: float,
+    reverse_multiplier: float,
+    idle: int,
+    reversible: bool,
+) -> int:
+    """
+    Maps a normalized [-1, 1] motor value to an ESC pulse width.
+
+    Values at or below zero return idle when the motor is not reversible, since a
+    unidirectional ESC has no reverse range to map into.
+    """
+    if value > 0:
+        scaled = value * forward_multiplier
+
+        return map_range(scaled, 0, 1, forward_min, throttle_max)
+
+    if value < 0 and reversible:
+        scaled = value * reverse_multiplier
+
+        return map_range(scaled, -1, 0, throttle_min, reverse_min)
+
+    return idle
+
+
+class Mixer(ABC):
+    """
+    A mixer owns the complete settings of one vehicle layout and turns the wire-level
+    throttle/steering pair into the two physical PWM channel values.
+    """
+
+    @classmethod
+    @abstractmethod
+    def from_args(cls, args: Namespace) -> Self:
+        """Builds the mixer from the parsed command line arguments."""
+
+    @abstractmethod
+    def calculate_channel_values(self, throttle: float, steering: float) -> tuple[int, int]:
+        """Maps a normalized throttle/steering pair to (channel A, channel B) pulse widths."""
+
+    @property
+    @abstractmethod
+    def idle(self) -> tuple[int, int]:
+        """Pulse widths the channels rest at on startup and shutdown."""
+
+    @property
+    @abstractmethod
+    def failsafe(self) -> tuple[int, int]:
+        """Pulse widths sent when the link is lost or the failsafe timeout expires."""
+
+    @abstractmethod
+    def adjust_trim(self, step: int) -> tuple[str, int]:
+        """
+        Applies a single trim step.
+
+        Returns:
+            The config path to persist the new value under, and the value itself.
+        """

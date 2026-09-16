@@ -38,3 +38,19 @@ source "${ENV_PATH}"
 echo "viewer_ports_video_bind=${viewer_ports_video}" >> "${ENV_PATH}"
 echo "viewer_ports_control_bind=${viewer_ports_control}" >> "${ENV_PATH}"
 echo "NAME=v3xctrl" >> "${ENV_PATH}"
+
+# Resolved here so the crash path never has to pick between mixers.
+case "${control_mixerType}" in
+  "ackermann")
+    echo "control_failsafe_channelA=${control_mixer_ackermann_throttle_failsafe}" >> "${ENV_PATH}"
+    echo "control_failsafe_channelB=${control_mixer_ackermann_steering_failsafe}" >> "${ENV_PATH}"
+    ;;
+  "differential")
+    echo "control_failsafe_channelA=${control_mixer_differential_motor_failsafe}" >> "${ENV_PATH}"
+    echo "control_failsafe_channelB=${control_mixer_differential_motor_failsafe}" >> "${ENV_PATH}"
+    ;;
+  *)
+    # Not fatal: the config server depends on this unit, exiting would take the web UI down.
+    echo "v3xctrl-write-env: unknown mixer type '${control_mixerType}', failsafe values not set" >&2
+    ;;
+esac

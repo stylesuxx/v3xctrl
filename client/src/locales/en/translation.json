@@ -85,8 +85,22 @@
     "throttleMin": "Throttle Min (Reverse)",
     "throttleMax": "Throttle Max (Forward)",
     "throttleNeutral": "Throttle Neutral",
+    "motorATitle": "Motor A",
+    "motorBTitle": "Motor B",
+    "motorMin": "Motor Min",
+    "motorMax": "Motor Max",
+    "motorIdle": "Motor Idle",
+    "motorNoteReversible": "Min, max and idle are shared by both motors. Send min (Reverse), max (Forward) and idle (neutral) to each motor in the order your ESC manual specifies. The dead-zones are per motor - raise one if that motor needs more of a kick to start moving than the other.",
+    "motorNoteNonReversible": "Min, max and idle are shared by both motors. These motors don't reverse, so min is simply off - send idle (off), then max (full throttle) to each motor. The forward dead-zone is per motor - raise one if that motor needs more of a kick to start moving than the other.",
+    "motorDeadzoneForward": "Dead-zone Forward",
+    "motorDeadzoneReverse": "Dead-zone Reverse",
+    "balanceTitle": "Motor balance",
+    "balanceNote": "Live fine-tune while driving: nudges Motor A up and Motor B down by this amount, and never applies while a motor is at rest. If one motor consistently needs more of a kick to start, set its dead-zone above instead - use balance only for small on-the-fly corrections.",
+    "balanceOffset": "Balance offset",
     "send": "Send",
-    "saveCalibration": "Save calibration"
+    "saveCalibration": "Save calibration",
+    "saveMotorCalibration": "Save motor calibration",
+    "saveBalance": "Save balance"
   },
   "camera": {
     "serviceWarning": "Camera settings cannot be applied while video service is stopped. Start the video service first!",

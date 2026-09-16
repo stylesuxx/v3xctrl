@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useServicesStore } from '@/stores/services'
 import { useConfigStore } from '@/stores/config'
 import { useCalibrationStore } from '@/stores/calibration'
+import { MixerType } from '@/lib/mixer'
 import { ServiceWarning } from '@/components/shared/ServiceWarning'
 import { PwmControl } from '@/components/shared/PwmControl'
 import { Info } from 'lucide-react'
@@ -13,15 +14,24 @@ export function CalibrationPage() {
   const { fetchServices, isServiceInactive } = useServicesStore()
   const { config } = useConfigStore()
   const {
-    steering,
-    throttle,
+    mixerType,
+    reversible,
+    ackermann,
+    differential,
     initFromConfig,
-    setSteeringField,
-    setThrottleField,
+    setAckermannSteeringField,
+    setAckermannThrottleField,
+    setDifferentialMotorField,
+    setDifferentialDeadzoneField,
+    setDifferentialBalance,
     sendSteeringPwm,
     sendThrottlePwm,
+    sendMotorPwm,
+    sendDeadzonePwm,
+    sendBalancePwm,
     saveSteeringCalibration,
     saveThrottleCalibration,
+    saveBalanceCalibration,
   } = useCalibrationStore()
 
   const controlInactive = isServiceInactive('v3xctrl-control')
@@ -43,7 +53,7 @@ export function CalibrationPage() {
         visible={!controlInactive}
       />
 
-      {controlInactive && (
+      {controlInactive && mixerType === MixerType.ACKERMANN && (
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Steering */}
           <div className="space-y-3">
@@ -55,20 +65,20 @@ export function CalibrationPage() {
 
             <PwmControl
               label={t('calibration.steeringMin')}
-              value={steering.min}
-              onChange={(v) => setSteeringField('min', v)}
+              value={ackermann.steering.min}
+              onChange={(v) => setAckermannSteeringField('min', v)}
               onSend={() => sendSteeringPwm('min')}
             />
             <PwmControl
               label={t('calibration.steeringMax')}
-              value={steering.max}
-              onChange={(v) => setSteeringField('max', v)}
+              value={ackermann.steering.max}
+              onChange={(v) => setAckermannSteeringField('max', v)}
               onSend={() => sendSteeringPwm('max')}
             />
             <PwmControl
               label={t('calibration.steeringTrim')}
-              value={steering.trim}
-              onChange={(v) => setSteeringField('trim', v)}
+              value={ackermann.steering.trim}
+              onChange={(v) => setAckermannSteeringField('trim', v)}
               onSend={() => sendSteeringPwm('trim')}
             />
 
@@ -89,26 +99,144 @@ export function CalibrationPage() {
 
             <PwmControl
               label={t('calibration.throttleMin')}
-              value={throttle.min}
-              onChange={(v) => setThrottleField('min', v)}
+              value={ackermann.throttle.min}
+              onChange={(v) => setAckermannThrottleField('min', v)}
               onSend={() => sendThrottlePwm('min')}
             />
             <PwmControl
               label={t('calibration.throttleMax')}
-              value={throttle.max}
-              onChange={(v) => setThrottleField('max', v)}
+              value={ackermann.throttle.max}
+              onChange={(v) => setAckermannThrottleField('max', v)}
               onSend={() => sendThrottlePwm('max')}
             />
             <PwmControl
               label={t('calibration.throttleNeutral')}
-              value={throttle.idle}
-              onChange={(v) => setThrottleField('idle', v)}
+              value={ackermann.throttle.idle}
+              onChange={(v) => setAckermannThrottleField('idle', v)}
               onSend={() => sendThrottlePwm('idle')}
             />
 
             <div className="flex justify-end">
               <Button onClick={saveThrottleCalibration}>
                 {t('calibration.saveCalibration')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {controlInactive && mixerType === MixerType.DIFFERENTIAL && (
+        <div className="space-y-6">
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Motor A */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold">{t('calibration.motorATitle')}</h3>
+              <div className="flex items-start gap-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-800 dark:bg-blue-950/30 dark:text-blue-300">
+                <Info className="mt-0.5 h-4 w-4 shrink-0" />
+                <p>{t(reversible ? 'calibration.motorNoteReversible' : 'calibration.motorNoteNonReversible')}</p>
+              </div>
+
+              <PwmControl
+                label={t('calibration.motorMin')}
+                value={differential.motor.min}
+                onChange={(v) => setDifferentialMotorField('min', v)}
+                onSend={() => sendMotorPwm('channelA', 'min')}
+              />
+              <PwmControl
+                label={t('calibration.motorMax')}
+                value={differential.motor.max}
+                onChange={(v) => setDifferentialMotorField('max', v)}
+                onSend={() => sendMotorPwm('channelA', 'max')}
+              />
+              <PwmControl
+                label={t('calibration.motorIdle')}
+                value={differential.motor.idle}
+                onChange={(v) => setDifferentialMotorField('idle', v)}
+                onSend={() => sendMotorPwm('channelA', 'idle')}
+              />
+              <PwmControl
+                label={t('calibration.motorDeadzoneForward')}
+                value={differential.motorA.minForward}
+                onChange={(v) => setDifferentialDeadzoneField('motorA', 'minForward', v)}
+                onSend={() => sendDeadzonePwm('motorA', 'minForward')}
+              />
+              {reversible && (
+                <PwmControl
+                  label={t('calibration.motorDeadzoneReverse')}
+                  value={differential.motorA.minReverse}
+                  onChange={(v) => setDifferentialDeadzoneField('motorA', 'minReverse', v)}
+                  onSend={() => sendDeadzonePwm('motorA', 'minReverse')}
+                />
+              )}
+            </div>
+
+            {/* Motor B */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold">{t('calibration.motorBTitle')}</h3>
+              <div className="flex items-start gap-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-800 dark:bg-blue-950/30 dark:text-blue-300">
+                <Info className="mt-0.5 h-4 w-4 shrink-0" />
+                <p>{t(reversible ? 'calibration.motorNoteReversible' : 'calibration.motorNoteNonReversible')}</p>
+              </div>
+
+              <PwmControl
+                label={t('calibration.motorMin')}
+                value={differential.motor.min}
+                onChange={(v) => setDifferentialMotorField('min', v)}
+                onSend={() => sendMotorPwm('channelB', 'min')}
+              />
+              <PwmControl
+                label={t('calibration.motorMax')}
+                value={differential.motor.max}
+                onChange={(v) => setDifferentialMotorField('max', v)}
+                onSend={() => sendMotorPwm('channelB', 'max')}
+              />
+              <PwmControl
+                label={t('calibration.motorIdle')}
+                value={differential.motor.idle}
+                onChange={(v) => setDifferentialMotorField('idle', v)}
+                onSend={() => sendMotorPwm('channelB', 'idle')}
+              />
+              <PwmControl
+                label={t('calibration.motorDeadzoneForward')}
+                value={differential.motorB.minForward}
+                onChange={(v) => setDifferentialDeadzoneField('motorB', 'minForward', v)}
+                onSend={() => sendDeadzonePwm('motorB', 'minForward')}
+              />
+              {reversible && (
+                <PwmControl
+                  label={t('calibration.motorDeadzoneReverse')}
+                  value={differential.motorB.minReverse}
+                  onChange={(v) => setDifferentialDeadzoneField('motorB', 'minReverse', v)}
+                  onSend={() => sendDeadzonePwm('motorB', 'minReverse')}
+                />
+              )}
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={saveThrottleCalibration}>
+              {t('calibration.saveMotorCalibration')}
+            </Button>
+          </div>
+
+          {/* Motor balance */}
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold">{t('calibration.balanceTitle')}</h3>
+            <div className="flex items-start gap-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-800 dark:bg-blue-950/30 dark:text-blue-300">
+              <Info className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>{t('calibration.balanceNote')}</p>
+            </div>
+
+            <PwmControl
+              label={t('calibration.balanceOffset')}
+              value={differential.mixing.balance}
+              onChange={(v) => setDifferentialBalance(v)}
+              onSend={sendBalancePwm}
+            />
+
+            <div className="flex justify-end">
+              <Button onClick={saveBalanceCalibration}>
+                {t('calibration.saveBalance')}
               </Button>
             </div>
           </div>

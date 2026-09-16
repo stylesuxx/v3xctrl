@@ -43,9 +43,20 @@ export const mockConfig = {
   control: {
     autostart: true,
     failsafeTimeout: 150,
-    throttle: { min: 1000, max: 2000, failsafe: 1500, idle: 1500, scaleForward: 100, scaleReverse: 100, minForward: 0, minReverse: 0 },
-    steering: { min: 1000, max: 2000, failsafe: 1500, trim: 0, scale: 100, invert: false },
-    pwm: { throttle: 0, steering: 1 },
+    mixerType: 'ackermann',
+    mixer: {
+      ackermann: {
+        throttle: { min: 1000, max: 2000, failsafe: 1500, idle: 1500, scaleForward: 100, scaleReverse: 100, minForward: 0, minReverse: 0, expo: 0 },
+        steering: { min: 1000, max: 2000, failsafe: 1500, trim: 0, scale: 100, invert: false, expo: 0 },
+      },
+      differential: {
+        motor: { min: 1000, max: 2000, failsafe: 1500, idle: 1500, scaleForward: 100, scaleReverse: 100, expo: 0, reversible: false },
+        motorA: { minForward: 0, minReverse: 0 },
+        motorB: { minForward: 0, minReverse: 0 },
+        mixing: { scale: 100, invert: false, expo: 0, balance: 0 },
+      },
+    },
+    pwm: { channelA: 0, channelB: 1 },
   },
   telemetry: {
     battery: {
