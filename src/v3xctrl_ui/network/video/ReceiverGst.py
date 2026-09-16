@@ -46,6 +46,7 @@ class ReceiverGst(Receiver):
         self.max_consecutive_old_frames = 60
 
         self.last_frame_time: float = 0.0
+        self._frame_cleared = False
 
         # Pipeline timing via pad probes (only used when timing_enabled)
         # Track first packet arrival per PTS (for receive timing)
@@ -275,8 +276,7 @@ class ReceiverGst(Receiver):
         if sample is None:
             return Gst.FlowReturn.OK
 
-        self.packet_count += 1
-        self.last_frame_time = time.monotonic()
+        self._record_frame_arrival()
 
         buffer = sample.get_buffer()
         pts = buffer.pts
@@ -361,6 +361,15 @@ class ReceiverGst(Receiver):
 
         return False
 
+    def _record_frame_arrival(self) -> None:
+        now = time.monotonic()
+        if self._frame_cleared:
+            logger.info(f"Video resumed after {now - self.last_frame_time:.1f}s")
+            self._frame_cleared = False
+
+        self.packet_count += 1
+        self.last_frame_time = now
+
     def _check_timeout(self) -> bool:
         """Check if stream has timed out and clear frame if needed."""
         if self.last_frame_time == 0:
@@ -372,6 +381,7 @@ class ReceiverGst(Receiver):
                 if self.frame is not None or len(self.frame_buffer) > 0:
                     self.frame = None
                     self.frame_buffer.clear()
+                    self._frame_cleared = True
                     logger.info(f"No frames received for {elapsed:.1f}s, clearing frame")
 
         return True

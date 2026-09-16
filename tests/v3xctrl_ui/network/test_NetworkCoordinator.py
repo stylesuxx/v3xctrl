@@ -142,6 +142,19 @@ class TestNetworkCoordinator(unittest.TestCase):
         self.main_thread_dispatcher.drain()
         callback.assert_called_once_with(True)
 
+    def test_send_command_is_logged(self):
+        mock_nm = MagicMock()
+        mock_nm.is_spectator.return_value = False
+        mock_nm.send_command.return_value = True
+        self.coordinator.network_controller = mock_nm
+
+        with self.assertLogs("v3xctrl_ui.network.NetworkCoordinator", level="INFO") as logs:
+            self.coordinator.send_command(Command("trim", {"action": "increase"}), MagicMock())
+
+        self.assertEqual(
+            logs.output, ["INFO:v3xctrl_ui.network.NetworkCoordinator:Sending command: trim {'action': 'increase'}"]
+        )
+
     def test_send_command_no_server(self):
         """A channel that reports it could not send makes the callback fire with False."""
         mock_nm = MagicMock()
@@ -242,6 +255,26 @@ class TestNetworkCoordinator(unittest.TestCase):
         # Test disconnected
         disconnected_handler()
         self.assertFalse(self.model.control_connected)
+
+    def test_state_handlers_log_the_transition(self):
+        handlers = self.coordinator._create_handlers()
+        connect_handler = handlers["states"][0][1]
+        spectate_handler = handlers["states"][1][1]
+        disconnect_handler = handlers["states"][2][1]
+
+        with self.assertLogs("v3xctrl_ui.network.NetworkCoordinator", level="INFO") as logs:
+            connect_handler()
+            disconnect_handler()
+            spectate_handler()
+
+        self.assertEqual(
+            logs.output,
+            [
+                "INFO:v3xctrl_ui.network.NetworkCoordinator:Control channel connected",
+                "INFO:v3xctrl_ui.network.NetworkCoordinator:Control channel disconnected",
+                "INFO:v3xctrl_ui.network.NetworkCoordinator:Control channel connected",
+            ],
+        )
 
     def test_handlers_route_to_the_osd_and_the_sink(self):
         """Telemetry lands in the sink; connection state lands in the OSD."""

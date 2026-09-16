@@ -126,6 +126,7 @@ class NetworkCoordinator:
         def deferred_callback(result: bool) -> None:
             self.main_thread_dispatcher.post(callback, result)
 
+        logger.info(f"Sending command: {command.get_command()} {command.get_parameters()}")
         if not self.network_controller.send_command(command, deferred_callback):
             logger.error(f"Server is not set, cannot send command: {command}")
             callback(False)
@@ -193,9 +194,11 @@ class NetworkCoordinator:
                 self.main_thread_dispatcher.post(self.on_connection_change, state)
 
         def connect() -> None:
+            logger.info("Control channel connected")
             self.main_thread_dispatcher.post(self.osd.connect_handler)
 
         def disconnect() -> None:
+            logger.info("Control channel disconnected")
             self.main_thread_dispatcher.post(self.osd.disconnect_handler)
             self.telemetry_sink.reset()
 

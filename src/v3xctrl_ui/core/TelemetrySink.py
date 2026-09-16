@@ -1,6 +1,8 @@
 """Ingestion of control channel telemetry into the shared telemetry context."""
 
+import logging
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from v3xctrl_control.message import Latency, Message, Telemetry
@@ -9,8 +11,11 @@ from v3xctrl_ui.core.StatusLevel import StatusLevel
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 from v3xctrl_ui.core.TelemetryParser import parse_telemetry
 
+logger = logging.getLogger(__name__)
+
 GOOD_LATENCY_MILLISECONDS = 40
 WARNING_LATENCY_MILLISECONDS = 75
+TELEMETRY_REPORT_INTERVAL_SECONDS = 10.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,14 +41,28 @@ class TelemetrySink:
     Messages arrive on the receive thread while the reading is read on the main
     thread. Each reading is a new frozen value bound to one attribute, so a
     reader sees either the old one or the new one.
+
+    The first telemetry message of a connection and the message count per
+    report interval are logged, which is what an unattended run has to go on.
     """
 
-    def __init__(self, telemetry_context: TelemetryContext) -> None:
+    def __init__(
+        self,
+        telemetry_context: TelemetryContext,
+        report_interval_seconds: float = TELEMETRY_REPORT_INTERVAL_SECONDS,
+        clock: Callable[[], float] = time.monotonic,
+    ) -> None:
         self.telemetry_context = telemetry_context
+        self._report_interval_seconds = report_interval_seconds
+        self._clock = clock
 
         self._is_spectator = False
         self._latency = LatencyReading()
         self._latency_samples = SlidingWindowAverage(window_seconds=1.0)
+
+        self._has_received_telemetry = False
+        self._telemetry_count = 0
+        self._report_window_started: float | None = None
 
     @property
     def latency(self) -> LatencyReading:
@@ -64,6 +83,27 @@ class TelemetrySink:
         self.telemetry_context.reset()
         self._latency_samples.clear()
         self._latency = LatencyReading()
+
+        self._has_received_telemetry = False
+        self._telemetry_count = 0
+        self._report_window_started = None
+
+    def _record_telemetry_arrival(self) -> None:
+        if not self._has_received_telemetry:
+            self._has_received_telemetry = True
+            logger.info("First telemetry message received")
+
+        now = self._clock()
+        if self._report_window_started is None:
+            self._report_window_started = now
+
+        self._telemetry_count += 1
+
+        elapsed = now - self._report_window_started
+        if elapsed >= self._report_interval_seconds:
+            logger.info(f"Telemetry: {self._telemetry_count} messages in last {round(elapsed)}s")
+            self._telemetry_count = 0
+            self._report_window_started = now
 
     def _handle_latency(self, message: Latency) -> None:
         # Latency is measured against the streamer, so a spectator has nothing
@@ -89,6 +129,8 @@ class TelemetrySink:
         self._latency = LatencyReading(milliseconds=average, level=level)
 
     def _handle_telemetry(self, message: Telemetry) -> None:
+        self._record_telemetry_arrival()
+
         data = parse_telemetry(message)
         values = message.get_values()
 

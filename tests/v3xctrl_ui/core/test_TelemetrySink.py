@@ -15,6 +15,27 @@ def latency_message(seconds_ago: float) -> Latency:
     return message
 
 
+def telemetry_message() -> Telemetry:
+    return Telemetry(
+        {
+            "sig": {"rsrq": -9, "rsrp": -95},
+            "cell": {"band": 3, "id": 0x0000F002},
+            "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False},
+        }
+    )
+
+
+class FakeClock:
+    def __init__(self) -> None:
+        self.now = 1000.0
+
+    def __call__(self) -> float:
+        return self.now
+
+    def advance(self, seconds: float) -> None:
+        self.now += seconds
+
+
 class TestTelemetrySink(unittest.TestCase):
     """Ingestion is exercised without a display, which is the point of the sink."""
 
@@ -119,6 +140,58 @@ class TestTelemetrySink(unittest.TestCase):
         self.assertEqual(len(self.sink._latency_samples), 0)
         self.assertIsNone(self.sink.latency.milliseconds)
         self.assertEqual(self.sink.latency.level, StatusLevel.NEUTRAL)
+
+    def test_first_telemetry_is_logged_once_per_connection(self):
+        with self.assertLogs("v3xctrl_ui.core.TelemetrySink", level="INFO") as logs:
+            self.sink.handle_message(telemetry_message())
+            self.sink.handle_message(telemetry_message())
+
+        self.assertEqual(logs.output.count("INFO:v3xctrl_ui.core.TelemetrySink:First telemetry message received"), 1)
+
+    def test_first_telemetry_is_logged_again_after_reset(self):
+        self.sink.handle_message(telemetry_message())
+        self.sink.reset()
+
+        with self.assertLogs("v3xctrl_ui.core.TelemetrySink", level="INFO") as logs:
+            self.sink.handle_message(telemetry_message())
+
+        self.assertIn("INFO:v3xctrl_ui.core.TelemetrySink:First telemetry message received", logs.output)
+
+    def test_telemetry_count_is_reported_once_per_interval(self):
+        clock = FakeClock()
+        sink = TelemetrySink(self.telemetry_context, report_interval_seconds=10.0, clock=clock)
+
+        with self.assertLogs("v3xctrl_ui.core.TelemetrySink", level="INFO") as logs:
+            for _ in range(9):
+                sink.handle_message(telemetry_message())
+                clock.advance(1.0)
+
+            sink.handle_message(telemetry_message())
+            clock.advance(1.0)
+            sink.handle_message(telemetry_message())
+
+        count_lines = [line for line in logs.output if "messages in last" in line]
+        self.assertEqual(count_lines, ["INFO:v3xctrl_ui.core.TelemetrySink:Telemetry: 11 messages in last 10s"])
+
+    def test_telemetry_count_window_restarts_after_report(self):
+        clock = FakeClock()
+        sink = TelemetrySink(self.telemetry_context, report_interval_seconds=10.0, clock=clock)
+
+        # The first message anchors the window, so the report fires on the
+        # message that lands 10 s later and every 10 s after that
+        with self.assertLogs("v3xctrl_ui.core.TelemetrySink", level="INFO") as logs:
+            for _ in range(21):
+                sink.handle_message(telemetry_message())
+                clock.advance(1.0)
+
+        count_lines = [line for line in logs.output if "messages in last" in line]
+        self.assertEqual(
+            count_lines,
+            [
+                "INFO:v3xctrl_ui.core.TelemetrySink:Telemetry: 11 messages in last 10s",
+                "INFO:v3xctrl_ui.core.TelemetrySink:Telemetry: 10 messages in last 10s",
+            ],
+        )
 
 
 if __name__ == "__main__":
