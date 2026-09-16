@@ -227,6 +227,42 @@ class TestNetworkController(unittest.TestCase):
         # Verify error message was set
         self.assertIn("registration failed", nm.get_relay_status_message().lower())
 
+    def test_setup_failures_are_logged(self):
+        """Every failed setup step is logged, since the screen is not readable in an unattended run."""
+        from v3xctrl_ui.network.NetworkSetup import (
+            NetworkSetupResult,
+            RelaySetupResult,
+            ServerSetupResult,
+            VideoReceiverSetupResult,
+        )
+
+        nm = NetworkController(self.settings, self.handlers, self.clock_offset)
+        nm.setup_relay("relay.example.com:8080", "badid")
+
+        mock_result = NetworkSetupResult(
+            relay_result=RelaySetupResult(
+                success=False, error_message="Peer registration failed - check server and ID!"
+            ),
+            video_receiver_result=VideoReceiverSetupResult(success=False, error=RuntimeError("no decoder")),
+            server_result=ServerSetupResult(success=False, error_message="Control port already in use"),
+        )
+        self.mock_network_setup.orchestrate_setup.return_value = mock_result
+
+        nm.setup_ports()
+        task_func = self.mock_thread_cls.call_args[1]["target"]
+
+        with self.assertLogs("v3xctrl_ui.network.NetworkController", level="ERROR") as logs:
+            task_func()
+
+        self.assertEqual(
+            logs.output,
+            [
+                "ERROR:v3xctrl_ui.network.NetworkController:Relay setup failed: Peer registration failed - check server and ID!",
+                "ERROR:v3xctrl_ui.network.NetworkController:Video receiver setup failed: no decoder",
+                "ERROR:v3xctrl_ui.network.NetworkController:Control server setup failed: Control port already in use",
+            ],
+        )
+
     def test_setup_ports_server_error(self):
         """Test setup_ports when server initialization fails."""
         from v3xctrl_ui.network.NetworkSetup import NetworkSetupResult, ServerSetupResult, VideoReceiverSetupResult

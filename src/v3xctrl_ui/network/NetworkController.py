@@ -273,9 +273,13 @@ class NetworkController:
 
         if result.relay_result and not result.relay_result.success and result.relay_result.error_message:
             self._relay_status_message = result.relay_result.error_message
+            logger.error(f"Relay setup failed: {result.relay_result.error_message}")
 
         if result.video_keep_alive:
             self._video_keep_alive = result.video_keep_alive
+
+        if result.video_receiver_result and not result.video_receiver_result.success:
+            logger.error(f"Video receiver setup failed: {result.video_receiver_result.error}")
 
         if result.video_receiver_result and result.video_receiver_result.video_receiver:
             self.video_receiver = result.video_receiver_result.video_receiver
@@ -286,3 +290,4 @@ class NetworkController:
                 self.server = result.server_result.server
             else:
                 self._server_error = result.server_result.error_message
+                logger.error(f"Control server setup failed: {result.server_result.error_message}")
