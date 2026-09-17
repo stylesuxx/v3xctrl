@@ -47,12 +47,15 @@ class Select(BaseWidget):
         self.hover_index = -1
         self.disabled = False
 
-        self.rect = None
+        # Built at the origin and moved by set_position, so the size a layout
+        # asks for is right before the widget has been placed
+        self.rect = Rect(0, 0, self.length, self.OPTION_HEIGHT)
 
         self.option_surfaces: list[Surface] = []
-        self.options = []
+        self.options: list[str] = []
         self.option_rects: list[Rect] = []
-        self.full_expanded_rect = None
+        # Zero height until there are options to expand into, so it is falsy
+        self.full_expanded_rect = Rect(0, 0, self.length, 0)
 
         self.label_surface, self.label_rect = self.font.render(label, self.FONT_COLOR)
         self.caret_surface = get_icon("arrow_drop_down", size=60, color=self.FONT_COLOR)
@@ -88,8 +91,7 @@ class Select(BaseWidget):
 
     def handle_event(self, event: pygame.event.Event) -> bool:
         if event.type == pygame.MOUSEMOTION:
-            if self.rect:
-                self.hovered = self.rect.collidepoint(event.pos)
+            self.hovered = self.rect.collidepoint(event.pos)
             if self.expanded:
                 self.hover_index = -1
                 for i, opt_rect in enumerate(self.option_rects):
@@ -122,14 +124,13 @@ class Select(BaseWidget):
         return False
 
     def _render_label_and_caret(self) -> None:
-        if self.rect:
-            color = self.FONT_COLOR_DISABLED if self.disabled else self.FONT_COLOR
-            self.label_surface, self.label_rect = self.font.render(self.label, color)
+        color = self.FONT_COLOR_DISABLED if self.disabled else self.FONT_COLOR
+        self.label_surface, self.label_rect = self.font.render(self.label, color)
 
-            # Restore vertical centering
-            self.label_rect.topleft = (self.x, self.y + self.rect.height // 2 - self.label_rect.height // 2)
+        # Restore vertical centering
+        self.label_rect.topleft = (self.x, self.y + self.rect.height // 2 - self.label_rect.height // 2)
 
-            self._update_option_surfaces()
+        self._update_option_surfaces()
 
     def _update_option_surfaces(self) -> None:
         self.option_surfaces = []

@@ -1,20 +1,28 @@
-import sys
-from pathlib import Path
-
 import pygame
 from pygame.freetype import Font
+
+from v3xctrl_ui.utils.resources import get_resource_path
 
 pygame.init()
 pygame.freetype.init()
 
 
-def _get_resource_path(relative_path: str) -> Path:
-    base_path = Path(sys._MEIPASS) if getattr(sys, "frozen", False) else Path(__file__).parent.parent
-    return base_path / relative_path
+def font_point_size(font: Font) -> int:
+    """The font's character size as a single number.
+
+    A freetype font can be sized separately in x and y, which is why
+    `Font.size` is a float or a pair. Every font here is created with one
+    size, and the y component is the one layouts measure against.
+    """
+    size = font.size
+    if isinstance(size, tuple):
+        return int(size[1])
+
+    return int(size)
 
 
 def _load_font(filename: str, size: int) -> Font:
-    font_path = _get_resource_path(f"assets/fonts/{filename}")
+    font_path = get_resource_path(f"assets/fonts/{filename}")
     return Font(str(font_path), size)
 
 

@@ -13,6 +13,7 @@ NOTE: Make sure to add observers before starting the GamepadController, otherwis
       you might miss the first update.
 """
 
+import copy
 import logging
 import threading
 from collections.abc import Callable
@@ -114,14 +115,21 @@ class GamepadController(threading.Thread):
         return self._gamepads[guid]
 
     def set_calibration(self, guid: str, settings: dict[str, Any]) -> None:
+        """Store a copy, so later edits to the caller's dict stay out of the polling thread."""
         with self._lock:
-            self._settings[guid] = settings
+            self._settings[guid] = copy.deepcopy(settings)
+            if guid == self._active_guid:
+                self._set_active_unlocked(guid)
 
     def get_calibrations(self) -> dict[str, Any]:
-        return self._settings
+        with self._lock:
+            return copy.deepcopy(self._settings)
 
     def get_calibration(self, guid: str) -> dict[str, Any]:
-        return self._settings.get(guid, {})
+        with self._lock:
+            calibration: dict[str, Any] = copy.deepcopy(self._settings.get(guid, {}))
+
+        return calibration
 
     def get_active(self) -> str | None:
         return self._active_guid
@@ -161,7 +169,7 @@ class GamepadController(threading.Thread):
             if axis is not None and 0 <= axis < js.get_numaxes():
                 try:
                     raw = js.get_axis(axis)
-                    normalized = 0
+                    normalized = 0.0
 
                     invert = cfg.get("invert")
                     min_cal = cfg.get("min")
@@ -170,18 +178,14 @@ class GamepadController(threading.Thread):
 
                     center_cal = cfg.get("center", None)
                     if center_cal is not None:
-                        cal = (min_cal, center_cal, max_cal)
-                        out = (-1.0, 0.0, 1.0)
-
-                        normalized = self._remap_centered(raw, cal, out)
+                        normalized = self._remap_centered(raw, (min_cal, center_cal, max_cal), (-1.0, 0.0, 1.0))
                         if invert:
                             normalized = -normalized
                     else:
                         if invert:
                             min_cal, max_cal = max_cal, min_cal
-                        cal = (min_cal, max_cal)
-                        out = (0.0, 1.0)
-                        normalized = self._remap(raw, cal, out)
+
+                        normalized = self._remap(raw, (min_cal, max_cal), (0.0, 1.0))
 
                     if apply_deadband:
                         deadband_pct = cfg.get("deadband", 0) / 100.0

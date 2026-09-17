@@ -1,65 +1,56 @@
-from collections.abc import Callable, ItemsView
+from collections.abc import Sequence
 from typing import Any
 
 import pygame
 
-from v3xctrl_ui.osd.widgets import Widget
-from v3xctrl_ui.osd.widgets.WidgetGroup import WidgetGroup
+from v3xctrl_ui.core.SettingsSchema import WidgetConfig, WidgetSettings
+from v3xctrl_ui.osd.widgets.WidgetGroup import WidgetEntry, WidgetGroup
 from v3xctrl_ui.utils.helpers import calculate_widget_position, round_corners
 
 
-def render_widget_group(screen: pygame.Surface, group: WidgetGroup, widget_settings: dict[str, dict[str, Any]]) -> None:
+def render_widget_group(screen: pygame.Surface, group: WidgetGroup, widget_settings: WidgetSettings) -> None:
     """
     Render a widget group using either composition or individual rendering.
 
     Args:
         screen: Surface to render onto
         group: WidgetGroup to render
-        widget_settings: Global widget settings dict
+        widget_settings: Configuration for every widget and group
     """
-    settings = widget_settings.get(group.name, {})
-
     if group.use_composition:
         render_group(
             screen,
-            group.widgets.items(),
-            settings,
+            group.entries,
+            widget_settings.get(group.name) or WidgetConfig(),
             widget_settings,
-            group.get_value,
             group.corner_radius,
         )
     else:
-        _render_individual_widgets(
-            screen,
-            group.widgets.items(),
-            widget_settings,
-            group.get_value,
-        )
+        _render_individual_widgets(screen, group.entries, widget_settings)
 
 
 def render_group(
     screen: pygame.Surface,
-    widgets: ItemsView[str, Widget],
-    settings: dict[str, Any],
-    widget_settings: dict[str, dict[str, Any]],
-    get_widget_value: Callable[[str], Any],
+    entries: Sequence[WidgetEntry[Any]],
+    config: WidgetConfig,
+    widget_settings: WidgetSettings,
     corner_radius: int = 4,
 ) -> None:
     """Render widgets as a composed group with rounded corners."""
-    if not settings.get("display", False):
+    if not config.display:
         return
 
-    visible_widgets = _filter_visible_widgets(widgets, widget_settings)
-    if not visible_widgets:
+    visible_entries = _filter_visible_entries(entries, widget_settings)
+    if not visible_entries:
         return
 
-    align = settings.get("align", "top-left")
-    offset = settings.get("offset", (0, 0))
-    padding = settings.get("padding", 0)
-    width, height = _calculate_dimensions(visible_widgets, padding)
+    align = config.align
+    offset = config.offset
+    padding = config.padding
+    width, height = _calculate_dimensions(visible_entries, padding)
 
     composed = pygame.Surface((width, height), pygame.SRCALPHA)
-    _draw_widgets_to_surface(composed, visible_widgets, get_widget_value, padding)
+    _draw_entries_to_surface(composed, visible_entries, padding)
 
     screen_width, screen_height = screen.get_size()
     position = calculate_widget_position(align, width, height, screen_width, screen_height, offset)
@@ -70,45 +61,46 @@ def render_group(
 
 def _render_individual_widgets(
     screen: pygame.Surface,
-    widgets: ItemsView[str, Widget],
-    widget_settings: dict[str, dict[str, Any]],
-    get_widget_value: Callable[[str], Any],
+    entries: Sequence[WidgetEntry[Any]],
+    widget_settings: WidgetSettings,
 ) -> None:
-    for name, widget in widgets:
-        settings = widget_settings.get(name, {"align": "top-left", "offset": (0, 0), "display": False})
+    for entry in entries:
+        # A widget drawn on its own stays hidden unless the config names it
+        config = widget_settings.get(entry.name)
 
-        if settings.get("display", False):
-            align = settings.get("align", "top-left")
-            offset = settings.get("offset", (0, 0))
+        if config is not None and config.display:
+            widget = entry.widget
             screen_width, screen_height = screen.get_size()
             position = calculate_widget_position(
-                align, widget.width, widget.height, screen_width, screen_height, offset
+                config.align, widget.width, widget.height, screen_width, screen_height, config.offset
             )
 
             widget.position = position
-            widget.draw(screen, get_widget_value(name))
+            widget.draw(screen, entry.get_value())
 
 
-def _filter_visible_widgets(
-    widgets: ItemsView[str, Widget],
-    widget_settings: dict[str, dict[str, Any]],
-) -> list[tuple[str, Widget]]:
-    visible: list[tuple[str, Widget]] = []
-    for name, widget in widgets:
-        settings = widget_settings.get(name, {})
-        if settings.get("display", True):
-            visible.append((name, widget))
+def _filter_visible_entries(
+    entries: Sequence[WidgetEntry[Any]],
+    widget_settings: WidgetSettings,
+) -> list[WidgetEntry[Any]]:
+    visible: list[WidgetEntry[Any]] = []
+    for entry in entries:
+        # A widget inside a group is drawn unless the config hides it, which is
+        # what keeps widgets the config file never names (debug_buffer) visible
+        config = widget_settings.get(entry.name)
+        if config is None or config.display:
+            visible.append(entry)
 
     return visible
 
 
-def _calculate_dimensions(widgets: list[tuple[str, Widget]], padding: int) -> tuple[int, int]:
+def _calculate_dimensions(entries: Sequence[WidgetEntry[Any]], padding: int) -> tuple[int, int]:
     width = 0
     height = 0
 
-    for _, widget in widgets:
-        width = max(width, widget.width)
-        height += widget.height + padding
+    for entry in entries:
+        width = max(width, entry.widget.width)
+        height += entry.widget.height + padding
 
     if height > 0:
         height -= padding
@@ -116,11 +108,9 @@ def _calculate_dimensions(widgets: list[tuple[str, Widget]], padding: int) -> tu
     return width, height
 
 
-def _draw_widgets_to_surface(
-    surface: pygame.Surface, widgets: list[tuple[str, Widget]], get_widget_value: Callable[[str], Any], padding: int
-) -> None:
+def _draw_entries_to_surface(surface: pygame.Surface, entries: Sequence[WidgetEntry[Any]], padding: int) -> None:
     y_offset = 0
-    for name, widget in widgets:
-        widget.position = (0, y_offset)
-        widget.draw(surface, get_widget_value(name))
-        y_offset += widget.height + padding
+    for entry in entries:
+        entry.widget.position = (0, y_offset)
+        entry.widget.draw(surface, entry.get_value())
+        y_offset += entry.widget.height + padding

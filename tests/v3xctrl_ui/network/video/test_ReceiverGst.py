@@ -49,6 +49,8 @@ def _make_receiver(**overrides) -> ReceiverGst:
         "frame": None,
         "frame_buffer": deque(),
         "last_frame_time": 0.0,
+        "_frame_cleared": False,
+        "packet_count": 0,
         "pipeline": None,
         "appsink": None,
         "loop": None,
@@ -105,6 +107,34 @@ class TestShouldDropByAge(unittest.TestCase):
         self.assertTrue(receiver._should_drop_by_age(1_500_000_000))
 
 
+class TestFrameArrival(unittest.TestCase):
+    def test_counts_the_frame_and_stamps_the_time(self):
+        receiver = _make_receiver()
+
+        receiver._record_frame_arrival()
+
+        self.assertEqual(receiver.packet_count, 1)
+        self.assertGreater(receiver.last_frame_time, 0.0)
+
+    def test_resume_is_logged_once_after_a_clear(self):
+        receiver = _make_receiver(last_frame_time=time.monotonic() - 6.0, _frame_cleared=True)
+
+        with self.assertLogs("v3xctrl_ui.network.video.ReceiverGst", level="INFO") as logs:
+            receiver._record_frame_arrival()
+            receiver._record_frame_arrival()
+
+        resumed = [line for line in logs.output if "Video resumed after" in line]
+        self.assertEqual(len(resumed), 1)
+        self.assertRegex(resumed[0], r"Video resumed after 6\.\ds$")
+        self.assertFalse(receiver._frame_cleared)
+
+    def test_no_resume_line_without_a_clear(self):
+        receiver = _make_receiver(last_frame_time=time.monotonic() - 6.0)
+
+        with self.assertNoLogs("v3xctrl_ui.network.video.ReceiverGst", level="INFO"):
+            receiver._record_frame_arrival()
+
+
 class TestCheckTimeout(unittest.TestCase):
     def test_returns_true_when_no_frames_received(self):
         receiver = _make_receiver()
@@ -128,6 +158,16 @@ class TestCheckTimeout(unittest.TestCase):
 
         self.assertIsNone(receiver.frame)
         self.assertEqual(len(receiver.frame_buffer), 0)
+
+    def test_clearing_marks_the_stream_as_interrupted(self):
+        receiver = _make_receiver(
+            last_frame_time=time.monotonic() - 10.0,
+            frame=np.zeros((100, 100, 3), dtype=np.uint8),
+        )
+
+        receiver._check_timeout()
+
+        self.assertTrue(receiver._frame_cleared)
 
     def test_does_not_clear_when_already_none(self):
         receiver = _make_receiver(last_frame_time=time.monotonic() - 10.0)

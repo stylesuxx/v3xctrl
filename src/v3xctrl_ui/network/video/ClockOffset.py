@@ -20,18 +20,23 @@ class ClockOffset:
     Samples are kept in a sliding window and averaged to
     smooth out jitter from variable network latency. Older samples are
     evicted automatically on each update.
+
+    Updates arrive on the control channel's receive thread while the frame
+    path reads the offset, so each update rebinds one integer that readers
+    take as is; the sample window itself is touched by the writer only.
     """
 
     def __init__(self, window_seconds: float = 3.0) -> None:
         self._samples = SlidingWindowAverage(window_seconds)
+        self._offset_us: int | None = None
 
     @property
     def valid(self) -> bool:
-        return bool(self._samples)
+        return self._offset_us is not None
 
     @property
     def offset_us(self) -> int:
-        return int(self._samples.average)
+        return self._offset_us if self._offset_us is not None else 0
 
     def update(self, viewer_send: float, streamer_timestamp: float, viewer_receive: float) -> None:
         """
@@ -44,3 +49,4 @@ class ClockOffset:
         """
         offset_us = (streamer_timestamp - (viewer_send + viewer_receive) / 2) * 1_000_000
         self._samples.append(offset_us)
+        self._offset_us = int(self._samples.average)
