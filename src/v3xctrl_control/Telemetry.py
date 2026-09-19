@@ -8,6 +8,7 @@ the latest snapshot via `get_telemetry()` at whatever rate is appropriate for th
 transport.
 """
 
+import time
 from collections.abc import Callable
 from typing import Any, TypeVar
 
@@ -121,6 +122,24 @@ class Telemetry:
         for collector in self._collectors:
             collector.stop()
 
+    def join(self, timeout: float | None = None) -> None:
+        """`timeout` bounds the total wait, not each collector, so a source in the middle
+        of a slow read cannot stretch shutdown past it.
+        """
+        deadline = None
+        if timeout is not None:
+            deadline = time.monotonic() + timeout
+
+        for collector in self._collectors:
+            if not collector.is_alive():
+                continue
+
+            remaining = None
+            if deadline is not None:
+                remaining = max(0.0, deadline - time.monotonic())
+
+            collector.join(remaining)
+
     def get_telemetry(self) -> dict[str, Any]:
         return self._store.get_snapshot()
 
@@ -137,5 +156,8 @@ class Telemetry:
         The state type binds per call, so a source is checked against the store method
         that consumes its state.
         """
+        if rate_hz <= 0:
+            raise ValueError(f"telemetry source {name!r} needs a positive rate, got {rate_hz}")
+
         collector = TelemetryCollector(name, factory, unavailable_state, store_updater, 1.0 / rate_hz)
         self._collectors.append(collector)

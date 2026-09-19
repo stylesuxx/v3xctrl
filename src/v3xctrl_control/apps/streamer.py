@@ -466,6 +466,7 @@ finally:
         tcp_tunnel.stop()
 
     client.join()
+    telemetry.join(timeout=1.0)
 
     cleanup_pwm()
     logger.info("cleaned up.")
