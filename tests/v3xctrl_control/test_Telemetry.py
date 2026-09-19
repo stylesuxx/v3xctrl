@@ -197,6 +197,28 @@ class TestTelemetryCoordinator(unittest.TestCase):
         self.assertLess(elapsed, 1.5, f"join overran its timeout (elapsed={elapsed:.3f}s)")
 
 
+class TestRateValidation(unittest.TestCase):
+    """A rate of zero divides by zero; a negative one clamps the wait to nothing and spins."""
+
+    def test_zero_rate_is_rejected(self) -> None:
+        with self.assertRaises(ValueError) as caught:
+            Telemetry("/dev/modem", rates=replace(TelemetryRates(), modem=0.0))
+
+        self.assertIn("modem", str(caught.exception))
+
+    def test_negative_rate_is_rejected(self) -> None:
+        with self.assertRaises(ValueError) as caught:
+            Telemetry("/dev/modem", rates=replace(TelemetryRates(), battery=-1.0))
+
+        self.assertIn("battery", str(caught.exception))
+
+    def test_zero_gps_rate_is_rejected(self) -> None:
+        with self.assertRaises(ValueError) as caught:
+            Telemetry("/dev/modem", gps_rate_hz=0)
+
+        self.assertIn("gps", str(caught.exception))
+
+
 class TestRateWiringInternals(unittest.TestCase):
     """Tests at an internal seam: they read collector intervals directly.
 

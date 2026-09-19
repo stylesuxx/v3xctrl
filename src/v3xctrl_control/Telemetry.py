@@ -156,5 +156,8 @@ class Telemetry:
         The state type binds per call, so a source is checked against the store method
         that consumes its state.
         """
+        if rate_hz <= 0:
+            raise ValueError(f"telemetry source {name!r} needs a positive rate, got {rate_hz}")
+
         collector = TelemetryCollector(name, factory, unavailable_state, store_updater, 1.0 / rate_hz)
         self._collectors.append(collector)
