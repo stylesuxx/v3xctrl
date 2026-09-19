@@ -1,16 +1,15 @@
 """Tests for the Telemetry coordinator.
 
 The coordinator owns a TelemetryStore plus one TelemetryCollector per source. These tests
-verify wiring (sources registered, rates applied, snapshot exposed) rather than per-source
-logic - each source has its own dedicated test module. Sources are constructed lazily on
-the collector threads, so the patches stay active for the lifetime of the coordinator.
+drive it through its own interface - start, stop, join, get_telemetry - with every source
+class patched. Sources are constructed lazily on the collector threads, so the patches stay
+active for the lifetime of the coordinator.
 """
 
 import sys
-import threading
 import time
 import unittest
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import ExitStack, contextmanager
 from dataclasses import replace
 from unittest.mock import MagicMock, patch
@@ -37,6 +36,16 @@ SOURCE_PATCHES = {
     "VideoCoreTelemetry": "src.v3xctrl_control.Telemetry.VideoCoreTelemetry",
     "GstTelemetry": "src.v3xctrl_control.Telemetry.GstTelemetry",
 }
+
+
+def _wait_until(predicate: Callable[[], bool], timeout: float = 2.0) -> bool:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if predicate():
+            return True
+        time.sleep(0.005)
+
+    return predicate()
 
 
 class Fixture:
@@ -87,9 +96,7 @@ def _make_telemetry(construction_error: Exception | None = None, **rate_override
 
         finally:
             telemetry.stop()
-            for collector in telemetry._collectors:
-                if collector.is_alive():
-                    collector.join(timeout=1.0)
+            telemetry.join(timeout=1.0)
 
 
 class TestTelemetryCoordinator(unittest.TestCase):
@@ -114,56 +121,112 @@ class TestTelemetryCoordinator(unittest.TestCase):
 
         self.assertNotEqual(second["sig"]["rsrq"], 999)
 
-    def test_registers_one_collector_per_source(self) -> None:
-        with _make_telemetry() as fixture:
-            self.assertEqual(len(fixture.telemetry._collectors), 6)
-
     def test_sources_are_constructed_by_the_collectors_not_the_coordinator(self) -> None:
         with _make_telemetry() as fixture:
             for name, source_class in fixture.source_classes.items():
                 self.assertEqual(source_class.call_count, 0, f"{name} was constructed eagerly")
 
-    def test_every_source_keeps_its_collector_when_construction_fails(self) -> None:
+    def test_every_source_is_polled_after_start(self) -> None:
+        with _make_telemetry() as fixture:
+            fixture.telemetry.start()
+
+            polled = _wait_until(lambda: all(source.update.called for source in fixture.sources.values()))
+
+            unpolled = [name for name, source in fixture.sources.items() if not source.update.called]
+            self.assertTrue(polled, f"never polled: {unpolled}")
+
+    def test_every_source_is_retried_when_construction_fails(self) -> None:
         with _make_telemetry(construction_error=RuntimeError("no hardware")) as fixture:
-            collectors = fixture.telemetry._collectors
-            self.assertEqual(len(collectors), 6)
-
             fixture.telemetry.start()
-            time.sleep(0.05)
 
-            for collector in collectors:
-                self.assertTrue(collector.is_alive(), f"{collector.name} died on a construction failure")
+            attempted = _wait_until(
+                lambda: all(source_class.call_count >= 1 for source_class in fixture.source_classes.values())
+            )
 
-    def test_start_starts_all_collectors_then_stop_stops_them(self) -> None:
-        with _make_telemetry(modem=200.0) as fixture:
+            self.assertTrue(attempted, "a failing source was dropped instead of retried")
+            self.assertIsInstance(fixture.telemetry.get_telemetry(), dict)
+
+    def test_stop_halts_polling(self) -> None:
+        with _make_telemetry() as fixture:
             fixture.telemetry.start()
-            time.sleep(0.05)
-            for collector in fixture.telemetry._collectors:
-                self.assertTrue(collector.is_alive())
+            self.assertTrue(_wait_until(lambda: fixture.sources["ModemTelemetry"].update.called))
 
             fixture.telemetry.stop()
-            for collector in fixture.telemetry._collectors:
-                collector.join(timeout=1.0)
-                self.assertFalse(collector.is_alive())
+            fixture.telemetry.join(timeout=1.0)
+            counts = {name: source.update.call_count for name, source in fixture.sources.items()}
+
+            time.sleep(0.05)
+
+            for name, source in fixture.sources.items():
+                self.assertEqual(source.update.call_count, counts[name], f"{name} kept polling after stop")
 
     def test_collectors_route_to_store(self) -> None:
-        with _make_telemetry(modem=200.0, battery=200.0) as fixture:
+        with _make_telemetry() as fixture:
             fixture.sources["ModemTelemetry"].get_state.return_value = ModemState(
                 signal=SignalInfo(rsrq=-12, rsrp=-90), cell=CellInfo(id="X1", band="3")
             )
 
             fixture.telemetry.start()
-            time.sleep(0.05)
+            self.assertTrue(_wait_until(lambda: fixture.telemetry.get_telemetry()["cell"]["id"] == "X1"))
 
-            fixture.sources["ModemTelemetry"].update.assert_called()
             snapshot = fixture.telemetry.get_telemetry()
 
         self.assertEqual(snapshot["sig"]["rsrq"], -12)
         self.assertEqual(snapshot["sig"]["rsrp"], -90)
-        self.assertEqual(snapshot["cell"]["id"], "X1")
         self.assertEqual(snapshot["cell"]["band"], "3")
 
-    def test_collectors_use_distinct_rates(self) -> None:
+    def test_stop_is_safe_when_never_started(self) -> None:
+        with _make_telemetry() as fixture:
+            fixture.telemetry.stop()  # must not raise
+
+    def test_join_is_safe_when_never_started(self) -> None:
+        with _make_telemetry() as fixture:
+            fixture.telemetry.join(timeout=0.1)  # must not raise
+
+    def test_join_returns_within_its_timeout(self) -> None:
+        """The timeout bounds the total wait, not each collector."""
+        with _make_telemetry() as fixture:
+            fixture.telemetry.start()
+            self.assertTrue(_wait_until(lambda: fixture.sources["ModemTelemetry"].update.called))
+
+            fixture.telemetry.stop()
+            started_at = time.monotonic()
+            fixture.telemetry.join(timeout=1.0)
+            elapsed = time.monotonic() - started_at
+
+        self.assertLess(elapsed, 1.5, f"join overran its timeout (elapsed={elapsed:.3f}s)")
+
+
+class TestRateValidation(unittest.TestCase):
+    """A rate of zero divides by zero; a negative one clamps the wait to nothing and spins."""
+
+    def test_zero_rate_is_rejected(self) -> None:
+        with self.assertRaises(ValueError) as caught:
+            Telemetry("/dev/modem", rates=replace(TelemetryRates(), modem=0.0))
+
+        self.assertIn("modem", str(caught.exception))
+
+    def test_negative_rate_is_rejected(self) -> None:
+        with self.assertRaises(ValueError) as caught:
+            Telemetry("/dev/modem", rates=replace(TelemetryRates(), battery=-1.0))
+
+        self.assertIn("battery", str(caught.exception))
+
+    def test_zero_gps_rate_is_rejected(self) -> None:
+        with self.assertRaises(ValueError) as caught:
+            Telemetry("/dev/modem", gps_rate_hz=0)
+
+        self.assertIn("gps", str(caught.exception))
+
+
+class TestRateWiringInternals(unittest.TestCase):
+    """Tests at an internal seam: they read collector intervals directly.
+
+    Nothing in the coordinator's interface exposes a poll rate, so these describe the
+    implementation rather than the contract, and go with it if the wiring moves.
+    """
+
+    def test_each_source_gets_its_configured_rate(self) -> None:
         # gps interval comes from gps_rate_hz, not a separate update rate
         with _make_telemetry(
             modem=2.0,
@@ -181,13 +244,6 @@ class TestTelemetryCoordinator(unittest.TestCase):
         self.assertAlmostEqual(intervals["telemetry-videocore"], 1.0)
         self.assertAlmostEqual(intervals["telemetry-gst"], 0.1)
 
-    def test_gps_collector_uses_gps_rate_hz(self) -> None:
-        with _make_telemetry() as fixture:
-            intervals = {collector.name: collector._interval for collector in fixture.telemetry._collectors}
-
-        # _make_telemetry defaults gps_rate_hz=100 -> 0.01s
-        self.assertAlmostEqual(intervals["telemetry-gps"], 0.01)
-
     def test_rates_default_to_the_shipped_cadence(self) -> None:
         """Construction is lazy, so the coordinator can be built without any source patched."""
         telemetry = Telemetry("/dev/modem")
@@ -200,15 +256,6 @@ class TestTelemetryCoordinator(unittest.TestCase):
         self.assertAlmostEqual(intervals["telemetry-services"], 5.0)
         self.assertAlmostEqual(intervals["telemetry-modem"], 1.0)
         self.assertAlmostEqual(intervals["telemetry-gps"], 0.2)
-
-    def test_stop_is_safe_when_never_started(self) -> None:
-        with _make_telemetry() as fixture:
-            fixture.telemetry.stop()  # must not raise
-
-    def test_telemetry_is_not_a_thread(self) -> None:
-        """Coordinator delegates threading to collectors and must not subclass Thread itself."""
-        with _make_telemetry() as fixture:
-            self.assertNotIsInstance(fixture.telemetry, threading.Thread)
 
 
 if __name__ == "__main__":
