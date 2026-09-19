@@ -40,10 +40,8 @@ class TelemetryStore:
 
     def update_modem(self, state: ModemState) -> None:
         with self._lock:
-            self._payload.sig.rsrq = state.rsrq
-            self._payload.sig.rsrp = state.rsrp
-            self._payload.cell.id = state.cell_id
-            self._payload.cell.band = state.band
+            self._payload.sig = state.signal
+            self._payload.cell = state.cell
 
     def update_battery(self, state: BatteryState) -> None:
         with self._lock:

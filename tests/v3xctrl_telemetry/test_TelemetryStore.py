@@ -4,11 +4,13 @@ import threading
 
 from v3xctrl_telemetry.BatteryTelemetry import BatteryState
 from v3xctrl_telemetry.dataclasses import (
+    CellInfo,
     GpsFixType,
     GstFlags,
     LocationInfo,
     ModemState,
     ServiceFlags,
+    SignalInfo,
     ThrottleFlags,
     VideoCoreFlags,
 )
@@ -28,7 +30,7 @@ def test_empty_snapshot_has_default_fields() -> None:
 
 def test_update_modem_writes_signal_and_cell() -> None:
     store = TelemetryStore()
-    store.update_modem(ModemState(rsrq=-10, rsrp=-95, cell_id="ABC", band="20"))
+    store.update_modem(ModemState(signal=SignalInfo(rsrq=-10, rsrp=-95), cell=CellInfo(id="ABC", band="20")))
     snapshot = store.get_snapshot()
     assert snapshot["sig"] == {"rsrq": -10, "rsrp": -95}
     assert snapshot["cell"] == {"id": "ABC", "band": "20"}
@@ -81,9 +83,9 @@ def test_update_gst_packs_to_byte() -> None:
 
 def test_snapshot_is_independent_of_subsequent_writes() -> None:
     store = TelemetryStore()
-    store.update_modem(ModemState(rsrq=-10, rsrp=-95, cell_id="ABC", band="20"))
+    store.update_modem(ModemState(signal=SignalInfo(rsrq=-10, rsrp=-95), cell=CellInfo(id="ABC", band="20")))
     snapshot = store.get_snapshot()
-    store.update_modem(ModemState(rsrq=-5, rsrp=-80, cell_id="XYZ", band="3"))
+    store.update_modem(ModemState(signal=SignalInfo(rsrq=-5, rsrp=-80), cell=CellInfo(id="XYZ", band="3")))
     assert snapshot["sig"] == {"rsrq": -10, "rsrp": -95}
     assert snapshot["cell"] == {"id": "ABC", "band": "20"}
 
@@ -94,7 +96,7 @@ def test_concurrent_writers_and_readers_dont_corrupt_state() -> None:
 
     def writer_modem() -> None:
         while not stop.is_set():
-            store.update_modem(ModemState(rsrq=-10, rsrp=-95, cell_id="A", band="20"))
+            store.update_modem(ModemState(signal=SignalInfo(rsrq=-10, rsrp=-95), cell=CellInfo(id="A", band="20")))
 
     def writer_battery() -> None:
         while not stop.is_set():

@@ -10,6 +10,7 @@ from .dataclasses import (
     ServiceFlags,
     SignalInfo,
     TelemetryPayload,
+    TelemetryRates,
     ThrottleFlags,
     VideoCoreFlags,
 )
@@ -25,6 +26,7 @@ __all__ = [
     "ServiceFlags",
     "SignalInfo",
     "TelemetryPayload",
+    "TelemetryRates",
     "ThrottleFlags",
     "VideoCoreFlags",
 ]

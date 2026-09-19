@@ -23,23 +23,25 @@ import logging
 import threading
 import time
 from collections.abc import Callable
-from typing import Any
+from typing import Generic, TypeVar
 
 from v3xctrl_telemetry.TelemetrySource import TelemetrySource
 
 logger = logging.getLogger(__name__)
 
+StateT = TypeVar("StateT")
 
-class TelemetryCollector(threading.Thread):
+
+class TelemetryCollector(threading.Thread, Generic[StateT]):
     REBUILD_AFTER_FAILURES = 3
     MAX_RETRY_INTERVAL_S = 30.0
 
     def __init__(
         self,
         name: str,
-        factory: Callable[[], Any],
-        unavailable_state: Any,
-        store_updater: Callable[[Any], None],
+        factory: Callable[[], TelemetrySource[StateT]],
+        unavailable_state: StateT,
+        store_updater: Callable[[StateT], None],
         interval: float,
     ) -> None:
         super().__init__(daemon=True, name=f"telemetry-{name}")
@@ -50,7 +52,7 @@ class TelemetryCollector(threading.Thread):
         self._interval = interval
         self._stop_event = threading.Event()
 
-        self._source: TelemetrySource | None = None
+        self._source: TelemetrySource[StateT] | None = None
         self._consecutive_failures = 0
         self._retry_interval = min(interval, self.MAX_RETRY_INTERVAL_S)
         self._next_attempt = 0.0
