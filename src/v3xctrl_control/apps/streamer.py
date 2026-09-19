@@ -13,6 +13,7 @@ import logging
 import signal
 import subprocess
 import sys
+import threading
 import time
 import traceback
 import types
@@ -34,7 +35,7 @@ from v3xctrl_gst import ControlClient
 from v3xctrl_helper import Address
 from v3xctrl_tcp import Transport
 from v3xctrl_tcp.TcpTunnel import TcpTunnel
-from v3xctrl_telemetry import GpsProtocol
+from v3xctrl_telemetry import GpsProtocol, TelemetryRates
 
 logger = logging.getLogger(__name__)
 
@@ -238,7 +239,7 @@ if not isinstance(level, int):
 
 logging.basicConfig(level=level, format="%(asctime)s - %(levelname)s - %(message)s")
 
-running = True
+shutdown_requested = threading.Event()
 received_command_ids: set[str] = set()
 
 pwm_output_a = HardwarePWM(pwm_channel_a)
@@ -270,11 +271,13 @@ telemetry = TelemetryHandler(
     gps_path=args.gps_path,
     gps_rate_hz=args.gps_rate_hz,
     gps_protocol=GpsProtocol(args.gps_protocol),
-    battery_update_rate=args.telemetry_update_rate_battery,
-    gst_update_rate=args.telemetry_update_rate_gst,
-    videocore_update_rate=args.telemetry_update_rate_videocore,
-    services_update_rate=args.telemetry_update_rate_services,
-    modem_update_rate=args.telemetry_update_rate_modem,
+    rates=TelemetryRates(
+        battery=args.telemetry_update_rate_battery,
+        gst=args.telemetry_update_rate_gst,
+        videocore=args.telemetry_update_rate_videocore,
+        services=args.telemetry_update_rate_services,
+        modem=args.telemetry_update_rate_modem,
+    ),
 )
 telemetry.start()
 
@@ -363,9 +366,7 @@ def connect_handler() -> None:
 
 
 def signal_handler(sig: int, frame: types.FrameType | None) -> None:
-    global running
-    if running:
-        running = False
+    shutdown_requested.set()
 
 
 def cleanup_pwm() -> None:
@@ -440,14 +441,16 @@ signal.signal(signal.SIGTERM, signal_handler)
 
 # Telemetry update loop
 try:
-    while running:
+    while not shutdown_requested.is_set():
         # Only send telemetry if connected
         if client.state == State.CONNECTED:
             telemetry_data = telemetry.get_telemetry()
             telemetry_message = Telemetry(telemetry_data)
             client.send(telemetry_message)
 
-        time.sleep(1.0 / args.telemetry_send_rate)
+        # Waiting on the event rather than sleeping keeps shutdown prompt at low
+        # send rates, where a sleep would run to completion after the signal
+        shutdown_requested.wait(1.0 / args.telemetry_send_rate)
 
 except Exception as e:
     logger.error(f"An error occurred: {e}")

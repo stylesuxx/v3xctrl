@@ -9,18 +9,28 @@ transport.
 """
 
 from collections.abc import Callable
-from typing import Any
+from typing import Any, TypeVar
 
 from v3xctrl_telemetry import GpsProtocol
 from v3xctrl_telemetry.BatteryTelemetry import BatteryState, BatteryTelemetry
-from v3xctrl_telemetry.dataclasses import GstFlags, LocationInfo, ModemState, ServiceFlags, VideoCoreFlags
+from v3xctrl_telemetry.dataclasses import (
+    GstFlags,
+    LocationInfo,
+    ModemState,
+    ServiceFlags,
+    TelemetryRates,
+    VideoCoreFlags,
+)
 from v3xctrl_telemetry.GstTelemetry import GstTelemetry
 from v3xctrl_telemetry.ModemTelemetry import ModemTelemetry
 from v3xctrl_telemetry.ServiceTelemetry import ServiceTelemetry
 from v3xctrl_telemetry.TelemetryCollector import TelemetryCollector
+from v3xctrl_telemetry.TelemetrySource import TelemetrySource
 from v3xctrl_telemetry.TelemetryStore import TelemetryStore
 from v3xctrl_telemetry.UBXGpsTelemetry import UBXGpsTelemetry
 from v3xctrl_telemetry.VideoCoreTelemetry import VideoCoreTelemetry
+
+StateT = TypeVar("StateT")
 
 
 class Telemetry:
@@ -36,24 +46,21 @@ class Telemetry:
         gps_path: str = "/dev/serial0",
         gps_rate_hz: int = 5,
         gps_protocol: GpsProtocol = GpsProtocol.UBLOX,
-        battery_update_rate: float = 10.0,
-        gst_update_rate: float = 10.0,
-        videocore_update_rate: float = 1.0,
-        services_update_rate: float = 0.2,
-        modem_update_rate: float = 1.0,
+        rates: TelemetryRates | None = None,
     ) -> None:
         # gps_protocol is accepted for forward compatibility; today only UBLOX is wired
         del gps_protocol
 
+        rates = rates if rates is not None else TelemetryRates()
         self._store = TelemetryStore()
-        self._collectors: list[TelemetryCollector] = []
+        self._collectors: list[TelemetryCollector[Any]] = []
 
         self._register(
             "modem",
             lambda: ModemTelemetry(modem_path),
             ModemState(),
             self._store.update_modem,
-            modem_update_rate,
+            rates.modem,
         )
 
         self._register(
@@ -69,11 +76,11 @@ class Telemetry:
             # An absent sensor reports an empty battery
             BatteryState(percentage=0),
             self._store.update_battery,
-            battery_update_rate,
+            rates.battery,
         )
 
-        # GPS poll rate intentionally tied to the module's push rate - polling faster
-        # blocks on empty serial reads, polling slower drops messages.
+        # The collector polls at the rate the module was programmed to emit at, so each
+        # tick drains one fix
         self._register(
             "gps",
             lambda: UBXGpsTelemetry(gps_path, gps_rate_hz),
@@ -87,7 +94,7 @@ class Telemetry:
             ServiceTelemetry,
             ServiceFlags(),
             self._store.update_services,
-            services_update_rate,
+            rates.services,
         )
 
         self._register(
@@ -95,7 +102,7 @@ class Telemetry:
             VideoCoreTelemetry,
             VideoCoreFlags(),
             self._store.update_videocore,
-            videocore_update_rate,
+            rates.videocore,
         )
 
         self._register(
@@ -103,7 +110,7 @@ class Telemetry:
             GstTelemetry,
             GstFlags(),
             self._store.update_gst,
-            gst_update_rate,
+            rates.gst,
         )
 
     def start(self) -> None:
@@ -120,10 +127,15 @@ class Telemetry:
     def _register(
         self,
         name: str,
-        factory: Callable[[], Any],
-        unavailable_state: Any,
-        store_updater: Callable[[Any], None],
+        factory: Callable[[], TelemetrySource[StateT]],
+        unavailable_state: StateT,
+        store_updater: Callable[[StateT], None],
         rate_hz: float,
     ) -> None:
+        """Give one source a collector.
+
+        The state type binds per call, so a source is checked against the store method
+        that consumes its state.
+        """
         collector = TelemetryCollector(name, factory, unavailable_state, store_updater, 1.0 / rate_hz)
         self._collectors.append(collector)

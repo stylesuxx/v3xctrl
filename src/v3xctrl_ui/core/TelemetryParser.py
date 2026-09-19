@@ -20,11 +20,6 @@ class TelemetryData:
     gps_fix_type: GpsFixType = GpsFixType.NO_HARDWARE
     gps_speed: float = 0.0
     gps_satellites: str = "0 SAT"
-    recording: bool = False
-    service_video: bool = False
-    service_debug: bool = False
-    vc_current_flags: int = 0
-    vc_history_flags: int = 0
 
 
 def parse_telemetry(message: Telemetry) -> TelemetryData:
@@ -69,19 +64,5 @@ def parse_telemetry(message: Telemetry) -> TelemetryData:
     data.gps_fix_type = GpsFixType(int(loc.get("fix_type", GpsFixType.NO_HARDWARE)))
     data.gps_speed = float(loc.get("speed", 0.0))
     data.gps_satellites = f"{loc.get('satellites', 0)} SAT"
-
-    # GStreamer - bit 0 = recording
-    gst = values.get("gst", 0)
-    data.recording = bool(gst & (1 << 0))
-
-    # Services - bit 0 = video, bit 1 = debug
-    services = values.get("svc", 0)
-    data.service_video = bool(services & (1 << 0))
-    data.service_debug = bool(services & (1 << 1))
-
-    # VideoCore - bits 0-3 = current, bits 4-7 = history
-    video_core = values.get("vc", 0)
-    data.vc_current_flags = video_core & 0x0F
-    data.vc_history_flags = (video_core >> 4) & 0x0F
 
     return data

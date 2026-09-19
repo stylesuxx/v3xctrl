@@ -16,7 +16,7 @@ import time
 
 from atlib import AIR780EU
 
-from v3xctrl_telemetry.dataclasses import ModemState
+from v3xctrl_telemetry.dataclasses import CellInfo, ModemState, SignalInfo
 
 logger = logging.getLogger(__name__)
 
@@ -47,10 +47,8 @@ class ModemTelemetry:
         cell_id = self._modem.get_cell_location()[3]
 
         self._state = ModemState(
-            rsrq=signal_quality.rsrq,
-            rsrp=signal_quality.rsrp,
-            cell_id=cell_id,
-            band=band,
+            signal=SignalInfo(rsrq=signal_quality.rsrq, rsrp=signal_quality.rsrp),
+            cell=CellInfo(id=cell_id, band=band),
         )
 
     def get_state(self) -> ModemState:

@@ -12,6 +12,7 @@ import time
 import unittest
 from collections.abc import Iterator
 from contextlib import ExitStack, contextmanager
+from dataclasses import replace
 from unittest.mock import MagicMock, patch
 
 _gi_keys = ["gi", "gi.repository", "gi.repository.Gst", "gi.repository.GLib"]
@@ -19,7 +20,7 @@ _saved = {key: sys.modules.pop(key, None) for key in _gi_keys}
 sys.modules.update({key: MagicMock() for key in _gi_keys})
 
 from src.v3xctrl_control.Telemetry import Telemetry  # noqa: E402
-from v3xctrl_telemetry.dataclasses import ModemState  # noqa: E402
+from v3xctrl_telemetry.dataclasses import CellInfo, ModemState, SignalInfo, TelemetryRates  # noqa: E402
 
 for _key in _gi_keys:
     if _saved[_key] is not None:
@@ -53,7 +54,7 @@ class Fixture:
 
 
 @contextmanager
-def _make_telemetry(construction_error: Exception | None = None, **overrides: float) -> Iterator[Fixture]:
+def _make_telemetry(construction_error: Exception | None = None, **rate_overrides: float) -> Iterator[Fixture]:
     """Build a coordinator with every source class patched.
 
     The patches outlive __init__ because collectors construct their sources on their own
@@ -74,16 +75,12 @@ def _make_telemetry(construction_error: Exception | None = None, **overrides: fl
             else:
                 source_classes[name] = stack.enter_context(patch(target, return_value=mock_source))
 
-        rates: dict[str, float] = {
-            "modem_update_rate": 100.0,
-            "battery_update_rate": 100.0,
-            "services_update_rate": 100.0,
-            "videocore_update_rate": 100.0,
-            "gst_update_rate": 100.0,
-        }
-        rates.update(overrides)
+        rates = replace(
+            TelemetryRates(battery=100.0, gst=100.0, videocore=100.0, services=100.0, modem=100.0),
+            **rate_overrides,
+        )
         # gps_rate_hz drives both module config and collector interval
-        telemetry = Telemetry("/dev/modem", gps_rate_hz=100, **rates)
+        telemetry = Telemetry("/dev/modem", gps_rate_hz=100, rates=rates)
 
         try:
             yield Fixture(telemetry, sources, source_classes)
@@ -138,7 +135,7 @@ class TestTelemetryCoordinator(unittest.TestCase):
                 self.assertTrue(collector.is_alive(), f"{collector.name} died on a construction failure")
 
     def test_start_starts_all_collectors_then_stop_stops_them(self) -> None:
-        with _make_telemetry(modem_update_rate=200.0) as fixture:
+        with _make_telemetry(modem=200.0) as fixture:
             fixture.telemetry.start()
             time.sleep(0.05)
             for collector in fixture.telemetry._collectors:
@@ -150,9 +147,9 @@ class TestTelemetryCoordinator(unittest.TestCase):
                 self.assertFalse(collector.is_alive())
 
     def test_collectors_route_to_store(self) -> None:
-        with _make_telemetry(modem_update_rate=200.0, battery_update_rate=200.0) as fixture:
+        with _make_telemetry(modem=200.0, battery=200.0) as fixture:
             fixture.sources["ModemTelemetry"].get_state.return_value = ModemState(
-                rsrq=-12, rsrp=-90, cell_id="X1", band="3"
+                signal=SignalInfo(rsrq=-12, rsrp=-90), cell=CellInfo(id="X1", band="3")
             )
 
             fixture.telemetry.start()
@@ -169,11 +166,11 @@ class TestTelemetryCoordinator(unittest.TestCase):
     def test_collectors_use_distinct_rates(self) -> None:
         # gps interval comes from gps_rate_hz, not a separate update rate
         with _make_telemetry(
-            modem_update_rate=2.0,
-            battery_update_rate=10.0,
-            services_update_rate=0.2,
-            videocore_update_rate=1.0,
-            gst_update_rate=10.0,
+            modem=2.0,
+            battery=10.0,
+            services=0.2,
+            videocore=1.0,
+            gst=10.0,
         ) as fixture:
             intervals = {collector.name: collector._interval for collector in fixture.telemetry._collectors}
 
@@ -190,6 +187,19 @@ class TestTelemetryCoordinator(unittest.TestCase):
 
         # _make_telemetry defaults gps_rate_hz=100 -> 0.01s
         self.assertAlmostEqual(intervals["telemetry-gps"], 0.01)
+
+    def test_rates_default_to_the_shipped_cadence(self) -> None:
+        """Construction is lazy, so the coordinator can be built without any source patched."""
+        telemetry = Telemetry("/dev/modem")
+
+        intervals = {collector.name: collector._interval for collector in telemetry._collectors}
+
+        self.assertAlmostEqual(intervals["telemetry-battery"], 0.1)
+        self.assertAlmostEqual(intervals["telemetry-gst"], 0.1)
+        self.assertAlmostEqual(intervals["telemetry-videocore"], 1.0)
+        self.assertAlmostEqual(intervals["telemetry-services"], 5.0)
+        self.assertAlmostEqual(intervals["telemetry-modem"], 1.0)
+        self.assertAlmostEqual(intervals["telemetry-gps"], 0.2)
 
     def test_stop_is_safe_when_never_started(self) -> None:
         with _make_telemetry() as fixture:
