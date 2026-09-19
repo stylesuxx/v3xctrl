@@ -79,8 +79,8 @@ class Telemetry:
             rates.battery,
         )
 
-        # GPS poll rate intentionally tied to the module's push rate - polling faster
-        # blocks on empty serial reads, polling slower drops messages.
+        # The collector polls at the rate the module was programmed to emit at, so each
+        # tick drains one fix
         self._register(
             "gps",
             lambda: UBXGpsTelemetry(gps_path, gps_rate_hz),
