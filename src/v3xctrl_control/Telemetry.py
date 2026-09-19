@@ -8,6 +8,7 @@ the latest snapshot via `get_telemetry()` at whatever rate is appropriate for th
 transport.
 """
 
+import time
 from collections.abc import Callable
 from typing import Any, TypeVar
 
@@ -120,6 +121,24 @@ class Telemetry:
     def stop(self) -> None:
         for collector in self._collectors:
             collector.stop()
+
+    def join(self, timeout: float | None = None) -> None:
+        """`timeout` bounds the total wait, not each collector, so a source in the middle
+        of a slow read cannot stretch shutdown past it.
+        """
+        deadline = None
+        if timeout is not None:
+            deadline = time.monotonic() + timeout
+
+        for collector in self._collectors:
+            if not collector.is_alive():
+                continue
+
+            remaining = None
+            if deadline is not None:
+                remaining = max(0.0, deadline - time.monotonic())
+
+            collector.join(remaining)
 
     def get_telemetry(self) -> dict[str, Any]:
         return self._store.get_snapshot()
