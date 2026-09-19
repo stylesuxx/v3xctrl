@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from v3xctrl_telemetry.dataclasses import ModemState
+from v3xctrl_telemetry.dataclasses import CellInfo, ModemState, SignalInfo
 from v3xctrl_telemetry.ModemTelemetry import ModemTelemetry
 
 
@@ -31,7 +31,9 @@ def test_state_is_populated_when_modem_and_sim_are_present() -> None:
         telemetry = ModemTelemetry("/dev/ttyUSB0")
         telemetry.update()
 
-    assert telemetry.get_state() == ModemState(rsrq=-10, rsrp=-95, cell_id="ABC123", band="20")
+    assert telemetry.get_state() == ModemState(
+        signal=SignalInfo(rsrq=-10, rsrp=-95), cell=CellInfo(id="ABC123", band="20")
+    )
     fake_modem.enable_location_reporting.assert_called_once()
 
 
@@ -89,7 +91,9 @@ def test_state_populates_once_a_sim_appears() -> None:
         fake_modem.get_sim_status.return_value = "OK"
         telemetry.update()
 
-    assert telemetry.get_state() == ModemState(rsrq=-10, rsrp=-95, cell_id="ABC123", band="20")
+    assert telemetry.get_state() == ModemState(
+        signal=SignalInfo(rsrq=-10, rsrp=-95), cell=CellInfo(id="ABC123", band="20")
+    )
 
 
 def test_update_raises_when_the_at_session_fails() -> None:

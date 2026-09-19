@@ -34,7 +34,7 @@ from v3xctrl_gst import ControlClient
 from v3xctrl_helper import Address
 from v3xctrl_tcp import Transport
 from v3xctrl_tcp.TcpTunnel import TcpTunnel
-from v3xctrl_telemetry import GpsProtocol
+from v3xctrl_telemetry import GpsProtocol, TelemetryRates
 
 logger = logging.getLogger(__name__)
 
@@ -270,11 +270,13 @@ telemetry = TelemetryHandler(
     gps_path=args.gps_path,
     gps_rate_hz=args.gps_rate_hz,
     gps_protocol=GpsProtocol(args.gps_protocol),
-    battery_update_rate=args.telemetry_update_rate_battery,
-    gst_update_rate=args.telemetry_update_rate_gst,
-    videocore_update_rate=args.telemetry_update_rate_videocore,
-    services_update_rate=args.telemetry_update_rate_services,
-    modem_update_rate=args.telemetry_update_rate_modem,
+    rates=TelemetryRates(
+        battery=args.telemetry_update_rate_battery,
+        gst=args.telemetry_update_rate_gst,
+        videocore=args.telemetry_update_rate_videocore,
+        services=args.telemetry_update_rate_services,
+        modem=args.telemetry_update_rate_modem,
+    ),
 )
 telemetry.start()
 

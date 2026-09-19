@@ -144,10 +144,8 @@ class CellInfo:
 class ModemState:
     """Combined modem signal + cell state, produced by one AT session."""
 
-    rsrq: int = -1
-    rsrp: int = -1
-    cell_id: str = "?"
-    band: str = "?"
+    signal: SignalInfo = field(default_factory=SignalInfo)
+    cell: CellInfo = field(default_factory=CellInfo)
 
 
 @dataclass
@@ -170,6 +168,21 @@ class BatteryInfo:
     pct: int = 0
     wrn: bool = False
     cur: int = 0  # current in mA
+
+
+@dataclass
+class TelemetryRates:
+    """Poll rate in Hz for each telemetry source the collectors drive.
+
+    GPS is absent on purpose: its cadence comes from the rate the module itself is
+    programmed with.
+    """
+
+    battery: float = 10.0
+    gst: float = 10.0
+    videocore: float = 1.0
+    services: float = 0.2
+    modem: float = 1.0
 
 
 @dataclass
