@@ -1231,7 +1231,7 @@
               "description": "Communication protocol of the GPS module"
             },
             "rateHz": {
-              "title": "Update Rate (Hz)",
+              "title": "GPS Fix Rate (Hz)",
               "propertyOrder": 30,
               "type": "integer",
               "required": true,
@@ -1244,7 +1244,7 @@
         },
         "sendRate": {
           "title": "Send Rate (Hz)",
-          "propertyOrder": 30,
+          "propertyOrder": 5,
           "type": "number",
           "required": true,
           "default": 1.0,
@@ -1285,7 +1285,7 @@
             },
             "videocore": {
               "title": "VideoCore (Hz)",
-              "propertyOrder": 40,
+              "propertyOrder": 30,
               "type": "number",
               "required": true,
               "default": 1.0,
@@ -1295,7 +1295,7 @@
             },
             "services": {
               "title": "Services (Hz)",
-              "propertyOrder": 50,
+              "propertyOrder": 40,
               "type": "number",
               "required": true,
               "default": 0.2,
@@ -1305,7 +1305,7 @@
             },
             "modem": {
               "title": "Modem (Hz)",
-              "propertyOrder": 60,
+              "propertyOrder": 50,
               "type": "number",
               "required": true,
               "default": 1.0,
