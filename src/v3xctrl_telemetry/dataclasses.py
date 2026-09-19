@@ -23,8 +23,6 @@ class GpsFixType(IntEnum):
 
 @dataclass
 class GstFlags:
-    """GStreamer status flags for telemetry."""
-
     recording: bool = False
     udp_overrun: bool = False
 
@@ -37,6 +35,9 @@ class GstFlags:
             byte |= 1 << 1
         return byte
 
+    def __int__(self) -> int:
+        return self.to_byte()
+
     @classmethod
     def from_byte(cls, byte: int) -> "GstFlags":
         """Parse flags from byte value."""
@@ -45,8 +46,6 @@ class GstFlags:
 
 @dataclass
 class ServiceFlags:
-    """Service status flags for telemetry."""
-
     video: bool = False
     reverse_shell: bool = False
     debug: bool = False
@@ -62,6 +61,9 @@ class ServiceFlags:
             byte |= 1 << 2
         return byte
 
+    def __int__(self) -> int:
+        return self.to_byte()
+
     @classmethod
     def from_byte(cls, byte: int) -> "ServiceFlags":
         """Parse flags from byte value."""
@@ -70,8 +72,6 @@ class ServiceFlags:
 
 @dataclass
 class ThrottleFlags:
-    """Individual throttle condition flags."""
-
     undervolt: bool = False
     freq_capped: bool = False
     throttled: bool = False
@@ -103,14 +103,15 @@ class ThrottleFlags:
 
 @dataclass
 class VideoCoreFlags:
-    """VideoCore throttling flags for telemetry."""
-
     current: ThrottleFlags = field(default_factory=ThrottleFlags)
     history: ThrottleFlags = field(default_factory=ThrottleFlags)
 
     def to_byte(self) -> int:
         """Pack flags into a single byte (lower nibble=current, upper=history)."""
         return (self.current.to_nibble() & 0x0F) | ((self.history.to_nibble() & 0x0F) << 4)
+
+    def __int__(self) -> int:
+        return self.to_byte()
 
     @classmethod
     def from_byte(cls, byte: int) -> "VideoCoreFlags":
@@ -140,6 +141,14 @@ class CellInfo:
 
 
 @dataclass
+class ModemState:
+    """Combined modem signal + cell state, produced by one AT session."""
+
+    signal: SignalInfo = field(default_factory=SignalInfo)
+    cell: CellInfo = field(default_factory=CellInfo)
+
+
+@dataclass
 class LocationInfo:
     """GPS location information."""
 
@@ -159,6 +168,21 @@ class BatteryInfo:
     pct: int = 0
     wrn: bool = False
     cur: int = 0  # current in mA
+
+
+@dataclass
+class TelemetryRates:
+    """Poll rate in Hz for each telemetry source the collectors drive.
+
+    GPS is absent on purpose: its cadence comes from the rate the module itself is
+    programmed with.
+    """
+
+    battery: float = 10.0
+    gst: float = 10.0
+    videocore: float = 1.0
+    services: float = 0.2
+    modem: float = 1.0
 
 
 @dataclass

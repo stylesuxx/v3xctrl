@@ -8,17 +8,9 @@ class GstTelemetry:
         self._client = ControlClient(socket_path=socket_path)
 
     def update(self) -> None:
-        try:
-            response = self._client.stats()
-            self._state.recording = response.get("recording", False)
-            self._state.udp_overrun = response.get("udp_overrun", False)
-        except Exception:
-            # Leave previous state
-            pass
+        response = self._client.stats()
+        self._state.recording = response.get("recording", False)
+        self._state.udp_overrun = response.get("udp_overrun", False)
 
     def get_state(self) -> GstFlags:
         return self._state
-
-    def get_byte(self) -> int:
-        """Return flags packed as a byte for telemetry transmission."""
-        return self._state.to_byte()

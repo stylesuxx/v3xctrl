@@ -6,9 +6,11 @@ from .dataclasses import (
     GpsProtocol,
     GstFlags,
     LocationInfo,
+    ModemState,
     ServiceFlags,
     SignalInfo,
     TelemetryPayload,
+    TelemetryRates,
     ThrottleFlags,
     VideoCoreFlags,
 )
@@ -20,9 +22,11 @@ __all__ = [
     "GpsProtocol",
     "GstFlags",
     "LocationInfo",
+    "ModemState",
     "ServiceFlags",
     "SignalInfo",
     "TelemetryPayload",
+    "TelemetryRates",
     "ThrottleFlags",
     "VideoCoreFlags",
 ]
