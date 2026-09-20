@@ -79,7 +79,7 @@ RelayServer (main thread)
     |     |-- Registers with PacketRelay
     |
     |-- Cleanup thread (every 10s)
-    |-- Command socket (/tmp/udp_relay_command_{port}.sock)
+    |-- Command socket (/run/v3xctrl/relay_command_{port}.sock)
 ```
 
 ### Lock ordering
@@ -102,4 +102,4 @@ The relay uses two locks with a strict acquisition order:
 
 ## Command interface
 
-The relay exposes a Unix socket at `/tmp/udp_relay_command_{port}.sock` that accepts the `stats` command, returning JSON with all active sessions, their peers, transport types, and remaining timeout for each connection.
+The relay exposes a Unix socket at `/run/v3xctrl/relay_command_{port}.sock` that accepts the `stats` command, returning JSON with all active sessions, their peers, transport types, and remaining timeout for each connection.

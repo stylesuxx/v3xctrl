@@ -18,5 +18,7 @@ _version.py
 !ruff.toml
 .venv
 coverage.xml
+.coverage
+.coverage.*
 *.vite
 client/coverage
