@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 from tests.v3xctrl_ui.settings_helper import build_settings
 from v3xctrl_helper import PeerAddresses
-from v3xctrl_helper.exceptions import PeerRegistrationError
+from v3xctrl_helper.exceptions import PeerRegistrationAborted, PeerRegistrationError
 from v3xctrl_relay.Role import Role
 from v3xctrl_tcp import Transport
 from v3xctrl_ui.core.SettingsSchema import VideoReceiver
@@ -89,6 +89,30 @@ class TestNetworkSetup(unittest.TestCase):
         self.assertFalse(result.success)
         self.assertIsNone(result.video_address)
         self.assertIn("registration failed", result.error_message.lower())
+
+    def test_setup_relay_aborted(self):
+        setup = NetworkSetup(self.settings)
+
+        mock_peer = MagicMock()
+        mock_peer.setup.side_effect = PeerRegistrationAborted()
+        self.mock_peer_cls.return_value = mock_peer
+
+        result = setup.setup_relay("relay.example.com", 8080, "id")
+
+        self.assertFalse(result.success)
+        self.assertTrue(result.aborted)
+        self.assertEqual(result.error_message, "Registration aborted")
+
+    def test_setup_relay_registration_error_is_not_aborted(self):
+        setup = NetworkSetup(self.settings)
+
+        mock_peer = MagicMock()
+        mock_peer.setup.side_effect = PeerRegistrationError({}, {})
+        self.mock_peer_cls.return_value = mock_peer
+
+        result = setup.setup_relay("relay.example.com", 8080, "badid")
+
+        self.assertFalse(result.aborted)
 
     def test_create_keep_alive_callback_with_address(self):
         """Test creating keep-alive callback with video address."""

@@ -63,6 +63,7 @@ class RelaySetupResult:
     success: bool
     video_address: tuple[str, int] | None = None
     error_message: str | None = None
+    aborted: bool = False
 
 
 @dataclass
@@ -258,6 +259,7 @@ class NetworkSetup:
             return RelaySetupResult(
                 success=False,
                 error_message="Registration aborted",
+                aborted=True,
             )
 
         except PeerRegistrationError:

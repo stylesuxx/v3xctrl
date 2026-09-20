@@ -273,7 +273,10 @@ class NetworkController:
 
         if result.relay_result and not result.relay_result.success and result.relay_result.error_message:
             self._relay_status_message = result.relay_result.error_message
-            logger.error(f"Relay setup failed: {result.relay_result.error_message}")
+            if result.relay_result.aborted:
+                logger.debug("Relay registration aborted")
+            else:
+                logger.error(f"Relay setup failed: {result.relay_result.error_message}")
 
         if result.video_keep_alive:
             self._video_keep_alive = result.video_keep_alive
