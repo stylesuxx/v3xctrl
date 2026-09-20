@@ -16,11 +16,11 @@ from stats import RelayClient
 class TestRelayClient(unittest.TestCase):
     def test_socket_path_template(self):
         client = RelayClient(8888)
-        self.assertEqual(client.socket_path, "/tmp/udp_relay_command_8888.sock")
+        self.assertEqual(client.socket_path, "/run/v3xctrl/relay_command_8888.sock")
 
     def test_socket_path_different_port(self):
         client = RelayClient(9999)
-        self.assertEqual(client.socket_path, "/tmp/udp_relay_command_9999.sock")
+        self.assertEqual(client.socket_path, "/run/v3xctrl/relay_command_9999.sock")
 
 
 class TestStatsAPI(unittest.TestCase):
