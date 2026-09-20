@@ -263,6 +263,27 @@ class TestNetworkController(unittest.TestCase):
             ],
         )
 
+    def test_setup_ports_aborted_relay_registration_is_not_an_error(self):
+        from v3xctrl_ui.network.NetworkSetup import NetworkSetupResult, RelaySetupResult
+
+        nm = NetworkController(self.settings, self.handlers, self.clock_offset)
+        nm.setup_relay("relay.example.com:8080", "id")
+
+        mock_result = NetworkSetupResult(
+            relay_result=RelaySetupResult(success=False, error_message="Registration aborted", aborted=True),
+        )
+        self.mock_network_setup.orchestrate_setup.return_value = mock_result
+
+        nm.setup_ports()
+        task_func = self.mock_thread_cls.call_args[1]["target"]
+
+        with self.assertLogs("v3xctrl_ui.network.NetworkController", level="DEBUG") as logs:
+            task_func()
+
+        self.assertNotIn("ERROR", "".join(logs.output))
+        self.assertIn("DEBUG:v3xctrl_ui.network.NetworkController:Relay registration aborted", logs.output)
+        self.assertEqual(nm.get_relay_status_message(), "Registration aborted")
+
     def test_setup_ports_server_error(self):
         """Test setup_ports when server initialization fails."""
         from v3xctrl_ui.network.NetworkSetup import NetworkSetupResult, ServerSetupResult, VideoReceiverSetupResult
