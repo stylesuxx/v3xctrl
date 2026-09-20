@@ -36,7 +36,7 @@ python main.py \
   --port 8080
 ```
 
-On a relay host installed from `build/packages/relay/`, the settings come from
+On a relay host installed from `deploy/relay/`, the settings come from
 `/etc/v3xctrl/relay.toml` instead:
 
 ```bash
