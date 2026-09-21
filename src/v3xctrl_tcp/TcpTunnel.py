@@ -165,6 +165,9 @@ class TcpTunnel:
             logger.error("TcpTunnel handshake send failed")
             return False
 
+        # The relay answers once both peers of the session are registered,
+        # which can be a long wait when the other side is not running yet.
+        logger.info("TcpTunnel handshake sent, waiting for the peer to register")
         response = recv_message(tcp_sock)
         if response is None:
             logger.error("TcpTunnel handshake response failed (disconnected)")

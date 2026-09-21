@@ -31,6 +31,7 @@ files = [
     "src/v3xctrl_telemetry",
     "src/v3xctrl_self_test",
     "src/v3xctrl_ui",
+    "e2e",
 ]
 
 [[tool.mypy.overrides]]

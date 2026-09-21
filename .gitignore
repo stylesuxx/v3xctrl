@@ -22,3 +22,4 @@ coverage.xml
 .coverage.*
 *.vite
 client/coverage
+e2e/runs/

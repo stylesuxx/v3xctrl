@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 class AppState:
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, title: str | None = None) -> None:
         self.settings = settings
 
         self.model = ApplicationModel(
@@ -43,7 +43,7 @@ class AppState:
 
         from v3xctrl_ui import __version__
 
-        self.title = f"V3XCTRL ({__version__})"
+        self.title = title or f"V3XCTRL ({__version__})"
 
         self.input_controller = InputController(settings)
 
