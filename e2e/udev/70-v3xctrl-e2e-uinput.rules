@@ -1,0 +1,2 @@
+# Lets the logged-in desktop user create virtual input devices for the v3xctrl end-to-end harness.
+KERNEL=="uinput", SUBSYSTEM=="misc", TAG+="uaccess"

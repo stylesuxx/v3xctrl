@@ -9,6 +9,7 @@ on:
       - 'src/**'
       - 'tests/**'
       - 'benchmarks/**'
+      - 'e2e/**'
       - 'ruff.toml'
       - 'pyproject.toml'
   pull_request:
@@ -16,6 +17,7 @@ on:
       - 'src/**'
       - 'tests/**'
       - 'benchmarks/**'
+      - 'e2e/**'
       - 'ruff.toml'
       - 'pyproject.toml'
 
@@ -28,8 +30,8 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install ruff==0.15.6
-      - run: ruff check src/ tests/ stats-server/ benchmarks/
-      - run: ruff format --check src/ tests/ stats-server/ benchmarks/
+      - run: ruff check src/ tests/ stats-server/ benchmarks/ e2e/
+      - run: ruff format --check src/ tests/ stats-server/ benchmarks/ e2e/
 
   typecheck:
     runs-on: ubuntu-latest
@@ -64,7 +66,7 @@ jobs:
           pip install -r ./build/requirements/udp_relay.txt
 
       - name: Run tests
-        run: python -m pytest tests
+        run: python -m pytest tests e2e/tests
 
       - name: Upload coverage to Codecov
         if: always()

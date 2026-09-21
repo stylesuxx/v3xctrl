@@ -33,6 +33,7 @@ def main() -> None:
         "--config", default=None, help="Path to custom config file. If not specified, uses default location."
     )
     parser.add_argument("--connect", action="store_true", help="Connect on start instead of waiting for the button.")
+    parser.add_argument("--title", default=None, help="Window title. Default is V3XCTRL with the version.")
 
     args, _unknown = parser.parse_known_args()
 
@@ -63,7 +64,7 @@ def main() -> None:
         mem_tracker.start()
 
     settings = Settings(args.config)
-    state = AppState(settings)
+    state = AppState(settings, title=args.title)
 
     if args.connect:
         state.connect()

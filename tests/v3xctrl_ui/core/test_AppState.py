@@ -25,7 +25,9 @@ class TestAppState(unittest.TestCase):
             ports={"video": 6666, "control": 6668},
         )
 
-    def _create_app(self, mock_coordinator_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_display_cls):
+    def _create_app(
+        self, mock_coordinator_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_display_cls, title=None
+    ):
         # Mock DisplayManager
         mock_display = MagicMock()
         mock_screen = MagicMock()
@@ -61,9 +63,25 @@ class TestAppState(unittest.TestCase):
             mock_coordinator_cls.return_value = mock_coordinator
 
             # Let deepcopy work normally - no mocking needed
-            app = AppState(self.settings)
+            app = AppState(self.settings, title=title)
 
         return app, mock_input, mock_osd, mock_renderer, mock_coordinator
+
+    def test_title_defaults_to_the_version_and_can_be_overridden(
+        self, mock_coordinator_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_display_cls
+    ):
+        from v3xctrl_ui import __version__
+
+        default_app, *_ = self._create_app(
+            mock_coordinator_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_display_cls
+        )
+        titled_app, *_ = self._create_app(
+            mock_coordinator_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_display_cls, title="L1 (1/9)"
+        )
+
+        self.assertEqual(default_app.title, f"V3XCTRL ({__version__})")
+        self.assertEqual(titled_app.title, "L1 (1/9)")
+        mock_display_cls.assert_called_with(titled_app.model, (800, 600), "L1 (1/9)")
 
     def test_initialization_creates_all_components(
         self, mock_coordinator_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_display_cls
