@@ -96,7 +96,7 @@ class TestRelayServerIntegration(unittest.TestCase):
         # Verify socket setup
         mock_udp_socket.setsockopt.assert_called_with(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         mock_udp_socket.bind.assert_called_with(("0.0.0.0", self.server_port))
-        expected_socket_path = f"/tmp/udp_relay_command_{self.server_port}.sock"
+        expected_socket_path = f"/run/v3xctrl/relay_command_{self.server_port}.sock"
         mock_command_socket.bind.assert_called_with(expected_socket_path)
         mock_command_socket.listen.assert_called_with(5)
 

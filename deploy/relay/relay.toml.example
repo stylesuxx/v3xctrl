@@ -1,0 +1,34 @@
+# v3xctrl relay host configuration.
+#
+# Installed to /etc/v3xctrl/relay.toml, mode 0640, owned by root:v3xctrl.
+# Read by the relay instances, the Discord bot and the stats dashboard.
+#
+# A command line argument always overrides the value here.
+
+[paths]
+database = "/var/lib/v3xctrl/relay.db"
+users_file = "/var/lib/v3xctrl/users.json"
+
+# One table per relay instance. The table name is the systemd instance name,
+# so [relay.prod] serves v3xctrl-relay-server@prod.service.
+#
+# bind_ip is the public address advertised to peers; the socket itself always
+# binds 0.0.0.0. Each instance needs its own port, opened for UDP and TCP.
+
+[relay.prod]
+bind_ip = "CHANGE_ME"
+port = 8888
+log = "INFO"
+
+[bot]
+token = "CHANGE_ME"
+channel_id = 0
+testdrive_channel_id = 0
+log = "INFO"
+
+[stats]
+relay_ports = [8888]
+port = 8080
+# Pin a key so a restart does not log every dashboard user out.
+# Generate with: python3 -c 'import secrets; print(secrets.token_hex(32))'
+secret_key = "CHANGE_ME"

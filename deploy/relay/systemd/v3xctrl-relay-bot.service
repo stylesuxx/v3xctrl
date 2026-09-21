@@ -1,0 +1,30 @@
+[Unit]
+Description=v3xctrl Discord relay bot
+PartOf=v3xctrl-relay.target
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=3600
+StartLimitBurst=20
+
+[Service]
+Type=simple
+WorkingDirectory=@ROOT@
+Environment=PYTHONPATH=@ROOT@/src
+ExecStart=@PYTHON@ -m v3xctrl_relay.apps.bot
+User=v3xctrl
+Group=v3xctrl
+Restart=always
+RestartSec=60
+KillSignal=SIGTERM
+StateDirectory=v3xctrl
+RuntimeDirectory=v3xctrl
+RuntimeDirectoryPreserve=yes
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=v3xctrl-relay.target

@@ -1,1 +1,2 @@
-discord==2.3.2
+discord.py==2.6.2
+msgpack==1.1.0

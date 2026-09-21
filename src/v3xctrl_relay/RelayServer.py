@@ -27,19 +27,24 @@ class RelayServer(threading.Thread):
     CLEANUP_INTERVAL = 10
     RECEIVE_BUFFER = 2048
 
-    COMMAND_SOCKET_TEMPLATE = "/tmp/udp_relay_command_{port}.sock"
+    COMMAND_SOCKET_DIRECTORY = "/run/v3xctrl"
+    COMMAND_SOCKET_TEMPLATE = "relay_command_{port}.sock"
 
     def __init__(
         self,
         ip: str,
         port: int,
         db_path: str,
+        command_socket_directory: str | None = None,
     ) -> None:
         super().__init__(daemon=True, name="RelayServer")
 
         self.ip = ip
         self.port = port
-        self.command_socket_path = self.COMMAND_SOCKET_TEMPLATE.format(port=port)
+        self.command_socket_directory = command_socket_directory or self.COMMAND_SOCKET_DIRECTORY
+        self.command_socket_path = os.path.join(
+            self.command_socket_directory, self.COMMAND_SOCKET_TEMPLATE.format(port=port)
+        )
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -123,12 +128,26 @@ class RelayServer(threading.Thread):
             self.join(timeout=5.0)
 
     def _setup_command_socket(self) -> None:
-        """Setup Unix socket for command interface"""
+        """
+        Setup Unix socket for command interface.
+
+        The containing directory is provided by the caller: under systemd it
+        comes from RuntimeDirectory=, elsewhere --runtime-dir names one.
+        """
         if os.path.exists(self.command_socket_path):
             os.unlink(self.command_socket_path)
 
         self.command_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        self.command_sock.bind(self.command_socket_path)
+
+        try:
+            self.command_sock.bind(self.command_socket_path)
+
+        except OSError as e:
+            raise OSError(
+                f"Cannot bind command socket {self.command_socket_path}: {e}. "
+                f"Pass --runtime-dir to use a directory other than {self.COMMAND_SOCKET_DIRECTORY}."
+            ) from e
+
         self.command_sock.listen(5)
 
     def _handle_commands(self) -> None:
