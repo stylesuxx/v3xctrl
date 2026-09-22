@@ -40,8 +40,17 @@ class ReceiverPyAV(Receiver):
         max_frame_age_ms: int = 500,
         render_ratio: int = 0,
         relay_address: tuple[str, int] | None = None,
+        bind_address: str = "0.0.0.0",
     ) -> None:
-        super().__init__(port, keep_alive, log_interval, history_size, max_frame_age_ms, render_ratio)
+        super().__init__(
+            port,
+            keep_alive,
+            log_interval,
+            history_size,
+            max_frame_age_ms,
+            render_ratio,
+            bind_address=bind_address,
+        )
 
         self.relay_address = relay_address
         self._proxy: UdpVideoProxy | None = None
@@ -240,7 +249,7 @@ class ReceiverPyAV(Receiver):
             listen_addr = "127.0.0.1"
         else:
             listen_port = self.port
-            listen_addr = "0.0.0.0"
+            listen_addr = self.bind_address
 
         sdp_text = f"""\
 v=0

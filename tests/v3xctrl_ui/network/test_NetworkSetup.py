@@ -173,6 +173,7 @@ class TestNetworkSetup(unittest.TestCase):
             error_callback,
             render_ratio=0,
             relay_address=None,
+            bind_address="0.0.0.0",
         )
         mock_receiver.start.assert_called_once()
 
@@ -212,7 +213,7 @@ class TestNetworkSetup(unittest.TestCase):
         self.assertIsNone(result.error_message)
 
         # Verify server was created correctly
-        self.mock_server_cls.assert_called_once_with(6000, 100, 1)
+        self.mock_server_cls.assert_called_once_with(6000, 100, 1, bind_address="0.0.0.0")
         mock_server.subscribe.assert_called_once()
         mock_server.on.assert_called_once()
         mock_server.start.assert_called_once()
@@ -278,6 +279,32 @@ class TestNetworkSetup(unittest.TestCase):
 
         # Verify no errors
         self.assertFalse(result.has_errors)
+
+    def test_tcp_transport_binds_video_and_control_to_loopback(self):
+        """In TCP mode only the TCP bridge on 127.0.0.1 may reach the UDP sockets,
+        so a streamer sending plain UDP is refused instead of silently accepted."""
+        settings = build_settings(
+            ports={"video": 5000, "control": 6000},
+            transport=Transport.TCP,
+            udp_packet_ttl=100,
+            video={"render_ratio": 0, "receiver": "pyav"},
+        )
+        setup = NetworkSetup(settings)
+
+        with patch("v3xctrl_ui.network.NetworkSetup.TcpServer") as mock_tcp_server_cls:
+            setup.orchestrate_setup(None, {"messages": [], "states": []})
+
+        mock_tcp_server_cls.assert_called_once_with(5000, 6000)
+        self.assertEqual(self.mock_video_receiver_cls.call_args.kwargs["bind_address"], "127.0.0.1")
+        self.assertEqual(self.mock_server_cls.call_args.kwargs["bind_address"], "127.0.0.1")
+
+    def test_udp_transport_binds_video_and_control_to_all_interfaces(self):
+        setup = NetworkSetup(self.settings)
+
+        setup.orchestrate_setup(None, {"messages": [], "states": []})
+
+        self.assertEqual(self.mock_video_receiver_cls.call_args.kwargs["bind_address"], "0.0.0.0")
+        self.assertEqual(self.mock_server_cls.call_args.kwargs["bind_address"], "0.0.0.0")
 
     def test_abort_with_peer(self):
         """Test abort() when peer exists."""

@@ -125,6 +125,24 @@ class TestReceiverPyAVSdpFile(unittest.TestCase):
             handle.flush.assert_called_once()
             mock_fsync.assert_called_once()
 
+    def test_sdp_listens_on_all_interfaces_by_default(self):
+        with patch("builtins.open", mock_open()) as mock_file, patch("os.fsync"):
+            self.receiver._write_sdp()
+
+        handle = mock_file.return_value.__enter__.return_value
+        written_content = "".join(call.args[0] for call in handle.write.call_args_list)
+        self.assertIn("c=IN IP4 0.0.0.0", written_content)
+
+    def test_sdp_listens_on_the_bind_address(self):
+        receiver = ReceiverPyAV(5600, Mock(), bind_address="127.0.0.1")
+
+        with patch("builtins.open", mock_open()) as mock_file, patch("os.fsync"):
+            receiver._write_sdp()
+
+        handle = mock_file.return_value.__enter__.return_value
+        written_content = "".join(call.args[0] for call in handle.write.call_args_list)
+        self.assertIn("c=IN IP4 127.0.0.1", written_content)
+
     def test_setup_calls_write_sdp(self):
         with patch.object(self.receiver, "_write_sdp") as mock_write_sdp:
             self.receiver._setup()

@@ -80,10 +80,12 @@ class Receiver(ABC, threading.Thread):
         render_ratio: int = 0,
         target_fps: int = 30,
         timeout_seconds: float = 5.0,
+        bind_address: str = "0.0.0.0",
     ) -> None:
         super().__init__()
 
         self.port = port
+        self.bind_address = bind_address
         self.keep_alive = keep_alive
         self.log_interval = log_interval
         self.max_age_seconds = max_frame_age_ms / 1000
