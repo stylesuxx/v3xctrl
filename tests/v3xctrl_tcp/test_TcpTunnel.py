@@ -2,6 +2,7 @@ import socket
 import time
 import unittest
 
+from v3xctrl_control.message import Error, PeerInfo
 from v3xctrl_tcp.framing import recv_message, send_message
 from v3xctrl_tcp.TcpTunnel import TcpTunnel
 
@@ -251,6 +252,72 @@ class TestTcpTunnelReconnect(unittest.TestCase):
 class TestTcpTunnelHandshake(unittest.TestCase):
     """Test relay-mode handshake behavior."""
 
+    def test_rejected_handshake_stops_the_tunnel(self) -> None:
+        """An Error answer means the relay refused the session; the tunnel logs it and does not retry."""
+        tcp_port = _free_port()
+        server = _TcpServerHelper(tcp_port)
+        tunnel = TcpTunnel(
+            remote_host="127.0.0.1",
+            remote_port=tcp_port,
+            local_component_port=_free_port(),
+            bidirectional=False,
+            handshake=b"announcement",
+        )
+
+        with self.assertLogs("v3xctrl_tcp.TcpTunnel", level="ERROR") as logs:
+            tunnel.start()
+            tunnel.wait_for_port(timeout=2.0)
+            try:
+                client = server.accept()
+                client.settimeout(2.0)
+                self.assertEqual(recv_message(client), b"announcement")
+
+                send_message(client, Error("403").to_bytes())
+
+                for thread in tunnel._threads:
+                    thread.join(timeout=2.0)
+                self.assertTrue(tunnel.rejected)
+                self.assertFalse(any(thread.is_alive() for thread in tunnel._threads))
+
+                server.server_sock.settimeout(0.5)
+                with self.assertRaises(TimeoutError):
+                    server.server_sock.accept()
+            finally:
+                tunnel.stop()
+                server.close()
+
+        self.assertIn("TcpTunnel handshake rejected by the relay: 403", "\n".join(logs.output))
+
+    def test_unexpected_handshake_answer_is_retried(self) -> None:
+        tcp_port = _free_port()
+        server = _TcpServerHelper(tcp_port)
+        tunnel = TcpTunnel(
+            remote_host="127.0.0.1",
+            remote_port=tcp_port,
+            local_component_port=_free_port(),
+            bidirectional=False,
+            handshake=b"announcement",
+        )
+
+        with self.assertLogs("v3xctrl_tcp.TcpTunnel", level="ERROR") as logs:
+            tunnel.start()
+            tunnel.wait_for_port(timeout=2.0)
+            try:
+                client = server.accept()
+                client.settimeout(2.0)
+                recv_message(client)
+                send_message(client, b"not a message")
+
+                retry = server.accept()
+                retry.close()
+                client.close()
+                self.assertFalse(tunnel.rejected)
+            finally:
+                tunnel.stop()
+                server.close()
+
+        self.assertIn("not a message", "\n".join(logs.output))
+
     def test_handshake_sent_on_connect(self) -> None:
         """Handshake bytes are sent first, the wait is logged, response is read."""
         tcp_port = _free_port()
@@ -285,7 +352,7 @@ class TestTcpTunnelHandshake(unittest.TestCase):
                 self.assertNotIn("handshake complete", "\n".join(logs.output))
 
                 # Send handshake response
-                send_message(client, b"PeerInfo:session123")
+                send_message(client, PeerInfo(ip="1.2.3.4", video_port=8888, control_port=8888).to_bytes())
 
                 # Now data should flow
                 time.sleep(0.2)

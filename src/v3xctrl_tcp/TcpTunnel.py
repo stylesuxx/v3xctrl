@@ -17,7 +17,9 @@ import select
 import socket
 import threading
 import time
+from enum import Enum, auto
 
+from v3xctrl_control.message import Error, Message, PeerInfo
 from v3xctrl_tcp.framing import recv_message, send_message
 from v3xctrl_tcp.keepalive import configure_keepalive
 from v3xctrl_tcp.send_timeout import configure_send_timeout
@@ -27,6 +29,16 @@ logger = logging.getLogger(__name__)
 # Retry backoff sequence (seconds)
 _RETRY_DELAYS = [1.0, 2.0, 5.0]
 _CONNECT_WARN_TIMEOUT = 30.0
+
+
+class HandshakeResult(Enum):
+    ACCEPTED = auto()
+
+    # The relay answered with an Error; the session is refused for good.
+    REJECTED = auto()
+
+    # No usable answer; the connection is retried.
+    FAILED = auto()
 
 
 class TcpTunnel:
@@ -47,6 +59,7 @@ class TcpTunnel:
         self.handshake = handshake
 
         self._stop_event = threading.Event()
+        self._rejected = False
         self._ephemeral_port: int | None = None
         self._port_ready = threading.Event()
         self._threads: list[threading.Thread] = []
@@ -61,9 +74,15 @@ class TcpTunnel:
         self._port_ready.wait(timeout=timeout)
         return self._ephemeral_port
 
+    @property
+    def rejected(self) -> bool:
+        """True once the relay refused the handshake; the tunnel has stopped itself."""
+        return self._rejected
+
     def start(self) -> None:
         self._stop_event.clear()
         self._port_ready.clear()
+        self._rejected = False
 
         main_thread = threading.Thread(
             target=self._run,
@@ -96,9 +115,17 @@ class TcpTunnel:
                 if tcp_sock is None:
                     break  # stop was requested
 
-                if self.handshake is not None and not self._do_handshake(tcp_sock):
-                    tcp_sock.close()
-                    continue  # retry connection
+                if self.handshake is not None:
+                    handshake_result = self._do_handshake(tcp_sock)
+                    if handshake_result == HandshakeResult.REJECTED:
+                        tcp_sock.close()
+                        self._rejected = True
+                        self._stop_event.set()
+                        break
+
+                    if handshake_result == HandshakeResult.FAILED:
+                        tcp_sock.close()
+                        continue  # retry connection
 
                 logger.info(f"TcpTunnel connected to {self.remote_host}:{self.remote_port}")
 
@@ -157,13 +184,13 @@ class TcpTunnel:
 
         return None
 
-    def _do_handshake(self, tcp_sock: socket.socket) -> bool:
-        """Send handshake and read response. Returns True on success."""
+    def _do_handshake(self, tcp_sock: socket.socket) -> HandshakeResult:
+        """Send the handshake and read the relay's answer: PeerInfo accepts, Error refuses."""
         assert self.handshake is not None
 
         if not send_message(tcp_sock, self.handshake):
             logger.error("TcpTunnel handshake send failed")
-            return False
+            return HandshakeResult.FAILED
 
         # The relay answers once both peers of the session are registered,
         # which can be a long wait when the other side is not running yet.
@@ -171,10 +198,24 @@ class TcpTunnel:
         response = recv_message(tcp_sock)
         if response is None:
             logger.error("TcpTunnel handshake response failed (disconnected)")
-            return False
+            return HandshakeResult.FAILED
+
+        try:
+            message = Message.from_bytes(response)
+        except ValueError:
+            logger.error(f"TcpTunnel handshake response is not a message ({len(response)} bytes)")
+            return HandshakeResult.FAILED
+
+        if isinstance(message, Error):
+            logger.error(f"TcpTunnel handshake rejected by the relay: {message.get_error()}")
+            return HandshakeResult.REJECTED
+
+        if not isinstance(message, PeerInfo):
+            logger.error(f"TcpTunnel handshake answered with {message.type} instead of PeerInfo")
+            return HandshakeResult.FAILED
 
         logger.info(f"TcpTunnel handshake complete ({len(response)} bytes)")
-        return True
+        return HandshakeResult.ACCEPTED
 
     def _bridge(
         self,

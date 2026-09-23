@@ -57,7 +57,7 @@ harness checks `/dev/uinput` in preflight and tells you if this is missing.
 .venv/bin/python e2e --streamer-host 192.168.1.225 --ssh-user chris \
     --relay-id <session id> [--relay-host relay.v3xctrl.com:8888]        # positive viewer, local and relay cases
 .venv/bin/python e2e --streamer-host 192.168.1.225 --ssh-user chris \
-    --relay-id <session id> --spectator-id <spectator id> --negative     # all 19 cases
+    --relay-id <session id> --spectator-id <spectator id> --negative     # all 20 cases
 ```
 
 Without `--negative` the mismatch and wrong-ID cases are left out, without
@@ -135,6 +135,7 @@ both peers are present, so these prove the viewer's side of the setup:
 | V2-viewer-relay-udp | relay udp | sockets bound, video and control announcements sent, no rejection |
 | V3-viewer-relay-tcp | relay tcp | both tunnels started and their proxies bound, no failed TCP connect |
 | V4-viewer-relay-wrong-id (`--negative`) | relay udp | the relay rejects the ID |
+| V5-viewer-relay-tcp-wrong-id (`--negative`) | relay tcp | both tunnels report the rejected handshake |
 
 Local, direct mode with the viewer's LAN address as `viewer.direct.host`:
 
