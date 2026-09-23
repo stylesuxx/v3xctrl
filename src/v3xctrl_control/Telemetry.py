@@ -143,7 +143,7 @@ class Telemetry:
             "gst",
             GstTelemetry,
             GstFlags(),
-            self._store.update_gst,
+            self._update_gst,
             rates.gst,
         )
 
@@ -182,6 +182,19 @@ class Telemetry:
 
     def get_telemetry(self) -> dict[str, Any]:
         return self._store.get_snapshot()
+
+    def _update_gst(self, flags: GstFlags) -> None:
+        """The polled flag is the only signal that also sees `video.record.autostart`, which
+        never passes through the control process's recording command.
+        """
+        self._store.update_gst(flags)
+        if self._track_logger is None:
+            return
+
+        try:
+            self._track_logger.set_recording(flags.recording)
+        except OSError as exc:
+            logger.warning("GPS track: closing on recording stop failed: %s", exc)
 
     def _register(
         self,

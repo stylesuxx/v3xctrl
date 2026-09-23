@@ -24,6 +24,7 @@ from v3xctrl_telemetry.dataclasses import (  # noqa: E402
     CellInfo,
     GpsFix,
     GpsTrackMode,
+    GstFlags,
     LocationInfo,
     ModemState,
     SignalInfo,
@@ -279,6 +280,42 @@ class TestGpsTrackWiring(unittest.TestCase):
 
             with self.assertLogs("src.v3xctrl_control.Telemetry", level="WARNING"):
                 fixture.telemetry.join(timeout=1.0)
+
+
+class TestRecordingFlagWiring(unittest.TestCase):
+    def test_recording_flag_reaches_the_track_logger(self) -> None:
+        with _make_telemetry(track_mode=GpsTrackMode.WITH_RECORDING) as fixture:
+            fixture.sources["GstTelemetry"].get_state.return_value = GstFlags(recording=True)
+            track_logger = fixture.track_logger_class.return_value
+
+            fixture.telemetry.start()
+            delivered = _wait_until(lambda: track_logger.set_recording.called)
+
+        self.assertTrue(delivered, "recording flag never reached the track logger")
+        track_logger.set_recording.assert_called_with(True)
+
+    def test_gst_flags_still_reach_the_store(self) -> None:
+        with _make_telemetry(track_mode=GpsTrackMode.WITH_RECORDING) as fixture:
+            fixture.sources["GstTelemetry"].get_state.return_value = GstFlags(recording=True)
+
+            fixture.telemetry.start()
+            arrived = _wait_until(lambda: fixture.telemetry.get_telemetry()["gst"] == 1)
+
+        self.assertTrue(arrived, "gst flags did not reach the store")
+
+    def test_failing_close_on_recording_stop_keeps_the_store_current(self) -> None:
+        with _make_telemetry(track_mode=GpsTrackMode.WITH_RECORDING) as fixture:
+            fixture.sources["GstTelemetry"].get_state.return_value = GstFlags(recording=True)
+            track_logger = fixture.track_logger_class.return_value
+            track_logger.set_recording.side_effect = OSError("No space left on device")
+
+            with self.assertLogs("src.v3xctrl_control.Telemetry", level="WARNING"):
+                fixture.telemetry.start()
+                _wait_until(lambda: track_logger.set_recording.called)
+
+            arrived = _wait_until(lambda: fixture.telemetry.get_telemetry()["gst"] == 1)
+
+        self.assertTrue(arrived, "a failing track close stopped gst flags reaching the store")
 
 
 class TestRateValidation(unittest.TestCase):
