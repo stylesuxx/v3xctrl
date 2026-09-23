@@ -3,6 +3,7 @@
 import argparse
 import logging
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -280,7 +281,7 @@ def run(options: RunOptions, run_directory: RunDirectory, control_path: Path) ->
         results = orchestrator.run(cases)
 
         write_summary(run_directory, results, {"options": {**vars(options), "phases": sorted(options.phases)}})
-        print(format_summary_table(results))
+        print(format_summary_table(results, width=shutil.get_terminal_size((100, 24)).columns))
         print(f"\nartifacts: {run_directory.path}")
         return EXIT_PASSED if all(result.passed for result in results) else EXIT_FAILED
 
