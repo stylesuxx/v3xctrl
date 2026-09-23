@@ -20,14 +20,21 @@ class Server(Base):
     MAX_WORKERS = 10
     COMMAND_DELAY = 0.2
 
-    def __init__(self, port: int, ttl_ms: int = 100, control_buffer_capacity: int = 1) -> None:
+    def __init__(
+        self,
+        port: int,
+        ttl_ms: int = 100,
+        control_buffer_capacity: int = 1,
+        bind_address: str = "0.0.0.0",
+    ) -> None:
         super().__init__()
 
         self.port = port
+        self.bind_address = bind_address
         self.no_message_timeout = 10
 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.socket.bind(("0.0.0.0", self.port))
+        self.socket.bind((self.bind_address, self.port))
         self.socket.settimeout(1)
 
         self.transmitter = UDPTransmitter(self.socket, ttl_ms, control_buffer_capacity)

@@ -235,6 +235,18 @@ class TestServer(unittest.TestCase):
         ack = CommandAck(command.get_command_id())
         self.server.command_ack_handler(ack, (HOST, PORT))
 
+    def test_binds_all_interfaces_by_default(self):
+        with patch("socket.socket") as mock_socket:
+            Server(port=9999)
+
+        mock_socket.return_value.bind.assert_called_once_with(("0.0.0.0", 9999))
+
+    def test_binds_the_requested_address(self):
+        with patch("socket.socket") as mock_socket:
+            Server(port=9999, bind_address="127.0.0.1")
+
+        mock_socket.return_value.bind.assert_called_once_with(("127.0.0.1", 9999))
+
     def test_socket_bind_error(self):
         # Test socket binding error handling (lines 82->exit, 84->exit)
         with patch("socket.socket") as mock_socket:

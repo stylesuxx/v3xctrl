@@ -1,12 +1,14 @@
 """Per-run and per-test output on disk, plus the console summary."""
 
 import json
+import re
+import textwrap
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from v3xctrl_e2e.log_expectations import LogRecord
+from v3xctrl_e2e.log_expectations import LogRecord, LogSource
 
 DEFAULT_RUNS_DIRECTORY = Path(__file__).resolve().parents[1] / "runs"
 
@@ -71,14 +73,45 @@ def write_summary(run_directory: RunDirectory, results: list[TestResult], metada
     run_directory.write_json("summary.json", {"metadata": metadata, "results": [asdict(result) for result in results]})
 
 
-def format_summary_table(results: list[TestResult]) -> str:
+FAILURE_INDENT = "    - "
+FAILURE_CONTINUATION_INDENT = "      "
+MINIMUM_SUMMARY_WIDTH = 60
+# A failure that quotes a log line reads "<description>: <source>: <line>".
+QUOTED_LINE_PATTERN = re.compile(r": (?P<source>" + "|".join(re.escape(str(source)) for source in LogSource) + r"): ")
+
+
+def _wrap(text: str, width: int, first_indent: str) -> list[str]:
+    return textwrap.wrap(
+        text,
+        width=width,
+        initial_indent=first_indent,
+        subsequent_indent=FAILURE_CONTINUATION_INDENT,
+        break_long_words=False,
+        break_on_hyphens=False,
+    )
+
+
+def format_failure(failure: str, width: int) -> list[str]:
+    """One bullet per failure; a quoted log line goes on its own lines under the description."""
+    match = QUOTED_LINE_PATTERN.search(failure)
+    if match is None:
+        return _wrap(failure, width, FAILURE_INDENT)
+
+    description = failure[: match.start()]
+    quoted = failure[match.start() + 2 :]
+    return _wrap(description, width, FAILURE_INDENT) + _wrap(quoted, width, FAILURE_CONTINUATION_INDENT)
+
+
+def format_summary_table(results: list[TestResult], width: int = 100) -> str:
+    """The run's result table; failure lines sit under their case, wrapped to `width`."""
+    width = max(width, MINIMUM_SUMMARY_WIDTH)
     name_width = max((len(result.name) for result in results), default=4)
     lines = [f"{'test':<{name_width}}  result  seconds", f"{'-' * name_width}  ------  -------"]
     for result in results:
         verdict = "PASS" if result.passed else "FAIL"
         lines.append(f"{result.name:<{name_width}}  {verdict:<6}  {result.duration_seconds:7.1f}")
         for failure in result.failures:
-            lines.append(f"{'':<{name_width}}          - {failure}")
+            lines.extend(format_failure(failure, width))
 
     passed = sum(1 for result in results if result.passed)
     lines.append(f"\n{passed}/{len(results)} passed")

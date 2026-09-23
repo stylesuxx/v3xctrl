@@ -32,8 +32,17 @@ class ReceiverGst(Receiver):
         history_size: int = 100,
         max_frame_age_ms: int = 500,
         render_ratio: int = 0,
+        bind_address: str = "0.0.0.0",
     ) -> None:
-        super().__init__(port, keep_alive, log_interval, history_size, max_frame_age_ms, render_ratio)
+        super().__init__(
+            port,
+            keep_alive,
+            log_interval,
+            history_size,
+            max_frame_age_ms,
+            render_ratio,
+            bind_address=bind_address,
+        )
 
         Gst.init(None)
 
@@ -140,6 +149,7 @@ class ReceiverGst(Receiver):
             logger.error("Failed to create udpsrc")
             return False
 
+        udpsrc.set_property("address", self.bind_address)
         udpsrc.set_property("port", self.port)
         caps = Gst.Caps.from_string("application/x-rtp,media=video,encoding-name=H264,payload=96,clock-rate=90000")
         udpsrc.set_property("caps", caps)

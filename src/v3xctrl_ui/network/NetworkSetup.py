@@ -28,6 +28,9 @@ from v3xctrl_ui.utils.gstreamer import is_gstreamer_available
 # GStreamer receiver is loaded lazily if available
 logger = logging.getLogger(__name__)
 
+ALL_INTERFACES_ADDRESS = "0.0.0.0"
+LOOPBACK_ADDRESS = "127.0.0.1"
+
 # Receivers are loaded lazily to avoid hard dependencies on optional backends
 _ReceiverGst: type[Receiver] | None = None
 _ReceiverPyAV: "type[ReceiverPyAV] | None" = None
@@ -127,6 +130,10 @@ class NetworkSetup:
         self.control_port = settings.ports.control
         self.transport = settings.transport
         self._peer: Peer | None = None
+        # In TCP mode the video and control sockets are only reachable through
+        # the TCP bridge (TcpServer or TcpTunnel) on the loopback interface,
+        # so a peer sending UDP is refused instead of silently accepted.
+        self.bind_address = LOOPBACK_ADDRESS if self.transport == Transport.TCP else ALL_INTERFACES_ADDRESS
 
     def abort(self) -> None:
         """Abort any in-progress relay setup."""
@@ -348,6 +355,7 @@ class NetworkSetup:
                             self.video_port,
                             keep_alive_callback,
                             render_ratio=render_ratio,
+                            bind_address=self.bind_address,
                         )
                         chosen_receiver = VideoReceiver.GST
                     elif pyav_receiver:
@@ -356,6 +364,7 @@ class NetworkSetup:
                             keep_alive_callback,
                             render_ratio=render_ratio,
                             relay_address=video_address,
+                            bind_address=self.bind_address,
                         )
                         chosen_receiver = VideoReceiver.PYAV
                     else:
@@ -368,6 +377,7 @@ class NetworkSetup:
                         self.video_port,
                         keep_alive_callback,
                         render_ratio=render_ratio,
+                        bind_address=self.bind_address,
                     )
                     chosen_receiver = VideoReceiver.GST
                 case VideoReceiver.PYAV:
@@ -379,6 +389,7 @@ class NetworkSetup:
                         keep_alive_callback,
                         render_ratio=render_ratio,
                         relay_address=video_address,
+                        bind_address=self.bind_address,
                     )
                     chosen_receiver = VideoReceiver.PYAV
                 case _:
@@ -420,7 +431,7 @@ class NetworkSetup:
         try:
             udp_ttl_ms = self.settings.udp_packet_ttl
             control_buffer_capacity = self.settings.control_buffer_capacity
-            server = Server(self.control_port, udp_ttl_ms, control_buffer_capacity)
+            server = Server(self.control_port, udp_ttl_ms, control_buffer_capacity, bind_address=self.bind_address)
 
             for message_type, callback in message_handlers:
                 server.subscribe(message_type, callback)

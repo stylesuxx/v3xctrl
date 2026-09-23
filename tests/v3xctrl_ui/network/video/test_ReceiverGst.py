@@ -177,6 +177,28 @@ class TestCheckTimeout(unittest.TestCase):
         self.assertIsNone(receiver.frame)
 
 
+class TestBuildPipeline(unittest.TestCase):
+    def _build_with_bind_address(self, bind_address: str) -> MagicMock:
+        elements: dict[str, MagicMock] = {}
+
+        def make_element(factory_name: str, element_name: str) -> MagicMock:
+            elements[element_name] = MagicMock(name=element_name)
+            return elements[element_name]
+
+        receiver = _make_receiver(port=5000, bind_address=bind_address, timing_enabled=False)
+        with patch("v3xctrl_ui.network.video.ReceiverGst.Gst") as mock_gst:
+            mock_gst.ElementFactory.make.side_effect = make_element
+            self.assertTrue(receiver._build_pipeline())
+
+        return elements["udpsrc"]
+
+    def test_udpsrc_listens_on_the_bind_address(self):
+        udpsrc = self._build_with_bind_address("127.0.0.1")
+
+        udpsrc.set_property.assert_any_call("address", "127.0.0.1")
+        udpsrc.set_property.assert_any_call("port", 5000)
+
+
 class TestStopPipeline(unittest.TestCase):
     def test_cleanup_with_no_pipeline(self):
         receiver = _make_receiver()
