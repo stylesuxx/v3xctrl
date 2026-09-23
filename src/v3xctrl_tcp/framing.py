@@ -44,7 +44,7 @@ def _recv_exact(sock: socket, n: int) -> bytes | None:
 
 
 def recv_message(sock: socket) -> bytes | None:
-    """Read a length-prefixed message. Returns None on disconnect, a reset included."""
+    """Read a length-prefixed message. Returns None on disconnect, a reset included; a read timeout propagates."""
     try:
         header = _recv_exact(sock, HEADER_SIZE)
         if header is None:
@@ -55,6 +55,9 @@ def recv_message(sock: socket) -> bytes | None:
             return b""
 
         return _recv_exact(sock, length)
+
+    except TimeoutError:
+        raise
 
     except OSError:
         return None

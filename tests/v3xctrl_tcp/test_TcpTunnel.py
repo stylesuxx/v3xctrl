@@ -19,10 +19,13 @@ def _free_port() -> int:
 class _TcpServerHelper:
     """Simple TCP server for testing TcpTunnel connections."""
 
-    def __init__(self, port: int) -> None:
+    def __init__(self, port: int, receive_buffer: int | None = None) -> None:
         self.port = port
         self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        if receive_buffer is not None:
+            # Inherited by accepted sockets; a small window makes the tunnel's sends block quickly.
+            self.server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, receive_buffer)
         self.server_sock.bind(("127.0.0.1", port))
         self.server_sock.listen(1)
         self.server_sock.settimeout(5.0)
@@ -247,6 +250,64 @@ class TestTcpTunnelReconnect(unittest.TestCase):
         finally:
             tunnel.stop()
             server.close()
+
+
+class TestSendStall(unittest.TestCase):
+    """A peer that stops reading for a moment stalls the tunnel's sends; the link is still healthy."""
+
+    def test_a_short_send_stall_does_not_drop_the_connection(self) -> None:
+        tcp_port = _free_port()
+        server = _TcpServerHelper(tcp_port, receive_buffer=4096)
+        tunnel = TcpTunnel(
+            remote_host="127.0.0.1",
+            remote_port=tcp_port,
+            local_component_port=_free_port(),
+            bidirectional=False,
+        )
+        udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+        with self.assertLogs("v3xctrl_tcp.TcpTunnel", level="INFO") as logs:
+            tunnel.start()
+            tunnel.wait_for_port(timeout=2.0)
+            try:
+                client = server.accept()
+                client.settimeout(2.0)
+
+                # The peer reads nothing while datagrams pour in for 700 ms: the socket
+                # buffers (about 1.7 MB on loopback) fill within the first 100 ms and the
+                # tunnel's sendall then blocks for the rest of the pause.
+                pause_until = time.monotonic() + 0.7
+                while time.monotonic() < pause_until:
+                    udp.sendto(b"x" * 1024, ("127.0.0.1", tunnel.ephemeral_port))
+
+                # The peer drains; every frame is intact and the connection is the same one.
+                deadline = time.monotonic() + 3.0
+                frames = 0
+                client.settimeout(0.3)
+                while time.monotonic() < deadline:
+                    try:
+                        data = recv_message(client)
+                    except TimeoutError:
+                        break
+                    if data is None:
+                        self.fail("the tunnel closed the connection during the stall")
+                    self.assertEqual(data, b"x" * 1024)
+                    frames += 1
+                self.assertGreater(frames, 0)
+
+                client.settimeout(2.0)
+                udp.sendto(b"after the stall", ("127.0.0.1", tunnel.ephemeral_port))
+                self.assertEqual(recv_message(client), b"after the stall")
+
+                server.server_sock.settimeout(0.3)
+                with self.assertRaises(TimeoutError):
+                    server.server_sock.accept()
+            finally:
+                udp.close()
+                tunnel.stop()
+                server.close()
+
+        self.assertNotIn("disconnected", "\n".join(logs.output))
 
 
 class TestTcpTunnelHandshake(unittest.TestCase):
