@@ -211,21 +211,22 @@ class RecordingManager:
         self._tee.release_request_pad(pad)
         self._tee_pad = None
 
+        # The probe that ends the stop has to be on the filesink before the EOS
+        # is sent: the queue's thread pushes the EOS through a branch that has
+        # nothing buffered within microseconds, and an EOS that passes the
+        # filesink before the probe exists is never seen, so the stop would
+        # wait out its timeout and force the teardown.
+        filesink = self._elements.get("filesink")
+        filesink_pad = filesink.get_static_pad("sink") if filesink else None
+        if filesink_pad:
+            filesink_pad.add_probe(Gst.PadProbeType.EVENT_DOWNSTREAM, self._on_recording_eos)
+        else:
+            GLib.idle_add(self._teardown)
+
         # Send EOS to flush remaining buffered data through the recording
         # branch so the muxer can finalize the file properly.
         if queue_sink_pad:
             queue_sink_pad.send_event(Gst.Event.new_eos())
-
-        # Listen for EOS on filesink to know when flushing is complete
-        filesink = self._elements.get("filesink")
-        if filesink:
-            filesink_pad = filesink.get_static_pad("sink")
-            if filesink_pad:
-                filesink_pad.add_probe(Gst.PadProbeType.EVENT_DOWNSTREAM, self._on_recording_eos)
-            else:
-                GLib.idle_add(self._teardown)
-        else:
-            GLib.idle_add(self._teardown)
 
         return Gst.PadProbeReturn.REMOVE
 
