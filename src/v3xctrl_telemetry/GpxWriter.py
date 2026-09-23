@@ -108,6 +108,12 @@ class GpxWriter:
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         self._path = self._directory / f"track-{timestamp}.gpx"
 
+        # a stop/start inside one second would otherwise truncate the track just closed
+        suffix = 1
+        while self._path.exists():
+            self._path = self._directory / f"track-{timestamp}-{suffix}.gpx"
+            suffix += 1
+
         # newline is pinned so a file written on Windows during tests matches the Pi's
         file = self._path.open("w", encoding="utf-8", newline="\n")
         file.write(_HEADER.format(time=_isoformat(datetime.now(UTC)), name=self._path.stem))

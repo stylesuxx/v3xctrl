@@ -10,6 +10,12 @@ class GpsProtocol(StrEnum):
     MODEM = "modem"
 
 
+class GpsTrackMode(StrEnum):
+    OFF = "off"
+    ALWAYS = "always"
+    WITH_RECORDING = "withRecording"
+
+
 class GpsFixType(IntEnum):
     """UBX-NAV-PVT fix type values, extended with NO_HARDWARE for when GPS is absent."""
 

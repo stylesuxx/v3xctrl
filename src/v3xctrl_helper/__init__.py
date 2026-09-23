@@ -7,6 +7,7 @@ from v3xctrl_helper.helper import (
     apply_expo,
     clamp,
     color_to_hex,
+    haversine_meters,
     is_int,
 )
 from v3xctrl_helper.sei import (
@@ -24,6 +25,7 @@ __all__ = [
     "build_sei_nal",
     "clamp",
     "color_to_hex",
+    "haversine_meters",
     "is_int",
     "parse_sei_nal",
 ]

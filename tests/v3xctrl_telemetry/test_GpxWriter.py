@@ -1,6 +1,7 @@
 """Tests for GpxWriter."""
 
 import xml.etree.ElementTree as ElementTree
+from datetime import datetime
 
 import pytest
 
@@ -52,6 +53,29 @@ class TestFileCreation:
         assert writer.path.parent == tmp_path
         assert writer.path.name.startswith("track-")
         assert writer.path.suffix == ".gpx"
+
+    def test_same_second_does_not_overwrite_previous_track(self, tmp_path, monkeypatch):
+        frozen = datetime(2026, 9, 23, 13, 3, 20)
+
+        class _FrozenDatetime(datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return frozen.replace(tzinfo=tz)
+
+        monkeypatch.setattr("v3xctrl_telemetry.GpxWriter.datetime", _FrozenDatetime)
+
+        first = GpxWriter(tmp_path)
+        first.add_point(_make_fix())
+        first.close()
+        first_bytes = first.path.read_bytes()
+
+        second = GpxWriter(tmp_path)
+        second.add_point(_make_fix())
+        second.close()
+
+        assert first.path != second.path
+        assert second.path.name == "track-20260923-130320-1.gpx"
+        assert first.path.read_bytes() == first_bytes
 
     def test_missing_directory_is_created(self, tmp_path):
         target = tmp_path / "recordings"
