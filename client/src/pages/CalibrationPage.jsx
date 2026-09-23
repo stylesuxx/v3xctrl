@@ -9,7 +9,7 @@ import { PwmControl } from '@/components/shared/PwmControl'
 import { Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
-function LastSent({ entry }) {
+function LastSent({ entry, showDeadzone = false }) {
   const { t } = useTranslation()
 
   return (
@@ -20,25 +20,33 @@ function LastSent({ entry }) {
         <p className="text-muted-foreground">{t('calibration.lastSentUnknown')}</p>
       ) : (
         <div className="space-y-0.5 text-muted-foreground">
-          <div className="flex justify-between gap-2">
-            <span>{t('calibration.lastSentBase')}</span>
-            <span className="tabular-nums">{entry.base} µs</span>
-          </div>
-          <div className="flex justify-between gap-2">
-            <span>{t('calibration.lastSentDeadzone')}</span>
-            <span className="tabular-nums">
-              {entry.deadzone === null
-                ? t('calibration.lastSentDeadzoneInactive')
-                : t('calibration.lastSentDeadzoneActive', {
-                    value: entry.deadzone > 0 ? `+${entry.deadzone}` : entry.deadzone,
-                  })}
-            </span>
-          </div>
+          {showDeadzone && (
+            <>
+              <div className="flex justify-between gap-2">
+                <span>{t('calibration.lastSentBase')}</span>
+                <span className="tabular-nums">{entry.base} µs</span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span>{t('calibration.lastSentDeadzone')}</span>
+                <span className="tabular-nums">
+                  {entry.deadzone === null
+                    ? t('calibration.lastSentDeadzoneInactive')
+                    : t('calibration.lastSentDeadzoneActive', {
+                        value: entry.deadzone > 0 ? `+${entry.deadzone}` : entry.deadzone,
+                      })}
+                </span>
+              </div>
+            </>
+          )}
           <div className="flex justify-between gap-2 font-medium text-foreground">
             <span>{t('calibration.lastSentOutput')}</span>
             <span className="tabular-nums">{entry.base + (entry.deadzone ?? 0)} µs</span>
           </div>
         </div>
+      )}
+
+      {showDeadzone && (
+        <p className="mt-2 text-xs text-muted-foreground">{t('calibration.lastSentDeadzoneNote')}</p>
       )}
     </div>
   )
@@ -118,6 +126,8 @@ export function CalibrationPage() {
               onSend={() => sendSteeringPwm('trim')}
             />
 
+            <LastSent entry={lastSent.channelB} />
+
             <div className="flex justify-end">
               <Button onClick={saveSteeringCalibration}>
                 {t('calibration.saveCalibration')}
@@ -151,6 +161,8 @@ export function CalibrationPage() {
               onChange={(v) => setAckermannThrottleField('idle', v)}
               onSend={() => sendThrottlePwm('idle')}
             />
+
+            <LastSent entry={lastSent.channelA} />
 
             <div className="flex justify-end">
               <Button onClick={saveThrottleCalibration}>
@@ -205,7 +217,7 @@ export function CalibrationPage() {
                 />
               )}
 
-              <LastSent entry={lastSent.channelA} />
+              <LastSent entry={lastSent.channelA} showDeadzone />
             </div>
 
             {/* Motor B */}
@@ -249,7 +261,7 @@ export function CalibrationPage() {
                 />
               )}
 
-              <LastSent entry={lastSent.channelB} />
+              <LastSent entry={lastSent.channelB} showDeadzone />
             </div>
           </div>
 

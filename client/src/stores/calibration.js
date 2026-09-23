@@ -136,6 +136,7 @@ export const useCalibrationStore = create((set, get) => ({
     }
 
     await gpioApi.setPwm(apiClient, channel, value)
+    recordLastSent(set, 'channelB', value)
   },
 
   sendThrottlePwm: async (field) => {
@@ -145,6 +146,7 @@ export const useCalibrationStore = create((set, get) => ({
     const value = get().ackermann.throttle[field]
 
     await gpioApi.setPwm(apiClient, channel, value)
+    recordLastSent(set, 'channelA', value)
   },
 
   sendMotorPwm: async (channelKey, field) => {
