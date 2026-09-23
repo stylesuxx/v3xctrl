@@ -1,6 +1,7 @@
 import logging
 import os
 from datetime import UTC, datetime
+from enum import StrEnum
 from pathlib import Path
 from typing import TextIO
 
@@ -32,6 +33,9 @@ _HEADER = """<?xml version="1.0" encoding="UTF-8"?>
     <name>{name}</name>
     <trkseg>
 """
+_SEGMENT_OPEN = "    <trkseg>\n"
+_SEGMENT_CLOSE = "    </trkseg>\n"
+_DOCUMENT_CLOSE = "  </trk>\n</gpx>\n"
 
 
 def _isoformat(moment: datetime) -> str:
@@ -64,7 +68,7 @@ class GpxWriter:
 
         file = self._file if self._file is not None else self._open()
         if not self._segment_open:
-            file.write("    <trkseg>\n")
+            file.write(_SEGMENT_OPEN)
             self._segment_open = True
 
         file.write(self._to_trkpt(fix))
@@ -80,7 +84,7 @@ class GpxWriter:
         if self._file is None or not self._segment_open:
             return
 
-        self._file.write("    </trkseg>\n")
+        self._file.write(_SEGMENT_CLOSE)
         self._file.flush()
         self._segment_open = False
 
@@ -90,10 +94,10 @@ class GpxWriter:
             return
 
         if self._segment_open:
-            self._file.write("    </trkseg>\n")
+            self._file.write(_SEGMENT_CLOSE)
             self._segment_open = False
 
-        self._file.write("  </trk>\n</gpx>\n")
+        self._file.write(_DOCUMENT_CLOSE)
         self._file.flush()
         os.fsync(self._file.fileno())
         self._file.close()
@@ -142,3 +146,52 @@ class GpxWriter:
             f"        </extensions>\n"
             f"      </trkpt>\n"
         )
+
+
+class RepairResult(StrEnum):
+    REPAIRED = "repaired"
+    ALREADY_CLOSED = "already closed"
+    NOT_GPX = "not a GPX file"
+    UNREPAIRABLE = "unrepairable, left untouched"
+
+
+def repair_track(path: Path, dry_run: bool = False) -> RepairResult:
+    """Close a track left open by a crash or power loss. Never deletes the file.
+
+    Cuts back to the last complete </trkpt> before closing, so a point that was half-written
+    when the power went is dropped instead of leaving the file malformed.
+    """
+    data = path.read_bytes()
+    if not data:
+        return RepairResult.UNREPAIRABLE
+
+    if b"<gpx" not in data[:1024]:
+        return RepairResult.NOT_GPX
+
+    if data.rstrip().endswith(b"</gpx>"):
+        return RepairResult.ALREADY_CLOSED
+
+    last_point = data.rfind(b"</trkpt>")
+    last_segment = data.rfind(b"<trkseg>")
+    if last_point != -1:
+        cut = last_point + len(b"</trkpt>")
+    elif last_segment != -1:
+        # the header made it to disk but no complete point did; an empty segment is valid GPX
+        cut = last_segment + len(b"<trkseg>")
+    else:
+        return RepairResult.UNREPAIRABLE
+
+    # the cut always lands inside a segment: its </trkseg> could only come after the last point
+    closing = "\n" + _SEGMENT_CLOSE + _DOCUMENT_CLOSE
+
+    if dry_run:
+        return RepairResult.REPAIRED
+
+    with path.open("r+b") as file:
+        file.truncate(cut)
+        file.seek(cut)
+        file.write(closing.encode("utf-8"))
+        file.flush()
+        os.fsync(file.fileno())
+
+    return RepairResult.REPAIRED
