@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any
 from v3xctrl_control import Server
 from v3xctrl_control.message import Heartbeat, PeerAnnouncement
 from v3xctrl_control.State import State
-from v3xctrl_helper.exceptions import PeerRegistrationAborted, PeerRegistrationError
+from v3xctrl_helper.exceptions import PeerRegistrationAborted, PeerRegistrationError, UnauthorizedError
 from v3xctrl_relay.custom_types import PortType
 from v3xctrl_relay.Peer import Peer
 from v3xctrl_relay.Role import Role
@@ -267,6 +267,12 @@ class NetworkSetup:
                 success=False,
                 error_message="Registration aborted",
                 aborted=True,
+            )
+
+        except UnauthorizedError:
+            return RelaySetupResult(
+                success=False,
+                error_message="Relay rejected the session ID - check 'Relay session ID' setting",
             )
 
         except PeerRegistrationError:

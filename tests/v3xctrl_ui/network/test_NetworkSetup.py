@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 from tests.v3xctrl_ui.settings_helper import build_settings
 from v3xctrl_helper import PeerAddresses
-from v3xctrl_helper.exceptions import PeerRegistrationAborted, PeerRegistrationError
+from v3xctrl_helper.exceptions import PeerRegistrationAborted, PeerRegistrationError, UnauthorizedError
 from v3xctrl_relay.Role import Role
 from v3xctrl_tcp import Transport
 from v3xctrl_ui.core.SettingsSchema import VideoReceiver
@@ -89,6 +89,18 @@ class TestNetworkSetup(unittest.TestCase):
         self.assertFalse(result.success)
         self.assertIsNone(result.video_address)
         self.assertIn("registration failed", result.error_message.lower())
+
+    def test_setup_relay_unauthorized_names_the_session_id(self):
+        setup = NetworkSetup(self.settings)
+        mock_peer = MagicMock()
+        mock_peer.setup.side_effect = UnauthorizedError("bad auth")
+        self.mock_peer_cls.return_value = mock_peer
+
+        result = setup.setup_relay("relay.example.com", 8080, "badid")
+
+        self.assertFalse(result.success)
+        self.assertFalse(result.aborted)
+        self.assertIn("session ID", result.error_message)
 
     def test_setup_relay_aborted(self):
         setup = NetworkSetup(self.settings)
