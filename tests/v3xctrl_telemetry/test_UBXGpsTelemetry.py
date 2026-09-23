@@ -7,6 +7,7 @@ import serial
 from pytest import approx
 
 from v3xctrl_telemetry.dataclasses import GpsFixType
+from v3xctrl_telemetry.GpsTelemetry import GpsTelemetry
 from v3xctrl_telemetry.UBXGpsTelemetry import UBXGpsTelemetry, UBXMessageId
 
 _MODULE = "v3xctrl_telemetry.UBXGpsTelemetry"
@@ -26,6 +27,25 @@ def _make_message(identity, **attrs):
     for key, value in attrs.items():
         setattr(msg, key, value)
     return msg
+
+
+def _make_nav_pvt(**overrides):
+    """NAV-PVT mock with numeric defaults, since _to_fix does arithmetic on every field."""
+    fields = {
+        "fixType": 3,
+        "lat": 0.0,
+        "lon": 0.0,
+        "hMSL": 0,
+        "gSpeed": 0,
+        "headMot": 0.0,
+        "numSV": 0,
+        "hAcc": 0,
+        "pDOP": 0.0,
+        "gnssFixOk": 1,
+        "invalidLlh": 0,
+    }
+    fields.update(overrides)
+    return _make_message(UBXMessageId.NAV_PVT, **fields)
 
 
 def _make_gps(rate_hz=5):
@@ -60,8 +80,7 @@ class TestUpdate(unittest.TestCase):
 
     def test_nav_pvt_3d_fix_updates_state(self):
         gps, mock_port, mock_reader = _make_gps()
-        msg = _make_message(
-            UBXMessageId.NAV_PVT,
+        msg = _make_nav_pvt(
             fixType=3,
             lat=51.5,
             lon=-0.1,
@@ -83,7 +102,7 @@ class TestUpdate(unittest.TestCase):
 
     def test_nav_pvt_2d_fix_updates_position(self):
         gps, mock_port, mock_reader = _make_gps()
-        msg = _make_message(UBXMessageId.NAV_PVT, fixType=2, lat=48.8, lon=2.3, gSpeed=0, numSV=5)
+        msg = _make_nav_pvt(fixType=2, lat=48.8, lon=2.3, gSpeed=0, numSV=5)
         mock_port.in_waiting = 1
         mock_reader.read.side_effect = _read_once(mock_port, msg)
 
@@ -95,7 +114,7 @@ class TestUpdate(unittest.TestCase):
 
     def test_nav_pvt_no_fix_does_not_update_position(self):
         gps, mock_port, mock_reader = _make_gps()
-        msg = _make_message(UBXMessageId.NAV_PVT, fixType=0, numSV=3)
+        msg = _make_nav_pvt(fixType=0, numSV=3)
         mock_port.in_waiting = 1
         mock_reader.read.side_effect = _read_once(mock_port, msg)
 
@@ -108,7 +127,7 @@ class TestUpdate(unittest.TestCase):
 
     def test_nav_pvt_dead_reckoning_does_not_update_position(self):
         gps, mock_port, mock_reader = _make_gps()
-        msg = _make_message(UBXMessageId.NAV_PVT, fixType=1, numSV=0)
+        msg = _make_nav_pvt(fixType=1, numSV=0)
         mock_port.in_waiting = 1
         mock_reader.read.side_effect = _read_once(mock_port, msg)
 
@@ -120,7 +139,7 @@ class TestUpdate(unittest.TestCase):
 
     def test_nav_pvt_invalid_fix_type_defaults_to_no_fix(self):
         gps, mock_port, mock_reader = _make_gps()
-        msg = _make_message(UBXMessageId.NAV_PVT, fixType=99, numSV=0)
+        msg = _make_nav_pvt(fixType=99, numSV=0)
         mock_port.in_waiting = 1
         mock_reader.read.side_effect = _read_once(mock_port, msg)
 
@@ -149,6 +168,77 @@ class TestUpdate(unittest.TestCase):
         mock_reader.read.side_effect = _read_once(mock_port, None)
 
         assert gps.update() is False
+
+
+class TestGetFix(unittest.TestCase):
+    def test_no_nav_pvt_yet_returns_none(self):
+        gps, _, _ = _make_gps()
+
+        assert gps.get_fix() is None
+
+    def test_nav_pvt_populates_fix_with_converted_units(self):
+        gps, mock_port, mock_reader = _make_gps()
+        msg = _make_nav_pvt(
+            fixType=3,
+            lat=51.5,
+            lon=-0.1,
+            hMSL=123456,  # mm → 123.456 m
+            gSpeed=5000,  # mm/s → 5.0 m/s
+            headMot=87.5,
+            numSV=9,
+            hAcc=2500,  # mm → 2.5 m
+            pDOP=1.75,
+        )
+        mock_port.in_waiting = 1
+        mock_reader.read.side_effect = _read_once(mock_port, msg)
+
+        gps.update()
+
+        fix = gps.get_fix()
+        assert fix is not None
+        assert fix.fix_type == GpsFixType.FIX_3D
+        assert fix.lat == 51.5
+        assert fix.lng == -0.1
+        assert fix.altitude == approx(123.456)
+        assert fix.ground_speed == approx(5.0)
+        assert fix.heading == approx(87.5)
+        assert fix.satellites == 9
+        assert fix.horizontal_accuracy == approx(2.5)
+        assert fix.pdop == approx(1.75)
+
+    def test_validity_flags_are_booleans(self):
+        gps, mock_port, mock_reader = _make_gps()
+        msg = _make_nav_pvt(gnssFixOk=0, invalidLlh=1)
+        mock_port.in_waiting = 1
+        mock_reader.read.side_effect = _read_once(mock_port, msg)
+
+        gps.update()
+
+        fix = gps.get_fix()
+        assert fix is not None
+        assert fix.fix_ok is False
+        assert fix.position_valid is False
+
+    def test_fix_is_built_even_without_a_position_fix(self):
+        """The gate needs to see bad fixes to count them, so they must not be swallowed."""
+        gps, mock_port, mock_reader = _make_gps()
+        msg = _make_nav_pvt(fixType=0, numSV=2, gnssFixOk=0)
+        mock_port.in_waiting = 1
+        mock_reader.read.side_effect = _read_once(mock_port, msg)
+
+        gps.update()
+
+        fix = gps.get_fix()
+        assert fix is not None
+        assert fix.fix_type == GpsFixType.NO_FIX
+        assert fix.satellites == 2
+
+    def test_base_class_reports_no_fix(self):
+        class _Dummy(GpsTelemetry):
+            def update(self) -> bool:
+                return False
+
+        assert _Dummy().get_fix() is None
 
 
 class TestOpenAtBaud(unittest.TestCase):

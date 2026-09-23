@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from v3xctrl_telemetry.dataclasses import LocationInfo
+from v3xctrl_telemetry.dataclasses import GpsFix, LocationInfo
 
 
 class GpsTelemetry(ABC):
@@ -14,3 +14,7 @@ class GpsTelemetry(ABC):
 
     def get_state(self) -> LocationInfo:
         return self._state
+
+    def get_fix(self) -> GpsFix | None:
+        """Override where the protocol carries a full fix. NMEA and modem sources do not."""
+        return None

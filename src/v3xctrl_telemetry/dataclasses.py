@@ -160,6 +160,27 @@ class LocationInfo:
 
 
 @dataclass
+class GpsFix:
+    """Everything NAV-PVT tells us about a single fix.
+
+    Deliberately not part of `TelemetryPayload`: this never leaves the Pi, so the wire
+    format and the viewers parsing it stay untouched.
+    """
+
+    lat: float = 0.0
+    lng: float = 0.0
+    altitude: float = 0.0  # m above mean sea level
+    ground_speed: float = 0.0  # m/s
+    heading: float = 0.0  # degrees
+    fix_type: GpsFixType = GpsFixType.NO_HARDWARE
+    satellites: int = 0
+    horizontal_accuracy: float = 0.0  # m
+    pdop: float = 0.0
+    fix_ok: bool = False  # receiver considers the fix within its configured masks
+    position_valid: bool = False  # receiver did not flag lat/lon/height as invalid
+
+
+@dataclass
 class BatteryInfo:
     """Battery telemetry information."""
 

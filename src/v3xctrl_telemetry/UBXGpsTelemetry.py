@@ -14,7 +14,7 @@ from pyubx2 import (
     UBXReader,
 )
 
-from v3xctrl_telemetry.dataclasses import GpsFixType
+from v3xctrl_telemetry.dataclasses import GpsFix, GpsFixType
 from v3xctrl_telemetry.GpsTelemetry import GpsTelemetry
 
 logger = logging.getLogger(__name__)
@@ -46,8 +46,29 @@ class UBXGpsTelemetry(GpsTelemetry):
             "CFG_MSGOUT_UBX_NAV_PVT_UART1": 1,
             "CFG_RATE_MEAS": 1000 // rate_hz,
         }
+        self._fix: GpsFix | None = None
         self._serial = self._configure_module()
         self._reader = UBXReader(self._serial)
+
+    def get_fix(self) -> GpsFix | None:
+        return self._fix
+
+    @staticmethod
+    def _to_fix(msg: UBXMessage, fix_type: GpsFixType) -> GpsFix:
+        """Build the rich fix. `headMot` and `pDOP` arrive pre-scaled from pyubx2."""
+        return GpsFix(
+            lat=msg.lat,
+            lng=msg.lon,
+            altitude=msg.hMSL / 1000.0,
+            ground_speed=msg.gSpeed / 1000.0,
+            heading=msg.headMot,
+            fix_type=fix_type,
+            satellites=msg.numSV,
+            horizontal_accuracy=msg.hAcc / 1000.0,
+            pdop=msg.pDOP,
+            fix_ok=bool(msg.gnssFixOk),
+            position_valid=not msg.invalidLlh,
+        )
 
     def update(self) -> bool:
         updated = False
@@ -69,6 +90,7 @@ class UBXGpsTelemetry(GpsTelemetry):
                         self._state.lng = msg.lon
                         self._state.speed = msg.gSpeed * 3.6 / 1000.0
 
+                    self._fix = self._to_fix(msg, self._state.fix_type)
                     updated = True
 
                 case _ if msg.identity.startswith(UBXMessageId.INF_PREFIX):
