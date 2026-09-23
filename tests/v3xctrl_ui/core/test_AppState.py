@@ -176,16 +176,16 @@ class TestAppState(unittest.TestCase):
 
         import time
 
-        now = time.monotonic()
-
-        app.model.last_control_update = now - 1.0
-        app.model.last_latency_check = now - 2.0
+        app.model.last_latency_check = time.monotonic() - 2.0
 
         app.update()
 
         mock_input.read_inputs.assert_called_once()
         self.assertEqual(app.model.throttle, 0.5)
         self.assertEqual(app.model.steering, 0.3)
+        # The sender carries the values on its own cadence
+        mock_coordinator.send_control_message.assert_not_called()
+        app.control_sender.run_once(time.monotonic())
         mock_coordinator.send_control_message.assert_called_once_with(0.5, 0.3)
         mock_coordinator.send_latency_check.assert_called_once()
 
@@ -205,7 +205,7 @@ class TestAppState(unittest.TestCase):
         app.menu.update.assert_called_once()
         self.assertIsInstance(app.menu.update.call_args[0][0], float)
 
-    def test_update_no_control_when_timing_not_ready(
+    def test_update_reads_nothing_before_the_user_connected(
         self, mock_coordinator_cls, mock_renderer_cls, mock_osd_cls, mock_input_cls, mock_display_cls
     ):
         app, mock_input, _mock_osd, _mock_renderer, mock_coordinator = self._create_app(
@@ -214,10 +214,7 @@ class TestAppState(unittest.TestCase):
 
         import time
 
-        now = time.monotonic()
-
-        app.model.last_control_update = now
-        app.model.last_latency_check = now
+        app.model.last_latency_check = time.monotonic()
 
         app.update()
 
@@ -495,10 +492,6 @@ class TestAppState(unittest.TestCase):
         mock_input.read_inputs.side_effect = Exception("Input error")
 
         app.model.user_connected = True
-
-        import time
-
-        app.model.last_control_update = time.monotonic() - 1.0
 
         # Should not crash
         app.update()

@@ -65,6 +65,7 @@ def main() -> None:
 
     settings = Settings(args.config)
     state = AppState(settings, title=args.title)
+    state.start()
 
     if args.connect:
         state.connect()

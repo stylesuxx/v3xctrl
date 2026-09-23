@@ -9,7 +9,9 @@ from v3xctrl_e2e.log_expectations import (
     TelemetryCount,
     check_telemetry_rate,
     check_video_flow,
+    control_holds,
     control_values,
+    describe_control_holds,
     evaluate,
     lowest_fps,
     parse_control_values,
@@ -122,6 +124,18 @@ class TestEvaluate(unittest.TestCase):
         failures = evaluate([control("Control channel connected")], required, [])
 
         self.assertEqual(len(failures), 1)
+
+    def test_control_holds_are_read_from_the_streamer_only(self):
+        records = [
+            control("2026-09-23 00:22:05,443 - WARNING - Control resumed after 0.21s in failsafe"),
+            viewer("2026-09-23 00:22:05,500 - WARNING - Control resumed after 9.00s in failsafe"),
+            control("2026-09-23 00:22:15,100 - WARNING - Control resumed after 0.34s in failsafe"),
+        ]
+
+        self.assertEqual(control_holds(records), [0.21, 0.34])
+        self.assertEqual(
+            describe_control_holds([0.21, 0.34], 20.0), "control holds: 2 in 20s (6.0/min), longest 340 ms"
+        )
 
     def test_forbidden_reports_the_offending_line(self):
         forbidden = [Forbidden("errors", LogSource.CONTROL, r" - ERROR - ")]

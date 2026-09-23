@@ -20,6 +20,8 @@ from v3xctrl_e2e.log_expectations import (
     Required,
     check_telemetry_rate,
     check_video_flow,
+    control_holds,
+    describe_control_holds,
     evaluate,
     is_satisfied,
     lowest_fps,
@@ -402,6 +404,11 @@ class Orchestrator:
         steady_records = slice_between(self.store.snapshot(), steady_start, self.clock())
 
         failures.extend(evaluate(steady_records, [], expectations.steady_forbidden))
+        holds = control_holds(steady_records)
+        if holds:
+            # A hold the streamer rode out is link quality, reported, not judged
+            notes.append(describe_control_holds(holds, steady_seconds))
+
         minimum_fps = self.options.minimum_fps or max(source_framerate(streamer_config) - 5, 1)
         consecutive_low_windows = SOAK_CONSECUTIVE_LOW_WINDOWS if spectator_config_path is not None else 1
         viewer_stats = receiver_stats(steady_records)

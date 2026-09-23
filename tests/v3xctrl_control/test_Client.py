@@ -34,6 +34,14 @@ class TestClient(unittest.TestCase):
             if self.client.is_alive():
                 self.client.join()
 
+    def test_failsafe_and_disconnect_timeouts(self):
+        """The failsafe follows the configured milliseconds, the disconnect waits DISCONNECT_TIMEOUT_S."""
+        client = Client(HOST, PORT, failsafe_ms=150)
+
+        self.assertAlmostEqual(client.no_message_timeout, 0.15)
+        self.assertEqual(client.disconnect_timeout, Client.DISCONNECT_TIMEOUT_S)
+        self.assertEqual(Client.DISCONNECT_TIMEOUT_S, 2.0)
+
     def test_client_lifecycle(self):
         self.client.start()
         self.assertTrue(self.client.running.is_set())

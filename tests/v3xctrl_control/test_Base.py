@@ -39,6 +39,7 @@ class TestBase(unittest.TestCase):
         self.assertIsNone(self.base.message_handler)
         self.assertEqual(self.base.last_message_timestamp, 0)
         self.assertEqual(self.base.no_message_timeout, 5)
+        self.assertEqual(self.base.disconnect_timeout, 5)
         self.assertEqual(self.base.last_sent_timestamp, 0)
         self.assertEqual(self.base.last_sent_timeout, 1)
 
@@ -151,6 +152,72 @@ class TestBase(unittest.TestCase):
 
         self.assertEqual(self.base.state, State.DISCONNECTED)
         mock_handler.assert_called_once()
+
+    def test_failsafe_engages_before_the_disconnect_timeout(self) -> None:
+        """With a disconnect timeout set, the first timeout only engages the failsafe."""
+        self.base.state = State.CONNECTED
+        self.base.no_message_timeout = 0.15
+        self.base.disconnect_timeout = 2.0
+        self.base.last_message_timestamp = time.monotonic() - 0.3
+
+        failsafe_handler = Mock()
+        disconnect_handler = Mock()
+        self.base.on(State.FAILSAFE, failsafe_handler)
+        self.base.on(State.DISCONNECTED, disconnect_handler)
+
+        self.base.check_timeout()
+
+        self.assertEqual(self.base.state, State.FAILSAFE)
+        failsafe_handler.assert_called_once()
+        disconnect_handler.assert_not_called()
+
+    def test_failsafe_turns_into_a_disconnect_after_the_disconnect_timeout(self) -> None:
+        self.base.state = State.FAILSAFE
+        self.base.no_message_timeout = 0.15
+        self.base.disconnect_timeout = 2.0
+        self.base.last_message_timestamp = time.monotonic() - 2.5
+
+        disconnect_handler = Mock()
+        self.base.on(State.DISCONNECTED, disconnect_handler)
+
+        self.base.check_timeout()
+
+        self.assertEqual(self.base.state, State.DISCONNECTED)
+        disconnect_handler.assert_called_once()
+
+    def test_a_message_resumes_from_failsafe_without_a_handshake(self) -> None:
+        """The next message ends the failsafe: state is CONNECTED again before the
+        subscribers run, the CONNECTED handlers stay quiet, one WARNING names the hold."""
+        self.base.state = State.FAILSAFE
+        self.base.silence_started_at = time.monotonic() - 0.21
+        # A message the receive thread handled while the failsafe was engaging
+        self.base.last_message_timestamp = time.monotonic() - 0.005
+        connected_handler = Mock()
+        self.base.on(State.CONNECTED, connected_handler)
+        states_seen: list[State] = []
+        self.base.subscribe(Control, lambda message, address: states_seen.append(self.base.state))
+
+        with self.assertLogs("src.v3xctrl_control.Base", level="WARNING") as logs:
+            self.base.all_handler(Control({"throttle": 0.0, "steering": 0.0}), ("127.0.0.1", 5000))
+
+        self.assertEqual(self.base.state, State.CONNECTED)
+        self.assertEqual(states_seen, [State.CONNECTED])
+        connected_handler.assert_not_called()
+        self.assertRegex("\n".join(logs.output), r"resumed after 0\.2\ds")
+
+    def test_equal_timeouts_disconnect_at_once(self) -> None:
+        self.base.state = State.CONNECTED
+        self.base.no_message_timeout = 1
+        self.base.disconnect_timeout = 1
+        self.base.last_message_timestamp = time.monotonic() - 10
+
+        failsafe_handler = Mock()
+        self.base.on(State.FAILSAFE, failsafe_handler)
+
+        self.base.check_timeout()
+
+        self.assertEqual(self.base.state, State.DISCONNECTED)
+        failsafe_handler.assert_not_called()
 
     def test_check_timeout_does_nothing_if_disconnected(self) -> None:
         self.base.state = State.DISCONNECTED

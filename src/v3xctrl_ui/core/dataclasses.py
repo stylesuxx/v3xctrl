@@ -35,7 +35,6 @@ class ApplicationModel:
     loop_history: deque[float] = field(default_factory=lambda: deque(maxlen=300))
     control_interval: float = 0.0
     latency_interval: float = 0.0
-    last_control_update: float = 0.0
     last_latency_check: float = 0.0
 
     # Lifecycle

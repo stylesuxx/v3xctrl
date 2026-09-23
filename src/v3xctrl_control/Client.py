@@ -26,6 +26,9 @@ from .UDPTransmitter import UDPTransmitter
 
 class Client(Base):
     SYN_INTERVAL = 1
+    # Silence beyond this tears the session down; up to it the failsafe holds
+    # the outputs and the next message resumes without a handshake.
+    DISCONNECT_TIMEOUT_S = 2.0
 
     def __init__(
         self, host: str, port: int, bind_port: int | None = None, failsafe_ms: int = 500, bind_address: str = "0.0.0.0"
@@ -45,6 +48,7 @@ class Client(Base):
         server in a certain amount of time.
         """
         self.no_message_timeout: float = self.failsafe_ms / 1000
+        self.disconnect_timeout = self.DISCONNECT_TIMEOUT_S
 
         # Resolve host to IP - this is required for host checks in the UDP
         # receiver
@@ -114,16 +118,20 @@ class Client(Base):
     def run(self) -> None:
         self.running.set()
         while self.running.is_set():
-            if self.state == State.DISCONNECTED:
-                self.re_initialize()
-                self.handle_state_change(State.WAITING)
+            match self.state:
+                case State.DISCONNECTED:
+                    self.re_initialize()
+                    self.handle_state_change(State.WAITING)
 
-            elif self.state == State.WAITING:
-                self._send_syn()
+                case State.WAITING:
+                    self._send_syn()
 
-            elif self.state == State.CONNECTED:
-                self.check_timeout()
-                self.heartbeat()
+                case State.CONNECTED | State.FAILSAFE:
+                    self.check_timeout()
+                    self.heartbeat()
+
+                case State.SPECTATING:
+                    pass
 
             time.sleep(0.005)
 

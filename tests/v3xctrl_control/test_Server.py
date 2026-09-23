@@ -235,6 +235,10 @@ class TestServer(unittest.TestCase):
         ack = CommandAck(command.get_command_id())
         self.server.command_ack_handler(ack, (HOST, PORT))
 
+    def test_stall_and_disconnect_timeouts_coincide(self):
+        self.assertEqual(self.server.no_message_timeout, 10)
+        self.assertEqual(self.server.disconnect_timeout, 10)
+
     def test_binds_all_interfaces_by_default(self):
         with patch("socket.socket") as mock_socket:
             Server(port=9999)

@@ -99,47 +99,6 @@ class TestUpdateFromSettings:
 class TestShouldUpdateControl:
     """Test control update timing checks."""
 
-    def test_should_update_control_when_enough_time_passed(self):
-        """Test that should_update_control returns True when interval elapsed."""
-        settings = build_settings(
-            timing={
-                "control_update_hz": 30  # 1/30 = 0.0333s interval
-            }
-        )
-        model = ApplicationModel()
-        controller = TimingController(settings, model)
-
-        now = time.monotonic()
-        model.last_control_update = now - 0.04  # 40ms ago, more than 33ms
-
-        assert controller.should_update_control(now) is True
-
-    def test_should_not_update_control_when_insufficient_time(self):
-        """Test that should_update_control returns False when interval not elapsed."""
-        settings = build_settings(
-            timing={
-                "control_update_hz": 30  # 1/30 = 0.0333s interval
-            }
-        )
-        model = ApplicationModel()
-        controller = TimingController(settings, model)
-
-        now = time.monotonic()
-        model.last_control_update = now - 0.01  # 10ms ago, less than 33ms
-
-        assert controller.should_update_control(now) is False
-
-    def test_should_update_control_exact_boundary(self):
-        """Test boundary condition when time exceeds interval slightly."""
-        settings = build_settings(timing={"control_update_hz": 30})
-        model = ApplicationModel()
-        controller = TimingController(settings, model)
-
-        now = time.monotonic()
-        model.last_control_update = now - (1.0 / 30) - 0.001  # Slightly over interval
-
-        assert controller.should_update_control(now) is True
-
 
 class TestShouldCheckLatency:
     """Test latency check timing checks."""
@@ -193,17 +152,6 @@ class TestShouldCheckLatency:
 class TestMarkTimestamps:
     """Test marking update timestamps."""
 
-    def test_mark_control_updated(self):
-        """Test that mark_control_updated sets the timestamp."""
-        settings = build_settings(timing={})
-        model = ApplicationModel()
-        controller = TimingController(settings, model)
-
-        now = time.monotonic()
-        controller.mark_control_updated(now)
-
-        assert model.last_control_update == now
-
     def test_mark_latency_checked(self):
         """Test that mark_latency_checked sets the timestamp."""
         settings = build_settings(timing={})
@@ -215,49 +163,9 @@ class TestMarkTimestamps:
 
         assert model.last_latency_check == now
 
-    def test_mark_updates_independent(self):
-        """Test that marking one timestamp doesn't affect the other."""
-        settings = build_settings(timing={})
-        model = ApplicationModel()
-        controller = TimingController(settings, model)
-
-        control_time = time.monotonic()
-        controller.mark_control_updated(control_time)
-
-        time.sleep(0.01)  # Small delay
-
-        latency_time = time.monotonic()
-        controller.mark_latency_checked(latency_time)
-
-        assert model.last_control_update == control_time
-        assert model.last_latency_check == latency_time
-        assert model.last_control_update != model.last_latency_check
-
 
 class TestTimingControllerIntegration:
     """Integration tests simulating real usage patterns."""
-
-    def test_typical_update_cycle(self):
-        """Test a typical update cycle with control and latency checks."""
-        settings = build_settings(timing={"control_update_hz": 30, "latency_check_hz": 1, "main_loop_fps": 60})
-        model = ApplicationModel()
-        controller = TimingController(settings, model)
-
-        # Initialize timestamps
-        start = time.monotonic()
-        model.last_control_update = start
-        model.last_latency_check = start
-
-        # Simulate time passing (40ms, should trigger control update)
-        now = start + 0.04
-
-        if controller.should_update_control(now):
-            controller.mark_control_updated(now)
-
-        assert model.last_control_update == now
-
-        # Latency check shouldn't trigger yet
-        assert controller.should_check_latency(now) is False
 
     def test_settings_hot_reload(self):
         """Test changing settings during runtime."""
@@ -275,47 +183,3 @@ class TestTimingControllerIntegration:
         assert model.control_interval != original_interval
         assert model.control_interval == pytest.approx(1.0 / 60, abs=0.001)
         assert controller.main_loop_fps == 120
-
-    def test_multiple_frames_with_timing(self):
-        """Test multiple frame updates respecting timing intervals."""
-        settings = build_settings(
-            timing={
-                "control_update_hz": 10  # Very slow for testing
-            }
-        )
-        model = ApplicationModel()
-        controller = TimingController(settings, model)
-
-        start = time.monotonic()
-        model.last_control_update = start
-
-        updates_triggered = 0
-
-        # Simulate 5 frames at 60fps (should only trigger 1 update at 10Hz)
-        for i in range(5):
-            now = start + (i * 0.0166)  # ~60fps intervals
-            if controller.should_update_control(now):
-                controller.mark_control_updated(now)
-                updates_triggered += 1
-
-        # At 10Hz, only the first check should trigger (0.1s interval)
-        assert updates_triggered <= 1
-
-    def test_high_frequency_control_updates(self):
-        """Test high frequency control updates (120Hz)."""
-        settings = build_settings(timing={"control_update_hz": 120})
-        model = ApplicationModel()
-        controller = TimingController(settings, model)
-
-        start = time.monotonic()
-        model.last_control_update = start
-
-        # After 1/120 seconds, should allow update
-        # Use the actual interval from the model to avoid FP precision issues
-        now = start + model.control_interval
-        assert controller.should_update_control(now) is True
-
-        controller.mark_control_updated(now)
-
-        # Immediately after, should not allow update
-        assert controller.should_update_control(now) is False

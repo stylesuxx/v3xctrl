@@ -53,10 +53,16 @@ class Base(threading.Thread, ABC):
 
         self.state = State.WAITING
 
-        # The server timeout should be longer than on the client. This way
-        # it is possible to recover a lost connection
+        # Silence beyond the message timeout engages the failsafe, silence
+        # beyond the disconnect timeout tears the session down. Equal values
+        # skip the failsafe and disconnect at once.
         self.last_message_timestamp: float = 0
         self.no_message_timeout: float = 5
+        self.disconnect_timeout: float = 5
+        # Stamp of the last message before the failsafe engaged; the resume
+        # reports the silence from there, however many messages the receive
+        # thread got in while the failsafe was engaging.
+        self.silence_started_at: float = 0
 
         self.last_sent_timestamp: float = 0
         self.last_sent_timeout: float = 1
@@ -71,8 +77,10 @@ class Base(threading.Thread, ABC):
 
         if not hasattr(self, "socket") or self.socket is None:
             missing.append("socket")
+
         if not hasattr(self, "transmitter") or self.transmitter is None:
             missing.append("transmitter")
+
         if not hasattr(self, "message_handler") or self.message_handler is None:
             missing.append("message_handler")
 
@@ -113,11 +121,19 @@ class Base(threading.Thread, ABC):
         return None
 
     def check_timeout(self) -> None:
-        if self.state == State.CONNECTED:
-            elapsed = time.monotonic() - self.last_message_timestamp
-            if elapsed > self.no_message_timeout:
-                logger.error(f"No message received for {self.no_message_timeout}s")
+        elapsed = time.monotonic() - self.last_message_timestamp
+
+        match self.state:
+            case State.CONNECTED | State.FAILSAFE if elapsed > self.disconnect_timeout:
+                logger.error(f"No message received for {self.disconnect_timeout}s")
                 self.handle_state_change(State.DISCONNECTED)
+
+            case State.CONNECTED if elapsed > self.no_message_timeout:
+                self.silence_started_at = self.last_message_timestamp
+                self.handle_state_change(State.FAILSAFE)
+
+            case _:
+                pass
 
     def subscribe(self, cls: type[T], handler: Handler[T]) -> None:
         """
@@ -143,7 +159,15 @@ class Base(threading.Thread, ABC):
         All messages are handled here.
         Registered (external) handlers will get messages forwarded from here
         """
-        self.last_message_timestamp = time.monotonic()
+        now = time.monotonic()
+        if self.state == State.FAILSAFE:
+            # The session was never torn down, so the CONNECTED handlers stay
+            # quiet; the silence is the one thing worth reporting.
+            self.state = State.CONNECTED
+            silence = now - self.silence_started_at
+            logger.warning(f"Control resumed after {silence:.2f}s without messages")
+
+        self.last_message_timestamp = now
         self.message_history.append(MessageFromAddress(message, addr))
         self.message_history = self.message_history[-self.message_history_length :]
 

@@ -31,7 +31,9 @@ class Server(Base):
 
         self.port = port
         self.bind_address = bind_address
+        # The viewer has no outputs to hold, so its stall and its disconnect coincide
         self.no_message_timeout = 10
+        self.disconnect_timeout = 10
 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.socket.bind((self.bind_address, self.port))

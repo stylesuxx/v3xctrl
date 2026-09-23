@@ -193,6 +193,28 @@ def parse_control_values(text: str) -> ControlValues | None:
     return ControlValues(throttle=float(match["throttle"]), steering=float(match["steering"]))
 
 
+CONTROL_HOLD_PATTERN = re.compile(r"Control resumed after (?P<seconds>[\d.]+)s")
+
+
+def control_holds(records: list[LogRecord]) -> list[float]:
+    """The failsafe holds the streamer reported, in seconds, in log order."""
+    holds: list[float] = []
+    for record in records:
+        if record.source != LogSource.CONTROL:
+            continue
+
+        match = CONTROL_HOLD_PATTERN.search(record.text)
+        if match is not None:
+            holds.append(float(match["seconds"]))
+
+    return holds
+
+
+def describe_control_holds(holds: list[float], window_seconds: float) -> str:
+    per_minute = len(holds) * 60 / window_seconds if window_seconds > 0 else 0.0
+    return f"control holds: {len(holds)} in {window_seconds:.0f}s ({per_minute:.1f}/min), longest {max(holds) * 1000:.0f} ms"
+
+
 def receiver_stats(records: list[LogRecord], source: LogSource = LogSource.VIEWER) -> list[ReceiverStats]:
     stats = (parse_receiver_stats(record.text) for record in records if record.source == source)
     return [entry for entry in stats if entry is not None]
