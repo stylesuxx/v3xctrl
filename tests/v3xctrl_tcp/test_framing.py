@@ -94,6 +94,14 @@ class TestRecvMessage(unittest.TestCase):
         result = recv_message(self.receiver)
         self.assertIsNone(result)
 
+    def test_recv_returns_none_when_the_socket_errors(self) -> None:
+        """A reset or a closed descriptor is a disconnect for the caller, not an exception."""
+        left, right = socket.socketpair()
+        right.close()
+        left.close()
+
+        self.assertIsNone(recv_message(left))
+
     def test_recv_returns_none_on_partial_header(self) -> None:
         """Sender sends 1 byte of header then disconnects."""
         self.sender.sendall(b"\x00")

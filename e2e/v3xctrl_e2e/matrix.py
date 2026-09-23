@@ -62,16 +62,25 @@ UDP_INTO_TCP_FAILURE = ExpectedFailure(
     description="streamer UDP against a TCP viewer never connects",
 )
 
+# Viewers before the UnauthorizedError fix report the generic registration
+# failure, current ones name the session ID.
+VIEWER_REJECTION_PATTERN = r"Relay setup failed: (Peer registration failed|Relay rejected the session ID)"
+
 WRONG_ID_FAILURE = ExpectedFailure(
     description="an unknown relay session ID is rejected on both sides",
     streamer_pattern=r"Unauthorized access - check 'Relay session ID' setting",
     streamer_source=LogSource.SERVICE_MANAGER,
-    viewer_pattern=r"Relay setup failed: Peer registration failed",
+    viewer_pattern=VIEWER_REJECTION_PATTERN,
 )
 
 VIEWER_WRONG_ID_FAILURE = ExpectedFailure(
     description="the relay rejects an unknown session ID",
-    viewer_pattern=r"Relay setup failed: Peer registration failed",
+    viewer_pattern=VIEWER_REJECTION_PATTERN,
+)
+
+VIEWER_TCP_WRONG_ID_FAILURE = ExpectedFailure(
+    description="the relay rejects an unknown session ID on the TCP tunnels",
+    viewer_pattern=r"TcpTunnel handshake rejected",
 )
 
 
@@ -101,6 +110,13 @@ VIEWER_NEGATIVE_CASES: tuple[TestCase, ...] = (
         Transport.UDP,
         wrong_relay_id=True,
         expected_failure=VIEWER_WRONG_ID_FAILURE,
+    ),
+    _viewer_case(
+        "V5-viewer-relay-tcp-wrong-id",
+        ConnectionMode.RELAY,
+        Transport.TCP,
+        wrong_relay_id=True,
+        expected_failure=VIEWER_TCP_WRONG_ID_FAILURE,
     ),
 )
 

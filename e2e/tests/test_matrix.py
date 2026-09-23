@@ -27,6 +27,7 @@ class TestBuildMatrix(unittest.TestCase):
                 "V2-viewer-relay-udp",
                 "V3-viewer-relay-tcp",
                 "V4-viewer-relay-wrong-id",
+                "V5-viewer-relay-tcp-wrong-id",
             ],
         )
         self.assertTrue(all(not case.requires_streamer for case in viewer_cases))
@@ -58,12 +59,14 @@ class TestBuildMatrix(unittest.TestCase):
             [case.name for case in negatives],
             [
                 "V4-viewer-relay-wrong-id",
+                "V5-viewer-relay-tcp-wrong-id",
                 "L3-direct-tcp-udp-mismatch",
                 "L4-direct-udp-tcp-mismatch",
                 "R5-relay-wrong-id",
             ],
         )
-        self.assertTrue(negatives[3].wrong_relay_id)
+        self.assertTrue(negatives[1].wrong_relay_id)
+        self.assertTrue(negatives[4].wrong_relay_id)
 
     def test_only_l1_carries_the_input_and_fault_steps(self):
         cases = build_matrix(set(Phase), include_negative=True)
