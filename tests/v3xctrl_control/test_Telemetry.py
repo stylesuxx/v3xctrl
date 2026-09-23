@@ -12,6 +12,7 @@ import unittest
 from collections.abc import Callable, Iterator
 from contextlib import ExitStack, contextmanager
 from dataclasses import replace
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 _gi_keys = ["gi", "gi.repository", "gi.repository.Gst", "gi.repository.GLib"]
@@ -19,7 +20,15 @@ _saved = {key: sys.modules.pop(key, None) for key in _gi_keys}
 sys.modules.update({key: MagicMock() for key in _gi_keys})
 
 from src.v3xctrl_control.Telemetry import Telemetry  # noqa: E402
-from v3xctrl_telemetry.dataclasses import CellInfo, ModemState, SignalInfo, TelemetryRates  # noqa: E402
+from v3xctrl_telemetry.dataclasses import (  # noqa: E402
+    CellInfo,
+    GpsFix,
+    GpsTrackMode,
+    LocationInfo,
+    ModemState,
+    SignalInfo,
+    TelemetryRates,
+)
 
 for _key in _gi_keys:
     if _saved[_key] is not None:
@@ -36,6 +45,7 @@ SOURCE_PATCHES = {
     "VideoCoreTelemetry": "src.v3xctrl_control.Telemetry.VideoCoreTelemetry",
     "GstTelemetry": "src.v3xctrl_control.Telemetry.GstTelemetry",
 }
+TRACK_LOGGER_PATCH = "src.v3xctrl_control.Telemetry.GpsTrackLogger"
 
 
 def _wait_until(predicate: Callable[[], bool], timeout: float = 2.0) -> bool:
@@ -56,14 +66,20 @@ class Fixture:
         telemetry: Telemetry,
         sources: dict[str, MagicMock],
         source_classes: dict[str, MagicMock],
+        track_logger_class: MagicMock,
     ) -> None:
         self.telemetry = telemetry
         self.sources = sources
         self.source_classes = source_classes
+        self.track_logger_class = track_logger_class
 
 
 @contextmanager
-def _make_telemetry(construction_error: Exception | None = None, **rate_overrides: float) -> Iterator[Fixture]:
+def _make_telemetry(
+    construction_error: Exception | None = None,
+    track_mode: GpsTrackMode = GpsTrackMode.OFF,
+    **rate_overrides: float,
+) -> Iterator[Fixture]:
     """Build a coordinator with every source class patched.
 
     The patches outlive __init__ because collectors construct their sources on their own
@@ -88,11 +104,13 @@ def _make_telemetry(construction_error: Exception | None = None, **rate_override
             TelemetryRates(battery=100.0, gst=100.0, videocore=100.0, services=100.0, modem=100.0),
             **rate_overrides,
         )
+        track_logger_class = stack.enter_context(patch(TRACK_LOGGER_PATCH))
+
         # gps_rate_hz drives both module config and collector interval
-        telemetry = Telemetry("/dev/modem", gps_rate_hz=100, rates=rates)
+        telemetry = Telemetry("/dev/modem", gps_rate_hz=100, gps_track_mode=track_mode, rates=rates)
 
         try:
-            yield Fixture(telemetry, sources, source_classes)
+            yield Fixture(telemetry, sources, source_classes, track_logger_class)
 
         finally:
             telemetry.stop()
@@ -195,6 +213,72 @@ class TestTelemetryCoordinator(unittest.TestCase):
             elapsed = time.monotonic() - started_at
 
         self.assertLess(elapsed, 1.5, f"join overran its timeout (elapsed={elapsed:.3f}s)")
+
+
+class TestGpsTrackWiring(unittest.TestCase):
+    def test_off_builds_no_track_logger(self) -> None:
+        with _make_telemetry() as fixture:
+            fixture.telemetry.start()
+            _wait_until(lambda: fixture.sources["UBXGpsTelemetry"].update.called)
+
+        fixture.track_logger_class.assert_not_called()
+
+    def test_track_logger_gets_the_configured_settings(self) -> None:
+        with patch(TRACK_LOGGER_PATCH) as track_logger_class:
+            Telemetry(
+                "/dev/modem",
+                gps_track_mode=GpsTrackMode.ALWAYS,
+                gps_track_path="/data/tracks",
+                gps_track_min_satellites=7,
+                gps_track_interval=2.5,
+                gps_track_min_distance=3.0,
+            )
+
+        track_logger_class.assert_called_once_with(Path("/data/tracks"), GpsTrackMode.ALWAYS, 7, 2.5, 3.0)
+
+    def test_new_fixes_reach_the_track_logger(self) -> None:
+        fix = GpsFix(lat=52.52, lng=13.405)
+        with _make_telemetry(track_mode=GpsTrackMode.ALWAYS) as fixture:
+            gps = fixture.sources["UBXGpsTelemetry"]
+            gps.update.return_value = True
+            gps.get_fix.return_value = fix
+            track_logger = fixture.track_logger_class.return_value
+
+            fixture.telemetry.start()
+            fed = _wait_until(lambda: track_logger.add_fix.called)
+
+        self.assertTrue(fed, "no fix reached the track logger")
+        track_logger.add_fix.assert_called_with(fix)
+
+    def test_location_still_reaches_the_store_with_tracking_on(self) -> None:
+        with _make_telemetry(track_mode=GpsTrackMode.ALWAYS) as fixture:
+            gps = fixture.sources["UBXGpsTelemetry"]
+            gps.update.return_value = True
+            gps.get_fix.return_value = GpsFix()
+            gps.get_state.return_value = LocationInfo(lat=48.1, lng=11.5)
+
+            fixture.telemetry.start()
+            arrived = _wait_until(lambda: fixture.telemetry.get_telemetry()["loc"]["lat"] == 48.1)
+
+        self.assertTrue(arrived, "location did not reach the store through the wrapper")
+
+    def test_join_closes_the_track_logger(self) -> None:
+        with _make_telemetry(track_mode=GpsTrackMode.ALWAYS) as fixture:
+            fixture.telemetry.start()
+            fixture.telemetry.stop()
+            fixture.telemetry.join(timeout=1.0)
+
+            fixture.track_logger_class.return_value.close.assert_called_once()
+
+    def test_join_survives_a_failing_close(self) -> None:
+        """join() runs in the streamer's finally block right before the PWM cleanup."""
+        with _make_telemetry(track_mode=GpsTrackMode.ALWAYS) as fixture:
+            fixture.track_logger_class.return_value.close.side_effect = OSError("No space left on device")
+            fixture.telemetry.start()
+            fixture.telemetry.stop()
+
+            with self.assertLogs("src.v3xctrl_control.Telemetry", level="WARNING"):
+                fixture.telemetry.join(timeout=1.0)
 
 
 class TestRateValidation(unittest.TestCase):

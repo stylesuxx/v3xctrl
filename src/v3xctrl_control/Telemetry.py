@@ -8,13 +8,16 @@ the latest snapshot via `get_telemetry()` at whatever rate is appropriate for th
 transport.
 """
 
+import logging
 import time
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any, TypeVar
 
 from v3xctrl_telemetry import GpsProtocol
 from v3xctrl_telemetry.BatteryTelemetry import BatteryState, BatteryTelemetry
 from v3xctrl_telemetry.dataclasses import (
+    GpsTrackMode,
     GstFlags,
     LocationInfo,
     ModemState,
@@ -22,14 +25,18 @@ from v3xctrl_telemetry.dataclasses import (
     TelemetryRates,
     VideoCoreFlags,
 )
+from v3xctrl_telemetry.GpsTrackLogger import GpsTrackLogger
 from v3xctrl_telemetry.GstTelemetry import GstTelemetry
 from v3xctrl_telemetry.ModemTelemetry import ModemTelemetry
 from v3xctrl_telemetry.ServiceTelemetry import ServiceTelemetry
 from v3xctrl_telemetry.TelemetryCollector import TelemetryCollector
 from v3xctrl_telemetry.TelemetrySource import TelemetrySource
 from v3xctrl_telemetry.TelemetryStore import TelemetryStore
+from v3xctrl_telemetry.TrackLoggingGps import TrackLoggingGps
 from v3xctrl_telemetry.UBXGpsTelemetry import UBXGpsTelemetry
 from v3xctrl_telemetry.VideoCoreTelemetry import VideoCoreTelemetry
+
+logger = logging.getLogger(__name__)
 
 StateT = TypeVar("StateT")
 
@@ -47,6 +54,11 @@ class Telemetry:
         gps_path: str = "/dev/serial0",
         gps_rate_hz: int = 5,
         gps_protocol: GpsProtocol = GpsProtocol.UBLOX,
+        gps_track_mode: GpsTrackMode = GpsTrackMode.OFF,
+        gps_track_path: str = "/data/recordings",
+        gps_track_min_satellites: int = 6,
+        gps_track_interval: float = 1.0,
+        gps_track_min_distance: float = 1.0,
         rates: TelemetryRates | None = None,
     ) -> None:
         # gps_protocol is accepted for forward compatibility; today only UBLOX is wired
@@ -80,11 +92,32 @@ class Telemetry:
             rates.battery,
         )
 
+        # Owned here rather than by the GPS source, so an open track survives the collector
+        # rebuilding a GPS that dropped off the bus
+        self._track_logger: GpsTrackLogger | None = None
+        if gps_track_mode is not GpsTrackMode.OFF:
+            self._track_logger = GpsTrackLogger(
+                Path(gps_track_path),
+                gps_track_mode,
+                gps_track_min_satellites,
+                gps_track_interval,
+                gps_track_min_distance,
+            )
+
+        track_logger = self._track_logger
+
+        def gps_factory() -> TelemetrySource[LocationInfo]:
+            gps = UBXGpsTelemetry(gps_path, gps_rate_hz)
+            if track_logger is None:
+                return gps
+
+            return TrackLoggingGps(gps, track_logger)
+
         # The collector polls at the rate the module was programmed to emit at, so each
         # tick drains one fix
         self._register(
             "gps",
-            lambda: UBXGpsTelemetry(gps_path, gps_rate_hz),
+            gps_factory,
             LocationInfo(),
             self._store.update_gps,
             float(gps_rate_hz),
@@ -139,6 +172,13 @@ class Telemetry:
                 remaining = max(0.0, deadline - time.monotonic())
 
             collector.join(remaining)
+
+        # After the joins, but safe even if the GPS thread outlived its share of the timeout
+        if self._track_logger is not None:
+            try:
+                self._track_logger.close()
+            except OSError as exc:
+                logger.warning("GPS track: closing failed: %s", exc)
 
     def get_telemetry(self) -> dict[str, Any]:
         return self._store.get_snapshot()

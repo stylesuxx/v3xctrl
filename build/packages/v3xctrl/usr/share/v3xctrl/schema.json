@@ -1239,6 +1239,70 @@
               "minimum": 1,
               "maximum": 10,
               "description": "GPS position update rate in Hz (u-blox M10 supports up to 10 Hz)"
+            },
+            "track": {
+              "title": "Track Logging",
+              "description": "Write the vehicle's path as a GPX file. Logging only starts once the fix has settled, and the track is split wherever the fix was lost. Stop the service cleanly to close the file.",
+              "propertyOrder": 40,
+              "type": "object",
+              "required": true,
+              "options": {
+                "collapsed": true,
+                "disable_edit_json": true,
+                "disable_properties": true
+              },
+              "properties": {
+                "mode": {
+                  "title": "Mode",
+                  "propertyOrder": 10,
+                  "type": "string",
+                  "required": true,
+                  "default": "off",
+                  "enum": ["off", "always", "withRecording"],
+                  "options": {
+                    "enum_titles": ["Off", "Always", "While recording video"]
+                  },
+                  "description": "When to write a track. 'While recording video' produces one GPX file per recording."
+                },
+                "path": {
+                  "title": "Track Path",
+                  "propertyOrder": 20,
+                  "type": "string",
+                  "required": true,
+                  "default": "/data/recordings",
+                  "description": "Directory GPX files are written to. Keep it on /data so tracks survive read-only mode."
+                },
+                "minSatellites": {
+                  "title": "Minimum Satellites",
+                  "propertyOrder": 30,
+                  "type": "integer",
+                  "required": true,
+                  "default": 6,
+                  "minimum": 4,
+                  "maximum": 12,
+                  "description": "Satellites needed before a fix counts as good enough to log"
+                },
+                "intervalSeconds": {
+                  "title": "Point Interval (s)",
+                  "propertyOrder": 40,
+                  "type": "number",
+                  "required": true,
+                  "default": 1.0,
+                  "minimum": 0.2,
+                  "maximum": 60,
+                  "description": "Minimum time between two track points"
+                },
+                "minDistanceMeters": {
+                  "title": "Minimum Distance (m)",
+                  "propertyOrder": 50,
+                  "type": "number",
+                  "required": true,
+                  "default": 1.0,
+                  "minimum": 0,
+                  "maximum": 100,
+                  "description": "Distance the vehicle has to move before a new point is written. Stops a parked vehicle filling the file with GPS wander."
+                }
+              }
             }
           }
         },

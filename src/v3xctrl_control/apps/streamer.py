@@ -36,6 +36,7 @@ from v3xctrl_helper import Address
 from v3xctrl_tcp import Transport
 from v3xctrl_tcp.TcpTunnel import TcpTunnel
 from v3xctrl_telemetry import GpsProtocol, TelemetryRates
+from v3xctrl_telemetry.dataclasses import GpsTrackMode
 
 logger = logging.getLogger(__name__)
 
@@ -194,6 +195,37 @@ parser.add_argument(
     help="GPS module protocol (default: ublox)",
 )
 parser.add_argument(
+    "--gps-track-mode",
+    type=GpsTrackMode,
+    default=GpsTrackMode.OFF,
+    choices=list(GpsTrackMode),
+    help="When to write a GPX track (default: off)",
+)
+parser.add_argument(
+    "--gps-track-path",
+    type=str,
+    default="/data/recordings",
+    help="Directory GPX tracks are written to (default: /data/recordings)",
+)
+parser.add_argument(
+    "--gps-track-min-satellites",
+    type=int,
+    default=6,
+    help="Satellites needed before a fix counts as good (default: 6)",
+)
+parser.add_argument(
+    "--gps-track-interval",
+    type=float,
+    default=1.0,
+    help="Minimum seconds between track points (default: 1.0)",
+)
+parser.add_argument(
+    "--gps-track-min-distance",
+    type=float,
+    default=1.0,
+    help="Minimum metres moved before a new track point (default: 1.0)",
+)
+parser.add_argument(
     "--telemetry-send-rate",
     type=float,
     default=1.0,
@@ -271,6 +303,11 @@ telemetry = TelemetryHandler(
     gps_path=args.gps_path,
     gps_rate_hz=args.gps_rate_hz,
     gps_protocol=GpsProtocol(args.gps_protocol),
+    gps_track_mode=args.gps_track_mode,
+    gps_track_path=args.gps_track_path,
+    gps_track_min_satellites=args.gps_track_min_satellites,
+    gps_track_interval=args.gps_track_interval,
+    gps_track_min_distance=args.gps_track_min_distance,
     rates=TelemetryRates(
         battery=args.telemetry_update_rate_battery,
         gst=args.telemetry_update_rate_gst,

@@ -105,7 +105,14 @@
     "gps": {
       "path": "/dev/serial0",
       "protocol": "ublox",
-      "rateHz": 5
+      "rateHz": 5,
+      "track": {
+        "mode": "off",
+        "path": "/data/recordings",
+        "minSatellites": 6,
+        "intervalSeconds": 1.0,
+        "minDistanceMeters": 1.0
+      }
     },
     "sendRate": 1.0,
     "updateRates": {
