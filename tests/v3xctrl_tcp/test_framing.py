@@ -102,6 +102,16 @@ class TestRecvMessage(unittest.TestCase):
 
         self.assertIsNone(recv_message(left))
 
+    def test_recv_propagates_a_read_timeout(self) -> None:
+        left, right = socket.socketpair()
+        left.settimeout(0.05)
+        try:
+            with self.assertRaises(TimeoutError):
+                recv_message(left)
+        finally:
+            left.close()
+            right.close()
+
     def test_recv_returns_none_on_partial_header(self) -> None:
         """Sender sends 1 byte of header then disconnects."""
         self.sender.sendall(b"\x00")
