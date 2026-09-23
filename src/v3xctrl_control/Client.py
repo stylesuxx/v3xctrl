@@ -118,22 +118,30 @@ class Client(Base):
     def run(self) -> None:
         self.running.set()
         while self.running.is_set():
-            match self.state:
-                case State.DISCONNECTED:
-                    self.re_initialize()
-                    self.handle_state_change(State.WAITING)
+            self.wait_until(self.run_once(time.monotonic()))
 
-                case State.WAITING:
-                    self._send_syn()
+    def run_once(self, now: float) -> float:
+        """Do what the current state is due for; return when the loop has to look again."""
+        match self.state:
+            case State.DISCONNECTED:
+                self.re_initialize()
+                self.handle_state_change(State.WAITING)
+                return now
 
-                case State.CONNECTED | State.FAILSAFE:
-                    self.check_timeout()
-                    self.heartbeat()
+            case State.WAITING:
+                return self._send_syn(now)
 
-                case State.SPECTATING:
-                    pass
+            case State.CONNECTED | State.FAILSAFE:
+                self.check_timeout(now)
+                self.heartbeat(now)
+                timeout_deadline = self.timeout_deadline()
+                if timeout_deadline is None:
+                    return now
 
-            time.sleep(0.005)
+                return min(timeout_deadline, self.heartbeat_deadline())
+
+            case State.SPECTATING:
+                return now + self.MAXIMUM_WAIT_SECONDS
 
     def stop(self) -> None:
         assert self.message_handler is not None
@@ -147,12 +155,14 @@ class Client(Base):
         self.transmitter.join()
 
         self.running.clear()
+        self.wake()
 
         self.socket.close()
 
-    def _send_syn(self) -> None:
-        """Send SYN message at max every SYN_INTERVAL."""
-        now = time.time()
-        if now - self.last_syn > self.SYN_INTERVAL:
+    def _send_syn(self, now: float) -> float:
+        """Send a SYN once per SYN_INTERVAL; return when the next one is due."""
+        if now - self.last_syn >= self.SYN_INTERVAL:
             self.send(Syn())
             self.last_syn = now
+
+        return self.last_syn + self.SYN_INTERVAL

@@ -103,13 +103,13 @@ class TestBase(unittest.TestCase):
         handler_mock.assert_not_called()
 
     def test_heartbeat_sends_when_timeout_exceeded(self) -> None:
-        self.base.last_sent_timestamp = time.time() - 10
+        self.base.last_sent_timestamp = time.monotonic() - 10
         self.base.last_sent_timeout = 1
         self.base.heartbeat()
         self.assertTrue(any(isinstance(m, Heartbeat) for m in self.base.sent_messages))
 
     def test_heartbeat_does_not_send_when_recent(self) -> None:
-        self.base.last_sent_timestamp = time.time()
+        self.base.last_sent_timestamp = time.monotonic()
         self.base.heartbeat()
         self.assertFalse(self.base.sent_messages)
 
@@ -126,7 +126,7 @@ class TestBase(unittest.TestCase):
         self.base._send(hb, addr)
 
         mock_transmitter.add_message.assert_called_once_with(hb, addr)
-        self.assertAlmostEqual(self.base.last_sent_timestamp, time.time(), delta=0.1)
+        self.assertAlmostEqual(self.base.last_sent_timestamp, time.monotonic(), delta=0.1)
 
     def test__send_without_transmitter(self) -> None:
         hb = Heartbeat()
@@ -218,6 +218,34 @@ class TestBase(unittest.TestCase):
 
         self.assertEqual(self.base.state, State.DISCONNECTED)
         failsafe_handler.assert_not_called()
+
+    def test_timeout_deadline_follows_the_state(self) -> None:
+        self.base.last_message_timestamp = 100.0
+        self.base.no_message_timeout = 0.15
+        self.base.disconnect_timeout = 2.0
+
+        self.base.state = State.CONNECTED
+        self.assertAlmostEqual(self.base.timeout_deadline() or 0, 100.15)
+        self.base.state = State.FAILSAFE
+        self.assertAlmostEqual(self.base.timeout_deadline() or 0, 102.0)
+        self.base.state = State.WAITING
+        self.assertIsNone(self.base.timeout_deadline())
+
+    def test_wake_ends_a_long_wait_at_once(self) -> None:
+        self.base.wake()
+        start = time.monotonic()
+
+        self.base.wait_until(time.monotonic() + 10)
+
+        self.assertLess(time.monotonic() - start, 0.1)
+
+    def test_wait_is_capped(self) -> None:
+        self.base.MAXIMUM_WAIT_SECONDS = 0.05
+        start = time.monotonic()
+
+        self.base.wait_until(time.monotonic() + 10)
+
+        self.assertLess(time.monotonic() - start, 0.5)
 
     def test_check_timeout_does_nothing_if_disconnected(self) -> None:
         self.base.state = State.DISCONNECTED

@@ -239,6 +239,11 @@ class TestServer(unittest.TestCase):
         self.assertEqual(self.server.no_message_timeout, 10)
         self.assertEqual(self.server.disconnect_timeout, 10)
 
+    def test_run_once_waiting_only_wakes_at_the_cap(self):
+        self.server.state = State.WAITING
+
+        self.assertAlmostEqual(self.server.run_once(now=100.0), 100.0 + self.server.MAXIMUM_WAIT_SECONDS)
+
     def test_binds_all_interfaces_by_default(self):
         with patch("socket.socket") as mock_socket:
             Server(port=9999)
@@ -271,7 +276,6 @@ class TestServer(unittest.TestCase):
     @patch("src.v3xctrl_control.Server.Server.heartbeat")
     def test_run_method_state_machine(self, mock_heartbeat, mock_check_timeout, mock_handle_state_change):
         # Test the main run loop (lines 93-119)
-        self.server.STATE_CHECK_INTERVAL_MS = 10  # Fast for testing
 
         # Mock the all_handler method that's referenced but not defined
         self.server.all_handler = MagicMock()
@@ -306,7 +310,6 @@ class TestServer(unittest.TestCase):
     @patch("src.v3xctrl_control.Server.Server.heartbeat")
     def test_run_method_connected_state(self, mock_heartbeat, mock_check_timeout, mock_handle_state_change):
         # Test CONNECTED state path in run loop
-        self.server.STATE_CHECK_INTERVAL_MS = 10
         self.server.all_handler = MagicMock()
 
         # Start with CONNECTED state
