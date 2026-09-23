@@ -433,6 +433,55 @@ class TestStop(unittest.TestCase):
         self.manager.stop()
 
 
+class TestTeePadBlocked(unittest.TestCase):
+    def setUp(self):
+        self.gst_patcher = patch("v3xctrl_gst.RecordingManager.Gst")
+        self.glib_patcher = patch("v3xctrl_gst.RecordingManager.GLib")
+        self.mock_gst = self.gst_patcher.start()
+        self.mock_glib = self.glib_patcher.start()
+
+        self.tee = MagicMock()
+        self.manager = RecordingManager(MagicMock(), self.tee, "/tmp/recordings")
+        self.events: list[str] = []
+
+        self.queue_sink_pad = MagicMock()
+        self.queue_sink_pad.send_event.side_effect = lambda event: self.events.append("eos sent")
+        queue = MagicMock()
+        queue.get_static_pad.return_value = self.queue_sink_pad
+
+        self.filesink_pad = MagicMock()
+        self.filesink_pad.add_probe.side_effect = lambda probe_type, callback: self.events.append("probe added")
+        filesink = MagicMock()
+        filesink.get_static_pad.return_value = self.filesink_pad
+
+        self.manager._elements = {"queue": queue, "filesink": filesink, "filename": "/tmp/recordings/x.ts"}
+        self.manager._tee_pad = MagicMock()
+
+    def tearDown(self):
+        self.gst_patcher.stop()
+        self.glib_patcher.stop()
+
+    def test_filesink_probe_is_installed_before_the_eos_is_sent(self):
+        tee_pad = MagicMock()
+
+        result = self.manager._on_tee_pad_blocked(tee_pad, MagicMock())
+
+        self.assertEqual(self.events, ["probe added", "eos sent"])
+        self.assertEqual(result, self.mock_gst.PadProbeReturn.REMOVE)
+        tee_pad.unlink.assert_called_once_with(self.queue_sink_pad)
+        self.tee.release_request_pad.assert_called_once_with(tee_pad)
+        self.assertIsNone(self.manager._tee_pad)
+        self.mock_glib.idle_add.assert_not_called()
+
+    def test_without_a_filesink_pad_the_teardown_is_scheduled_directly(self):
+        self.manager._elements["filesink"].get_static_pad.return_value = None
+
+        self.manager._on_tee_pad_blocked(MagicMock(), MagicMock())
+
+        self.mock_glib.idle_add.assert_called_once_with(self.manager._teardown)
+        self.assertEqual(self.events, ["eos sent"])
+
+
 class TestCleanup(unittest.TestCase):
     def setUp(self):
         self.gst_patcher = patch("v3xctrl_gst.RecordingManager.Gst")
