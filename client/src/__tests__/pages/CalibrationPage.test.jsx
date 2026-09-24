@@ -200,7 +200,7 @@ describe('CalibrationPage', () => {
     expect(screen.getByText('1500 µs')).toBeInTheDocument()
     expect(screen.getByText('unknown')).toBeInTheDocument()
     expect(screen.queryByText('Base pulse')).not.toBeInTheDocument()
-    expect(screen.queryByText(/dead-zone is sent on top of idle/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/dead-zone Send button sends idle/i)).not.toBeInTheDocument()
   })
 
   it('calls saveSteeringCalibration when save button is clicked', async () => {
@@ -266,7 +266,7 @@ describe('CalibrationPage', () => {
       // Steering note mentions "servo" and "trim"
       expect(screen.getByText(/servo makes clicking/i)).toBeInTheDocument()
       // Throttle note mentions "ESC"
-      expect(screen.getByText(/calibrating your ESC/i)).toBeInTheDocument()
+      expect(screen.getByText(/ESC manual for the calibration order/i)).toBeInTheDocument()
     })
   })
 })
@@ -409,8 +409,6 @@ describe('CalibrationPage - differential mixer', () => {
     expect(screen.getByText('+70 active')).toBeInTheDocument()
     expect(screen.getByText('1570 µs')).toBeInTheDocument()
     expect(screen.getByText('unknown')).toBeInTheDocument()
-    // shown even while unknown, so the card does not change height on the first send
-    expect(screen.getAllByText(/dead-zone is sent on top of idle/i)).toHaveLength(2)
   })
 
   it('calls saveThrottleCalibration once for the shared motor profile', async () => {
@@ -465,6 +463,15 @@ describe('CalibrationPage - differential mixer', () => {
     await waitFor(() => {
       expect(screen.getAllByText(/don't reverse/i).length).toBeGreaterThan(0)
     })
+  })
+
+  it('shows one shared note for both motors, including the idle and dead-zone explanation', async () => {
+    render(<CalibrationPage />)
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/shared by both motors/i)).toHaveLength(1)
+    })
+    expect(screen.getAllByText(/dead-zone Send button sends idle/i)).toHaveLength(1)
   })
 
   it('shows the reversible note when motors support reverse', async () => {

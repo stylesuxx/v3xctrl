@@ -44,10 +44,6 @@ function LastSent({ entry, showDeadzone = false }) {
           </div>
         </div>
       )}
-
-      {showDeadzone && (
-        <p className="mt-2 text-xs text-muted-foreground">{t('calibration.lastSentDeadzoneNote')}</p>
-      )}
     </div>
   )
 }
@@ -175,15 +171,18 @@ export function CalibrationPage() {
 
       {controlInactive && mixerType === MixerType.DIFFERENTIAL && (
         <div className="space-y-6">
+          <div className="flex items-start gap-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-800 dark:bg-blue-950/30 dark:text-blue-300">
+            <Info className="mt-0.5 h-4 w-4 shrink-0" />
+            <p>
+              {t(reversible ? 'calibration.motorNoteReversible' : 'calibration.motorNoteNonReversible')}{' '}
+              {t('calibration.motorNoteDeadzone')}
+            </p>
+          </div>
+
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Motor A */}
             <div className="space-y-3">
               <h3 className="text-lg font-semibold">{t('calibration.motorATitle')}</h3>
-              <div className="flex items-start gap-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-800 dark:bg-blue-950/30 dark:text-blue-300">
-                <Info className="mt-0.5 h-4 w-4 shrink-0" />
-                <p>{t(reversible ? 'calibration.motorNoteReversible' : 'calibration.motorNoteNonReversible')}</p>
-              </div>
-
               <PwmControl
                 label={t('calibration.motorMin')}
                 value={differential.motor.min}
@@ -223,11 +222,6 @@ export function CalibrationPage() {
             {/* Motor B */}
             <div className="space-y-3">
               <h3 className="text-lg font-semibold">{t('calibration.motorBTitle')}</h3>
-              <div className="flex items-start gap-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-800 dark:bg-blue-950/30 dark:text-blue-300">
-                <Info className="mt-0.5 h-4 w-4 shrink-0" />
-                <p>{t(reversible ? 'calibration.motorNoteReversible' : 'calibration.motorNoteNonReversible')}</p>
-              </div>
-
               <PwmControl
                 label={t('calibration.motorMin')}
                 value={differential.motor.min}
