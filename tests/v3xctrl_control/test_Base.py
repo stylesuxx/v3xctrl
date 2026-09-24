@@ -205,6 +205,19 @@ class TestBase(unittest.TestCase):
         connected_handler.assert_not_called()
         self.assertRegex("\n".join(logs.output), r"resumed after 0\.2\ds")
 
+    def test_a_heartbeat_keeps_the_session_but_not_the_failsafe(self) -> None:
+        """A spectator's heartbeats arrive once a second while no operator sends input:
+        the streamer must stay in failsafe, without a resume line per heartbeat."""
+        self.base.state = State.FAILSAFE
+        self.base.silence_started_at = time.monotonic() - 1.0
+        self.base.last_message_timestamp = time.monotonic() - 1.0
+
+        with self.assertNoLogs("src.v3xctrl_control.Base", level="WARNING"):
+            self.base.all_handler(Heartbeat(), ("127.0.0.1", 5000))
+
+        self.assertEqual(self.base.state, State.FAILSAFE)
+        self.assertAlmostEqual(self.base.last_message_timestamp, time.monotonic(), delta=0.1)
+
     def test_equal_timeouts_disconnect_at_once(self) -> None:
         self.base.state = State.CONNECTED
         self.base.no_message_timeout = 1

@@ -190,9 +190,10 @@ class Base(threading.Thread, ABC):
         Registered (external) handlers will get messages forwarded from here
         """
         now = time.monotonic()
-        if self.state == State.FAILSAFE:
-            # The session was never torn down, so the CONNECTED handlers stay
-            # quiet; the silence is the one thing worth reporting.
+        if self.state == State.FAILSAFE and not isinstance(message, Heartbeat):
+            # A heartbeat keeps the session from disconnecting, only input ends
+            # the failsafe. The session was never torn down, so the CONNECTED
+            # handlers stay quiet; the silence is the one thing worth reporting.
             self.state = State.CONNECTED
             silence = now - self.silence_started_at
             logger.warning(f"Control resumed after {silence:.2f}s without messages")
