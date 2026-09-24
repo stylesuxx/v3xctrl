@@ -78,7 +78,7 @@
     "steeringTitle": "Steering",
     "throttleTitle": "Throttle",
     "steeringNote": "Set min value first: Decrease until the servo makes clicking noises (or your preferred maximum is reached) and then increase one or two steps back. Do the same for the max value, just in the other direction. Once min and max are set, trim until steering is straight.",
-    "throttleNote": "Follow your ESC manual for the calibration order - usually min (Reverse), max (Forward), then idle (neutral). You will rarely need to change these values, only send them in the right order. Some ESCs need min or max sent before they are plugged in.",
+    "throttleNote": "Follow your ESC manual for the calibration order. Usually that is min (Reverse), max (Forward), then idle (neutral). You will rarely need to change these values, only send them in the right order. Some ESCs need min or max sent before they are plugged in.",
     "steeringMin": "Steering Min",
     "steeringMax": "Steering Max",
     "steeringTrim": "Steering Trim",
