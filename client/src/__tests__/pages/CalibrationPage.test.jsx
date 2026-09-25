@@ -36,6 +36,7 @@ describe('CalibrationPage', () => {
     useCalibrationStore.setState({
       mixerType: 'ackermann',
       reversible: false,
+      lastSent: { channelA: null, channelB: null },
       ackermann: {
         throttle: { min: 1000, max: 2000, idle: 1500 },
         steering: { min: 1000, max: 2000, trim: 0 },
@@ -181,6 +182,27 @@ describe('CalibrationPage', () => {
     expect(sendThrottlePwm).toHaveBeenCalledWith('min')
   })
 
+  it('shows only the output pulse per ackermann channel, and unknown before anything is sent', async () => {
+    useCalibrationStore.setState({
+      lastSent: {
+        channelA: { base: 1500, deadzone: null },
+        channelB: null,
+      },
+    })
+    useServicesStore.setState({ services: inactiveControlService })
+
+    render(<CalibrationPage />)
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Last sent')).toHaveLength(2)
+    })
+
+    expect(screen.getByText('1500 µs')).toBeInTheDocument()
+    expect(screen.getByText('unknown')).toBeInTheDocument()
+    expect(screen.queryByText('Base pulse')).not.toBeInTheDocument()
+    expect(screen.queryByText(/dead-zone Send button sends idle/i)).not.toBeInTheDocument()
+  })
+
   it('calls saveSteeringCalibration when save button is clicked', async () => {
     const saveSteeringCalibration = vi.fn()
     useCalibrationStore.setState({ saveSteeringCalibration })
@@ -244,7 +266,7 @@ describe('CalibrationPage', () => {
       // Steering note mentions "servo" and "trim"
       expect(screen.getByText(/servo makes clicking/i)).toBeInTheDocument()
       // Throttle note mentions "ESC"
-      expect(screen.getByText(/calibrating your ESC/i)).toBeInTheDocument()
+      expect(screen.getByText(/ESC manual for the calibration order/i)).toBeInTheDocument()
     })
   })
 })
@@ -287,6 +309,7 @@ describe('CalibrationPage - differential mixer', () => {
     useCalibrationStore.setState({
       mixerType: 'differential',
       reversible: false,
+      lastSent: { channelA: null, channelB: null },
       ackermann: {
         throttle: { min: 1000, max: 2000, idle: 1500 },
         steering: { min: 1000, max: 2000, trim: 0 },
@@ -369,6 +392,25 @@ describe('CalibrationPage - differential mixer', () => {
     expect(sendMotorPwm).toHaveBeenCalledWith('channelB', 'min')
   })
 
+  it('shows the last sent pulse per channel, and unknown before anything is sent', async () => {
+    useCalibrationStore.setState({
+      lastSent: {
+        channelA: { base: 1500, deadzone: 70 },
+        channelB: null,
+      },
+    })
+
+    render(<CalibrationPage />)
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Last sent')).toHaveLength(2)
+    })
+
+    expect(screen.getByText('+70 active')).toBeInTheDocument()
+    expect(screen.getByText('1570 µs')).toBeInTheDocument()
+    expect(screen.getByText('unknown')).toBeInTheDocument()
+  })
+
   it('calls saveThrottleCalibration once for the shared motor profile', async () => {
     const saveThrottleCalibration = vi.fn()
     useCalibrationStore.setState({ saveThrottleCalibration })
@@ -421,6 +463,15 @@ describe('CalibrationPage - differential mixer', () => {
     await waitFor(() => {
       expect(screen.getAllByText(/don't reverse/i).length).toBeGreaterThan(0)
     })
+  })
+
+  it('shows one shared note for both motors, including the idle and dead-zone explanation', async () => {
+    render(<CalibrationPage />)
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/shared by both motors/i)).toHaveLength(1)
+    })
+    expect(screen.getAllByText(/dead-zone Send button sends idle/i)).toHaveLength(1)
   })
 
   it('shows the reversible note when motors support reverse', async () => {

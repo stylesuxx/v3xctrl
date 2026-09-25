@@ -9,6 +9,45 @@ import { PwmControl } from '@/components/shared/PwmControl'
 import { Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
+function LastSent({ entry, showDeadzone = false }) {
+  const { t } = useTranslation()
+
+  return (
+    <div className="rounded-lg border border-border p-3 text-sm">
+      <div className="mb-1 font-medium">{t('calibration.lastSentTitle')}</div>
+
+      {(entry === null) ? (
+        <p className="text-muted-foreground">{t('calibration.lastSentUnknown')}</p>
+      ) : (
+        <div className="space-y-0.5 text-muted-foreground">
+          {showDeadzone && (
+            <>
+              <div className="flex justify-between gap-2">
+                <span>{t('calibration.lastSentBase')}</span>
+                <span className="tabular-nums">{entry.base} µs</span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span>{t('calibration.lastSentDeadzone')}</span>
+                <span className="tabular-nums">
+                  {(entry.deadzone === null)
+                    ? t('calibration.lastSentDeadzoneInactive')
+                    : t('calibration.lastSentDeadzoneActive', {
+                        value: (entry.deadzone > 0) ? `+${entry.deadzone}` : entry.deadzone,
+                      })}
+                </span>
+              </div>
+            </>
+          )}
+          <div className="flex justify-between gap-2 font-medium text-foreground">
+            <span>{t('calibration.lastSentOutput')}</span>
+            <span className="tabular-nums">{entry.base + (entry.deadzone ?? 0)} µs</span>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function CalibrationPage() {
   const { t } = useTranslation()
   const { fetchServices, isServiceInactive } = useServicesStore()
@@ -18,6 +57,7 @@ export function CalibrationPage() {
     reversible,
     ackermann,
     differential,
+    lastSent,
     initFromConfig,
     setAckermannSteeringField,
     setAckermannThrottleField,
@@ -82,6 +122,8 @@ export function CalibrationPage() {
               onSend={() => sendSteeringPwm('trim')}
             />
 
+            <LastSent entry={lastSent.channelB} />
+
             <div className="flex justify-end">
               <Button onClick={saveSteeringCalibration}>
                 {t('calibration.saveCalibration')}
@@ -116,6 +158,8 @@ export function CalibrationPage() {
               onSend={() => sendThrottlePwm('idle')}
             />
 
+            <LastSent entry={lastSent.channelA} />
+
             <div className="flex justify-end">
               <Button onClick={saveThrottleCalibration}>
                 {t('calibration.saveCalibration')}
@@ -127,15 +171,18 @@ export function CalibrationPage() {
 
       {controlInactive && mixerType === MixerType.DIFFERENTIAL && (
         <div className="space-y-6">
+          <div className="flex items-start gap-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-800 dark:bg-blue-950/30 dark:text-blue-300">
+            <Info className="mt-0.5 h-4 w-4 shrink-0" />
+            <p>
+              {t(reversible ? 'calibration.motorNoteReversible' : 'calibration.motorNoteNonReversible')}{' '}
+              {t('calibration.motorNoteDeadzone')}
+            </p>
+          </div>
+
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Motor A */}
             <div className="space-y-3">
               <h3 className="text-lg font-semibold">{t('calibration.motorATitle')}</h3>
-              <div className="flex items-start gap-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-800 dark:bg-blue-950/30 dark:text-blue-300">
-                <Info className="mt-0.5 h-4 w-4 shrink-0" />
-                <p>{t(reversible ? 'calibration.motorNoteReversible' : 'calibration.motorNoteNonReversible')}</p>
-              </div>
-
               <PwmControl
                 label={t('calibration.motorMin')}
                 value={differential.motor.min}
@@ -168,16 +215,13 @@ export function CalibrationPage() {
                   onSend={() => sendDeadzonePwm('motorA', 'minReverse')}
                 />
               )}
+
+              <LastSent entry={lastSent.channelA} showDeadzone />
             </div>
 
             {/* Motor B */}
             <div className="space-y-3">
               <h3 className="text-lg font-semibold">{t('calibration.motorBTitle')}</h3>
-              <div className="flex items-start gap-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-800 dark:bg-blue-950/30 dark:text-blue-300">
-                <Info className="mt-0.5 h-4 w-4 shrink-0" />
-                <p>{t(reversible ? 'calibration.motorNoteReversible' : 'calibration.motorNoteNonReversible')}</p>
-              </div>
-
               <PwmControl
                 label={t('calibration.motorMin')}
                 value={differential.motor.min}
@@ -210,6 +254,8 @@ export function CalibrationPage() {
                   onSend={() => sendDeadzonePwm('motorB', 'minReverse')}
                 />
               )}
+
+              <LastSent entry={lastSent.channelB} showDeadzone />
             </div>
           </div>
 

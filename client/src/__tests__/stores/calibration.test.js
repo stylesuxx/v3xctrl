@@ -9,6 +9,7 @@ describe('useCalibrationStore', () => {
     useCalibrationStore.setState({
       mixerType: 'ackermann',
       reversible: false,
+      lastSent: { channelA: null, channelB: null },
       ackermann: {
         throttle: { min: 0, max: 0, idle: 0 },
         steering: { min: 0, max: 0, trim: 0 },
@@ -154,6 +155,28 @@ describe('useCalibrationStore', () => {
     expect(mockPwm).toHaveBeenCalledWith('/gpio/0/pwm', { value: 1500 })
   })
 
+  it('records ackermann sends on the channel they drive', async () => {
+    const mockPwm = vi.fn().mockResolvedValue({})
+
+    useConnectionStore.setState({ apiClient: { put: mockPwm } })
+    useConfigStore.setState({ config: mockConfig })
+
+    useCalibrationStore.setState({
+      ackermann: {
+        steering: { min: 1000, max: 2000, trim: 50 },
+        throttle: { min: 1000, max: 2000, idle: 1500 },
+      },
+    })
+
+    await useCalibrationStore.getState().sendThrottlePwm('max')
+    await useCalibrationStore.getState().sendSteeringPwm('trim')
+
+    expect(useCalibrationStore.getState().lastSent).toEqual({
+      channelA: { base: 2000, deadzone: null },
+      channelB: { base: 1550, deadzone: null },
+    })
+  })
+
   it('sends motor PWM value to the requested channel', async () => {
     const mockPwm = vi.fn().mockResolvedValue({})
     const mockClient = { put: mockPwm }
@@ -212,6 +235,53 @@ describe('useCalibrationStore', () => {
 
     await useCalibrationStore.getState().sendDeadzonePwm('motorB', 'minReverse')
     expect(mockPwm).toHaveBeenCalledWith('/gpio/1/pwm', { value: 1470 })
+  })
+
+  it('records what was last sent per channel, with the dead-zone signed by direction', async () => {
+    const mockPwm = vi.fn().mockResolvedValue({})
+
+    useConnectionStore.setState({ apiClient: { put: mockPwm } })
+    useConfigStore.setState({ config: mockConfig })
+
+    useCalibrationStore.setState({
+      lastSent: { channelA: null, channelB: null },
+      differential: {
+        motor: { min: 1000, max: 2000, idle: 1500 },
+        motorA: { minForward: 40, minReverse: 20 },
+        motorB: { minForward: 60, minReverse: 30 },
+        mixing: { balance: 0 },
+      },
+    })
+
+    await useCalibrationStore.getState().sendMotorPwm('channelA', 'max')
+    expect(useCalibrationStore.getState().lastSent.channelA).toEqual({ base: 2000, deadzone: null })
+
+    await useCalibrationStore.getState().sendDeadzonePwm('motorA', 'minForward')
+    expect(useCalibrationStore.getState().lastSent.channelA).toEqual({ base: 1500, deadzone: 40 })
+
+    await useCalibrationStore.getState().sendDeadzonePwm('motorB', 'minReverse')
+    expect(useCalibrationStore.getState().lastSent.channelB).toEqual({ base: 1500, deadzone: -30 })
+  })
+
+  it('leaves the last sent value untouched when the request fails', async () => {
+    const mockPwm = vi.fn().mockRejectedValue(new Error('nope'))
+
+    useConnectionStore.setState({ apiClient: { put: mockPwm } })
+    useConfigStore.setState({ config: mockConfig })
+
+    useCalibrationStore.setState({
+      lastSent: { channelA: { base: 1500, deadzone: null }, channelB: null },
+      differential: {
+        motor: { min: 1000, max: 2000, idle: 1500 },
+        motorA: { minForward: 40, minReverse: 20 },
+        motorB: { minForward: 60, minReverse: 30 },
+        mixing: { balance: 0 },
+      },
+    })
+
+    // A failed send means the channel did not change either, so the old value still holds
+    await expect(useCalibrationStore.getState().sendMotorPwm('channelA', 'max')).rejects.toThrow()
+    expect(useCalibrationStore.getState().lastSent.channelA).toEqual({ base: 1500, deadzone: null })
   })
 
   it('initializes per motor dead-zones from a differential config', () => {
