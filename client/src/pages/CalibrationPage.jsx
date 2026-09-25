@@ -16,7 +16,7 @@ function LastSent({ entry, showDeadzone = false }) {
     <div className="rounded-lg border border-border p-3 text-sm">
       <div className="mb-1 font-medium">{t('calibration.lastSentTitle')}</div>
 
-      {entry === null ? (
+      {(entry === null) ? (
         <p className="text-muted-foreground">{t('calibration.lastSentUnknown')}</p>
       ) : (
         <div className="space-y-0.5 text-muted-foreground">
@@ -29,10 +29,10 @@ function LastSent({ entry, showDeadzone = false }) {
               <div className="flex justify-between gap-2">
                 <span>{t('calibration.lastSentDeadzone')}</span>
                 <span className="tabular-nums">
-                  {entry.deadzone === null
+                  {(entry.deadzone === null)
                     ? t('calibration.lastSentDeadzoneInactive')
                     : t('calibration.lastSentDeadzoneActive', {
-                        value: entry.deadzone > 0 ? `+${entry.deadzone}` : entry.deadzone,
+                        value: (entry.deadzone > 0) ? `+${entry.deadzone}` : entry.deadzone,
                       })}
                 </span>
               </div>

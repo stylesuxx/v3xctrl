@@ -152,7 +152,7 @@ export const useCalibrationStore = create((set, get) => ({
   sendMotorPwm: async (channelKey, field) => {
     const { apiClient } = useConnectionStore.getState()
     const config = useConfigStore.getState().config
-    const channel = channelKey === 'channelA' ? config.control.pwm.channelA : config.control.pwm.channelB
+    const channel = (channelKey === 'channelA') ? config.control.pwm.channelA : config.control.pwm.channelB
     const value = get().differential.motor[field]
 
     await gpioApi.setPwm(apiClient, channel, value)
@@ -162,11 +162,11 @@ export const useCalibrationStore = create((set, get) => ({
   sendDeadzonePwm: async (motorKey, field) => {
     const { apiClient } = useConnectionStore.getState()
     const config = useConfigStore.getState().config
-    const channelKey = motorKey === 'motorA' ? 'channelA' : 'channelB'
+    const channelKey = (motorKey === 'motorA') ? 'channelA' : 'channelB'
     const channel = config.control.pwm[channelKey]
     const { motor } = get().differential
     const deadzone = get().differential[motorKey][field]
-    const signedDeadzone = field === 'minForward' ? deadzone : -deadzone
+    const signedDeadzone = (field === 'minForward') ? deadzone : -deadzone
     const value = motor.idle + signedDeadzone
 
     await gpioApi.setPwm(apiClient, channel, value)
