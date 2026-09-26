@@ -249,6 +249,15 @@ def control_values(records: list[LogRecord]) -> list[ControlValues]:
     return [entry for entry in values if entry is not None]
 
 
+def is_pipeline_start(entry: ReceiverStats) -> bool:
+    """The receiver logs a stats line on its first frame; it covers no interval."""
+    return entry.frames <= 1 and entry.avg_decoded_fps == 0
+
+
+def full_windows(stats: list[ReceiverStats]) -> list[ReceiverStats]:
+    return [entry for entry in stats if not is_pipeline_start(entry)]
+
+
 def check_video_flow(
     stats: list[ReceiverStats],
     minimum_fps: int,
@@ -257,17 +266,19 @@ def check_video_flow(
 ) -> list[str]:
     """Stats lines only appear while frames arrive, so their presence is the flow signal.
 
-    The first line after a pipeline start covers a partial interval and reports
-    a low FPS, so the check is over the lines after it. A frame rate below the
-    floor fails once it lasts `consecutive_low_windows` stats windows in a row;
-    a soak over the internet relay tolerates a single slow window that way.
+    The receiver logs one line every 10 s, so a 20 s window holds one or two
+    full lines depending on where it starts; the video gap rule covers the
+    rest of the window. A frame rate below the floor fails once it lasts
+    `consecutive_low_windows` stats windows in a row; a soak over the internet
+    relay tolerates a single slow window that way.
     """
-    if len(stats) < 2:
-        return [f"video flow: expected at least 2 receiver stats lines, saw {len(stats)}"]
+    windows = full_windows(stats)
+    if not windows:
+        return [f"video flow: expected at least 1 full receiver stats line, saw {len(windows)}"]
 
     failures: list[str] = []
     low_run = 0
-    for entry in stats[1:]:
+    for entry in windows:
         if entry.avg_decoded_fps < minimum_fps:
             low_run += 1
             if low_run == consecutive_low_windows:
@@ -286,10 +297,11 @@ def check_video_flow(
 
 def lowest_fps(stats: list[ReceiverStats]) -> int | None:
     """The slowest full stats window, for the notes of a long hold."""
-    if len(stats) < 2:
+    windows = full_windows(stats)
+    if not windows:
         return None
 
-    return min(entry.avg_decoded_fps for entry in stats[1:])
+    return min(entry.avg_decoded_fps for entry in windows)
 
 
 def check_telemetry_rate(counts: list[TelemetryCount], expected_hz: float, tolerance: float) -> list[str]:
