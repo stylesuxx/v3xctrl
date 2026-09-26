@@ -34,6 +34,39 @@ class TestClient(unittest.TestCase):
             if self.client.is_alive():
                 self.client.join()
 
+    def test_failsafe_and_disconnect_timeouts(self):
+        """The failsafe follows the configured milliseconds, the disconnect waits DISCONNECT_TIMEOUT_S."""
+        client = Client(HOST, PORT, failsafe_ms=150)
+
+        self.assertAlmostEqual(client.no_message_timeout, 0.15)
+        self.assertEqual(client.disconnect_timeout, Client.DISCONNECT_TIMEOUT_S)
+        self.assertEqual(Client.DISCONNECT_TIMEOUT_S, 2.0)
+
+    @patch("src.v3xctrl_control.Client.Base._send")
+    def test_run_once_waiting_sends_a_syn_and_schedules_the_next(self, mock_send):
+        self.client.state = State.WAITING
+        self.client.last_syn = 0.0
+
+        deadline = self.client.run_once(now=100.0)
+
+        self.assertIsInstance(mock_send.call_args[0][0], Syn)
+        self.assertAlmostEqual(deadline, 100.0 + Client.SYN_INTERVAL)
+        self.assertAlmostEqual(self.client.run_once(now=100.5), 101.0)
+        self.assertEqual(mock_send.call_count, 1)
+
+    def test_run_once_connected_wakes_for_the_earliest_deadline(self):
+        self.client.state = State.CONNECTED
+        self.client.no_message_timeout = 0.15
+        self.client.last_message_timestamp = 100.0
+        self.client.last_sent_timestamp = 100.0
+        self.client.last_sent_timeout = 1.0
+
+        with patch.object(self.client, "send"):
+            deadline = self.client.run_once(now=100.05)
+
+        self.assertAlmostEqual(deadline, 100.15)
+        self.assertEqual(self.client.state, State.CONNECTED)
+
     def test_client_lifecycle(self):
         self.client.start()
         self.assertTrue(self.client.running.is_set())
@@ -66,7 +99,7 @@ class TestClient(unittest.TestCase):
         self.client.initialize()
         self.client.state = State.CONNECTED
         self.client.last_sent_timeout = 1
-        self.client.last_sent_timestamp = time.time() - 2
+        self.client.last_sent_timestamp = time.monotonic() - 2
 
         self.client.heartbeat()
         self.assertTrue(mock_send.called)
@@ -85,7 +118,7 @@ class TestClient(unittest.TestCase):
         self.client.initialize()
         self.client.state = State.CONNECTED
         self.client.last_sent_timeout = 10
-        self.client.last_sent_timestamp = time.time()
+        self.client.last_sent_timestamp = time.monotonic()
 
         self.client.heartbeat()
         mock_send.assert_not_called()
@@ -145,7 +178,7 @@ class TestClient(unittest.TestCase):
             patch("time.sleep", return_value=None),
         ):
             self.client.running.set()
-            mock_reinit.side_effect = lambda: self.client.running.clear()
+            mock_reinit.side_effect = lambda *args: self.client.running.clear()
             self.client.run()
             mock_reinit.assert_called_once()
             mock_handle.assert_called_once_with(State.WAITING)
@@ -154,7 +187,7 @@ class TestClient(unittest.TestCase):
         self.client.state = State.WAITING
         with patch("time.sleep", return_value=None):
             self.client.running.set()
-            mock_send.side_effect = lambda msg: self.client.running.clear()
+            mock_send.side_effect = lambda *args: self.client.running.clear()
             self.client.run()
             # Only check type, not exact timestamp
             self.assertTrue(any(isinstance(call_args[0][0], Syn) for call_args in mock_send.call_args_list))
@@ -167,7 +200,7 @@ class TestClient(unittest.TestCase):
             patch("time.sleep", return_value=None),
         ):
             self.client.running.set()
-            mock_hb.side_effect = lambda: self.client.running.clear()
+            mock_hb.side_effect = lambda *args: self.client.running.clear()
             self.client.run()
             mock_hb.assert_called_once()
             mock_ct.assert_called_once()

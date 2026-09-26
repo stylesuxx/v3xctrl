@@ -183,7 +183,9 @@ touch a device. `ruff` and `mypy` cover this folder like the rest of the repo.
 Error lines the viewer writes while it is being torn down (an aborted relay
 registration, the streamer losing its control peer) are outside the window
 the forbidden rules cover. A rule that hits more than once is reported as one
-line with the count, the time span and the first offending line.
+line with the count, the time span and the first offending line. Failsafe
+holds the streamer rides out (`Control resumed after ...`) are not failures;
+the steady window reports their count per minute and the longest one as a note.
 
 ## Known limits
 

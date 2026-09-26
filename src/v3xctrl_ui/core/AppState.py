@@ -20,6 +20,7 @@ from v3xctrl_ui.core.StatusLevel import StatusLevel
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext
 from v3xctrl_ui.core.TelemetrySink import TelemetrySink
 from v3xctrl_ui.menu.Menu import Menu
+from v3xctrl_ui.network.ControlSender import ControlSender
 from v3xctrl_ui.network.NetworkCoordinator import NetworkCoordinator
 from v3xctrl_ui.osd.OSD import OSD
 
@@ -63,6 +64,9 @@ class AppState:
         )
         self.network_coordinator.on_connection_change = self._on_connection_change
 
+        # Control messages leave on their own cadence; the render loop only feeds values
+        self.control_sender = ControlSender(self.model, self.network_coordinator.send_control_message)
+
         # Timing
         self.timing_controller = TimingController(self.settings, self.model)
 
@@ -92,9 +96,7 @@ class AppState:
 
         self._setup_signal_handling()
 
-        start_time = time.monotonic()
-        self.model.last_control_update = start_time
-        self.model.last_latency_check = start_time
+        self.model.last_latency_check = time.monotonic()
 
         # Settings management
         self.settings_controller = SettingsController(
@@ -143,25 +145,26 @@ class AppState:
 
         self.model.loop_history.append(now)
 
-        # Handle control updates, send last values if user is in menu
-        if self.timing_controller.should_update_control(now):
+        # Inputs are read every frame; neutral while the user is in the menu
+        throttle, steering = (0.0, 0.0)
+        if not self.menu.visible:
             try:
-                throttle, steering = (0.0, 0.0)
-                if not self.menu.visible:
-                    throttle, steering = self.input_controller.read_inputs()
-
-                self.model.throttle = throttle
-                self.model.steering = steering
-
-                self.network_coordinator.send_control_message(throttle, steering)
+                throttle, steering = self.input_controller.read_inputs()
             except Exception as e:
                 logger.warning(f"Input read error: {e}")
-            self.timing_controller.mark_control_updated(now)
+
+        self.model.throttle = throttle
+        self.model.steering = steering
+        self.control_sender.set_values(throttle, steering)
 
         # Handle latency checks
         if self.timing_controller.should_check_latency(now):
             self.network_coordinator.send_latency_check()
             self.timing_controller.mark_latency_checked(now)
+
+    def start(self) -> None:
+        """Start the background work that runs beside the render loop."""
+        self.control_sender.start()
 
     def tick(self) -> None:
         self.clock.tick(self.timing_controller.main_loop_fps)
@@ -247,6 +250,7 @@ class AppState:
 
         pygame.quit()
 
+        self.control_sender.stop()
         self.network_coordinator.shutdown()
 
         delta = round(time.monotonic() - start)

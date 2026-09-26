@@ -9,7 +9,9 @@ from v3xctrl_e2e.log_expectations import (
     TelemetryCount,
     check_telemetry_rate,
     check_video_flow,
+    control_holds,
     control_values,
+    describe_control_holds,
     evaluate,
     lowest_fps,
     parse_control_values,
@@ -123,6 +125,18 @@ class TestEvaluate(unittest.TestCase):
 
         self.assertEqual(len(failures), 1)
 
+    def test_control_holds_are_read_from_the_streamer_only(self):
+        records = [
+            control("2026-09-23 00:22:05,443 - WARNING - Control resumed after 0.21s in failsafe"),
+            viewer("2026-09-23 00:22:05,500 - WARNING - Control resumed after 9.00s in failsafe"),
+            control("2026-09-23 00:22:15,100 - WARNING - Control resumed after 0.34s in failsafe"),
+        ]
+
+        self.assertEqual(control_holds(records), [0.21, 0.34])
+        self.assertEqual(
+            describe_control_holds([0.21, 0.34], 20.0), "control holds: 2 in 20s (6.0/min), longest 340 ms"
+        )
+
     def test_forbidden_reports_the_offending_line(self):
         forbidden = [Forbidden("errors", LogSource.CONTROL, r" - ERROR - ")]
 
@@ -183,30 +197,39 @@ def stats(fps: int, drop_rate: float) -> ReceiverStats:
     return ReceiverStats(100, 0, 0, 0, drop_rate, fps, fps, 1.0, 2.0)
 
 
-class TestVideoFlow(unittest.TestCase):
-    def test_needs_two_lines(self):
-        self.assertEqual(len(check_video_flow([stats(30, 0.0)], 25, 2.0)), 1)
+# The line the receiver logs on its first frame
+PIPELINE_START = ReceiverStats(1, 0, 0, 0, 0.0, 0, 0, 0.0, 0.0)
 
-    def test_first_line_is_a_partial_interval_and_ignored(self):
-        self.assertEqual(check_video_flow([stats(3, 0.0), stats(29, 0.5)], 25, 2.0), [])
+
+class TestVideoFlow(unittest.TestCase):
+    def test_needs_one_full_window(self):
+        self.assertEqual(len(check_video_flow([], 25, 2.0)), 1)
+        self.assertEqual(len(check_video_flow([PIPELINE_START], 25, 2.0)), 1)
+
+    def test_one_full_window_is_enough(self):
+        """A 20 s window with 10 s stats lines may hold only one; the gap rule covers the rest."""
+        self.assertEqual(check_video_flow([stats(30, 0.0)], 25, 2.0), [])
+
+    def test_the_pipeline_start_line_is_ignored(self):
+        self.assertEqual(check_video_flow([PIPELINE_START, stats(29, 0.5)], 25, 2.0), [])
 
     def test_soak_tolerates_one_slow_window(self):
-        windows = [stats(3, 0.0), stats(29, 0.0), stats(21, 0.0), stats(30, 0.0)]
+        windows = [PIPELINE_START, stats(29, 0.0), stats(21, 0.0), stats(30, 0.0)]
 
         self.assertEqual(check_video_flow(windows, 25, 2.0, consecutive_low_windows=2), [])
         self.assertEqual(len(check_video_flow(windows, 25, 2.0)), 1)
 
     def test_soak_fails_on_two_slow_windows_in_a_row(self):
-        windows = [stats(3, 0.0), stats(21, 0.0), stats(22, 0.0), stats(30, 0.0)]
+        windows = [PIPELINE_START, stats(21, 0.0), stats(22, 0.0), stats(30, 0.0)]
 
         failures = check_video_flow(windows, 25, 2.0, consecutive_low_windows=2)
 
         self.assertEqual(len(failures), 1)
         self.assertIn("2 windows in a row", failures[0])
 
-    def test_lowest_fps_skips_the_partial_first_window(self):
-        self.assertEqual(lowest_fps([stats(3, 0.0), stats(29, 0.0), stats(21, 0.0)]), 21)
-        self.assertIsNone(lowest_fps([stats(3, 0.0)]))
+    def test_lowest_fps_skips_the_pipeline_start_line(self):
+        self.assertEqual(lowest_fps([PIPELINE_START, stats(29, 0.0), stats(21, 0.0)]), 21)
+        self.assertIsNone(lowest_fps([PIPELINE_START]))
 
     def test_low_fps_and_high_drop_rate_fail(self):
         failures = check_video_flow([stats(30, 0.0), stats(12, 50.4)], 25, 2.0)

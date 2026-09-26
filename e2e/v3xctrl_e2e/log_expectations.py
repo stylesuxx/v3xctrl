@@ -193,6 +193,28 @@ def parse_control_values(text: str) -> ControlValues | None:
     return ControlValues(throttle=float(match["throttle"]), steering=float(match["steering"]))
 
 
+CONTROL_HOLD_PATTERN = re.compile(r"Control resumed after (?P<seconds>[\d.]+)s")
+
+
+def control_holds(records: list[LogRecord]) -> list[float]:
+    """The failsafe holds the streamer reported, in seconds, in log order."""
+    holds: list[float] = []
+    for record in records:
+        if record.source != LogSource.CONTROL:
+            continue
+
+        match = CONTROL_HOLD_PATTERN.search(record.text)
+        if match is not None:
+            holds.append(float(match["seconds"]))
+
+    return holds
+
+
+def describe_control_holds(holds: list[float], window_seconds: float) -> str:
+    per_minute = len(holds) * 60 / window_seconds if window_seconds > 0 else 0.0
+    return f"control holds: {len(holds)} in {window_seconds:.0f}s ({per_minute:.1f}/min), longest {max(holds) * 1000:.0f} ms"
+
+
 def receiver_stats(records: list[LogRecord], source: LogSource = LogSource.VIEWER) -> list[ReceiverStats]:
     stats = (parse_receiver_stats(record.text) for record in records if record.source == source)
     return [entry for entry in stats if entry is not None]
@@ -227,6 +249,15 @@ def control_values(records: list[LogRecord]) -> list[ControlValues]:
     return [entry for entry in values if entry is not None]
 
 
+def is_pipeline_start(entry: ReceiverStats) -> bool:
+    """The receiver logs a stats line on its first frame; it covers no interval."""
+    return entry.frames <= 1 and entry.avg_decoded_fps == 0
+
+
+def full_windows(stats: list[ReceiverStats]) -> list[ReceiverStats]:
+    return [entry for entry in stats if not is_pipeline_start(entry)]
+
+
 def check_video_flow(
     stats: list[ReceiverStats],
     minimum_fps: int,
@@ -235,17 +266,19 @@ def check_video_flow(
 ) -> list[str]:
     """Stats lines only appear while frames arrive, so their presence is the flow signal.
 
-    The first line after a pipeline start covers a partial interval and reports
-    a low FPS, so the check is over the lines after it. A frame rate below the
-    floor fails once it lasts `consecutive_low_windows` stats windows in a row;
-    a soak over the internet relay tolerates a single slow window that way.
+    The receiver logs one line every 10 s, so a 20 s window holds one or two
+    full lines depending on where it starts; the video gap rule covers the
+    rest of the window. A frame rate below the floor fails once it lasts
+    `consecutive_low_windows` stats windows in a row; a soak over the internet
+    relay tolerates a single slow window that way.
     """
-    if len(stats) < 2:
-        return [f"video flow: expected at least 2 receiver stats lines, saw {len(stats)}"]
+    windows = full_windows(stats)
+    if not windows:
+        return [f"video flow: expected at least 1 full receiver stats line, saw {len(windows)}"]
 
     failures: list[str] = []
     low_run = 0
-    for entry in stats[1:]:
+    for entry in windows:
         if entry.avg_decoded_fps < minimum_fps:
             low_run += 1
             if low_run == consecutive_low_windows:
@@ -264,10 +297,11 @@ def check_video_flow(
 
 def lowest_fps(stats: list[ReceiverStats]) -> int | None:
     """The slowest full stats window, for the notes of a long hold."""
-    if len(stats) < 2:
+    windows = full_windows(stats)
+    if not windows:
         return None
 
-    return min(entry.avg_decoded_fps for entry in stats[1:])
+    return min(entry.avg_decoded_fps for entry in windows)
 
 
 def check_telemetry_rate(counts: list[TelemetryCount], expected_hz: float, tolerance: float) -> list[str]:
