@@ -75,6 +75,30 @@ class TestServe(unittest.TestCase):
             streamer_agent.serve(input_stream, output_stream)
         return [json.loads(line) for line in output_stream.getvalue().splitlines()]
 
+    def test_probe_links_runs_each_command_and_returns_the_output(self):
+        seen: list[list[str]] = []
+
+        def run_command(arguments, input_text=None, timeout=0):
+            seen.append(arguments)
+            return completed(f"output for {arguments[-1]}")
+
+        responses = self.serve(
+            [
+                {
+                    "id": 1,
+                    "command": "probe_links",
+                    "commands": {"a.test": ["ping", "a.test"], "b.test": ["ping", "b.test"]},
+                    "timeout": 20,
+                }
+            ],
+            run_command,
+        )
+
+        self.assertEqual(
+            responses[0]["result"]["outputs"], {"a.test": "output for a.test", "b.test": "output for b.test"}
+        )
+        self.assertEqual(sorted(seen), [["ping", "a.test"], ["ping", "b.test"]])
+
     def test_ping(self):
         def run_command(arguments, input_text=None, timeout=0):
             return completed("1.0.0")

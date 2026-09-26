@@ -8,6 +8,7 @@ import signal
 import subprocess
 import sys
 from collections.abc import Callable
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
@@ -44,7 +45,7 @@ EXIT_FAILED = 1
 EXIT_PREFLIGHT = 2
 
 # Two full 10 s receiver stats windows, the first one is skipped as partial.
-MINIMUM_STEADY_SECONDS = 20.0
+MINIMUM_STEADY_SECONDS = 30.0
 
 
 def parse_arguments(argv: list[str]) -> RunOptions:
@@ -83,7 +84,13 @@ def parse_arguments(argv: list[str]) -> RunOptions:
     parser.add_argument(
         "--without-gamepad", action="store_true", help="Skip the virtual gamepad and the input scenario"
     )
-    parser.add_argument("--steady-seconds", type=float, default=20.0)
+    parser.add_argument("--steady-seconds", type=float, default=40.0)
+    parser.add_argument(
+        "--link-probe-seconds",
+        type=float,
+        default=10.0,
+        help="Ping the network paths for this long before the cases; 0 skips the probe",
+    )
     parser.add_argument("--connect-timeout", type=float, default=45.0)
     parser.add_argument("--apply-timeout", type=float, default=90.0)
     parser.add_argument("--min-fps", type=int, default=None, help="Default: source frame rate minus 5")
@@ -107,7 +114,7 @@ def parse_arguments(argv: list[str]) -> RunOptions:
     if arguments.steady_seconds < MINIMUM_STEADY_SECONDS:
         parser.error(
             f"--steady-seconds must be at least {MINIMUM_STEADY_SECONDS:.0f}: the viewer reports receiver stats "
-            f"and telemetry counts every 10 s and the first stats line is skipped"
+            f"every 10 s and a case fails on two bad stats windows in a row"
         )
 
     if needs_streamer(phases) and not (arguments.streamer_host and arguments.ssh_user):
@@ -134,6 +141,7 @@ def parse_arguments(argv: list[str]) -> RunOptions:
         spectator_seconds=arguments.spectator_seconds,
         with_gamepad=not arguments.without_gamepad,
         steady_seconds=arguments.steady_seconds,
+        link_probe_seconds=arguments.link_probe_seconds,
         connect_timeout=arguments.connect_timeout,
         apply_timeout=arguments.apply_timeout,
         minimum_fps=arguments.min_fps,
@@ -280,7 +288,12 @@ def run(options: RunOptions, run_directory: RunDirectory, control_path: Path) ->
         orchestrator = Orchestrator(options, client, launcher, run_directory, gamepad, binding)
         results = orchestrator.run(cases)
 
-        write_summary(run_directory, results, {"options": {**vars(options), "phases": sorted(options.phases)}})
+        links = [asdict(report) for report in orchestrator.link_reports]
+        write_summary(
+            run_directory, results, {"options": {**vars(options), "phases": sorted(options.phases)}, "links": links}
+        )
+        for report in orchestrator.link_reports:
+            print(f"link {report.describe()}")
         print(format_summary_table(results, width=shutil.get_terminal_size((100, 24)).columns))
         print(f"\nartifacts: {run_directory.path}")
         return EXIT_PASSED if all(result.passed for result in results) else EXIT_FAILED

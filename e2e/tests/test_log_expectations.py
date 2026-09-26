@@ -227,6 +227,16 @@ class TestVideoFlow(unittest.TestCase):
         self.assertEqual(len(failures), 1)
         self.assertIn("2 windows in a row", failures[0])
 
+    def test_one_lossy_window_is_tolerated_two_in_a_row_fail(self):
+        burst = [PIPELINE_START, stats(30, 0.5), stats(29, 14.0), stats(30, 0.2)]
+        lasting = [PIPELINE_START, stats(30, 12.0), stats(30, 14.0)]
+
+        self.assertEqual(check_video_flow(burst, 25, 10.0, consecutive_low_windows=2), [])
+        self.assertEqual(
+            check_video_flow(lasting, 25, 10.0, consecutive_low_windows=2),
+            ["video flow: drop_rate 14.0% above 10.0% for 2 windows in a row"],
+        )
+
     def test_lowest_fps_skips_the_pipeline_start_line(self):
         self.assertEqual(lowest_fps([PIPELINE_START, stats(29, 0.0), stats(21, 0.0)]), 21)
         self.assertIsNone(lowest_fps([PIPELINE_START]))

@@ -222,6 +222,12 @@ class StreamerClient:
     def close_run(self, timeout: float) -> dict[str, Any]:
         return self.call("close_run", response_timeout=timeout + 30.0, timeout=timeout)
 
+    def probe_links(self, commands: dict[str, list[str]], timeout: float) -> dict[str, str]:
+        """Raw ping output per host, measured from the streamer."""
+        result = self.call("probe_links", response_timeout=timeout + 10, commands=commands, timeout=timeout)
+        outputs: dict[str, str] = result.get("outputs", {})
+        return outputs
+
     def stop_service(self, unit: str) -> dict[str, Any]:
         return self.call("stop_service", unit=unit)
 

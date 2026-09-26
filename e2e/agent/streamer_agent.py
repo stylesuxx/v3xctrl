@@ -160,6 +160,7 @@ class Agent:
             "stop_service": self.stop_service,
             "start_service": self.start_service,
             "delete_recording": self.delete_recording,
+            "probe_links": self.probe_links,
         }
 
     def handle(self, request: dict[str, Any]) -> dict[str, Any]:
@@ -181,6 +182,33 @@ class Agent:
             "load_average": [one, five, fifteen],
             "cpu_count": os.cpu_count() or 1,
         }
+
+    def probe_links(self, request: dict[str, Any]) -> dict[str, Any]:
+        """Ping each host in parallel from the streamer and hand back ping's raw output.
+
+        The harness parses it; `command` for each host is built by the harness.
+        """
+        commands: dict[str, list[str]] = request["commands"]
+        timeout = float(request["timeout"])
+        outputs: dict[str, str] = {}
+        lock = threading.Lock()
+
+        def probe(host: str, command: list[str]) -> None:
+            try:
+                completed = run_command(command, timeout=timeout)
+                text = completed.stdout
+            except (OSError, subprocess.TimeoutExpired):
+                text = ""
+            with lock:
+                outputs[host] = text
+
+        threads = [threading.Thread(target=probe, args=(host, command)) for host, command in commands.items()]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+        return {"outputs": outputs}
 
     def _stop_stream_units(self) -> None:
         completed = run_command(sudo("systemctl", "stop", *STREAM_UNITS))

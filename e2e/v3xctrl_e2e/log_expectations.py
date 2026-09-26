@@ -268,29 +268,26 @@ def check_video_flow(
 
     The receiver logs one line every 10 s, so a 20 s window holds one or two
     full lines depending on where it starts; the video gap rule covers the
-    rest of the window. A frame rate below the floor fails once it lasts
-    `consecutive_low_windows` stats windows in a row; a soak over the internet
-    relay tolerates a single slow window that way.
+    rest of the window. A frame rate below the floor, or a drop rate above the
+    ceiling, fails once it lasts `consecutive_low_windows` stats windows in a
+    row, so a single burst on a real link does not decide the case.
     """
     windows = full_windows(stats)
     if not windows:
         return [f"video flow: expected at least 1 full receiver stats line, saw {len(windows)}"]
 
     failures: list[str] = []
+    in_a_row = f" for {consecutive_low_windows} windows in a row" if consecutive_low_windows > 1 else ""
     low_run = 0
+    lossy_run = 0
     for entry in windows:
-        if entry.avg_decoded_fps < minimum_fps:
-            low_run += 1
-            if low_run == consecutive_low_windows:
-                failures.append(
-                    f"video flow: avg_decoded_fps {entry.avg_decoded_fps} below {minimum_fps}"
-                    + (f" for {low_run} windows in a row" if consecutive_low_windows > 1 else "")
-                )
-        else:
-            low_run = 0
+        low_run = low_run + 1 if entry.avg_decoded_fps < minimum_fps else 0
+        if low_run == consecutive_low_windows:
+            failures.append(f"video flow: avg_decoded_fps {entry.avg_decoded_fps} below {minimum_fps}{in_a_row}")
 
-        if entry.drop_rate > maximum_drop_rate:
-            failures.append(f"video flow: drop_rate {entry.drop_rate}% above {maximum_drop_rate}%")
+        lossy_run = lossy_run + 1 if entry.drop_rate > maximum_drop_rate else 0
+        if lossy_run == consecutive_low_windows:
+            failures.append(f"video flow: drop_rate {entry.drop_rate}% above {maximum_drop_rate}%{in_a_row}")
 
     return failures
 

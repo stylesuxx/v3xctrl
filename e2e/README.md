@@ -77,7 +77,8 @@ Useful flags:
 | `--camera` | stream from the camera, `video.testSource` off |
 | `--without-gamepad` | skip the virtual gamepad and the input scenario |
 | `--headless` | run the viewer under the SDL dummy video driver |
-| `--steady-seconds` (at least 20), `--connect-timeout`, `--min-fps`, `--max-drop-rate`, `--telemetry-tolerance` | thresholds |
+| `--steady-seconds` (default 40, at least 30), `--connect-timeout`, `--min-fps`, `--max-drop-rate`, `--telemetry-tolerance` | thresholds |
+| `--link-probe-seconds N` | ping the network paths for N seconds before the cases (default 10, 0 skips) |
 
 `drop_rate` in the viewer's receiver stats counts frames the viewer skipped on
 purpose to keep latency down when rendering fell behind arrival. It measures
@@ -186,6 +187,20 @@ the forbidden rules cover. A rule that hits more than once is reported as one
 line with the count, the time span and the first offending line. Failsafe
 holds the streamer rides out (`Control resumed after ...`) are not failures;
 the steady window reports their count per minute and the longest one as a note.
+
+Video is judged over the steady window from the viewer's stats lines, one
+every 10 s. A window below the frame rate floor or above the drop rate
+ceiling fails the case only when the next window is bad as well, so a single
+burst on a real link does not decide the result; a 5 s gap without frames
+fails at once.
+
+Before the first case the run pings each network path it uses for
+`--link-probe-seconds`: streamer to viewer for the local cases, streamer to
+relay and viewer to relay for the relay cases. The results are logged, printed
+above the summary table and stored under `links` in `summary.json`, so a video
+failure can be read against the loss and jitter of the link it ran on. The
+probe measures the idle link; a stream adds its own load. A relay that does
+not answer ping shows as "no answer".
 
 ## Known limits
 
