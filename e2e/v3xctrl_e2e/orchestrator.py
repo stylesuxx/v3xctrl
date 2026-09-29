@@ -14,12 +14,22 @@ from typing import Any
 from v3xctrl_e2e.artifacts import RunDirectory, TestResult, write_test_artifacts
 from v3xctrl_e2e.expectations import Expectations, expectations_for, failure_expectations_for
 from v3xctrl_e2e.input_scenario import SCENARIO, assess_scenario, recording_paths, run_scenario
+from v3xctrl_e2e.link_probe import (
+    LinkQuality,
+    LinkReport,
+    parse_ping_output,
+    ping_command,
+    probe_from_here,
+    relay_address,
+)
 from v3xctrl_e2e.log_expectations import (
     LogRecord,
     LogSource,
     Required,
     check_telemetry_rate,
     check_video_flow,
+    control_holds,
+    describe_control_holds,
     evaluate,
     is_satisfied,
     lowest_fps,
@@ -28,7 +38,7 @@ from v3xctrl_e2e.log_expectations import (
     slice_between,
     telemetry_counts,
 )
-from v3xctrl_e2e.matrix import Phase, TestCase
+from v3xctrl_e2e.matrix import ConnectionMode, Phase, TestCase
 from v3xctrl_e2e.streamer_client import StreamerClient
 from v3xctrl_e2e.streamer_config import (
     build_streamer_config,
@@ -71,7 +81,10 @@ TELEMETRY_WINDOW_GRACE_SECONDS = 2.0
 # Beyond this the two clocks disagree rather than the line being late.
 MAXIMUM_JOURNAL_LATENCY_SECONDS = 10.0
 # A soak over the internet relay fails on a sustained frame rate drop, not on one slow window.
-SOAK_CONSECUTIVE_LOW_WINDOWS = 2
+# A stats window below the frame rate floor or above the drop rate ceiling
+# fails the case only when the next one is bad as well: one burst on a real
+# link does not decide the result, a lasting problem does.
+BAD_WINDOWS_TO_FAIL = 2
 # Time between stopping the viewer and starting the spectator on its ports.
 VIEWER_HANDOVER_SECONDS = 2.0
 # The relay keeps a peer registration for RelayServer.TIMEOUT (450 s) and
@@ -97,7 +110,8 @@ class RunOptions:
     spectator_seconds: float = 60.0
     case_names: list[str] = field(default_factory=list)
     with_gamepad: bool = True
-    steady_seconds: float = 20.0
+    steady_seconds: float = 40.0
+    link_probe_seconds: float = 10.0
     connect_timeout: float = 45.0
     apply_timeout: float = 90.0
     minimum_fps: int | None = None
@@ -177,8 +191,10 @@ class Orchestrator:
         gamepad_binding: GamepadBinding | None,
         clock: Callable[[], float] = time.monotonic,
         sleep: Callable[[float], None] = time.sleep,
+        local_probe: Callable[[str, float], LinkQuality | None] = probe_from_here,
     ) -> None:
         self.options = options
+        self.local_probe = local_probe
         self.client = client
         self.launcher = launcher
         self.run_directory = run_directory
@@ -193,6 +209,7 @@ class Orchestrator:
         self._deleted_recordings: set[str] = set()
         self.shipped_defaults = load_shipped_defaults()
         self.viewer_host = viewer_lan_address(options.streamer_host) if options.streamer_host else None
+        self.link_reports: list[LinkReport] = []
 
     def on_agent_event(self, event: dict[str, Any]) -> None:
         self.store.on_agent_event(event)
@@ -206,6 +223,10 @@ class Orchestrator:
         live_config: dict[str, Any] = {}
         if uses_streamer:
             live_config = self._require_client().open_run()
+
+        self.link_reports = self.probe_links(test_cases)
+        for report in self.link_reports:
+            logger.info(f"link {report.describe()}")
 
         try:
             for index, test_case in enumerate(test_cases, start=1):
@@ -223,6 +244,51 @@ class Orchestrator:
                 logger.info(f"streamer config restored, services: {restore.get('states')}")
 
         return results
+
+    def probe_links(self, test_cases: list[TestCase]) -> list[LinkReport]:
+        """Ping the paths the cases use, from both ends where there is one, all at once."""
+        seconds = self.options.link_probe_seconds
+        if seconds <= 0:
+            return []
+
+        uses_local = any(test_case.phase == Phase.LOCAL for test_case in test_cases)
+        uses_relay = any(test_case.mode == ConnectionMode.RELAY for test_case in test_cases)
+        relay = relay_address(self.options.relay_host)
+
+        streamer_paths: dict[str, str] = {}
+        if self.client is not None:
+            if uses_local and self.viewer_host:
+                streamer_paths[self.viewer_host] = "streamer to viewer"
+            if uses_relay:
+                streamer_paths[relay] = "streamer to relay"
+
+        local_result: list[LinkReport] = []
+        local_thread: threading.Thread | None = None
+        if uses_relay:
+
+            def probe_relay_from_viewer() -> None:
+                local_result.append(LinkReport("viewer to relay", relay, self.local_probe(relay, seconds)))
+
+            local_thread = threading.Thread(target=probe_relay_from_viewer, daemon=True)
+            local_thread.start()
+
+        reports: list[LinkReport] = []
+        if streamer_paths:
+            commands = {host: ping_command(host, seconds) for host in streamer_paths}
+            try:
+                outputs = self._require_client().probe_links(commands, timeout=seconds + 10)
+            except Exception as error:
+                logger.warning(f"link probe from the streamer failed: {error}")
+                outputs = {}
+            reports.extend(
+                LinkReport(path, host, parse_ping_output(outputs.get(host, "")))
+                for host, path in streamer_paths.items()
+            )
+
+        if local_thread is not None:
+            local_thread.join()
+        reports.extend(local_result)
+        return reports
 
     def _require_client(self) -> StreamerClient:
         if self.client is None:
@@ -402,8 +468,13 @@ class Orchestrator:
         steady_records = slice_between(self.store.snapshot(), steady_start, self.clock())
 
         failures.extend(evaluate(steady_records, [], expectations.steady_forbidden))
+        holds = control_holds(steady_records)
+        if holds:
+            # A hold the streamer rode out is link quality, reported, not judged
+            notes.append(describe_control_holds(holds, steady_seconds))
+
         minimum_fps = self.options.minimum_fps or max(source_framerate(streamer_config) - 5, 1)
-        consecutive_low_windows = SOAK_CONSECUTIVE_LOW_WINDOWS if spectator_config_path is not None else 1
+        consecutive_low_windows = BAD_WINDOWS_TO_FAIL
         viewer_stats = receiver_stats(steady_records)
         if not viewer_replaced:
             failures.extend(

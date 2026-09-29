@@ -31,7 +31,9 @@ class Server(Base):
 
         self.port = port
         self.bind_address = bind_address
+        # The viewer has no outputs to hold, so its stall and its disconnect coincide
         self.no_message_timeout = 10
+        self.disconnect_timeout = 10
 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.socket.bind((self.bind_address, self.port))
@@ -131,21 +133,34 @@ class Server(Base):
 
         self.running.set()
         while self.running.is_set():
-            if self.state == State.DISCONNECTED:
+            self.wait_until(self.run_once(time.monotonic()))
+
+    def run_once(self, now: float) -> float:
+        """Do what the current state is due for; return when the loop has to look again."""
+        assert self.message_handler is not None
+
+        match self.state:
+            case State.DISCONNECTED:
                 self.message_handler.reset()
                 self.handle_state_change(State.WAITING)
+                return now
 
-            elif self.state == State.WAITING:
-                pass
+            case State.WAITING:
+                # The client's SYN arrives on the receive thread
+                return now + self.MAXIMUM_WAIT_SECONDS
 
-            elif self.state == State.SPECTATING:
-                self.heartbeat()
+            case State.SPECTATING:
+                self.heartbeat(now)
+                return self.heartbeat_deadline()
 
-            elif self.state == State.CONNECTED:
-                self.check_timeout()
-                self.heartbeat()
+            case State.CONNECTED | State.FAILSAFE:
+                self.check_timeout(now)
+                self.heartbeat(now)
+                timeout_deadline = self.timeout_deadline()
+                if timeout_deadline is None:
+                    return now
 
-            time.sleep(self.STATE_CHECK_INTERVAL_MS / 1000)
+                return min(timeout_deadline, self.heartbeat_deadline())
 
     def stop(self) -> None:
         assert self.message_handler is not None
@@ -172,6 +187,7 @@ class Server(Base):
             self.transmitter.join()
 
             self.running.clear()
+            self.wake()
 
         self.thread_pool.shutdown(wait=False)
         self.socket.close()

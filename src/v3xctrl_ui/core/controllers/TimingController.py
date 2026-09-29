@@ -36,17 +36,6 @@ class TimingController:
         self.model.latency_interval = 1.0 / timing.latency_check_hz
         self.main_loop_fps = timing.main_loop_fps
 
-    def should_update_control(self, now: float) -> bool:
-        """Check if enough time has passed for a control update.
-
-        Args:
-            now: Current monotonic time
-
-        Returns:
-            True if a control update should occur
-        """
-        return now - self.model.last_control_update >= self.model.control_interval - self.TIMING_EPSILON
-
     def should_check_latency(self, now: float) -> bool:
         """Check if enough time has passed for a latency check.
 
@@ -57,14 +46,6 @@ class TimingController:
             True if a latency check should occur
         """
         return now - self.model.last_latency_check >= self.model.latency_interval - self.TIMING_EPSILON
-
-    def mark_control_updated(self, now: float) -> None:
-        """Mark that a control update has occurred.
-
-        Args:
-            now: Current monotonic time
-        """
-        self.model.last_control_update = now
 
     def mark_latency_checked(self, now: float) -> None:
         """Mark that a latency check has occurred.

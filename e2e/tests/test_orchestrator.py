@@ -4,10 +4,12 @@ from pathlib import Path
 from typing import Any
 
 from v3xctrl_e2e.artifacts import RunDirectory
+from v3xctrl_e2e.link_probe import parse_ping_output
 from v3xctrl_e2e.log_expectations import LogRecord, LogSource
 from v3xctrl_e2e.matrix import (
     LOCAL_CASES,
     LOCAL_NEGATIVE_CASES,
+    RELAY_CASES,
     RELAY_NEGATIVE_CASES,
     SPECTATOR_CASES,
     VIEWER_CASES,
@@ -165,6 +167,15 @@ class FakeClient:
     def delete_recording(self, path: str) -> None:
         self.calls.append(("delete_recording", path))
 
+    def probe_links(self, commands: dict[str, list[str]], timeout: float) -> dict[str, str]:
+        self.calls.append(("probe_links", sorted(commands)))
+        return {host: PING_SUMMARY for host in commands}
+
+
+PING_SUMMARY = (
+    "50 packets transmitted, 49 received, 2% packet loss, time 9800ms\nrtt min/avg/max/mdev = 12.1/18.4/95.2/9.7 ms\n"
+)
+
 
 def options(**overrides: Any) -> RunOptions:
     values: dict[str, Any] = {
@@ -176,6 +187,7 @@ def options(**overrides: Any) -> RunOptions:
         "with_gamepad": False,
         "steady_seconds": 20.0,
         "connect_timeout": 5.0,
+        "link_probe_seconds": 0.0,
     }
     values.update(overrides)
     return RunOptions(**values)
@@ -222,6 +234,59 @@ class OrchestratorTestCase(unittest.TestCase):
         )
         orchestrator_holder.append(orchestrator)
         return orchestrator, client, launcher
+
+
+class TestLinkProbe(OrchestratorTestCase):
+    def build_probing(self, phases, local_quality):
+        client = FakeClient(lambda event: None, self.clock, [])
+        probed: list[str] = []
+
+        def local_probe(host: str, seconds: float):
+            probed.append(host)
+            return local_quality
+
+        orchestrator = Orchestrator(
+            options(phases=phases, link_probe_seconds=10.0),
+            client,  # type: ignore[arg-type]
+            FakeLauncher(self.clock, [], []),  # type: ignore[arg-type]
+            self.run_directory,
+            gamepad=None,
+            gamepad_binding=None,
+            clock=self.clock,
+            sleep=self.clock.sleep,
+            local_probe=local_probe,
+        )
+        return orchestrator, client, probed
+
+    def test_local_cases_probe_the_lan_path_from_the_streamer(self):
+        orchestrator, _client, probed = self.build_probing({Phase.LOCAL}, None)
+        orchestrator.viewer_host = "192.168.1.100"
+
+        reports = orchestrator.probe_links([next(case for case in LOCAL_CASES if case.name == "L1-direct-udp-udp")])
+
+        self.assertEqual([report.path for report in reports], ["streamer to viewer"])
+        self.assertEqual(reports[0].quality.received, 49)
+        self.assertIn("2.0% loss, rtt avg 18 ms, max 95 ms, jitter 10 ms", reports[0].describe())
+        self.assertEqual(probed, [])
+
+    def test_relay_cases_probe_the_relay_from_both_ends(self):
+        quality = parse_ping_output(PING_SUMMARY)
+        orchestrator, _client, probed = self.build_probing({Phase.RELAY}, quality)
+
+        reports = orchestrator.probe_links([case for case in RELAY_CASES if case.name == "R1-relay-udp-udp"])
+
+        self.assertEqual(
+            [(report.path, report.host) for report in reports],
+            [("streamer to relay", "relay.test"), ("viewer to relay", "relay.test")],
+        )
+        self.assertEqual(probed, ["relay.test"])
+
+    def test_zero_seconds_skips_the_probe(self):
+        orchestrator, client, _probed = self.build_probing({Phase.RELAY}, None)
+        orchestrator.options = options(phases={Phase.RELAY}, link_probe_seconds=0.0)
+
+        self.assertEqual(orchestrator.probe_links(list(RELAY_CASES)), [])
+        self.assertEqual(client.calls, [])
 
 
 class TestHappyPath(OrchestratorTestCase):

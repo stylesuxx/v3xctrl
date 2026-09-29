@@ -35,10 +35,14 @@ class InitializationError(Exception):
 
 
 class Base(threading.Thread, ABC):
-    STATE_CHECK_INTERVAL_MS = 1000
+    # Longest the run loop sleeps between two looks at its deadlines
+    MAXIMUM_WAIT_SECONDS = 1.0
 
     def __init__(self) -> None:
         super().__init__(daemon=True)
+
+        # Set by stop() so a waiting run loop ends at once
+        self._wake = threading.Event()
 
         self.state_handlers: dict[State, list[Callable[[], None]]] = defaultdict(list)
         self.subscriptions: dict[type[Message], list[Handler[Any]]] = defaultdict(list)
@@ -53,10 +57,16 @@ class Base(threading.Thread, ABC):
 
         self.state = State.WAITING
 
-        # The server timeout should be longer than on the client. This way
-        # it is possible to recover a lost connection
+        # Silence beyond the message timeout engages the failsafe, silence
+        # beyond the disconnect timeout tears the session down. Equal values
+        # skip the failsafe and disconnect at once.
         self.last_message_timestamp: float = 0
         self.no_message_timeout: float = 5
+        self.disconnect_timeout: float = 5
+        # Stamp of the last message before the failsafe engaged; the resume
+        # reports the silence from there, however many messages the receive
+        # thread got in while the failsafe was engaging.
+        self.silence_started_at: float = 0
 
         self.last_sent_timestamp: float = 0
         self.last_sent_timeout: float = 1
@@ -71,8 +81,10 @@ class Base(threading.Thread, ABC):
 
         if not hasattr(self, "socket") or self.socket is None:
             missing.append("socket")
+
         if not hasattr(self, "transmitter") or self.transmitter is None:
             missing.append("transmitter")
+
         if not hasattr(self, "message_handler") or self.message_handler is None:
             missing.append("message_handler")
 
@@ -90,21 +102,44 @@ class Base(threading.Thread, ABC):
     def _send(self, message: Message, addr: Address) -> None:
         if self.transmitter:
             self.transmitter.add_message(message, addr)
-            self.last_sent_timestamp = time.time()
+            self.last_sent_timestamp = time.monotonic()
 
     def _send_control(self, message: Message, addr: Address) -> None:
         if self.transmitter:
             self.transmitter.set_control_message(message, addr)
-            self.last_sent_timestamp = time.time()
+            self.last_sent_timestamp = time.monotonic()
 
-    def heartbeat(self) -> None:
-        """
-        If nothing has been sent in a while, send a hearbeat to keep the client
-        open.
-        """
-        now = time.time()
-        if now - self.last_sent_timestamp > self.last_sent_timeout:
+    def heartbeat(self, now: float | None = None) -> None:
+        """Send a heartbeat once nothing has gone out for `last_sent_timeout`."""
+        if now is None:
+            now = time.monotonic()
+
+        if now >= self.heartbeat_deadline():
             self.send(Heartbeat())
+
+    def heartbeat_deadline(self) -> float:
+        return self.last_sent_timestamp + self.last_sent_timeout
+
+    def timeout_deadline(self) -> float | None:
+        """When the current state times out; None when the state has no timeout."""
+        match self.state:
+            case State.CONNECTED:
+                return self.last_message_timestamp + self.no_message_timeout
+
+            case State.FAILSAFE:
+                return self.last_message_timestamp + self.disconnect_timeout
+
+            case _:
+                return None
+
+    def wait_until(self, deadline: float) -> None:
+        """Sleep until `deadline` on the monotonic clock, `MAXIMUM_WAIT_SECONDS` at most; stop() ends it early."""
+        remaining = min(deadline - time.monotonic(), self.MAXIMUM_WAIT_SECONDS)
+        self._wake.wait(max(0.0, remaining))
+        self._wake.clear()
+
+    def wake(self) -> None:
+        self._wake.set()
 
     def get_last_address(self) -> Address | None:
         if len(self.message_history) > 0:
@@ -112,12 +147,23 @@ class Base(threading.Thread, ABC):
 
         return None
 
-    def check_timeout(self) -> None:
-        if self.state == State.CONNECTED:
-            elapsed = time.monotonic() - self.last_message_timestamp
-            if elapsed > self.no_message_timeout:
-                logger.error(f"No message received for {self.no_message_timeout}s")
+    def check_timeout(self, now: float | None = None) -> None:
+        if now is None:
+            now = time.monotonic()
+
+        elapsed = now - self.last_message_timestamp
+
+        match self.state:
+            case State.CONNECTED | State.FAILSAFE if elapsed >= self.disconnect_timeout:
+                logger.error(f"No message received for {self.disconnect_timeout}s")
                 self.handle_state_change(State.DISCONNECTED)
+
+            case State.CONNECTED if elapsed >= self.no_message_timeout:
+                self.silence_started_at = self.last_message_timestamp
+                self.handle_state_change(State.FAILSAFE)
+
+            case _:
+                pass
 
     def subscribe(self, cls: type[T], handler: Handler[T]) -> None:
         """
@@ -143,7 +189,16 @@ class Base(threading.Thread, ABC):
         All messages are handled here.
         Registered (external) handlers will get messages forwarded from here
         """
-        self.last_message_timestamp = time.monotonic()
+        now = time.monotonic()
+        if self.state == State.FAILSAFE and not isinstance(message, Heartbeat):
+            # A heartbeat keeps the session from disconnecting, only input ends
+            # the failsafe. The session was never torn down, so the CONNECTED
+            # handlers stay quiet; the silence is the one thing worth reporting.
+            self.state = State.CONNECTED
+            silence = now - self.silence_started_at
+            logger.warning(f"Control resumed after {silence:.2f}s without messages")
+
+        self.last_message_timestamp = now
         self.message_history.append(MessageFromAddress(message, addr))
         self.message_history = self.message_history[-self.message_history_length :]
 

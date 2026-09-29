@@ -348,15 +348,23 @@ def command_handler(command: Command, address: Address) -> None:
             logger.error(f"Unknown command: {command}")
 
 
-def disconnect_handler() -> None:
-    """
-    Disconnect counts as failsafe, set values accordingly
-    """
-
+def apply_failsafe_outputs() -> None:
     channel_a_failsafe, channel_b_failsafe = mixer.failsafe
 
     pwm_output_a.set_pulse_width(channel_a_failsafe)
     pwm_output_b.set_pulse_width(channel_b_failsafe)
+
+
+def failsafe_handler() -> None:
+    """No control message within the failsafe timeout; the session stays up."""
+    apply_failsafe_outputs()
+
+
+def disconnect_handler() -> None:
+    """
+    Disconnect counts as failsafe, set values accordingly
+    """
+    apply_failsafe_outputs()
 
     logger.info("Disconnected")
 
@@ -431,6 +439,7 @@ client.subscribe(Latency, latency_handler)
 client.subscribe(Command, command_handler)
 
 # Subscribe to life-cycle events
+client.on(State.FAILSAFE, failsafe_handler)
 client.on(State.DISCONNECTED, disconnect_handler)
 client.on(State.CONNECTED, connect_handler)
 
