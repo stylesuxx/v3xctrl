@@ -10,7 +10,9 @@ database = "/var/lib/v3xctrl/relay.db"
 users_file = "/var/lib/v3xctrl/users.json"
 
 # One table per relay instance. The table name is the systemd instance name,
-# so [relay.prod] serves v3xctrl-relay-server@prod.service.
+# so [relay.prod] serves v3xctrl-relay-server@prod.service, and under a named
+# deployment (install.sh --name dev) v3xctrl-relay-dev-server@prod.service.
+# Both deployments read this file, so their instances need distinct tables.
 #
 # bind_ip is the public address advertised to peers; the socket itself always
 # binds 0.0.0.0. Each instance needs its own port, opened for UDP and TCP.
