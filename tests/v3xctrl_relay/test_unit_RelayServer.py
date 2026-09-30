@@ -9,14 +9,22 @@ from unittest.mock import Mock, patch
 from v3xctrl_control.message import (
     ConnectionTest,
     ConnectionTestAck,
+    Heartbeat,
     Message,
     PeerAnnouncement,
 )
-from v3xctrl_relay.custom_types import PortType, Role, Session
+from v3xctrl_relay.custom_types import PortType, Role, Session, SpectatorEntry
 from v3xctrl_relay.ForwardTarget import TcpTarget
 from v3xctrl_relay.PacketRelay import Mapping
 from v3xctrl_relay.RelayServer import RelayServer
 from v3xctrl_tcp import Transport
+
+
+class _InlineExecutor:
+    """Runs submitted work on the calling thread, so a dispatch test needs no waiting."""
+
+    def submit(self, function, *arguments):
+        function(*arguments)
 
 
 class TestRelayServerUnitTests(unittest.TestCase):
@@ -540,6 +548,34 @@ class TestRelayServerUnitTests(unittest.TestCase):
         server.relay.sessions["test_session_1"] = session
 
         return spectator_video_addr, spectator_control_addr
+
+    @patch("socket.socket")
+    def test_a_spectator_packet_refreshes_the_spectator_instead_of_being_forwarded(self, mock_socket_class):
+        """A viewer that quit leaves its mapping behind for RelayServer.TIMEOUT. A spectator
+        starting on the same address must not have its keep-alive forwarded through that
+        mapping, or the stale viewer is refreshed and the spectator entry starves."""
+        server, mock_udp_socket = self._create_server_with_mock_socket(mock_socket_class)
+        server.control_executor = _InlineExecutor()
+        self._setup_session_with_spectator(server)
+
+        departed_viewer_addr = ("10.0.0.2", 6000)
+        spectator = SpectatorEntry()
+        spectator.last_announcement_at = time.time() - 25
+        server.relay.spectator_by_address[departed_viewer_addr] = spectator
+
+        server.handle_packet(Heartbeat().to_bytes(), departed_viewer_addr)
+
+        mock_udp_socket.sendto.assert_not_called()
+        self.assertAlmostEqual(spectator.last_announcement_at, time.time(), delta=1.0)
+
+    @patch("socket.socket")
+    def test_a_mapped_peer_packet_is_still_forwarded(self, mock_socket_class):
+        server, mock_udp_socket = self._create_server_with_mock_socket(mock_socket_class)
+        self._setup_session_with_spectator(server)
+
+        server.handle_packet(b"video payload", ("10.0.0.1", 5000))
+
+        mock_udp_socket.sendto.assert_called_once_with(b"video payload", ("10.0.0.2", 6000))
 
     @patch("socket.socket")
     def test_spectator_stats_include_transport_udp(self, mock_socket_class):

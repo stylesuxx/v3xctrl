@@ -2,6 +2,7 @@ import socket
 import unittest
 
 from v3xctrl_control.message import Heartbeat, Message
+from v3xctrl_relay.PacketRelay import PacketRelay
 from v3xctrl_ui.network.VideoPortKeepAlive import (
     INTERVAL_STREAMING_S,
     VideoPortKeepAlive,
@@ -20,7 +21,13 @@ class TestVideoPortKeepAlive(unittest.TestCase):
         self.relay_socket.close()
 
     def test_interval_constants(self):
-        self.assertEqual(INTERVAL_STREAMING_S, 30.0)
+        self.assertEqual(INTERVAL_STREAMING_S, 10.0)
+
+    def test_interval_leaves_room_inside_the_relays_spectator_timeout(self):
+        """In spectator mode this heartbeat is the only traffic the viewer sends to the
+        relay, and the relay drops a spectator that goes SPECTATOR_TIMEOUT without one,
+        so the interval has to fit several times into that window."""
+        self.assertLessEqual(INTERVAL_STREAMING_S, PacketRelay.SPECTATOR_TIMEOUT / 3)
 
     def test_sends_heartbeat_to_relay(self):
         keep_alive = VideoPortKeepAlive(
