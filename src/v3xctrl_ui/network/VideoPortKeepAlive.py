@@ -5,10 +5,13 @@ import time
 
 from v3xctrl_control.message import Heartbeat
 
-# Keepalive interval during active streaming (NAT mapping refresh)
 logger = logging.getLogger(__name__)
 
-INTERVAL_STREAMING_S = 30.0
+# Refreshes the NAT mapping of the video port, and in spectator mode it is the only
+# traffic the viewer sends to the relay, so it also carries the spectator
+# registration. The relay drops a spectator after PacketRelay.SPECTATOR_TIMEOUT (30 s)
+# without a packet, so three heartbeats fit into that window and two may go missing.
+INTERVAL_STREAMING_S = 10.0
 
 
 class VideoPortKeepAlive(threading.Thread):

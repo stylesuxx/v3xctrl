@@ -52,7 +52,6 @@ class RelayServer(threading.Thread):
 
         self.relay = PacketRelay(SessionStore(db_path), self.sock, (self.ip, self.port), self.TIMEOUT)
 
-        self.tcp_executor = ThreadPoolExecutor(max_workers=10)
         self.control_executor = ThreadPoolExecutor(max_workers=4)
         self.running = threading.Event()
         self._tcp_stop = threading.Event()
@@ -85,18 +84,7 @@ class RelayServer(threading.Thread):
         while self.running.is_set():
             try:
                 data, addr = self.sock.recvfrom(self.RECEIVE_BUFFER)
-
-                is_control = any(data.startswith(p) for p in self._CONTROL_PREFIXES)
-
-                if is_control:
-                    self.control_executor.submit(self._handle_slow_packet, data, addr)
-                else:
-                    deferred_tcp = self.relay.forward_packet(data, addr)
-                    if deferred_tcp is not None:
-                        for tcp_target in deferred_tcp:
-                            self.tcp_executor.submit(tcp_target.send, data)
-                    else:
-                        self.control_executor.submit(self._handle_slow_packet, data, addr)
+                self.handle_packet(data, addr)
             except OSError:
                 if not self.running.is_set():
                     break
@@ -108,7 +96,6 @@ class RelayServer(threading.Thread):
         self.running.clear()
         self._tcp_stop.set()
         self.tcp_acceptor.stop()
-        self.tcp_executor.shutdown(wait=True)
         self.control_executor.shutdown(wait=True)
 
         try:
@@ -249,6 +236,28 @@ class RelayServer(threading.Thread):
         while self.running.is_set():
             self.relay.cleanup_expired_mappings()
             time.sleep(self.CLEANUP_INTERVAL)
+
+    def handle_packet(self, data: bytes, addr: Address) -> None:
+        """Dispatch one received packet; the receive loop does nothing else."""
+        if any(data.startswith(prefix) for prefix in self._CONTROL_PREFIXES):
+            self.control_executor.submit(self._handle_slow_packet, data, addr)
+            return
+
+        # A spectator only receives, so its keep-alive is there to hold its own
+        # registration. Forwarding it would instead refresh a mapping that a
+        # departed viewer left behind on the same address, and the spectator
+        # entry would starve and be dropped after SPECTATOR_TIMEOUT.
+        if self.relay.is_spectator_address(addr):
+            self.control_executor.submit(self._handle_slow_packet, data, addr)
+            return
+
+        deferred_tcp = self.relay.forward_packet(data, addr)
+        if deferred_tcp is None:
+            self.control_executor.submit(self._handle_slow_packet, data, addr)
+            return
+
+        for tcp_target in deferred_tcp:
+            tcp_target.send(data)
 
     def _handle_connection_test(self, data: bytes, addr: Address) -> None:
         """Validate session/spectator ID and reply with ConnectionTestAck."""

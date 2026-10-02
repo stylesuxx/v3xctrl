@@ -199,6 +199,15 @@ class PacketRelay:
 
             return session.roles
 
+    def is_spectator_address(self, addr: Address) -> bool:
+        """Whether `addr` belongs to a registered spectator.
+
+        Read without `session_lock`: a single dict lookup is atomic, and the
+        receive loop must not contend with the cleanup pass. A registration
+        that lands between two packets is picked up by the next one.
+        """
+        return addr in self.spectator_by_address
+
     def update_spectator_heartbeat(self, addr: Address) -> None:
         with self.session_lock:
             spectator = self.spectator_by_address.get(addr)
@@ -222,9 +231,9 @@ class PacketRelay:
         """
         Forward a packet to its mapped targets.
 
-        Returns None if no mapping exists. Otherwise returns a list of
-        TcpTarget instances whose sends were deferred (caller must submit
-        them to the thread pool). UDP sends happen inline.
+        Returns None if no mapping exists. Otherwise returns the live
+        TcpTarget instances for the caller to queue the packet on, outside
+        `mapping_lock`. UDP sends happen inline.
         """
         with self.mapping_lock:
             mapping = self.mappings.get(addr)
