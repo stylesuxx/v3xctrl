@@ -4,6 +4,8 @@ import time
 import unittest
 from unittest.mock import MagicMock
 
+import msgpack
+
 from v3xctrl_control.message import PeerAnnouncement, PeerInfo
 from v3xctrl_relay.TCPAcceptor import TCPAcceptor
 from v3xctrl_tcp.framing import recv_message, send_message
@@ -105,6 +107,29 @@ class TestTCPAcceptor(unittest.TestCase):
             self.relay.register_tcp_peer.assert_not_called()
         finally:
             sock.close()
+
+    def test_a_garbage_handshake_is_one_warning_line(self):
+        """The port is open to the internet; a scanner's probe is a stranger, not a fault."""
+        probes = {
+            "text": b"not a valid message",
+            "msgpack list": msgpack.packb([1, 2]),
+            "payload not a mapping": msgpack.packb({"t": "PeerAnnouncement", "d": 0, "p": 5}),
+            "truncated": PeerAnnouncement(r="viewer", i="sid1", p="video").to_bytes()[:-3],
+            "unknown port type": PeerAnnouncement(r="viewer", i="sid1", p="bogus").to_bytes(),
+            "unknown role": PeerAnnouncement(r="bogus", i="sid1", p="video").to_bytes(),
+        }
+        for name, probe in probes.items():
+            with self.subTest(name), self.assertLogs("v3xctrl_relay.TCPAcceptor", level="WARNING") as captured:
+                sock = self._connect()
+                try:
+                    send_message(sock, probe)
+                    self.assertEqual(sock.recv(1), b"")
+                finally:
+                    sock.close()
+
+                self.relay.register_tcp_peer.assert_not_called()
+                self.assertEqual([record.levelname for record in captured.records], ["WARNING"])
+                self.assertIsNone(captured.records[0].exc_info)
 
     def test_streamer_video_forwards_data(self):
         """Streamer video connections read data and forward via relay."""

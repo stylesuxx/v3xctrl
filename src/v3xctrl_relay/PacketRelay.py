@@ -231,9 +231,9 @@ class PacketRelay:
         """
         Forward a packet to its mapped targets.
 
-        Returns None if no mapping exists. Otherwise returns a list of
-        TcpTarget instances whose sends were deferred (caller must submit
-        them to the thread pool). UDP sends happen inline.
+        Returns None if no mapping exists. Otherwise returns the live
+        TcpTarget instances for the caller to queue the packet on, outside
+        `mapping_lock`. UDP sends happen inline.
         """
         with self.mapping_lock:
             mapping = self.mappings.get(addr)

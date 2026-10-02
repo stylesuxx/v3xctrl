@@ -73,5 +73,6 @@ if [[ -z "${restart_unit}" ]]; then
   exit 0
 fi
 
-ssh "${target}" "sudo systemctl restart ${restart_unit}"
+# -t gives sudo a terminal to ask for the password on.
+ssh -t "${target}" "sudo systemctl restart ${restart_unit}"
 echo "Deployed to ${target}:${remote_root} and restarted ${restart_unit}"

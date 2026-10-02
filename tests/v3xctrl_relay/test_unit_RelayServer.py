@@ -2,6 +2,7 @@ import os
 import socket
 import sqlite3
 import tempfile
+import threading
 import time
 import unittest
 from unittest.mock import Mock, patch
@@ -576,6 +577,36 @@ class TestRelayServerUnitTests(unittest.TestCase):
         server.handle_packet(b"video payload", ("10.0.0.1", 5000))
 
         mock_udp_socket.sendto.assert_called_once_with(b"video payload", ("10.0.0.2", 6000))
+
+    @patch("socket.socket")
+    def test_tcp_forwarding_keeps_packet_order(self, mock_socket_class):
+        """RTP over a TCP target must leave the relay in the order it arrived."""
+        server, _ = self._create_server_with_mock_socket(mock_socket_class)
+        self._setup_session_with_spectator(server)
+
+        sent: list[bytes] = []
+        send_lock = threading.Lock()
+
+        def send_on_a_slow_link(data: bytes) -> bool:
+            with send_lock:
+                time.sleep(0.001)
+                sent.append(data)
+            return True
+
+        target = Mock(spec=TcpTarget)
+        target.is_alive.return_value = True
+        target.send.side_effect = send_on_a_slow_link
+        server.relay.tcp_targets[("10.0.0.2", 6000)] = target
+
+        packets = [index.to_bytes(2, "big") for index in range(200)]
+        for packet in packets:
+            server.handle_packet(packet, ("10.0.0.1", 5000))
+
+        deadline = time.monotonic() + 5.0
+        while len(sent) < len(packets) and time.monotonic() < deadline:
+            time.sleep(0.01)
+
+        self.assertEqual(sent, packets)
 
     @patch("socket.socket")
     def test_spectator_stats_include_transport_udp(self, mock_socket_class):

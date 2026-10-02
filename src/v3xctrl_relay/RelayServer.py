@@ -52,7 +52,6 @@ class RelayServer(threading.Thread):
 
         self.relay = PacketRelay(SessionStore(db_path), self.sock, (self.ip, self.port), self.TIMEOUT)
 
-        self.tcp_executor = ThreadPoolExecutor(max_workers=10)
         self.control_executor = ThreadPoolExecutor(max_workers=4)
         self.running = threading.Event()
         self._tcp_stop = threading.Event()
@@ -97,7 +96,6 @@ class RelayServer(threading.Thread):
         self.running.clear()
         self._tcp_stop.set()
         self.tcp_acceptor.stop()
-        self.tcp_executor.shutdown(wait=True)
         self.control_executor.shutdown(wait=True)
 
         try:
@@ -259,7 +257,7 @@ class RelayServer(threading.Thread):
             return
 
         for tcp_target in deferred_tcp:
-            self.tcp_executor.submit(tcp_target.send, data)
+            tcp_target.send(data)
 
     def _handle_connection_test(self, data: bytes, addr: Address) -> None:
         """Validate session/spectator ID and reply with ConnectionTestAck."""

@@ -49,7 +49,7 @@ TCP connections are accepted by a `TCPAcceptor` running alongside the UDP server
 The hot path (`forward_packet`) uses a lock-protected mapping table for O(1) address lookup:
 
 - **UDP targets**: Sent inline on the receive thread
-- **TCP targets**: Returned as deferred sends, dispatched to a thread pool
+- **TCP targets**: Queued on the target, whose own sender thread writes them in arrival order. A full queue drops packets; a send blocked past `STREAM_SEND_TIMEOUT_MS` shuts the connection down so the peer reconnects
 - **Dead TCP targets**: Silently skipped (no UDP fallback)
 - **Unknown addresses**: Routed to a control handler for heartbeat/registration processing
 
@@ -71,7 +71,7 @@ RelayServer (main thread)
     |
     |-- UDP socket (recvfrom loop)
     |     |-- Control messages -> control_executor (4 threads)
-    |     |-- Data packets -> forward_packet() -> tcp_executor (10 threads)
+    |     |-- Data packets -> forward_packet() -> TcpTarget queue (one sender thread per TCP connection)
     |
     |-- TCPAcceptor (daemon thread)
     |     |-- Accepts TCP connections
