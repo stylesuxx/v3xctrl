@@ -58,7 +58,7 @@ The hot path (`forward_packet`) uses a lock-protected mapping table for O(1) add
 A background thread runs every 10 seconds and removes:
 
 1. **Dead TCP targets** with no active mapping
-2. **Expired roles** where no port has seen activity for 7.5 minutes
+2. **Expired roles** where no port has seen activity for 7.5 minutes. When the viewer expires, the session's spectators go with it and the streamer's packets are no longer forwarded; TCP spectators are disconnected so they reconnect and wait for the next viewer
 3. **Inactive spectators** with no heartbeat for 30 seconds (unless they have an active TCP connection)
 4. **Empty sessions** where all roles have been cleaned up
 
