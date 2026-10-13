@@ -75,25 +75,17 @@ class TCPAcceptor:
         target = TcpTarget(tcp_sock)
 
         try:
-            # Read handshake (PeerAnnouncement)
-            data = recv_message(tcp_sock)
-            if data is None:
-                logger.warning(f"TCPAcceptor: no handshake from {addr}")
+            handshake = self._read_handshake(tcp_sock, addr)
+            if handshake is None:
                 return
 
-            msg = Message.from_bytes(data)
-            if not isinstance(msg, PeerAnnouncement):
-                logger.warning(f"TCPAcceptor: expected PeerAnnouncement, got {msg.type} from {addr}")
-                return
-
-            port_type = PortType(msg.get_port_type())
-            logger.info(f"TCPAcceptor: {msg.get_role()} connected for {port_type.name} from {addr}")
+            msg, role, port_type = handshake
+            logger.info(f"TCPAcceptor: {role.value} connected for {port_type.name} from {addr}")
 
             # Register with relay (sends PeerInfo response via TcpTarget)
             self.relay.register_tcp_peer(msg, addr, target)
 
             # Behavior depends on port type and role
-            role = Role(msg.get_role())
             if role == Role.SPECTATOR or (port_type == PortType.VIDEO and role != Role.STREAMER):
                 self._monitor_disconnect(tcp_sock)
             else:
@@ -104,6 +96,32 @@ class TCPAcceptor:
 
         finally:
             target.close()
+
+    def _read_handshake(self, tcp_sock: socket.socket, addr: Address) -> tuple[PeerAnnouncement, Role, PortType] | None:
+        """The peer's announcement with its role and port type, or None.
+
+        The port is open to the internet, so scanners connect and send their
+        probes. Anything other than a valid announcement is one warning line.
+        """
+        data = recv_message(tcp_sock)
+        if data is None:
+            logger.warning(f"TCPAcceptor: no handshake from {addr}")
+            return None
+
+        try:
+            msg = Message.from_bytes(data)
+            if not isinstance(msg, PeerAnnouncement):
+                logger.warning(f"TCPAcceptor: expected PeerAnnouncement, got {msg.type} from {addr}")
+                return None
+
+            role = Role(msg.get_role())
+            port_type = PortType(msg.get_port_type())
+
+        except (ValueError, TypeError) as error:
+            logger.warning(f"TCPAcceptor: invalid handshake from {addr}: {error}")
+            return None
+
+        return msg, role, port_type
 
     def _monitor_disconnect(self, tcp_sock: socket.socket) -> None:
         """Video connections: relay only sends TO viewer. Monitor for disconnect.

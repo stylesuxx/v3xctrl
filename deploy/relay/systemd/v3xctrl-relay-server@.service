@@ -1,6 +1,6 @@
 [Unit]
 Description=v3xctrl relay server (%i)
-PartOf=v3xctrl-relay.target
+PartOf=@TARGET@
 After=network-online.target
 Wants=network-online.target
 StartLimitIntervalSec=3600
@@ -27,4 +27,4 @@ StandardOutput=journal
 StandardError=journal
 
 [Install]
-WantedBy=v3xctrl-relay.target
+WantedBy=@TARGET@

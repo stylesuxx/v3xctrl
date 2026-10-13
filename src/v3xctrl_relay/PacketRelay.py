@@ -199,6 +199,15 @@ class PacketRelay:
 
             return session.roles
 
+    def is_spectator_address(self, addr: Address) -> bool:
+        """Whether `addr` belongs to a registered spectator.
+
+        Read without `session_lock`: a single dict lookup is atomic, and the
+        receive loop must not contend with the cleanup pass. A registration
+        that lands between two packets is picked up by the next one.
+        """
+        return addr in self.spectator_by_address
+
     def update_spectator_heartbeat(self, addr: Address) -> None:
         with self.session_lock:
             spectator = self.spectator_by_address.get(addr)
@@ -222,9 +231,9 @@ class PacketRelay:
         """
         Forward a packet to its mapped targets.
 
-        Returns None if no mapping exists. Otherwise returns a list of
-        TcpTarget instances whose sends were deferred (caller must submit
-        them to the thread pool). UDP sends happen inline.
+        Returns None if no mapping exists. Otherwise returns the live
+        TcpTarget instances for the caller to queue the packet on, outside
+        `mapping_lock`. UDP sends happen inline.
         """
         with self.mapping_lock:
             mapping = self.mappings.get(addr)
@@ -292,13 +301,53 @@ class PacketRelay:
             session = self.sessions[sid]
             for role in roles_to_remove:
                 peers_by_port = session.roles[role]
+                expired_addresses = {peer.addr for peer in peers_by_port.values()}
                 with self.mapping_lock:
-                    for peer in peers_by_port.values():
-                        session.addresses.discard(peer.addr)
-                        self.mappings.pop(peer.addr, None)
+                    for addr in expired_addresses:
+                        session.addresses.discard(addr)
+                        self.mappings.pop(addr, None)
+
+                    if role == Role.VIEWER:
+                        self._remove_streamer_targets(session, expired_addresses)
 
                 session.roles[role] = {}
                 logger.info(f"{sid}: Removed expired mappings for {role.name}")
+
+                if role == Role.VIEWER:
+                    self._remove_all_spectators(session)
+
+    def _remove_streamer_targets(self, session: Session, addresses: set[Address]) -> None:
+        """Stop forwarding the streamer's packets to `addresses`. Caller must hold mapping_lock."""
+        for peer in session.roles.get(Role.STREAMER, {}).values():
+            mapping = self.mappings.get(peer.addr)
+            if mapping:
+                mapping.targets = mapping.targets - addresses
+
+    def _remove_all_spectators(self, session: Session) -> None:
+        """Spectators watch a viewer drive, so they leave with it.
+
+        A TCP spectator's connection is closed, so it reconnects and waits for
+        the next viewer. Caller must hold session_lock.
+        """
+        if not session.spectators:
+            return
+
+        spectator_addresses: set[Address] = set()
+        for spectator in session.spectators:
+            spectator_addresses |= spectator.get_addresses()
+
+        with self.mapping_lock:
+            for addr in spectator_addresses:
+                session.addresses.discard(addr)
+                self.spectator_by_address.pop(addr, None)
+                tcp_target = self.tcp_targets.get(addr)
+                if tcp_target:
+                    tcp_target.close()
+
+            self._remove_streamer_targets(session, spectator_addresses)
+
+        logger.info(f"{session.id}: Removed {len(session.spectators)} spectators with the expired viewer")
+        session.spectators = []
 
     def _cleanup_inactive_spectators(self, now: float) -> None:
         """Remove spectators that stopped sending heartbeats and have no active TCP. Caller must hold session_lock."""

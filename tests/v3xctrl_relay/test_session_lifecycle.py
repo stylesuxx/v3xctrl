@@ -990,5 +990,77 @@ class TestSpectatorTransportSwitch(_SpectatorBase, unittest.TestCase):
         self._assert_spectator_receives_data(_TransportMode.TCP)
 
 
+class TestSpectatorsFollowTheViewer(_SpectatorBase, unittest.TestCase):
+    """Spectators watch a viewer drive. Once the viewer's role expires, they go too."""
+
+    def _expire_viewer(self) -> None:
+        expired_at = time.time() - self.TIMEOUT - 1
+        self.relay.sessions["sid1"].last_announcement_at = expired_at
+        with self.relay.mapping_lock:
+            self.relay.mappings[self.viewer_video].timestamp = expired_at
+            self.relay.mappings[self.viewer_control].timestamp = expired_at
+
+    def _streamer_targets(self) -> set[tuple]:
+        with self.relay.mapping_lock:
+            return self.relay.mappings[self.streamer_video].targets | self.relay.mappings[self.streamer_control].targets
+
+    def test_spectators_are_removed_when_the_viewer_expires(self):
+        self._establish_session(_TransportMode.UDP, _TransportMode.UDP)
+        self._register_spectator(_TransportMode.UDP)
+        self._expire_viewer()
+
+        self.relay.cleanup_expired_mappings()
+
+        session = self.relay.sessions["sid1"]
+        self.assertEqual(session.spectators, [])
+        self.assertNotIn(self.spectator_video, self.relay.spectator_by_address)
+        self.assertNotIn(self.spectator_control, self.relay.spectator_by_address)
+        self.assertNotIn(self.spectator_video, session.addresses)
+        self.assertEqual(len(session.roles[Role.STREAMER]), len(PortType))
+
+    def test_the_streamer_stops_sending_to_an_expired_viewer_and_its_spectators(self):
+        self._establish_session(_TransportMode.UDP, _TransportMode.UDP)
+        self._register_spectator(_TransportMode.UDP)
+        self._expire_viewer()
+
+        self.relay.cleanup_expired_mappings()
+        self.sock.sendto.reset_mock()
+
+        self.assertEqual(self._streamer_targets(), set())
+        self.assertEqual(self.relay.forward_packet(b"video_frame", self.streamer_video), [])
+        self.sock.sendto.assert_not_called()
+
+    def test_a_tcp_spectator_is_disconnected_when_the_viewer_expires(self):
+        """Closing the connection makes the spectator reconnect and wait for the next viewer."""
+        self._establish_session(_TransportMode.UDP, _TransportMode.UDP)
+        self._register_spectator(_TransportMode.TCP)
+        self._expire_viewer()
+
+        self.relay.cleanup_expired_mappings()
+
+        self.tcp_targets[self.spectator_video].close.assert_called_once()
+        self.tcp_targets[self.spectator_control].close.assert_called_once()
+
+    def test_spectators_stay_while_the_viewer_is_live(self):
+        self._establish_session(_TransportMode.UDP, _TransportMode.UDP)
+        self._register_spectator(_TransportMode.UDP)
+        self.relay.sessions["sid1"].last_announcement_at = time.time() - self.TIMEOUT - 1
+
+        self.relay.cleanup_expired_mappings()
+
+        self.assertEqual(len(self.relay.sessions["sid1"].spectators), 1)
+        self._assert_spectator_receives_data(_TransportMode.UDP)
+
+    def test_a_returning_viewer_gets_the_stream_again(self):
+        self._establish_session(_TransportMode.UDP, _TransportMode.UDP)
+        self._register_spectator(_TransportMode.UDP)
+        self._expire_viewer()
+        self.relay.cleanup_expired_mappings()
+
+        self._register_role("viewer", self.viewer_video, self.viewer_control, _TransportMode.UDP)
+
+        self.assertEqual(self._streamer_targets(), {self.viewer_video, self.viewer_control})
+
+
 if __name__ == "__main__":
     unittest.main()
