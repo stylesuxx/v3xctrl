@@ -11,6 +11,10 @@ on:
         description: 'Package version (e.g. 1.0.0, 1.0.0-RC1). Leave empty for dev build.'
         required: false
         default: ''
+      release_tag:
+        description: 'Release tag to pull v3xctrl-python.deb from (e.g. v1.1.0). Empty = latest non-prerelease.'
+        required: false
+        default: ''
 
 jobs:
   build-arm64-deb:
@@ -25,21 +29,13 @@ jobs:
 
       - name: Download v3xctrl-python.deb for Docker image
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          ASSET_ID=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
-            https://api.github.com/repos/${{ github.repository }}/releases/latest \
-            | jq '.assets[] | select(.name == "v3xctrl-python.deb") | .id')
-
-          if [ -z "$ASSET_ID" ]; then
-            echo "Error: v3xctrl-python.deb not found in latest release."
-            exit 1
+          if [ -n "${{ inputs.release_tag }}" ]; then
+            gh release download "${{ inputs.release_tag }}" --pattern 'v3xctrl-python.deb'
+          else
+            gh release download --pattern 'v3xctrl-python.deb'
           fi
-
-          curl -L -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Accept: application/octet-stream" \
-            https://api.github.com/repos/${{ github.repository }}/releases/assets/$ASSET_ID \
-            -o v3xctrl-python.deb
 
       - name: Resolve dev version
         if: ${{ !inputs.version }}
