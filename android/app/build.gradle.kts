@@ -15,9 +15,56 @@ val localProperties = Properties().apply {
 }
 val gstDir = localProperties.getProperty("gst.dir") ?: "/home/chris/android-gst"
 
-val appVersion: String = project.findProperty("version")?.toString()?.takeIf { it.isNotEmpty() }
+// Gradle always answers findProperty("version"), falling back to its own
+// Project.DEFAULT_VERSION placeholder when -Pversion is absent.
+val appVersion: String = project.findProperty("version")?.toString()
+    ?.takeIf { it.isNotEmpty() && it != Project.DEFAULT_VERSION }
     ?: providers.exec { commandLine("git", "rev-parse", "--short", "HEAD") }
         .standardOutput.asText.get().trim().ifEmpty { "dev" }
+
+// Android refuses to install an APK whose versionCode is lower than the installed
+// one, so a semantic version maps to a monotonically increasing integer:
+// 1.2.3 -> 10203. This requires minor and patch to stay below 100. Versions that
+// are not semantic (a git hash for a dev build) resolve to 1.
+fun resolveVersionCode(version: String): Int {
+    val explicitVersionCode = project.findProperty("versionCode")?.toString()?.takeIf { it.isNotEmpty() }
+    if (explicitVersionCode != null) {
+        return explicitVersionCode.toInt()
+    }
+
+    val semanticVersion = Regex("""^(\d+)\.(\d+)\.(\d+)""").find(version)
+    if (semanticVersion == null) {
+        return 1
+    }
+
+    val (major, minor, patch) = semanticVersion.destructured
+
+    return major.toInt() * 10000 + minor.toInt() * 100 + patch.toInt()
+}
+
+val appVersionCode: Int = resolveVersionCode(appVersion)
+
+fun resolveSigningProperty(propertyName: String, environmentName: String): String? {
+    val value = project.findProperty(propertyName)?.toString()
+        ?: localProperties.getProperty(propertyName)
+        ?: System.getenv(environmentName)
+
+    return value?.takeIf { it.isNotEmpty() }
+}
+
+val releaseKeystorePath = resolveSigningProperty("keystorePath", "ANDROID_KEYSTORE_PATH")
+val releaseKeystorePassword = resolveSigningProperty("keystorePassword", "ANDROID_KEYSTORE_PASSWORD")
+val releaseKeyAlias = resolveSigningProperty("keyAlias", "ANDROID_KEY_ALIAS")
+val releaseKeyPassword = resolveSigningProperty("keyPassword", "ANDROID_KEY_PASSWORD")
+
+val hasReleaseSigningConfig = releaseKeystorePath != null &&
+    releaseKeystorePassword != null &&
+    releaseKeyAlias != null &&
+    releaseKeyPassword != null
+
+val signingConfigHelp = "Provide keystorePath, keystorePassword, keyAlias and keyPassword as " +
+    "Gradle properties, in local.properties, or as ANDROID_KEYSTORE_PATH, " +
+    "ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS and ANDROID_KEY_PASSWORD in the environment."
 
 android {
     namespace = "com.v3xctrl.viewer"
@@ -28,7 +75,7 @@ android {
         applicationId = "com.v3xctrl.viewer"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
+        versionCode = appVersionCode
         versionName = appVersion
 
         buildConfigField("String", "APP_VERSION", "\"$appVersion\"")
@@ -40,8 +87,23 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            if (hasReleaseSigningConfig) {
+                storeFile = file(releaseKeystorePath!!)
+                storePassword = releaseKeystorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (hasReleaseSigningConfig) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -114,6 +176,16 @@ val buildNativeLibs by tasks.registering {
 }
 
 tasks.named("preBuild") { dependsOn(buildNativeLibs) }
+
+// An unconfigured signing config packages an unsigned APK that no device installs,
+// so stop before packaging instead.
+tasks.matching { it.name == "packageRelease" }.configureEach {
+    doFirst {
+        if (!hasReleaseSigningConfig) {
+            throw GradleException("Release signing is not configured. $signingConfigHelp")
+        }
+    }
+}
 
 dependencies {
     implementation(libs.androidx.core.ktx)
