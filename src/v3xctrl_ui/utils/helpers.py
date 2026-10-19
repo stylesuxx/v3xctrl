@@ -45,7 +45,9 @@ def get_fps(history: deque[float], window_seconds: float = 1) -> int:
 def get_external_ip(timeout: int = 5) -> str:
     try:
         with urllib.request.urlopen("https://api.ipify.org", timeout=timeout) as response:
-            return response.read().decode("utf-8")
+            external_ip: str = response.read().decode("utf-8")
+
+            return external_ip
     except Exception:
         logger.warning("Could not get external IP address")
         return "0.0.0.0"
@@ -117,8 +119,8 @@ def round_corners(surface: pygame.Surface, radius: int, scale: int = 2) -> pygam
 def render_text_full_height(font: Font, text: str, color: tuple[int, int, int]) -> pygame.Surface:
     text_surface, rect = font.render(text, color)
 
-    ascent = font.get_sized_ascender()
-    descent = font.get_sized_descender()
+    ascent = font.get_sized_ascender(0)
+    descent = font.get_sized_descender(0)
     full_height = ascent - descent
 
     full_surface = pygame.Surface((text_surface.get_width(), full_height), pygame.SRCALPHA)

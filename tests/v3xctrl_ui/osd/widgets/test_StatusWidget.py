@@ -7,6 +7,7 @@ import unittest
 
 import pygame
 
+from v3xctrl_ui.core.StatusLevel import StatusLevel
 from v3xctrl_ui.osd.widgets import StatusWidget
 from v3xctrl_ui.utils.colors import GREEN, GREY, RED, YELLOW
 
@@ -23,24 +24,29 @@ class TestStatusWidget(unittest.TestCase):
     def test_initial_color_is_default(self):
         self.assertEqual(self.widget.color, GREY)
 
-    def test_draw_sets_status_color_waiting(self):
-        self.widget.draw(self.screen, "waiting")
+    def test_draw_sets_status_color_warning(self):
+        self.widget.draw(self.screen, StatusLevel.WARNING)
         self.assertEqual(self.widget.color, YELLOW)
 
-    def test_draw_sets_status_color_success(self):
-        self.widget.draw(self.screen, "success")
+    def test_draw_sets_status_color_good(self):
+        self.widget.draw(self.screen, StatusLevel.GOOD)
         self.assertEqual(self.widget.color, GREEN)
 
-    def test_draw_sets_status_color_fail(self):
-        self.widget.draw(self.screen, "fail")
+    def test_draw_sets_status_color_bad(self):
+        self.widget.draw(self.screen, StatusLevel.BAD)
         self.assertEqual(self.widget.color, RED)
 
-    def test_draw_sets_status_color_unknown_defaults(self):
-        self.widget.draw(self.screen, "foobar")
+    def test_draw_sets_status_color_neutral(self):
+        self.widget.draw(self.screen, StatusLevel.GOOD)
+        self.widget.draw(self.screen, StatusLevel.NEUTRAL)
         self.assertEqual(self.widget.color, GREY)
 
+    def test_every_level_has_a_color(self):
+        for level in StatusLevel:
+            self.assertIn(level, StatusWidget.LEVEL_COLORS)
+
     def test_draw_executes_without_crash(self):
-        self.widget.draw(self.screen, "success")
+        self.widget.draw(self.screen, StatusLevel.GOOD)
 
     def test_draw_extra_is_called(self):
         class ExtendedStatusWidget(StatusWidget):
@@ -53,7 +59,7 @@ class TestStatusWidget(unittest.TestCase):
 
         widget = ExtendedStatusWidget((0, 0), 20, "Label")
         screen = pygame.Surface((100, 50))
-        widget.draw(screen, "success")
+        widget.draw(screen, StatusLevel.GOOD)
         self.assertTrue(widget.extra_called)
 
 

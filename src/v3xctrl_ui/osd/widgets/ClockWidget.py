@@ -7,7 +7,7 @@ from v3xctrl_ui.osd.widgets.Widget import Widget
 from v3xctrl_ui.utils.colors import BLACK, WHITE
 
 
-class ClockWidget(Widget):
+class ClockWidget(Widget[None]):
     """Widget that displays current wall clock time with millisecond precision."""
 
     def __init__(
@@ -42,7 +42,7 @@ class ClockWidget(Widget):
 
         self._create_background()
 
-    def draw(self, screen: Surface, _value=None) -> None:
+    def draw(self, screen: Surface, value: None) -> None:
         """Draw the clock widget with current time."""
         now = datetime.now()
         time_str = now.strftime("%H:%M:%S") + f".{now.microsecond // 1000:03d}"

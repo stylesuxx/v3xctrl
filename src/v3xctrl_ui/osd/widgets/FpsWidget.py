@@ -1,15 +1,15 @@
 from collections import deque
 
 import pygame
-from pygame import Surface
+from pygame import Rect, Surface
 
 from v3xctrl_ui.osd.widgets.Widget import Widget
 from v3xctrl_ui.utils.colors import GREEN, WHITE
-from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT
+from v3xctrl_ui.utils.fonts import BOLD_MONO_FONT, font_point_size
 from v3xctrl_ui.utils.helpers import get_icon, round_corners
 
 
-class FpsWidget(Widget):
+class FpsWidget(Widget[float]):
     def __init__(
         self, position: tuple[int, int], size: tuple[int, int], label: str, smoothing_window: int = 15
     ) -> None:
@@ -30,12 +30,12 @@ class FpsWidget(Widget):
         self.font = BOLD_MONO_FONT
 
         top_padding = 2
-        label_offset: int = self.font.size // 2 + top_padding
+        label_offset: int = font_point_size(self.font) // 2 + top_padding
         self.label, self.label_rect = self.font.render(label, WHITE)
         self.label_rect.center = (self.width // 2, label_offset)
 
         self.surface = Surface((self.width, self.height), pygame.SRCALPHA)
-        self.value_offset = label_offset + self.font.size
+        self.value_offset = label_offset + font_point_size(self.font)
 
         self.graph_top = int(self.height * 0.5)
         self.graph_height = self.height - self.graph_top
@@ -48,7 +48,7 @@ class FpsWidget(Widget):
         # Cache for rendered FPS text
         self._cached_smoothed_fps: int | None = None
         self._cached_fps_surface: Surface | None = None
-        self._cached_fps_rect = None
+        self._cached_fps_rect: Rect | None = None
 
         # Status icon state
         self._status_icon: Surface | None = None
@@ -90,7 +90,7 @@ class FpsWidget(Widget):
             self._cached_smoothed_fps = smoothed_fps
 
         # Blit cached FPS text
-        if self._cached_fps_surface is not None:
+        if self._cached_fps_surface is not None and self._cached_fps_rect is not None:
             self.surface.blit(self._cached_fps_surface, self._cached_fps_rect)
 
         # Draw graph (updated every frame)

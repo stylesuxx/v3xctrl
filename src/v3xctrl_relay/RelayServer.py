@@ -27,19 +27,24 @@ class RelayServer(threading.Thread):
     CLEANUP_INTERVAL = 10
     RECEIVE_BUFFER = 2048
 
-    COMMAND_SOCKET_TEMPLATE = "/tmp/udp_relay_command_{port}.sock"
+    COMMAND_SOCKET_DIRECTORY = "/run/v3xctrl"
+    COMMAND_SOCKET_TEMPLATE = "relay_command_{port}.sock"
 
     def __init__(
         self,
         ip: str,
         port: int,
         db_path: str,
+        command_socket_directory: str | None = None,
     ) -> None:
         super().__init__(daemon=True, name="RelayServer")
 
         self.ip = ip
         self.port = port
-        self.command_socket_path = self.COMMAND_SOCKET_TEMPLATE.format(port=port)
+        self.command_socket_directory = command_socket_directory or self.COMMAND_SOCKET_DIRECTORY
+        self.command_socket_path = os.path.join(
+            self.command_socket_directory, self.COMMAND_SOCKET_TEMPLATE.format(port=port)
+        )
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -47,7 +52,6 @@ class RelayServer(threading.Thread):
 
         self.relay = PacketRelay(SessionStore(db_path), self.sock, (self.ip, self.port), self.TIMEOUT)
 
-        self.tcp_executor = ThreadPoolExecutor(max_workers=10)
         self.control_executor = ThreadPoolExecutor(max_workers=4)
         self.running = threading.Event()
         self._tcp_stop = threading.Event()
@@ -80,18 +84,7 @@ class RelayServer(threading.Thread):
         while self.running.is_set():
             try:
                 data, addr = self.sock.recvfrom(self.RECEIVE_BUFFER)
-
-                is_control = any(data.startswith(p) for p in self._CONTROL_PREFIXES)
-
-                if is_control:
-                    self.control_executor.submit(self._handle_slow_packet, data, addr)
-                else:
-                    deferred_tcp = self.relay.forward_packet(data, addr)
-                    if deferred_tcp is not None:
-                        for tcp_target in deferred_tcp:
-                            self.tcp_executor.submit(tcp_target.send, data)
-                    else:
-                        self.control_executor.submit(self._handle_slow_packet, data, addr)
+                self.handle_packet(data, addr)
             except OSError:
                 if not self.running.is_set():
                     break
@@ -103,7 +96,6 @@ class RelayServer(threading.Thread):
         self.running.clear()
         self._tcp_stop.set()
         self.tcp_acceptor.stop()
-        self.tcp_executor.shutdown(wait=True)
         self.control_executor.shutdown(wait=True)
 
         try:
@@ -123,12 +115,26 @@ class RelayServer(threading.Thread):
             self.join(timeout=5.0)
 
     def _setup_command_socket(self) -> None:
-        """Setup Unix socket for command interface"""
+        """
+        Setup Unix socket for command interface.
+
+        The containing directory is provided by the caller: under systemd it
+        comes from RuntimeDirectory=, elsewhere --runtime-dir names one.
+        """
         if os.path.exists(self.command_socket_path):
             os.unlink(self.command_socket_path)
 
         self.command_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        self.command_sock.bind(self.command_socket_path)
+
+        try:
+            self.command_sock.bind(self.command_socket_path)
+
+        except OSError as e:
+            raise OSError(
+                f"Cannot bind command socket {self.command_socket_path}: {e}. "
+                f"Pass --runtime-dir to use a directory other than {self.COMMAND_SOCKET_DIRECTORY}."
+            ) from e
+
         self.command_sock.listen(5)
 
     def _handle_commands(self) -> None:
@@ -230,6 +236,28 @@ class RelayServer(threading.Thread):
         while self.running.is_set():
             self.relay.cleanup_expired_mappings()
             time.sleep(self.CLEANUP_INTERVAL)
+
+    def handle_packet(self, data: bytes, addr: Address) -> None:
+        """Dispatch one received packet; the receive loop does nothing else."""
+        if any(data.startswith(prefix) for prefix in self._CONTROL_PREFIXES):
+            self.control_executor.submit(self._handle_slow_packet, data, addr)
+            return
+
+        # A spectator only receives, so its keep-alive is there to hold its own
+        # registration. Forwarding it would instead refresh a mapping that a
+        # departed viewer left behind on the same address, and the spectator
+        # entry would starve and be dropped after SPECTATOR_TIMEOUT.
+        if self.relay.is_spectator_address(addr):
+            self.control_executor.submit(self._handle_slow_packet, data, addr)
+            return
+
+        deferred_tcp = self.relay.forward_packet(data, addr)
+        if deferred_tcp is None:
+            self.control_executor.submit(self._handle_slow_packet, data, addr)
+            return
+
+        for tcp_target in deferred_tcp:
+            tcp_target.send(data)
 
     def _handle_connection_test(self, data: bytes, addr: Address) -> None:
         """Validate session/spectator ID and reply with ConnectionTestAck."""

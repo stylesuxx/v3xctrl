@@ -1,35 +1,40 @@
 """
-This class collects telemetry data, all fetching of telemetry data should happen
-here.
+Telemetry coordinator.
 
-The only public interface is the get_telemetry() method.
+Owns a `TelemetryStore` plus one `TelemetryCollector` per data source. Each collector
+constructs its source on its own thread and polls it at its own configurable rate, so a
+missing or slow device delays neither startup nor the other sources. The send loop reads
+the latest snapshot via `get_telemetry()` at whatever rate is appropriate for the
+transport.
 """
 
-import logging
-import threading
 import time
 from collections.abc import Callable
-from dataclasses import asdict
 from typing import Any, TypeVar
 
-from atlib import AIR780EU
-
-from v3xctrl_telemetry import BatteryInfo, CellInfo, GpsProtocol, LocationInfo, SignalInfo, TelemetryPayload
-from v3xctrl_telemetry.BatteryTelemetry import BatteryTelemetry
-from v3xctrl_telemetry.GpsTelemetry import GpsTelemetry
+from v3xctrl_telemetry import GpsProtocol
+from v3xctrl_telemetry.BatteryTelemetry import BatteryState, BatteryTelemetry
+from v3xctrl_telemetry.dataclasses import (
+    GstFlags,
+    LocationInfo,
+    ModemState,
+    ServiceFlags,
+    TelemetryRates,
+    VideoCoreFlags,
+)
 from v3xctrl_telemetry.GstTelemetry import GstTelemetry
+from v3xctrl_telemetry.ModemTelemetry import ModemTelemetry
 from v3xctrl_telemetry.ServiceTelemetry import ServiceTelemetry
+from v3xctrl_telemetry.TelemetryCollector import TelemetryCollector
+from v3xctrl_telemetry.TelemetrySource import TelemetrySource
+from v3xctrl_telemetry.TelemetryStore import TelemetryStore
 from v3xctrl_telemetry.UBXGpsTelemetry import UBXGpsTelemetry
 from v3xctrl_telemetry.VideoCoreTelemetry import VideoCoreTelemetry
 
-T = TypeVar("T")
-
-logger = logging.getLogger(__name__)
+StateT = TypeVar("StateT")
 
 
-class Telemetry(threading.Thread):
-    _SIM_RECHECK_INTERVAL = 30
-
+class Telemetry:
     def __init__(
         self,
         modem_path: str,
@@ -42,30 +47,25 @@ class Telemetry(threading.Thread):
         gps_path: str = "/dev/serial0",
         gps_rate_hz: int = 5,
         gps_protocol: GpsProtocol = GpsProtocol.UBLOX,
-        interval: float = 1.0,
+        rates: TelemetryRates | None = None,
     ) -> None:
-        super().__init__(daemon=True)
+        # gps_protocol is accepted for forward compatibility; today only UBLOX is wired
+        del gps_protocol
 
-        self._modem_path = modem_path
-        self._interval = interval
-        self.payload = TelemetryPayload(
-            sig=SignalInfo(), cell=CellInfo(), loc=LocationInfo(), bat=BatteryInfo(), svc=0, vc=0, gst=0
+        rates = rates if rates is not None else TelemetryRates()
+        self._store = TelemetryStore()
+        self._collectors: list[TelemetryCollector[Any]] = []
+
+        self._register(
+            "modem",
+            lambda: ModemTelemetry(modem_path),
+            ModemState(),
+            self._store.update_modem,
+            rates.modem,
         )
 
-        self._running = threading.Event()
-        self._lock = threading.Lock()
-
-        self._modem: AIR780EU | None = None
-        self._modem_init_failed = False
-        self._sim_absent = False
-        self._sim_recheck_counter = 0
-        self._init_modem()
-
-        self._gps: GpsTelemetry | None = self._init_component("GPS", lambda: UBXGpsTelemetry(gps_path, gps_rate_hz))
-        logger.debug("GPS telemetry %s", "available on " + gps_path if self._gps else "not available")
-
-        self._battery = self._init_component(
-            "Battery",
+        self._register(
+            "battery",
             lambda: BatteryTelemetry(
                 battery_min_voltage,
                 battery_max_voltage,
@@ -74,171 +74,90 @@ class Telemetry(threading.Thread):
                 r_shunt_mohms=battery_shunt_mohms,
                 max_expected_current_A=battery_max_current,
             ),
+            # An absent sensor reports an empty battery
+            BatteryState(percentage=0),
+            self._store.update_battery,
+            rates.battery,
         )
-        self._services = self._init_component("service", ServiceTelemetry)
-        self._videocore = self._init_component("VideoCore", VideoCoreTelemetry)
-        self._gst = self._init_component("GST", GstTelemetry)
 
-    def get_telemetry(self) -> dict[str, Any]:
-        with self._lock:
-            return asdict(self.payload)
+        # The collector polls at the rate the module was programmed to emit at, so each
+        # tick drains one fix
+        self._register(
+            "gps",
+            lambda: UBXGpsTelemetry(gps_path, gps_rate_hz),
+            LocationInfo(),
+            self._store.update_gps,
+            float(gps_rate_hz),
+        )
 
-    def run(self) -> None:
-        self._running.set()
-        while self._running.is_set():
-            if self._modem_available():
-                self._update_signal()
-                self._update_cell()
+        self._register(
+            "services",
+            ServiceTelemetry,
+            ServiceFlags(),
+            self._store.update_services,
+            rates.services,
+        )
 
-            self._update_gps()
-            self._update_battery()
-            self._update_services()
-            self._update_videocore()
-            self._update_gst()
+        self._register(
+            "videocore",
+            VideoCoreTelemetry,
+            VideoCoreFlags(),
+            self._store.update_videocore,
+            rates.videocore,
+        )
 
-            time.sleep(self._interval)
+        self._register(
+            "gst",
+            GstTelemetry,
+            GstFlags(),
+            self._store.update_gst,
+            rates.gst,
+        )
+
+    def start(self) -> None:
+        for collector in self._collectors:
+            collector.start()
 
     def stop(self) -> None:
-        self._running.clear()
+        for collector in self._collectors:
+            collector.stop()
 
-    def _init_component(self, name: str, factory: Callable[[], T]) -> T | None:
-        try:
-            return factory()
+    def join(self, timeout: float | None = None) -> None:
+        """`timeout` bounds the total wait, not each collector, so a source in the middle
+        of a slow read cannot stretch shutdown past it.
+        """
+        deadline = None
+        if timeout is not None:
+            deadline = time.monotonic() + timeout
 
-        except Exception as e:
-            logger.warning("Failed to initialize %s telemetry: %s", name, e)
-            return None
+        for collector in self._collectors:
+            if not collector.is_alive():
+                continue
 
-    def _modem_available(self) -> bool:
-        if self._modem:
-            return True
+            remaining = None
+            if deadline is not None:
+                remaining = max(0.0, deadline - time.monotonic())
 
-        if self._sim_absent:
-            self._sim_recheck_counter += 1
-            if self._sim_recheck_counter < self._SIM_RECHECK_INTERVAL:
-                return False
-            self._sim_recheck_counter = 0
+            collector.join(remaining)
 
-        return self._init_modem()
+    def get_telemetry(self) -> dict[str, Any]:
+        return self._store.get_snapshot()
 
-    def _init_modem(self) -> bool:
-        try:
-            self._modem = AIR780EU(self._modem_path)
-            self._modem.enable_location_reporting()
-            if not self._modem:
-                if not self._modem_init_failed:
-                    logger.warning("Modem unavailable")
-                    self._modem_init_failed = True
-                self._modem = None
-                return False
+    def _register(
+        self,
+        name: str,
+        factory: Callable[[], TelemetrySource[StateT]],
+        unavailable_state: StateT,
+        store_updater: Callable[[StateT], None],
+        rate_hz: float,
+    ) -> None:
+        """Give one source a collector.
 
-            sim_status = self._modem.get_sim_status()
-            if sim_status != "OK":
-                logger.info("No SIM card present (status: %s)", sim_status)
-                self._modem = None
-                self._sim_absent = True
-                return False
+        The state type binds per call, so a source is checked against the store method
+        that consumes its state.
+        """
+        if rate_hz <= 0:
+            raise ValueError(f"telemetry source {name!r} needs a positive rate, got {rate_hz}")
 
-            self._sim_absent = False
-            if self._modem_init_failed:
-                logger.info("Modem recovered")
-            self._modem_init_failed = False
-            logger.info("Modem initialized")
-            return True
-
-        except Exception as e:
-            if not self._modem_init_failed:
-                logger.warning("Failed to initialize modem: %s", e)
-                self._modem_init_failed = True
-            self._modem = None
-            return False
-
-    def _set_signal_unknown(self) -> None:
-        with self._lock:
-            self.payload.sig.rsrq = -1
-            self.payload.sig.rsrp = -1
-
-    def _set_cell_unknown(self) -> None:
-        with self._lock:
-            self.payload.cell.id = "?"
-            self.payload.cell.band = "?"
-
-    def _update_signal(self) -> None:
-        if self._modem is None:
-            return
-        try:
-            signal_quality = self._modem.get_signal_quality()
-            with self._lock:
-                self.payload.sig.rsrq = signal_quality.rsrq
-                self.payload.sig.rsrp = signal_quality.rsrp
-        except Exception as e:
-            self._set_signal_unknown()
-            logger.debug("Failed to fetch signal information: %s", e)
-            self._modem = None
-
-    def _update_cell(self) -> None:
-        if self._modem is None:
-            return
-        try:
-            band = self._modem.get_active_band()
-            cell_id = self._modem.get_cell_location()[3]
-            with self._lock:
-                self.payload.cell.id = cell_id
-                self.payload.cell.band = band
-        except Exception as e:
-            self._set_cell_unknown()
-            logger.debug("Failed to fetch cell information: %s", e)
-            self._modem = None
-
-    def _update_gps(self) -> None:
-        if self._gps:
-            try:
-                self._gps.update()
-                with self._lock:
-                    self.payload.loc = self._gps.get_state()
-            except Exception as e:
-                logger.debug("Failed to update GPS telemetry: %s", e)
-
-    def _update_battery(self) -> None:
-        if self._battery:
-            self._battery.update()
-            state = self._battery.get_state()
-            with self._lock:
-                self.payload.bat.vol = state.voltage
-                self.payload.bat.avg = state.average_voltage
-                self.payload.bat.pct = state.percentage
-                self.payload.bat.wrn = state.warning
-                self.payload.bat.cur = state.current
-
-    def _update_services(self) -> None:
-        if self._services:
-            try:
-                self._services.update()
-                with self._lock:
-                    self.payload.svc = self._services.get_byte()
-            except Exception as e:
-                logger.debug("Failed to update service telemetry: %s", e)
-                with self._lock:
-                    self.payload.svc = 0
-
-    def _update_videocore(self) -> None:
-        if self._videocore:
-            try:
-                self._videocore.update()
-                with self._lock:
-                    self.payload.vc = self._videocore.get_byte()
-            except Exception as e:
-                logger.debug("Failed to update VideoCore telemetry: %s", e)
-                with self._lock:
-                    self.payload.vc = 0
-
-    def _update_gst(self) -> None:
-        if self._gst:
-            try:
-                self._gst.update()
-                with self._lock:
-                    self.payload.gst = self._gst.get_byte()
-            except Exception as e:
-                logger.debug("Failed to update GST telemetry: %s", e)
-                with self._lock:
-                    self.payload.gst = 0
+        collector = TelemetryCollector(name, factory, unavailable_state, store_updater, 1.0 / rate_hz)
+        self._collectors.append(collector)

@@ -73,9 +73,11 @@ class TestDialogBox(unittest.TestCase):
         self.assertGreater(len(wrapped), len(self.dialog.original_lines))
 
     def test_draw_when_hidden(self):
+        """A hidden dialog is never sized, so it reports no size."""
         self.dialog.hide()
         self.dialog.draw(self.surface)
-        self.assertIsNone(getattr(self.dialog, "box_rect", None))
+
+        self.assertEqual(self.dialog.get_size(), (0, 0))
 
     def test_draw_when_visible_sets_positions(self):
         self.dialog.show()

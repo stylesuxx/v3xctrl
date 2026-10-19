@@ -187,12 +187,19 @@ class TestSelect(unittest.TestCase):
         self.select.set_options([], selected_index=5)
         self.assertEqual(self.select.selected_index, 0)
 
+    def test_an_unplaced_select_reports_its_size(self):
+        """A layout asks for the size before it places the widget."""
+        new_select = Select(label="Test", label_width=100, length=200, font=self.font, callback=lambda x: None)
+
+        self.assertEqual(new_select.rect.topleft, (0, 0))
+        self.assertEqual(new_select.get_size(), (100 + Select.LABEL_PADDING + 200, Select.OPTION_HEIGHT))
+
     def test_render_label_and_caret_without_position_set(self):
         new_select = Select(label="Test", label_width=100, length=200, font=self.font, callback=lambda x: None)
 
         new_select._render_label_and_caret()
+
         self.assertIsNotNone(new_select.label_surface)
-        self.assertIsNone(new_select.rect)
 
     def test_text_truncation_edge_cases(self):
         short_select = Select(label="Test", label_width=50, length=50, font=self.font, callback=lambda x: None)
@@ -290,8 +297,8 @@ class TestSelect(unittest.TestCase):
         self.assertFalse(self.select.handle_event(motion_event))
         self.assertFalse(self.select.hovered)
 
-    def test_hover_no_rect(self):
-        """Select without set_position has no rect — hover should be False"""
+    def test_hover_outside_an_unplaced_select(self):
+        """An unplaced select sits at the origin, so a distant point misses it."""
         new_select = Select(label="Test", label_width=100, length=200, font=self.font, callback=lambda x: None)
         motion_event = Event(MOUSEMOTION, {"pos": (50, 50)})
         self.assertFalse(new_select.handle_event(motion_event))

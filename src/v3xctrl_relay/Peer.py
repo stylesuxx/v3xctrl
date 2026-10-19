@@ -208,10 +208,14 @@ class Peer:
                     exceptions[port_type] = e
 
         if exceptions:
-            # Check if all failures were due to abort
+            for exception in exceptions.values():
+                if isinstance(exception, UnauthorizedError):
+                    raise exception
+
             all_aborted = all(isinstance(exc, InterruptedError) for exc in exceptions.values())
             if all_aborted:
                 raise PeerRegistrationAborted()
+
             raise PeerRegistrationError(exceptions, results)
 
         return results

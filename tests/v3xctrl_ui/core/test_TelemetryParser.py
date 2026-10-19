@@ -1,6 +1,7 @@
 import unittest
 
 from v3xctrl_control.message import Telemetry
+from v3xctrl_ui.core.dataclasses import GpsFixType
 from v3xctrl_ui.core.TelemetryParser import TelemetryData, parse_telemetry
 
 
@@ -69,64 +70,6 @@ class TestParseTelemetry(unittest.TestCase):
 
         self.assertEqual(data.signal_cell, "255:0")
 
-    def test_parse_telemetry_gstreamer_recording(self):
-        telemetry = Telemetry(
-            {
-                "sig": {"rsrq": -10, "rsrp": -90},
-                "cell": {"band": 3, "id": 0x0100},
-                "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False},
-                "gst": 0b0001,
-            }
-        )
-
-        data = parse_telemetry(telemetry)
-
-        self.assertTrue(data.recording)
-
-    def test_parse_telemetry_gstreamer_not_recording(self):
-        telemetry = Telemetry(
-            {
-                "sig": {"rsrq": -10, "rsrp": -90},
-                "cell": {"band": 3, "id": 0x0100},
-                "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False},
-                "gst": 0b0000,
-            }
-        )
-
-        data = parse_telemetry(telemetry)
-
-        self.assertFalse(data.recording)
-
-    def test_parse_telemetry_services_flags(self):
-        telemetry = Telemetry(
-            {
-                "sig": {"rsrq": -10, "rsrp": -90},
-                "cell": {"band": 3, "id": 0x0100},
-                "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False},
-                "svc": 0b0011,
-            }
-        )
-
-        data = parse_telemetry(telemetry)
-
-        self.assertTrue(data.service_video)
-        self.assertTrue(data.service_debug)
-
-    def test_parse_telemetry_videocore_flags(self):
-        telemetry = Telemetry(
-            {
-                "sig": {"rsrq": -10, "rsrp": -90},
-                "cell": {"band": 3, "id": 0x0100},
-                "bat": {"vol": 3800, "avg": 3750, "pct": 75, "wrn": False},
-                "vc": 0xF5,
-            }
-        )
-
-        data = parse_telemetry(telemetry)
-
-        self.assertEqual(data.vc_current_flags, 0x05)
-        self.assertEqual(data.vc_history_flags, 0x0F)
-
     def test_parse_telemetry_missing_optional_fields(self):
         telemetry = Telemetry(
             {
@@ -138,11 +81,9 @@ class TestParseTelemetry(unittest.TestCase):
 
         data = parse_telemetry(telemetry)
 
-        self.assertFalse(data.recording)
-        self.assertFalse(data.service_video)
-        self.assertFalse(data.service_debug)
-        self.assertEqual(data.vc_current_flags, 0)
-        self.assertEqual(data.vc_history_flags, 0)
+        self.assertEqual(data.gps_fix_type, GpsFixType.NO_HARDWARE)
+        self.assertEqual(data.gps_speed, 0.0)
+        self.assertEqual(data.gps_satellites, "0 SAT")
 
     def test_telemetry_data_defaults(self):
         data = TelemetryData()
@@ -156,11 +97,6 @@ class TestParseTelemetry(unittest.TestCase):
         self.assertEqual(data.battery_percent, "0%")
         self.assertEqual(data.battery_current, "0mA")
         self.assertFalse(data.battery_warning)
-        self.assertFalse(data.recording)
-        self.assertFalse(data.service_video)
-        self.assertFalse(data.service_debug)
-        self.assertEqual(data.vc_current_flags, 0)
-        self.assertEqual(data.vc_history_flags, 0)
 
     def test_parse_telemetry_battery_current_milliamps(self):
         """Test battery current parsing for values under 1000mA."""

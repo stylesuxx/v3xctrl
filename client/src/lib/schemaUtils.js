@@ -1,4 +1,45 @@
 /**
+ * Removes properties whose "options.showWhen" condition does not match the current form data.
+ * The condition's "field" is a dot-path resolved against the section's data, so any field in the
+ * section can decide which group stays visible, no matter how deep the group itself sits.
+ *
+ * Returns the input by reference when nothing is hidden, so untouched sections keep their identity
+ * and can reuse an already memoized result.
+ */
+export function pruneHiddenProperties(schema, sectionData) {
+  if (!schema?.properties) {
+    return schema
+  }
+
+  const kept = {}
+  let changed = false
+
+  for (const [key, prop] of Object.entries(schema.properties)) {
+    const showWhen = prop.options?.showWhen
+    if (showWhen) {
+      const fieldValue = showWhen.field.split('.').reduce((data, part) => data?.[part], sectionData)
+      if (fieldValue !== showWhen.equals) {
+        changed = true
+        continue
+      }
+    }
+
+    const prunedProp = pruneHiddenProperties(prop, sectionData)
+    kept[key] = prunedProp
+
+    if (prunedProp !== prop) {
+      changed = true
+    }
+  }
+
+  if (!changed) {
+    return schema
+  }
+
+  return { ...schema, properties: kept }
+}
+
+/**
  * Converts a JSONEditor schema to RJSF-compatible format.
  * Transforms enum_titles to oneOf, strips JSONEditor-specific options.
  */
@@ -36,6 +77,7 @@ function walkSchema(node) {
     delete node.options.disable_properties
     delete node.options.collapsed
     delete node.options.enum_titles
+    delete node.options.showWhen
     if (Object.keys(node.options).length === 0) {
       delete node.options
     }

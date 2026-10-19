@@ -202,7 +202,7 @@ class TestVideoCoreTelemetry(unittest.TestCase):
         telemetry = VideoCoreTelemetry()
         telemetry.update()
 
-        assert telemetry.get_byte() == 0x00
+        assert int(telemetry.get_state()) == 0x00
 
     def test_get_byte_current_flags(self):
         """Test get_byte() packs current flags into lower nibble."""
@@ -211,7 +211,7 @@ class TestVideoCoreTelemetry(unittest.TestCase):
         telemetry = VideoCoreTelemetry()
         telemetry.update()
 
-        byte = telemetry.get_byte()
+        byte = int(telemetry.get_state())
         assert byte == 0x0F  # Lower nibble all set
 
     def test_get_byte_history_flags(self):
@@ -221,7 +221,7 @@ class TestVideoCoreTelemetry(unittest.TestCase):
         telemetry = VideoCoreTelemetry()
         telemetry.update()
 
-        byte = telemetry.get_byte()
+        byte = int(telemetry.get_state())
         assert byte == 0xF0  # Upper nibble all set
 
     def test_get_byte_combined_flags(self):
@@ -233,7 +233,7 @@ class TestVideoCoreTelemetry(unittest.TestCase):
         telemetry = VideoCoreTelemetry()
         telemetry.update()
 
-        byte = telemetry.get_byte()
+        byte = int(telemetry.get_state())
         assert byte == 0x55  # 0101 0101
 
     def test_get_state_returns_videocore_flags(self):

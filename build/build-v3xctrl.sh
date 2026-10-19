@@ -71,6 +71,17 @@ else
   TIMESTAMP=$(date -u +%Y%m%d%H%M%S)
   SHORT_HASH=$(git -C "${ROOT_DIR}" rev-parse --short HEAD 2>/dev/null || echo "unknown")
   DEB_VERSION="${BASE_VERSION}~dev.${TIMESTAMP}.${SHORT_HASH}"
+
+  # A dev build must sort below the release it precedes, so that apt upgrades a
+  # dev rig to that release. Debian sorts a revision suffix such as "-dev" above
+  # the plain version, so compare against the base version with any pre-release
+  # or revision marker stripped.
+  RELEASE_VERSION="${BASE_VERSION%%[-~]*}"
+  if ! dpkg --compare-versions "${DEB_VERSION}" lt "${RELEASE_VERSION}"; then
+    echo "[BUILD] Dev version ${DEB_VERSION} does not sort below release ${RELEASE_VERSION}." >&2
+    echo "[BUILD] Set a plain release version in DEBIAN/control, for example 1.2.0." >&2
+    exit 1
+  fi
 fi
 
 echo "[BUILD] Package version: ${DEB_VERSION}"

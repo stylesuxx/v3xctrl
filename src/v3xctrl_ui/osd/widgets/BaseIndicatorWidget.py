@@ -7,7 +7,7 @@ from pygame import SRCALPHA, Surface
 from v3xctrl_ui.osd.widgets.Widget import Widget
 
 
-class BaseIndicatorWidget(Widget):
+class BaseIndicatorWidget(Widget[float]):
     VALID_RANGE_MODES: ClassVar[set[str]] = {"symmetric", "positive"}
 
     def __init__(

@@ -4,7 +4,8 @@ import pygame
 from pygame import Surface
 from pygame.freetype import STYLE_STRONG, SysFont
 
-from v3xctrl_ui.menu.input import BaseWidget, Button
+from v3xctrl_ui.menu.input.BaseWidget import BaseWidget
+from v3xctrl_ui.menu.input.Button import Button
 from v3xctrl_ui.utils.colors import (
     DARK_GREY,
     TRANSPARENT_BLACK,
@@ -34,14 +35,13 @@ class DialogBox(BaseWidget):
 
         self.button: Button = Button(button_label, self.font, self._confirm)
 
-        self.surface_size = None
-        self.box_rect = None
+        # Sized against the surface it is drawn on, so zero until first drawn
+        self.box_rect = pygame.Rect(0, 0, 0, 0)
 
     def get_size(self) -> tuple[int, int]:
-        if self.box_rect:
-            return self.box_rect.size
+        size: tuple[int, int] = self.box_rect.size
 
-        return (0, 0)
+        return size
 
     def show(self) -> None:
         self.visible = True
@@ -83,7 +83,6 @@ class DialogBox(BaseWidget):
         if not self.visible:
             return
 
-        self.surface_size = surface.get_size()
         rect = surface.get_rect()
 
         overlay = pygame.Surface(rect.size, pygame.SRCALPHA)

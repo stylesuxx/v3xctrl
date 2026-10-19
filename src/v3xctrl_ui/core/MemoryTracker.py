@@ -18,7 +18,7 @@ class MemoryTracker:
         self.enable_log = enable_log
         self._stop_event = threading.Event()
         self._thread = threading.Thread(target=self._run, daemon=True)
-        self._baseline = None
+        self._baseline: tracemalloc.Snapshot | None = None
 
     def start(self) -> None:
         tracemalloc.start()
@@ -42,6 +42,9 @@ class MemoryTracker:
                     tracemalloc.Filter(False, "*tracemalloc*"),
                 )
             )
+
+            if self._baseline is None:
+                return
 
             self._baseline = self._baseline.filter_traces(
                 (

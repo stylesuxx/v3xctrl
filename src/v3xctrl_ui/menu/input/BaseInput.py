@@ -12,6 +12,7 @@ from v3xctrl_ui.utils.colors import (
     LIGHT_GREY,
     WHITE,
 )
+from v3xctrl_ui.utils.fonts import font_point_size
 
 from .BaseWidget import BaseWidget
 
@@ -61,13 +62,13 @@ class BaseInput(BaseWidget):
         self.cursor_timer = 0
         self.cursor_x = 0
 
-        self.input_height: int = self.font.size + self.input_padding
+        self.input_height: int = font_point_size(self.font) + self.input_padding
         self.input_rect = pygame.Rect(0, 0, self.input_width, self.input_height)
 
         self.input_surface = pygame.Surface((self.input_width, self.input_height))
         self._draw_input_background()
 
-        self.cursor_height = self.font.size
+        self.cursor_height = font_point_size(self.font)
         self.cursor_y_start: int = 0
         self.cursor_y_end: int = 0
 
@@ -160,7 +161,9 @@ class BaseInput(BaseWidget):
             self.cursor_timer = current_time
 
     def _get_text_x(self) -> int:
-        return self.input_rect.right - self.input_padding - self.mono_font.get_rect(self.value).width
+        text_x: int = self.input_rect.right - self.input_padding - self.mono_font.get_rect(self.value).width
+
+        return text_x
 
     def _get_clipboard_text(self) -> str | None:
         for type in pygame.scrap.get_types():

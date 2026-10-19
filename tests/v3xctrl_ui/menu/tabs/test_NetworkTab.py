@@ -7,6 +7,7 @@ import unittest
 
 import pygame
 
+from tests.v3xctrl_ui.settings_helper import build_settings
 from v3xctrl_ui.menu.tabs import NetworkTab
 
 
@@ -15,13 +16,13 @@ class TestNetworkTab(unittest.TestCase):
         pygame.init()
         pygame.display.set_mode((1, 1))
 
-        self.settings = {
-            "ports": {"video": 5000, "control": 6000},
-            "relay": {"enabled": True, "server": "192.168.1.1", "id": "relay01"},
-            "udp_packet_ttl": 100,
-        }
+        self.settings = build_settings(
+            ports={"video": 5000, "control": 6000},
+            relay={"enabled": True, "server": "192.168.1.1", "id": "relay01"},
+            udp_packet_ttl=100,
+        )
 
-        self.tab = NetworkTab(self.settings.copy(), width=640, height=480, padding=10, y_offset=0)
+        self.tab = NetworkTab(self.settings, width=640, height=480, padding=10, y_offset=0)
 
     def test_initial_values_from_settings(self):
         self.assertEqual(self.tab.video_input.get_value(), 5000)
@@ -32,14 +33,14 @@ class TestNetworkTab(unittest.TestCase):
 
     def test_port_change_reflects_in_settings(self):
         self.tab._on_port_change("video", "12345")
-        self.assertEqual(self.tab.ports["video"], 12345)
+        self.assertEqual(self.tab.ports.video, 12345)
 
     def test_textinput_updates_settings(self):
         self.tab.relay_server_input.on_change("10.10.10.10")
-        self.assertEqual(self.tab.relay["server"], "10.10.10.10")
+        self.assertEqual(self.tab.relay.server, "10.10.10.10")
 
         self.tab.relay_id_input.on_change("new-id")
-        self.assertEqual(self.tab.relay["id"], "new-id")
+        self.assertEqual(self.tab.relay.id, "new-id")
 
     def test_udp_packet_ttl_change(self):
         self.tab.udp_packet_ttl_input.on_change("2500")
@@ -51,7 +52,7 @@ class TestNetworkTab(unittest.TestCase):
 
         settings = self.tab.get_settings()
 
-        self.assertEqual(settings["ports"]["video"], 4242)
+        self.assertEqual(settings["ports"].video, 4242)
         self.assertEqual(settings["udp_packet_ttl"], 3333)
 
     def test_draw_runs_without_error(self):
@@ -59,9 +60,9 @@ class TestNetworkTab(unittest.TestCase):
         self.tab.draw(surface)
 
     def test_on_relay_enable_change_direct(self):
-        self.assertTrue(self.tab.relay["enabled"])
+        self.assertTrue(self.tab.relay.enabled)
         self.tab._on_relay_enable_change(False)
-        self.assertFalse(self.tab.relay["enabled"])
+        self.assertFalse(self.tab.relay.enabled)
 
 
 if __name__ == "__main__":

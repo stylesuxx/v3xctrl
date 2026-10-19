@@ -1,7 +1,7 @@
 import logging
 import time
 from collections.abc import Callable
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from v3xctrl_ui.menu.calibration.CalibrationSteps import CalibrationSteps
 from v3xctrl_ui.menu.calibration.defs import AxisCalibrationData, CalibrationStage, CalibratorState
@@ -29,14 +29,20 @@ class GamepadCalibrator:
         on_done: Callable[[], None] | None = None,
         dialog: DialogBox | None = None,
         clock: Callable[[], float] | None = None,
+        recorded_settings: dict[str, Any] | None = None,
     ) -> None:
         self.on_start = on_start
         self.on_done = on_done
         self.dialog = dialog
         self._clock = clock or time.monotonic
 
+        # A calibration recorded earlier, replayed rather than measured again
+        self._recorded_settings = recorded_settings
+
         self.stage: CalibrationStage | None = None
-        self.state: CalibratorState = CalibratorState.PAUSE
+        self.state: CalibratorState = (
+            CalibratorState.COMPLETE if recorded_settings is not None else CalibratorState.PAUSE
+        )
         self.pending_stage: CalibrationStage | None = None
         self.waiting_for_user = False
 
@@ -79,7 +85,10 @@ class GamepadCalibrator:
         elif self.stage == CalibrationStage.BRAKE:
             self._detect_and_record_axis("brake", axes, exclude=["steering"], on_complete=self._complete)
 
-    def get_settings(self) -> dict[str, dict[str, float | int | None]]:
+    def get_settings(self) -> dict[str, Any]:
+        if self._recorded_settings is not None:
+            return self._recorded_settings
+
         return {
             name: {
                 "axis": axis.axis,
@@ -162,10 +171,15 @@ class GamepadCalibrator:
             min_val = min(axis_data.max_values)
             max_val = max(axis_data.max_values)
 
+            min_stable_since = axis_data.min_stable_since
+            max_stable_since = axis_data.max_stable_since
+
             if (
-                max_val - min_val >= self.AXIS_MOVEMENT_THRESHOLD
-                and now - axis_data.min_stable_since >= self.STABLE_TIME
-                and now - axis_data.max_stable_since >= self.STABLE_TIME
+                min_stable_since is not None
+                and max_stable_since is not None
+                and max_val - min_val >= self.AXIS_MOVEMENT_THRESHOLD
+                and now - min_stable_since >= self.STABLE_TIME
+                and now - max_stable_since >= self.STABLE_TIME
             ):
                 logger.info(f"{name.capitalize()} axis min/max: {min_val:.2f}/{max_val:.2f}")
 
@@ -177,8 +191,10 @@ class GamepadCalibrator:
 
     def _record_center_idle(self, name: str, axes: list[float], next_stage: CalibrationStage) -> None:
         axis_data = self.axes[name]
-        i = axis_data.axis
-        value = axes[i]
+        if axis_data.axis is None:
+            return
+
+        value = axes[axis_data.axis]
         now = self._clock()
 
         if axis_data.idle_last is None:

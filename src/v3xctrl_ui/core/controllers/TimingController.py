@@ -22,29 +22,19 @@ class TimingController:
         """
         self.settings = settings
         self.model = model
-        self.main_loop_fps: int = 60
+        self.update_from_settings()
+
+    def apply_settings(self, settings: "Settings") -> None:
+        self.settings = settings
         self.update_from_settings()
 
     def update_from_settings(self) -> None:
         """Update timing intervals from current settings."""
-        timing = self.settings.get("timing", {})
-        control_rate_frequency = timing.get("control_update_hz", 30)
-        latency_check_frequency = timing.get("latency_check_hz", 1)
+        timing = self.settings.timing
 
-        self.model.control_interval = 1.0 / control_rate_frequency
-        self.model.latency_interval = 1.0 / latency_check_frequency
-        self.main_loop_fps = timing.get("main_loop_fps", 60)
-
-    def should_update_control(self, now: float) -> bool:
-        """Check if enough time has passed for a control update.
-
-        Args:
-            now: Current monotonic time
-
-        Returns:
-            True if a control update should occur
-        """
-        return now - self.model.last_control_update >= self.model.control_interval - self.TIMING_EPSILON
+        self.model.control_interval = 1.0 / timing.control_update_hz
+        self.model.latency_interval = 1.0 / timing.latency_check_hz
+        self.main_loop_fps = timing.main_loop_fps
 
     def should_check_latency(self, now: float) -> bool:
         """Check if enough time has passed for a latency check.
@@ -56,14 +46,6 @@ class TimingController:
             True if a latency check should occur
         """
         return now - self.model.last_latency_check >= self.model.latency_interval - self.TIMING_EPSILON
-
-    def mark_control_updated(self, now: float) -> None:
-        """Mark that a control update has occurred.
-
-        Args:
-            now: Current monotonic time
-        """
-        self.model.last_control_update = now
 
     def mark_latency_checked(self, now: float) -> None:
         """Mark that a latency check has occurred.

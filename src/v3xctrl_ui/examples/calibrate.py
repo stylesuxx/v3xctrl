@@ -2,6 +2,7 @@ from typing import Any
 
 import pygame
 
+from v3xctrl_ui.core.controllers.input.GamepadController import GamepadController
 from v3xctrl_ui.menu.calibration.GamepadCalibrationWidget import GamepadCalibrationWidget
 from v3xctrl_ui.utils.colors import DARK_GREY
 from v3xctrl_ui.utils.fonts import LABEL_FONT
@@ -25,12 +26,16 @@ def on_calibration_start() -> None:
     print("Calibration started")
 
 
-def on_calibration_done(guid: str, settings: dict[str, Any]) -> None:
+def on_calibration_done() -> None:
+    guid = calibration_widget.get_selected_guid()
+    if guid is None:
+        return
+
     print(f"\n[CALIBRATION DONE] Joystick GUID: {guid}")
-    for axis, data in settings.items():
+    for axis, data in gamepad_manager.get_calibration(guid).items():
         print(f"  {axis.capitalize()} Axis:")
-        for k, v in data.items():
-            print(f"    {k}: {v}")
+        for key, value in data.items():
+            print(f"    {key}: {value}")
 
 
 pygame.init()
@@ -39,7 +44,7 @@ screen = pygame.display.set_mode(size, pygame.DOUBLEBUF | pygame.SCALED)
 pygame.display.set_caption("Gamepad Calibration")
 clock = pygame.time.Clock()
 
-gamepad_manager = GamepadManager()
+gamepad_manager = GamepadController()
 for guid, calibration in calibrations.items():
     gamepad_manager.set_calibration(guid, calibration)
 

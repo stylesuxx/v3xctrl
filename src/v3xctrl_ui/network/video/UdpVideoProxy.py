@@ -84,6 +84,12 @@ class UdpVideoProxy(threading.Thread):
         self._running.clear()
 
     def run(self) -> None:
+        external_sock = self._external_sock
+        forward_sock = self._forward_sock
+        if external_sock is None or forward_sock is None:
+            logger.error("UdpVideoProxy: started before its sockets were bound")
+            return
+
         self._running.set()
         heartbeat_bytes = Heartbeat().to_bytes()
         last_heartbeat = 0.0
@@ -95,23 +101,23 @@ class UdpVideoProxy(threading.Thread):
 
         # Send initial heartbeat immediately
         try:
-            self._external_sock.sendto(heartbeat_bytes, self.relay_address)
+            external_sock.sendto(heartbeat_bytes, self.relay_address)
             last_heartbeat = time.monotonic()
         except OSError as e:
             logger.warning(f"UdpVideoProxy: initial heartbeat failed: {e}")
 
         while self._running.is_set():
             try:
-                readable, _, _ = select.select([self._external_sock], [], [], 1.0)
+                readable, _, _ = select.select([external_sock], [], [], 1.0)
             except (OSError, ValueError):
                 break
 
             if readable:
                 try:
                     while True:
-                        data, _ = self._external_sock.recvfrom(RECV_BUFFER_SIZE)
+                        data, _ = external_sock.recvfrom(RECV_BUFFER_SIZE)
                         self.packets_received += 1
-                        self._forward_sock.sendto(data, self._forward_addr)
+                        forward_sock.sendto(data, self._forward_addr)
                         self.packets_forwarded += 1
                 except BlockingIOError:
                     pass
@@ -122,7 +128,7 @@ class UdpVideoProxy(threading.Thread):
             now = time.monotonic()
             if now - last_heartbeat >= HEARTBEAT_INTERVAL_S:
                 try:
-                    self._external_sock.sendto(heartbeat_bytes, self.relay_address)
+                    external_sock.sendto(heartbeat_bytes, self.relay_address)
                     last_heartbeat = now
                     logger.debug(f"UdpVideoProxy: heartbeat sent to {self.relay_address}")
                 except OSError as e:
@@ -140,7 +146,7 @@ class UdpVideoProxy(threading.Thread):
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             sock.bind(("127.0.0.1", 0))
-            port = sock.getsockname()[1]
+            port = int(sock.getsockname()[1])
             sock.close()
             return port
         except OSError:

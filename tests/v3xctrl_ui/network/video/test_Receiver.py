@@ -126,8 +126,8 @@ class TestReceiver(unittest.TestCase):
         receiver = MockReceiver(5600, keep_alive)
 
         receiver.start()
-        time.sleep(0.1)
         receiver.stop()
+        receiver.join(timeout=5)
 
         self.assertTrue(receiver.setup_called)
         self.assertTrue(receiver.main_loop_called)
@@ -141,8 +141,8 @@ class TestReceiver(unittest.TestCase):
             receiver = MockReceiver(5600, Mock(), setup_fail=True)
 
             receiver.start()
-            time.sleep(0.1)
             receiver.stop()
+            receiver.join(timeout=5)
 
             self.assertTrue(receiver.setup_called)
             self.assertFalse(receiver.main_loop_called)
@@ -155,35 +155,25 @@ class TestReceiver(unittest.TestCase):
             receiver = MockReceiver(5600, Mock(), main_loop_fail=True)
 
             receiver.start()
-            time.sleep(0.1)
             receiver.stop()
+            receiver.join(timeout=5)
 
             self.assertTrue(receiver.setup_called)
             self.assertTrue(receiver.main_loop_called)
             self.assertTrue(receiver.cleanup_called)
             mock_logger.exception.assert_called()
 
-    def test_cleanup_failure_in_run(self):
-        """Test cleanup failure in run() finally block is handled."""
+    def test_cleanup_failure_is_logged_and_thread_exits(self):
+        """A failing _cleanup() is logged once and the thread still terminates."""
         with patch("v3xctrl_ui.network.video.Receiver.logger") as mock_logger:
             receiver = MockReceiver(5600, Mock(), cleanup_fail=True)
 
             receiver.start()
-            time.sleep(0.1)
             receiver.stop()
+            receiver.join(timeout=5)
 
-            mock_logger.exception.assert_called()
-
-    def test_cleanup_failure_in_stop(self):
-        """Test cleanup failure in stop() is handled."""
-        with patch("v3xctrl_ui.network.video.Receiver.logger") as mock_logger:
-            receiver = MockReceiver(5600, Mock(), cleanup_fail=True)
-
-            receiver.start()
-            time.sleep(0.05)
-            receiver.stop()
-
-            mock_logger.exception.assert_not_called()
+            self.assertFalse(receiver.is_alive())
+            mock_logger.exception.assert_called_once_with("Error during cleanup: Cleanup failed")
 
     def test_stop_without_start(self):
         """Test stop() can be called without start()."""
@@ -341,8 +331,8 @@ class TestReceiver(unittest.TestCase):
         receiver = MockReceiver(5600, keep_alive, main_loop_fail=True)
 
         receiver.start()
-        time.sleep(0.1)
         receiver.stop()
+        receiver.join(timeout=5)
 
         # NOTE: This demonstrates that keep_alive is not used in current implementation
         keep_alive.assert_not_called()

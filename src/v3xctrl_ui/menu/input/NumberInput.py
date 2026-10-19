@@ -3,7 +3,7 @@ from collections.abc import Callable
 import pygame
 from pygame.freetype import Font
 
-from v3xctrl_ui.menu.input import BaseInput
+from v3xctrl_ui.menu.input.BaseInput import BaseInput
 
 
 class NumberInput(BaseInput):

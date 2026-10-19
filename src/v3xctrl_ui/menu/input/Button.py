@@ -13,6 +13,7 @@ from v3xctrl_ui.utils.colors import (
     MID_GREY,
     WHITE,
 )
+from v3xctrl_ui.utils.fonts import font_point_size
 from v3xctrl_ui.utils.helpers import render_text_full_height
 
 
@@ -51,10 +52,11 @@ class Button(BaseWidget):
 
         _, temp_rect = self.font.render(self.label)
 
-        vertical_padding = int(font.size / 100 * 40)
-        horizontal_padding = font.size
+        point_size = font_point_size(font)
+        vertical_padding = int(point_size / 100 * 40)
+        horizontal_padding = point_size
 
-        calculated_height = font.size + vertical_padding * 2
+        calculated_height = point_size + vertical_padding * 2
         calculated_width = temp_rect.width + horizontal_padding * 2
 
         if width:

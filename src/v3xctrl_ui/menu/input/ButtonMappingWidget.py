@@ -5,8 +5,10 @@ import pygame
 from pygame import Surface
 from pygame.freetype import Font
 
-from v3xctrl_ui.menu.input import BaseWidget, Button
+from v3xctrl_ui.menu.input.BaseWidget import BaseWidget
+from v3xctrl_ui.menu.input.Button import Button
 from v3xctrl_ui.utils.colors import WHITE
+from v3xctrl_ui.utils.fonts import font_point_size
 
 # Mapping value is either an int (button index) or a dict (hat mapping)
 MappingValue = int | dict[str, Any] | None
@@ -65,7 +67,7 @@ class ButtonMappingWidget(BaseWidget):
 
         self.waiting_for_button = False
 
-        btn_w = int(font.size * 4)
+        btn_w = font_point_size(font) * 4
         self.remap_button = Button("Assign", font, self._on_remap_click, width=btn_w)
         self.reset_button = Button("Reset", font, self._on_reset_click, width=btn_w)
 

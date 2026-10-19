@@ -1,7 +1,7 @@
 import logging
 import signal
-import threading
 import time
+from dataclasses import replace
 from typing import Any
 
 import pygame
@@ -12,10 +12,15 @@ from v3xctrl_ui.core.controllers.input.InputController import InputController
 from v3xctrl_ui.core.controllers.SettingsController import SettingsController
 from v3xctrl_ui.core.controllers.TimingController import TimingController
 from v3xctrl_ui.core.dataclasses import ApplicationModel
+from v3xctrl_ui.core.FrameSnapshot import ConnectionStatus, FrameSnapshot
+from v3xctrl_ui.core.MainThreadDispatcher import MainThreadDispatcher
 from v3xctrl_ui.core.Renderer import Renderer
 from v3xctrl_ui.core.Settings import Settings
+from v3xctrl_ui.core.StatusLevel import StatusLevel
 from v3xctrl_ui.core.TelemetryContext import TelemetryContext
+from v3xctrl_ui.core.TelemetrySink import TelemetrySink
 from v3xctrl_ui.menu.Menu import Menu
+from v3xctrl_ui.network.ControlSender import ControlSender
 from v3xctrl_ui.network.NetworkCoordinator import NetworkCoordinator
 from v3xctrl_ui.osd.OSD import OSD
 
@@ -23,38 +28,44 @@ logger = logging.getLogger(__name__)
 
 
 class AppState:
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, title: str | None = None) -> None:
         self.settings = settings
 
         self.model = ApplicationModel(
-            fullscreen=self.settings.get("video", {"fullscreen": False}).get("fullscreen", False),
+            fullscreen=settings.video.fullscreen,
             throttle=0,
             steering=0,
         )
 
-        video = settings.get("video")
-        self.size = (video.get("width"), video.get("height"))
+        self.size = (settings.video.width, settings.video.height)
 
-        ports = settings.get("ports", {})
-        self.video_port = ports.get("video", 16384)
-        self.control_port = ports.get("control", 16386)
+        self.video_port = settings.ports.video
+        self.control_port = settings.ports.control
 
         from v3xctrl_ui import __version__
 
-        self.title = f"V3XCTRL ({__version__})"
+        self.title = title or f"V3XCTRL ({__version__})"
 
         self.input_controller = InputController(settings)
 
         self.telemetry_context = TelemetryContext()
 
+        # Fed from the receive thread, read by the OSD and the menu
+        self.telemetry_sink = TelemetrySink(self.telemetry_context)
+
         self.osd = OSD(settings, self.telemetry_context)
-        self.renderer = Renderer(self.size, self.settings)
-        self.renderer.set_connect_callback(self.connect)
+
+        # Drained once per loop iteration, so background threads can touch the UI
+        self.main_thread_dispatcher = MainThreadDispatcher()
 
         # Network coordination
-        self.network_coordinator = NetworkCoordinator(self.model, self.osd)
+        self.network_coordinator = NetworkCoordinator(
+            self.model, self.osd, self.telemetry_sink, self.settings, self.main_thread_dispatcher
+        )
         self.network_coordinator.on_connection_change = self._on_connection_change
-        self.network_coordinator.network_controller = self.network_coordinator.create_network_controller(self.settings)
+
+        # Control messages leave on their own cadence; the render loop only feeds values
+        self.control_sender = ControlSender(self.model, self.network_coordinator.send_control_message)
 
         # Timing
         self.timing_controller = TimingController(self.settings, self.model)
@@ -65,6 +76,9 @@ class AppState:
 
         # Create menu once
         self.menu = self._create_menu()
+
+        self.renderer = Renderer(self.size, self.settings, self.osd, self.menu)
+        self.renderer.set_connect_callback(self.connect)
 
         # Event handling
         self.event_controller = EventController(
@@ -82,13 +96,16 @@ class AppState:
 
         self._setup_signal_handling()
 
-        start_time = time.monotonic()
-        self.model.last_control_update = start_time
-        self.model.last_latency_check = start_time
+        self.model.last_latency_check = time.monotonic()
 
         # Settings management
-        self.settings_controller = SettingsController(self.settings, self.model)
-        self._configure_settings_controller()
+        self.settings_controller = SettingsController(
+            self.settings,
+            self.model,
+            network_restarter=self.network_coordinator,
+            on_fullscreen_change=self._on_fullscreen_change,
+        )
+        self._register_settings_subscribers()
 
     @property
     def screen(self) -> pygame.Surface:
@@ -116,35 +133,38 @@ class AppState:
         self.settings_controller.update_settings(new_settings)
 
     def update(self) -> None:
-        self.network_coordinator.process_callbacks()
+        now = time.monotonic()
+
+        self.main_thread_dispatcher.drain()
+        self.menu.update(now)
         self.settings_controller.check_network_restart_complete()
         self.display_controller.update_cursor_visibility(self.menu.visible or not self.model.user_connected)
 
         if not self.model.user_connected:
             return
 
-        now = time.monotonic()
         self.model.loop_history.append(now)
 
-        # Handle control updates, send last values if user is in menu
-        if self.timing_controller.should_update_control(now):
+        # Inputs are read every frame; neutral while the user is in the menu
+        throttle, steering = (0.0, 0.0)
+        if not self.menu.visible:
             try:
-                throttle, steering = (0, 0)
-                if not self.menu.visible:
-                    throttle, steering = self.input_controller.read_inputs()
-
-                self.model.throttle = throttle
-                self.model.steering = steering
-
-                self.network_coordinator.send_control_message(throttle, steering)
+                throttle, steering = self.input_controller.read_inputs()
             except Exception as e:
                 logger.warning(f"Input read error: {e}")
-            self.timing_controller.mark_control_updated(now)
+
+        self.model.throttle = throttle
+        self.model.steering = steering
+        self.control_sender.set_values(throttle, steering)
 
         # Handle latency checks
         if self.timing_controller.should_check_latency(now):
             self.network_coordinator.send_latency_check()
             self.timing_controller.mark_latency_checked(now)
+
+    def start(self) -> None:
+        """Start the background work that runs beside the render loop."""
+        self.control_sender.start()
 
     def tick(self) -> None:
         self.clock.tick(self.timing_controller.main_loop_fps)
@@ -156,34 +176,65 @@ class AppState:
         return self.event_controller.handle_events()
 
     def render(self) -> None:
-        if self.model.user_connected:
-            # Update OSD with network data
-            control_buffer_size = self.network_coordinator.get_control_buffer_size()
-            if self.network_coordinator.is_control_connected():
-                if (
-                    self.network_coordinator.has_server_error()
-                    or self.network_coordinator.has_recent_control_drops()
-                    or self.network_coordinator.has_recent_send_failures()
-                ):
-                    self.osd.update_debug_status("fail")
-                else:
-                    self.osd.update_debug_status("success")
+        connection = self._connection_status()
+        video_frame = None
 
-            buffer_size = self.network_coordinator.get_video_buffer_size()
-            self.osd.update_buffer_queue(buffer_size)
+        if connection.user_connected:
+            video_frame = self.network_coordinator.get_video_frame()
+            self._update_osd(connection)
 
-            self.osd.update_control_queue(control_buffer_size)
-            self.osd.set_control(self.model.throttle, self.model.steering)
-            self.osd.set_spectator_mode(self.network_coordinator.is_spectator())
+        snapshot = FrameSnapshot(
+            connection=connection,
+            video_frame=video_frame,
+            throttle=self.model.throttle,
+            steering=self.model.steering,
+            fullscreen=self.model.fullscreen,
+            scale=self.model.scale,
+            menu_visible=self.menu.visible,
+            loop_history=self.model.loop_history.copy(),
+            video_history=self.network_coordinator.get_video_history(),
+        )
 
-            inversion = self.input_controller.gamepad_controller.get_axis_inversion()
-            self.osd.set_axis_inversion(
-                steering=inversion.get("steering", False),
-                throttle=inversion.get("throttle", False),
+        self.renderer.render(self.screen, snapshot)
+
+    def _connection_status(self) -> ConnectionStatus:
+        """Read the network state once, so every reader sees the same frame."""
+        coordinator = self.network_coordinator
+
+        return ConnectionStatus(
+            user_connected=self.model.user_connected,
+            control_connected=self.model.control_connected,
+            spectator=coordinator.is_spectator(),
+            control_error=coordinator.get_control_error(),
+            relay_enabled=coordinator.is_relay_enabled(),
+            relay_status_message=coordinator.get_relay_status_message(),
+            control_queue_depth=coordinator.get_control_buffer_size(),
+            video_buffer_depth=coordinator.get_video_buffer_size(),
+        )
+
+    def _update_osd(self, connection: ConnectionStatus) -> None:
+        if connection.control_connected:
+            degraded = (
+                connection.control_error is not None
+                or self.network_coordinator.has_recent_control_drops()
+                or self.network_coordinator.has_recent_send_failures()
             )
+            if degraded:
+                self.osd.update_debug_status(StatusLevel.BAD)
+            else:
+                self.osd.update_debug_status(StatusLevel.GOOD)
 
-        self.renderer.render_all(
-            self, self.network_coordinator.network_controller, self.model.fullscreen, self.model.scale
+        self.osd.update_buffer_queue(connection.video_buffer_depth)
+        self.osd.update_control_queue(connection.control_queue_depth)
+        self.osd.set_control(self.model.throttle, self.model.steering)
+
+        self.telemetry_sink.set_spectator_mode(connection.spectator)
+        self.osd.update_latency(self.telemetry_sink.latency)
+
+        inversion = self.input_controller.gamepad_controller.get_axis_inversion()
+        self.osd.set_axis_inversion(
+            steering=inversion.get("steering", False),
+            throttle=inversion.get("throttle", False),
         )
 
     def shutdown(self) -> None:
@@ -199,6 +250,7 @@ class AppState:
 
         pygame.quit()
 
+        self.control_sender.stop()
         self.network_coordinator.shutdown()
 
         delta = round(time.monotonic() - start)
@@ -210,19 +262,13 @@ class AppState:
     def _on_toggle_fullscreen(self) -> None:
         self.display_controller.toggle_fullscreen()
 
-        video_settings = self.settings.get("video", {})
-        video_settings["fullscreen"] = self.model.fullscreen
-        self.settings.set("video", video_settings)
+        self.settings.video = replace(self.settings.video, fullscreen=self.model.fullscreen)
         self.settings.save()
 
         # Update menu dimensions with new screen size
         screen_size = self.screen.get_size()
         self.menu.update_dimensions(screen_size[0], screen_size[1])
-
-        # Refresh menu tabs to update widget states (e.g., fullscreen checkbox)
-        if self.menu.visible:
-            for tab in self.menu.tabs:
-                tab.view.apply_settings()
+        self.menu.apply_fullscreen(self.model.fullscreen)
 
     def _create_menu(self) -> Menu:
         """Callback to create a new menu instance."""
@@ -235,6 +281,7 @@ class AppState:
             self.update_settings,
             self._signal_handler,
             self.telemetry_context,
+            self.main_thread_dispatcher,
         )
 
         streamer_enabled = (
@@ -244,50 +291,28 @@ class AppState:
 
         return menu
 
-    def _configure_settings_controller(self) -> None:
-        """Configure settings controller with all necessary callbacks."""
-        self.settings_controller.on_timing_update = self._on_timing_update
-        self.settings_controller.on_network_update = self._on_network_update
-        self.settings_controller.on_input_update = self._on_input_update
-        self.settings_controller.on_osd_update = self._on_osd_update
-        self.settings_controller.on_renderer_update = self._on_renderer_update
-        self.settings_controller.on_display_update = self._on_display_update
-        self.settings_controller.create_network_restart_thread = self._create_network_restart_thread
-        self.settings_controller.network_restart_complete = self.network_coordinator.restart_complete
+    def _register_settings_subscribers(self) -> None:
+        """Register every module a settings change reaches, in apply order."""
+        for subscriber in (
+            self.timing_controller,
+            self,
+            self.menu,
+            self.network_coordinator,
+            self.input_controller,
+            self.event_controller,
+            self.osd,
+            self.renderer,
+        ):
+            self.settings_controller.register(subscriber)
 
-    def _update_network_settings(self) -> None:
-        udp_ttl_ms = self.settings.get("udp_packet_ttl", 100)
-        self.network_coordinator.update_ttl(udp_ttl_ms)
-
-    def _on_timing_update(self, settings: Settings) -> None:
-        self.timing_controller.settings = settings
-        self.timing_controller.update_from_settings()
+    def apply_settings(self, settings: Settings) -> None:
         self.settings = settings
-        self.menu.update_settings_reference(settings)
 
-    def _on_network_update(self, settings: Settings) -> None:
-        if not self.model.user_connected:
-            self.network_coordinator.network_controller = self.network_coordinator.create_network_controller(settings)
-        self._update_network_settings()
-
-    def _on_input_update(self, settings: Settings) -> None:
-        self.input_controller.update_settings(settings)
-        self.event_controller.update_settings(settings)
-
-    def _on_osd_update(self, settings: Settings) -> None:
-        self.osd.update_settings(settings)
-
-    def _on_renderer_update(self, settings: Settings) -> None:
-        self.renderer.settings = settings
-
-    def _on_display_update(self, fullscreen: bool) -> None:
+    def _on_fullscreen_change(self, fullscreen: bool) -> None:
         self.display_controller.set_fullscreen(fullscreen)
 
         screen_size = self.screen.get_size()
         self.menu.update_dimensions(screen_size[0], screen_size[1])
-
-    def _create_network_restart_thread(self, new_settings: Settings) -> threading.Thread:
-        return self.network_coordinator.restart_network_controller(new_settings)
 
     def _on_connection_change(self, connected: bool) -> None:
         streamer_enabled = connected and not self.network_coordinator.is_spectator()

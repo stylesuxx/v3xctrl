@@ -42,6 +42,33 @@ class TestPeer(unittest.TestCase):
             with self.assertRaises(UnauthorizedError):
                 self.peer._register_with_relay(mock_sock, "video", "client")
 
+    def test_register_all_raises_unauthorized_as_is(self):
+        """The service manager and the viewer key their message on UnauthorizedError,
+        so a rejected ID must not be folded into PeerRegistrationError."""
+        sockets = {"video": MagicMock(), "control": MagicMock()}
+
+        def register(sock, port_type, role):
+            if port_type == "video":
+                raise UnauthorizedError("bad auth")
+            raise TimeoutError()
+
+        with (
+            patch.object(self.peer, "_register_with_relay", side_effect=register),
+            self.assertRaises(UnauthorizedError),
+        ):
+            self.peer._register_all(sockets, "streamer")
+
+    def test_register_all_wraps_other_failures(self):
+        sockets = {"video": MagicMock(), "control": MagicMock()}
+
+        with (
+            patch.object(self.peer, "_register_with_relay", side_effect=TimeoutError()),
+            self.assertRaises(PeerRegistrationError) as raised,
+        ):
+            self.peer._register_all(sockets, "streamer")
+
+        self.assertEqual(set(raised.exception.failures), {"video", "control"})
+
     def test_register_with_relay_no_data_received(self):
         """Test branch where recvfrom returns empty data"""
         mock_sock = MagicMock()

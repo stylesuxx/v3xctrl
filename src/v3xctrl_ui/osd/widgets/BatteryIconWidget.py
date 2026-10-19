@@ -5,7 +5,7 @@ from v3xctrl_ui.utils.colors import GREEN, ORANGE, RED, YELLOW
 from v3xctrl_ui.utils.helpers import get_icon
 
 
-class BatteryIconWidget(Widget):
+class BatteryIconWidget(Widget[int]):
     def __init__(self, position: tuple[int, int], width: int) -> None:
         self.position = position
 

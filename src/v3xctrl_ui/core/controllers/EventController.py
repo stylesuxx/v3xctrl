@@ -112,7 +112,7 @@ class EventController:
 
         return True
 
-    def update_settings(self, settings: Settings) -> None:
+    def apply_settings(self, settings: Settings) -> None:
         self.settings = settings
         self._load_keyboard_controls()
 
@@ -127,6 +127,9 @@ class EventController:
 
     def _match_gamepad_mapping(self, event: pygame.event.Event) -> str | None:
         """Check if a pygame event matches any gamepad button/hat mapping."""
+        if self.gamepad_controller is None:
+            return None
+
         for name in ("trim_increase", "trim_decrease", "rec_toggle"):
             mapping = self.gamepad_controller.get_button_mapping(name)
             if mapping is None:
@@ -148,8 +151,8 @@ class EventController:
         return None
 
     def _load_keyboard_controls(self) -> None:
-        keyboard_controls = self.settings.get("controls", {}).get("keyboard", {})
+        keyboard = self.settings.controls.keyboard
 
-        self.trim_increase_key = keyboard_controls.get("trim_increase")
-        self.trim_decrease_key = keyboard_controls.get("trim_decrease")
-        self.rec_toggle_key = keyboard_controls.get("rec_toggle")
+        self.trim_increase_key = keyboard.trim_increase
+        self.trim_decrease_key = keyboard.trim_decrease
+        self.rec_toggle_key = keyboard.rec_toggle

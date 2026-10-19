@@ -89,6 +89,18 @@ class TestClockOffset(unittest.TestCase):
 
         self.assertEqual(offset._samples._window_seconds, 3.0)
 
+    def test_reading_the_offset_does_not_touch_the_sample_window(self):
+        """The frame path reads while the receive thread appends, so reads must not iterate the window."""
+        offset = ClockOffset()
+        offset.update(viewer_send=1.0, streamer_timestamp=1.006, viewer_receive=1.010)
+
+        with patch.object(offset, "_samples") as samples:
+            self.assertTrue(offset.valid)
+            self.assertEqual(offset.offset_us, 1000)
+
+        samples.average.assert_not_called()
+        self.assertEqual(samples.mock_calls, [])
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

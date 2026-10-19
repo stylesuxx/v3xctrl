@@ -2,9 +2,12 @@ import threading
 import unittest
 from unittest.mock import MagicMock, patch
 
+from tests.v3xctrl_ui.settings_helper import build_settings
 from v3xctrl_control import State
-from v3xctrl_control.message import Command, Control, Latency, Telemetry
+from v3xctrl_control.message import Command, Latency, Telemetry
 from v3xctrl_ui.core.dataclasses import ApplicationModel
+from v3xctrl_ui.core.MainThreadDispatcher import MainThreadDispatcher
+from v3xctrl_ui.network.NetworkController import NetworkController
 from v3xctrl_ui.network.NetworkCoordinator import NetworkCoordinator
 
 
@@ -15,31 +18,35 @@ class TestNetworkCoordinator(unittest.TestCase):
         """Set up test fixtures."""
         self.model = ApplicationModel(fullscreen=False, throttle=0.0, steering=0.0)
         self.mock_osd = MagicMock()
-        self.coordinator = NetworkCoordinator(self.model, self.mock_osd)
+        self.mock_telemetry_sink = MagicMock()
+        self.settings = build_settings(ports={"video": 6666, "control": 6668})
+        self.main_thread_dispatcher = MainThreadDispatcher()
+        self.coordinator = NetworkCoordinator(
+            self.model, self.mock_osd, self.mock_telemetry_sink, self.settings, self.main_thread_dispatcher
+        )
 
     def test_initialization(self):
         """Test NetworkCoordinator initialization."""
         self.assertEqual(self.coordinator.model, self.model)
         self.assertEqual(self.coordinator.osd, self.mock_osd)
-        self.assertIsNone(self.coordinator.network_controller)
+        self.assertIsInstance(self.coordinator.network_controller, NetworkController)
         self.assertIsInstance(self.coordinator.restart_complete, threading.Event)
         self.assertIsNone(self.coordinator.on_connection_change)
 
     @patch("v3xctrl_ui.network.NetworkCoordinator.NetworkController")
     def test_create_network_controller(self, mock_nm_class):
         """Test creating a network controller."""
-        mock_settings = {"ports": {"video": 6666, "control": 6668}}
         mock_nm = MagicMock()
         mock_nm_class.return_value = mock_nm
 
-        result = self.coordinator.create_network_controller(mock_settings)
+        result = self.coordinator._create_network_controller(self.settings)
 
         self.assertEqual(result, mock_nm)
         mock_nm_class.assert_called_once()
 
         # Verify handlers were created
         call_args = mock_nm_class.call_args
-        self.assertEqual(call_args[0][0], mock_settings)
+        self.assertEqual(call_args[0][0], self.settings)
         handlers = call_args[0][1]
         self.assertIn("messages", handlers)
         self.assertIn("states", handlers)
@@ -53,16 +60,9 @@ class TestNetworkCoordinator(unittest.TestCase):
 
         mock_nm.setup_ports.assert_called_once()
 
-    def test_setup_ports_no_manager(self):
-        """Test setting up ports when no network manager exists."""
-        self.coordinator.network_controller = None
-        # Should not raise an error
-        self.coordinator.setup_ports()
-
     @patch("v3xctrl_ui.network.NetworkCoordinator.NetworkController")
     def test_restart_network_controller(self, mock_nm_class):
         """Test restarting network manager in background thread."""
-        mock_settings = {"ports": {"video": 6666}}
         mock_nm_old = MagicMock()
         mock_nm_new = MagicMock()
         self.coordinator.network_controller = mock_nm_old
@@ -70,7 +70,7 @@ class TestNetworkCoordinator(unittest.TestCase):
         # Set up the mock to return new network manager on second call
         mock_nm_class.return_value = mock_nm_new
 
-        thread = self.coordinator.restart_network_controller(mock_settings)
+        thread = self.coordinator._restart_network_controller(self.settings)
 
         self.assertIsInstance(thread, threading.Thread)
         self.assertFalse(self.coordinator.restart_complete.is_set())
@@ -84,19 +84,14 @@ class TestNetworkCoordinator(unittest.TestCase):
         mock_nm_old.shutdown.assert_called_once()
 
     def test_send_control_message(self):
-        """Test sending control message."""
-        mock_server = MagicMock()
+        """The coordinator forwards control to the channel; the channel builds the message."""
         mock_nm = MagicMock()
-        mock_nm.server = mock_server
-        mock_nm.server_error = False
-        mock_nm.relay_spectator_mode = False
+        mock_nm.is_spectator.return_value = False
         self.coordinator.network_controller = mock_nm
 
         self.coordinator.send_control_message(0.5, -0.3)
 
-        mock_server.send_control.assert_called_once()
-        call_args = mock_server.send_control.call_args[0][0]
-        self.assertIsInstance(call_args, Control)
+        mock_nm.send_control.assert_called_once_with(0.5, -0.3)
 
     def test_send_control_message_no_server(self):
         """Test sending control message when server is None."""
@@ -112,7 +107,7 @@ class TestNetworkCoordinator(unittest.TestCase):
         mock_server = MagicMock()
         mock_nm = MagicMock()
         mock_nm.server = mock_server
-        mock_nm.server_error = True
+        mock_nm.get_server_error.return_value = True
         self.coordinator.network_controller = mock_nm
 
         self.coordinator.send_control_message(0.5, -0.3)
@@ -122,10 +117,9 @@ class TestNetworkCoordinator(unittest.TestCase):
 
     def test_send_command(self):
         """Test sending a command to the server."""
-        mock_server = MagicMock()
         mock_nm = MagicMock()
-        mock_nm.server = mock_server
-        mock_nm.relay_spectator_mode = False
+        mock_nm.is_spectator.return_value = False
+        mock_nm.send_command.return_value = True
         self.coordinator.network_controller = mock_nm
 
         command = Command({"action": "test"})
@@ -134,8 +128,8 @@ class TestNetworkCoordinator(unittest.TestCase):
         self.coordinator.send_command(command, callback)
 
         # Verify send_command was called with the command and a deferred callback wrapper
-        mock_server.send_command.assert_called_once()
-        call_args = mock_server.send_command.call_args
+        mock_nm.send_command.assert_called_once()
+        call_args = mock_nm.send_command.call_args
         self.assertEqual(call_args[0][0], command)
         # The second arg should be the deferred callback wrapper (a callable)
         self.assertTrue(callable(call_args[0][1]))
@@ -144,28 +138,29 @@ class TestNetworkCoordinator(unittest.TestCase):
         deferred_callback = call_args[0][1]
         deferred_callback(True)
 
-        # Process the callback queue to invoke the original callback
-        self.coordinator.process_callbacks()
+        # Draining is what puts the callback on the main thread
+        self.main_thread_dispatcher.drain()
         callback.assert_called_once_with(True)
 
-    def test_send_command_no_server(self):
-        """Test sending command when server is None calls callback with False."""
+    def test_send_command_is_logged(self):
         mock_nm = MagicMock()
-        mock_nm.server = None
-        mock_nm.relay_spectator_mode = False
+        mock_nm.is_spectator.return_value = False
+        mock_nm.send_command.return_value = True
         self.coordinator.network_controller = mock_nm
 
-        command = Command({"action": "test"})
-        callback = MagicMock()
+        with self.assertLogs("v3xctrl_ui.network.NetworkCoordinator", level="INFO") as logs:
+            self.coordinator.send_command(Command("trim", {"action": "increase"}), MagicMock())
 
-        self.coordinator.send_command(command, callback)
+        self.assertEqual(
+            logs.output, ["INFO:v3xctrl_ui.network.NetworkCoordinator:Sending command: trim {'action': 'increase'}"]
+        )
 
-        # Callback should be invoked with False to indicate failure
-        callback.assert_called_once_with(False)
-
-    def test_send_command_no_network_controller(self):
-        """Test sending command when network_controller is None calls callback with False."""
-        self.coordinator.network_controller = None
+    def test_send_command_no_server(self):
+        """A channel that reports it could not send makes the callback fire with False."""
+        mock_nm = MagicMock()
+        mock_nm.send_command.return_value = False
+        mock_nm.is_spectator.return_value = False
+        self.coordinator.network_controller = mock_nm
 
         command = Command({"action": "test"})
         callback = MagicMock()
@@ -178,7 +173,7 @@ class TestNetworkCoordinator(unittest.TestCase):
     def test_send_latency_check(self):
         """Test sending latency check."""
         mock_nm = MagicMock()
-        mock_nm.relay_spectator_mode = False
+        mock_nm.is_spectator.return_value = False
         self.coordinator.network_controller = mock_nm
 
         self.coordinator.send_latency_check()
@@ -194,65 +189,15 @@ class TestNetworkCoordinator(unittest.TestCase):
 
         mock_nm.update_ttl.assert_called_once_with(150)
 
-    def test_get_data_queue_size(self):
-        """Test getting data queue size."""
-        mock_nm = MagicMock()
-        mock_nm.get_data_queue_size.return_value = 42
-        self.coordinator.network_controller = mock_nm
-
-        result = self.coordinator.get_data_queue_size()
-
-        self.assertEqual(result, 42)
-
-    def test_get_data_queue_size_no_manager(self):
-        """Test getting data queue size when no network manager."""
-        self.coordinator.network_controller = None
-
-        result = self.coordinator.get_data_queue_size()
-
-        self.assertEqual(result, 0)
-
     def test_get_video_buffer_size(self):
         """Test getting video buffer size."""
-        mock_video_receiver = MagicMock()
-        mock_video_receiver.frame_buffer = [1, 2, 3, 4, 5]
         mock_nm = MagicMock()
-        mock_nm.video_receiver = mock_video_receiver
+        mock_nm.get_video_buffer_size.return_value = 5
         self.coordinator.network_controller = mock_nm
 
         result = self.coordinator.get_video_buffer_size()
 
         self.assertEqual(result, 5)
-
-    def test_get_video_buffer_size_no_receiver(self):
-        """Test getting video buffer size when no video receiver."""
-        mock_nm = MagicMock()
-        mock_nm.video_receiver = None
-        self.coordinator.network_controller = mock_nm
-
-        result = self.coordinator.get_video_buffer_size()
-
-        self.assertEqual(result, 0)
-
-    def test_has_server_error(self):
-        """Test checking for server error."""
-        mock_nm = MagicMock()
-        mock_nm.server_error = True
-        self.coordinator.network_controller = mock_nm
-
-        result = self.coordinator.has_server_error()
-
-        self.assertTrue(result)
-
-    def test_has_server_error_false(self):
-        """Test checking for server error when no error."""
-        mock_nm = MagicMock()
-        mock_nm.server_error = False
-        self.coordinator.network_controller = mock_nm
-
-        result = self.coordinator.has_server_error()
-
-        self.assertFalse(result)
 
     def test_is_control_connected(self):
         """Test checking control connection status."""
@@ -311,8 +256,28 @@ class TestNetworkCoordinator(unittest.TestCase):
         disconnected_handler()
         self.assertFalse(self.model.control_connected)
 
-    def test_handlers_call_osd_methods(self):
-        """Test that handlers call OSD methods."""
+    def test_state_handlers_log_the_transition(self):
+        handlers = self.coordinator._create_handlers()
+        connect_handler = handlers["states"][0][1]
+        spectate_handler = handlers["states"][1][1]
+        disconnect_handler = handlers["states"][2][1]
+
+        with self.assertLogs("v3xctrl_ui.network.NetworkCoordinator", level="INFO") as logs:
+            connect_handler()
+            disconnect_handler()
+            spectate_handler()
+
+        self.assertEqual(
+            logs.output,
+            [
+                "INFO:v3xctrl_ui.network.NetworkCoordinator:Control channel connected",
+                "INFO:v3xctrl_ui.network.NetworkCoordinator:Control channel disconnected",
+                "INFO:v3xctrl_ui.network.NetworkCoordinator:Control channel connected",
+            ],
+        )
+
+    def test_handlers_route_to_the_osd_and_the_sink(self):
+        """Telemetry lands in the sink; connection state lands in the OSD."""
         handlers = self.coordinator._create_handlers()
 
         # Test message handlers
@@ -325,7 +290,7 @@ class TestNetworkCoordinator(unittest.TestCase):
         telemetry_handler(mock_telemetry, "address")
         latency_handler(latency_message, "address")
 
-        self.assertEqual(self.mock_osd.message_handler.call_count, 2)
+        self.assertEqual(self.mock_telemetry_sink.handle_message.call_count, 2)
 
         # Test state handlers (both CONNECTED and SPECTATING call connect_handler)
         connect_handler = handlers["states"][0][1]
@@ -335,6 +300,13 @@ class TestNetworkCoordinator(unittest.TestCase):
         connect_handler()
         spectating_handler()
         disconnect_handler()
+
+        # The sink is built for the receive thread; the OSD waits for the main loop
+        self.mock_telemetry_sink.reset.assert_called_once()
+        self.mock_osd.connect_handler.assert_not_called()
+        self.mock_osd.disconnect_handler.assert_not_called()
+
+        self.main_thread_dispatcher.drain()
 
         self.assertEqual(self.mock_osd.connect_handler.call_count, 2)  # Called by both CONNECTED and SPECTATING
         self.mock_osd.disconnect_handler.assert_called_once()
@@ -350,12 +322,14 @@ class TestNetworkCoordinator(unittest.TestCase):
         connected_handler = handlers["states"][3][1]
         disconnected_handler = handlers["states"][5][1]
 
-        # Test connected
+        # The callback reaches the menu, so it waits for the main loop
         connected_handler()
+        mock_callback.assert_not_called()
+        self.main_thread_dispatcher.drain()
         mock_callback.assert_called_with(True)
 
-        # Test disconnected
         disconnected_handler()
+        self.main_thread_dispatcher.drain()
         mock_callback.assert_called_with(False)
 
         self.assertEqual(mock_callback.call_count, 2)
@@ -374,7 +348,7 @@ class TestNetworkCoordinator(unittest.TestCase):
     def test_is_spectator_true(self):
         """Test checking spectator mode when enabled."""
         mock_nm = MagicMock()
-        mock_nm.relay_spectator_mode = True
+        mock_nm.is_spectator.return_value = True
         self.coordinator.network_controller = mock_nm
 
         result = self.coordinator.is_spectator()
@@ -384,16 +358,8 @@ class TestNetworkCoordinator(unittest.TestCase):
     def test_is_spectator_false(self):
         """Test checking spectator mode when disabled."""
         mock_nm = MagicMock()
-        mock_nm.relay_spectator_mode = False
+        mock_nm.is_spectator.return_value = False
         self.coordinator.network_controller = mock_nm
-
-        result = self.coordinator.is_spectator()
-
-        self.assertFalse(result)
-
-    def test_is_spectator_no_manager(self):
-        """Test checking spectator mode when no network manager."""
-        self.coordinator.network_controller = None
 
         result = self.coordinator.is_spectator()
 
@@ -404,8 +370,8 @@ class TestNetworkCoordinator(unittest.TestCase):
         mock_server = MagicMock()
         mock_nm = MagicMock()
         mock_nm.server = mock_server
-        mock_nm.server_error = False
-        mock_nm.relay_spectator_mode = True
+        mock_nm.get_server_error.return_value = False
+        mock_nm.is_spectator.return_value = True
         self.coordinator.network_controller = mock_nm
 
         self.coordinator.send_control_message(0.5, -0.3)
@@ -416,7 +382,7 @@ class TestNetworkCoordinator(unittest.TestCase):
     def test_send_latency_check_spectator_mode(self):
         """Test that latency checks are not sent in spectator mode."""
         mock_nm = MagicMock()
-        mock_nm.relay_spectator_mode = True
+        mock_nm.is_spectator.return_value = True
         self.coordinator.network_controller = mock_nm
 
         self.coordinator.send_latency_check()
@@ -434,19 +400,11 @@ class TestNetworkCoordinator(unittest.TestCase):
 
         self.assertEqual(result, 3)
 
-    def test_get_control_buffer_size_no_manager(self):
-        """Test getting control buffer size when no network manager."""
-        self.coordinator.network_controller = None
-
-        result = self.coordinator.get_control_buffer_size()
-
-        self.assertEqual(result, 0)
-
     def test_has_recent_send_failures(self):
         """Test checking for recent send failures."""
         mock_nm = MagicMock()
         mock_nm.server = MagicMock()
-        mock_nm.server_error = None
+        mock_nm.get_server_error.return_value = None
         mock_nm.server.transmitter.has_recent_send_failures.return_value = True
         self.coordinator.network_controller = mock_nm
 
@@ -454,22 +412,12 @@ class TestNetworkCoordinator(unittest.TestCase):
 
         self.assertTrue(result)
 
-    def test_has_recent_send_failures_no_server(self):
-        """Test checking for send failures when no server."""
-        mock_nm = MagicMock()
-        mock_nm.server = None
-        self.coordinator.network_controller = mock_nm
-
-        result = self.coordinator.has_recent_send_failures()
-
-        self.assertFalse(result)
-
     def test_send_command_spectator_mode(self):
         """Test that commands are not sent in spectator mode."""
         mock_server = MagicMock()
         mock_nm = MagicMock()
         mock_nm.server = mock_server
-        mock_nm.relay_spectator_mode = True
+        mock_nm.is_spectator.return_value = True
         self.coordinator.network_controller = mock_nm
 
         command = Command({"action": "test"})
@@ -479,8 +427,8 @@ class TestNetworkCoordinator(unittest.TestCase):
 
         # Should not send command when in spectator mode
         mock_server.send_command.assert_not_called()
-        # Callback is queued, process it to invoke with False
-        self.coordinator.process_callbacks()
+        # Callback is posted, draining invokes it with False
+        self.main_thread_dispatcher.drain()
         callback.assert_called_once_with(False)
 
 

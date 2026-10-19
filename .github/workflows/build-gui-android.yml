@@ -71,9 +71,30 @@ jobs:
           echo "sdk.dir=$ANDROID_HOME" > local.properties
           echo "gst.dir=$HOME/android-gst" >> local.properties
 
-      - name: Build Debug APK
+      - name: Decode release keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "The ANDROID_KEYSTORE_BASE64 secret is not set, cannot sign the release APK." >&2
+            exit 1
+          fi
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "${RUNNER_TEMP}/release.keystore"
+
+      - name: Build Release APK
         working-directory: android
-        run: ./gradlew assembleDebug -Pversion="${VERSION}"
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/release.keystore
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease -Pversion="${VERSION}"
+
+      - name: Verify APK signature
+        run: |
+          APKSIGNER=$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          "$APKSIGNER" verify --print-certs --verbose \
+            android/app/build/outputs/apk/release/app-release.apk
 
       - name: Run unit tests
         working-directory: android
@@ -93,13 +114,13 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Rename APK
-        run: mv android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/v3xctrl-viewer-android-${VERSION}.apk
+        run: mv android/app/build/outputs/apk/release/app-release.apk android/app/build/outputs/apk/release/v3xctrl-viewer-android-${VERSION}.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v7
         with:
           name: v3xctrl-viewer-android-${{ env.VERSION }}
-          path: android/app/build/outputs/apk/debug/v3xctrl-viewer-android-*.apk
+          path: android/app/build/outputs/apk/release/v3xctrl-viewer-android-*.apk
 
   call-cleanup:
     name: Cleanup old workflow runs

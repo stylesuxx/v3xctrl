@@ -2,6 +2,7 @@ import socket
 import time
 import unittest
 
+from v3xctrl_control.message import Error, PeerInfo
 from v3xctrl_tcp.framing import recv_message, send_message
 from v3xctrl_tcp.TcpTunnel import TcpTunnel
 
@@ -18,10 +19,13 @@ def _free_port() -> int:
 class _TcpServerHelper:
     """Simple TCP server for testing TcpTunnel connections."""
 
-    def __init__(self, port: int) -> None:
+    def __init__(self, port: int, receive_buffer: int | None = None) -> None:
         self.port = port
         self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        if receive_buffer is not None:
+            # Inherited by accepted sockets; a small window makes the tunnel's sends block quickly.
+            self.server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, receive_buffer)
         self.server_sock.bind(("127.0.0.1", port))
         self.server_sock.listen(1)
         self.server_sock.settimeout(5.0)
@@ -248,11 +252,135 @@ class TestTcpTunnelReconnect(unittest.TestCase):
             server.close()
 
 
+class TestSendStall(unittest.TestCase):
+    """A peer that stops reading for a moment stalls the tunnel's sends; the link is still healthy."""
+
+    def test_a_short_send_stall_does_not_drop_the_connection(self) -> None:
+        tcp_port = _free_port()
+        server = _TcpServerHelper(tcp_port, receive_buffer=4096)
+        tunnel = TcpTunnel(
+            remote_host="127.0.0.1",
+            remote_port=tcp_port,
+            local_component_port=_free_port(),
+            bidirectional=False,
+        )
+        udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+        with self.assertLogs("v3xctrl_tcp.TcpTunnel", level="INFO") as logs:
+            tunnel.start()
+            tunnel.wait_for_port(timeout=2.0)
+            try:
+                client = server.accept()
+                client.settimeout(2.0)
+
+                # The peer reads nothing while datagrams pour in for 700 ms: the socket
+                # buffers (about 1.7 MB on loopback) fill within the first 100 ms and the
+                # tunnel's sendall then blocks for the rest of the pause.
+                pause_until = time.monotonic() + 0.7
+                while time.monotonic() < pause_until:
+                    udp.sendto(b"x" * 1024, ("127.0.0.1", tunnel.ephemeral_port))
+
+                # The peer drains; every frame is intact and the connection is the same one.
+                deadline = time.monotonic() + 3.0
+                frames = 0
+                client.settimeout(0.3)
+                while time.monotonic() < deadline:
+                    try:
+                        data = recv_message(client)
+                    except TimeoutError:
+                        break
+                    if data is None:
+                        self.fail("the tunnel closed the connection during the stall")
+                    self.assertEqual(data, b"x" * 1024)
+                    frames += 1
+                self.assertGreater(frames, 0)
+
+                client.settimeout(2.0)
+                udp.sendto(b"after the stall", ("127.0.0.1", tunnel.ephemeral_port))
+                self.assertEqual(recv_message(client), b"after the stall")
+
+                server.server_sock.settimeout(0.3)
+                with self.assertRaises(TimeoutError):
+                    server.server_sock.accept()
+            finally:
+                udp.close()
+                tunnel.stop()
+                server.close()
+
+        self.assertNotIn("disconnected", "\n".join(logs.output))
+
+
 class TestTcpTunnelHandshake(unittest.TestCase):
     """Test relay-mode handshake behavior."""
 
+    def test_rejected_handshake_stops_the_tunnel(self) -> None:
+        """An Error answer means the relay refused the session; the tunnel logs it and does not retry."""
+        tcp_port = _free_port()
+        server = _TcpServerHelper(tcp_port)
+        tunnel = TcpTunnel(
+            remote_host="127.0.0.1",
+            remote_port=tcp_port,
+            local_component_port=_free_port(),
+            bidirectional=False,
+            handshake=b"announcement",
+        )
+
+        with self.assertLogs("v3xctrl_tcp.TcpTunnel", level="ERROR") as logs:
+            tunnel.start()
+            tunnel.wait_for_port(timeout=2.0)
+            try:
+                client = server.accept()
+                client.settimeout(2.0)
+                self.assertEqual(recv_message(client), b"announcement")
+
+                send_message(client, Error("403").to_bytes())
+
+                for thread in tunnel._threads:
+                    thread.join(timeout=2.0)
+                self.assertTrue(tunnel.rejected)
+                self.assertFalse(any(thread.is_alive() for thread in tunnel._threads))
+
+                server.server_sock.settimeout(0.5)
+                with self.assertRaises(TimeoutError):
+                    server.server_sock.accept()
+            finally:
+                tunnel.stop()
+                server.close()
+
+        self.assertIn("TcpTunnel handshake rejected by the relay: 403", "\n".join(logs.output))
+
+    def test_unexpected_handshake_answer_is_retried(self) -> None:
+        tcp_port = _free_port()
+        server = _TcpServerHelper(tcp_port)
+        tunnel = TcpTunnel(
+            remote_host="127.0.0.1",
+            remote_port=tcp_port,
+            local_component_port=_free_port(),
+            bidirectional=False,
+            handshake=b"announcement",
+        )
+
+        with self.assertLogs("v3xctrl_tcp.TcpTunnel", level="ERROR") as logs:
+            tunnel.start()
+            tunnel.wait_for_port(timeout=2.0)
+            try:
+                client = server.accept()
+                client.settimeout(2.0)
+                recv_message(client)
+                send_message(client, b"not a message")
+
+                retry = server.accept()
+                retry.close()
+                client.close()
+                self.assertFalse(tunnel.rejected)
+            finally:
+                tunnel.stop()
+                server.close()
+
+        self.assertIn("not a message", "\n".join(logs.output))
+
     def test_handshake_sent_on_connect(self) -> None:
-        """Handshake bytes are sent first, response is read."""
+        """Handshake bytes are sent first, the wait is logged, response is read."""
         tcp_port = _free_port()
         local_port = _free_port()
         server = _TcpServerHelper(tcp_port)
@@ -266,33 +394,41 @@ class TestTcpTunnelHandshake(unittest.TestCase):
             bidirectional=False,
             handshake=handshake_data,
         )
-        tunnel.start()
-        tunnel.wait_for_port(timeout=2.0)
 
-        try:
-            client = server.accept()
-            client.settimeout(2.0)
+        with self.assertLogs("v3xctrl_tcp.TcpTunnel", level="INFO") as logs:
+            tunnel.start()
+            tunnel.wait_for_port(timeout=2.0)
 
-            # Tunnel should have sent the handshake
-            received = recv_message(client)
-            self.assertEqual(received, handshake_data)
+            try:
+                client = server.accept()
+                client.settimeout(2.0)
 
-            # Send handshake response
-            send_message(client, b"PeerInfo:session123")
+                # Tunnel should have sent the handshake
+                received = recv_message(client)
+                self.assertEqual(received, handshake_data)
 
-            # Now data should flow
-            time.sleep(0.2)
-            udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            udp.sendto(b"after_handshake", ("127.0.0.1", tunnel.ephemeral_port))
+                # The wait for the peer is announced while the response is pending
+                time.sleep(0.2)
+                self.assertIn("waiting for the peer", "\n".join(logs.output))
+                self.assertNotIn("handshake complete", "\n".join(logs.output))
 
-            data = recv_message(client)
-            self.assertEqual(data, b"after_handshake")
+                # Send handshake response
+                send_message(client, PeerInfo(ip="1.2.3.4", video_port=8888, control_port=8888).to_bytes())
 
-            udp.close()
-            client.close()
-        finally:
-            tunnel.stop()
-            server.close()
+                # Now data should flow
+                time.sleep(0.2)
+                udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                udp.sendto(b"after_handshake", ("127.0.0.1", tunnel.ephemeral_port))
+
+                data = recv_message(client)
+                self.assertEqual(data, b"after_handshake")
+                self.assertIn("handshake complete", "\n".join(logs.output))
+
+                udp.close()
+                client.close()
+            finally:
+                tunnel.stop()
+                server.close()
 
 
 class TestTcpTunnelLifecycle(unittest.TestCase):

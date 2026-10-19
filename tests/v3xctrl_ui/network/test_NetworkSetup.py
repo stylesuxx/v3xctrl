@@ -1,11 +1,14 @@
 import errno
 import unittest
+from dataclasses import replace
 from unittest.mock import MagicMock, patch
 
+from tests.v3xctrl_ui.settings_helper import build_settings
 from v3xctrl_helper import PeerAddresses
-from v3xctrl_helper.exceptions import PeerRegistrationError
+from v3xctrl_helper.exceptions import PeerRegistrationAborted, PeerRegistrationError, UnauthorizedError
 from v3xctrl_relay.Role import Role
 from v3xctrl_tcp import Transport
+from v3xctrl_ui.core.SettingsSchema import VideoReceiver
 from v3xctrl_ui.network.NetworkSetup import (
     NetworkSetup,
     NetworkSetupResult,
@@ -18,13 +21,11 @@ from v3xctrl_ui.network.NetworkSetup import (
 class TestNetworkSetup(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures."""
-        # Mock settings
-        self.settings = MagicMock()
-        self.settings.get.side_effect = lambda key, default=None: {
-            "ports": {"video": 5000, "control": 6000},
-            "udp_packet_ttl": 100,
-            "video": {"render_ratio": 0, "receiver": "pyav"},
-        }.get(key, default)
+        self.settings = build_settings(
+            ports={"video": 5000, "control": 6000},
+            udp_packet_ttl=100,
+            video={"render_ratio": 0, "receiver": "pyav"},
+        )
 
         # Patch external dependencies
         self.peer_patcher = patch("v3xctrl_ui.network.NetworkSetup.Peer")
@@ -89,6 +90,42 @@ class TestNetworkSetup(unittest.TestCase):
         self.assertIsNone(result.video_address)
         self.assertIn("registration failed", result.error_message.lower())
 
+    def test_setup_relay_unauthorized_names_the_session_id(self):
+        setup = NetworkSetup(self.settings)
+        mock_peer = MagicMock()
+        mock_peer.setup.side_effect = UnauthorizedError("bad auth")
+        self.mock_peer_cls.return_value = mock_peer
+
+        result = setup.setup_relay("relay.example.com", 8080, "badid")
+
+        self.assertFalse(result.success)
+        self.assertFalse(result.aborted)
+        self.assertIn("session ID", result.error_message)
+
+    def test_setup_relay_aborted(self):
+        setup = NetworkSetup(self.settings)
+
+        mock_peer = MagicMock()
+        mock_peer.setup.side_effect = PeerRegistrationAborted()
+        self.mock_peer_cls.return_value = mock_peer
+
+        result = setup.setup_relay("relay.example.com", 8080, "id")
+
+        self.assertFalse(result.success)
+        self.assertTrue(result.aborted)
+        self.assertEqual(result.error_message, "Registration aborted")
+
+    def test_setup_relay_registration_error_is_not_aborted(self):
+        setup = NetworkSetup(self.settings)
+
+        mock_peer = MagicMock()
+        mock_peer.setup.side_effect = PeerRegistrationError({}, {})
+        self.mock_peer_cls.return_value = mock_peer
+
+        result = setup.setup_relay("relay.example.com", 8080, "badid")
+
+        self.assertFalse(result.aborted)
+
     def test_create_keep_alive_callback_with_address(self):
         """Test creating keep-alive callback with video address."""
         setup = NetworkSetup(self.settings)
@@ -148,6 +185,7 @@ class TestNetworkSetup(unittest.TestCase):
             error_callback,
             render_ratio=0,
             relay_address=None,
+            bind_address="0.0.0.0",
         )
         mock_receiver.start.assert_called_once()
 
@@ -187,7 +225,7 @@ class TestNetworkSetup(unittest.TestCase):
         self.assertIsNone(result.error_message)
 
         # Verify server was created correctly
-        self.mock_server_cls.assert_called_once_with(6000, 100, 1)
+        self.mock_server_cls.assert_called_once_with(6000, 100, 1, bind_address="0.0.0.0")
         mock_server.subscribe.assert_called_once()
         mock_server.on.assert_called_once()
         mock_server.start.assert_called_once()
@@ -253,6 +291,32 @@ class TestNetworkSetup(unittest.TestCase):
 
         # Verify no errors
         self.assertFalse(result.has_errors)
+
+    def test_tcp_transport_binds_video_and_control_to_loopback(self):
+        """In TCP mode only the TCP bridge on 127.0.0.1 may reach the UDP sockets,
+        so a streamer sending plain UDP is refused instead of silently accepted."""
+        settings = build_settings(
+            ports={"video": 5000, "control": 6000},
+            transport=Transport.TCP,
+            udp_packet_ttl=100,
+            video={"render_ratio": 0, "receiver": "pyav"},
+        )
+        setup = NetworkSetup(settings)
+
+        with patch("v3xctrl_ui.network.NetworkSetup.TcpServer") as mock_tcp_server_cls:
+            setup.orchestrate_setup(None, {"messages": [], "states": []})
+
+        mock_tcp_server_cls.assert_called_once_with(5000, 6000)
+        self.assertEqual(self.mock_video_receiver_cls.call_args.kwargs["bind_address"], "127.0.0.1")
+        self.assertEqual(self.mock_server_cls.call_args.kwargs["bind_address"], "127.0.0.1")
+
+    def test_udp_transport_binds_video_and_control_to_all_interfaces(self):
+        setup = NetworkSetup(self.settings)
+
+        setup.orchestrate_setup(None, {"messages": [], "states": []})
+
+        self.assertEqual(self.mock_video_receiver_cls.call_args.kwargs["bind_address"], "0.0.0.0")
+        self.assertEqual(self.mock_server_cls.call_args.kwargs["bind_address"], "0.0.0.0")
 
     def test_abort_with_peer(self):
         """Test abort() when peer exists."""
@@ -459,14 +523,12 @@ class TestTcpRelayHandshakeRole(unittest.TestCase):
         self.announcement_patcher.stop()
 
     def _make_settings(self):
-        settings = MagicMock()
-        settings.get.side_effect = lambda key, default=None: {
-            "ports": {"video": 5000, "control": 6000},
-            "transport": Transport.TCP,
-            "udp_packet_ttl": 100,
-            "video": {"render_ratio": 0},
-        }.get(key, default)
-        return settings
+        return build_settings(
+            ports={"video": 5000, "control": 6000},
+            transport=Transport.TCP,
+            udp_packet_ttl=100,
+            video={"render_ratio": 0},
+        )
 
     def test_tcp_viewer_sends_viewer_role(self):
         setup = NetworkSetup(self._make_settings())
@@ -529,12 +591,11 @@ class TestVideoReceiverSelection(unittest.TestCase):
     """Test video receiver auto-selection and lazy loading."""
 
     def setUp(self):
-        self.settings = MagicMock()
-        self.settings.get.side_effect = lambda key, default=None: {
-            "ports": {"video": 5000, "control": 6000},
-            "udp_packet_ttl": 100,
-            "video": {"render_ratio": 0},
-        }.get(key, default)
+        self.settings = build_settings(
+            ports={"video": 5000, "control": 6000},
+            udp_packet_ttl=100,
+            video={"render_ratio": 0},
+        )
 
         self.server_patcher = patch("v3xctrl_ui.network.NetworkSetup.Server")
         self.server_patcher.start()
@@ -590,11 +651,7 @@ class TestVideoReceiverSelection(unittest.TestCase):
         self.assertIn("No video receiver available", str(result.error))
 
     def test_explicit_gst_when_available(self):
-        self.settings.get.side_effect = lambda key, default=None: {
-            "ports": {"video": 5000, "control": 6000},
-            "udp_packet_ttl": 100,
-            "video": {"render_ratio": 0, "receiver": "gst"},
-        }.get(key, default)
+        self.settings.video = replace(self.settings.video, receiver=VideoReceiver.GST)
 
         mock_gst_cls = MagicMock()
         with patch("v3xctrl_ui.network.NetworkSetup._get_gstreamer_receiver", return_value=mock_gst_cls):
@@ -605,11 +662,7 @@ class TestVideoReceiverSelection(unittest.TestCase):
         mock_gst_cls.assert_called_once()
 
     def test_explicit_gst_when_not_available(self):
-        self.settings.get.side_effect = lambda key, default=None: {
-            "ports": {"video": 5000, "control": 6000},
-            "udp_packet_ttl": 100,
-            "video": {"render_ratio": 0, "receiver": "gst"},
-        }.get(key, default)
+        self.settings.video = replace(self.settings.video, receiver=VideoReceiver.GST)
 
         with patch("v3xctrl_ui.network.NetworkSetup._get_gstreamer_receiver", return_value=None):
             setup = NetworkSetup(self.settings)
@@ -619,11 +672,7 @@ class TestVideoReceiverSelection(unittest.TestCase):
         self.assertIn("not available", str(result.error))
 
     def test_explicit_pyav_when_not_available(self):
-        self.settings.get.side_effect = lambda key, default=None: {
-            "ports": {"video": 5000, "control": 6000},
-            "udp_packet_ttl": 100,
-            "video": {"render_ratio": 0, "receiver": "pyav"},
-        }.get(key, default)
+        self.settings.video = replace(self.settings.video, receiver=VideoReceiver.PYAV)
 
         with patch("v3xctrl_ui.network.NetworkSetup._get_pyav_receiver", return_value=None):
             setup = NetworkSetup(self.settings)
@@ -632,18 +681,13 @@ class TestVideoReceiverSelection(unittest.TestCase):
         self.assertFalse(result.success)
         self.assertIn("not available", str(result.error))
 
-    def test_unknown_receiver_type(self):
-        self.settings.get.side_effect = lambda key, default=None: {
-            "ports": {"video": 5000, "control": 6000},
-            "udp_packet_ttl": 100,
-            "video": {"render_ratio": 0, "receiver": "vlc"},
-        }.get(key, default)
+    def test_an_unknown_receiver_in_the_config_falls_back_to_auto(self):
+        """The enum catches it while loading, so setup is never handed an unknown value."""
+        with self.assertLogs("v3xctrl_ui.core.SettingsSchema", level="WARNING") as logged:
+            settings = build_settings(video={"render_ratio": 0, "receiver": "vlc"})
 
-        setup = NetworkSetup(self.settings)
-        result = setup.setup_video_receiver(MagicMock())
-
-        self.assertFalse(result.success)
-        self.assertIn("Unknown receiver type", str(result.error))
+        self.assertEqual(settings.video.receiver, VideoReceiver.AUTO)
+        self.assertIn("vlc", logged.output[0])
 
 
 class TestLazyReceiverLoading(unittest.TestCase):

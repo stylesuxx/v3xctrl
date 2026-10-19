@@ -1,6 +1,7 @@
 import contextlib
 import json
 import logging
+import os
 import socket
 from typing import Any
 
@@ -9,11 +10,13 @@ from flask import Blueprint, jsonify, render_template, session
 
 
 class RelayClient:
-    COMMAND_SOCKET_TEMPLATE = "/tmp/udp_relay_command_{port}.sock"
+    COMMAND_SOCKET_DIRECTORY = "/run/v3xctrl"
+    COMMAND_SOCKET_TEMPLATE = "relay_command_{port}.sock"
 
-    def __init__(self, port: int) -> None:
+    def __init__(self, port: int, command_socket_directory: str | None = None) -> None:
         self.port = port
-        self.socket_path = self.COMMAND_SOCKET_TEMPLATE.format(port=port)
+        self.command_socket_directory = command_socket_directory or self.COMMAND_SOCKET_DIRECTORY
+        self.socket_path = os.path.join(self.command_socket_directory, self.COMMAND_SOCKET_TEMPLATE.format(port=port))
         self.timeout = 5.0
 
     def get_stats(self) -> dict[str, Any]:

@@ -22,7 +22,7 @@ class StatusValueWidget(StatusWidget):
 
         self.padding_value = padding_value
 
-        self.value = None
+        self.value: int | str | None = None
         self.value_font = SMALL_MONO_FONT
         self.average = average
         self.history: deque[int] = deque(maxlen=average_window)

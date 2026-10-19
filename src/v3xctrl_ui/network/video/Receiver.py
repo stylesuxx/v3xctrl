@@ -80,10 +80,12 @@ class Receiver(ABC, threading.Thread):
         render_ratio: int = 0,
         target_fps: int = 30,
         timeout_seconds: float = 5.0,
+        bind_address: str = "0.0.0.0",
     ) -> None:
         super().__init__()
 
         self.port = port
+        self.bind_address = bind_address
         self.keep_alive = keep_alive
         self.log_interval = log_interval
         self.max_age_seconds = max_frame_age_ms / 1000
@@ -390,7 +392,7 @@ class Receiver(ABC, threading.Thread):
                 dropped_total = self.dropped_empty_frames + self.dropped_old_frames + self.dropped_burst_frames
                 drop_rate = (dropped_total / self.packet_count) * 100
 
-                time_elapsed = self.log_interval
+                time_elapsed: float = self.log_interval
                 if self.last_log_time > 0:
                     time_elapsed = current_time - self.last_log_time
                 avg_decoded_fps = round(self.decoded_frame_count / time_elapsed) if time_elapsed > 0 else 0

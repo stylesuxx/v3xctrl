@@ -313,3 +313,50 @@ class TestGamepadController(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+@patch("v3xctrl_ui.core.controllers.input.GamepadController.pygame.joystick.init")
+class TestCalibrationOwnership(unittest.TestCase):
+    def setUp(self):
+        self.controller = GamepadController()
+
+    def test_editing_a_returned_calibration_does_not_change_the_controller(self, mock_js_init):
+        self.controller.set_calibration("g1", {"steering": {"invert": False}})
+
+        returned = self.controller.get_calibration("g1")
+        returned["steering"]["invert"] = True
+
+        self.assertFalse(self.controller.get_calibration("g1")["steering"]["invert"])
+
+    def test_editing_the_stored_dict_after_set_does_not_change_the_controller(self, mock_js_init):
+        settings = {"steering": {"invert": False}}
+        self.controller.set_calibration("g1", settings)
+
+        settings["steering"]["invert"] = True
+
+        self.assertFalse(self.controller.get_calibration("g1")["steering"]["invert"])
+
+    def test_get_calibrations_is_a_copy(self, mock_js_init):
+        self.controller.set_calibration("g1", {"steering": {"invert": False}})
+
+        self.controller.get_calibrations()["g1"]["steering"]["invert"] = True
+
+        self.assertFalse(self.controller.get_calibration("g1")["steering"]["invert"])
+
+    def test_set_calibration_for_the_active_gamepad_is_used_by_read_inputs(self, mock_js_init):
+        fake_js = MagicMock()
+        fake_js.get_init.return_value = True
+        fake_js.get_numaxes.return_value = 2
+        fake_js.get_axis.return_value = 0.5
+        self.controller._gamepads["g1"] = fake_js
+        axis = {"axis": 0, "min": -1.0, "max": 1.0, "center": 0.0, "invert": False, "deadband": 0}
+        self.controller.set_calibration("g1", {"steering": dict(axis), "throttle": dict(axis)})
+        self.controller.set_active("g1")
+
+        before = self.controller.read_inputs(apply_deadband=False)
+        self.controller.set_calibration("g1", {"steering": dict(axis, invert=True), "throttle": dict(axis)})
+        after = self.controller.read_inputs(apply_deadband=False)
+
+        self.assertIsNotNone(before)
+        self.assertIsNotNone(after)
+        self.assertAlmostEqual(after["steering"], -before["steering"])
