@@ -83,6 +83,46 @@ Or open the project in Android Studio and run from there.
 
 There is also a standalone `build-native.sh` script if you need to rebuild the native libraries outside of Gradle.
 
+## Release builds
+
+`assembleRelease` requires a signing keystore. Supply the four values as Gradle
+properties, in `local.properties`, or in the environment:
+
+| Gradle property / `local.properties` | Environment variable |
+|---|---|
+| `keystorePath` | `ANDROID_KEYSTORE_PATH` |
+| `keystorePassword` | `ANDROID_KEYSTORE_PASSWORD` |
+| `keyAlias` | `ANDROID_KEY_ALIAS` |
+| `keyPassword` | `ANDROID_KEY_PASSWORD` |
+
+```bash
+./gradlew assembleRelease -Pversion=1.1.0 \
+  -PkeystorePath=/path/to/v3xctrl-release.keystore \
+  -PkeystorePassword=... -PkeyAlias=v3xctrl -PkeyPassword=...
+```
+
+The build stops before packaging when the signing config is incomplete, because an
+unsigned APK cannot be installed. CI reads the keystore from the
+`ANDROID_KEYSTORE_BASE64` secret and the passwords from the matching secrets.
+
+### Versions
+
+`-Pversion` sets `versionName` and is shown in the app. A semantic version also
+sets `versionCode`, mapped as `1.2.3 -> 10203`; any other version string, such as
+the git hash used for dev builds, resolves to `versionCode` 1. Since Android
+refuses an install whose `versionCode` is lower than the installed one, sideloading
+a dev build onto a device that has a release installed needs an explicit code:
+
+```bash
+./gradlew installRelease -PversionCode=99999 ...
+```
+
+Verify what signed an APK with:
+
+```bash
+"$ANDROID_HOME"/build-tools/36.1.0/apksigner verify --print-certs app-release.apk
+```
+
 ## Project Structure
 
 ```
