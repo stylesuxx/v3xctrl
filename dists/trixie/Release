@@ -2,14 +2,14 @@ Origin: V3XCTRL
 Label: V3XCTRL Repository
 Suite: trixie
 Codename: trixie
-Version: v1.0.0
+Version: v1.1.0
 Architectures: arm64
 Components: main
 Description: V3XCTRL Debian Repository
-Date: Sun, 14 Jun 2026 11:37:12 +0000
+Date: Sat, 24 Oct 2026 13:47:38 +0000
 MD5Sum:
- b4422016b20f049172ba482f8b07d13f 1373 main/binary-arm64/Packages
- 27c75a829475577d7b5b283c67cc90ae 739 main/binary-arm64/Packages.gz
+ 5822e40190865b93ee92f070d0a747d4 1377 main/binary-arm64/Packages
+ 3696be9eabf089aab6adbb9d862fc105 749 main/binary-arm64/Packages.gz
 SHA256:
- 933c8aa31fa98b9ce43e9fa12079c973c9cf05d68672d1fb9c84f0ab8b815e60 1373 main/binary-arm64/Packages
- e8418324c9aa12ef1d7c2cdec662a306e8a0ebb7e2fcbb76c43d9509c94a96e1 739 main/binary-arm64/Packages.gz
+ 634846958824c5427369e0a6af5cd72c1f720eb51af388bce0bb1b29f7acc95f 1377 main/binary-arm64/Packages
+ 8687d0775ce95eb3b089469c8553f1260eca99456750e531645dbd7b27fe4f83 749 main/binary-arm64/Packages.gz

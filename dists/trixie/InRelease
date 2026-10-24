@@ -5,30 +5,30 @@ Origin: V3XCTRL
 Label: V3XCTRL Repository
 Suite: trixie
 Codename: trixie
-Version: v1.0.0
+Version: v1.1.0
 Architectures: arm64
 Components: main
 Description: V3XCTRL Debian Repository
-Date: Sun, 14 Jun 2026 11:37:12 +0000
+Date: Sat, 24 Oct 2026 13:47:38 +0000
 MD5Sum:
- b4422016b20f049172ba482f8b07d13f 1373 main/binary-arm64/Packages
- 27c75a829475577d7b5b283c67cc90ae 739 main/binary-arm64/Packages.gz
+ 5822e40190865b93ee92f070d0a747d4 1377 main/binary-arm64/Packages
+ 3696be9eabf089aab6adbb9d862fc105 749 main/binary-arm64/Packages.gz
 SHA256:
- 933c8aa31fa98b9ce43e9fa12079c973c9cf05d68672d1fb9c84f0ab8b815e60 1373 main/binary-arm64/Packages
- e8418324c9aa12ef1d7c2cdec662a306e8a0ebb7e2fcbb76c43d9509c94a96e1 739 main/binary-arm64/Packages.gz
+ 634846958824c5427369e0a6af5cd72c1f720eb51af388bce0bb1b29f7acc95f 1377 main/binary-arm64/Packages
+ 8687d0775ce95eb3b089469c8553f1260eca99456750e531645dbd7b27fe4f83 749 main/binary-arm64/Packages.gz
 -----BEGIN PGP SIGNATURE-----
 
-iQIzBAEBCgAdFiEE/nSuSRMaijQxDWwzGxD2hnfu7FcFAmoukmkACgkQGxD2hnfu
-7FeWJg//XVLYeNwAeOoEmtmpbtPFO90xGjOILEEv+wPyY+fh3whvi0Dnf4ln+6aK
-6xm5S6/Tw0c3J4nPOcw3RnWQLDXNDA+dk1TnHi/HmzYyBW5ZpCKwIMgU0tdmMXgV
-oYsNESNsjCeBw8mIG0rULr28nmcAfCURDJkDqWw8+zEfHSPek26vibGBoKCBHDhl
-ugrsGc1NzmRSIklKXlSolUMPMzymIlM2zQLJb/JrGCqTHERldTRXPpSf4AZ6qq6v
-wd0E67gY81gvx1iQKpqBxi1EtZY3og0ynlVY9pcmnfmX1J+0C2n6sd8DeOkPoBBu
-Gk7MjufwhCPVCDT+DxrxH8ZvmTSXk0T2qeGM/iQS1tPFlNILWT7kFtEEYpErx2Re
-BATyyWC71yHW78nORh43HavIG1tcwIqOBL5vhGq2gLN1gKss9aK06FLFwdPlQgV0
-grCjRnRlznYNDM/wA85DAZVrE3KnqR4y+jws7rwXSIn/Vt5TpMtPbEpEEw0mlNWR
-kuySI9aZTi9UPnqoK9gPY2F/UK8ykFOA/8DWpd4PxhTAGLAFrbGLPbVKqOwBTDjp
-hex+7bRegTn62+25+VdM6eN6CkGxh74uWTCP1wEAvfUh55ycWbU1NWfsZ3GGn9iJ
-4Dq6Vz8JRtCc0dgeu2kcRGuDOYvuTqprdTqbD2PR73Ae/okQBDI=
-=aYkI
+iQIzBAEBCgAdFiEE/nSuSRMaijQxDWwzGxD2hnfu7FcFAmrctvsACgkQGxD2hnfu
+7FccnQ//VYIPs3JVCL7sM/g7gioV2y53pbngR4IxPL0tvzKpjYllMx6QO0vSDmwv
+c8hOyc5COVH5QXRmipY++be1rwKuX7y0iyl97qZgbtVMJGs0cbxd/SFhb6z7ww8f
+ySYR6+aRinmBiHoWohrJ4VKLrQR/fHeKE+/2qGRGLFtFDPHstTnw8715BWy9QuuX
+Dw12YxXtgVAEVXhhcZvW4KjrKjsCZFdJfqA9UapJro+L+FtGUpBHxx7r3nIxeD5f
+M6+fcUwFQlu+5r9LjeA6mSX/I19rJzVoYAlTIdYTuELDb6yZrM9B8r/XIL8Rt/Je
+pYu13oJscgsboOWOZEvcBFxx8p8dYQJHlHFXiPgfATlSMeysBJ8FyGiIT8Q7Rodo
+hiYf6yJK62R9rSWsHXitt3SBgGOdCEx4gike1gi+MrUcvy841ugdQfFvdf2P7prK
+6DwAJVzJRc9nb8bgm1Ckw9ATEw3wrRUw5pNpjLkYWalwZ3nKF7xFbewhZXrD3ef0
+4khMsoVUOZUKHSC7O/Kj5SADtOemfUsRjwshEBbsHAJf4U9jLv6P4RBEzz4DxwTw
+Uygm9xxdk/k9dKziN++3MIypLkDdzezFAuRADRkeTaI8Ln0t1oUDsJtiyNtxmdra
+4fJJrdQqNXI97OOQORZxITBjMurUhctLih4+F8Qi6i9opCB8Md0=
+=PabN
 -----END PGP SIGNATURE-----
